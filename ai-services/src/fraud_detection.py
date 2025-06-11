@@ -10,26 +10,52 @@ import logging
 import numpy as np
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
-import joblib
-from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
+import os
+import sys
+
+# Add models directory to path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
+
+try:
+    from models.fraud_model import AdvancedFraudDetector
+    PYTORCH_AVAILABLE = True
+except ImportError:
+    PYTORCH_AVAILABLE = False
+    # Fallback to sklearn
+    import joblib
+    from sklearn.ensemble import IsolationForest
+    from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
 
 class FraudDetector:
     def __init__(self):
-        self.model = None
-        self.scaler = None
-        self.model_version = "1.0.0"
+        self.model_version = "2.0.0"
         self.last_update = datetime.now()
         self.is_model_loaded = False
         
-        # Initialize with basic anomaly detection model
-        self._initialize_model()
+        # Try to use advanced PyTorch model, fallback to sklearn
+        if PYTORCH_AVAILABLE:
+            self._initialize_advanced_model()
+        else:
+            self._initialize_fallback_model()
     
-    def _initialize_model(self):
-        """Initialize fraud detection model"""
+    def _initialize_advanced_model(self):
+        """Initialize advanced PyTorch-based fraud detection model"""
         try:
+            logger.info("Initializing advanced PyTorch fraud detection model...")
+            self.detector = AdvancedFraudDetector()
+            self.is_model_loaded = self.detector.is_loaded
+            logger.info("Advanced fraud detection model initialized")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize advanced model: {e}")
+            self._initialize_fallback_model()
+    
+    def _initialize_fallback_model(self):
+        """Initialize fallback sklearn model"""
+        try:
+            logger.info("Initializing fallback sklearn fraud detection model...")
             # For now, use Isolation Forest for anomaly detection
             # In production, this would load a pre-trained model
             self.model = IsolationForest(
@@ -38,8 +64,9 @@ class FraudDetector:
                 n_estimators=100
             )
             self.scaler = StandardScaler()
+            self.detector = None
             self.is_model_loaded = True
-            logger.info("Fraud detection model initialized")
+            logger.info("Fallback fraud detection model initialized")
             
         except Exception as e:
             logger.error(f"Failed to initialize fraud detection model: {e}")
@@ -73,31 +100,12 @@ class FraudDetector:
             Analysis result with fraud probability and risk factors
         """
         try:
-            # Extract features from transaction
-            features = self._extract_features(transaction, historical_data)
+            # Use advanced model if available
+            if self.detector and hasattr(self.detector, 'analyze_transaction'):
+                return await self.detector.analyze_transaction(transaction, historical_data)
             
-            # Get fraud score
-            fraud_score = self._calculate_fraud_score(features)
-            
-            # Identify risk factors
-            risk_factors = self._identify_risk_factors(transaction, features, fraud_score)
-            
-            # Determine if fraudulent
-            is_fraudulent = fraud_score > 0.7
-            
-            # Generate recommendation
-            recommendation = self._generate_recommendation(fraud_score, risk_factors)
-            
-            result = {
-                "is_fraudulent": is_fraudulent,
-                "confidence": float(fraud_score),
-                "risk_factors": risk_factors,
-                "recommended_action": recommendation,
-                "analysis_timestamp": datetime.now().isoformat()
-            }
-            
-            logger.info(f"Fraud analysis completed: fraud_score={fraud_score:.3f}")
-            return result
+            # Fallback to basic analysis
+            return await self._analyze_with_fallback(transaction, historical_data)
             
         except Exception as e:
             logger.error(f"Fraud analysis failed: {e}")
@@ -108,6 +116,39 @@ class FraudDetector:
                 "recommended_action": "manual_review",
                 "error": str(e)
             }
+    
+    async def _analyze_with_fallback(
+        self,
+        transaction: Dict[str, Any],
+        historical_data: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Fallback analysis using sklearn"""
+        # Extract features from transaction
+        features = self._extract_features(transaction, historical_data)
+        
+        # Get fraud score
+        fraud_score = self._calculate_fraud_score(features)
+        
+        # Identify risk factors
+        risk_factors = self._identify_risk_factors(transaction, features, fraud_score)
+        
+        # Determine if fraudulent
+        is_fraudulent = fraud_score > 0.7
+        
+        # Generate recommendation
+        recommendation = self._generate_recommendation(fraud_score, risk_factors)
+        
+        result = {
+            "is_fraudulent": is_fraudulent,
+            "confidence": float(fraud_score),
+            "risk_factors": risk_factors,
+            "recommended_action": recommendation,
+            "analysis_timestamp": datetime.now().isoformat(),
+            "model_version": self.model_version
+        }
+        
+        logger.info(f"Fraud analysis completed: fraud_score={fraud_score:.3f}")
+        return result
     
     def _extract_features(self, transaction: Dict, historical_data: List[Dict]) -> np.ndarray:
         """Extract numerical features from transaction data"""

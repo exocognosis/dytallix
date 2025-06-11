@@ -6,6 +6,7 @@ Provides AI-powered analysis services for the Dytallix blockchain:
 - Transaction risk scoring  
 - Smart contract NLP generation
 - Behavioral analysis
+- Oracle bridge to blockchain
 """
 
 import asyncio
@@ -20,6 +21,7 @@ from fraud_detection import FraudDetector
 from risk_scoring import RiskScorer
 from contract_nlp import ContractNLPGenerator
 from oracle import BlockchainOracle
+from blockchain_oracle import BlockchainOracle as AIOracle
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Dytallix AI Services",
     description="AI-powered analysis services for post-quantum cryptocurrency",
-    version="0.1.0"
+    version="2.0.0"
 )
 
 # Add CORS middleware
@@ -40,6 +42,41 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize AI services
+fraud_detector = FraudDetector()
+risk_scorer = RiskScorer()
+contract_nlp = ContractNLPGenerator()
+oracle = BlockchainOracle()
+
+# Initialize AI-Blockchain Oracle Bridge
+ai_oracle = None
+
+async def initialize_oracle():
+    """Initialize the AI-Blockchain Oracle Bridge"""
+    global ai_oracle
+    try:
+        ai_oracle = AIOracle(
+            blockchain_rpc_url="http://localhost:8080",
+            ai_services_url="http://localhost:8000"
+        )
+        await ai_oracle.start()
+        logger.info("AI-Blockchain Oracle Bridge initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize oracle bridge: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    logger.info("Starting Dytallix AI Services...")
+    await initialize_oracle()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    logger.info("Shutting down Dytallix AI Services...")
+    if ai_oracle:
+        await ai_oracle.stop()
 
 # Initialize AI services
 fraud_detector = FraudDetector()
