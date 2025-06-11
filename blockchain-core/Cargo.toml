@@ -6,23 +6,25 @@ authors = ["Dytallix Team"]
 description = "Post-quantum AI-enhanced cryptocurrency node"
 
 [dependencies]
-# Core Substrate dependencies
-substrate-node-template = { git = "https://github.com/substrate-developer-hub/substrate-node-template", branch = "main" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
+# Our proven PQC implementation
+dytallix-pqc = { path = "../pqc-crypto" }
 
-# Cryptography
-pqcrypto = "0.16"
-pqcrypto-dilithium = "0.5"
-pqcrypto-kyber = "0.7"
-ring = "0.16"
+# Core blockchain dependencies
+blake3 = "1.5"
+sha3 = "0.10"
+hex = "0.4"
 
-# Networking and serialization
+# Networking and async runtime
 tokio = { version = "1.0", features = ["full"] }
+libp2p = { version = "0.53", features = ["tokio", "tcp", "noise", "gossipsub", "mdns", "yamux"] }
+
+# Serialization and data structures
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+bincode = "1.3"
+
+# Database and storage
+rocksdb = "0.22"
 
 # Logging and error handling
 log = "0.4"
@@ -30,8 +32,14 @@ env_logger = "0.10"
 anyhow = "1.0"
 thiserror = "1.0"
 
+# Utilities
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+rand = "0.8" # Add rand for random number generation
+
 # AI service integration
 reqwest = { version = "0.11", features = ["json"] }
+warp = "0.3"
 
 [dev-dependencies]
 tokio-test = "0.4"

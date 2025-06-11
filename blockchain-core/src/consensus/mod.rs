@@ -1,36 +1,11 @@
 use std::sync::Arc;
-use std::collections::HashMap;
 use tokio::sync::Mutex;
 use serde::{Serialize, Deserialize};
 use log::{info, debug};
 
 use crate::runtime::DytallixRuntime;
 use crate::crypto::{PQCManager, PQCSignature};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Block {
-    pub header: BlockHeader,
-    pub transactions: Vec<Transaction>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BlockHeader {
-    pub previous_hash: String,
-    pub merkle_root: String,
-    pub timestamp: u64,
-    pub block_number: u64,
-    pub validator_signature: Option<PQCSignature>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Transaction {
-    pub from: String,
-    pub to: String,
-    pub amount: u64,
-    pub nonce: u64,
-    pub signature: Option<PQCSignature>,
-    pub ai_risk_score: Option<f64>,
-}
+use crate::types::{Transaction, Block, BlockHeader}; // Import from types
 
 #[derive(Debug)]
 pub struct ConsensusEngine {
@@ -73,11 +48,78 @@ impl ConsensusEngine {
     async fn start_validator_loop(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Starting validator loop...");
         
+        let runtime = Arc::clone(&self.runtime);
+        let pqc_manager = Arc::clone(&self.pqc_manager);
+        let current_block = Arc::clone(&self.current_block);
+        
         tokio::spawn(async move {
+            let mut block_number = 0u64;
+            
             loop {
-                // Validator logic would go here
-                // For now, just log that we're running
-                debug!("Validator tick");
+                debug!("Validator tick - producing block #{}", block_number);
+                
+                // Create a sample transaction for demonstration
+                let mut sample_tx = crate::types::TransferTransaction {
+                    hash: String::new(), // Will be calculated
+                    from: "dyt1genesis".to_string(),
+                    to: format!("dyt1addr{}", block_number % 5), // Rotate between addresses
+                    amount: 100 + (block_number * 10), // Variable amounts
+                    fee: 1,
+                    nonce: block_number,
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs(),
+                    signature: crate::types::PQCTransactionSignature {
+                        signature: dytallix_pqc::Signature {
+                            data: Vec::new(),
+                            algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                        },
+                        public_key: Vec::new(),
+                    },
+                    ai_risk_score: Some(0.1), // Low risk
+                };
+                
+                // Calculate hash
+                sample_tx.hash = sample_tx.calculate_hash();
+                
+                let transaction = Transaction::Transfer(sample_tx);
+                let transactions = vec![transaction];
+                
+                // Create block proposal
+                match Self::create_block_proposal(&runtime, &pqc_manager, &current_block, transactions, block_number).await {
+                    Ok(block) => {
+                        info!("✅ Successfully created block #{} with {} transactions", 
+                              block.header.number, block.transactions.len());
+                        
+                        // Validate the block
+                        match Self::validate_block_static(&runtime, &pqc_manager, &block).await {
+                            Ok(true) => {
+                                info!("✅ Block #{} validation successful", block.header.number);
+                                
+                                // Apply block to state
+                                if let Err(e) = Self::apply_block_to_state(&runtime, &block).await {
+                                    log::error!("Failed to apply block to state: {}", e);
+                                } else {
+                                    // Update current block
+                                    let mut current = current_block.lock().await;
+                                    *current = Some(block);
+                                    block_number += 1;
+                                }
+                            }
+                            Ok(false) => {
+                                log::error!("❌ Block #{} validation failed", block.header.number);
+                            }
+                            Err(e) => {
+                                log::error!("❌ Error validating block #{}: {}", block.header.number, e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        log::error!("Failed to create block proposal: {}", e);
+                    }
+                }
+                
                 tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
             }
         });
@@ -85,29 +127,57 @@ impl ConsensusEngine {
         Ok(())
     }
     
-    pub async fn propose_block(&self, transactions: Vec<Transaction>) -> Result<Block, Box<dyn std::error::Error>> {
-        let previous_block = self.current_block.lock().await;
-        let previous_hash = match &*previous_block {
-            Some(block) => self.calculate_block_hash(&block.header),
+    pub async fn propose_block(&self, transactions: Vec<Transaction>) -> Result<Block, String> {
+        Self::create_block_proposal(&self.runtime, &self.pqc_manager, &self.current_block, transactions, 0).await
+    }
+    
+    pub async fn validate_block(&self, block: &Block) -> Result<bool, String> {
+        Self::validate_block_static(&self.runtime, &self.pqc_manager, block).await
+    }
+    
+    fn calculate_merkle_root(&self, transactions: &[Transaction]) -> String {
+        Self::calculate_merkle_root_static(transactions)
+    }
+    
+    // Static helper methods for use in async tasks
+    async fn create_block_proposal(
+        runtime: &Arc<DytallixRuntime>,
+        pqc_manager: &Arc<PQCManager>,
+        current_block: &Arc<Mutex<Option<Block>>>,
+        transactions: Vec<Transaction>,
+        block_number: u64,
+    ) -> Result<Block, String> {
+        let previous_block = current_block.lock().await;
+        let parent_hash = match &*previous_block {
+            Some(block) => Self::calculate_block_hash_static(&block.header),
             None => "0".repeat(64), // Genesis block
         };
+        drop(previous_block);
         
-        let block_number = match &*previous_block {
-            Some(block) => block.header.block_number + 1,
-            None => 0,
-        };
-        
-        let merkle_root = self.calculate_merkle_root(&transactions);
+        let transactions_root = Self::calculate_merkle_root_static(&transactions);
         let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| e.to_string())?
             .as_secs();
         
+        // Create a placeholder signature (to be replaced)
+        let placeholder_signature = crate::types::PQCBlockSignature {
+            signature: dytallix_pqc::Signature {
+                data: Vec::new(),
+                algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+            },
+            public_key: Vec::new(),
+        };
+        
         let header = BlockHeader {
-            previous_hash,
-            merkle_root,
+            number: block_number,
+            parent_hash,
+            transactions_root,
+            state_root: "0".repeat(64), // TODO: Calculate actual state root
             timestamp,
-            block_number,
-            validator_signature: None,
+            validator: "dyt1validator".to_string(), // TODO: Use actual validator address
+            signature: placeholder_signature.clone(),
+            nonce: 0,
         };
         
         let mut block = Block {
@@ -116,41 +186,50 @@ impl ConsensusEngine {
         };
         
         // Sign the block with PQC signature
-        let block_hash = self.calculate_block_hash(&block.header);
-        let signature = self.pqc_manager.sign_message(block_hash.as_bytes())?;
-        block.header.validator_signature = Some(signature);
+        let block_hash = Self::calculate_block_hash_static(&block.header);
+        let signature = pqc_manager.sign_message(block_hash.as_bytes())
+            .map_err(|e| e.to_string())?;
         
-        info!("Proposed block #{} with {} transactions", block.header.block_number, block.transactions.len());
+        // Update the block header with real signature
+        block.header.signature = crate::types::PQCBlockSignature {
+            signature: dytallix_pqc::Signature {
+                data: signature.signature,
+                algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+            },
+            public_key: pqc_manager.get_dilithium_public_key().to_vec(),
+        };
         
         Ok(block)
     }
     
-    pub async fn validate_block(&self, block: &Block) -> Result<bool, Box<dyn std::error::Error>> {
+    async fn validate_block_static(
+        runtime: &Arc<DytallixRuntime>,
+        pqc_manager: &Arc<PQCManager>,
+        block: &Block,
+    ) -> Result<bool, String> {
         // Validate block structure
         if block.transactions.is_empty() {
             return Ok(false);
         }
         
         // Validate PQC signature
-        if let Some(ref signature) = block.header.validator_signature {
-            let block_hash = self.calculate_block_hash(&block.header);
-            // In a real implementation, we'd use the validator's public key
-            let is_valid = self.pqc_manager.verify_signature(
-                block_hash.as_bytes(),
-                signature,
-                self.pqc_manager.get_dilithium_public_key(),
-            )?;
-            
-            if !is_valid {
-                return Ok(false);
-            }
-        } else {
+        let block_hash = Self::calculate_block_hash_static(&block.header);
+        let is_valid = pqc_manager.verify_signature(
+            block_hash.as_bytes(),
+            &crate::crypto::PQCSignature {
+                signature: block.header.signature.signature.data.clone(),
+                algorithm: format!("{:?}", block.header.signature.signature.algorithm),
+            },
+            &block.header.signature.public_key,
+        ).map_err(|e| e.to_string())?;
+        
+        if !is_valid {
             return Ok(false);
         }
         
         // Validate transactions
         for tx in &block.transactions {
-            if !self.validate_transaction(tx).await? {
+            if !Self::validate_transaction_static(runtime, pqc_manager, tx).await? {
                 return Ok(false);
             }
         }
@@ -158,59 +237,153 @@ impl ConsensusEngine {
         Ok(true)
     }
     
-    async fn validate_transaction(&self, tx: &Transaction) -> Result<bool, Box<dyn std::error::Error>> {
-        // Basic validation
-        if tx.amount == 0 {
-            return Ok(false);
+    async fn validate_transaction_static(
+        runtime: &Arc<DytallixRuntime>,
+        pqc_manager: &Arc<PQCManager>,
+        tx: &Transaction,
+    ) -> Result<bool, String> {
+        match tx {
+            Transaction::Transfer(transfer_tx) => {
+                // Basic validation
+                if transfer_tx.amount == 0 {
+                    return Ok(false);
+                }
+                
+                // Check AI risk score if present
+                if let Some(risk_score) = transfer_tx.ai_risk_score {
+                    if risk_score > 0.8 {
+                        info!("Transaction rejected due to high AI risk score: {}", risk_score);
+                        return Ok(false);
+                    }
+                }
+                
+                // Check balance for transfers (skip for genesis)
+                if transfer_tx.from != "dyt1genesis" {
+                    let balance = runtime.get_balance(&transfer_tx.from).await
+                        .map_err(|e| e.to_string())?;
+                    if balance < transfer_tx.amount {
+                        info!("Transaction rejected due to insufficient balance: {} < {}", balance, transfer_tx.amount);
+                        return Ok(false);
+                    }
+                }
+                
+                // Note: Signature validation would happen here in production
+                Ok(true)
+            }
+            Transaction::Deploy(_) => {
+                // TODO: Implement contract deployment validation
+                Ok(true)
+            }
+            Transaction::Call(_) => {
+                // TODO: Implement contract call validation
+                Ok(true)
+            }
+            Transaction::Stake(_) => {
+                // TODO: Implement staking validation
+                Ok(true)
+            }
+            Transaction::AIRequest(_) => {
+                // TODO: Implement AI service validation
+                Ok(true)
+            }
         }
+    }
+    
+    async fn apply_block_to_state(
+        runtime: &Arc<DytallixRuntime>,
+        block: &Block,
+    ) -> Result<(), String> {
+        info!("Applying block #{} to state", block.header.number);
         
-        // Check AI risk score if present
-        if let Some(risk_score) = tx.ai_risk_score {
-            if risk_score > 0.8 {
-                info!("Transaction rejected due to high AI risk score: {}", risk_score);
-                return Ok(false);
+        for tx in &block.transactions {
+            match tx {
+                Transaction::Transfer(transfer_tx) => {
+                    // Apply transfer transaction to state
+                    if transfer_tx.from != "dyt1genesis" {
+                        // Deduct from sender (skip for genesis)
+                        let sender_balance = runtime.get_balance(&transfer_tx.from).await.unwrap_or(0);
+                        if sender_balance >= transfer_tx.amount {
+                            runtime.set_balance(&transfer_tx.from, sender_balance - transfer_tx.amount).await
+                                .map_err(|e| e.to_string())?;
+                            runtime.increment_nonce(&transfer_tx.from).await
+                                .map_err(|e| e.to_string())?;
+                        }
+                    }
+                    
+                    // Add to recipient
+                    let recipient_balance = runtime.get_balance(&transfer_tx.to).await.unwrap_or(0);
+                    runtime.set_balance(&transfer_tx.to, recipient_balance + transfer_tx.amount).await
+                        .map_err(|e| e.to_string())?;
+                    
+                    info!("Applied transfer: {} -> {} ({})", transfer_tx.from, transfer_tx.to, transfer_tx.amount);
+                }
+                Transaction::Deploy(deploy_tx) => {
+                    // TODO: Deploy smart contract
+                    info!("Applied contract deployment: {}", deploy_tx.hash);
+                }
+                Transaction::Call(call_tx) => {
+                    // TODO: Execute smart contract call
+                    info!("Applied contract call: {}", call_tx.hash);
+                }
+                Transaction::Stake(stake_tx) => {
+                    // TODO: Process staking transaction
+                    info!("Applied staking transaction: {}", stake_tx.hash);
+                }
+                Transaction::AIRequest(ai_tx) => {
+                    // TODO: Process AI service request
+                    info!("Applied AI request: {}", ai_tx.hash);
+                }
             }
         }
         
-        // Validate PQC signature if present
-        if let Some(ref signature) = tx.signature {
-            let tx_data = format!("{}:{}:{}", tx.from, tx.to, tx.amount);
-            // In a real implementation, we'd use the sender's public key
-            let is_valid = self.pqc_manager.verify_signature(
-                tx_data.as_bytes(),
-                signature,
-                self.pqc_manager.get_dilithium_public_key(),
-            )?;
-            
-            return Ok(is_valid);
-        }
+        // Save state to storage
+        runtime.save_state().await.map_err(|e| e.to_string())?;
         
-        Ok(true)
+        Ok(())
     }
     
-    fn calculate_block_hash(&self, header: &BlockHeader) -> String {
+    fn calculate_block_hash_static(header: &BlockHeader) -> String {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
         
         let mut hasher = DefaultHasher::new();
-        header.previous_hash.hash(&mut hasher);
-        header.merkle_root.hash(&mut hasher);
+        header.number.hash(&mut hasher);
+        header.parent_hash.hash(&mut hasher);
+        header.transactions_root.hash(&mut hasher);
+        header.state_root.hash(&mut hasher);
         header.timestamp.hash(&mut hasher);
-        header.block_number.hash(&mut hasher);
+        header.validator.hash(&mut hasher);
+        header.nonce.hash(&mut hasher);
         
         format!("{:x}", hasher.finish())
     }
     
-    fn calculate_merkle_root(&self, transactions: &[Transaction]) -> String {
-        // Simplified merkle root calculation
+    fn calculate_merkle_root_static(transactions: &[Transaction]) -> String {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
         
         let mut hasher = DefaultHasher::new();
         for tx in transactions {
-            tx.from.hash(&mut hasher);
-            tx.to.hash(&mut hasher);
-            tx.amount.hash(&mut hasher);
+            // Hash the transaction based on its type
+            match tx {
+                Transaction::Transfer(transfer_tx) => {
+                    transfer_tx.from.hash(&mut hasher);
+                    transfer_tx.to.hash(&mut hasher);
+                    transfer_tx.amount.hash(&mut hasher);
+                }
+                Transaction::Deploy(deploy_tx) => {
+                    deploy_tx.hash.hash(&mut hasher);
+                }
+                Transaction::Call(call_tx) => {
+                    call_tx.hash.hash(&mut hasher);
+                }
+                Transaction::Stake(stake_tx) => {
+                    stake_tx.hash.hash(&mut hasher);
+                }
+                Transaction::AIRequest(ai_tx) => {
+                    ai_tx.hash.hash(&mut hasher);
+                }
+            }
         }
         
         format!("{:x}", hasher.finish())

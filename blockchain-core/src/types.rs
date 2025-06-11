@@ -1,0 +1,559 @@
+// Core blockchain types for Dytallix
+// Post-Quantum Cryptography Enhanced Blockchain
+
+use serde::{Serialize, Deserialize};
+use dytallix_pqc::{Signature, SignatureAlgorithm};
+use sha3::{Sha3_256, Digest};
+use std::fmt;
+
+/// Dytallix address format (dyt1...)
+pub type Address = String;
+
+/// Block hash (32 bytes as hex string)
+pub type Hash = String;
+
+/// Transaction hash (32 bytes as hex string)  
+pub type TxHash = String;
+
+/// Block number
+pub type BlockNumber = u64;
+
+/// Amount in smallest unit (like satoshis)
+pub type Amount = u64;
+
+/// Timestamp (Unix timestamp in seconds)
+pub type Timestamp = u64;
+
+/// Dytallix Block Structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Block {
+    pub header: BlockHeader,
+    pub transactions: Vec<Transaction>,
+}
+
+/// Block Header with PQC Validator Signature
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlockHeader {
+    /// Block number in the chain
+    pub number: BlockNumber,
+    
+    /// Hash of the previous block
+    pub parent_hash: Hash,
+    
+    /// Merkle root of all transactions in this block
+    pub transactions_root: Hash,
+    
+    /// State root after applying all transactions
+    pub state_root: Hash,
+    
+    /// Block timestamp
+    pub timestamp: Timestamp,
+    
+    /// Address of the validator who produced this block
+    pub validator: Address,
+    
+    /// Post-quantum signature of the block hash by validator
+    pub signature: PQCBlockSignature,
+    
+    /// Nonce for PoW (if hybrid consensus)
+    pub nonce: u64,
+}
+
+/// Post-Quantum Signature for Block Validation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PQCBlockSignature {
+    /// The signature data
+    pub signature: Signature,
+    
+    /// Public key of the signer (validator)
+    pub public_key: Vec<u8>,
+}
+
+/// Dytallix Transaction Types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Transaction {
+    /// Simple transfer between accounts
+    Transfer(TransferTransaction),
+    
+    /// Smart contract deployment
+    Deploy(DeployTransaction),
+    
+    /// Smart contract call
+    Call(CallTransaction),
+    
+    /// Validator staking transaction
+    Stake(StakeTransaction),
+    
+    /// AI service request transaction
+    AIRequest(AIRequestTransaction),
+}
+
+/// Simple Transfer Transaction
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransferTransaction {
+    /// Transaction hash
+    pub hash: TxHash,
+    
+    /// Sender address
+    pub from: Address,
+    
+    /// Recipient address
+    pub to: Address,
+    
+    /// Amount to transfer
+    pub amount: Amount,
+    
+    /// Transaction fee
+    pub fee: Amount,
+    
+    /// Transaction nonce (to prevent replay attacks)
+    pub nonce: u64,
+    
+    /// Timestamp when transaction was created
+    pub timestamp: Timestamp,
+    
+    /// Post-quantum signature by sender
+    pub signature: PQCTransactionSignature,
+    
+    /// AI-calculated risk score (0.0 = low risk, 1.0 = high risk)
+    pub ai_risk_score: Option<f64>,
+}
+
+/// Smart Contract Deployment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeployTransaction {
+    pub hash: TxHash,
+    pub from: Address,
+    pub contract_code: Vec<u8>,
+    pub initial_state: Vec<u8>,
+    pub fee: Amount,
+    pub nonce: u64,
+    pub timestamp: Timestamp,
+    pub signature: PQCTransactionSignature,
+}
+
+/// Smart Contract Call
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CallTransaction {
+    pub hash: TxHash,
+    pub from: Address,
+    pub contract_address: Address,
+    pub method: String,
+    pub params: Vec<u8>,
+    pub fee: Amount,
+    pub nonce: u64,
+    pub timestamp: Timestamp,
+    pub signature: PQCTransactionSignature,
+}
+
+/// Validator Staking Transaction
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StakeTransaction {
+    pub hash: TxHash,
+    pub validator: Address,
+    pub amount: Amount,
+    pub action: StakeAction,
+    pub fee: Amount,
+    pub nonce: u64,
+    pub timestamp: Timestamp,
+    pub signature: PQCTransactionSignature,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum StakeAction {
+    Stake,
+    Unstake,
+    Delegate { to: Address },
+    Undelegate,
+}
+
+/// AI Service Request Transaction
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIRequestTransaction {
+    pub hash: TxHash,
+    pub from: Address,
+    pub service_type: AIServiceType,
+    pub request_data: Vec<u8>,
+    pub fee: Amount,
+    pub nonce: u64,
+    pub timestamp: Timestamp,
+    pub signature: PQCTransactionSignature,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum AIServiceType {
+    FraudDetection,
+    RiskScoring,
+    ContractAnalysis,
+    AddressReputation,
+}
+
+/// Post-Quantum Signature for Transactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PQCTransactionSignature {
+    /// The signature data
+    pub signature: Signature,
+    
+    /// Public key of the signer
+    pub public_key: Vec<u8>,
+}
+
+/// Account State
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AccountState {
+    /// Account balance
+    pub balance: Amount,
+    
+    /// Transaction nonce
+    pub nonce: u64,
+    
+    /// Smart contract code (if this is a contract account)
+    pub code: Option<Vec<u8>>,
+    
+    /// Contract storage (if this is a contract account)
+    pub storage: std::collections::HashMap<String, Vec<u8>>,
+    
+    /// AI reputation score (0-1000)
+    pub reputation_score: u16,
+    
+    /// Last AI analysis timestamp
+    pub last_ai_analysis: Option<Timestamp>,
+}
+
+/// Validator Information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidatorInfo {
+    /// Validator address
+    pub address: Address,
+    
+    /// Staked amount
+    pub stake: Amount,
+    
+    /// Public key for block signing
+    pub public_key: Vec<u8>,
+    
+    /// Signature algorithm used
+    pub signature_algorithm: SignatureAlgorithm,
+    
+    /// Is currently active
+    pub active: bool,
+    
+    /// Commission rate (basis points)
+    pub commission: u16,
+}
+
+/// Transaction Pool for managing pending transactions
+use std::collections::{HashMap, BTreeMap};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+#[derive(Debug)]
+pub struct TransactionPool {
+    /// Pending transactions organized by fee (highest fee first)
+    pending: Arc<Mutex<BTreeMap<u64, Vec<Transaction>>>>,
+    /// Transaction lookup by hash
+    lookup: Arc<Mutex<HashMap<TxHash, Transaction>>>,
+    /// Maximum pool size
+    max_size: usize,
+}
+
+impl TransactionPool {
+    pub fn new(max_size: usize) -> Self {
+        Self {
+            pending: Arc::new(Mutex::new(BTreeMap::new())),
+            lookup: Arc::new(Mutex::new(HashMap::new())),
+            max_size,
+        }
+    }
+    
+    /// Add a transaction to the pool
+    pub async fn add_transaction(&self, tx: Transaction) -> Result<TxHash, String> {
+        let tx_hash = tx.hash();
+        let fee = tx.fee();
+        
+        // Check if transaction already exists
+        {
+            let lookup = self.lookup.lock().await;
+            if lookup.contains_key(&tx_hash) {
+                return Err("Transaction already in pool".to_string());
+            }
+        }
+        
+        // Add to pending transactions
+        {
+            let mut pending = self.pending.lock().await;
+            let mut lookup = self.lookup.lock().await;
+            
+            // Check pool size limit
+            if lookup.len() >= self.max_size {
+                // Remove lowest fee transaction
+                if let Some((lowest_fee, txs)) = pending.iter_mut().next() {
+                    if let Some(removed_tx) = txs.pop() {
+                        lookup.remove(&removed_tx.hash());
+                    }
+                    if txs.is_empty() {
+                        let lowest_fee = *lowest_fee;
+                        pending.remove(&lowest_fee);
+                    }
+                }
+            }
+            
+            pending.entry(fee).or_insert_with(Vec::new).push(tx.clone());
+            lookup.insert(tx_hash.clone(), tx);
+        }
+        
+        Ok(tx_hash)
+    }
+    
+    /// Get transactions with highest fees for block creation
+    pub async fn get_pending_transactions(&self, max_count: usize) -> Vec<Transaction> {
+        let pending = self.pending.lock().await;
+        let mut transactions = Vec::new();
+        
+        // Iterate from highest fee to lowest
+        for (_, txs) in pending.iter().rev() {
+            for tx in txs {
+                if transactions.len() >= max_count {
+                    break;
+                }
+                transactions.push(tx.clone());
+            }
+            if transactions.len() >= max_count {
+                break;
+            }
+        }
+        
+        transactions
+    }
+    
+    /// Remove transactions that have been included in a block
+    pub async fn remove_transactions(&self, tx_hashes: &[TxHash]) {
+        let mut pending = self.pending.lock().await;
+        let mut lookup = self.lookup.lock().await;
+        
+        for tx_hash in tx_hashes {
+            if let Some(tx) = lookup.remove(tx_hash) {
+                let fee = tx.fee();
+                if let Some(txs) = pending.get_mut(&fee) {
+                    txs.retain(|t| t.hash() != *tx_hash);
+                    if txs.is_empty() {
+                        pending.remove(&fee);
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Get current pool statistics
+    pub async fn get_stats(&self) -> PoolStats {
+        let lookup = self.lookup.lock().await;
+        let pending = self.pending.lock().await;
+        
+        PoolStats {
+            total_transactions: lookup.len(),
+            fee_levels: pending.len(),
+            max_size: self.max_size,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PoolStats {
+    pub total_transactions: usize,
+    pub fee_levels: usize,
+    pub max_size: usize,
+}
+
+impl fmt::Display for PoolStats {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Pool: {}/{} transactions, {} fee levels", 
+               self.total_transactions, self.max_size, self.fee_levels)
+    }
+}
+
+// Implementation methods
+impl Block {
+    /// Calculate the hash of this block
+    pub fn hash(&self) -> Hash {
+        let header_bytes = bincode::serialize(&self.header).unwrap();
+        let mut hasher = Sha3_256::new();
+        hasher.update(&header_bytes);
+        let hash = hasher.finalize();
+        hex::encode(hash)
+    }
+    
+    /// Verify all transactions in this block
+    pub fn verify_transactions(&self) -> bool {
+        // TODO: Implement transaction verification
+        // For now, just check that we have transactions
+        !self.transactions.is_empty()
+    }
+}
+
+impl BlockHeader {
+    /// Calculate merkle root of transactions
+    pub fn calculate_transactions_root(transactions: &[Transaction]) -> Hash {
+        if transactions.is_empty() {
+            return "0".repeat(64);
+        }
+        
+        let tx_hashes: Vec<String> = transactions.iter()
+            .map(|tx| tx.hash())
+            .collect();
+        
+        Self::merkle_root(&tx_hashes)
+    }
+    
+    /// Simple merkle root calculation
+    fn merkle_root(hashes: &[String]) -> Hash {
+        if hashes.is_empty() {
+            return "0".repeat(64);
+        }
+        
+        if hashes.len() == 1 {
+            return hashes[0].clone();
+        }
+        
+        let mut level = hashes.to_vec();
+        while level.len() > 1 {
+            let mut next_level = Vec::new();
+            
+            for chunk in level.chunks(2) {
+                let mut hasher = Sha3_256::new();
+                hasher.update(chunk[0].as_bytes());
+                if chunk.len() > 1 {
+                    hasher.update(chunk[1].as_bytes());
+                } else {
+                    hasher.update(chunk[0].as_bytes()); // Duplicate if odd
+                }
+                let hash = hasher.finalize();
+                next_level.push(hex::encode(hash));
+            }
+            
+            level = next_level;
+        }
+        
+        level[0].clone()
+    }
+}
+
+impl Transaction {
+    /// Get the hash of this transaction
+    pub fn hash(&self) -> TxHash {
+        match self {
+            Transaction::Transfer(tx) => tx.hash.clone(),
+            Transaction::Deploy(tx) => tx.hash.clone(),
+            Transaction::Call(tx) => tx.hash.clone(),
+            Transaction::Stake(tx) => tx.hash.clone(),
+            Transaction::AIRequest(tx) => tx.hash.clone(),
+        }
+    }
+    
+    /// Get the sender address
+    pub fn from(&self) -> &Address {
+        match self {
+            Transaction::Transfer(tx) => &tx.from,
+            Transaction::Deploy(tx) => &tx.from,
+            Transaction::Call(tx) => &tx.from,
+            Transaction::Stake(tx) => &tx.validator,
+            Transaction::AIRequest(tx) => &tx.from,
+        }
+    }
+    
+    /// Get the transaction fee
+    pub fn fee(&self) -> Amount {
+        match self {
+            Transaction::Transfer(tx) => tx.fee,
+            Transaction::Deploy(tx) => tx.fee,
+            Transaction::Call(tx) => tx.fee,
+            Transaction::Stake(tx) => tx.fee,
+            Transaction::AIRequest(tx) => tx.fee,
+        }
+    }
+    
+    /// Get the transaction nonce
+    pub fn nonce(&self) -> u64 {
+        match self {
+            Transaction::Transfer(tx) => tx.nonce,
+            Transaction::Deploy(tx) => tx.nonce,
+            Transaction::Call(tx) => tx.nonce,
+            Transaction::Stake(tx) => tx.nonce,
+            Transaction::AIRequest(tx) => tx.nonce,
+        }
+    }
+}
+
+impl TransferTransaction {
+    /// Create a new transfer transaction
+    pub fn new(
+        from: Address,
+        to: Address,
+        amount: Amount,
+        fee: Amount,
+        nonce: u64,
+    ) -> Self {
+        let timestamp = chrono::Utc::now().timestamp() as u64;
+        
+        // Create transaction without signature first
+        let mut tx = Self {
+            hash: String::new(),
+            from,
+            to,
+            amount,
+            fee,
+            nonce,
+            timestamp,
+            signature: PQCTransactionSignature {
+                signature: Signature {
+                    data: Vec::new(),
+                    algorithm: SignatureAlgorithm::Dilithium5,
+                },
+                public_key: Vec::new(),
+            },
+            ai_risk_score: None, // Will be calculated later
+        };
+        
+        // Calculate hash
+        tx.hash = tx.calculate_hash();
+        tx
+    }
+    
+    /// Calculate hash of transaction data (without signature)
+    pub fn calculate_hash(&self) -> TxHash {
+        let data = format!("{}:{}:{}:{}:{}:{}", 
+            self.from, self.to, self.amount, self.fee, self.nonce, self.timestamp);
+        let mut hasher = Sha3_256::new();
+        hasher.update(data.as_bytes());
+        let hash = hasher.finalize();
+        hex::encode(hash)
+    }
+}
+
+impl fmt::Display for Block {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Block #{} with {} transactions", 
+               self.header.number, self.transactions.len())
+    }
+}
+
+impl fmt::Display for Transaction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Transaction::Transfer(tx) => {
+                write!(f, "Transfer: {} -> {} ({})", tx.from, tx.to, tx.amount)
+            },
+            Transaction::Deploy(tx) => {
+                write!(f, "Deploy contract by {}", tx.from)
+            },
+            Transaction::Call(tx) => {
+                write!(f, "Call {} by {}", tx.contract_address, tx.from)
+            },
+            Transaction::Stake(tx) => {
+                write!(f, "Stake {:?}: {} ({})", tx.action, tx.validator, tx.amount)
+            },
+            Transaction::AIRequest(tx) => {
+                write!(f, "AI {:?} request by {}", tx.service_type, tx.from)
+            },
+        }
+    }
+}

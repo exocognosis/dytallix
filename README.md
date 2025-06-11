@@ -237,13 +237,6 @@ cargo test --all
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🌍 Community
-
-- **Discord**: [Join our community](https://discord.gg/dytallix)
-- **Twitter**: [@DytallixCrypto](https://twitter.com/DytallixCrypto)
-- **GitHub**: [Issues and discussions](https://github.com/dytallix/dytallix)
-- **Blog**: [Latest updates and research](https://blog.dytallix.io)
-
 ---
 
 **Dytallix** - Securing the future of finance with quantum-safe AI-enhanced blockchain technology.

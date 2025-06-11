@@ -1,18 +1,20 @@
 use std::sync::Arc;
 use log::{info, warn};
-use tokio::runtime::Runtime;
 
 mod consensus;
 mod crypto;
 mod networking;
 mod runtime;
 mod storage;
+mod types; // Add types module
+mod api; // Add API module
 
 use crate::consensus::ConsensusEngine;
 use crate::crypto::PQCManager;
 use crate::networking::NetworkManager;
 use crate::runtime::DytallixRuntime;
 use crate::storage::StorageManager;
+use crate::types::{TransactionPool, Transaction}; // Import core types
 
 #[derive(Debug)]
 pub struct DytallixNode {
@@ -21,6 +23,7 @@ pub struct DytallixNode {
     network: Arc<NetworkManager>,
     storage: Arc<StorageManager>,
     pqc_manager: Arc<PQCManager>,
+    transaction_pool: Arc<TransactionPool>, // Add transaction pool
 }
 
 impl DytallixNode {
@@ -53,12 +56,17 @@ impl DytallixNode {
         ).await?);
         info!("Network manager initialized");
 
+        // Initialize transaction pool
+        let transaction_pool = Arc::new(TransactionPool::new(10000));
+        info!("Transaction pool initialized (max 10000 transactions)");
+
         Ok(Self {
             runtime,
             consensus,
             network,
             storage,
             pqc_manager,
+            transaction_pool,
         })
     }
 
@@ -84,6 +92,58 @@ impl DytallixNode {
         info!("Dytallix Node stopped");
         Ok(())
     }
+    
+    // API methods for interacting with the blockchain
+    pub async fn submit_transaction(&self, from: String, to: String, amount: u64) -> Result<String, Box<dyn std::error::Error>> {
+        // Create transaction
+        let nonce = self.runtime.get_nonce(&from).await.unwrap_or(0);
+        let mut transaction = crate::types::TransferTransaction {
+            hash: String::new(), // Will be calculated
+            from,
+            to,
+            amount,
+            nonce,
+            fee: 1, // Default fee
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+            signature: crate::types::PQCTransactionSignature {
+                signature: dytallix_pqc::Signature {
+                    data: Vec::new(),
+                    algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                },
+                public_key: Vec::new(),
+            },
+            ai_risk_score: Some(0.2),
+        };
+        
+        // Calculate hash
+        transaction.hash = transaction.calculate_hash();
+        
+        let tx = Transaction::Transfer(transaction);
+        
+        // Add to transaction pool
+        let tx_hash = self.transaction_pool.add_transaction(tx).await
+            .map_err(|e| format!("Failed to add transaction: {}", e))?;
+        
+        info!("Transaction submitted: {}", tx_hash);
+        Ok(tx_hash)
+    }
+    
+    pub async fn get_balance(&self, address: &str) -> Result<u64, Box<dyn std::error::Error>> {
+        self.runtime.get_balance(address).await
+    }
+    
+    pub async fn get_current_block_number(&self) -> u64 {
+        // TODO: Get from consensus engine or storage
+        0
+    }
+    
+    pub async fn get_transaction_pool_stats(&self) -> Result<(usize, usize), Box<dyn std::error::Error>> {
+        let stats = self.transaction_pool.get_stats().await;
+        Ok((stats.total_transactions, stats.fee_levels))
+    }
 }
 
 #[tokio::main]
@@ -97,6 +157,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle graceful shutdown
     let node_clone = Arc::new(node);
     let shutdown_node = Arc::clone(&node_clone);
+    
+    // Start API server in background
+    let api_node = Arc::clone(&node_clone);
+    tokio::spawn(async move {
+        if let Err(e) = crate::api::start_api_server(api_node).await {
+            log::error!("API server error: {}", e);
+        }
+    });
     
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.expect("Failed to listen for Ctrl+C");

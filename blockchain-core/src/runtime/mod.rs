@@ -11,7 +11,7 @@ pub struct DytallixRuntime {
     state: Arc<Mutex<RuntimeState>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct RuntimeState {
     pub balances: HashMap<String, u64>,
     pub nonces: HashMap<String, u64>,
@@ -84,7 +84,7 @@ impl DytallixRuntime {
     pub async fn execute_contract(&self, address: &str, input: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         let state = self.state.lock().await;
         
-        if let Some(contract_code) = state.contracts.get(address) {
+        if let Some(_contract_code) = state.contracts.get(address) {
             // In a real implementation, this would execute WASM code
             // For now, return a placeholder response
             debug!("Executing contract at {} with {} bytes input", address, input.len());

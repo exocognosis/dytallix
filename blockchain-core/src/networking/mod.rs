@@ -23,6 +23,7 @@ pub struct Peer {
     pub last_seen: u64,
 }
 
+#[derive(Debug)]
 pub struct NetworkManager {
     consensus: Arc<ConsensusEngine>,
     pqc_manager: Arc<PQCManager>,
@@ -68,8 +69,8 @@ impl NetworkManager {
     }
     
     async fn start_listener(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let listener = TcpListener::bind("127.0.0.1:8080").await?;
-        info!("Network listening on 127.0.0.1:8080");
+        let listener = TcpListener::bind("127.0.0.1:8081").await?;
+        info!("Network listening on 127.0.0.1:8081");
         
         let peers = Arc::clone(&self.peers);
         let listening = Arc::clone(&self.listening);
@@ -80,7 +81,10 @@ impl NetworkManager {
                     Ok((stream, addr)) => {
                         debug!("New connection from: {}", addr);
                         // Handle connection in a separate task
-                        tokio::spawn(Self::handle_connection(stream, Arc::clone(&peers)));
+                        let peers_clone = Arc::clone(&peers);
+                        tokio::spawn(async move {
+                            Self::handle_connection(stream, peers_clone).await;
+                        });
                     }
                     Err(e) => {
                         error!("Failed to accept connection: {}", e);
@@ -93,9 +97,9 @@ impl NetworkManager {
     }
     
     async fn handle_connection(
-        mut stream: TcpStream,
+        _stream: TcpStream,
         peers: Arc<Mutex<HashMap<String, Peer>>>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) {
         // In a real implementation, this would handle the PQC handshake
         // and message processing
         debug!("Handling new peer connection");
@@ -106,14 +110,13 @@ impl NetworkManager {
             id: peer_id.clone(),
             address: "unknown".to_string(),
             last_seen: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)?
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
                 .as_secs(),
         };
         
         let mut peers_map = peers.lock().await;
         peers_map.insert(peer_id, peer);
-        
-        Ok(())
     }
     
     async fn start_peer_discovery(&self) -> Result<(), Box<dyn std::error::Error>> {
@@ -130,7 +133,7 @@ impl NetworkManager {
         Ok(())
     }
     
-    pub async fn broadcast_message(&self, message: NetworkMessage) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn broadcast_message(&self, _message: NetworkMessage) -> Result<(), Box<dyn std::error::Error>> {
         let peers = self.peers.lock().await;
         
         for (peer_id, _peer) in peers.iter() {
@@ -141,7 +144,7 @@ impl NetworkManager {
         Ok(())
     }
     
-    pub async fn send_to_peer(&self, peer_id: &str, message: NetworkMessage) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn send_to_peer(&self, peer_id: &str, _message: NetworkMessage) -> Result<(), Box<dyn std::error::Error>> {
         let peers = self.peers.lock().await;
         
         if let Some(_peer) = peers.get(peer_id) {

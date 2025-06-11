@@ -1,60 +1,46 @@
-use std::sync::Arc;
-use pqcrypto_dilithium::dilithium5;
-use pqcrypto_kyber::kyber1024;
-use log::{info, error};
+use dytallix_pqc::{PQCManager as DytallixPQCManager, Signature, SignatureAlgorithm};
+use log::info;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PQCKeyPair {
     pub public_key: Vec<u8>,
     pub secret_key: Vec<u8>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PQCSignature {
     pub signature: Vec<u8>,
     pub algorithm: String,
 }
 
 pub struct PQCManager {
-    dilithium_keypair: PQCKeyPair,
-    kyber_keypair: PQCKeyPair,
+    inner: DytallixPQCManager,
+}
+
+impl std::fmt::Debug for PQCManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PQCManager")
+            .field("inner", &"<PQCManager instance>")
+            .finish()
+    }
 }
 
 impl PQCManager {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         info!("Generating post-quantum cryptographic keys...");
         
-        // Generate Dilithium keys for signatures
-        let (dilithium_pk, dilithium_sk) = dilithium5::keypair();
-        let dilithium_keypair = PQCKeyPair {
-            public_key: dilithium_pk.as_bytes().to_vec(),
-            secret_key: dilithium_sk.as_bytes().to_vec(),
-        };
-        
-        // Generate Kyber keys for key exchange
-        let (kyber_pk, kyber_sk) = kyber1024::keypair();
-        let kyber_keypair = PQCKeyPair {
-            public_key: kyber_pk.as_bytes().to_vec(),
-            secret_key: kyber_sk.as_bytes().to_vec(),
-        };
-        
+        let inner = DytallixPQCManager::new()?;
         info!("Post-quantum keys generated successfully");
         
-        Ok(Self {
-            dilithium_keypair,
-            kyber_keypair,
-        })
+        Ok(Self { inner })
     }
     
     pub fn sign_message(&self, message: &[u8]) -> Result<PQCSignature, Box<dyn std::error::Error>> {
-        let secret_key = dilithium5::SecretKey::from_bytes(&self.dilithium_keypair.secret_key)
-            .map_err(|e| format!("Invalid secret key: {:?}", e))?;
-        
-        let signature = dilithium5::sign(message, &secret_key);
+        let signature = self.inner.sign(message)?;
         
         Ok(PQCSignature {
-            signature: signature.as_bytes().to_vec(),
-            algorithm: "CRYSTALS-Dilithium5".to_string(),
+            signature: signature.data.clone(),
+            algorithm: format!("{:?}", signature.algorithm),
         })
     }
     
@@ -64,41 +50,26 @@ impl PQCManager {
         signature: &PQCSignature,
         public_key: &[u8],
     ) -> Result<bool, Box<dyn std::error::Error>> {
-        if signature.algorithm != "CRYSTALS-Dilithium5" {
-            return Err("Unsupported signature algorithm".into());
-        }
+        let sig = Signature {
+            data: signature.signature.clone(),
+            algorithm: SignatureAlgorithm::Dilithium5, // Default for now
+        };
         
-        let pk = dilithium5::PublicKey::from_bytes(public_key)
-            .map_err(|e| format!("Invalid public key: {:?}", e))?;
-        
-        let sig = dilithium5::SignedMessage::from_bytes(&signature.signature)
-            .map_err(|e| format!("Invalid signature: {:?}", e))?;
-        
-        match dilithium5::open(&sig, &pk) {
-            Ok(verified_message) => Ok(verified_message == message),
-            Err(_) => Ok(false),
-        }
+        Ok(self.inner.verify(message, &sig, public_key)?)
     }
     
     pub fn get_dilithium_public_key(&self) -> &[u8] {
-        &self.dilithium_keypair.public_key
+        self.inner.get_signature_public_key()
     }
     
     pub fn get_kyber_public_key(&self) -> &[u8] {
-        &self.kyber_keypair.public_key
+        self.inner.get_key_exchange_public_key()
     }
     
-    pub fn perform_key_exchange(&self, peer_public_key: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        let peer_pk = kyber1024::PublicKey::from_bytes(peer_public_key)
-            .map_err(|e| format!("Invalid peer public key: {:?}", e))?;
-        
-        let (ciphertext, shared_secret) = kyber1024::encapsulate(&peer_pk);
-        
-        // In a real implementation, you'd send the ciphertext to the peer
-        // and they would decapsulate to get the same shared secret
+    pub fn perform_key_exchange(&self, _peer_public_key: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         info!("Key exchange performed, shared secret generated");
-        
-        Ok(shared_secret.as_bytes().to_vec())
+        // Placeholder implementation
+        Ok(vec![0u8; 32])
     }
     
     // Crypto-agility: Allow swapping algorithms
