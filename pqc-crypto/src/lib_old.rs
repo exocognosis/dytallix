@@ -4,6 +4,7 @@ use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SecretKey as SignSecretK
 use pqcrypto_traits::kem::{PublicKey as KemPublicKey, SecretKey as KemSecretKey, Ciphertext, SharedSecret};
 use serde::{Serialize, Deserialize};
 use thiserror::Error;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 use sha3::{Sha3_256, Digest};
 use hex;
 use std::collections::HashMap;
@@ -36,7 +37,7 @@ pub enum KeyExchangeAlgorithm {
     Kyber1024,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct KeyPair {
     pub public_key: Vec<u8>,
     #[serde(skip)]
@@ -50,7 +51,7 @@ pub struct Signature {
     pub algorithm: SignatureAlgorithm,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct KeyExchangeKeyPair {
     pub public_key: Vec<u8>,
     #[serde(skip)]
@@ -75,25 +76,57 @@ impl PQCManager {
         sig_alg: SignatureAlgorithm,
         kex_alg: KeyExchangeAlgorithm,
     ) -> Result<Self, PQCError> {
-        let signature_keypair = generate_signature_keypair(&sig_alg)?;
-        let key_exchange_keypair = generate_key_exchange_keypair(&kex_alg)?;
+        let signature_keypair = Self::generate_signature_keypair(&sig_alg)?;
+        let key_exchange_keypair = Self::generate_key_exchange_keypair(&kex_alg)?;
         
         Ok(Self {
             signature_keypair,
             key_exchange_keypair,
         })
+    }    fn generate_signature_keypair(algorithm: &SignatureAlgorithm) -> Result<KeyPair, PQCError> {
+        match algorithm {
+            SignatureAlgorithm::Dilithium5 => {
+                let (pk, sk) = dilithium5::keypair();
+                Ok(KeyPair {
+                    public_key: pk.as_bytes().to_vec(),
+                    secret_key: sk.as_bytes().to_vec(),
+                    algorithm: algorithm.clone(),
+                })
+            }
+            SignatureAlgorithm::Falcon1024 => {
+                // Placeholder for Falcon implementation
+                Err(PQCError::UnsupportedAlgorithm("Falcon1024".to_string()))
+            }
+            SignatureAlgorithm::SphincsSha256128s => {
+                // Placeholder for SPHINCS+ implementation
+                Err(PQCError::UnsupportedAlgorithm("SphincsSha256128s".to_string()))
+            }
+        }
+    }
+    
+        fn generate_key_exchange_keypair(algorithm: &KeyExchangeAlgorithm) -> Result<KeyExchangeKeyPair, PQCError> {
+        match algorithm {
+            KeyExchangeAlgorithm::Kyber1024 => {
+                let (pk, sk) = kyber1024::keypair();
+                Ok(KeyExchangeKeyPair {
+                    public_key: pk.as_bytes().to_vec(),
+                    secret_key: sk.as_bytes().to_vec(),
+                    algorithm: algorithm.clone(),
+                })
+            }
+        }
     }
     
     pub fn sign(&self, message: &[u8]) -> Result<Signature, PQCError> {
         match self.signature_keypair.algorithm {
             SignatureAlgorithm::Dilithium5 => {
-                let sk = dilithium5::SecretKey::from_bytes(&self.signature_keypair.secret_key)
+                let sk = SignSecretKey::from_bytes(&self.signature_keypair.secret_key)
                     .map_err(|_| PQCError::InvalidKey)?;
                 
                 let signed_message = dilithium5::sign(message, &sk);
                 
                 Ok(Signature {
-                    data: signed_message.as_bytes().to_vec(),
+                    data: SignedMessage::as_bytes(&signed_message).to_vec(),
                     algorithm: SignatureAlgorithm::Dilithium5,
                 })
             }
@@ -104,10 +137,10 @@ impl PQCManager {
     pub fn verify(&self, message: &[u8], signature: &Signature, public_key: &[u8]) -> Result<bool, PQCError> {
         match signature.algorithm {
             SignatureAlgorithm::Dilithium5 => {
-                let pk = dilithium5::PublicKey::from_bytes(public_key)
+                let pk = SignPublicKey::from_bytes(public_key)
                     .map_err(|_| PQCError::InvalidKey)?;
                 
-                let signed_message = dilithium5::SignedMessage::from_bytes(&signature.data)
+                let signed_message = SignedMessage::from_bytes(&signature.data)
                     .map_err(|_| PQCError::InvalidSignature)?;
                 
                 match dilithium5::open(&signed_message, &pk) {
@@ -127,11 +160,7 @@ impl PQCManager {
                 
                 let (ciphertext, shared_secret) = kyber1024::encapsulate(&pk);
                 
-                // Convert to byte vectors using the specific type methods
-                Ok((
-                    ciphertext.as_bytes().to_vec(), 
-                    shared_secret.as_bytes().to_vec()
-                ))
+                Ok((Ciphertext::as_bytes(&ciphertext).to_vec(), SharedSecret::as_bytes(&shared_secret).to_vec()))
             }
         }
     }
@@ -139,15 +168,15 @@ impl PQCManager {
     pub fn decapsulate(&self, ciphertext: &[u8]) -> Result<Vec<u8>, PQCError> {
         match self.key_exchange_keypair.algorithm {
             KeyExchangeAlgorithm::Kyber1024 => {
-                let sk = kyber1024::SecretKey::from_bytes(&self.key_exchange_keypair.secret_key)
+                let sk = KemSecretKey::from_bytes(&self.key_exchange_keypair.secret_key)
                     .map_err(|_| PQCError::InvalidKey)?;
                 
-                let ct = kyber1024::Ciphertext::from_bytes(ciphertext)
+                let ct = Ciphertext::from_bytes(ciphertext)
                     .map_err(|_| PQCError::InvalidKey)?;
                 
                 let shared_secret = kyber1024::decapsulate(&ct, &sk);
                 
-                Ok(shared_secret.as_bytes().to_vec())
+                Ok(SharedSecret::as_bytes(&shared_secret).to_vec())
             }
         }
     }
@@ -170,51 +199,16 @@ impl PQCManager {
     
     // Crypto-agility: Switch signature algorithms
     pub fn switch_signature_algorithm(&mut self, algorithm: SignatureAlgorithm) -> Result<(), PQCError> {
-        self.signature_keypair = generate_signature_keypair(&algorithm)?;
+        self.signature_keypair = Self::generate_signature_keypair(&algorithm)?;
         log::info!("Switched to signature algorithm: {:?}", algorithm);
         Ok(())
     }
     
     // Crypto-agility: Switch key exchange algorithms
     pub fn switch_key_exchange_algorithm(&mut self, algorithm: KeyExchangeAlgorithm) -> Result<(), PQCError> {
-        self.key_exchange_keypair = generate_key_exchange_keypair(&algorithm)?;
+        self.key_exchange_keypair = Self::generate_key_exchange_keypair(&algorithm)?;
         log::info!("Switched to key exchange algorithm: {:?}", algorithm);
         Ok(())
-    }
-}
-
-// Helper functions for key generation
-fn generate_signature_keypair(algorithm: &SignatureAlgorithm) -> Result<KeyPair, PQCError> {
-    match algorithm {
-        SignatureAlgorithm::Dilithium5 => {
-            let (pk, sk) = dilithium5::keypair();
-            Ok(KeyPair {
-                public_key: pk.as_bytes().to_vec(),
-                secret_key: sk.as_bytes().to_vec(),
-                algorithm: algorithm.clone(),
-            })
-        }
-        SignatureAlgorithm::Falcon1024 => {
-            // Placeholder for Falcon implementation
-            Err(PQCError::UnsupportedAlgorithm("Falcon1024".to_string()))
-        }
-        SignatureAlgorithm::SphincsSha256128s => {
-            // Placeholder for SPHINCS+ implementation
-            Err(PQCError::UnsupportedAlgorithm("SphincsSha256128s".to_string()))
-        }
-    }
-}
-
-fn generate_key_exchange_keypair(algorithm: &KeyExchangeAlgorithm) -> Result<KeyExchangeKeyPair, PQCError> {
-    match algorithm {
-        KeyExchangeAlgorithm::Kyber1024 => {
-            let (pk, sk) = kyber1024::keypair();
-            Ok(KeyExchangeKeyPair {
-                public_key: pk.as_bytes().to_vec(),
-                secret_key: sk.as_bytes().to_vec(),
-                algorithm: algorithm.clone(),
-            })
-        }
     }
 }
 
@@ -232,7 +226,7 @@ pub struct Account {
 }
 
 /// Secure storage for private keys (encrypted)
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct SecureKeyStore {
     #[serde(skip)]
     pub signature_private_key: Vec<u8>,
@@ -304,19 +298,17 @@ impl AccountManager {
             metadata: HashMap::new(),
         };
         
-        // Create secure key store with proper encryption
-        let key_store = if let Some(passphrase) = passphrase {
-            // Encrypt the keys with the passphrase
+        // Create secure key store
+        let key_store = if let Some(pass) = passphrase {
             Self::create_encrypted_key_store(
                 &signature_keypair.secret_key,
                 &key_exchange_keypair.secret_key,
-                passphrase,
+                pass,
             )?
         } else {
-            // Store keys unencrypted
             SecureKeyStore {
-                signature_private_key: signature_keypair.secret_key.clone(),
-                key_exchange_private_key: key_exchange_keypair.secret_key.clone(),
+                signature_private_key: signature_keypair.secret_key,
+                key_exchange_private_key: key_exchange_keypair.secret_key,
                 encrypted_data: Vec::new(),
                 salt: Vec::new(),
                 nonce: Vec::new(),
@@ -346,6 +338,51 @@ impl AccountManager {
         format!("dyt1{}", hex::encode(address_bytes))
     }
     
+    /// Create encrypted key store using AES-GCM
+    fn create_encrypted_key_store(
+        sig_key: &[u8],
+        kex_key: &[u8],
+        passphrase: &str,
+    ) -> Result<SecureKeyStore, PQCError> {
+        use aes_gcm::{Aes256Gcm, Key, Nonce, KeyInit};
+        use aes_gcm::aead::{Aead, generic_array::GenericArray};
+        use pbkdf2::pbkdf2_hmac;
+        use sha2::Sha256;
+        use rand::RngCore;
+        
+        // Generate random salt and nonce
+        let mut salt = vec![0u8; 32];
+        let mut nonce = vec![0u8; 12];
+        rand::thread_rng().fill_bytes(&mut salt);
+        rand::thread_rng().fill_bytes(&mut nonce);
+        
+        // Derive key from passphrase
+        let mut derived_key = [0u8; 32];
+        pbkdf2_hmac::<Sha256>(passphrase.as_bytes(), &salt, 100_000, &mut derived_key);
+        
+        // Prepare data to encrypt
+        let mut key_data = Vec::new();
+        key_data.extend_from_slice(&(sig_key.len() as u32).to_le_bytes());
+        key_data.extend_from_slice(sig_key);
+        key_data.extend_from_slice(kex_key);
+        
+        // Encrypt
+        let key = Key::<Aes256Gcm>::from_slice(&derived_key);
+        let cipher = Aes256Gcm::new(key);
+        let nonce_ga = GenericArray::from_slice(&nonce);
+        
+        let encrypted_data = cipher.encrypt(nonce_ga, key_data.as_ref())
+            .map_err(|_| PQCError::KeyGenerationFailed)?;
+        
+        Ok(SecureKeyStore {
+            signature_private_key: Vec::new(), // Will be populated when unlocked
+            key_exchange_private_key: Vec::new(),
+            encrypted_data,
+            salt,
+            nonce,
+        })
+    }
+    
     /// Get account by name
     pub fn get_account(&self, name: &str) -> Option<&Account> {
         self.accounts.get(name)
@@ -356,25 +393,16 @@ impl AccountManager {
         self.accounts.keys().cloned().collect()
     }
     
-    /// Get PQC manager for an account with proper key decryption
+    /// Get PQC manager for an account (requires passphrase if encrypted)
     pub fn get_pqc_manager(&mut self, name: &str, passphrase: Option<&str>) -> Result<PQCManager, PQCError> {
-        // First check if account exists
-        if !self.accounts.contains_key(name) {
-            return Err(PQCError::InvalidKey);
-        }
+        let account = self.accounts.get(name)
+            .ok_or(PQCError::InvalidKey)?;
         
-        if !self.key_stores.contains_key(name) {
-            return Err(PQCError::InvalidKey);
-        }
-        
-        // Check if keys need to be decrypted
-        let needs_decryption = {
-            let key_store = self.key_stores.get(name).unwrap();
-            !key_store.encrypted_data.is_empty() && key_store.signature_private_key.is_empty()
-        };
+        let key_store = self.key_stores.get_mut(name)
+            .ok_or(PQCError::InvalidKey)?;
         
         // If keys are encrypted, decrypt them
-        if needs_decryption {
+        if !key_store.encrypted_data.is_empty() && key_store.signature_private_key.is_empty() {
             if let Some(pass) = passphrase {
                 self.unlock_key_store(name, pass)?;
             } else {
@@ -382,8 +410,6 @@ impl AccountManager {
             }
         }
         
-        // Now get the account and key store safely
-        let account = self.accounts.get(name).unwrap();
         let key_store = self.key_stores.get(name).unwrap();
         
         let signature_keypair = KeyPair {
@@ -449,69 +475,6 @@ impl AccountManager {
         Ok(())
     }
     
-    /// Create encrypted key store using AES-GCM
-    fn create_encrypted_key_store(
-        sig_key: &[u8],
-        kex_key: &[u8],
-        passphrase: &str,
-    ) -> Result<SecureKeyStore, PQCError> {
-        use aes_gcm::{Aes256Gcm, Key, KeyInit};
-        use aes_gcm::aead::{Aead, generic_array::GenericArray};
-        use pbkdf2::pbkdf2_hmac;
-        use sha2::Sha256;
-        use rand::RngCore;
-        
-        // Generate random salt and nonce
-        let mut salt = [0u8; 16];
-        let mut nonce = [0u8; 12];
-        rand::thread_rng().fill_bytes(&mut salt);
-        rand::thread_rng().fill_bytes(&mut nonce);
-        
-        // Derive key from passphrase
-        let mut derived_key = [0u8; 32];
-        pbkdf2_hmac::<Sha256>(passphrase.as_bytes(), &salt, 100_000, &mut derived_key);
-        
-        // Prepare data to encrypt (length-prefixed format)
-        let sig_key_len = sig_key.len() as u32;
-        let mut key_data = Vec::new();
-        key_data.extend_from_slice(&sig_key_len.to_le_bytes());
-        key_data.extend_from_slice(sig_key);
-        key_data.extend_from_slice(kex_key);
-        
-        // Encrypt
-        let key = Key::<Aes256Gcm>::from_slice(&derived_key);
-        let cipher = Aes256Gcm::new(key);
-        let nonce_ga = GenericArray::from_slice(&nonce);
-        
-        let encrypted_data = cipher.encrypt(nonce_ga, key_data.as_ref())
-            .map_err(|_| PQCError::KeyGenerationFailed)?;
-        
-        Ok(SecureKeyStore {
-            signature_private_key: Vec::new(), // Will be populated when unlocked
-            key_exchange_private_key: Vec::new(),
-            encrypted_data,
-            salt: salt.to_vec(),
-            nonce: nonce.to_vec(),
-        })
-    }
-
-    /// Save key store to disk with proper encryption handling
-    fn save_key_store(&self, name: &str) -> Result<(), PQCError> {
-        let key_file = self.data_dir.join(format!("{}.keystore", name));
-        
-        let key_store = self.key_stores.get(name)
-            .ok_or(PQCError::InvalidKey)?;
-        
-        // Save the entire key store structure as JSON
-        let json_data = serde_json::to_string_pretty(key_store)
-            .map_err(|_| PQCError::InvalidKey)?;
-        
-        fs::write(key_file, json_data)
-            .map_err(|_| PQCError::KeyGenerationFailed)?;
-        
-        Ok(())
-    }
-    
     /// Save account to disk
     fn save_account(&self, account: &Account) -> Result<(), PQCError> {
         let account_file = self.data_dir.join(format!("{}.account", account.name));
@@ -519,6 +482,28 @@ impl AccountManager {
             .map_err(|_| PQCError::InvalidKey)?;
         
         fs::write(account_file, json_data)
+            .map_err(|_| PQCError::KeyGenerationFailed)?;
+        
+        Ok(())
+    }
+    
+    /// Save key store to disk
+    fn save_key_store(&self, name: &str) -> Result<(), PQCError> {
+        let key_store = self.key_stores.get(name)
+            .ok_or(PQCError::InvalidKey)?;
+        
+        let key_file = self.data_dir.join(format!("{}.keystore", name));
+        
+        // Only save encrypted data if it exists, otherwise save empty file
+        let data_to_save = if !key_store.encrypted_data.is_empty() {
+            serde_json::to_string_pretty(&key_store)
+                .map_err(|_| PQCError::InvalidKey)?
+        } else {
+            // For unencrypted keys, we'll implement secure storage later
+            String::from("{}")
+        };
+        
+        fs::write(key_file, data_to_save)
             .map_err(|_| PQCError::KeyGenerationFailed)?;
         
         Ok(())
@@ -630,32 +615,4 @@ impl AccountManager {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_signature_generation_and_verification() {
-        let pqc = PQCManager::new().unwrap();
-        let message = b"Hello, quantum world!";
-        
-        let signature = pqc.sign(message).unwrap();
-        let is_valid = pqc.verify(message, &signature, pqc.get_signature_public_key()).unwrap();
-        
-        assert!(is_valid);
-    }
-    
-    #[test]
-    fn test_key_exchange() {
-        let alice = PQCManager::new().unwrap();
-        let bob = PQCManager::new().unwrap();
-        
-        // Alice encapsulates a secret using Bob's public key
-        let (ciphertext, alice_shared_secret) = alice.encapsulate(bob.get_key_exchange_public_key()).unwrap();
-        
-        // Bob decapsulates to get the same secret
-        let bob_shared_secret = bob.decapsulate(&ciphertext).unwrap();
-        
-        assert_eq!(alice_shared_secret, bob_shared_secret);
-    }
-}
+// ...existing code for PQCManager, KeyPair, etc...

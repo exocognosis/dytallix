@@ -89,7 +89,7 @@ enum AccountCommands {
     },
     /// List all accounts
     List,
-    /// Show account balance
+    /// Show account balance and details
     Balance {
         /// Account address or name
         account: String,
@@ -107,6 +107,27 @@ enum AccountCommands {
         /// Input file
         file: String,
     },
+    /// Sign a message with account
+    Sign {
+        /// Account name
+        account: String,
+        /// Message to sign
+        message: String,
+    },
+    /// Verify a signature
+    Verify {
+        /// Message that was signed
+        message: String,
+        /// Signature to verify (hex)
+        signature: String,
+        /// Public key (hex)
+        public_key: String,
+        /// Signature algorithm
+        #[arg(short, long)]
+        algorithm: Option<String>,
+    },
+    /// Generate a new address (without storing)
+    Generate,
 }
 
 #[derive(Subcommand)]
@@ -278,6 +299,11 @@ async fn execute_account_command(command: AccountCommands, config: &config::Conf
         AccountCommands::Balance { account } => account::account_balance(account, config).await,
         AccountCommands::Export { account, output } => account::export_account(account, output, config).await,
         AccountCommands::Import { file } => account::import_account(file, config).await,
+        AccountCommands::Sign { account, message } => account::sign_message(account, message, config).await,
+        AccountCommands::Verify { message, signature, public_key, algorithm } => {
+            account::verify_signature(message, signature, public_key, algorithm, config).await
+        }
+        AccountCommands::Generate => account::generate_address(config).await,
     }
 }
 
