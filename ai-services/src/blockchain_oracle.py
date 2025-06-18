@@ -84,7 +84,7 @@ class BlockchainOracle:
         self.fraud_detector = None
         self.risk_scorer = None
         self.contract_analyzer = None
-        
+
         # Event handlers
         self.request_handlers: Dict[str, Callable] = {
             'fraud_analysis': self._handle_fraud_analysis,
@@ -92,13 +92,20 @@ class BlockchainOracle:
             'contract_audit': self._handle_contract_audit,
             'address_reputation': self._handle_address_reputation,
         }
-        
+
+        # HTTP session for reusing connections
+        self.session: Optional[aiohttp.ClientSession] = None
+
         self.is_running = False
         
     async def start(self):
         """Start the oracle service"""
         logger.info("Starting AI-Blockchain Oracle Bridge...")
-        
+
+        # Create reusable HTTP session
+        if self.session is None:
+            self.session = aiohttp.ClientSession()
+
         # Initialize AI service connections
         await self._initialize_ai_services()
         
@@ -116,17 +123,22 @@ class BlockchainOracle:
         """Stop the oracle service"""
         logger.info("Stopping AI-Blockchain Oracle Bridge...")
         self.is_running = False
+        if self.session is not None:
+            await self.session.close()
+            self.session = None
         
     async def _initialize_ai_services(self):
         """Initialize connections to AI services"""
         try:
-            async with aiohttp.ClientSession() as session:
-                # Test AI services connectivity
-                async with session.get(f"{self.ai_services_url}/health") as response:
-                    if response.status == 200:
-                        logger.info("AI services connection established")
-                    else:
-                        logger.warning(f"AI services health check failed: {response.status}")
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            # Test AI services connectivity
+            async with self.session.get(f"{self.ai_services_url}/health") as response:
+                if response.status == 200:
+                    logger.info("AI services connection established")
+                else:
+                    logger.warning(f"AI services health check failed: {response.status}")
                         
         except Exception as e:
             logger.error(f"Failed to connect to AI services: {e}")
@@ -158,30 +170,32 @@ class BlockchainOracle:
     async def _fetch_pending_requests(self) -> List[OracleRequest]:
         """Fetch pending AI oracle requests from blockchain"""
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.blockchain_rpc_url}/api/oracle/pending") as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        
-                        requests = []
-                        for item in data.get('requests', []):
-                            request = OracleRequest(
-                                request_id=item['request_id'],
-                                request_type=item['request_type'],
-                                transaction_hash=item.get('transaction_hash'),
-                                contract_address=item.get('contract_address'),
-                                input_data=item['input_data'],
-                                requester_address=item['requester_address'],
-                                gas_limit=item['gas_limit'],
-                                timestamp=item['timestamp'],
-                                signature=item.get('signature')
-                            )
-                            requests.append(request)
-                        
-                        return requests
-                    else:
-                        logger.warning(f"Failed to fetch pending requests: {response.status}")
-                        return []
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            async with self.session.get(f"{self.blockchain_rpc_url}/api/oracle/pending") as response:
+                if response.status == 200:
+                    data = await response.json()
+
+                    requests = []
+                    for item in data.get('requests', []):
+                        request = OracleRequest(
+                            request_id=item['request_id'],
+                            request_type=item['request_type'],
+                            transaction_hash=item.get('transaction_hash'),
+                            contract_address=item.get('contract_address'),
+                            input_data=item['input_data'],
+                            requester_address=item['requester_address'],
+                            gas_limit=item['gas_limit'],
+                            timestamp=item['timestamp'],
+                            signature=item.get('signature')
+                        )
+                        requests.append(request)
+
+                    return requests
+                else:
+                    logger.warning(f"Failed to fetch pending requests: {response.status}")
+                    return []
                         
         except Exception as e:
             logger.error(f"Error fetching pending requests: {e}")
@@ -255,28 +269,30 @@ class BlockchainOracle:
     async def _handle_fraud_analysis(self, request: OracleRequest) -> Dict[str, Any]:
         """Handle fraud analysis request"""
         try:
-            async with aiohttp.ClientSession() as session:
-                fraud_request = {
-                    'transaction': request.input_data.get('transaction', {}),
-                    'historical_data': request.input_data.get('historical_data', [])
-                }
-                
-                async with session.post(
-                    f"{self.ai_services_url}/analyze/fraud",
-                    json=fraud_request
-                ) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        return {
-                            'is_fraudulent': result['is_fraudulent'],
-                            'confidence': result['confidence'],
-                            'risk_factors': result['risk_factors'],
-                            'recommended_action': result['recommended_action'],
-                            'model_version': result.get('model_version', '1.0.0')
-                        }
-                    else:
-                        error_text = await response.text()
-                        return {'error': f'AI service error: {error_text}'}
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            fraud_request = {
+                'transaction': request.input_data.get('transaction', {}),
+                'historical_data': request.input_data.get('historical_data', [])
+            }
+
+            async with self.session.post(
+                f"{self.ai_services_url}/analyze/fraud",
+                json=fraud_request
+            ) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return {
+                        'is_fraudulent': result['is_fraudulent'],
+                        'confidence': result['confidence'],
+                        'risk_factors': result['risk_factors'],
+                        'recommended_action': result['recommended_action'],
+                        'model_version': result.get('model_version', '1.0.0')
+                    }
+                else:
+                    error_text = await response.text()
+                    return {'error': f'AI service error: {error_text}'}
                         
         except Exception as e:
             return {'error': f'Fraud analysis failed: {str(e)}'}
@@ -284,29 +300,31 @@ class BlockchainOracle:
     async def _handle_risk_scoring(self, request: OracleRequest) -> Dict[str, Any]:
         """Handle risk scoring request"""
         try:
-            async with aiohttp.ClientSession() as session:
-                risk_request = {
-                    'transaction': request.input_data.get('transaction', {}),
-                    'address_history': request.input_data.get('address_history', {}),
-                    'network_analysis': request.input_data.get('network_analysis', {})
-                }
-                
-                async with session.post(
-                    f"{self.ai_services_url}/analyze/risk",
-                    json=risk_request
-                ) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        return {
-                            'risk_score': result['risk_score'],
-                            'risk_category': result['risk_category'],
-                            'factors': result['factors'],
-                            'recommendations': result['recommendations'],
-                            'model_version': result.get('model_version', '1.0.0')
-                        }
-                    else:
-                        error_text = await response.text()
-                        return {'error': f'Risk scoring service error: {error_text}'}
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            risk_request = {
+                'transaction': request.input_data.get('transaction', {}),
+                'address_history': request.input_data.get('address_history', {}),
+                'network_analysis': request.input_data.get('network_analysis', {})
+            }
+
+            async with self.session.post(
+                f"{self.ai_services_url}/analyze/risk",
+                json=risk_request
+            ) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return {
+                        'risk_score': result['risk_score'],
+                        'risk_category': result['risk_category'],
+                        'factors': result['factors'],
+                        'recommendations': result['recommendations'],
+                        'model_version': result.get('model_version', '1.0.0')
+                    }
+                else:
+                    error_text = await response.text()
+                    return {'error': f'Risk scoring service error: {error_text}'}
                         
         except Exception as e:
             return {'error': f'Risk scoring failed: {str(e)}'}
@@ -316,31 +334,33 @@ class BlockchainOracle:
         try:
             contract_code = request.input_data.get('contract_code', '')
             contract_type = request.input_data.get('contract_type', 'general')
-            
-            async with aiohttp.ClientSession() as session:
-                audit_request = {
-                    'contract_code': contract_code,
-                    'contract_type': contract_type,
-                    'audit_level': 'comprehensive'
-                }
-                
-                async with session.post(
-                    f"{self.ai_services_url}/analyze/contract",
-                    json=audit_request
-                ) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        return {
-                            'security_score': result['security_score'],
-                            'vulnerabilities': result['vulnerabilities'],
-                            'gas_efficiency': result['gas_efficiency'],
-                            'recommendations': result['recommendations'],
-                            'compliance_flags': result.get('compliance_flags', []),
-                            'model_version': result.get('model_version', '1.0.0')
-                        }
-                    else:
-                        error_text = await response.text()
-                        return {'error': f'Contract audit service error: {error_text}'}
+
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            audit_request = {
+                'contract_code': contract_code,
+                'contract_type': contract_type,
+                'audit_level': 'comprehensive'
+            }
+
+            async with self.session.post(
+                f"{self.ai_services_url}/analyze/contract",
+                json=audit_request
+            ) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return {
+                        'security_score': result['security_score'],
+                        'vulnerabilities': result['vulnerabilities'],
+                        'gas_efficiency': result['gas_efficiency'],
+                        'recommendations': result['recommendations'],
+                        'compliance_flags': result.get('compliance_flags', []),
+                        'model_version': result.get('model_version', '1.0.0')
+                    }
+                else:
+                    error_text = await response.text()
+                    return {'error': f'Contract audit service error: {error_text}'}
                         
         except Exception as e:
             return {'error': f'Contract audit failed: {str(e)}'}
@@ -415,28 +435,30 @@ class BlockchainOracle:
     async def _submit_response(self, response: OracleResponse):
         """Submit a response to the blockchain"""
         try:
-            async with aiohttp.ClientSession() as session:
-                response_data = {
-                    'request_id': response.request_id,
-                    'success': response.success,
-                    'result': response.result,
-                    'confidence': response.confidence,
-                    'gas_used': response.gas_used,
-                    'processing_time_ms': response.processing_time_ms,
-                    'ai_model_version': response.ai_model_version,
-                    'signature': response.signature,
-                    'timestamp': response.timestamp
-                }
-                
-                async with session.post(
-                    f"{self.blockchain_rpc_url}/api/oracle/submit",
-                    json=response_data
-                ) as http_response:
-                    if http_response.status == 200:
-                        logger.debug(f"Response {response.request_id} submitted successfully")
-                    else:
-                        error_text = await http_response.text()
-                        logger.warning(f"Failed to submit response {response.request_id}: {error_text}")
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            response_data = {
+                'request_id': response.request_id,
+                'success': response.success,
+                'result': response.result,
+                'confidence': response.confidence,
+                'gas_used': response.gas_used,
+                'processing_time_ms': response.processing_time_ms,
+                'ai_model_version': response.ai_model_version,
+                'signature': response.signature,
+                'timestamp': response.timestamp
+            }
+
+            async with self.session.post(
+                f"{self.blockchain_rpc_url}/api/oracle/submit",
+                json=response_data
+            ) as http_response:
+                if http_response.status == 200:
+                    logger.debug(f"Response {response.request_id} submitted successfully")
+                else:
+                    error_text = await http_response.text()
+                    logger.warning(f"Failed to submit response {response.request_id}: {error_text}")
                         
         except Exception as e:
             logger.error(f"Error submitting response {response.request_id}: {e}")
@@ -464,10 +486,12 @@ class BlockchainOracle:
     async def _check_ai_services_health(self):
         """Check AI services health"""
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.ai_services_url}/health") as response:
-                    if response.status != 200:
-                        logger.warning("AI services health check failed")
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            async with self.session.get(f"{self.ai_services_url}/health") as response:
+                if response.status != 200:
+                    logger.warning("AI services health check failed")
                         
         except Exception as e:
             logger.error(f"AI services health check error: {e}")
