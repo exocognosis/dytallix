@@ -1,5 +1,18 @@
 # Dytallix Changelog
 
+## [0.3.1] - 2025-06-17 - Core Refactoring & Documentation
+
+### 🔧 Refactoring & Code Enhancements
+- Implemented detailed blockchain types and enhanced PoS consensus (`blockchain-core`)
+- Added transaction pool management and REST API endpoints
+- Introduced CLI account management with Dilithium5 and Kyber support
+- Improved PQC library with crypto-agility updates
+
+### 📚 Documentation Updates
+- Published technical whitepaper (`docs/whitepaper.md`)
+- Preserved original whitepaper in `documents/whitepaper.md`
+- Added BlueSky vision document (`Dytallix BlueSky Document.md`)
+
 ## [0.3.0] - 2025-06-11 - Major Infrastructure Enhancement 
 
 ### 🚀 Major Features Added
