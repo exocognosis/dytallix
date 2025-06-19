@@ -10,6 +10,14 @@ Command-line interface and development utilities for Dytallix blockchain.
 - Post-quantum key generation and management
 - Transaction creation and monitoring
 
+## Contents
+- `CLI_EXAMPLES.md`: Example CLI commands for wallet, AI services, and smart contract test harness
+- `README.md`: This file
+
+## Getting Started
+- See `CLI_EXAMPLES.md` for usage patterns
+- Each module (wallet, ai-services, smart-contracts) contains its own CLI or API
+
 ## Commands
 
 ### Node Management

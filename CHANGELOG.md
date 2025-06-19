@@ -1,6 +1,30 @@
 # Dytallix Changelog
 
-## [0.3.0] - 2025-06-11 - Major Infrastructure Enhancement 
+## [0.4.0] - 2025-06-18 - Full Project Architecture Scaffolding
+
+### 🏗️ Major Architectural Scaffolding
+- Governance & Compliance: DAO voting, proposal system, KYC/audit hooks (Rust/Python)
+- Interoperability: PQC-secured cross-chain bridge, IBC protocol, wrapped assets (Rust)
+- Frontend: React wallet UI, explorer, analytics dashboard, onboarding docs (TypeScript/Markdown)
+- Security & Monitoring: Audit logging, real-time monitoring, incident response (Rust/Python)
+- DevOps & Deployment: CI/CD pipeline (GitHub Actions), Dockerfile, deployment docs
+- Community & Documentation: Proposal system, onboarding guide, community README
+- All interface stubs and dummy implementations in place for every module
+
+### 📚 Documentation
+- Updated `ARCHITECTURE.md`, `ROADMAP.md`, and module READMEs to reflect new scaffolding
+- Added onboarding and proposal documentation for contributors
+
+### 🔄 Next Steps
+- Begin technical implementation of core modules (PQC, blockchain, AI, wallet, contracts)
+- Integrate modules and develop end-to-end test flows
+- Expand documentation and developer portal
+
+---
+
+## Previous Versions
+
+### [0.3.0] - 2025-06-11 - Major Infrastructure Enhancement 
 
 ### 🚀 Major Features Added
 

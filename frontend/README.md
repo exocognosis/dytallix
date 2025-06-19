@@ -70,6 +70,10 @@ npm test
 - Transaction builder
 - Blockchain explorer
 
+- `wallet.tsx`: PQC wallet UI (keygen, sign, verify)
+- `explorer.tsx`: Blockchain explorer (block/tx/address lookup)
+- `analytics.tsx`: AI-driven analytics and contract audit reports
+
 ## Future Features
 
 - Hardware wallet integration

@@ -12,7 +12,7 @@ Provides AI-powered analysis services for the Dytallix blockchain:
 import asyncio
 import logging
 from typing import Dict, List, Optional
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -266,6 +266,11 @@ async def models_status():
             "last_updated": contract_nlp.get_last_update_time()
         }
     }
+
+@app.post("/analyze/contract")
+async def analyze_contract(request: Request):
+    # TODO: Parse request, call ContractAuditService, return result
+    return {"result": "dummy_contract_audit"}
 
 if __name__ == "__main__":
     logger.info("Starting Dytallix AI Services...")

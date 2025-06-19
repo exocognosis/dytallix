@@ -1,3 +1,44 @@
+//! Dytallix PQC Cryptography Library
+//!
+//! Provides key generation, signing, and verification for Dilithium, Falcon, and SPHINCS+.
+
+pub enum PQCAlgorithm {
+    Dilithium,
+    Falcon,
+    SphincsPlus,
+}
+
+pub struct PQCKeyPair {
+    pub public: Vec<u8>,
+    pub private: Vec<u8>,
+}
+
+pub struct Signature(pub Vec<u8>);
+
+pub trait PQCKeyManager {
+    fn generate_keypair(algo: PQCAlgorithm) -> PQCKeyPair;
+    fn sign(message: &[u8], keypair: &PQCKeyPair, algo: PQCAlgorithm) -> Signature;
+    fn verify(message: &[u8], sig: &Signature, pubkey: &[u8], algo: PQCAlgorithm) -> bool;
+}
+
+/// Dummy implementation for scaffolding
+pub struct DummyPQC;
+
+impl PQCKeyManager for DummyPQC {
+    fn generate_keypair(algo: PQCAlgorithm) -> PQCKeyPair {
+        // TODO: Integrate real PQC library (liboqs, PQClean, etc.)
+        PQCKeyPair { public: vec![0; 32], private: vec![0; 64] }
+    }
+    fn sign(_message: &[u8], _keypair: &PQCKeyPair, _algo: PQCAlgorithm) -> Signature {
+        // TODO: Implement real signing
+        Signature(vec![1; 64])
+    }
+    fn verify(_message: &[u8], _sig: &Signature, _pubkey: &[u8], _algo: PQCAlgorithm) -> bool {
+        // TODO: Implement real verification
+        true
+    }
+}
+
 use pqcrypto_dilithium::dilithium5;
 use pqcrypto_falcon::falcon1024;
 use pqcrypto_sphincsplus::sphincssha256128ssimple;

@@ -1,3 +1,5 @@
+//! Dytallix Blockchain Node Main
+
 use std::sync::Arc;
 use log::{info, warn};
 
@@ -14,10 +16,17 @@ use crate::crypto::PQCManager;
 use crate::networking::NetworkManager;
 use crate::runtime::DytallixRuntime;
 use crate::storage::StorageManager;
-use crate::types::{TransactionPool, Transaction}; // Import core types
+use crate::types::{TransactionPool, Transaction, Block, NodeStatus}; // Import core types
 
-#[derive(Debug)]
-pub struct DytallixNode {
+pub trait DytallixNode {
+    fn start(&self) -> Result<(), String>;
+    fn stop(&self);
+    fn submit_transaction(&self, tx: Transaction) -> Result<(), String>;
+    fn get_block(&self, hash: &str) -> Option<Block>;
+    fn get_status(&self) -> NodeStatus;
+}
+
+pub struct DummyNode {
     runtime: Arc<DytallixRuntime>,
     consensus: Arc<ConsensusEngine>,
     network: Arc<NetworkManager>,
@@ -26,7 +35,74 @@ pub struct DytallixNode {
     transaction_pool: Arc<TransactionPool>, // Add transaction pool
 }
 
-impl DytallixNode {
+impl DytallixNode for DummyNode {
+    fn start(&self) -> Result<(), String> {
+        info!("Starting Dytallix Node...");
+
+        // Start network layer
+        self.network.start().await?;
+        
+        // Start consensus engine
+        self.consensus.start().await?;
+
+        info!("Dytallix Node started successfully");
+        Ok(())
+    }
+    fn stop(&self) {
+        info!("Stopping Dytallix Node...");
+        
+        self.consensus.stop().await?;
+        self.network.stop().await?;
+        
+        info!("Dytallix Node stopped");
+    }
+    fn submit_transaction(&self, from: String, to: String, amount: u64) -> Result<String, Box<dyn std::error::Error>> {
+        // Create transaction
+        let nonce = self.runtime.get_nonce(&from).await.unwrap_or(0);
+        let mut transaction = crate::types::TransferTransaction {
+            hash: String::new(), // Will be calculated
+            from,
+            to,
+            amount,
+            nonce,
+            fee: 1, // Default fee
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+            signature: crate::types::PQCTransactionSignature {
+                signature: dytallix_pqc::Signature {
+                    data: Vec::new(),
+                    algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                },
+                public_key: Vec::new(),
+            },
+            ai_risk_score: Some(0.2),
+        };
+        
+        // Calculate hash
+        transaction.hash = transaction.calculate_hash();
+        
+        let tx = Transaction::Transfer(transaction);
+        
+        // Add to transaction pool
+        let tx_hash = self.transaction_pool.add_transaction(tx).await
+            .map_err(|e| format!("Failed to add transaction: {}", e))?;
+        
+        info!("Transaction submitted: {}", tx_hash);
+        Ok(tx_hash)
+    }
+    fn get_block(&self, _hash: &str) -> Option<Block> {
+        // TODO: Lookup block
+        None
+    }
+    fn get_status(&self) -> NodeStatus {
+        // TODO: Return node status
+        NodeStatus::Running
+    }
+}
+
+impl DummyNode {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         info!("Initializing Dytallix Node...");
 
@@ -69,81 +145,6 @@ impl DytallixNode {
             transaction_pool,
         })
     }
-
-    pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Starting Dytallix Node...");
-
-        // Start network layer
-        self.network.start().await?;
-        
-        // Start consensus engine
-        self.consensus.start().await?;
-
-        info!("Dytallix Node started successfully");
-        Ok(())
-    }
-
-    pub async fn stop(&self) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Stopping Dytallix Node...");
-        
-        self.consensus.stop().await?;
-        self.network.stop().await?;
-        
-        info!("Dytallix Node stopped");
-        Ok(())
-    }
-    
-    // API methods for interacting with the blockchain
-    pub async fn submit_transaction(&self, from: String, to: String, amount: u64) -> Result<String, Box<dyn std::error::Error>> {
-        // Create transaction
-        let nonce = self.runtime.get_nonce(&from).await.unwrap_or(0);
-        let mut transaction = crate::types::TransferTransaction {
-            hash: String::new(), // Will be calculated
-            from,
-            to,
-            amount,
-            nonce,
-            fee: 1, // Default fee
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs(),
-            signature: crate::types::PQCTransactionSignature {
-                signature: dytallix_pqc::Signature {
-                    data: Vec::new(),
-                    algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
-                },
-                public_key: Vec::new(),
-            },
-            ai_risk_score: Some(0.2),
-        };
-        
-        // Calculate hash
-        transaction.hash = transaction.calculate_hash();
-        
-        let tx = Transaction::Transfer(transaction);
-        
-        // Add to transaction pool
-        let tx_hash = self.transaction_pool.add_transaction(tx).await
-            .map_err(|e| format!("Failed to add transaction: {}", e))?;
-        
-        info!("Transaction submitted: {}", tx_hash);
-        Ok(tx_hash)
-    }
-    
-    pub async fn get_balance(&self, address: &str) -> Result<u64, Box<dyn std::error::Error>> {
-        self.runtime.get_balance(address).await
-    }
-    
-    pub async fn get_current_block_number(&self) -> u64 {
-        // TODO: Get from consensus engine or storage
-        0
-    }
-    
-    pub async fn get_transaction_pool_stats(&self) -> Result<(usize, usize), Box<dyn std::error::Error>> {
-        let stats = self.transaction_pool.get_stats().await;
-        Ok((stats.total_transactions, stats.fee_levels))
-    }
 }
 
 #[tokio::main]
@@ -152,7 +153,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     info!("Welcome to Dytallix - Post-Quantum AI-Enhanced Cryptocurrency");
     
-    let node = DytallixNode::new().await?;
+    let node = DummyNode::new().await?;
     
     // Handle graceful shutdown
     let node_clone = Arc::new(node);

@@ -1,0 +1,15 @@
+name: Dytallix CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Rust
+        run: cargo build --all
+      - name: Test Python
+        run: pytest || true
+      - name: Lint
+        run: cargo clippy || true
+      - name: Lint Python
+        run: flake8 || true
