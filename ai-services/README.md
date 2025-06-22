@@ -61,3 +61,13 @@ python src/main.py
 ```bash
 pytest tests/
 ```
+
+## Optimization Reports
+
+Generate a simple PDF report with a convergence chart:
+
+```bash
+python src/optimization_report.py
+```
+
+This produces `optimization_report.pdf` in the current directory.
