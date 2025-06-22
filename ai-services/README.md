@@ -61,3 +61,11 @@ python src/main.py
 ```bash
 pytest tests/
 ```
+
+## PDF Report Generation
+
+Generate a PDF summary from analysis results stored in JSON:
+
+```bash
+python src/analysis_to_pdf.py sample_data/analysis_results_sample.json report.pdf
+```
