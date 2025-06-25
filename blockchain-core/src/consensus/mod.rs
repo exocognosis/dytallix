@@ -11,6 +11,9 @@ use crate::types::{Transaction, Block, BlockHeader, AIRequestTransaction, AIServ
 use std::collections::HashMap;
 use tokio::time::{Duration, timeout};
 use reqwest::Client;
+use anyhow::{Result, anyhow};
+use serde::de::DeserializeOwned;
+use serde_json::Value;
 
 /// AI Oracle Response with signed validation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,6 +69,61 @@ impl Default for AIServiceConfig {
     }
 }
 
+/// HTTP client for communicating with external AI services
+#[derive(Debug, Clone)]
+pub struct AIOracleClient {
+    client: Client,
+    config: AIServiceConfig,
+}
+
+impl AIOracleClient {
+    pub fn new(config: AIServiceConfig) -> Self {
+        let client = Client::builder()
+            .pool_max_idle_per_host(8)
+            .pool_idle_timeout(Duration::from_secs(90))
+            .tcp_keepalive(Some(Duration::from_secs(60)))
+            .timeout(Duration::from_secs(config.timeout_seconds))
+            .build()
+            .expect("failed to build http client");
+
+        Self { client, config }
+    }
+
+    pub async fn post<P: Serialize + ?Sized, R: DeserializeOwned>(
+        &self,
+        path: &str,
+        payload: &P,
+    ) -> Result<R> {
+        let url = format!(
+            "{}/{}",
+            self.config.endpoint.trim_end_matches('/'),
+            path.trim_start_matches('/')
+        );
+        let mut attempts = 0;
+        loop {
+            attempts += 1;
+            match self.client.post(&url).json(payload).send().await {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        let json = resp.json::<R>().await?;
+                        return Ok(json);
+                    } else if attempts >= self.config.max_retries {
+                        return Err(anyhow!(
+                            "AI service error: {}", resp.status()
+                        ));
+                    }
+                }
+                Err(e) => {
+                    if attempts >= self.config.max_retries {
+                        return Err(anyhow!("Request error: {}", e));
+                    }
+                }
+            }
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ConsensusEngine {
     runtime: Arc<DytallixRuntime>,
@@ -73,6 +131,7 @@ pub struct ConsensusEngine {
     current_block: Arc<Mutex<Option<Block>>>,
     validators: Arc<Mutex<Vec<String>>>,
     is_validator: bool,
+    ai_client: AIOracleClient,
 }
 
 impl ConsensusEngine {
@@ -80,12 +139,14 @@ impl ConsensusEngine {
         runtime: Arc<DytallixRuntime>,
         pqc_manager: Arc<PQCManager>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
+        let ai_client = AIOracleClient::new(AIServiceConfig::default());
         Ok(Self {
             runtime,
             pqc_manager,
             current_block: Arc::new(Mutex::new(None)),
             validators: Arc::new(Mutex::new(Vec::new())),
             is_validator: true, // For development
+            ai_client,
         })
     }
     
