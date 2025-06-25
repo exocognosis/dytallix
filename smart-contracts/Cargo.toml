@@ -15,13 +15,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bincode = "1.3"
 
-# Substrate/ink! compatibility (optional)
-ink_lang = { version = "4.0", default-features = false, optional = true }
-ink_storage = { version = "4.0", default-features = false, optional = true }
-ink_env = { version = "4.0", default-features = false, optional = true }
-ink_prelude = { version = "4.0", default-features = false, optional = true }
-
-# Substrate dependencies
+# Substrate dependencies (updated versions)
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 
@@ -48,56 +42,11 @@ default = ["std"]
 std = [
     "scale/std",
     "scale-info/std",
-]
-ink-contracts = [
-    "ink_lang",
-    "ink_storage", 
-    "ink_env",
-    "ink_prelude",
-    "scale-info",
-]
-wasmtime-runtime = ["wasmtime"]
-sp-core = { version = "21.0", default-features = false }
-sp-std = { version = "8.0", default-features = false }
-
-# AI integration
-serde = { version = "1.0", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0", default-features = false }
-
-# Error handling
-thiserror = "1.0"
-
-[dev-dependencies]
-ink_e2e = "4.0"
-
-[features]
-default = ["std"]
-std = [
-    "ink_lang/std",
-    "ink_storage/std",
-    "ink_env/std",
-    "ink_prelude/std",
-    "scale/std",
-    "scale-info/std",
-    "sp-core/std",
-    "sp-std/std",
     "serde/std",
 ]
-ink-as-dependency = []
+wasmtime-runtime = ["wasmtime"]
 
 [lib]
 name = "dytallix_contracts"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
-
-[[example]]
-name = "ai_escrow"
-path = "examples/escrow/lib.rs"
-
-[[example]]
-name = "pqc_token"
-path = "examples/token/lib.rs"
-
-[[example]]
-name = "ai_oracle"
-path = "examples/oracle/lib.rs"

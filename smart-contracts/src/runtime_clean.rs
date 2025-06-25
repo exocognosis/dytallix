@@ -11,9 +11,9 @@ Production-ready WebAssembly contract runtime with:
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use wasmi::{Engine, Linker, Module, Store, TypedFunc, Caller, Config, Memory, AsContext, AsContextMut};
+use wasmi::{Engine, Linker, Module, Store, TypedFunc, Caller, Config, Memory, MemoryType, Limits};
 use serde::{Serialize, Deserialize};
-use log::{info, debug};
+use log::{info, debug, warn, error};
 use crate::types::{Address, Amount, Gas, Hash};
 
 // Gas costs for different operations
@@ -129,13 +129,11 @@ struct ContractInstance {
     memory_usage: u32,
 }
 
-#[derive(Debug)]
 struct ContractStorage {
     storage: HashMap<Address, HashMap<Vec<u8>, Vec<u8>>>,
     storage_usage: HashMap<Address, usize>,
 }
 
-#[derive(Debug)]
 struct GasMeter {
     current_gas: Gas,
     gas_limit: Gas,
@@ -175,7 +173,14 @@ pub trait ContractAIAnalyzer {
 
 impl ContractRuntime {
     pub fn new(max_gas_per_call: Gas, max_memory_pages: u32) -> Result<Self, ContractExecutionError> {
-        let config = Config::default();
+        let mut config = Config::default();
+        config.wasm_multi_memory(false);
+        config.wasm_bulk_memory(true);
+        config.wasm_reference_types(false);
+        config.wasm_simd(false);
+        config.wasm_threads(false);
+        config.wasm_tail_call(false);
+        
         let engine = Engine::new(&config);
         
         Ok(Self {
@@ -347,7 +352,7 @@ impl ContractRuntime {
             execution_context: execution_context.clone(),
         });
         
-        let module = Module::new(&self.engine, contract.code.as_slice())
+        let module = Module::new(&self.engine, &contract.code)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::InvalidContract,
                 message: format!("Failed to load WASM module: {}", e),
@@ -358,7 +363,6 @@ impl ContractRuntime {
         self.register_host_functions(&mut linker)?;
         
         let instance = linker.instantiate(&mut store, &module)
-            .and_then(|pre| pre.start(&mut store))
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
                 message: format!("Failed to instantiate contract: {}", e),
@@ -366,8 +370,7 @@ impl ContractRuntime {
             })?;
         
         let memory = instance
-            .get_export(&store, "memory")
-            .and_then(|export| export.into_memory())
+            .get_memory(&mut store, "memory")
             .ok_or_else(|| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
                 message: "Contract memory not found".to_string(),
@@ -376,14 +379,7 @@ impl ContractRuntime {
         
         let func_name = format!("contract_{}", call.method);
         let func: TypedFunc<(i32, i32), i32> = instance
-            .get_export(&store, &func_name)
-            .and_then(|export| export.into_func())
-            .ok_or_else(|| ContractExecutionError {
-                code: ErrorCode::ExecutionFailed,
-                message: format!("Function '{}' not found", func_name),
-                gas_used: 0,
-            })?
-            .typed(&store)
+            .get_typed_func(&mut store, &func_name)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
                 message: format!("Function '{}' not found: {}", func_name, e),
@@ -445,15 +441,15 @@ impl ContractRuntime {
     
     fn register_host_functions(&self, linker: &mut Linker<HostCallContext>) -> Result<(), ContractExecutionError> {
         // Gas consumption
-        linker.func_wrap("env", "consume_gas", |caller: Caller<HostCallContext>, amount: i32| -> i32 {
+        linker.func_wrap("env", "consume_gas", |caller: Caller<HostCallContext>, amount: i32| -> Result<(), wasmi::Error> {
             let gas_amount = amount as Gas;
             let runtime = &caller.data().runtime;
             
             let mut gas_meter = runtime.gas_meter.lock().unwrap();
-            match gas_meter.consume_gas(gas_amount) {
-                Ok(_) => 0,
-                Err(_) => -1, // Out of gas
-            }
+            gas_meter.consume_gas(gas_amount)
+                .map_err(|_| wasmi::Error::new("Out of gas"))?;
+            
+            Ok(())
         }).map_err(|e| ContractExecutionError {
             code: ErrorCode::ExecutionFailed,
             message: format!("Failed to register consume_gas: {}", e),
@@ -462,13 +458,12 @@ impl ContractRuntime {
         
         // Storage read
         linker.func_wrap("env", "storage_get", 
-            |mut caller: Caller<HostCallContext>, key_ptr: i32, key_len: i32, value_ptr: i32, value_len: i32| -> i32 {
-                // Extract data first to avoid borrowing conflicts
-                let runtime_arc = caller.data().runtime.clone();
-                let context = caller.data().execution_context.clone();
+            |caller: Caller<HostCallContext>, key_ptr: i32, key_len: i32, value_ptr: i32, value_len: i32| -> i32 {
+                let runtime = &caller.data().runtime;
+                let context = &caller.data().execution_context;
                 
                 {
-                    let mut gas_meter = runtime_arc.gas_meter.lock().unwrap();
+                    let mut gas_meter = runtime.gas_meter.lock().unwrap();
                     if gas_meter.consume_gas(GAS_COST_STORAGE_READ).is_err() {
                         return -1;
                     }
@@ -483,16 +478,16 @@ impl ContractRuntime {
                     return -3;
                 }
                 
-                let key = match runtime_arc.read_memory_slice(&caller, &memory, key_ptr, key_len as usize) {
+                let key = match runtime.read_memory_slice(&caller, &memory, key_ptr, key_len as usize) {
                     Ok(k) => k,
                     Err(_) => return -4,
                 };
                 
-                let storage = runtime_arc.contract_storage.lock().unwrap();
+                let storage = runtime.contract_storage.lock().unwrap();
                 match storage.get(&context.contract_address, &key) {
                     Some(value) => {
                         let copy_len = std::cmp::min(value.len(), value_len as usize);
-                        if runtime_arc.write_memory_slice(&mut caller, &memory, value_ptr, &value[..copy_len]).is_ok() {
+                        if runtime.write_memory_slice(&caller, &memory, value_ptr, &value[..copy_len]).is_ok() {
                             copy_len as i32
                         } else {
                             -5
@@ -671,11 +666,6 @@ impl ContractRuntime {
             });
         }
         
-        // For testing with minimal WASM modules, allow header-only validation
-        if code.len() == 8 {
-            return Ok(());
-        }
-        
         match Module::new(&self.engine, code) {
             Ok(_) => Ok(()),
             Err(e) => Err(ContractExecutionError {
@@ -728,7 +718,7 @@ impl ContractRuntime {
         }
         
         let mut len_bytes = [0u8; 4];
-        memory.read(&*store, ptr as usize, &mut len_bytes)
+        memory.read(store, ptr as usize, &mut len_bytes)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
                 message: format!("Failed to read length from memory: {}", e),
@@ -755,7 +745,7 @@ impl ContractRuntime {
         }
         
         let mut data = vec![0u8; len];
-        memory.read(&*store, (ptr as usize) + 4, &mut data)
+        memory.read(store, (ptr as usize) + 4, &mut data)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
                 message: format!("Failed to read data from memory: {}", e),
@@ -780,7 +770,8 @@ impl ContractRuntime {
         
         Ok(data)
     }
-     fn write_memory_slice(&self, caller: &mut Caller<HostCallContext>, memory: &Memory, ptr: i32, data: &[u8]) -> Result<(), ContractExecutionError> {
+    
+    fn write_memory_slice(&self, caller: &Caller<HostCallContext>, memory: &Memory, ptr: i32, data: &[u8]) -> Result<(), ContractExecutionError> {
         if ptr < 0 {
             return Err(ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
@@ -788,14 +779,14 @@ impl ContractRuntime {
                 gas_used: 0,
             });
         }
-
+        
         memory.write(caller.as_context_mut(), ptr as usize, data)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
                 message: format!("Failed to write memory slice: {}", e),
                 gas_used: 0,
             })?;
-
+        
         Ok(())
     }
     
@@ -894,17 +885,6 @@ impl ContractRuntime {
                 .collect(),
             None => events.clone(),
         }
-    }
-}
-
-impl std::fmt::Debug for ContractRuntime {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ContractRuntime")
-            .field("max_gas_per_call", &self.max_gas_per_call)
-            .field("max_memory_pages", &self.max_memory_pages)
-            .field("contracts_count", &self.contracts.lock().unwrap().len())
-            .field("has_ai_analyzer", &self.ai_analyzer.is_some())
-            .finish()
     }
 }
 

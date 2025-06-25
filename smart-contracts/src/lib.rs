@@ -1,9 +1,14 @@
 pub mod runtime;
-pub mod oracle;
-pub mod crypto;
+pub mod oracle_simple;
+pub mod types;
 
-use ink_prelude::vec::Vec;
+// Re-export oracle_simple as oracle for compatibility
+pub use oracle_simple as oracle;
+
 use scale::{Decode, Encode};
+
+// Re-export common types
+pub use types::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
 pub enum ContractError {
