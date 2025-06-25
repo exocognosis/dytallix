@@ -1,11 +1,70 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use serde::{Serialize, Deserialize};
-use log::{info, debug};
+use log::{info, debug, warn, error};
 
 use crate::runtime::DytallixRuntime;
 use crate::crypto::{PQCManager, PQCSignature};
-use crate::types::{Transaction, Block, BlockHeader}; // Import from types
+use crate::types::{Transaction, Block, BlockHeader, AIRequestTransaction, AIServiceType}; // Import from types
+
+// AI Service Integration
+use std::collections::HashMap;
+use tokio::time::{Duration, timeout};
+use reqwest::Client;
+
+/// AI Oracle Response with signed validation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignedAIOracleResponse {
+    pub oracle_id: String,
+    pub timestamp: u64,
+    pub request_hash: String,
+    pub ai_result: AIAnalysisResult,
+    pub signature: AIResponseSignature,
+    pub confidence_score: f64,
+}
+
+/// AI Analysis Result structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIAnalysisResult {
+    pub service_type: AIServiceType,
+    pub risk_score: f64,
+    pub fraud_probability: f64,
+    pub reputation_score: u32,
+    pub compliance_flags: Vec<String>,
+    pub recommendations: Vec<String>,
+    pub metadata: HashMap<String, String>,
+}
+
+/// AI Response Signature (PQC-based)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIResponseSignature {
+    pub algorithm: String,
+    pub signature_data: Vec<u8>,
+    pub public_key: Vec<u8>,
+    pub certificate_chain: Vec<Vec<u8>>,
+}
+
+/// AI Service Configuration
+#[derive(Debug, Clone)]
+pub struct AIServiceConfig {
+    pub endpoint: String,
+    pub api_key: Option<String>,
+    pub timeout_seconds: u64,
+    pub max_retries: u32,
+    pub risk_threshold: f64,
+}
+
+impl Default for AIServiceConfig {
+    fn default() -> Self {
+        Self {
+            endpoint: "http://localhost:8888".to_string(),
+            api_key: None,
+            timeout_seconds: 30,
+            max_retries: 3,
+            risk_threshold: 0.8,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct ConsensusEngine {
@@ -282,8 +341,35 @@ impl ConsensusEngine {
                 // TODO: Implement staking validation
                 Ok(true)
             }
-            Transaction::AIRequest(_) => {
-                // TODO: Implement AI service validation
+            Transaction::AIRequest(ai_request_tx) => {
+                // Validate AI request transaction
+                if ai_request_tx.service_type == AIServiceType::Unknown {
+                    return Ok(false);
+                }
+                
+                // Check for required fields based on service type
+                match ai_request_tx.service_type {
+                    AIServiceType::KYC | AIServiceType::AML => {
+                        if ai_request_tx.payload.get("identity").is_none() {
+                            return Ok(false);
+                        }
+                    },
+                    AIServiceType::CreditAssessment => {
+                        if ai_request_tx.payload.get("social_security_number").is_none() {
+                            return Ok(false);
+                        }
+                    },
+                    _ => {}
+                }
+                
+                // Check AI risk score if present
+                if let Some(risk_score) = ai_request_tx.ai_risk_score {
+                    if risk_score > 0.8 {
+                        info!("AI request rejected due to high risk score: {}", risk_score);
+                        return Ok(false);
+                    }
+                }
+                
                 Ok(true)
             }
         }
