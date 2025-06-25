@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 
 use crate::runtime::DytallixRuntime;
 use crate::crypto::{PQCManager, PQCSignature};
-use crate::types::{Transaction, Block, BlockHeader, AIRequestTransaction, AIServiceType}; // Import from types
+use crate::types::{Transaction, Block, BlockHeader, AIRequestTransaction, AIServiceType, TransferTransaction}; // Import from types
 
 // AI Service Integration
 use std::collections::HashMap;
@@ -501,7 +501,9 @@ impl ConsensusEngine {
                     }
                 }
                 
-                // Note: Signature validation would happen here in production
+                if !Self::validate_transaction_signature_static(pqc_manager, tx)? {
+                    return Ok(false);
+                }
                 Ok(true)
             }
             Transaction::Deploy(_) => {
@@ -599,8 +601,42 @@ impl ConsensusEngine {
         
         // Save state to storage
         runtime.save_state().await.map_err(|e| e.to_string())?;
-        
+
         Ok(())
+    }
+
+    fn format_transfer_transaction_message(tx: &TransferTransaction) -> Vec<u8> {
+        format!(
+            "{}:{}:{}:{}:{}:{}",
+            tx.from, tx.to, tx.amount, tx.fee, tx.nonce, tx.timestamp
+        )
+        .into_bytes()
+    }
+
+    fn validate_transaction_signature_static(
+        pqc_manager: &Arc<PQCManager>,
+        tx: &Transaction,
+    ) -> Result<bool, String> {
+        match tx {
+            Transaction::Transfer(transfer_tx) => {
+                let message = Self::format_transfer_transaction_message(transfer_tx);
+
+                pqc_manager
+                    .verify_signature(
+                        &message,
+                        &crate::crypto::PQCSignature {
+                            signature: transfer_tx.signature.signature.data.clone(),
+                            algorithm: format!(
+                                "{:?}",
+                                transfer_tx.signature.signature.algorithm
+                            ),
+                        },
+                        &transfer_tx.signature.public_key,
+                    )
+                    .map_err(|e| e.to_string())
+            }
+            _ => Ok(true),
+        }
     }
     
     fn calculate_block_hash_static(header: &BlockHeader) -> String {
