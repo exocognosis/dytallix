@@ -134,6 +134,29 @@ pub struct DeployTransaction {
     pub signature: PQCTransactionSignature,
 }
 
+impl DeployTransaction {
+    /// Calculate hash of deployment data
+    pub fn calculate_hash(&self) -> TxHash {
+        let data = format!(
+            "{}:{}:{}:{}:{}:{}",
+            self.from,
+            hex::encode(&self.contract_code),
+            hex::encode(&self.initial_state),
+            self.fee,
+            self.nonce,
+            self.timestamp
+        );
+        let mut hasher = Sha3_256::new();
+        hasher.update(data.as_bytes());
+        hex::encode(hasher.finalize())
+    }
+
+    /// Format signing message
+    pub fn signing_message(&self) -> Vec<u8> {
+        self.calculate_hash().as_bytes().to_vec()
+    }
+}
+
 /// Smart Contract Call
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CallTransaction {
@@ -148,6 +171,30 @@ pub struct CallTransaction {
     pub signature: PQCTransactionSignature,
 }
 
+impl CallTransaction {
+    /// Calculate hash of call transaction data
+    pub fn calculate_hash(&self) -> TxHash {
+        let data = format!(
+            "{}:{}:{}:{}:{}:{}:{}",
+            self.from,
+            self.contract_address,
+            self.method,
+            hex::encode(&self.params),
+            self.fee,
+            self.nonce,
+            self.timestamp
+        );
+        let mut hasher = Sha3_256::new();
+        hasher.update(data.as_bytes());
+        hex::encode(hasher.finalize())
+    }
+
+    /// Format signing message
+    pub fn signing_message(&self) -> Vec<u8> {
+        self.calculate_hash().as_bytes().to_vec()
+    }
+}
+
 /// Validator Staking Transaction
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StakeTransaction {
@@ -159,6 +206,29 @@ pub struct StakeTransaction {
     pub nonce: u64,
     pub timestamp: Timestamp,
     pub signature: PQCTransactionSignature,
+}
+
+impl StakeTransaction {
+    /// Calculate hash of staking transaction data
+    pub fn calculate_hash(&self) -> TxHash {
+        let data = format!(
+            "{}:{}:{:?}:{}:{}:{}",
+            self.validator,
+            self.amount,
+            self.action,
+            self.fee,
+            self.nonce,
+            self.timestamp
+        );
+        let mut hasher = Sha3_256::new();
+        hasher.update(data.as_bytes());
+        hex::encode(hasher.finalize())
+    }
+
+    /// Format signing message
+    pub fn signing_message(&self) -> Vec<u8> {
+        self.calculate_hash().as_bytes().to_vec()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -180,6 +250,29 @@ pub struct AIRequestTransaction {
     pub nonce: u64,
     pub timestamp: Timestamp,
     pub signature: PQCTransactionSignature,
+}
+
+impl AIRequestTransaction {
+    /// Calculate hash of AI request data
+    pub fn calculate_hash(&self) -> TxHash {
+        let data = format!(
+            "{}:{:?}:{}:{}:{}:{}",
+            self.from,
+            self.service_type,
+            hex::encode(&self.request_data),
+            self.fee,
+            self.nonce,
+            self.timestamp
+        );
+        let mut hasher = Sha3_256::new();
+        hasher.update(data.as_bytes());
+        hex::encode(hasher.finalize())
+    }
+
+    /// Format signing message
+    pub fn signing_message(&self) -> Vec<u8> {
+        self.calculate_hash().as_bytes().to_vec()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -545,6 +638,28 @@ impl Transaction {
             Transaction::AIRequest(tx) => tx.nonce,
         }
     }
+
+    /// Get a reference to the embedded signature
+    pub fn signature(&self) -> &PQCTransactionSignature {
+        match self {
+            Transaction::Transfer(tx) => &tx.signature,
+            Transaction::Deploy(tx) => &tx.signature,
+            Transaction::Call(tx) => &tx.signature,
+            Transaction::Stake(tx) => &tx.signature,
+            Transaction::AIRequest(tx) => &tx.signature,
+        }
+    }
+
+    /// Build the signing message for this transaction
+    pub fn signing_message(&self) -> Vec<u8> {
+        match self {
+            Transaction::Transfer(tx) => tx.signing_message(),
+            Transaction::Deploy(tx) => tx.signing_message(),
+            Transaction::Call(tx) => tx.signing_message(),
+            Transaction::Stake(tx) => tx.signing_message(),
+            Transaction::AIRequest(tx) => tx.signing_message(),
+        }
+    }
 }
 
 impl TransferTransaction {
@@ -586,12 +701,17 @@ impl TransferTransaction {
     
     /// Calculate hash of transaction data (without signature)
     pub fn calculate_hash(&self) -> TxHash {
-        let data = format!("{}:{}:{}:{}:{}:{}", 
+        let data = format!("{}:{}:{}:{}:{}:{}",
             self.from, self.to, self.amount, self.fee, self.nonce, self.timestamp);
         let mut hasher = Sha3_256::new();
         hasher.update(data.as_bytes());
         let hash = hasher.finalize();
         hex::encode(hash)
+    }
+
+    /// Format the signing message for this transaction
+    pub fn signing_message(&self) -> Vec<u8> {
+        self.calculate_hash().as_bytes().to_vec()
     }
 }
 
