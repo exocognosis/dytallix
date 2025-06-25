@@ -39,6 +39,11 @@ impl DytallixNode for DummyNode {
     fn start(&self) -> Result<(), String> {
         info!("Starting Dytallix Node...");
 
+        // Validate loaded PQC keys
+        self.pqc_manager
+            .validate_keys()
+            .map_err(|e| format!("PQC key validation failed: {:?}", e))?;
+
         // Start network layer
         self.network.start().await?;
         
@@ -110,8 +115,8 @@ impl DummyNode {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         info!("Initializing Dytallix Node...");
 
-        // Initialize PQC manager first
-        let pqc_manager = Arc::new(PQCManager::new()?);
+        // Initialize PQC manager first (load or generate keys)
+        let pqc_manager = Arc::new(PQCManager::load_or_generate("pqc_keys.json")?);
         info!("Post-quantum cryptography initialized");
 
         // Initialize storage
