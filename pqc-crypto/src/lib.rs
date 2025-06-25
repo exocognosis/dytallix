@@ -8,57 +8,21 @@ pub enum PQCAlgorithm {
     SphincsPlus,
 }
 
-pub struct PQCKeyPair {
-    pub public: Vec<u8>,
-    pub private: Vec<u8>,
-}
-
-pub struct Signature(pub Vec<u8>);
-
-pub trait PQCKeyManager {
-    fn generate_keypair(algo: PQCAlgorithm) -> PQCKeyPair;
-    fn sign(message: &[u8], keypair: &PQCKeyPair, algo: PQCAlgorithm) -> Signature;
-    fn verify(message: &[u8], sig: &Signature, pubkey: &[u8], algo: PQCAlgorithm) -> bool;
-}
-
-/// Dummy implementation for scaffolding
-pub struct DummyPQC;
-
-impl PQCKeyManager for DummyPQC {
-    fn generate_keypair(algo: PQCAlgorithm) -> PQCKeyPair {
-        // TODO: Integrate real PQC library (liboqs, PQClean, etc.)
-        PQCKeyPair { public: vec![0; 32], private: vec![0; 64] }
-    }
-    fn sign(_message: &[u8], _keypair: &PQCKeyPair, _algo: PQCAlgorithm) -> Signature {
-        // TODO: Implement real signing
-        Signature(vec![1; 64])
-    }
-    fn verify(_message: &[u8], _sig: &Signature, _pubkey: &[u8], _algo: PQCAlgorithm) -> bool {
-        // TODO: Implement real verification
-        true
-    }
-}
-
 use pqcrypto_dilithium::dilithium5;
 use pqcrypto_falcon::falcon1024;
-use pqcrypto_sphincsplus::sphincssha256128ssimple;
+use pqcrypto_sphincsplus::sphincssha2128ssimple;
 use pqcrypto_kyber::kyber1024;
 use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SecretKey as SignSecretKey, SignedMessage};
 use pqcrypto_traits::kem::{PublicKey as KemPublicKey, SecretKey as KemSecretKey, Ciphertext, SharedSecret};
 use serde::{Serialize, Deserialize};
 use thiserror::Error;
-use sha3::{Sha3_256, Digest};
-use hex;
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::fs;
 
 #[derive(Error, Debug)]
 pub enum PQCError {
-    #[error("Invalid key format")]
-    InvalidKey,
-    #[error("Invalid signature format")]
-    InvalidSignature,
+    #[error("Invalid key format: {0}")]
+    InvalidKey(String),
+    #[error("Invalid signature format: {0}")]
+    InvalidSignature(String),
     #[error("Signature verification failed")]
     VerificationFailed,
     #[error("Unsupported algorithm: {0}")]
@@ -67,7 +31,7 @@ pub enum PQCError {
     KeyGenerationFailed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SignatureAlgorithm {
     Dilithium5,
     Falcon1024,
@@ -131,7 +95,7 @@ impl PQCManager {
         match self.signature_keypair.algorithm {
             SignatureAlgorithm::Dilithium5 => {
                 let sk = dilithium5::SecretKey::from_bytes(&self.signature_keypair.secret_key)
-                    .map_err(|_| PQCError::InvalidKey)?;
+                    .map_err(|_| PQCError::InvalidKey("Invalid Dilithium5 secret key".to_string()))?;
                 
                 let signed_message = dilithium5::sign(message, &sk);
                 
@@ -142,7 +106,7 @@ impl PQCManager {
             }
             SignatureAlgorithm::Falcon1024 => {
                 let sk = falcon1024::SecretKey::from_bytes(&self.signature_keypair.secret_key)
-                    .map_err(|_| PQCError::InvalidKey)?;
+                    .map_err(|_| PQCError::InvalidKey("Invalid Falcon1024 secret key".to_string()))?;
                 
                 let signed_message = falcon1024::sign(message, &sk);
                 
@@ -152,10 +116,10 @@ impl PQCManager {
                 })
             }
             SignatureAlgorithm::SphincsSha256128s => {
-                let sk = sphincssha256128ssimple::SecretKey::from_bytes(&self.signature_keypair.secret_key)
-                    .map_err(|_| PQCError::InvalidKey)?;
+                let sk = sphincssha2128ssimple::SecretKey::from_bytes(&self.signature_keypair.secret_key)
+                    .map_err(|_| PQCError::InvalidKey("Invalid SPHINCS+ secret key".to_string()))?;
                 
-                let signed_message = sphincssha256128ssimple::sign(message, &sk);
+                let signed_message = sphincssha2128ssimple::sign(message, &sk);
                 
                 Ok(Signature {
                     data: signed_message.as_bytes().to_vec(),
@@ -169,10 +133,10 @@ impl PQCManager {
         match signature.algorithm {
             SignatureAlgorithm::Dilithium5 => {
                 let pk = dilithium5::PublicKey::from_bytes(public_key)
-                    .map_err(|_| PQCError::InvalidKey)?;
+                    .map_err(|_| PQCError::InvalidKey("Invalid Dilithium5 public key".to_string()))?;
                 
                 let signed_message = dilithium5::SignedMessage::from_bytes(&signature.data)
-                    .map_err(|_| PQCError::InvalidSignature)?;
+                    .map_err(|_| PQCError::InvalidSignature("Invalid Dilithium5 signature".to_string()))?;
                 
                 match dilithium5::open(&signed_message, &pk) {
                     Ok(verified_message) => Ok(verified_message == message),
@@ -181,10 +145,10 @@ impl PQCManager {
             }
             SignatureAlgorithm::Falcon1024 => {
                 let pk = falcon1024::PublicKey::from_bytes(public_key)
-                    .map_err(|_| PQCError::InvalidKey)?;
+                    .map_err(|_| PQCError::InvalidKey("Invalid Falcon1024 public key".to_string()))?;
                 
                 let signed_message = falcon1024::SignedMessage::from_bytes(&signature.data)
-                    .map_err(|_| PQCError::InvalidSignature)?;
+                    .map_err(|_| PQCError::InvalidSignature("Invalid Falcon1024 signature".to_string()))?;
                 
                 match falcon1024::open(&signed_message, &pk) {
                     Ok(verified_message) => Ok(verified_message == message),
@@ -192,13 +156,13 @@ impl PQCManager {
                 }
             }
             SignatureAlgorithm::SphincsSha256128s => {
-                let pk = sphincssha256128ssimple::PublicKey::from_bytes(public_key)
-                    .map_err(|_| PQCError::InvalidKey)?;
+                let pk = sphincssha2128ssimple::PublicKey::from_bytes(public_key)
+                    .map_err(|_| PQCError::InvalidKey("Invalid SPHINCS+ public key".to_string()))?;
                 
-                let signed_message = sphincssha256128ssimple::SignedMessage::from_bytes(&signature.data)
-                    .map_err(|_| PQCError::InvalidSignature)?;
+                let signed_message = sphincssha2128ssimple::SignedMessage::from_bytes(&signature.data)
+                    .map_err(|_| PQCError::InvalidSignature("Invalid SPHINCS+ signature".to_string()))?;
                 
-                match sphincssha256128ssimple::open(&signed_message, &pk) {
+                match sphincssha2128ssimple::open(&signed_message, &pk) {
                     Ok(verified_message) => Ok(verified_message == message),
                     Err(_) => Ok(false),
                 }
@@ -210,7 +174,7 @@ impl PQCManager {
         match self.key_exchange_keypair.algorithm {
             KeyExchangeAlgorithm::Kyber1024 => {
                 let pk = KemPublicKey::from_bytes(peer_public_key)
-                    .map_err(|_| PQCError::InvalidKey)?;
+                    .map_err(|_| PQCError::InvalidKey("Invalid Kyber1024 public key".to_string()))?;
                 
                 let (ciphertext, shared_secret) = kyber1024::encapsulate(&pk);
                 
@@ -227,10 +191,10 @@ impl PQCManager {
         match self.key_exchange_keypair.algorithm {
             KeyExchangeAlgorithm::Kyber1024 => {
                 let sk = kyber1024::SecretKey::from_bytes(&self.key_exchange_keypair.secret_key)
-                    .map_err(|_| PQCError::InvalidKey)?;
+                    .map_err(|_| PQCError::InvalidKey("Invalid Kyber1024 secret key".to_string()))?;
                 
                 let ct = kyber1024::Ciphertext::from_bytes(ciphertext)
-                    .map_err(|_| PQCError::InvalidKey)?;
+                    .map_err(|_| PQCError::InvalidKey("Invalid Kyber1024 ciphertext".to_string()))?;
                 
                 let shared_secret = kyber1024::decapsulate(&ct, &sk);
                 
@@ -289,7 +253,7 @@ impl PQCManager {
                 })
             }
             SignatureAlgorithm::SphincsSha256128s => {
-                let (pk, sk) = sphincssha256128ssimple::keypair();
+                let (pk, sk) = sphincssha2128ssimple::keypair();
                 Ok(KeyPair {
                     public_key: pqcrypto_traits::sign::PublicKey::as_bytes(&pk).to_vec(),
                     secret_key: pqcrypto_traits::sign::SecretKey::as_bytes(&sk).to_vec(),
@@ -320,9 +284,9 @@ impl PQCManager {
                 Ok(signature.as_bytes().to_vec())
             }
             SignatureAlgorithm::SphincsSha256128s => {
-                let sk = sphincssha256128ssimple::SecretKey::from_bytes(secret_key)
+                let sk = sphincssha2128ssimple::SecretKey::from_bytes(secret_key)
                     .map_err(|_| PQCError::InvalidKey("Invalid SPHINCS+ secret key".to_string()))?;
-                let signature = sphincssha256128ssimple::sign(message, &sk);
+                let signature = sphincssha2128ssimple::sign(message, &sk);
                 Ok(signature.as_bytes().to_vec())
             }
         }
@@ -340,24 +304,76 @@ impl PQCManager {
             SignatureAlgorithm::Dilithium5 => {
                 let pk = dilithium5::PublicKey::from_bytes(public_key)
                     .map_err(|_| PQCError::InvalidKey("Invalid Dilithium5 public key".to_string()))?;
-                let sig = dilithium5::Signature::from_bytes(signature)
+                let sig = dilithium5::SignedMessage::from_bytes(signature)
                     .map_err(|_| PQCError::InvalidSignature("Invalid Dilithium5 signature".to_string()))?;
-                Ok(dilithium5::verify(&sig, message, &pk).is_ok())
+                match dilithium5::open(&sig, &pk) {
+                    Ok(verified_message) => Ok(verified_message == message),
+                    Err(_) => Ok(false),
+                }
             }
             SignatureAlgorithm::Falcon1024 => {
                 let pk = falcon1024::PublicKey::from_bytes(public_key)
                     .map_err(|_| PQCError::InvalidKey("Invalid Falcon1024 public key".to_string()))?;
-                let sig = falcon1024::Signature::from_bytes(signature)
+                let sig = falcon1024::SignedMessage::from_bytes(signature)
                     .map_err(|_| PQCError::InvalidSignature("Invalid Falcon1024 signature".to_string()))?;
-                Ok(falcon1024::verify(&sig, message, &pk).is_ok())
+                match falcon1024::open(&sig, &pk) {
+                    Ok(verified_message) => Ok(verified_message == message),
+                    Err(_) => Ok(false),
+                }
             }
             SignatureAlgorithm::SphincsSha256128s => {
-                let pk = sphincssha256128ssimple::PublicKey::from_bytes(public_key)
+                let pk = sphincssha2128ssimple::PublicKey::from_bytes(public_key)
                     .map_err(|_| PQCError::InvalidKey("Invalid SPHINCS+ public key".to_string()))?;
-                let sig = sphincssha256128ssimple::Signature::from_bytes(signature)
+                let sig = sphincssha2128ssimple::SignedMessage::from_bytes(signature)
                     .map_err(|_| PQCError::InvalidSignature("Invalid SPHINCS+ signature".to_string()))?;
-                Ok(sphincssha256128ssimple::verify(&sig, message, &pk).is_ok())
+                match sphincssha2128ssimple::open(&sig, &pk) {
+                    Ok(verified_message) => Ok(verified_message == message),
+                    Err(_) => Ok(false),
+                }
             }
+        }
+    }
+}
+
+// Helper functions for key generation
+fn generate_signature_keypair(algorithm: &SignatureAlgorithm) -> Result<KeyPair, PQCError> {
+    match algorithm {
+        SignatureAlgorithm::Dilithium5 => {
+            let (pk, sk) = dilithium5::keypair();
+            Ok(KeyPair {
+                public_key: pqcrypto_traits::sign::PublicKey::as_bytes(&pk).to_vec(),
+                secret_key: pqcrypto_traits::sign::SecretKey::as_bytes(&sk).to_vec(),
+                algorithm: algorithm.clone(),
+            })
+        }
+        SignatureAlgorithm::Falcon1024 => {
+            let (pk, sk) = falcon1024::keypair();
+            Ok(KeyPair {
+                public_key: pqcrypto_traits::sign::PublicKey::as_bytes(&pk).to_vec(),
+                secret_key: pqcrypto_traits::sign::SecretKey::as_bytes(&sk).to_vec(),
+                algorithm: algorithm.clone(),
+            })
+        }
+        SignatureAlgorithm::SphincsSha256128s => {
+            let (pk, sk) = sphincssha2128ssimple::keypair();
+            Ok(KeyPair {
+                public_key: pqcrypto_traits::sign::PublicKey::as_bytes(&pk).to_vec(),
+                secret_key: pqcrypto_traits::sign::SecretKey::as_bytes(&sk).to_vec(),
+                algorithm: algorithm.clone(),
+            })
+        }
+    }
+}
+
+fn generate_key_exchange_keypair(algorithm: &KeyExchangeAlgorithm) -> Result<KeyExchangeKeyPair, PQCError> {
+    match algorithm {
+        KeyExchangeAlgorithm::Kyber1024 => {
+            let (pk, sk) = kyber1024::keypair();
+            Ok(KeyExchangeKeyPair {
+                public_key: pqcrypto_traits::kem::PublicKey::as_bytes(&pk).to_vec(),
+                secret_key: pqcrypto_traits::kem::SecretKey::as_bytes(&sk).to_vec(),
+                algorithm: algorithm.clone(),
+            })
         }
     }
 }
