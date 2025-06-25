@@ -141,6 +141,17 @@ impl ConsensusEngine {
                 
                 // Calculate hash
                 sample_tx.hash = sample_tx.calculate_hash();
+
+                // Sign the transaction
+                if let Ok(sig) = pqc_manager.sign_message(&sample_tx.signing_message()) {
+                    sample_tx.signature = crate::types::PQCTransactionSignature {
+                        signature: dytallix_pqc::Signature {
+                            data: sig.signature,
+                            algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                        },
+                        public_key: pqc_manager.get_dilithium_public_key().to_vec(),
+                    };
+                }
                 
                 let transaction = Transaction::Transfer(sample_tx);
                 let transactions = vec![transaction];
@@ -301,6 +312,11 @@ impl ConsensusEngine {
         pqc_manager: &Arc<PQCManager>,
         tx: &Transaction,
     ) -> Result<bool, String> {
+        // Validate signature for any transaction type
+        if !Self::validate_any_transaction_signature(pqc_manager, tx)? {
+            return Ok(false);
+        }
+
         match tx {
             Transaction::Transfer(transfer_tx) => {
                 // Basic validation
@@ -442,6 +458,23 @@ impl ConsensusEngine {
         header.nonce.hash(&mut hasher);
         
         format!("{:x}", hasher.finish())
+    }
+
+    fn validate_any_transaction_signature(
+        pqc_manager: &PQCManager,
+        tx: &Transaction,
+    ) -> Result<bool, String> {
+        let message = tx.signing_message();
+        let sig = tx.signature();
+
+        let pqc_sig = crate::crypto::PQCSignature {
+            signature: sig.signature.data.clone(),
+            algorithm: format!("{:?}", sig.signature.algorithm),
+        };
+
+        pqc_manager
+            .verify_signature(&message, &pqc_sig, &sig.public_key)
+            .map_err(|e| e.to_string())
     }
     
     fn calculate_merkle_root_static(transactions: &[Transaction]) -> String {

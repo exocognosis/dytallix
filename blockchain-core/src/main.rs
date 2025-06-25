@@ -82,6 +82,19 @@ impl DytallixNode for DummyNode {
         
         // Calculate hash
         transaction.hash = transaction.calculate_hash();
+
+        // Sign the transaction
+        let sig = self
+            .pqc_manager
+            .sign_message(&transaction.signing_message())
+            .map_err(|e| format!("Failed to sign transaction: {}", e))?;
+        transaction.signature = crate::types::PQCTransactionSignature {
+            signature: dytallix_pqc::Signature {
+                data: sig.signature,
+                algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+            },
+            public_key: self.pqc_manager.get_dilithium_public_key().to_vec(),
+        };
         
         let tx = Transaction::Transfer(transaction);
         
