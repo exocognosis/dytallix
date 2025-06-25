@@ -1,8 +1,13 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use serde::{Serialize, Deserialize};
-use log::{info, debug, warn};
+use log::{info, debug, warn, error};
 use chrono::{DateTime, Utc};
+use serde_json;
+use std::path::Path;
+use pqcrypto_dilithium::dilithium5;
+use pqcrypto_falcon::falcon1024;
+use pqcrypto_sphincsplus::sphincssha256128ssimple;
 
 use crate::runtime::DytallixRuntime;
 use crate::crypto::{PQCManager, PQCSignature};
@@ -92,6 +97,20 @@ impl Default for AIServiceConfig {
             risk_threshold: 0.8,
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StoredKeyPair {
+    algorithm: String,
+    public_key: Vec<u8>,
+    secret_key: Vec<u8>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct NodeKeyStore {
+    dilithium: StoredKeyPair,
+    falcon: StoredKeyPair,
+    sphincs: StoredKeyPair,
 }
 
 /// HTTP client for communicating with external AI services
@@ -206,6 +225,31 @@ impl ConsensusEngine {
         runtime: Arc<DytallixRuntime>,
         pqc_manager: Arc<PQCManager>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
+        // Check for existing PQC keys
+        let key_dir = Path::new("./data");
+        let key_file = key_dir.join("pqc_keys.json");
+
+        if key_file.exists() {
+            match std::fs::read_to_string(&key_file) {
+                Ok(data) => {
+                    if let Ok(store) = serde_json::from_str::<NodeKeyStore>(&data) {
+                        info!("Loaded PQC keys from {}", key_file.display());
+                        info!("Available algorithms: {}, {}, {}",
+                              store.dilithium.algorithm, store.falcon.algorithm, store.sphincs.algorithm);
+                    } else {
+                        warn!("Failed to parse PQC key store, generating new keys");
+                        Self::generate_and_store_keys(&key_file)?;
+                    }
+                }
+                Err(_) => {
+                    warn!("Unable to read PQC key store, generating new keys");
+                    Self::generate_and_store_keys(&key_file)?;
+                }
+            }
+        } else {
+            Self::generate_and_store_keys(&key_file)?;
+        }
+
         let ai_client = AIOracleClient::new(AIServiceConfig::default());
         Ok(Self {
             runtime,
@@ -215,6 +259,37 @@ impl ConsensusEngine {
             is_validator: true, // For development
             ai_client,
         })
+    }
+
+    fn generate_and_store_keys(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+        std::fs::create_dir_all(path.parent().unwrap_or(Path::new(".")))?;
+
+        let (d_pk, d_sk) = dilithium5::keypair();
+        let (f_pk, f_sk) = falcon1024::keypair();
+        let (s_pk, s_sk) = sphincssha256128ssimple::keypair();
+
+        let store = NodeKeyStore {
+            dilithium: StoredKeyPair {
+                algorithm: "Dilithium5".to_string(),
+                public_key: d_pk.as_bytes().to_vec(),
+                secret_key: d_sk.as_bytes().to_vec(),
+            },
+            falcon: StoredKeyPair {
+                algorithm: "Falcon1024".to_string(),
+                public_key: f_pk.as_bytes().to_vec(),
+                secret_key: f_sk.as_bytes().to_vec(),
+            },
+            sphincs: StoredKeyPair {
+                algorithm: "SphincsSha256128s".to_string(),
+                public_key: s_pk.as_bytes().to_vec(),
+                secret_key: s_sk.as_bytes().to_vec(),
+            },
+        };
+
+        let json = serde_json::to_string_pretty(&store)?;
+        std::fs::write(path, json)?;
+        info!("Generated PQC keys at {}", path.display());
+        Ok(())
     }
     
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
