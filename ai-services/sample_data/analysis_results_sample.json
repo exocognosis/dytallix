@@ -1,0 +1,23 @@
+[
+  {
+    "transaction_id": "tx001",
+    "confidence": 0.95,
+    "is_fraudulent": true,
+    "risk_factors": ["large_transaction_amount", "unusual_timing"],
+    "recommended_action": "block_transaction"
+  },
+  {
+    "transaction_id": "tx002",
+    "confidence": 0.62,
+    "is_fraudulent": true,
+    "risk_factors": ["medium_anomaly_score"],
+    "recommended_action": "require_additional_verification"
+  },
+  {
+    "transaction_id": "tx003",
+    "confidence": 0.28,
+    "is_fraudulent": false,
+    "risk_factors": [],
+    "recommended_action": "approve"
+  }
+]
