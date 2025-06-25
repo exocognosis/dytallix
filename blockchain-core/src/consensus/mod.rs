@@ -270,19 +270,9 @@ impl ConsensusEngine {
         if block.transactions.is_empty() {
             return Ok(false);
         }
-        
+
         // Validate PQC signature
-        let block_hash = Self::calculate_block_hash_static(&block.header);
-        let is_valid = pqc_manager.verify_signature(
-            block_hash.as_bytes(),
-            &crate::crypto::PQCSignature {
-                signature: block.header.signature.signature.data.clone(),
-                algorithm: format!("{:?}", block.header.signature.signature.algorithm),
-            },
-            &block.header.signature.public_key,
-        ).map_err(|e| e.to_string())?;
-        
-        if !is_valid {
+        if !Self::validate_block_signature_static(pqc_manager, &block.header)? {
             return Ok(false);
         }
         
@@ -294,6 +284,46 @@ impl ConsensusEngine {
         }
         
         Ok(true)
+    }
+
+    fn validate_block_signature_static(
+        pqc_manager: &Arc<PQCManager>,
+        header: &BlockHeader,
+    ) -> Result<bool, String> {
+        debug!("Validating signature for block #{}", header.number);
+
+        if header.signature.signature.data.is_empty() {
+            error!("Block #{} has empty signature", header.number);
+            return Err("Empty block signature".into());
+        }
+
+        if header.signature.public_key.is_empty() {
+            error!("Block #{} has empty signature public key", header.number);
+            return Err("Empty signature public key".into());
+        }
+
+        let block_hash = Self::calculate_block_hash_static(header);
+        let pqc_sig = crate::crypto::PQCSignature {
+            signature: header.signature.signature.data.clone(),
+            algorithm: format!("{:?}", header.signature.signature.algorithm),
+        };
+
+        match pqc_manager
+            .verify_signature(block_hash.as_bytes(), &pqc_sig, &header.signature.public_key)
+        {
+            Ok(true) => {
+                debug!("Block #{} signature verified", header.number);
+                Ok(true)
+            }
+            Ok(false) => {
+                warn!("Invalid signature for block #{}", header.number);
+                Ok(false)
+            }
+            Err(e) => {
+                error!("Error verifying block signature: {}", e);
+                Err(e.to_string())
+            }
+        }
     }
     
     async fn validate_transaction_static(

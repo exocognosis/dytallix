@@ -50,11 +50,18 @@ impl PQCManager {
         signature: &PQCSignature,
         public_key: &[u8],
     ) -> Result<bool, Box<dyn std::error::Error>> {
+        let algorithm = match signature.algorithm.as_str() {
+            "Dilithium5" | "CRYSTALS-Dilithium5" => SignatureAlgorithm::Dilithium5,
+            "Falcon1024" | "Falcon-1024" => SignatureAlgorithm::Falcon1024,
+            "SphincsSha256128s" | "SPHINCS+" | "SPHINCSPlus" => SignatureAlgorithm::SphincsSha256128s,
+            other => return Err(format!("Unsupported signature algorithm: {}", other).into()),
+        };
+
         let sig = Signature {
             data: signature.signature.clone(),
-            algorithm: SignatureAlgorithm::Dilithium5, // Default for now
+            algorithm,
         };
-        
+
         Ok(self.inner.verify(message, &sig, public_key)?)
     }
     
