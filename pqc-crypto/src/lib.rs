@@ -101,6 +101,12 @@ pub struct KeyExchangeKeyPair {
     pub algorithm: KeyExchangeAlgorithm,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StoredKeys {
+    signature_keypair: KeyPair,
+    key_exchange_keypair: KeyExchangeKeyPair,
+}
+
 pub struct PQCManager {
     signature_keypair: KeyPair,
     key_exchange_keypair: KeyExchangeKeyPair,
@@ -120,11 +126,61 @@ impl PQCManager {
     ) -> Result<Self, PQCError> {
         let signature_keypair = generate_signature_keypair(&sig_alg)?;
         let key_exchange_keypair = generate_key_exchange_keypair(&kex_alg)?;
-        
+
         Ok(Self {
             signature_keypair,
             key_exchange_keypair,
         })
+    }
+
+    /// Load key pairs from a JSON file
+    pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self, PQCError> {
+        let data = fs::read_to_string(&path).map_err(|_| PQCError::InvalidKey)?;
+        let stored: StoredKeys = serde_json::from_str(&data).map_err(|_| PQCError::InvalidKey)?;
+        Ok(Self {
+            signature_keypair: stored.signature_keypair,
+            key_exchange_keypair: stored.key_exchange_keypair,
+        })
+    }
+
+    /// Save key pairs to a JSON file
+    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), PQCError> {
+        let stored = StoredKeys {
+            signature_keypair: self.signature_keypair.clone(),
+            key_exchange_keypair: self.key_exchange_keypair.clone(),
+        };
+        let json = serde_json::to_string_pretty(&stored).map_err(|_| PQCError::InvalidKey)?;
+        fs::write(&path, json).map_err(|_| PQCError::KeyGenerationFailed)?;
+        Ok(())
+    }
+
+    /// Load keys from disk if present, otherwise generate and save new ones
+    pub fn load_or_generate<P: AsRef<Path>>(path: P) -> Result<Self, PQCError> {
+        if path.as_ref().exists() {
+            match Self::load_from_file(&path) {
+                Ok(manager) => Ok(manager),
+                Err(_) => {
+                    let manager = Self::new()?;
+                    manager.save_to_file(&path)?;
+                    Ok(manager)
+                }
+            }
+        } else {
+            let manager = Self::new()?;
+            manager.save_to_file(&path)?;
+            Ok(manager)
+        }
+    }
+
+    /// Validate key pairs by signing and verifying a test message
+    pub fn validate_keys(&self) -> Result<(), PQCError> {
+        let msg = b"dytallix_key_validation";
+        let sig = self.sign(msg)?;
+        if self.verify(msg, &sig, self.get_signature_public_key())? {
+            Ok(())
+        } else {
+            Err(PQCError::VerificationFailed)
+        }
     }
     
     pub fn sign(&self, message: &[u8]) -> Result<Signature, PQCError> {
@@ -420,5 +476,24 @@ impl CryptoAgilityManager {
         });
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_load_or_generate_and_validate() {
+        let path = "test_keys.json";
+        let _ = std::fs::remove_file(path);
+
+        let manager = PQCManager::load_or_generate(path).expect("create manager");
+        manager.validate_keys().expect("validate keys");
+
+        let manager2 = PQCManager::load_or_generate(path).expect("load manager");
+        manager2.validate_keys().expect("validate keys");
+
+        std::fs::remove_file(path).unwrap();
     }
 }
