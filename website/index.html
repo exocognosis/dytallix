@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dytallix – Quantum-Safe, AI-Enhanced Crypto</title>
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            color: #e8eaed;
+            margin: 0;
+            min-height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bg-anim {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            display: block;
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 90vw;
+            width: 100%;
+            max-height: 90vh;
+            margin: 0;
+            padding: 32px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 12px;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        h1 { 
+            color: #f8fafc; 
+            font-size: 2rem; 
+            margin-bottom: 0.3em; 
+            letter-spacing: -0.02em; 
+            font-weight: 700;
+        }
+        h2 { 
+            color: #3b82f6; 
+            margin-top: 1.5em; 
+            font-size: 1.3rem; 
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+        ul, .bullets { margin: 1em 0; padding-left: 1em; }
+        li, .bullets li { 
+            margin-bottom: 0.7em; 
+            font-size: 1em; 
+            line-height: 1.6; 
+            color: #cbd5e1;
+        }
+        .footer { 
+            margin-top: 2em; 
+            color: #64748b; 
+            font-size: 0.85em; 
+            text-align: center; 
+        }
+        @media (max-width: 800px) { 
+            .container { 
+                margin: 0; 
+                padding: 16px; 
+                max-width: 95vw;
+                max-height: 95vh;
+            }
+            h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.2rem; }
+            li, .bullets li { font-size: 0.95em; }
+        }
+    </style>
+</head>
+<body>
+    <canvas class="bg-anim"></canvas>
+    <div class="container">
+        <h1 style="color: inherit; text-align: center; font-size: 2.4rem; margin-bottom: 0.2em;">Dytallix</h1>
+        <h2 style="text-align: center; color: #60a5fa; font-weight: 500; margin-top: 0; font-size: 1.2rem;">Quantum-Safe. AI-Enhanced. Future-Ready.</h2>
+        <p style="font-size: 1.05em; line-height: 1.6; margin-top: 1.2em; color: #e2e8f0;">
+          Dytallix is a next-generation cryptocurrency architected for resilience against quantum computing threats. It integrates <b style="color: #f8fafc;">Post-Quantum Cryptography (PQC)</b> standards such as CRYSTALS-Dilithium, Falcon, and SPHINCS+ with advanced <b style="color: #f8fafc;">Artificial Intelligence</b> to secure digital assets, smart contracts, and decentralized identities through cryptographic agility and adaptive threat detection.
+        </p>
+        <h2>Crypto’s Quantum Problem</h2>
+        <ul class="bullets">
+            <li>Most cryptocurrencies rely on classical cryptographic primitives (ECDSA, RSA, SHA-2) that are vulnerable to Shor’s and Grover’s quantum algorithms</li>
+            <li>Quantum adversaries could exploit these vulnerabilities to reconstruct private keys, enabling mass theft and unauthorized contract execution</li>
+            <li>Quantum attacks have the potential to irreversibly compromise blockchain integrity, consensus, and immutability within hours</li>
+        </ul>
+        <h2>How Dytallix Solves It</h2>
+        <ul class="bullets"></ul>
+            <li><b>Quantum-Safe Security:</b> Implements NIST-approved PQC algorithms (Dilithium, Falcon, SPHINCS+) for digital signatures and key exchange, ensuring resistance to both classical and quantum attacks</li>
+            <li><b>AI-Driven Protection:</b> Employs machine learning for real-time anomaly detection, on-chain fraud analytics, and automated smart contract auditing to proactively mitigate evolving threats</li>
+            <li><b>Future-Resilient:</b> Features a modular, crypto-agile architecture supporting seamless algorithm upgrades and integration of emerging cryptographic primitives as new standards evolve</li>
+        </ul>
+        <p style="font-size: 1em; line-height: 1.6; text-align: center; margin: 2em 0; color: #cbd5e1;">
+            Interested in partnering to build, promote, or work with us?<br>
+            <a href="mailto:hello@dytallix.com" style="color: #3b82f6; text-decoration: none; font-weight: 600; border-bottom: 1px solid rgba(59, 130, 246, 0.3); transition: all 0.2s;">hello@dytallix.com</a>
+        </p>
+        <div class="footer">
+            &copy; 2025 Dytallix. Quantum-Safe. AI-Enhanced. Future-Ready.
+        </div>
+    </div>
+    <script>
+        // --- Dynamic, elegant, quantum-trust network background ---
+
+        const canvas = document.querySelector('.bg-anim');
+        const ctx = canvas.getContext('2d');
+        let w = window.innerWidth;
+        let h = window.innerHeight;
+        function resize() {
+            w = window.innerWidth;
+            h = window.innerHeight;
+            canvas.width = w;
+            canvas.height = h;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const NODES = 25;
+        const CONNECTIONS = 1;
+        const nodes = Array.from({length: NODES}).map((_, i) => ({
+            baseX: Math.random(),
+            baseY: Math.random(),
+            phase: Math.random() * Math.PI * 2,
+            speed: 0.3 + 0.5 * Math.random(),
+            amp: 0.015 + 0.025 * Math.random(),
+            size: 2 + 2 * Math.random(),
+            freq: 0.4 + 0.6 * Math.random()
+        }));
+        const edges = [];
+        for (let i = 0; i < NODES; i++) {
+            let targets = new Set();
+            while (targets.size < CONNECTIONS) {
+                let t = Math.floor(Math.random() * NODES);
+                if (t !== i) targets.add(t);
+            }
+            for (let t of targets) {
+                if (!edges.find(e => (e[0] === t && e[1] === i) || (e[0] === i && e[1] === t))) {
+                    edges.push([i, t]);
+                }
+            }
+        }
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
+        function getNodeColor(time, idx) {
+            const baseHue = 220 + 15 * Math.sin(time / 6000 + idx * 0.5);
+            return `hsla(${baseHue}, 70%, 65%, 0.8)`;
+        }
+
+        function getEdgeColor(time, i, j) {
+            const hue = 210 + 20 * Math.sin(time / 4500 + i - j);
+            return `hsla(${hue}, 60%, 50%, 0.4)`;
+        }
+
+        function draw(time) {
+            // Subtle gradient background
+            const grad = ctx.createLinearGradient(0, 0, w, h);
+            grad.addColorStop(0, 'rgba(15, 23, 42, 1)');
+            grad.addColorStop(0.5, 'rgba(30, 41, 59, 1)');
+            grad.addColorStop(1, 'rgba(15, 23, 42, 1)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Animate node positions
+            const nodePositions = nodes.map((n, idx) => {
+                const nx = lerp(0, w, n.baseX + n.amp * Math.sin(time/2250 * n.speed + n.phase));
+                const ny = lerp(0, h, n.baseY + n.amp * Math.cos(time/2100 * n.speed - n.phase));
+                const sz = n.size * (0.9 + 0.2 * Math.sin(time/1500 + n.phase));
+                return {x: nx, y: ny, size: sz, color: getNodeColor(time, idx)};
+            });
+
+            // Draw subtle connections
+            for (let [i, j] of edges) {
+                const n1 = nodePositions[i], n2 = nodePositions[j];
+                const dist = Math.hypot(n1.x-n2.x, n1.y-n2.y);
+                let alpha = 0.3 * Math.exp(-dist/(w/6));
+                if (alpha > 0.05) {
+                    ctx.save();
+                    ctx.globalAlpha = alpha;
+                    ctx.strokeStyle = getEdgeColor(time, i, j);
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(n1.x, n1.y);
+                    ctx.lineTo(n2.x, n2.y);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+
+            // Draw subtle nodes
+            for (let n of nodePositions) {
+                ctx.save();
+                ctx.globalAlpha = 0.7;
+                ctx.fillStyle = n.color;
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Subtle glow
+                ctx.globalAlpha = 0.3;
+                ctx.shadowColor = n.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            requestAnimationFrame(draw);
+        }
+        draw(0);
+    </script>
+</body>
+</html>
