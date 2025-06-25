@@ -260,7 +260,75 @@ impl ConsensusEngine {
         
         Ok(block)
     }
-    
+
+    fn validate_transaction_signature(
+        pqc_manager: &Arc<PQCManager>,
+        tx: &Transaction,
+    ) -> Result<bool, String> {
+        match tx {
+            Transaction::Transfer(t) => {
+                pqc_manager
+                    .verify_signature(
+                        t.hash.as_bytes(),
+                        &crate::crypto::PQCSignature {
+                            signature: t.signature.signature.data.clone(),
+                            algorithm: format!("{:?}", t.signature.signature.algorithm),
+                        },
+                        &t.signature.public_key,
+                    )
+                    .map_err(|e| e.to_string())
+            }
+            Transaction::Deploy(t) => {
+                pqc_manager
+                    .verify_signature(
+                        t.hash.as_bytes(),
+                        &crate::crypto::PQCSignature {
+                            signature: t.signature.signature.data.clone(),
+                            algorithm: format!("{:?}", t.signature.signature.algorithm),
+                        },
+                        &t.signature.public_key,
+                    )
+                    .map_err(|e| e.to_string())
+            }
+            Transaction::Call(t) => {
+                pqc_manager
+                    .verify_signature(
+                        t.hash.as_bytes(),
+                        &crate::crypto::PQCSignature {
+                            signature: t.signature.signature.data.clone(),
+                            algorithm: format!("{:?}", t.signature.signature.algorithm),
+                        },
+                        &t.signature.public_key,
+                    )
+                    .map_err(|e| e.to_string())
+            }
+            Transaction::Stake(t) => {
+                pqc_manager
+                    .verify_signature(
+                        t.hash.as_bytes(),
+                        &crate::crypto::PQCSignature {
+                            signature: t.signature.signature.data.clone(),
+                            algorithm: format!("{:?}", t.signature.signature.algorithm),
+                        },
+                        &t.signature.public_key,
+                    )
+                    .map_err(|e| e.to_string())
+            }
+            Transaction::AIRequest(t) => {
+                pqc_manager
+                    .verify_signature(
+                        t.hash.as_bytes(),
+                        &crate::crypto::PQCSignature {
+                            signature: t.signature.signature.data.clone(),
+                            algorithm: format!("{:?}", t.signature.signature.algorithm),
+                        },
+                        &t.signature.public_key,
+                    )
+                    .map_err(|e| e.to_string())
+            }
+        }
+    }
+
     async fn validate_block_static(
         runtime: &Arc<DytallixRuntime>,
         pqc_manager: &Arc<PQCManager>,
@@ -326,18 +394,29 @@ impl ConsensusEngine {
                     }
                 }
                 
-                // Note: Signature validation would happen here in production
+                if !Self::validate_transaction_signature(pqc_manager, tx)? {
+                    return Ok(false);
+                }
                 Ok(true)
             }
             Transaction::Deploy(_) => {
+                if !Self::validate_transaction_signature(pqc_manager, tx)? {
+                    return Ok(false);
+                }
                 // TODO: Implement contract deployment validation
                 Ok(true)
             }
             Transaction::Call(_) => {
+                if !Self::validate_transaction_signature(pqc_manager, tx)? {
+                    return Ok(false);
+                }
                 // TODO: Implement contract call validation
                 Ok(true)
             }
             Transaction::Stake(_) => {
+                if !Self::validate_transaction_signature(pqc_manager, tx)? {
+                    return Ok(false);
+                }
                 // TODO: Implement staking validation
                 Ok(true)
             }
@@ -369,7 +448,11 @@ impl ConsensusEngine {
                         return Ok(false);
                     }
                 }
-                
+
+                if !Self::validate_transaction_signature(pqc_manager, tx)? {
+                    return Ok(false);
+                }
+
                 Ok(true)
             }
         }
