@@ -272,18 +272,42 @@ impl ConsensusEngine {
         }
         
         // Validate PQC signature
+        if block.header.signature.signature.data.is_empty() {
+            error!("Block #{} missing signature data", block.header.number);
+            return Ok(false);
+        }
+        if block.header.signature.public_key.is_empty() {
+            error!("Block #{} missing signer public key", block.header.number);
+            return Ok(false);
+        }
+
+        if block.header.signature.signature.algorithm != *pqc_manager.get_signature_algorithm() {
+            error!(
+                "Block #{} uses unsupported signature algorithm: {:?}",
+                block.header.number,
+                block.header.signature.signature.algorithm
+            );
+            return Ok(false);
+        }
+
         let block_hash = Self::calculate_block_hash_static(&block.header);
-        let is_valid = pqc_manager.verify_signature(
+        match pqc_manager.verify_signature(
             block_hash.as_bytes(),
             &crate::crypto::PQCSignature {
                 signature: block.header.signature.signature.data.clone(),
                 algorithm: format!("{:?}", block.header.signature.signature.algorithm),
             },
             &block.header.signature.public_key,
-        ).map_err(|e| e.to_string())?;
-        
-        if !is_valid {
-            return Ok(false);
+        ) {
+            Ok(true) => {}
+            Ok(false) => {
+                error!("Invalid signature for block #{}", block.header.number);
+                return Ok(false);
+            }
+            Err(e) => {
+                error!("Error verifying block #{} signature: {}", block.header.number, e);
+                return Err(e.to_string());
+            }
         }
         
         // Validate transactions
@@ -326,19 +350,51 @@ impl ConsensusEngine {
                     }
                 }
                 
-                // Note: Signature validation would happen here in production
+                let is_valid = Self::verify_tx_signature_static(
+                    pqc_manager,
+                    transfer_tx.hash.as_bytes(),
+                    &transfer_tx.signature,
+                )?;
+                if !is_valid {
+                    warn!("Invalid signature for transfer tx: {}", transfer_tx.hash);
+                    return Ok(false);
+                }
                 Ok(true)
             }
-            Transaction::Deploy(_) => {
-                // TODO: Implement contract deployment validation
+            Transaction::Deploy(deploy_tx) => {
+                let is_valid = Self::verify_tx_signature_static(
+                    pqc_manager,
+                    deploy_tx.hash.as_bytes(),
+                    &deploy_tx.signature,
+                )?;
+                if !is_valid {
+                    warn!("Invalid signature for deploy tx: {}", deploy_tx.hash);
+                    return Ok(false);
+                }
                 Ok(true)
             }
-            Transaction::Call(_) => {
-                // TODO: Implement contract call validation
+            Transaction::Call(call_tx) => {
+                let is_valid = Self::verify_tx_signature_static(
+                    pqc_manager,
+                    call_tx.hash.as_bytes(),
+                    &call_tx.signature,
+                )?;
+                if !is_valid {
+                    warn!("Invalid signature for call tx: {}", call_tx.hash);
+                    return Ok(false);
+                }
                 Ok(true)
             }
-            Transaction::Stake(_) => {
-                // TODO: Implement staking validation
+            Transaction::Stake(stake_tx) => {
+                let is_valid = Self::verify_tx_signature_static(
+                    pqc_manager,
+                    stake_tx.hash.as_bytes(),
+                    &stake_tx.signature,
+                )?;
+                if !is_valid {
+                    warn!("Invalid signature for stake tx: {}", stake_tx.hash);
+                    return Ok(false);
+                }
                 Ok(true)
             }
             Transaction::AIRequest(ai_request_tx) => {
@@ -369,7 +425,16 @@ impl ConsensusEngine {
                         return Ok(false);
                     }
                 }
-                
+                let is_valid = Self::verify_tx_signature_static(
+                    pqc_manager,
+                    ai_request_tx.hash.as_bytes(),
+                    &ai_request_tx.signature,
+                )?;
+                if !is_valid {
+                    warn!("Invalid signature for AI request tx: {}", ai_request_tx.hash);
+                    return Ok(false);
+                }
+
                 Ok(true)
             }
         }
@@ -473,5 +538,32 @@ impl ConsensusEngine {
         }
         
         format!("{:x}", hasher.finish())
+    }
+
+    fn verify_tx_signature_static(
+        pqc_manager: &Arc<PQCManager>,
+        tx_hash: &[u8],
+        sig: &crate::types::PQCTransactionSignature,
+    ) -> Result<bool, String> {
+        if sig.signature.data.is_empty() {
+            return Ok(false);
+        }
+        if sig.public_key.is_empty() {
+            return Ok(false);
+        }
+        if sig.signature.algorithm != *pqc_manager.get_signature_algorithm() {
+            return Ok(false);
+        }
+
+        pqc_manager
+            .verify_signature(
+                tx_hash,
+                &crate::crypto::PQCSignature {
+                    signature: sig.signature.data.clone(),
+                    algorithm: format!("{:?}", sig.signature.algorithm),
+                },
+                &sig.public_key,
+            )
+            .map_err(|e| e.to_string())
     }
 }
