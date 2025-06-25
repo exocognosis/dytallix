@@ -621,3 +621,122 @@ impl fmt::Display for Transaction {
         }
     }
 }
+
+impl TransferTransaction {
+    /// Generate signing bytes for this transfer transaction
+    pub fn signing_bytes(&self) -> Vec<u8> {
+        format!(
+            "transfer:{}:{}:{}:{}:{}:{}",
+            self.from, self.to, self.amount, self.fee, self.nonce, self.timestamp
+        )
+        .into_bytes()
+    }
+}
+
+impl DeployTransaction {
+    /// Generate signing bytes for this deploy transaction
+    pub fn signing_bytes(&self) -> Vec<u8> {
+        format!(
+            "deploy:{}:{}:{}:{}:{}:{}",
+            self.from,
+            hex::encode(&self.contract_code),
+            hex::encode(&self.initial_state),
+            self.fee,
+            self.nonce,
+            self.timestamp
+        )
+        .into_bytes()
+    }
+}
+
+impl CallTransaction {
+    /// Generate signing bytes for this call transaction
+    pub fn signing_bytes(&self) -> Vec<u8> {
+        format!(
+            "call:{}:{}:{}:{}:{}:{}:{}",
+            self.from,
+            self.contract_address,
+            self.method,
+            hex::encode(&self.params),
+            self.fee,
+            self.nonce,
+            self.timestamp
+        )
+        .into_bytes()
+    }
+}
+
+impl StakeTransaction {
+    /// Generate signing bytes for this stake transaction
+    pub fn signing_bytes(&self) -> Vec<u8> {
+        let action_str = match &self.action {
+            StakeAction::Stake => "Stake".to_string(),
+            StakeAction::Unstake => "Unstake".to_string(),
+            StakeAction::Delegate { to } => format!("Delegate:{}", to),
+            StakeAction::Undelegate => "Undelegate".to_string(),
+        };
+        format!(
+            "stake:{}:{}:{}:{}:{}:{}",
+            self.validator, self.amount, action_str, self.fee, self.nonce, self.timestamp
+        )
+        .into_bytes()
+    }
+}
+
+impl AIRequestTransaction {
+    /// Generate signing bytes for this AI request transaction
+    pub fn signing_bytes(&self) -> Vec<u8> {
+        format!(
+            "ai_request:{}:{:?}:{}:{}:{}:{}",
+            self.from,
+            self.service_type,
+            hex::encode(&self.request_data),
+            self.fee,
+            self.nonce,
+            self.timestamp
+        )
+        .into_bytes()
+    }
+}
+
+impl Transaction {
+    /// Get canonical signing bytes for a transaction
+    pub fn signing_bytes(&self) -> Vec<u8> {
+        match self {
+            Transaction::Transfer(tx) => tx.signing_bytes(),
+            Transaction::Deploy(tx) => tx.signing_bytes(),
+            Transaction::Call(tx) => tx.signing_bytes(),
+            Transaction::Stake(tx) => tx.signing_bytes(),
+            Transaction::AIRequest(tx) => tx.signing_bytes(),
+        }
+    }
+
+    /// Sign the transaction using the provided PQC manager
+    pub fn sign_transaction(
+        &mut self,
+        pqc: &crate::crypto::PQCManager,
+    ) -> Result<(), String> {
+        let message = self.signing_bytes();
+        let sig = pqc
+            .sign_message(&message)
+            .map_err(|e| e.to_string())?;
+
+        let signature = crate::types::PQCTransactionSignature {
+            signature: dytallix_pqc::Signature {
+                data: sig.signature,
+                algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+            },
+            public_key: pqc.get_dilithium_public_key().to_vec(),
+        };
+
+        match self {
+            Transaction::Transfer(tx) => tx.signature = signature,
+            Transaction::Deploy(tx) => tx.signature = signature,
+            Transaction::Call(tx) => tx.signature = signature,
+            Transaction::Stake(tx) => tx.signature = signature,
+            Transaction::AIRequest(tx) => tx.signature = signature,
+        }
+
+        Ok(())
+    }
+}

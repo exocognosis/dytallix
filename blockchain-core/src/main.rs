@@ -83,8 +83,12 @@ impl DytallixNode for DummyNode {
         // Calculate hash
         transaction.hash = transaction.calculate_hash();
         
-        let tx = Transaction::Transfer(transaction);
-        
+        let mut tx = Transaction::Transfer(transaction);
+
+        // Sign transaction
+        tx.sign_transaction(&self.pqc_manager)
+            .map_err(|e| format!("Failed to sign transaction: {}", e))?;
+
         // Add to transaction pool
         let tx_hash = self.transaction_pool.add_transaction(tx).await
             .map_err(|e| format!("Failed to add transaction: {}", e))?;
