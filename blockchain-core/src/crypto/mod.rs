@@ -1,5 +1,6 @@
 use dytallix_pqc::{PQCManager as DytallixPQCManager, Signature, SignatureAlgorithm};
 use log::info;
+use hex;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PQCKeyPair {
@@ -105,4 +106,92 @@ impl PQCManager {
             _ => Err(format!("Unsupported signature algorithm: {}", algorithm).into()),
         }
     }
+
+    /// Sign a blockchain transaction using the node's Dilithium key
+    pub fn sign_transaction(
+        &self,
+        tx: &crate::types::Transaction,
+    ) -> Result<crate::types::PQCTransactionSignature, Box<dyn std::error::Error>> {
+        use crate::types::*;
+
+        // Format the transaction message depending on its type
+        let message = match tx {
+            Transaction::Transfer(t) => format_transfer_message(t),
+            Transaction::Deploy(t) => format_deploy_message(t),
+            Transaction::Call(t) => format_call_message(t),
+            Transaction::Stake(t) => format_stake_message(t),
+            Transaction::AIRequest(t) => format_ai_request_message(t),
+        };
+
+        // Create Dilithium signature over the formatted bytes
+        let signature = self.inner.sign(&message)?;
+
+        Ok(PQCTransactionSignature {
+            signature,
+            public_key: self.inner.get_signature_public_key().to_vec(),
+        })
+    }
+}
+
+// --- Message formatters ----------------------------------------------------
+
+use crate::types::{
+    AIRequestTransaction, CallTransaction, DeployTransaction, StakeAction, StakeTransaction,
+    TransferTransaction, AIServiceType,
+};
+
+fn format_transfer_message(tx: &TransferTransaction) -> Vec<u8> {
+    format!(
+        "transfer:{}:{}:{}:{}:{}:{}",
+        tx.from, tx.to, tx.amount, tx.fee, tx.nonce, tx.timestamp
+    )
+    .into_bytes()
+}
+
+fn format_deploy_message(tx: &DeployTransaction) -> Vec<u8> {
+    format!(
+        "deploy:{}:{}:{}:{}:{}:{}",
+        tx.from,
+        hex::encode(&tx.contract_code),
+        hex::encode(&tx.initial_state),
+        tx.fee,
+        tx.nonce,
+        tx.timestamp
+    )
+    .into_bytes()
+}
+
+fn format_call_message(tx: &CallTransaction) -> Vec<u8> {
+    format!(
+        "call:{}:{}:{}:{}:{}:{}:{}",
+        tx.from,
+        tx.contract_address,
+        tx.method,
+        hex::encode(&tx.params),
+        tx.fee,
+        tx.nonce,
+        tx.timestamp
+    )
+    .into_bytes()
+}
+
+fn format_stake_message(tx: &StakeTransaction) -> Vec<u8> {
+    format!(
+        "stake:{}:{:?}:{}:{}:{}:{}",
+        tx.validator, tx.action, tx.amount, tx.fee, tx.nonce, tx.timestamp
+    )
+    .into_bytes()
+}
+
+fn format_ai_request_message(tx: &AIRequestTransaction) -> Vec<u8> {
+    format!(
+        "airequest:{}:{:?}:{}:{}:{}:{}",
+        tx.from,
+        tx.service_type,
+        hex::encode(&tx.request_data),
+        tx.fee,
+        tx.nonce,
+        tx.timestamp
+    )
+    .into_bytes()
 }
