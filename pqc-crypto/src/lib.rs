@@ -16,6 +16,8 @@ use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SecretKey as SignSecretK
 use pqcrypto_traits::kem::{PublicKey as KemPublicKey, SecretKey as KemSecretKey, Ciphertext, SharedSecret};
 use serde::{Serialize, Deserialize};
 use thiserror::Error;
+use std::path::Path;
+use std::fs;
 
 #[derive(Error, Debug)]
 pub enum PQCError {
@@ -110,6 +112,8 @@ impl PQCManager {
         Ok(Self {
             signature_keypair: stored.signature_keypair,
             key_exchange_keypair: stored.key_exchange_keypair,
+            signature_key_backups: Vec::new(),
+            key_exchange_key_backups: Vec::new(),
         })
     }
 
@@ -633,11 +637,6 @@ mod tests {
         assert!(restored.verify_with_known_keys(msg, &sig_old).unwrap());
         assert!(restored.verify_with_known_keys(msg, &sig_new).unwrap());
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 
     #[test]
     fn test_load_or_generate_and_validate() {
