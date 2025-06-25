@@ -66,6 +66,33 @@ impl Default for AIServiceConfig {
     }
 }
 
+/// HTTP client for communicating with external AI oracle services
+#[derive(Debug, Clone)]
+pub struct AIOracleClient {
+    client: Client,
+    config: AIServiceConfig,
+}
+
+impl AIOracleClient {
+    /// Create a new client using the provided configuration
+    pub fn new(config: AIServiceConfig) -> Result<Self, reqwest::Error> {
+        let client = Client::builder()
+            .timeout(Duration::from_secs(config.timeout_seconds))
+            .build()?;
+        Ok(Self { client, config })
+    }
+
+    /// Access the underlying reqwest client
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+    /// Return the service configuration
+    pub fn config(&self) -> &AIServiceConfig {
+        &self.config
+    }
+}
+
 #[derive(Debug)]
 pub struct ConsensusEngine {
     runtime: Arc<DytallixRuntime>,
