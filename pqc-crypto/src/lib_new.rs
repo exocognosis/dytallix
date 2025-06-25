@@ -37,6 +37,14 @@ pub enum KeyExchangeAlgorithm {
     Kyber1024,
 }
 
+/// Metadata for tracking key versions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyMetadata {
+    pub version: u32,
+    pub created_at: u64,
+    pub public_key: Vec<u8>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct KeyPair {
     pub public_key: Vec<u8>,
@@ -49,6 +57,7 @@ pub struct KeyPair {
 pub struct Signature {
     pub data: Vec<u8>,
     pub algorithm: SignatureAlgorithm,
+    pub version: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
@@ -62,6 +71,7 @@ pub struct KeyExchangeKeyPair {
 pub struct PQCManager {
     signature_keypair: KeyPair,
     key_exchange_keypair: KeyExchangeKeyPair,
+    key_version: u32,
 }
 
 impl PQCManager {
@@ -78,10 +88,11 @@ impl PQCManager {
     ) -> Result<Self, PQCError> {
         let signature_keypair = generate_signature_keypair(&sig_alg)?;
         let key_exchange_keypair = generate_key_exchange_keypair(&kex_alg)?;
-        
+
         Ok(Self {
             signature_keypair,
             key_exchange_keypair,
+            key_version: 1,
         })
     }
     
@@ -96,6 +107,7 @@ impl PQCManager {
                 Ok(Signature {
                     data: SignedMessage::as_bytes(&signed_message).to_vec(),
                     algorithm: SignatureAlgorithm::Dilithium5,
+                    version: self.key_version,
                 })
             }
             _ => Err(PQCError::UnsupportedAlgorithm(format!("{:?}", self.signature_keypair.algorithm))),
@@ -151,6 +163,10 @@ impl PQCManager {
     
     pub fn get_signature_public_key(&self) -> &[u8] {
         &self.signature_keypair.public_key
+    }
+
+    pub fn get_key_version(&self) -> u32 {
+        self.key_version
     }
     
     pub fn get_key_exchange_public_key(&self) -> &[u8] {
@@ -222,6 +238,7 @@ pub struct Account {
     pub address: String,
     pub public_key: Vec<u8>,
     pub signature_algorithm: SignatureAlgorithm,
+    pub key_history: Vec<KeyMetadata>,
     pub key_exchange_public_key: Vec<u8>,
     pub key_exchange_algorithm: KeyExchangeAlgorithm,
     pub created_at: u64,
@@ -238,6 +255,9 @@ pub struct SecureKeyStore {
     pub encrypted_data: Vec<u8>, // Encrypted version of keys
     pub salt: Vec<u8>,
     pub nonce: Vec<u8>,
+    #[serde(skip)]
+    pub previous_signature_keys: Vec<Vec<u8>>,
+    pub current_version: u32,
 }
 
 /// Account manager for handling multiple PQC accounts
@@ -292,6 +312,14 @@ impl AccountManager {
             address,
             public_key: signature_keypair.public_key.clone(),
             signature_algorithm: signature_alg,
+            key_history: vec![KeyMetadata {
+                version: 1,
+                created_at: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+                public_key: signature_keypair.public_key.clone(),
+            }],
             key_exchange_public_key: key_exchange_keypair.public_key.clone(),
             key_exchange_algorithm: key_exchange_alg,
             created_at: std::time::SystemTime::now()
@@ -308,6 +336,8 @@ impl AccountManager {
             encrypted_data: Vec::new(),
             salt: Vec::new(),
             nonce: Vec::new(),
+            previous_signature_keys: Vec::new(),
+            current_version: 1,
         };
         
         // Store account and keys
@@ -362,10 +392,11 @@ impl AccountManager {
             secret_key: key_store.key_exchange_private_key.clone(),
             algorithm: account.key_exchange_algorithm.clone(),
         };
-        
+
         Ok(PQCManager {
             signature_keypair,
             key_exchange_keypair,
+            key_version: key_store.current_version,
         })
     }
     
@@ -414,8 +445,112 @@ impl AccountManager {
         if self.key_stores.contains_key(&account_name) {
             self.save_key_store(&account_name)?;
         }
-        
+
         Ok(account_name)
+    }
+
+    /// Rotate signing keys for an account
+    pub fn rotate_keys(&mut self, name: &str) -> Result<u32, PQCError> {
+        let account = self.accounts.get_mut(name).ok_or(PQCError::InvalidKey)?;
+        let key_store = self.key_stores.get_mut(name).ok_or(PQCError::InvalidKey)?;
+
+        // Save current keys to history
+        account.key_history.push(KeyMetadata {
+            version: key_store.current_version,
+            created_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+            public_key: account.public_key.clone(),
+        });
+        key_store.previous_signature_keys.push(key_store.signature_private_key.clone());
+
+        // Generate new keypair
+        let new_pair = generate_signature_keypair(&account.signature_algorithm)?;
+        account.public_key = new_pair.public_key.clone();
+        key_store.signature_private_key = new_pair.secret_key;
+        key_store.current_version += 1;
+
+        // Persist
+        self.save_account(account)?;
+        self.save_key_store(name)?;
+
+        Ok(key_store.current_version)
+    }
+
+    /// Create an encrypted backup of an account
+    pub fn backup_account(&self, name: &str, passphrase: &str) -> Result<String, PQCError> {
+        use aes_gcm::{Aes256Gcm, Key, Nonce, KeyInit};
+        use aes_gcm::aead::{Aead, generic_array::GenericArray};
+        use pbkdf2::pbkdf2_hmac;
+        use sha2::Sha256;
+        use rand::RngCore;
+
+        let account = self.accounts.get(name).ok_or(PQCError::InvalidKey)?;
+        let key_store = self.key_stores.get(name).ok_or(PQCError::InvalidKey)?;
+
+        let serialized_keys = serde_json::to_vec(key_store).map_err(|_| PQCError::InvalidKey)?;
+
+        let mut salt = vec![0u8; 32];
+        let mut nonce = vec![0u8; 12];
+        rand::thread_rng().fill_bytes(&mut salt);
+        rand::thread_rng().fill_bytes(&mut nonce);
+
+        let mut derived_key = [0u8; 32];
+        pbkdf2_hmac::<Sha256>(passphrase.as_bytes(), &salt, 100_000, &mut derived_key);
+
+        let key = Key::<Aes256Gcm>::from_slice(&derived_key);
+        let cipher = Aes256Gcm::new(key);
+        let nonce_ga = GenericArray::from_slice(&nonce);
+        let encrypted = cipher.encrypt(nonce_ga, serialized_keys.as_ref()).map_err(|_| PQCError::KeyGenerationFailed)?;
+
+        let backup = serde_json::json!({
+            "account": account,
+            "encrypted_data": encrypted,
+            "salt": salt,
+            "nonce": nonce
+        });
+
+        serde_json::to_string_pretty(&backup).map_err(|_| PQCError::InvalidKey)
+    }
+
+    /// Recover account from an encrypted backup
+    pub fn recover_from_backup(&mut self, backup_data: &str, passphrase: &str) -> Result<String, PQCError> {
+        use aes_gcm::{Aes256Gcm, Key, KeyInit};
+        use aes_gcm::aead::{Aead, generic_array::GenericArray};
+        use pbkdf2::pbkdf2_hmac;
+        use sha2::Sha256;
+
+        let value: serde_json::Value = serde_json::from_str(backup_data).map_err(|_| PQCError::InvalidKey)?;
+        let account: Account = serde_json::from_value(value.get("account").cloned().ok_or(PQCError::InvalidKey)?).map_err(|_| PQCError::InvalidKey)?;
+
+        if self.accounts.contains_key(&account.name) {
+            return Err(PQCError::InvalidKey);
+        }
+
+        let encrypted = value.get("encrypted_data").ok_or(PQCError::InvalidKey)?.as_array().ok_or(PQCError::InvalidKey)?;
+        let ciphertext: Vec<u8> = encrypted.iter().map(|v| v.as_u64().unwrap() as u8).collect();
+        let salt: Vec<u8> = value.get("salt").ok_or(PQCError::InvalidKey)?.as_array().unwrap().iter().map(|v| v.as_u64().unwrap() as u8).collect();
+        let nonce: Vec<u8> = value.get("nonce").ok_or(PQCError::InvalidKey)?.as_array().unwrap().iter().map(|v| v.as_u64().unwrap() as u8).collect();
+
+        let mut derived_key = [0u8; 32];
+        pbkdf2_hmac::<Sha256>(passphrase.as_bytes(), &salt, 100_000, &mut derived_key);
+
+        let key = Key::<Aes256Gcm>::from_slice(&derived_key);
+        let cipher = Aes256Gcm::new(key);
+        let nonce_ga = GenericArray::from_slice(&nonce);
+        let decrypted = cipher.decrypt(nonce_ga, ciphertext.as_ref()).map_err(|_| PQCError::VerificationFailed)?;
+
+        let key_store: SecureKeyStore = serde_json::from_slice(&decrypted).map_err(|_| PQCError::InvalidKey)?;
+
+        let name = account.name.clone();
+        self.accounts.insert(name.clone(), account.clone());
+        self.key_stores.insert(name.clone(), key_store);
+
+        self.save_account(&account)?;
+        self.save_key_store(&name)?;
+
+        Ok(name)
     }
     
     /// Save account to disk
