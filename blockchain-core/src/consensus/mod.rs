@@ -139,10 +139,18 @@ impl ConsensusEngine {
                     ai_risk_score: Some(0.1), // Low risk
                 };
                 
-                // Calculate hash
+                // Calculate hash and sign the transaction
                 sample_tx.hash = sample_tx.calculate_hash();
-                
-                let transaction = Transaction::Transfer(sample_tx);
+                let mut transaction = Transaction::Transfer(sample_tx);
+
+                let signature = pqc_manager
+                    .sign_transaction(&transaction)
+                    .map_err(|e| format!("Failed to sign transaction: {}", e))?;
+
+                if let Transaction::Transfer(ref mut t) = transaction {
+                    t.signature = signature;
+                }
+
                 let transactions = vec![transaction];
                 
                 // Create block proposal
