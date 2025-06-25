@@ -507,6 +507,8 @@ impl TransferTransaction {
                 signature: Signature {
                     data: Vec::new(),
                     algorithm: SignatureAlgorithm::Dilithium5,
+                    nonce: 0,
+                    timestamp: 0,
                 },
                 public_key: Vec::new(),
             },

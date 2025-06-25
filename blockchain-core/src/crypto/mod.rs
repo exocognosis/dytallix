@@ -11,6 +11,8 @@ pub struct PQCKeyPair {
 pub struct PQCSignature {
     pub signature: Vec<u8>,
     pub algorithm: String,
+    pub nonce: u64,
+    pub timestamp: u64,
 }
 
 pub struct PQCManager {
@@ -41,6 +43,8 @@ impl PQCManager {
         Ok(PQCSignature {
             signature: signature.data.clone(),
             algorithm: format!("{:?}", signature.algorithm),
+            nonce: signature.nonce,
+            timestamp: signature.timestamp,
         })
     }
     
@@ -50,11 +54,20 @@ impl PQCManager {
         signature: &PQCSignature,
         public_key: &[u8],
     ) -> Result<bool, Box<dyn std::error::Error>> {
+        let algorithm = match signature.algorithm.as_str() {
+            "Dilithium5" | "CRYSTALS-Dilithium5" => SignatureAlgorithm::Dilithium5,
+            "Falcon1024" => SignatureAlgorithm::Falcon1024,
+            "SphincsSha256128s" | "SPHINCS+" => SignatureAlgorithm::SphincsSha256128s,
+            _ => SignatureAlgorithm::Dilithium5,
+        };
+
         let sig = Signature {
             data: signature.signature.clone(),
-            algorithm: SignatureAlgorithm::Dilithium5, // Default for now
+            algorithm,
+            nonce: signature.nonce,
+            timestamp: signature.timestamp,
         };
-        
+
         Ok(self.inner.verify(message, &sig, public_key)?)
     }
     

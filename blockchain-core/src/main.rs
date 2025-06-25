@@ -74,6 +74,8 @@ impl DytallixNode for DummyNode {
                 signature: dytallix_pqc::Signature {
                     data: Vec::new(),
                     algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                    nonce: 0,
+                    timestamp: 0,
                 },
                 public_key: Vec::new(),
             },

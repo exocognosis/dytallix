@@ -49,7 +49,9 @@ use serde::{Serialize, Deserialize};
 use thiserror::Error;
 use sha3::{Sha3_256, Digest};
 use hex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use rand::Rng;
+use chrono::Utc;
 use std::path::{Path, PathBuf};
 use std::fs;
 
@@ -79,6 +81,18 @@ pub enum KeyExchangeAlgorithm {
     Kyber1024,
 }
 
+/// Signature length constants for basic validation
+const DILITHIUM5_SIGNATURE_LEN: usize = 4595;
+const FALCON1024_SIGNATURE_LEN: usize = 1330;
+const SPHINCS_SHA256_128S_SIGNATURE_LEN: usize = 7856;
+
+#[derive(Default, Debug)]
+pub struct SignatureMetrics {
+    pub verification_success: u64,
+    pub verification_failure: u64,
+    pub algorithm_usage: HashMap<SignatureAlgorithm, u64>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyPair {
     pub public_key: Vec<u8>,
@@ -91,6 +105,8 @@ pub struct KeyPair {
 pub struct Signature {
     pub data: Vec<u8>,
     pub algorithm: SignatureAlgorithm,
+    pub nonce: u64,
+    pub timestamp: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -104,6 +120,8 @@ pub struct KeyExchangeKeyPair {
 pub struct PQCManager {
     signature_keypair: KeyPair,
     key_exchange_keypair: KeyExchangeKeyPair,
+    metrics: SignatureMetrics,
+    used_nonces: HashSet<u64>,
 }
 
 impl PQCManager {
@@ -120,53 +138,86 @@ impl PQCManager {
     ) -> Result<Self, PQCError> {
         let signature_keypair = generate_signature_keypair(&sig_alg)?;
         let key_exchange_keypair = generate_key_exchange_keypair(&kex_alg)?;
-        
+
         Ok(Self {
             signature_keypair,
             key_exchange_keypair,
+            metrics: SignatureMetrics::default(),
+            used_nonces: HashSet::new(),
         })
     }
     
     pub fn sign(&self, message: &[u8]) -> Result<Signature, PQCError> {
+        let nonce: u64 = rand::thread_rng().gen();
+        let timestamp = Utc::now().timestamp() as u64;
+        let entry = self.metrics.algorithm_usage.entry(self.signature_keypair.algorithm.clone()).or_insert(0);
+        *entry += 1;
         match self.signature_keypair.algorithm {
             SignatureAlgorithm::Dilithium5 => {
                 let sk = dilithium5::SecretKey::from_bytes(&self.signature_keypair.secret_key)
                     .map_err(|_| PQCError::InvalidKey)?;
-                
+
                 let signed_message = dilithium5::sign(message, &sk);
-                
+
                 Ok(Signature {
                     data: signed_message.as_bytes().to_vec(),
                     algorithm: SignatureAlgorithm::Dilithium5,
+                    nonce,
+                    timestamp,
                 })
             }
             SignatureAlgorithm::Falcon1024 => {
                 let sk = falcon1024::SecretKey::from_bytes(&self.signature_keypair.secret_key)
                     .map_err(|_| PQCError::InvalidKey)?;
-                
+
                 let signed_message = falcon1024::sign(message, &sk);
-                
+
                 Ok(Signature {
                     data: signed_message.as_bytes().to_vec(),
                     algorithm: SignatureAlgorithm::Falcon1024,
+                    nonce,
+                    timestamp,
                 })
             }
             SignatureAlgorithm::SphincsSha256128s => {
                 let sk = sphincssha256128ssimple::SecretKey::from_bytes(&self.signature_keypair.secret_key)
                     .map_err(|_| PQCError::InvalidKey)?;
-                
+
                 let signed_message = sphincssha256128ssimple::sign(message, &sk);
-                
+
                 Ok(Signature {
                     data: signed_message.as_bytes().to_vec(),
                     algorithm: SignatureAlgorithm::SphincsSha256128s,
+                    nonce,
+                    timestamp,
                 })
             }
         }
     }
     
     pub fn verify(&self, message: &[u8], signature: &Signature, public_key: &[u8]) -> Result<bool, PQCError> {
-        match signature.algorithm {
+        if self.used_nonces.contains(&signature.nonce) {
+            log::warn!("Replay detected for nonce {}", signature.nonce);
+            self.metrics.verification_failure += 1;
+            return Ok(false);
+        }
+
+        let expected_len = match signature.algorithm {
+            SignatureAlgorithm::Dilithium5 => DILITHIUM5_SIGNATURE_LEN,
+            SignatureAlgorithm::Falcon1024 => FALCON1024_SIGNATURE_LEN,
+            SignatureAlgorithm::SphincsSha256128s => SPHINCS_SHA256_128S_SIGNATURE_LEN,
+        };
+
+        if signature.data.len() != expected_len {
+            log::error!("Invalid signature length: {} (expected {})", signature.data.len(), expected_len);
+            self.metrics.verification_failure += 1;
+            return Err(PQCError::InvalidSignature);
+        }
+
+        let entry = self.metrics.algorithm_usage.entry(signature.algorithm.clone()).or_insert(0);
+        *entry += 1;
+
+        let result = match signature.algorithm {
             SignatureAlgorithm::Dilithium5 => {
                 let pk = dilithium5::PublicKey::from_bytes(public_key)
                     .map_err(|_| PQCError::InvalidKey)?;
@@ -203,7 +254,18 @@ impl PQCManager {
                     Err(_) => Ok(false),
                 }
             }
+        }?;
+
+        if result {
+            self.used_nonces.insert(signature.nonce);
+            self.metrics.verification_success += 1;
+            log::info!("Signature verified successfully using {:?}", signature.algorithm);
+        } else {
+            self.metrics.verification_failure += 1;
+            log::warn!("Signature verification failed using {:?}", signature.algorithm);
         }
+
+        Ok(result)
     }
     
     pub fn encapsulate(&self, peer_public_key: &[u8]) -> Result<(Vec<u8>, Vec<u8>), PQCError> {
