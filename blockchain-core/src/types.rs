@@ -2,6 +2,8 @@
 // Post-Quantum Cryptography Enhanced Blockchain
 
 use serde::{Serialize, Deserialize};
+use serde_json::Value;
+use uuid::Uuid;
 use dytallix_pqc::{Signature, SignatureAlgorithm};
 use sha3::{Sha3_256, Digest};
 use std::fmt;
@@ -186,6 +188,68 @@ pub enum AIServiceType {
     RiskScoring,
     ContractAnalysis,
     AddressReputation,
+}
+
+/// Payload sent to external AI services
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIRequestPayload {
+    /// Unique request identifier
+    pub id: String,
+    /// Type of AI service being requested
+    pub service_type: AIServiceType,
+    /// Arbitrary request data encoded as JSON
+    pub request_data: Value,
+    /// Timestamp of the request
+    pub timestamp: Timestamp,
+}
+
+impl AIRequestPayload {
+    /// Create a new request payload with a random ID and current timestamp
+    pub fn new(service_type: AIServiceType, request_data: Value) -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            service_type,
+            request_data,
+            timestamp: chrono::Utc::now().timestamp() as u64,
+        }
+    }
+
+    /// Serialize this payload to a JSON string
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    /// Deserialize a payload from a JSON string
+    pub fn from_json(data: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(data)
+    }
+}
+
+/// Payload returned from external AI services
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIResponsePayload {
+    /// ID of the corresponding request
+    pub id: String,
+    /// Whether the request succeeded
+    pub success: bool,
+    /// Result data provided by the AI service
+    pub result_data: Value,
+    /// Optional error message
+    pub error: Option<String>,
+    /// Timestamp of the response
+    pub timestamp: Timestamp,
+}
+
+impl AIResponsePayload {
+    /// Serialize this payload to a JSON string
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    /// Deserialize a payload from a JSON string
+    pub fn from_json(data: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(data)
+    }
 }
 
 /// Post-Quantum Signature for Transactions
