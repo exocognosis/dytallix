@@ -68,6 +68,10 @@ pub struct KeyExchangeKeyPair {
 pub struct PQCManager {
     signature_keypair: KeyPair,
     key_exchange_keypair: KeyExchangeKeyPair,
+    /// Stored previous signature keypairs for rotation/algorithm upgrades
+    signature_key_backups: Vec<KeyPair>,
+    /// Stored previous key exchange keypairs
+    key_exchange_key_backups: Vec<KeyExchangeKeyPair>,
 }
 
 impl PQCManager {
@@ -88,6 +92,8 @@ impl PQCManager {
         Ok(Self {
             signature_keypair,
             key_exchange_keypair,
+            signature_key_backups: Vec::new(),
+            key_exchange_key_backups: Vec::new(),
         })
     }
     
@@ -169,6 +175,27 @@ impl PQCManager {
             }
         }
     }
+
+    /// Verify a signature using any known key (active or backups)
+    pub fn verify_with_known_keys(&self, message: &[u8], signature: &Signature) -> Result<bool, PQCError> {
+        // Try active key first
+        if self.signature_keypair.algorithm == signature.algorithm {
+            if self.verify(message, signature, &self.signature_keypair.public_key)? {
+                return Ok(true);
+            }
+        }
+
+        // Try backups in reverse (newest first)
+        for kp in self.signature_key_backups.iter().rev() {
+            if kp.algorithm == signature.algorithm {
+                if self.verify(message, signature, &kp.public_key)? {
+                    return Ok(true);
+                }
+            }
+        }
+
+        Ok(false)
+    }
     
     pub fn encapsulate(&self, peer_public_key: &[u8]) -> Result<(Vec<u8>, Vec<u8>), PQCError> {
         match self.key_exchange_keypair.algorithm {
@@ -221,6 +248,8 @@ impl PQCManager {
     
     // Crypto-agility: Switch signature algorithms
     pub fn switch_signature_algorithm(&mut self, algorithm: SignatureAlgorithm) -> Result<(), PQCError> {
+        // Preserve current keypair for backward compatibility
+        self.signature_key_backups.push(self.signature_keypair.clone());
         self.signature_keypair = generate_signature_keypair(&algorithm)?;
         log::info!("Switched to signature algorithm: {:?}", algorithm);
         Ok(())
@@ -228,8 +257,70 @@ impl PQCManager {
     
     // Crypto-agility: Switch key exchange algorithms
     pub fn switch_key_exchange_algorithm(&mut self, algorithm: KeyExchangeAlgorithm) -> Result<(), PQCError> {
+        // Preserve current keypair
+        self.key_exchange_key_backups.push(self.key_exchange_keypair.clone());
         self.key_exchange_keypair = generate_key_exchange_keypair(&algorithm)?;
         log::info!("Switched to key exchange algorithm: {:?}", algorithm);
+        Ok(())
+    }
+
+    /// Rotate the active signature key while keeping old key as backup
+    pub fn rotate_signature_key(&mut self) -> Result<(), PQCError> {
+        let algorithm = self.signature_keypair.algorithm.clone();
+        self.signature_key_backups.push(self.signature_keypair.clone());
+        self.signature_keypair = generate_signature_keypair(&algorithm)?;
+        log::info!("Rotated signature key for algorithm: {:?}", algorithm);
+        Ok(())
+    }
+
+    /// Rotate the active key exchange key and store previous key
+    pub fn rotate_key_exchange_key(&mut self) -> Result<(), PQCError> {
+        let algorithm = self.key_exchange_keypair.algorithm.clone();
+        self.key_exchange_key_backups.push(self.key_exchange_keypair.clone());
+        self.key_exchange_keypair = generate_key_exchange_keypair(&algorithm)?;
+        log::info!("Rotated key exchange key for algorithm: {:?}", algorithm);
+        Ok(())
+    }
+
+    /// Backup all keys to a JSON file
+    pub fn backup_to_file<P: AsRef<std::path::Path>>(&self, path: P) -> Result<(), PQCError> {
+        #[derive(Serialize, Deserialize)]
+        struct Backup {
+            active_signature: KeyPair,
+            active_kex: KeyExchangeKeyPair,
+            signature_backups: Vec<KeyPair>,
+            kex_backups: Vec<KeyExchangeKeyPair>,
+        }
+
+        let backup = Backup {
+            active_signature: self.signature_keypair.clone(),
+            active_kex: self.key_exchange_keypair.clone(),
+            signature_backups: self.signature_key_backups.clone(),
+            kex_backups: self.key_exchange_key_backups.clone(),
+        };
+
+        let data = serde_json::to_vec_pretty(&backup).map_err(|_| PQCError::InvalidKey)?;
+        std::fs::write(path, data).map_err(|_| PQCError::KeyGenerationFailed)?;
+        Ok(())
+    }
+
+    /// Restore keys from a backup file
+    pub fn restore_from_file<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<(), PQCError> {
+        #[derive(Serialize, Deserialize)]
+        struct Backup {
+            active_signature: KeyPair,
+            active_kex: KeyExchangeKeyPair,
+            signature_backups: Vec<KeyPair>,
+            kex_backups: Vec<KeyExchangeKeyPair>,
+        }
+
+        let data = std::fs::read(path).map_err(|_| PQCError::InvalidKey)?;
+        let backup: Backup = serde_json::from_slice(&data).map_err(|_| PQCError::InvalidKey)?;
+
+        self.signature_keypair = backup.active_signature;
+        self.key_exchange_keypair = backup.active_kex;
+        self.signature_key_backups = backup.signature_backups;
+        self.key_exchange_key_backups = backup.kex_backups;
         Ok(())
     }
     
@@ -436,5 +527,54 @@ impl CryptoAgilityManager {
         });
 
         Ok(())
+    }
+
+    /// Apply scheduled migration if deadline has passed
+    pub fn apply_migration(&mut self) {
+        if let Some(migration) = &self.migration_schedule {
+            if chrono::Utc::now() >= migration.migration_deadline {
+                self.preferred_algorithm = migration.to_algorithm.clone();
+                self.migration_schedule = None;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_algorithm_switch_and_legacy_verify() {
+        let mut manager = PQCManager::new().unwrap();
+        let msg1 = b"legacy";
+        let sig1 = manager.sign(msg1).unwrap();
+
+        manager.switch_signature_algorithm(SignatureAlgorithm::Falcon1024).unwrap();
+        let msg2 = b"new";
+        let sig2 = manager.sign(msg2).unwrap();
+
+        assert!(manager.verify_with_known_keys(msg1, &sig1).unwrap());
+        assert!(manager.verify_with_known_keys(msg2, &sig2).unwrap());
+    }
+
+    #[test]
+    fn test_key_rotation_and_backup_restore() {
+        let mut manager = PQCManager::new().unwrap();
+        let msg = b"rotate";
+        let sig_old = manager.sign(msg).unwrap();
+        manager.rotate_signature_key().unwrap();
+        let sig_new = manager.sign(msg).unwrap();
+        assert!(manager.verify_with_known_keys(msg, &sig_old).unwrap());
+        assert!(manager.verify_with_known_keys(msg, &sig_new).unwrap());
+
+        let file = NamedTempFile::new().unwrap();
+        manager.backup_to_file(file.path()).unwrap();
+
+        let mut restored = PQCManager::new().unwrap();
+        restored.restore_from_file(file.path()).unwrap();
+        assert!(restored.verify_with_known_keys(msg, &sig_old).unwrap());
+        assert!(restored.verify_with_known_keys(msg, &sig_new).unwrap());
     }
 }

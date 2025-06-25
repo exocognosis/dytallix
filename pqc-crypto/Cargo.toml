@@ -8,6 +8,8 @@ description = "Post-quantum cryptography implementation for Dytallix"
 [dependencies]
 # Post-quantum cryptography
 pqcrypto-dilithium = "0.5"
+pqcrypto-falcon = "0.3"
+pqcrypto-sphincsplus = "0.3"
 pqcrypto-kyber = "0.7"
 pqcrypto-falcon = "0.3"
 pqcrypto-sphincsplus = "0.7"
@@ -39,6 +41,7 @@ log = "0.4"
 [dev-dependencies]
 tokio-test = "0.4"
 criterion = "0.5"
+tempfile = "3.8"
 
 [features]
 default = ["dilithium", "kyber"]
