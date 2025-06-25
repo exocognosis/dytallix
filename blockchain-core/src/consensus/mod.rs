@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use serde::{Serialize, Deserialize};
-use log::{info, debug, warn, error};
+use log::{info, debug, warn};
+use chrono::{DateTime, Utc};
 
 use crate::runtime::DytallixRuntime;
 use crate::crypto::{PQCManager, PQCSignature};
@@ -9,7 +10,7 @@ use crate::types::{Transaction, Block, BlockHeader, AIRequestTransaction, AIServ
 
 // AI Service Integration
 use std::collections::HashMap;
-use tokio::time::{Duration, timeout};
+use tokio::time::Duration;
 use reqwest::Client;
 use anyhow::{Result, anyhow};
 use serde::de::DeserializeOwned;
@@ -45,6 +46,30 @@ pub struct AIResponseSignature {
     pub signature_data: Vec<u8>,
     pub public_key: Vec<u8>,
     pub certificate_chain: Vec<Vec<u8>>,
+}
+
+/// AI Service Information for discovery
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIServiceInfo {
+    pub service_id: String,
+    pub service_type: AIServiceType,
+    pub endpoint: String,
+    pub capabilities: Vec<String>,
+    pub supported_algorithms: Vec<String>,
+    pub max_request_size: u64,
+    pub average_response_time_ms: u64,
+    pub availability_score: f64,
+}
+
+/// AI Analysis Request structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIAnalysisRequest {
+    pub request_id: String,
+    pub service_type: AIServiceType,
+    pub data: HashMap<String, Value>,
+    pub requester_id: String,
+    pub timestamp: u64,
+    pub priority: u8, // 1-10, where 10 is highest priority
 }
 
 /// AI Service Configuration
@@ -122,6 +147,48 @@ impl AIOracleClient {
             tokio::time::sleep(Duration::from_secs(1)).await;
         }
     }
+
+    /// Health check endpoint for AI services
+    pub async fn health_check(&self) -> Result<bool> {
+        let url = format!("{}/health", self.config.endpoint.trim_end_matches('/'));
+        
+        match self.client.get(&url).send().await {
+            Ok(resp) => Ok(resp.status().is_success()),
+            Err(_) => Ok(false),
+        }
+    }
+
+    /// Service discovery - get available AI services and their capabilities
+    pub async fn discover_services(&self) -> Result<Vec<AIServiceInfo>> {
+        let url = format!("{}/services", self.config.endpoint.trim_end_matches('/'));
+        
+        match self.client.get(&url).send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    let services = resp.json::<Vec<AIServiceInfo>>().await?;
+                    Ok(services)
+                } else {
+                    Err(anyhow!("Service discovery failed: {}", resp.status()))
+                }
+            }
+            Err(e) => Err(anyhow!("Service discovery error: {}", e)),
+        }
+    }
+
+    /// Submit AI analysis request and get signed response
+    pub async fn request_analysis(&self, request: &AIAnalysisRequest) -> Result<SignedAIOracleResponse> {
+        self.post("analyze", request).await
+    }
+
+    /// Get current configuration
+    pub fn get_config(&self) -> &AIServiceConfig {
+        &self.config
+    }
+
+    /// Update timeout configuration
+    pub fn set_timeout(&mut self, timeout_seconds: u64) {
+        self.config.timeout_seconds = timeout_seconds;
+    }
 }
 
 #[derive(Debug)]
@@ -163,6 +230,53 @@ impl ConsensusEngine {
     pub async fn stop(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Stopping consensus engine...");
         Ok(())
+    }
+
+    /// Check AI service health and connectivity
+    pub async fn check_ai_service_health(&self) -> Result<bool, Box<dyn std::error::Error>> {
+        let health_status = self.ai_client.health_check().await?;
+        if health_status {
+            info!("AI service is healthy and responsive");
+        } else {
+            warn!("AI service health check failed");
+        }
+        Ok(health_status)
+    }
+
+    /// Discover available AI services
+    pub async fn discover_ai_services(&self) -> Result<Vec<AIServiceInfo>, Box<dyn std::error::Error>> {
+        let services = self.ai_client.discover_services().await?;
+        info!("Discovered {} AI services", services.len());
+        for service in &services {
+            debug!("AI Service: {} - Type: {:?} - Availability: {:.2}", 
+                   service.service_id, service.service_type, service.availability_score);
+        }
+        Ok(services)
+    }
+
+    /// Request AI analysis for a transaction or data
+    pub async fn request_ai_analysis(
+        &self, 
+        service_type: AIServiceType, 
+        data: HashMap<String, Value>
+    ) -> Result<SignedAIOracleResponse, Box<dyn std::error::Error>> {
+        let request = AIAnalysisRequest {
+            request_id: format!("req_{}", chrono::Utc::now().timestamp_millis()),
+            service_type,
+            data,
+            requester_id: "consensus_engine".to_string(),
+            timestamp: chrono::Utc::now().timestamp_millis() as u64,
+            priority: 5, // Medium priority
+        };
+
+        let response = self.ai_client.request_analysis(&request).await?;
+        
+        // Validate response signature (in production, this would verify PQC signature)
+        if response.confidence_score < self.ai_client.get_config().risk_threshold {
+            warn!("AI analysis confidence score below threshold: {}", response.confidence_score);
+        }
+
+        Ok(response)
     }
     
     async fn start_validator_loop(&self) -> Result<(), Box<dyn std::error::Error>> {
