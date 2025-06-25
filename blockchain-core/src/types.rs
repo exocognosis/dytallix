@@ -402,14 +402,14 @@ pub struct ValidatorInfo {
 /// Transaction Pool for managing pending transactions
 use std::collections::{HashMap, BTreeMap};
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 #[derive(Debug)]
 pub struct TransactionPool {
     /// Pending transactions organized by fee (highest fee first)
-    pending: Arc<Mutex<BTreeMap<u64, Vec<Transaction>>>>,
+    pending: Arc<RwLock<BTreeMap<u64, Vec<Transaction>>>>,
     /// Transaction lookup by hash
-    lookup: Arc<Mutex<HashMap<TxHash, Transaction>>>,
+    lookup: Arc<RwLock<HashMap<TxHash, Transaction>>>,
     /// Maximum pool size
     max_size: usize,
 }
@@ -417,8 +417,8 @@ pub struct TransactionPool {
 impl TransactionPool {
     pub fn new(max_size: usize) -> Self {
         Self {
-            pending: Arc::new(Mutex::new(BTreeMap::new())),
-            lookup: Arc::new(Mutex::new(HashMap::new())),
+            pending: Arc::new(RwLock::new(BTreeMap::new())),
+            lookup: Arc::new(RwLock::new(HashMap::new())),
             max_size,
         }
     }
@@ -430,7 +430,7 @@ impl TransactionPool {
         
         // Check if transaction already exists
         {
-            let lookup = self.lookup.lock().await;
+            let lookup = self.lookup.read().await;
             if lookup.contains_key(&tx_hash) {
                 return Err("Transaction already in pool".to_string());
             }
@@ -438,8 +438,8 @@ impl TransactionPool {
         
         // Add to pending transactions
         {
-            let mut pending = self.pending.lock().await;
-            let mut lookup = self.lookup.lock().await;
+            let mut pending = self.pending.write().await;
+            let mut lookup = self.lookup.write().await;
             
             // Check pool size limit
             if lookup.len() >= self.max_size {
@@ -464,7 +464,7 @@ impl TransactionPool {
     
     /// Get transactions with highest fees for block creation
     pub async fn get_pending_transactions(&self, max_count: usize) -> Vec<Transaction> {
-        let pending = self.pending.lock().await;
+        let pending = self.pending.read().await;
         let mut transactions = Vec::new();
         
         // Iterate from highest fee to lowest
@@ -485,8 +485,8 @@ impl TransactionPool {
     
     /// Remove transactions that have been included in a block
     pub async fn remove_transactions(&self, tx_hashes: &[TxHash]) {
-        let mut pending = self.pending.lock().await;
-        let mut lookup = self.lookup.lock().await;
+        let mut pending = self.pending.write().await;
+        let mut lookup = self.lookup.write().await;
         
         for tx_hash in tx_hashes {
             if let Some(tx) = lookup.remove(tx_hash) {
@@ -503,8 +503,8 @@ impl TransactionPool {
     
     /// Get current pool statistics
     pub async fn get_stats(&self) -> PoolStats {
-        let lookup = self.lookup.lock().await;
-        let pending = self.pending.lock().await;
+        let lookup = self.lookup.read().await;
+        let pending = self.pending.read().await;
         
         PoolStats {
             total_transactions: lookup.len(),

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use serde::{Serialize, Deserialize};
 use log::{info, debug, warn, error};
 use chrono::{DateTime, Utc};
@@ -214,8 +214,8 @@ impl AIOracleClient {
 pub struct ConsensusEngine {
     runtime: Arc<DytallixRuntime>,
     pqc_manager: Arc<PQCManager>,
-    current_block: Arc<Mutex<Option<Block>>>,
-    validators: Arc<Mutex<Vec<String>>>,
+    current_block: Arc<RwLock<Option<Block>>>,
+    validators: Arc<RwLock<Vec<String>>>,
     is_validator: bool,
     ai_client: AIOracleClient,
 }
@@ -254,8 +254,8 @@ impl ConsensusEngine {
         Ok(Self {
             runtime,
             pqc_manager,
-            current_block: Arc::new(Mutex::new(None)),
-            validators: Arc::new(Mutex::new(Vec::new())),
+            current_block: Arc::new(RwLock::new(None)),
+            validators: Arc::new(RwLock::new(Vec::new())),
             is_validator: true, // For development
             ai_client,
         })
@@ -427,7 +427,7 @@ impl ConsensusEngine {
                                     log::error!("Failed to apply block to state: {}", e);
                                 } else {
                                     // Update current block
-                                    let mut current = current_block.lock().await;
+                                    let mut current = current_block.write().await;
                                     *current = Some(block);
                                     block_number += 1;
                                 }
@@ -468,11 +468,11 @@ impl ConsensusEngine {
     async fn create_block_proposal(
         runtime: &Arc<DytallixRuntime>,
         pqc_manager: &Arc<PQCManager>,
-        current_block: &Arc<Mutex<Option<Block>>>,
+        current_block: &Arc<RwLock<Option<Block>>>,
         transactions: Vec<Transaction>,
         block_number: u64,
     ) -> Result<Block, String> {
-        let previous_block = current_block.lock().await;
+        let previous_block = current_block.read().await;
         let parent_hash = match &*previous_block {
             Some(block) => Self::calculate_block_hash_static(&block.header),
             None => "0".repeat(64), // Genesis block

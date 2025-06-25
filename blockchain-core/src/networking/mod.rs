@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::collections::HashMap;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tokio::net::{TcpListener, TcpStream};
 use serde::{Serialize, Deserialize};
 use log::{info, debug, error};
@@ -27,8 +27,8 @@ pub struct Peer {
 pub struct NetworkManager {
     consensus: Arc<ConsensusEngine>,
     pqc_manager: Arc<PQCManager>,
-    peers: Arc<Mutex<HashMap<String, Peer>>>,
-    listening: Arc<Mutex<bool>>,
+    peers: Arc<RwLock<HashMap<String, Peer>>>,
+    listening: Arc<RwLock<bool>>,
 }
 
 impl NetworkManager {
@@ -39,15 +39,15 @@ impl NetworkManager {
         Ok(Self {
             consensus,
             pqc_manager,
-            peers: Arc::new(Mutex::new(HashMap::new())),
-            listening: Arc::new(Mutex::new(false)),
+            peers: Arc::new(RwLock::new(HashMap::new())),
+            listening: Arc::new(RwLock::new(false)),
         })
     }
     
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Starting network manager...");
         
-        let mut listening = self.listening.lock().await;
+        let mut listening = self.listening.write().await;
         *listening = true;
         
         // Start listening for connections
@@ -62,7 +62,7 @@ impl NetworkManager {
     pub async fn stop(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Stopping network manager...");
         
-        let mut listening = self.listening.lock().await;
+        let mut listening = self.listening.write().await;
         *listening = false;
         
         Ok(())
@@ -76,7 +76,7 @@ impl NetworkManager {
         let listening = Arc::clone(&self.listening);
         
         tokio::spawn(async move {
-            while *listening.lock().await {
+            while *listening.read().await {
                 match listener.accept().await {
                     Ok((stream, addr)) => {
                         debug!("New connection from: {}", addr);
@@ -98,7 +98,7 @@ impl NetworkManager {
     
     async fn handle_connection(
         _stream: TcpStream,
-        peers: Arc<Mutex<HashMap<String, Peer>>>,
+        peers: Arc<RwLock<HashMap<String, Peer>>>,
     ) {
         // In a real implementation, this would handle the PQC handshake
         // and message processing
@@ -115,7 +115,7 @@ impl NetworkManager {
                 .as_secs(),
         };
         
-        let mut peers_map = peers.lock().await;
+        let mut peers_map = peers.write().await;
         peers_map.insert(peer_id, peer);
     }
     
@@ -134,7 +134,7 @@ impl NetworkManager {
     }
     
     pub async fn broadcast_message(&self, _message: NetworkMessage) -> Result<(), Box<dyn std::error::Error>> {
-        let peers = self.peers.lock().await;
+        let peers = self.peers.read().await;
         
         for (peer_id, _peer) in peers.iter() {
             debug!("Broadcasting message to peer: {}", peer_id);
@@ -145,7 +145,7 @@ impl NetworkManager {
     }
     
     pub async fn send_to_peer(&self, peer_id: &str, _message: NetworkMessage) -> Result<(), Box<dyn std::error::Error>> {
-        let peers = self.peers.lock().await;
+        let peers = self.peers.read().await;
         
         if let Some(_peer) = peers.get(peer_id) {
             debug!("Sending message to peer: {}", peer_id);
@@ -157,7 +157,7 @@ impl NetworkManager {
     }
     
     pub async fn get_connected_peers(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-        let peers = self.peers.lock().await;
+        let peers = self.peers.read().await;
         Ok(peers.keys().cloned().collect())
     }
     
