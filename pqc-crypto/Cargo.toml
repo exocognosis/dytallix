@@ -9,10 +9,8 @@ description = "Post-quantum cryptography implementation for Dytallix"
 # Post-quantum cryptography
 pqcrypto-dilithium = "0.5"
 pqcrypto-falcon = "0.3"
-pqcrypto-sphincsplus = "0.3"
-pqcrypto-kyber = "0.7"
-pqcrypto-falcon = "0.3"
 pqcrypto-sphincsplus = "0.7"
+pqcrypto-kyber = "0.7"
 pqcrypto-traits = "0.3"
 
 # Cryptographic utilities
@@ -20,6 +18,7 @@ rand = "0.8"
 zeroize = { version = "1.6", features = ["derive"] }
 sha3 = "0.10"
 hex = "0.4"
+# Time handling for nonce/timestamp
 chrono = { version = "0.4", features = ["serde"] }
 
 # Encryption for key storage

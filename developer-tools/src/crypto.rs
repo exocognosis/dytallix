@@ -126,6 +126,8 @@ impl CryptoManager {
         let signature = dytallix_pqc::Signature {
             data: signature_data,
             algorithm,
+            nonce: 0,
+            timestamp: 0,
         };
         
         // Create a temporary PQC manager for verification

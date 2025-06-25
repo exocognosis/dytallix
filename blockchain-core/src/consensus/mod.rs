@@ -383,6 +383,8 @@ impl ConsensusEngine {
                         signature: dytallix_pqc::Signature {
                             data: Vec::new(),
                             algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                            nonce: 0,
+                            timestamp: 0,
                         },
                         public_key: Vec::new(),
                     },
@@ -477,6 +479,8 @@ impl ConsensusEngine {
             signature: dytallix_pqc::Signature {
                 data: Vec::new(),
                 algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                nonce: 0,
+                timestamp: 0,
             },
             public_key: Vec::new(),
         };
@@ -507,6 +511,8 @@ impl ConsensusEngine {
             signature: dytallix_pqc::Signature {
                 data: signature.signature,
                 algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                nonce: signature.nonce,
+                timestamp: signature.timestamp,
             },
             public_key: pqc_manager.get_dilithium_public_key().to_vec(),
         };
@@ -531,6 +537,8 @@ impl ConsensusEngine {
             &crate::crypto::PQCSignature {
                 signature: block.header.signature.signature.data.clone(),
                 algorithm: format!("{:?}", block.header.signature.signature.algorithm),
+                nonce: block.header.signature.signature.nonce,
+                timestamp: block.header.signature.signature.timestamp,
             },
             &block.header.signature.public_key,
         ).map_err(|e| e.to_string())?;
