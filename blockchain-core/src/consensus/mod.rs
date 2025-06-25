@@ -142,7 +142,10 @@ impl ConsensusEngine {
                 // Calculate hash
                 sample_tx.hash = sample_tx.calculate_hash();
                 
-                let transaction = Transaction::Transfer(sample_tx);
+                let mut transaction = Transaction::Transfer(sample_tx);
+                transaction
+                    .sign_transaction(&pqc_manager)
+                    .expect("failed to sign sample transaction");
                 let transactions = vec![transaction];
                 
                 // Create block proposal
