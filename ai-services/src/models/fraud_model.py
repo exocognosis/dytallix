@@ -14,6 +14,7 @@ import logging
 from datetime import datetime, timedelta
 import pickle
 import os
+from collections import Counter
 
 logger = logging.getLogger(__name__)
 
@@ -435,19 +436,11 @@ class FeatureExtractor:
         """Calculate Shannon entropy of text"""
         if not text:
             return 0.0
-        
-        char_counts = {}
-        for char in text.lower():
-            char_counts[char] = char_counts.get(char, 0) + 1
-        
-        length = len(text)
-        entropy = 0.0
-        
-        for count in char_counts.values():
-            probability = count / length
-            if probability > 0:
-                entropy -= probability * np.log2(probability)
-        
+
+        counts = np.array(list(Counter(text.lower()).values()), dtype=np.float32)
+        probabilities = counts / counts.sum()
+        entropy = -np.sum(probabilities * np.log2(probabilities))
+
         return min(entropy / 8.0, 1.0)  # Normalize to [0, 1]
     
     def _extract_historical_features(
