@@ -44,9 +44,19 @@ impl PQCManager {
         Ok(PQCSignature {
             signature: signature.data.clone(),
             algorithm: format!("{:?}", signature.algorithm),
-            nonce: signature.nonce,
-            timestamp: signature.timestamp,
+            nonce: 0, // Default value for compatibility
+            timestamp: chrono::Utc::now().timestamp() as u64,
         })
+    }
+
+    pub fn load_or_generate<P: AsRef<std::path::Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+        let inner = DytallixPQCManager::load_or_generate(path)?;
+        Ok(Self { inner })
+    }
+
+    pub fn validate_keys(&self) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.validate_keys()?;
+        Ok(())
     }
     
     pub fn verify_signature(
@@ -65,8 +75,6 @@ impl PQCManager {
         let sig = Signature {
             data: signature.signature.clone(),
             algorithm,
-            nonce: signature.nonce,
-            timestamp: signature.timestamp,
         };
 
         Ok(self.inner.verify(message, &sig, public_key)?)

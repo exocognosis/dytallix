@@ -246,6 +246,8 @@ pub struct AIRequestTransaction {
     pub from: Address,
     pub service_type: AIServiceType,
     pub request_data: Vec<u8>,
+    pub payload: serde_json::Value,  // Added for compatibility
+    pub ai_risk_score: Option<f64>,  // Added for risk scoring
     pub fee: Amount,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -275,12 +277,16 @@ impl AIRequestTransaction {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum AIServiceType {
     FraudDetection,
     RiskScoring,
     ContractAnalysis,
     AddressReputation,
+    KYC,
+    AML,
+    CreditAssessment,
+    Unknown,
 }
 
 /// Payload sent to external AI services
@@ -528,6 +534,17 @@ impl fmt::Display for PoolStats {
     }
 }
 
+/// Node operational status
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum NodeStatus {
+    Starting,
+    Running,
+    Syncing,
+    Stopping,
+    Stopped,
+    Error(String),
+}
+
 // Implementation methods
 impl Block {
     /// Calculate the hash of this block
@@ -686,8 +703,8 @@ impl TransferTransaction {
                 signature: Signature {
                     data: Vec::new(),
                     algorithm: SignatureAlgorithm::Dilithium5,
-                    nonce: 0,
-                    timestamp: 0,
+                    
+                    
                 },
                 public_key: Vec::new(),
             },

@@ -107,8 +107,8 @@ impl PQCManager {
 
     /// Load key pairs from a JSON file
     pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self, PQCError> {
-        let data = fs::read_to_string(&path).map_err(|_| PQCError::InvalidKey)?;
-        let stored: StoredKeys = serde_json::from_str(&data).map_err(|_| PQCError::InvalidKey)?;
+        let data = fs::read_to_string(&path).map_err(|_| PQCError::InvalidKey("Failed to read file".to_string()))?;
+        let stored: StoredKeys = serde_json::from_str(&data).map_err(|_| PQCError::InvalidKey("Failed to parse JSON".to_string()))?;
         Ok(Self {
             signature_keypair: stored.signature_keypair,
             key_exchange_keypair: stored.key_exchange_keypair,
@@ -123,7 +123,7 @@ impl PQCManager {
             signature_keypair: self.signature_keypair.clone(),
             key_exchange_keypair: self.key_exchange_keypair.clone(),
         };
-        let json = serde_json::to_string_pretty(&stored).map_err(|_| PQCError::InvalidKey)?;
+        let json = serde_json::to_string_pretty(&stored).map_err(|_| PQCError::InvalidKey("Failed to serialize JSON".to_string()))?;
         fs::write(&path, json).map_err(|_| PQCError::KeyGenerationFailed)?;
         Ok(())
     }
@@ -359,7 +359,7 @@ impl PQCManager {
             kex_backups: self.key_exchange_key_backups.clone(),
         };
 
-        let data = serde_json::to_vec_pretty(&backup).map_err(|_| PQCError::InvalidKey)?;
+        let data = serde_json::to_vec_pretty(&backup).map_err(|_| PQCError::InvalidKey("Failed to serialize backup".to_string()))?;
         std::fs::write(path, data).map_err(|_| PQCError::KeyGenerationFailed)?;
         Ok(())
     }
@@ -374,8 +374,8 @@ impl PQCManager {
             kex_backups: Vec<KeyExchangeKeyPair>,
         }
 
-        let data = std::fs::read(path).map_err(|_| PQCError::InvalidKey)?;
-        let backup: Backup = serde_json::from_slice(&data).map_err(|_| PQCError::InvalidKey)?;
+        let data = std::fs::read(path).map_err(|_| PQCError::InvalidKey("Failed to read backup file".to_string()))?;
+        let backup: Backup = serde_json::from_slice(&data).map_err(|_| PQCError::InvalidKey("Failed to parse backup".to_string()))?;
 
         self.signature_keypair = backup.active_signature;
         self.key_exchange_keypair = backup.active_kex;

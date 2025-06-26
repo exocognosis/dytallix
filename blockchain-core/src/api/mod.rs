@@ -44,7 +44,7 @@ impl<T> ApiResponse<T> {
     }
 }
 
-pub async fn start_api_server(node: Arc<DytallixNode>) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn start_api_server(node: Arc<dyn DytallixNode>) -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting Dytallix API server on port 3030...");
     
     // Health check endpoint
@@ -117,7 +117,7 @@ pub async fn start_api_server(node: Arc<DytallixNode>) -> Result<(), Box<dyn std
     Ok(())
 }
 
-async fn get_blockchain_stats(node: Arc<DytallixNode>) -> Result<BlockchainStats, Box<dyn std::error::Error>> {
+async fn get_blockchain_stats(node: Arc<dyn DytallixNode>) -> Result<BlockchainStats, Box<dyn std::error::Error>> {
     let current_block = node.get_current_block_number().await;
     let (total_transactions, _) = node.get_transaction_pool_stats().await?;
     let network_peers = 0; // TODO: Get from network manager
