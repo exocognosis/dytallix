@@ -15,8 +15,15 @@ pub mod oracle_registry;
 pub mod enhanced_ai_integration;
 pub mod replay_protection;
 
+// Export the clean consensus engine
+pub mod mod_clean;
+pub use mod_clean::ConsensusEngine;
+
 #[cfg(test)]
 pub mod integration_tests;
+
+#[cfg(test)]
+pub mod transaction_validation_tests;
 
 // Temporarily stub out problematic code
 pub struct DytallixConsensus;

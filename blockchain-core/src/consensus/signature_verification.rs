@@ -532,3 +532,15 @@ impl SignatureVerifier {
         stats
     }
 }
+
+impl std::fmt::Debug for SignatureVerifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SignatureVerifier")
+            .field("config", &self.config)
+            .field("pqc_manager", &"<PQCManager instance>")
+            .field("oracle_registry", &self.oracle_registry)
+            .field("nonce_cache", &self.nonce_cache)
+            .field("request_cache", &self.request_cache)
+            .finish()
+    }
+}

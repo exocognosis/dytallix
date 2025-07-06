@@ -207,6 +207,7 @@ impl std::fmt::Display for ReplayProtectionError {
 impl std::error::Error for ReplayProtectionError {}
 
 /// Main replay protection and caching manager
+#[derive(Debug)]
 pub struct ReplayProtectionManager {
     /// Configuration
     config: ReplayProtectionConfig,

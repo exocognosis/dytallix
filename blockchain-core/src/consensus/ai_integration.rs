@@ -88,6 +88,7 @@ struct CachedResponse {
 }
 
 /// AI Integration Manager
+#[derive(Debug)]
 pub struct AIIntegrationManager {
     /// Configuration
     config: AIIntegrationConfig,
@@ -142,6 +143,22 @@ impl Default for AIIntegrationStats {
 impl AIIntegrationManager {
     /// Create a new AI integration manager
     pub async fn new(config: AIIntegrationConfig) -> Result<Self> {
+        let verifier = Arc::new(SignatureVerifier::new(config.verification_config.clone())?);
+        let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.base_url.clone())?);
+        let replay_protection = Arc::new(ReplayProtectionManager::new(config.replay_protection_config.clone()));
+        
+        Ok(Self {
+            config,
+            verifier,
+            ai_client,
+            replay_protection,
+            response_cache: Arc::new(RwLock::new(std::collections::HashMap::new())),
+            stats: Arc::new(RwLock::new(AIIntegrationStats::default())),
+        })
+    }
+    
+    /// Create a new AI integration manager synchronously
+    pub fn new_sync(config: AIIntegrationConfig) -> Result<Self> {
         let verifier = Arc::new(SignatureVerifier::new(config.verification_config.clone())?);
         let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.base_url.clone())?);
         let replay_protection = Arc::new(ReplayProtectionManager::new(config.replay_protection_config.clone()));

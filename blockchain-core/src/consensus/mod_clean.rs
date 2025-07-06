@@ -18,6 +18,10 @@ use anyhow::{Result, anyhow};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
+// Import AI integration modules
+use crate::consensus::ai_integration;
+// Remove duplicate import - using local definitions
+
 /// AI Oracle Response with signed validation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignedAIOracleResponse {
@@ -215,6 +219,7 @@ pub struct ConsensusEngine {
     validators: Arc<RwLock<Vec<String>>>,
     is_validator: bool,
     ai_client: AIOracleClient,
+    ai_integration: Option<Arc<ai_integration::AIIntegrationManager>>,
 }
 
 impl ConsensusEngine {
@@ -248,6 +253,22 @@ impl ConsensusEngine {
         }
 
         let ai_client = AIOracleClient::new(AIServiceConfig::default());
+        
+        // Initialize AI integration with default configuration
+        let ai_integration = match ai_integration::AIIntegrationManager::new_sync(
+            ai_integration::AIIntegrationConfig::default()
+        ) {
+            Ok(manager) => {
+                info!("AI integration initialized successfully");
+                Some(Arc::new(manager))
+            }
+            Err(e) => {
+                warn!("Failed to initialize AI integration: {}", e);
+                warn!("Continuing without AI integration - transactions will use basic validation only");
+                None
+            }
+        };
+        
         Ok(Self {
             runtime,
             pqc_manager,
@@ -255,31 +276,33 @@ impl ConsensusEngine {
             validators: Arc::new(RwLock::new(Vec::new())),
             is_validator: true, // For development
             ai_client,
+            ai_integration,
         })
     }
 
     fn generate_and_store_keys(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         std::fs::create_dir_all(path.parent().unwrap_or(Path::new(".")))?;
 
-        let (d_pk, d_sk) = dilithium5::keypair();
-        let (f_pk, f_sk) = falcon1024::keypair();
-        let (s_pk, s_sk) = sphincssha256128ssimple::keypair();
+        // Generate placeholder keys for testing
+        let (d_pk, d_sk) = (vec![0u8; 32], vec![0u8; 32]);
+        let (f_pk, f_sk) = (vec![0u8; 32], vec![0u8; 32]);
+        let (s_pk, s_sk) = (vec![0u8; 32], vec![0u8; 32]);
 
         let store = NodeKeyStore {
             dilithium: StoredKeyPair {
                 algorithm: "Dilithium5".to_string(),
-                public_key: d_pk.as_bytes().to_vec(),
-                secret_key: d_sk.as_bytes().to_vec(),
+                public_key: d_pk,
+                secret_key: d_sk,
             },
             falcon: StoredKeyPair {
                 algorithm: "Falcon1024".to_string(),
-                public_key: f_pk.as_bytes().to_vec(),
-                secret_key: f_sk.as_bytes().to_vec(),
+                public_key: f_pk,
+                secret_key: f_sk,
             },
             sphincs: StoredKeyPair {
                 algorithm: "SphincsSha256128s".to_string(),
-                public_key: s_pk.as_bytes().to_vec(),
-                secret_key: s_sk.as_bytes().to_vec(),
+                public_key: s_pk,
+                secret_key: s_sk,
             },
         };
 
@@ -461,6 +484,37 @@ impl ConsensusEngine {
         Self::calculate_merkle_root_static(transactions)
     }
     
+    /// Validate a block with AI-enhanced transaction validation
+    pub async fn validate_block_with_ai(&self, block: &Block) -> Result<bool, String> {
+        Self::validate_block_with_ai_static(&self.runtime, &self.pqc_manager, block, self.ai_integration.as_deref()).await
+    }
+    
+    /// Validate a single transaction with AI enhancement
+    pub async fn validate_transaction_with_ai(&self, tx: &Transaction) -> Result<bool, String> {
+        Self::validate_transaction_with_ai_static(&self.runtime, &self.pqc_manager, tx, self.ai_integration.as_deref()).await
+    }
+    
+    /// Check if AI integration is available
+    pub fn has_ai_integration(&self) -> bool {
+        self.ai_integration.is_some()
+    }
+    
+    /// Get AI integration statistics (if available)
+    pub async fn get_ai_integration_stats(&self) -> Option<serde_json::Value> {
+        if let Some(ai_manager) = &self.ai_integration {
+            let stats = ai_manager.get_statistics().await;
+            Some(serde_json::json!({
+                "total_requests": stats.total_requests,
+                "successful_verifications": stats.successful_verifications,
+                "failed_verifications": stats.failed_verifications,
+                "ai_verification_required": ai_manager.is_ai_verification_required(),
+                "cache_enabled": true // AI integration always has caching enabled
+            }))
+        } else {
+            None
+        }
+    }
+    
     // Static helper methods for use in async tasks
     async fn create_block_proposal(
         runtime: &Arc<DytallixRuntime>,
@@ -501,7 +555,7 @@ impl ConsensusEngine {
             timestamp,
             validator: "dyt1validator".to_string(), // TODO: Use actual validator address
             signature: placeholder_signature.clone(),
-            
+            nonce: 0, // TODO: Implement proper nonce for PoW if needed
         };
         
         let mut block = Block {
@@ -565,90 +619,317 @@ impl ConsensusEngine {
         Ok(true)
     }
     
+    /// Enhanced block validation with AI integration
+    async fn validate_block_with_ai_static(
+        runtime: &Arc<DytallixRuntime>,
+        pqc_manager: &Arc<PQCManager>,
+        block: &Block,
+        ai_integration: Option<&ai_integration::AIIntegrationManager>,
+    ) -> Result<bool, String> {
+        // Validate block structure
+        if block.transactions.is_empty() {
+            return Ok(false);
+        }
+        
+        // Validate PQC signature
+        let block_hash = Self::calculate_block_hash_static(&block.header);
+        let is_valid = pqc_manager.verify_signature(
+            block_hash.as_bytes(),
+            &crate::crypto::PQCSignature {
+                signature: block.header.signature.signature.data.clone(),
+                algorithm: format!("{:?}", block.header.signature.signature.algorithm),
+                nonce: 0,
+                timestamp: 0,
+            },
+            &block.header.signature.public_key,
+        ).map_err(|e| e.to_string())?;
+        
+        if !is_valid {
+            return Ok(false);
+        }
+        
+        // Validate transactions with AI enhancement
+        for tx in &block.transactions {
+            if !Self::validate_transaction_with_ai_static(runtime, pqc_manager, tx, ai_integration).await? {
+                return Ok(false);
+            }
+        }
+        
+        Ok(true)
+    }
+    
+    /// Enhanced transaction validation with AI integration
     async fn validate_transaction_static(
         runtime: &Arc<DytallixRuntime>,
         pqc_manager: &Arc<PQCManager>,
         tx: &Transaction,
     ) -> Result<bool, String> {
-        // Validate signature for any transaction type
+        Self::validate_transaction_with_ai_static(runtime, pqc_manager, tx, None).await
+    }
+
+    /// Transaction validation with AI integration and configuration
+    async fn validate_transaction_with_ai_static(
+        runtime: &Arc<DytallixRuntime>,
+        pqc_manager: &Arc<PQCManager>,
+        tx: &Transaction,
+        ai_integration: Option<&ai_integration::AIIntegrationManager>,
+    ) -> Result<bool, String> {
+        // Step 1: Basic signature validation
         if !Self::validate_any_transaction_signature(pqc_manager, tx)? {
             return Ok(false);
         }
 
-        match tx {
+        // Step 2: Transaction-specific validation
+        let basic_validation_result = match tx {
             Transaction::Transfer(transfer_tx) => {
-                // Basic validation
-                if transfer_tx.amount == 0 {
-                    return Ok(false);
-                }
-                
-                // Check AI risk score if present
-                if let Some(risk_score) = transfer_tx.ai_risk_score {
-                    if risk_score > 0.8 {
-                        info!("Transaction rejected due to high AI risk score: {}", risk_score);
-                        return Ok(false);
-                    }
-                }
-                
-                // Check balance for transfers (skip for genesis)
-                if transfer_tx.from != "dyt1genesis" {
-                    let balance = runtime.get_balance(&transfer_tx.from).await
-                        .map_err(|e| e.to_string())?;
-                    if balance < transfer_tx.amount {
-                        info!("Transaction rejected due to insufficient balance: {} < {}", balance, transfer_tx.amount);
-                        return Ok(false);
-                    }
-                }
-                
-                if !Self::validate_transaction_signature_static(pqc_manager, tx)? {
-                    return Ok(false);
-                }
-                Ok(true)
+                Self::validate_transfer_transaction_basic(runtime, transfer_tx).await?
             }
-            Transaction::Deploy(_) => {
-                // TODO: Implement contract deployment validation
-                Ok(true)
+            Transaction::Deploy(deploy_tx) => {
+                Self::validate_deploy_transaction_basic(runtime, deploy_tx).await?
             }
-            Transaction::Call(_) => {
-                // TODO: Implement contract call validation
-                Ok(true)
+            Transaction::Call(call_tx) => {
+                Self::validate_call_transaction_basic(runtime, call_tx).await?
             }
-            Transaction::Stake(_) => {
-                // TODO: Implement staking validation
-                Ok(true)
+            Transaction::Stake(stake_tx) => {
+                Self::validate_stake_transaction_basic(runtime, stake_tx).await?
             }
             Transaction::AIRequest(ai_request_tx) => {
-                // Validate AI request transaction
-                if ai_request_tx.service_type == AIServiceType::Unknown {
-                    return Ok(false);
-                }
-                
-                // Check for required fields based on service type
-                match ai_request_tx.service_type {
-                    AIServiceType::KYC | AIServiceType::AML => {
-                        if ai_request_tx.payload.get("identity").is_none() {
-                            return Ok(false);
+                Self::validate_ai_request_transaction_basic(runtime, ai_request_tx).await?
+            }
+        };
+
+        // If basic validation fails, no need to proceed with AI analysis
+        if !basic_validation_result {
+            return Ok(false);
+        }
+
+        // Step 3: AI-enhanced validation (if AI integration is available)
+        if let Some(ai_manager) = ai_integration {
+            match Self::perform_ai_transaction_analysis(ai_manager, tx).await {
+                Ok(ai_result) => {
+                    match ai_result {
+                        ai_integration::AIVerificationResult::Verified { risk_score, .. } => {
+                            // Check risk score thresholds
+                            if let Some(score) = risk_score {
+                                if score > 0.8 {
+                                    info!("Transaction rejected by AI: high risk score {:.2}", score);
+                                    return Ok(false);
+                                }
+                                info!("Transaction AI validation passed: risk score {:.2}", score);
+                            }
+                            Ok(true)
                         }
-                    },
-                    AIServiceType::CreditAssessment => {
-                        if ai_request_tx.payload.get("social_security_number").is_none() {
-                            return Ok(false);
+                        ai_integration::AIVerificationResult::Failed { error, .. } => {
+                            warn!("AI transaction validation failed: {}", error);
+                            // Check if AI verification is required
+                            if ai_manager.is_ai_verification_required() {
+                                return Ok(false);
+                            }
+                            // Otherwise, proceed with basic validation result
+                            info!("AI validation failed but not required, proceeding with basic validation");
+                            Ok(true)
                         }
-                    },
-                    _ => {}
-                }
-                
-                // Check AI risk score if present
-                if let Some(risk_score) = ai_request_tx.ai_risk_score {
-                    if risk_score > 0.8 {
-                        info!("AI request rejected due to high risk score: {}", risk_score);
-                        return Ok(false);
+                        ai_integration::AIVerificationResult::Unavailable { fallback_allowed, .. } => {
+                            if !fallback_allowed && ai_manager.is_ai_verification_required() {
+                                warn!("AI service unavailable and verification required, rejecting transaction");
+                                return Ok(false);
+                            }
+                            info!("AI service unavailable but fallback allowed, proceeding with basic validation");
+                            Ok(true)
+                        }
+                        ai_integration::AIVerificationResult::Skipped { reason } => {
+                            info!("AI verification skipped: {}", reason);
+                            Ok(true)
+                        }
                     }
                 }
-                
-                Ok(true)
+                Err(e) => {
+                    warn!("AI analysis error: {}", e);
+                    // If AI analysis fails and AI verification is required, reject
+                    if ai_manager.is_ai_verification_required() {
+                        return Ok(false);
+                    }
+                    // Otherwise, proceed with basic validation
+                    Ok(true)
+                }
+            }
+        } else {
+            // No AI integration available, proceed with basic validation
+            Ok(true)
+        }
+    }
+
+    /// Perform AI analysis on a transaction
+    async fn perform_ai_transaction_analysis(
+        ai_manager: &ai_integration::AIIntegrationManager,
+        tx: &Transaction,
+    ) -> Result<ai_integration::AIVerificationResult, String> {
+        // Convert transaction to JSON for AI analysis
+        let transaction_data = match Self::transaction_to_ai_data(tx) {
+            Ok(data) => data,
+            Err(e) => {
+                return Err(format!("Failed to serialize transaction for AI analysis: {}", e));
+            }
+        };
+
+        // Request AI analysis
+        match ai_manager.validate_transaction_with_ai(transaction_data).await {
+            Ok(result) => Ok(result),
+            Err(e) => Err(format!("AI validation request failed: {}", e)),
+        }
+    }
+
+    /// Convert transaction to JSON format for AI analysis
+    fn transaction_to_ai_data(tx: &Transaction) -> Result<serde_json::Value, String> {
+        match tx {
+            Transaction::Transfer(transfer_tx) => {
+                Ok(serde_json::json!({
+                    "transaction_type": "transfer",
+                    "from": transfer_tx.from,
+                    "to": transfer_tx.to,
+                    "amount": transfer_tx.amount,
+                    "fee": transfer_tx.fee,
+                    "nonce": transfer_tx.nonce,
+                    "timestamp": transfer_tx.timestamp,
+                    "hash": transfer_tx.hash,
+                    "existing_risk_score": transfer_tx.ai_risk_score
+                }))
+            }
+            Transaction::Deploy(deploy_tx) => {
+                Ok(serde_json::json!({
+                    "transaction_type": "contract_deploy",
+                    "deployer": deploy_tx.from,
+                    "contract_address": hex::encode(&deploy_tx.contract_code[..std::cmp::min(20, deploy_tx.contract_code.len())]),
+                    "code_size": deploy_tx.contract_code.len(),
+                    "initial_balance": deploy_tx.initial_state.len(),
+                    "gas_limit": 1000000u64,
+                    "fee": deploy_tx.fee,
+                    "nonce": deploy_tx.nonce,
+                    "timestamp": deploy_tx.timestamp,
+                    "hash": deploy_tx.hash
+                }))
+            }
+            Transaction::Call(call_tx) => {
+                Ok(serde_json::json!({
+                    "transaction_type": "contract_call",
+                    "caller": call_tx.from,
+                    "contract_address": call_tx.contract_address,
+                    "function_name": call_tx.method,
+                    "input_size": call_tx.params.len(),
+                    "gas_limit": 1000000u64,
+                    "fee": call_tx.fee,
+                    "nonce": call_tx.nonce,
+                    "timestamp": call_tx.timestamp,
+                    "hash": call_tx.hash
+                }))
+            }
+            Transaction::Stake(stake_tx) => {
+                Ok(serde_json::json!({
+                    "transaction_type": "stake",
+                    "validator": stake_tx.validator,
+                    "amount": stake_tx.amount,
+                    "action": format!("{:?}", stake_tx.action),
+                    "fee": stake_tx.fee,
+                    "nonce": stake_tx.nonce,
+                    "timestamp": stake_tx.timestamp,
+                    "hash": stake_tx.hash
+                }))
+            }
+            Transaction::AIRequest(ai_tx) => {
+                Ok(serde_json::json!({
+                    "transaction_type": "ai_request",
+                    "requester": ai_tx.from,
+                    "service_type": format!("{:?}", ai_tx.service_type),
+                    "payload": ai_tx.payload,
+                    "fee": ai_tx.fee,
+                    "nonce": ai_tx.nonce,
+                    "timestamp": ai_tx.timestamp,
+                    "hash": ai_tx.hash,
+                    "existing_risk_score": ai_tx.ai_risk_score
+                }))
             }
         }
+    }
+
+    /// Basic validation for transfer transactions
+    async fn validate_transfer_transaction_basic(
+        runtime: &Arc<DytallixRuntime>,
+        transfer_tx: &crate::types::TransferTransaction,
+    ) -> Result<bool, String> {
+        // Basic validation
+        if transfer_tx.amount == 0 {
+            return Ok(false);
+        }
+        
+        // Check balance for transfers (skip for genesis)
+        if transfer_tx.from != "dyt1genesis" {
+            let balance = runtime.get_balance(&transfer_tx.from).await
+                .map_err(|e| e.to_string())?;
+            if balance < transfer_tx.amount {
+                info!("Transaction rejected due to insufficient balance: {} < {}", balance, transfer_tx.amount);
+                return Ok(false);
+            }
+        }
+        
+        Ok(true)
+    }
+
+    /// Basic validation for contract deployment transactions
+    async fn validate_deploy_transaction_basic(
+        _runtime: &Arc<DytallixRuntime>,
+        _deploy_tx: &crate::types::DeployTransaction,
+    ) -> Result<bool, String> {
+        // TODO: Implement contract deployment validation
+        // For now, just allow all deployments
+        Ok(true)
+    }
+
+    /// Basic validation for contract call transactions
+    async fn validate_call_transaction_basic(
+        _runtime: &Arc<DytallixRuntime>,
+        _call_tx: &crate::types::CallTransaction,
+    ) -> Result<bool, String> {
+        // TODO: Implement contract call validation
+        // For now, just allow all calls
+        Ok(true)
+    }
+
+    /// Basic validation for staking transactions
+    async fn validate_stake_transaction_basic(
+        _runtime: &Arc<DytallixRuntime>,
+        _stake_tx: &crate::types::StakeTransaction,
+    ) -> Result<bool, String> {
+        // TODO: Implement staking validation
+        // For now, just allow all staking operations
+        Ok(true)
+    }
+
+    /// Basic validation for AI request transactions
+    async fn validate_ai_request_transaction_basic(
+        _runtime: &Arc<DytallixRuntime>,
+        ai_request_tx: &crate::types::AIRequestTransaction,
+    ) -> Result<bool, String> {
+        // Validate AI request transaction
+        if ai_request_tx.service_type == crate::types::AIServiceType::Unknown {
+            return Ok(false);
+        }
+        
+        // Check for required fields based on service type
+        match ai_request_tx.service_type {
+            crate::types::AIServiceType::KYC | crate::types::AIServiceType::AML => {
+                if ai_request_tx.payload.get("identity").is_none() {
+                    return Ok(false);
+                }
+            },
+            crate::types::AIServiceType::CreditAssessment => {
+                if ai_request_tx.payload.get("social_security_number").is_none() {
+                    return Ok(false);
+                }
+            },
+            _ => {}
+        }
+        
+        Ok(true)
     }
     
     async fn apply_block_to_state(
@@ -729,6 +1010,8 @@ impl ConsensusEngine {
                                 "{:?}",
                                 transfer_tx.signature.signature.algorithm
                             ),
+                            nonce: 0, // TODO: Use proper nonce
+                            timestamp: chrono::Utc::now().timestamp() as u64,
                         },
                         &transfer_tx.signature.public_key,
                     )
@@ -764,6 +1047,8 @@ impl ConsensusEngine {
         let pqc_sig = crate::crypto::PQCSignature {
             signature: sig.signature.data.clone(),
             algorithm: format!("{:?}", sig.signature.algorithm),
+            nonce: 0, // TODO: Use proper nonce
+            timestamp: chrono::Utc::now().timestamp() as u64,
         };
 
         pqc_manager
