@@ -1,10 +1,8 @@
-"""
-Integration tests for signature verification in blockchain consensus.
-
-This test suite verifies the end-to-end signature verification flow,
-including PQC signature verification, oracle management, and transaction
-validation with AI responses.
-"""
+//! Integration tests for signature verification in blockchain consensus.
+//!
+//! This test suite verifies the end-to-end signature verification flow,
+//! including PQC signature verification, oracle management, and transaction
+//! validation with AI responses.
 
 use anyhow::Result;
 use chrono;

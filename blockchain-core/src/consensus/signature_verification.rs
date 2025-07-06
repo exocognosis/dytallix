@@ -41,6 +41,31 @@ pub enum VerificationError {
     VerificationFailed(String),
 }
 
+impl From<anyhow::Error> for VerificationError {
+    fn from(error: anyhow::Error) -> Self {
+        VerificationError::VerificationFailed(error.to_string())
+    }
+}
+
+impl std::fmt::Display for VerificationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VerificationError::InvalidSignature(msg) => write!(f, "Invalid signature: {}", msg),
+            VerificationError::OracleNotFound(msg) => write!(f, "Oracle not found: {}", msg),
+            VerificationError::OracleNotTrusted(msg) => write!(f, "Oracle not trusted: {}", msg),
+            VerificationError::CertificateError(msg) => write!(f, "Certificate error: {}", msg),
+            VerificationError::ResponseExpired(msg) => write!(f, "Response expired: {}", msg),
+            VerificationError::ReplayAttack(msg) => write!(f, "Replay attack: {}", msg),
+            VerificationError::SignatureVerificationFailed(msg) => write!(f, "Signature verification failed: {}", msg),
+            VerificationError::RequestResponseMismatch(msg) => write!(f, "Request-response mismatch: {}", msg),
+            VerificationError::TimestampError(msg) => write!(f, "Timestamp error: {}", msg),
+            VerificationError::VerificationFailed(msg) => write!(f, "Verification failed: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for VerificationError {}
+
 /// Configuration for signature verification
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerificationConfig {

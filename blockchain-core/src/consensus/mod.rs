@@ -11,6 +11,8 @@ use dytallix_pqc::SignatureAlgorithm;
 // Add AI integration modules
 pub mod signature_verification;
 pub mod ai_integration;
+pub mod oracle_registry;
+pub mod enhanced_ai_integration;
 
 // Temporarily stub out problematic code
 pub struct DytallixConsensus;

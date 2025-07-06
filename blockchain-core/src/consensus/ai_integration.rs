@@ -137,7 +137,7 @@ impl AIIntegrationManager {
     /// Create a new AI integration manager
     pub async fn new(config: AIIntegrationConfig) -> Result<Self> {
         let verifier = Arc::new(SignatureVerifier::new(config.verification_config.clone())?);
-        let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.clone()));
+        let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.base_url.clone())?);
         
         Ok(Self {
             config,
@@ -231,17 +231,41 @@ impl AIIntegrationManager {
         }
         
         // Request AI analysis
-        match self.ai_client.request_analysis(transaction_data, analysis_type).await {
-            Ok(ai_response) => {
-                // If response is signed, verify it
-                if let Ok(signed_response) = serde_json::from_value::<SignedAIOracleResponse>(ai_response) {
-                    self.verify_ai_response(&signed_response, None).await
-                } else {
-                    // Handle unsigned response (should not happen in production)
-                    AIVerificationResult::Failed {
-                        error: "Received unsigned AI response".to_string(),
-                        oracle_id: None,
-                        response_id: None,
+        let request_payload = crate::consensus::AIRequestPayload {
+            id: uuid::Uuid::new_v4().to_string(),
+            service_type: crate::consensus::AIServiceType::TransactionValidation,
+            request_data: transaction_data,
+            timestamp: chrono::Utc::now().timestamp() as u64,
+            metadata: None,
+            priority: crate::consensus::RequestPriority::Normal,
+            timeout: Some(30),
+            callback_url: None,
+            signature: None,
+        };
+        
+        match self.ai_client.send_ai_request(&request_payload).await {
+            Ok(response) => {
+                // Convert the response to JSON
+                match response.text().await {
+                    Ok(response_text) => {
+                        // Try to parse as signed response
+                        if let Ok(signed_response) = serde_json::from_str::<SignedAIOracleResponse>(&response_text) {
+                            self.verify_ai_response(&signed_response, None).await
+                        } else {
+                            // Handle as regular response
+                            AIVerificationResult::Failed {
+                                error: "Could not parse AI response".to_string(),
+                                oracle_id: None,
+                                response_id: None,
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        AIVerificationResult::Failed {
+                            error: format!("Failed to read response: {}", e),
+                            oracle_id: None,
+                            response_id: None,
+                        }
                     }
                 }
             }
@@ -422,6 +446,11 @@ impl AIIntegrationManager {
                 "enable_response_caching": self.config.enable_response_caching,
             }
         }))
+    }
+    
+    /// Check if AI verification is required
+    pub fn is_ai_verification_required(&self) -> bool {
+        self.config.require_ai_verification
     }
 }
 

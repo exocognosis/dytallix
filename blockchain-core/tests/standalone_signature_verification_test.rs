@@ -1,10 +1,7 @@
-"""
-Standalone integration test for signature verification functionality.
-
-This test creates a minimal version of the signature verification components
-to test the integration flow without depending on the main consensus module.
-"""
-
+//! Standalone integration test for signature verification functionality.
+//!
+//! This test creates a minimal version of the signature verification components
+//! to test the integration flow without depending on the main consensus module.
 use anyhow::Result;
 use chrono;
 use dytallix_pqc::{Signature, SignatureAlgorithm};
