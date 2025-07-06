@@ -11,6 +11,8 @@ Provides AI-powered analysis services for the Dytallix blockchain:
 
 import asyncio
 import logging
+import time
+import uuid
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +24,7 @@ from risk_scoring import RiskScorer
 from contract_nlp import ContractNLPGenerator
 from oracle import BlockchainOracle
 from blockchain_oracle import BlockchainOracle as AIOracle
+from signing_service import initialize_signing_service, get_signing_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -47,15 +50,24 @@ app.add_middleware(
 fraud_detector = FraudDetector()
 risk_scorer = RiskScorer()
 contract_nlp = ContractNLPGenerator()
+# Initialize AI services
+fraud_detector = FraudDetector()
+risk_scorer = RiskScorer()
+contract_nlp = ContractNLPGenerator()
 oracle = BlockchainOracle()
 
-# Initialize AI-Blockchain Oracle Bridge
-ai_oracle = None
+# Initialize signing service
+signing_service = None
 
 async def initialize_oracle():
     """Initialize the AI-Blockchain Oracle Bridge"""
-    global ai_oracle
+    global ai_oracle, signing_service
     try:
+        # Initialize signing service
+        signing_service = initialize_signing_service()
+        logger.info("PQC Signing service initialized")
+        
+        # Initialize AI-Blockchain Oracle Bridge
         ai_oracle = AIOracle(
             blockchain_rpc_url="http://localhost:8080",
             ai_services_url="http://localhost:8000"
@@ -77,12 +89,8 @@ async def shutdown_event():
     logger.info("Shutting down Dytallix AI Services...")
     if ai_oracle:
         await ai_oracle.stop()
-
-# Initialize AI services
-fraud_detector = FraudDetector()
-risk_scorer = RiskScorer()
-contract_nlp = ContractNLPGenerator()
-oracle = BlockchainOracle()
+    if signing_service:
+        signing_service.cleanup_expired_responses()
 
 # Pydantic models for API
 class TransactionData(BaseModel):
@@ -145,14 +153,16 @@ async def health_check():
         risk_status = risk_scorer.is_ready()
         nlp_status = contract_nlp.is_ready()
         oracle_status = await oracle.is_connected()
+        signing_status = signing_service.is_initialized if signing_service else False
         
         return {
-            "status": "healthy" if all([fraud_status, risk_status, nlp_status, oracle_status]) else "degraded",
+            "status": "healthy" if all([fraud_status, risk_status, nlp_status, oracle_status, signing_status]) else "degraded",
             "services": {
                 "fraud_detection": fraud_status,
                 "risk_scoring": risk_status,
                 "contract_nlp": nlp_status,
-                "blockchain_oracle": oracle_status
+                "blockchain_oracle": oracle_status,
+                "pqc_signing": signing_status
             }
         }
     except Exception as e:
@@ -164,55 +174,136 @@ async def analyze_fraud(request: FraudAnalysisRequest):
     """
     Analyze a transaction for fraud patterns
     """
+    start_time = time.time()
+    request_id = str(uuid.uuid4())
+    
     try:
-        logger.info(f"Fraud analysis request for transaction: {request.transaction.from_address} -> {request.transaction.to_address}")
+        logger.info(f"Fraud analysis request {request_id} for transaction: {request.transaction.from_address} -> {request.transaction.to_address}")
         
         analysis = await fraud_detector.analyze_transaction(
             request.transaction.dict(),
             request.historical_data or []
         )
         
-        return FraudAnalysisResponse(
-            is_fraudulent=analysis["is_fraudulent"],
-            confidence=analysis["confidence"],
-            risk_factors=analysis["risk_factors"],
-            recommended_action=analysis["recommended_action"]
-        )
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Sign the response if signing service is available
+        if signing_service and signing_service.is_initialized:
+            signed_response = signing_service.sign_fraud_detection_response(
+                request_id=request_id,
+                fraud_score=analysis["confidence"],
+                risk_factors=analysis["risk_factors"],
+                processing_time_ms=processing_time_ms
+            )
+            
+            # Return signed response
+            return {
+                "is_fraudulent": analysis["is_fraudulent"],
+                "confidence": analysis["confidence"],
+                "risk_factors": analysis["risk_factors"],
+                "recommended_action": analysis["recommended_action"],
+                "signed_response": signed_response
+            }
+        else:
+            # Return unsigned response
+            return FraudAnalysisResponse(
+                is_fraudulent=analysis["is_fraudulent"],
+                confidence=analysis["confidence"],
+                risk_factors=analysis["risk_factors"],
+                recommended_action=analysis["recommended_action"]
+            )
         
     except Exception as e:
         logger.error(f"Fraud analysis failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Fraud analysis failed: {str(e)}")
+        
+        # Sign error response if signing service is available
+        if signing_service and signing_service.is_initialized:
+            processing_time_ms = int((time.time() - start_time) * 1000)
+            signed_error = signing_service.sign_error_response(
+                request_id=request_id,
+                error_code="FRAUD_ANALYSIS_ERROR",
+                error_message=str(e),
+                processing_time_ms=processing_time_ms
+            )
+            raise HTTPException(status_code=500, detail={
+                "error": f"Fraud analysis failed: {str(e)}",
+                "signed_error": signed_error
+            })
+        else:
+            raise HTTPException(status_code=500, detail=f"Fraud analysis failed: {str(e)}")
 
 @app.post("/analyze/risk", response_model=RiskScoreResponse)
 async def analyze_risk(request: RiskScoreRequest):
     """
     Calculate risk score for a transaction
     """
+    start_time = time.time()
+    request_id = str(uuid.uuid4())
+    
     try:
-        logger.info(f"Risk analysis request for transaction: {request.transaction.from_address} -> {request.transaction.to_address}")
+        logger.info(f"Risk analysis request {request_id} for transaction: {request.transaction.from_address} -> {request.transaction.to_address}")
         
         score_data = await risk_scorer.calculate_risk_score(
             request.transaction.dict(),
             request.address_history or []
         )
         
-        return RiskScoreResponse(
-            risk_score=score_data["score"],
-            risk_level=score_data["level"],
-            factors=score_data["factors"]
-        )
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Sign the response if signing service is available
+        if signing_service and signing_service.is_initialized:
+            signed_response = signing_service.sign_risk_scoring_response(
+                request_id=request_id,
+                risk_score=score_data["score"],
+                risk_category=score_data["level"],
+                contributing_factors=score_data["factors"],
+                processing_time_ms=processing_time_ms
+            )
+            
+            # Return signed response
+            return {
+                "risk_score": score_data["score"],
+                "risk_level": score_data["level"],
+                "factors": score_data["factors"],
+                "signed_response": signed_response
+            }
+        else:
+            # Return unsigned response
+            return RiskScoreResponse(
+                risk_score=score_data["score"],
+                risk_level=score_data["level"],
+                factors=score_data["factors"]
+            )
         
     except Exception as e:
         logger.error(f"Risk analysis failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Risk analysis failed: {str(e)}")
+        
+        # Sign error response if signing service is available
+        if signing_service and signing_service.is_initialized:
+            processing_time_ms = int((time.time() - start_time) * 1000)
+            signed_error = signing_service.sign_error_response(
+                request_id=request_id,
+                error_code="RISK_ANALYSIS_ERROR",
+                error_message=str(e),
+                processing_time_ms=processing_time_ms
+            )
+            raise HTTPException(status_code=500, detail={
+                "error": f"Risk analysis failed: {str(e)}",
+                "signed_error": signed_error
+            })
+        else:
+            raise HTTPException(status_code=500, detail=f"Risk analysis failed: {str(e)}")
 
 @app.post("/generate/contract", response_model=ContractGenerationResponse)
 async def generate_contract(request: ContractGenerationRequest):
     """
     Generate smart contract code from natural language description
     """
+    start_time = time.time()
+    request_id = str(uuid.uuid4())
+    
     try:
-        logger.info(f"Contract generation request: {request.contract_type}")
+        logger.info(f"Contract generation request {request_id}: {request.contract_type}")
         
         contract_data = await contract_nlp.generate_contract(
             request.description,
@@ -220,16 +311,57 @@ async def generate_contract(request: ContractGenerationRequest):
             request.requirements or []
         )
         
-        return ContractGenerationResponse(
-            contract_code=contract_data["code"],
-            language=contract_data["language"],
-            security_analysis=contract_data["security_analysis"],
-            estimated_gas=contract_data.get("estimated_gas")
-        )
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Sign the response if signing service is available
+        if signing_service and signing_service.is_initialized:
+            signed_response = signing_service.sign_contract_analysis_response(
+                request_id=request_id,
+                analysis_result={
+                    "contract_code": contract_data["code"],
+                    "language": contract_data["language"],
+                    "security_analysis": contract_data["security_analysis"],
+                    "estimated_gas": contract_data.get("estimated_gas"),
+                    "contract_type": request.contract_type
+                },
+                processing_time_ms=processing_time_ms
+            )
+            
+            # Return signed response
+            return {
+                "contract_code": contract_data["code"],
+                "language": contract_data["language"],
+                "security_analysis": contract_data["security_analysis"],
+                "estimated_gas": contract_data.get("estimated_gas"),
+                "signed_response": signed_response
+            }
+        else:
+            # Return unsigned response
+            return ContractGenerationResponse(
+                contract_code=contract_data["code"],
+                language=contract_data["language"],
+                security_analysis=contract_data["security_analysis"],
+                estimated_gas=contract_data.get("estimated_gas")
+            )
         
     except Exception as e:
         logger.error(f"Contract generation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Contract generation failed: {str(e)}")
+        
+        # Sign error response if signing service is available
+        if signing_service and signing_service.is_initialized:
+            processing_time_ms = int((time.time() - start_time) * 1000)
+            signed_error = signing_service.sign_error_response(
+                request_id=request_id,
+                error_code="CONTRACT_GENERATION_ERROR",
+                error_message=str(e),
+                processing_time_ms=processing_time_ms
+            )
+            raise HTTPException(status_code=500, detail={
+                "error": f"Contract generation failed: {str(e)}",
+                "signed_error": signed_error
+            })
+        else:
+            raise HTTPException(status_code=500, detail=f"Contract generation failed: {str(e)}")
 
 @app.post("/oracle/submit")
 async def submit_to_oracle(background_tasks: BackgroundTasks, data: Dict):
@@ -271,6 +403,65 @@ async def models_status():
 async def analyze_contract(request: Request):
     # TODO: Parse request, call ContractAuditService, return result
     return {"result": "dummy_contract_audit"}
+
+# Oracle Management Endpoints
+
+@app.get("/oracle/info")
+async def get_oracle_info():
+    """Get oracle information including public key and certificates"""
+    try:
+        if not signing_service or not signing_service.is_initialized:
+            raise HTTPException(status_code=503, detail="Signing service not initialized")
+        
+        oracle_info = signing_service.get_oracle_info()
+        return {
+            "oracle_info": oracle_info,
+            "certificate_chain": signing_service.get_certificate_chain(),
+            "signing_statistics": signing_service.get_signing_statistics()
+        }
+    except Exception as e:
+        logger.error(f"Failed to get oracle info: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get oracle info: {str(e)}")
+
+@app.get("/oracle/certificates")
+async def get_oracle_certificates():
+    """Get oracle certificate chain"""
+    try:
+        if not signing_service or not signing_service.is_initialized:
+            raise HTTPException(status_code=503, detail="Signing service not initialized")
+        
+        return {
+            "certificates": signing_service.get_certificate_chain()
+        }
+    except Exception as e:
+        logger.error(f"Failed to get certificates: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get certificates: {str(e)}")
+
+@app.get("/oracle/statistics")
+async def get_oracle_statistics():
+    """Get oracle signing statistics"""
+    try:
+        if not signing_service or not signing_service.is_initialized:
+            raise HTTPException(status_code=503, detail="Signing service not initialized")
+        
+        stats = signing_service.get_signing_statistics()
+        return stats
+    except Exception as e:
+        logger.error(f"Failed to get statistics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
+
+@app.post("/oracle/cleanup")
+async def cleanup_expired_responses():
+    """Clean up expired responses from cache"""
+    try:
+        if not signing_service or not signing_service.is_initialized:
+            raise HTTPException(status_code=503, detail="Signing service not initialized")
+        
+        signing_service.cleanup_expired_responses()
+        return {"status": "success", "message": "Expired responses cleaned up"}
+    except Exception as e:
+        logger.error(f"Failed to cleanup responses: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to cleanup responses: {str(e)}")
 
 if __name__ == "__main__":
     logger.info("Starting Dytallix AI Services...")

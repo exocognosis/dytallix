@@ -34,11 +34,11 @@ This document breaks down the AI service integration into manageable tasks acros
 - [x] Test retry behavior with simulated failures
 
 ### Task 1.5: Add Health Check and Monitoring
-- [ ] Implement `/health` endpoint checking for AI service
-- [ ] Add periodic health monitoring in background
-- [ ] Create metrics collection for request success/failure rates
-- [ ] Add circuit breaker pattern for unhealthy services
-- [ ] Implement fallback behavior when AI service is down
+- [x] Implement `/health` endpoint checking for AI service
+- [x] Add periodic health monitoring in background
+- [x] Create metrics collection for request success/failure rates
+- [x] Add circuit breaker pattern for unhealthy services
+- [x] Implement fallback behavior when AI service is down
 
 ---
 
@@ -46,18 +46,18 @@ This document breaks down the AI service integration into manageable tasks acros
 **Goal**: Implement cryptographic verification of AI responses
 
 ### Task 2.1: Design Signed Response Format
-- [ ] Define `SignedAIOracleResponse` struct with all required fields
-- [ ] Create `AIResponseSignature` struct using PQC algorithms
-- [ ] Add timestamp and nonce fields for replay protection
-- [ ] Design certificate chain structure for oracle identity
-- [ ] Document signature verification process
+- [x] Define `SignedAIOracleResponse` struct with all required fields
+- [x] Create `AIResponseSignature` struct using PQC algorithms
+- [x] Add timestamp and nonce fields for replay protection
+- [x] Design certificate chain structure for oracle identity
+- [x] Document signature verification process
 
 ### Task 2.2: Implement Response Signing (AI Service Side)
-- [ ] Generate Dilithium key pairs for AI oracle
-- [ ] Implement response signing in AI service
-- [ ] Add certificate generation and management
-- [ ] Create signed response format with proper encoding
-- [ ] Test signature generation with various response types
+- [x] Generate Dilithium key pairs for AI oracle
+- [x] Implement response signing in AI service
+- [x] Add certificate generation and management
+- [x] Create signed response format with proper encoding
+- [x] Test signature generation with various response types
 
 ### Task 2.3: Add Signature Verification in Blockchain
 - [ ] Implement PQC signature verification for oracle responses

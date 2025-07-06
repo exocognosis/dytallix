@@ -2,10 +2,11 @@ use anyhow::Result;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use uuid;
 use chrono;
 use serde_json;
+use dytallix_pqc::SignatureAlgorithm;
 
 // Temporarily stub out problematic code
 pub struct DytallixConsensus;
@@ -468,6 +469,573 @@ impl AIResponseError {
     }
 }
 
+/// AI service health status
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum AIServiceStatus {
+    /// Service is fully operational
+    Healthy,
+    /// Service has some issues but is partially operational
+    Degraded,
+    /// Service is not operational
+    Unhealthy,
+    /// Service status is unknown
+    Unknown,
+}
+
+impl std::fmt::Display for AIServiceStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AIServiceStatus::Healthy => write!(f, "Healthy"),
+            AIServiceStatus::Degraded => write!(f, "Degraded"),
+            AIServiceStatus::Unhealthy => write!(f, "Unhealthy"),
+            AIServiceStatus::Unknown => write!(f, "Unknown"),
+        }
+    }
+}
+
+/// Service load information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIServiceLoad {
+    /// Current CPU usage percentage (0-100)
+    pub cpu_usage: Option<f64>,
+    /// Current memory usage percentage (0-100)
+    pub memory_usage: Option<f64>,
+    /// Current request queue size
+    pub queue_size: Option<u32>,
+    /// Requests per second
+    pub requests_per_second: Option<f64>,
+    /// Average response time in milliseconds
+    pub avg_response_time_ms: Option<f64>,
+}
+
+/// Health check response from AI service
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIHealthCheckResponse {
+    /// Service status (healthy, unhealthy, degraded)
+    pub status: AIServiceStatus,
+    /// Timestamp of the health check
+    pub timestamp: u64,
+    /// Response time in milliseconds
+    pub response_time_ms: u64,
+    /// Service version information
+    pub version: Option<String>,
+    /// Additional health details
+    pub details: Option<serde_json::Value>,
+    /// Available service endpoints
+    pub endpoints: Option<Vec<String>>,
+    /// Current load or capacity information
+    pub load: Option<AIServiceLoad>,
+}
+
+/// Post-Quantum Cryptographic signature for AI oracle responses
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIResponseSignature {
+    /// Signature algorithm used (Dilithium5, Falcon1024, etc.)
+    pub algorithm: SignatureAlgorithm,
+    /// The actual signature bytes
+    pub signature: Vec<u8>,
+    /// Public key used for verification (oracle's public key)
+    pub public_key: Vec<u8>,
+    /// Signature creation timestamp (Unix timestamp in seconds)
+    pub signature_timestamp: u64,
+    /// Version of the signature format for forward compatibility
+    pub signature_version: u8,
+    /// Additional signature metadata
+    pub metadata: Option<SignatureMetadata>,
+}
+
+/// Additional metadata for signatures
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignatureMetadata {
+    /// Key identifier or fingerprint
+    pub key_id: Option<String>,
+    /// Certificate chain for verification
+    pub cert_chain: Option<Vec<String>>,
+    /// Additional signature parameters
+    pub parameters: Option<serde_json::Value>,
+}
+
+/// Oracle identity and certificate information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OracleIdentity {
+    /// Unique oracle identifier
+    pub oracle_id: String,
+    /// Oracle name or description
+    pub name: String,
+    /// Oracle's public key for signature verification
+    pub public_key: Vec<u8>,
+    /// Signature algorithm used by this oracle
+    pub signature_algorithm: SignatureAlgorithm,
+    /// Oracle registration timestamp
+    pub registered_at: u64,
+    /// Oracle reputation score (0.0 to 1.0)
+    pub reputation_score: f64,
+    /// Whether the oracle is currently active
+    pub is_active: bool,
+    /// Oracle's certificate chain
+    pub certificate_chain: Vec<OracleCertificate>,
+}
+
+/// Oracle certificate for identity verification
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OracleCertificate {
+    /// Certificate version
+    pub version: u8,
+    /// Subject oracle ID
+    pub subject_oracle_id: String,
+    /// Issuer oracle ID (for chain of trust)
+    pub issuer_oracle_id: String,
+    /// Certificate validity start time
+    pub valid_from: u64,
+    /// Certificate validity end time
+    pub valid_until: u64,
+    /// Public key in this certificate
+    pub public_key: Vec<u8>,
+    /// Signature algorithm
+    pub signature_algorithm: SignatureAlgorithm,
+    /// Certificate signature (signed by issuer)
+    pub signature: Vec<u8>,
+    /// Additional certificate extensions
+    pub extensions: Option<serde_json::Value>,
+}
+
+/// Signed AI Oracle Response with cryptographic verification
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignedAIOracleResponse {
+    /// The underlying AI response payload
+    pub response: AIResponsePayload,
+    /// Cryptographic signature of the response
+    pub signature: AIResponseSignature,
+    /// Nonce for replay protection (must be unique)
+    pub nonce: u64,
+    /// Response expiration timestamp (for freshness)
+    pub expires_at: u64,
+    /// Oracle identity information
+    pub oracle_identity: OracleIdentity,
+    /// Additional verification data
+    pub verification_data: Option<VerificationData>,
+}
+
+/// Additional data for response verification
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VerificationData {
+    /// Hash of the original request (for request-response binding)
+    pub request_hash: Vec<u8>,
+    /// Merkle proof if response is part of a batch
+    pub merkle_proof: Option<Vec<Vec<u8>>>,
+    /// Timestamp verification data
+    pub timestamp_proof: Option<TimestampProof>,
+    /// Additional verification metadata
+    pub metadata: Option<serde_json::Value>,
+}
+
+/// Timestamp proof for response freshness verification
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimestampProof {
+    /// Timestamp authority identifier
+    pub authority_id: String,
+    /// Timestamp token or proof
+    pub proof: Vec<u8>,
+    /// Timestamp algorithm used
+    pub algorithm: String,
+    /// Timestamp creation time
+    pub created_at: u64,
+}
+
+impl AIResponseSignature {
+    /// Create a new signature
+    pub fn new(
+        algorithm: SignatureAlgorithm,
+        signature: Vec<u8>,
+        public_key: Vec<u8>,
+    ) -> Self {
+        Self {
+            algorithm,
+            signature,
+            public_key,
+            signature_timestamp: chrono::Utc::now().timestamp() as u64,
+            signature_version: 1,
+            metadata: None,
+        }
+    }
+
+    /// Add metadata to the signature
+    pub fn with_metadata(mut self, metadata: SignatureMetadata) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Add key ID to the signature
+    pub fn with_key_id(mut self, key_id: String) -> Self {
+        let metadata = self.metadata.get_or_insert_with(|| SignatureMetadata {
+            key_id: None,
+            cert_chain: None,
+            parameters: None,
+        });
+        metadata.key_id = Some(key_id);
+        self
+    }
+
+    /// Get the signature age in seconds
+    pub fn age_seconds(&self) -> u64 {
+        let now = chrono::Utc::now().timestamp() as u64;
+        if now > self.signature_timestamp {
+            now - self.signature_timestamp
+        } else {
+            0
+        }
+    }
+
+    /// Check if the signature is recent (within the given seconds)
+    pub fn is_recent(&self, max_age_seconds: u64) -> bool {
+        self.age_seconds() <= max_age_seconds
+    }
+}
+
+impl OracleIdentity {
+    /// Create a new oracle identity
+    pub fn new(
+        oracle_id: String,
+        name: String,
+        public_key: Vec<u8>,
+        signature_algorithm: SignatureAlgorithm,
+    ) -> Self {
+        Self {
+            oracle_id,
+            name,
+            public_key,
+            signature_algorithm,
+            registered_at: chrono::Utc::now().timestamp() as u64,
+            reputation_score: 0.5, // Start with neutral reputation
+            is_active: true,
+            certificate_chain: Vec::new(),
+        }
+    }
+
+    /// Add a certificate to the oracle's chain
+    pub fn add_certificate(mut self, certificate: OracleCertificate) -> Self {
+        self.certificate_chain.push(certificate);
+        self
+    }
+
+    /// Update reputation score
+    pub fn update_reputation(mut self, score: f64) -> Self {
+        self.reputation_score = score.clamp(0.0, 1.0);
+        self
+    }
+
+    /// Deactivate the oracle
+    pub fn deactivate(mut self) -> Self {
+        self.is_active = false;
+        self
+    }
+
+    /// Check if the oracle is trusted (high reputation and active)
+    pub fn is_trusted(&self, min_reputation: f64) -> bool {
+        self.is_active && self.reputation_score >= min_reputation
+    }
+}
+
+impl OracleCertificate {
+    /// Create a new oracle certificate
+    pub fn new(
+        subject_oracle_id: String,
+        issuer_oracle_id: String,
+        valid_from: u64,
+        valid_until: u64,
+        public_key: Vec<u8>,
+        signature_algorithm: SignatureAlgorithm,
+        signature: Vec<u8>,
+    ) -> Self {
+        Self {
+            version: 1,
+            subject_oracle_id,
+            issuer_oracle_id,
+            valid_from,
+            valid_until,
+            public_key,
+            signature_algorithm,
+            signature,
+            extensions: None,
+        }
+    }
+
+    /// Check if the certificate is currently valid
+    pub fn is_valid(&self) -> bool {
+        let now = chrono::Utc::now().timestamp() as u64;
+        now >= self.valid_from && now <= self.valid_until
+    }
+
+    /// Check if the certificate is expired
+    pub fn is_expired(&self) -> bool {
+        let now = chrono::Utc::now().timestamp() as u64;
+        now > self.valid_until
+    }
+
+    /// Get days until expiration
+    pub fn days_until_expiration(&self) -> i64 {
+        let now = chrono::Utc::now().timestamp() as u64;
+        if self.valid_until > now {
+            ((self.valid_until - now) / 86400) as i64
+        } else {
+            0
+        }
+    }
+}
+
+impl SignedAIOracleResponse {
+    /// Create a new signed response
+    pub fn new(
+        response: AIResponsePayload,
+        signature: AIResponseSignature,
+        nonce: u64,
+        expires_at: u64,
+        oracle_identity: OracleIdentity,
+    ) -> Self {
+        Self {
+            response,
+            signature,
+            nonce,
+            expires_at,
+            oracle_identity,
+            verification_data: None,
+        }
+    }
+
+    /// Add verification data
+    pub fn with_verification_data(mut self, verification_data: VerificationData) -> Self {
+        self.verification_data = Some(verification_data);
+        self
+    }
+
+    /// Check if the response is expired
+    pub fn is_expired(&self) -> bool {
+        let now = chrono::Utc::now().timestamp() as u64;
+        now > self.expires_at
+    }
+
+    /// Check if the response is fresh (not expired)
+    pub fn is_fresh(&self) -> bool {
+        !self.is_expired()
+    }
+
+    /// Get seconds until expiration
+    pub fn seconds_until_expiration(&self) -> i64 {
+        let now = chrono::Utc::now().timestamp() as u64;
+        if self.expires_at > now {
+            (self.expires_at - now) as i64
+        } else {
+            0
+        }
+    }
+
+    /// Get the canonical data for signature verification
+    /// This creates a deterministic byte representation of the response for signing/verification
+    pub fn get_signable_data(&self) -> Result<Vec<u8>> {
+        let mut data = Vec::new();
+        
+        // Add response data
+        data.extend_from_slice(self.response.id.as_bytes());
+        data.extend_from_slice(self.response.request_id.as_bytes());
+        data.extend_from_slice(&self.response.timestamp.to_be_bytes());
+        data.extend_from_slice(&self.response.processing_time_ms.to_be_bytes());
+        
+        // Add response data hash
+        let response_data_json = serde_json::to_string(&self.response.response_data)?;
+        data.extend_from_slice(response_data_json.as_bytes());
+        
+        // Add nonce and expiration
+        data.extend_from_slice(&self.nonce.to_be_bytes());
+        data.extend_from_slice(&self.expires_at.to_be_bytes());
+        
+        // Add oracle identity
+        data.extend_from_slice(self.oracle_identity.oracle_id.as_bytes());
+        
+        Ok(data)
+    }
+
+    /// Create a summary of the signed response for logging/monitoring
+    pub fn get_summary(&self) -> serde_json::Value {
+        serde_json::json!({
+            "response_id": self.response.id,
+            "request_id": self.response.request_id,
+            "oracle_id": self.oracle_identity.oracle_id,
+            "service_type": self.response.service_type,
+            "status": self.response.status,
+            "signature_algorithm": self.signature.algorithm,
+            "nonce": self.nonce,
+            "expires_at": self.expires_at,
+            "is_fresh": self.is_fresh(),
+            "oracle_reputation": self.oracle_identity.reputation_score,
+            "signature_age_seconds": self.signature.age_seconds(),
+        })
+    }
+}
+
+/// Circuit breaker states
+#[derive(Debug, Clone, PartialEq)]
+pub enum CircuitBreakerState {
+    /// Circuit is closed - requests flow normally
+    Closed,
+    /// Circuit is open - requests are blocked
+    Open,
+    /// Circuit is half-open - testing if service recovered
+    HalfOpen,
+}
+
+/// Circuit breaker statistics
+#[derive(Debug, Clone)]
+pub struct CircuitBreakerStats {
+    /// Number of successful requests
+    pub success_count: u64,
+    /// Number of failed requests
+    pub failure_count: u64,
+    /// Total number of requests
+    pub total_requests: u64,
+    /// Current failure rate (0.0 to 1.0)
+    pub failure_rate: f64,
+    /// Time when circuit was last opened
+    pub last_opened_time: Option<std::time::Instant>,
+    /// Time when circuit was last closed
+    pub last_closed_time: Option<std::time::Instant>,
+}
+
+impl Default for CircuitBreakerStats {
+    fn default() -> Self {
+        Self {
+            success_count: 0,
+            failure_count: 0,
+            total_requests: 0,
+            failure_rate: 0.0,
+            last_opened_time: None,
+            last_closed_time: None,
+        }
+    }
+}
+
+/// Circuit breaker configuration and state
+#[derive(Debug, Clone)]
+pub struct CircuitBreakerContext {
+    /// Current state of the circuit breaker
+    pub state: CircuitBreakerState,
+    /// Statistics for the circuit breaker
+    pub stats: CircuitBreakerStats,
+    /// Failure threshold (0.0 to 1.0)
+    pub failure_threshold: f64,
+    /// Recovery time in seconds
+    pub recovery_time_seconds: u64,
+    /// Minimum requests before circuit can open
+    pub min_requests: u64,
+}
+
+impl CircuitBreakerContext {
+    pub fn new(failure_threshold: f64, recovery_time_seconds: u64) -> Self {
+        Self {
+            state: CircuitBreakerState::Closed,
+            stats: CircuitBreakerStats::default(),
+            failure_threshold,
+            recovery_time_seconds,
+            min_requests: 3, // Lower default for testing
+        }
+    }
+
+    /// Record a successful request
+    pub fn record_success(&mut self) {
+        self.stats.success_count += 1;
+        self.stats.total_requests += 1;
+        self.update_failure_rate();
+        
+        // If we're half-open and got a success, close the circuit
+        if self.state == CircuitBreakerState::HalfOpen {
+            self.state = CircuitBreakerState::Closed;
+            self.stats.last_closed_time = Some(std::time::Instant::now());
+            log::info!("Circuit breaker closed after successful request");
+        }
+    }
+
+    /// Record a failed request
+    pub fn record_failure(&mut self) {
+        self.stats.failure_count += 1;
+        self.stats.total_requests += 1;
+        self.update_failure_rate();
+        
+        // Check if we should open the circuit
+        if self.state == CircuitBreakerState::Closed && self.should_open_circuit() {
+            self.state = CircuitBreakerState::Open;
+            self.stats.last_opened_time = Some(std::time::Instant::now());
+            log::warn!("Circuit breaker opened due to high failure rate: {:.2}%", self.stats.failure_rate * 100.0);
+        }
+    }
+
+    /// Check if circuit should allow requests
+    pub fn should_allow_request(&mut self) -> bool {
+        match self.state {
+            CircuitBreakerState::Closed => true,
+            CircuitBreakerState::Open => {
+                // Check if enough time has passed to try again
+                if let Some(opened_time) = self.stats.last_opened_time {
+                    let elapsed = opened_time.elapsed();
+                    if elapsed >= Duration::from_secs(self.recovery_time_seconds) {
+                        log::info!("Circuit breaker transitioning to half-open state");
+                        self.state = CircuitBreakerState::HalfOpen;
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+            CircuitBreakerState::HalfOpen => true,
+        }
+    }
+
+    /// Check if circuit should open based on failure rate
+    fn should_open_circuit(&self) -> bool {
+        self.stats.total_requests >= self.min_requests &&
+        self.stats.failure_rate >= self.failure_threshold
+    }
+
+    /// Update the failure rate
+    fn update_failure_rate(&mut self) {
+        if self.stats.total_requests > 0 {
+            self.stats.failure_rate = self.stats.failure_count as f64 / self.stats.total_requests as f64;
+        }
+    }
+
+    /// Get circuit breaker status summary
+    pub fn get_status_summary(&self) -> serde_json::Value {
+        serde_json::json!({
+            "state": match self.state {
+                CircuitBreakerState::Closed => "closed",
+                CircuitBreakerState::Open => "open",
+                CircuitBreakerState::HalfOpen => "half-open",
+            },
+            "failure_rate": self.stats.failure_rate,
+            "success_count": self.stats.success_count,
+            "failure_count": self.stats.failure_count,
+            "total_requests": self.stats.total_requests,
+            "failure_threshold": self.failure_threshold,
+            "recovery_time_seconds": self.recovery_time_seconds,
+            "last_opened": self.stats.last_opened_time.map(|t| t.elapsed().as_secs()),
+            "last_closed": self.stats.last_closed_time.map(|t| t.elapsed().as_secs()),
+        })
+    }
+}
+
+/// Fallback response when AI service is unavailable
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FallbackResponse {
+    /// Fallback response type
+    pub response_type: String,
+    /// Fallback data
+    pub data: serde_json::Value,
+    /// Message explaining the fallback
+    pub message: String,
+    /// Timestamp of fallback generation
+    pub timestamp: u64,
+}
+
 /// AI Oracle Client for communicating with AI services
 #[derive(Debug, Clone)]
 pub struct AIOracleClient {
@@ -477,6 +1045,8 @@ pub struct AIOracleClient {
     base_url: String,
     /// Request timeout duration
     timeout: Duration,
+    /// Circuit breaker context (shared across threads)
+    circuit_breaker: Arc<Mutex<CircuitBreakerContext>>,
 }
 
 impl AIOracleClient {
@@ -493,6 +1063,7 @@ impl AIOracleClient {
             client,
             base_url,
             timeout: Duration::from_secs(30),
+            circuit_breaker: Arc::new(Mutex::new(CircuitBreakerContext::new(0.5, 60))),
         })
     }
 
@@ -509,6 +1080,7 @@ impl AIOracleClient {
             client,
             base_url,
             timeout,
+            circuit_breaker: Arc::new(Mutex::new(CircuitBreakerContext::new(0.5, 60))),
         })
     }
 
@@ -531,6 +1103,29 @@ impl AIOracleClient {
             client,
             base_url,
             timeout,
+            circuit_breaker: Arc::new(Mutex::new(CircuitBreakerContext::new(0.5, 60))),
+        })
+    }
+
+    /// Create a new AIOracleClient with circuit breaker configuration
+    pub fn with_circuit_breaker(
+        base_url: String,
+        timeout: Duration,
+        failure_threshold: f64,
+        recovery_time_seconds: u64,
+    ) -> Result<Self> {
+        let client = ClientBuilder::new()
+            .timeout(timeout)
+            .pool_max_idle_per_host(10)
+            .pool_idle_timeout(Duration::from_secs(90))
+            .tcp_keepalive(Duration::from_secs(60))
+            .build()?;
+
+        Ok(Self {
+            client,
+            base_url,
+            timeout,
+            circuit_breaker: Arc::new(Mutex::new(CircuitBreakerContext::new(failure_threshold, recovery_time_seconds))),
         })
     }
 
@@ -564,6 +1159,7 @@ impl AIOracleClient {
             client,
             base_url,
             timeout,
+            circuit_breaker: Arc::new(Mutex::new(CircuitBreakerContext::new(0.5, 60))),
         })
     }
 
@@ -593,6 +1189,394 @@ impl AIOracleClient {
         }
     }
 
+    /// Perform a comprehensive health check of the AI service
+    pub async fn health_check(&self) -> Result<AIHealthCheckResponse> {
+        let url = format!("{}/health", self.base_url);
+        let start_time = std::time::Instant::now();
+
+        log::debug!("Performing health check for AI service at: {}", url);
+
+        match self.client.get(&url).send().await {
+            Ok(response) => {
+                let response_time_ms = start_time.elapsed().as_millis() as u64;
+                let status_code = response.status();
+                
+                log::debug!("Health check response: HTTP {}, response time: {}ms", status_code, response_time_ms);
+
+                if status_code.is_success() {
+                    // Try to parse the response as JSON to get detailed health information
+                    match response.json::<serde_json::Value>().await {
+                        Ok(json_response) => {
+                            log::debug!("Successfully parsed health check response: {:?}", json_response);
+                            
+                            // Extract status from the response or default to Healthy
+                            let status = if let Some(status_str) = json_response.get("status").and_then(|v| v.as_str()) {
+                                match status_str.to_lowercase().as_str() {
+                                    "healthy" => AIServiceStatus::Healthy,
+                                    "degraded" => AIServiceStatus::Degraded,
+                                    "unhealthy" => AIServiceStatus::Unhealthy,
+                                    _ => AIServiceStatus::Unknown,
+                                }
+                            } else {
+                                AIServiceStatus::Healthy
+                            };
+
+                            // Extract version information
+                            let version = json_response.get("version")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
+
+                            // Extract available endpoints
+                            let endpoints = json_response.get("endpoints")
+                                .and_then(|v| v.as_array())
+                                .map(|arr| {
+                                    arr.iter()
+                                        .filter_map(|v| v.as_str())
+                                        .map(|s| s.to_string())
+                                        .collect::<Vec<String>>()
+                                });
+
+                            // Extract service load information
+                            let load = json_response.get("load")
+                                .and_then(|v| v.as_object())
+                                .map(|load_obj| {
+                                    AIServiceLoad {
+                                        cpu_usage: load_obj.get("cpu_usage").and_then(|v| v.as_f64()),
+                                        memory_usage: load_obj.get("memory_usage").and_then(|v| v.as_f64()),
+                                        queue_size: load_obj.get("queue_size").and_then(|v| v.as_u64()).map(|v| v as u32),
+                                        requests_per_second: load_obj.get("requests_per_second").and_then(|v| v.as_f64()),
+                                        avg_response_time_ms: load_obj.get("avg_response_time_ms").and_then(|v| v.as_f64()),
+                                    }
+                                });
+
+                            Ok(AIHealthCheckResponse {
+                                status,
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_secs(),
+                                response_time_ms,
+                                version,
+                                details: Some(json_response),
+                                endpoints,
+                                load,
+                            })
+                        }
+                        Err(e) => {
+                            log::warn!("Failed to parse health check response as JSON: {}", e);
+                            
+                            // Create a basic health response based on HTTP status
+                            let status = if status_code.is_success() {
+                                AIServiceStatus::Healthy
+                            } else {
+                                AIServiceStatus::Degraded
+                            };
+
+                            Ok(AIHealthCheckResponse {
+                                status,
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_secs(),
+                                response_time_ms,
+                                version: None,
+                                details: None,
+                                endpoints: None,
+                                load: None,
+                            })
+                        }
+                    }
+                } else {
+                    log::warn!("Health check failed with HTTP status: {}", status_code);
+                    
+                    let status = match status_code.as_u16() {
+                        503 => AIServiceStatus::Unhealthy,
+                        500..=599 => AIServiceStatus::Degraded,
+                        _ => AIServiceStatus::Unknown,
+                    };
+
+                    Ok(AIHealthCheckResponse {
+                        status,
+                        timestamp: std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs(),
+                        response_time_ms,
+                        version: None,
+                        details: Some(serde_json::json!({
+                            "error": "HTTP request failed",
+                            "status_code": status_code.as_u16(),
+                            "message": format!("Health check returned HTTP {}", status_code)
+                        })),
+                        endpoints: None,
+                        load: None,
+                    })
+                }
+            }
+            Err(e) => {
+                let response_time_ms = start_time.elapsed().as_millis() as u64;
+                log::error!("Health check request failed: {}", e);
+                
+                // Determine error type for better status reporting
+                let (status, error_details) = if e.is_timeout() {
+                    (AIServiceStatus::Degraded, serde_json::json!({
+                        "error": "timeout",
+                        "message": format!("Health check timed out after {}ms", response_time_ms)
+                    }))
+                } else if e.is_connect() {
+                    (AIServiceStatus::Unhealthy, serde_json::json!({
+                        "error": "connection_failed",
+                        "message": "Could not connect to AI service"
+                    }))
+                } else {
+                    (AIServiceStatus::Unknown, serde_json::json!({
+                        "error": "network_error",
+                        "message": format!("Network error: {}", e)
+                    }))
+                };
+
+                Ok(AIHealthCheckResponse {
+                    status,
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs(),
+                    response_time_ms,
+                    version: None,
+                    details: Some(error_details),
+                    endpoints: None,
+                    load: None,
+                })
+            }
+        }
+    }
+
+    /// Start periodic health monitoring in the background
+    pub fn start_background_health_monitoring(&self, interval_seconds: u64) -> tokio::task::JoinHandle<()> {
+        let client = self.clone();
+        let interval_duration = std::time::Duration::from_secs(interval_seconds);
+        
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(interval_duration);
+            
+            loop {
+                interval.tick().await;
+                
+                match client.health_check().await {
+                    Ok(health_response) => {
+                        log::info!(
+                            "Health check completed - Status: {}, Response time: {}ms", 
+                            health_response.status, 
+                            health_response.response_time_ms
+                        );
+                        
+                        // Log additional details if available
+                        if let Some(ref details) = health_response.details {
+                            log::debug!("Health check details: {:?}", details);
+                        }
+                        
+                        // Log service load if available
+                        if let Some(ref load) = health_response.load {
+                            log::info!(
+                                "Service load - CPU: {:?}%, Memory: {:?}%, Queue: {:?}, RPS: {:?}",
+                                load.cpu_usage,
+                                load.memory_usage,
+                                load.queue_size,
+                                load.requests_per_second
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        log::error!("Periodic health check failed: {}", e);
+                    }
+                }
+            }
+        })
+    }
+
+    /// Perform health check with custom timeout
+    pub async fn health_check_with_timeout(&self, timeout: std::time::Duration) -> Result<AIHealthCheckResponse> {
+        let url = format!("{}/health", self.base_url);
+        let start_time = std::time::Instant::now();
+
+        log::debug!("Performing health check with timeout {:?} for AI service at: {}", timeout, url);
+
+        match tokio::time::timeout(timeout, self.client.get(&url).send()).await {
+            Ok(Ok(response)) => {
+                let response_time_ms = start_time.elapsed().as_millis() as u64;
+                let status_code = response.status();
+                
+                log::debug!("Health check response: HTTP {}, response time: {}ms", status_code, response_time_ms);
+
+                if status_code.is_success() {
+                    // Try to parse the response as JSON to get detailed health information
+                    match response.json::<serde_json::Value>().await {
+                        Ok(json_response) => {
+                            log::debug!("Successfully parsed health check response: {:?}", json_response);
+                            
+                            // Extract status from the response or default to Healthy
+                            let status = if let Some(status_str) = json_response.get("status").and_then(|v| v.as_str()) {
+                                match status_str.to_lowercase().as_str() {
+                                    "healthy" => AIServiceStatus::Healthy,
+                                    "degraded" => AIServiceStatus::Degraded,
+                                    "unhealthy" => AIServiceStatus::Unhealthy,
+                                    _ => AIServiceStatus::Unknown,
+                                }
+                            } else {
+                                AIServiceStatus::Healthy
+                            };
+
+                            // Extract version information
+                            let version = json_response.get("version")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
+
+                            // Extract available endpoints
+                            let endpoints = json_response.get("endpoints")
+                                .and_then(|v| v.as_array())
+                                .map(|arr| {
+                                    arr.iter()
+                                        .filter_map(|v| v.as_str())
+                                        .map(|s| s.to_string())
+                                        .collect::<Vec<String>>()
+                                });
+
+                            // Extract service load information
+                            let load = json_response.get("load")
+                                .and_then(|v| v.as_object())
+                                .map(|load_obj| {
+                                    AIServiceLoad {
+                                        cpu_usage: load_obj.get("cpu_usage").and_then(|v| v.as_f64()),
+                                        memory_usage: load_obj.get("memory_usage").and_then(|v| v.as_f64()),
+                                        queue_size: load_obj.get("queue_size").and_then(|v| v.as_u64()).map(|v| v as u32),
+                                        requests_per_second: load_obj.get("requests_per_second").and_then(|v| v.as_f64()),
+                                        avg_response_time_ms: load_obj.get("avg_response_time_ms").and_then(|v| v.as_f64()),
+                                    }
+                                });
+
+                            Ok(AIHealthCheckResponse {
+                                status,
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_secs(),
+                                response_time_ms,
+                                version,
+                                details: Some(json_response),
+                                endpoints,
+                                load,
+                            })
+                        }
+                        Err(e) => {
+                            log::warn!("Failed to parse health check response as JSON: {}", e);
+                            
+                            // Create a basic health response based on HTTP status
+                            let status = if status_code.is_success() {
+                                AIServiceStatus::Healthy
+                            } else {
+                                AIServiceStatus::Degraded
+                            };
+
+                            Ok(AIHealthCheckResponse {
+                                status,
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_secs(),
+                                response_time_ms,
+                                version: None,
+                                details: None,
+                                endpoints: None,
+                                load: None,
+                            })
+                        }
+                    }
+                } else {
+                    log::warn!("Health check failed with HTTP status: {}", status_code);
+                    
+                    let status = match status_code.as_u16() {
+                        503 => AIServiceStatus::Unhealthy,
+                        500..=599 => AIServiceStatus::Degraded,
+                        _ => AIServiceStatus::Unknown,
+                    };
+
+                    Ok(AIHealthCheckResponse {
+                        status,
+                        timestamp: std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs(),
+                        response_time_ms,
+                        version: None,
+                        details: Some(serde_json::json!({
+                            "error": "HTTP request failed",
+                            "status_code": status_code.as_u16(),
+                            "message": format!("Health check returned HTTP {}", status_code)
+                        })),
+                        endpoints: None,
+                        load: None,
+                    })
+                }
+            }
+            Ok(Err(e)) => {
+                let response_time_ms = start_time.elapsed().as_millis() as u64;
+                log::error!("Health check request failed: {}", e);
+                
+                // Determine error type for better status reporting
+                let (status, error_details) = if e.is_timeout() {
+                    (AIServiceStatus::Degraded, serde_json::json!({
+                        "error": "timeout",
+                        "message": format!("Health check timed out after {}ms", response_time_ms)
+                    }))
+                } else if e.is_connect() {
+                    (AIServiceStatus::Unhealthy, serde_json::json!({
+                        "error": "connection_failed",
+                        "message": "Could not connect to AI service"
+                    }))
+                } else {
+                    (AIServiceStatus::Unknown, serde_json::json!({
+                        "error": "network_error",
+                        "message": format!("Network error: {}", e)
+                    }))
+                };
+
+                Ok(AIHealthCheckResponse {
+                    status,
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs(),
+                    response_time_ms,
+                    version: None,
+                    details: Some(error_details),
+                    endpoints: None,
+                    load: None,
+                })
+            }
+            Err(_) => {
+                // Timeout occurred
+                let response_time_ms = start_time.elapsed().as_millis() as u64;
+                log::error!("Health check timed out after {:?}", timeout);
+                
+                Ok(AIHealthCheckResponse {
+                    status: AIServiceStatus::Degraded,
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs(),
+                    response_time_ms,
+                    version: None,
+                    details: Some(serde_json::json!({
+                        "error": "timeout",
+                        "message": format!("Health check timed out after {:?}", timeout)
+                    })),
+                    endpoints: None,
+                    load: None,
+                })
+            }
+        }
+    }
+
     /// Make a GET request to the AI service
     pub async fn get(&self, endpoint: &str) -> Result<reqwest::Response> {
         let url = format!("{}/{}", self.base_url.trim_end_matches('/'), endpoint.trim_start_matches('/'));
@@ -605,6 +1589,22 @@ impl AIOracleClient {
             .await?;
 
         log::debug!("GET request completed with status: {}", response.status());
+        Ok(response)
+    }
+
+    /// Make a POST request to the AI service
+    pub async fn post(&self, endpoint: &str, body: serde_json::Value) -> Result<reqwest::Response> {
+        let url = format!("{}/{}", self.base_url.trim_end_matches('/'), endpoint.trim_start_matches('/'));
+
+        log::debug!("Making POST request to: {}", url);
+
+        let response = self.client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await?;
+
+        log::debug!("POST request completed with status: {}", response.status());
         Ok(response)
     }
 
@@ -1133,6 +2133,186 @@ impl AIOracleClient {
         );
         
         Ok(results)
+    }
+
+    /// Get circuit breaker status
+    pub fn get_circuit_breaker_status(&self) -> Result<serde_json::Value> {
+        let circuit_breaker = self.circuit_breaker.lock()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
+        Ok(circuit_breaker.get_status_summary())
+    }
+
+    /// Reset circuit breaker statistics
+    pub fn reset_circuit_breaker(&self) -> Result<()> {
+        let mut circuit_breaker = self.circuit_breaker.lock()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
+        circuit_breaker.stats = CircuitBreakerStats::default();
+        circuit_breaker.state = CircuitBreakerState::Closed;
+        log::info!("Circuit breaker has been reset");
+        Ok(())
+    }
+
+    /// Make a request with circuit breaker protection
+    pub async fn request_with_circuit_breaker<T>(&self, request_fn: impl std::future::Future<Output = Result<T>>) -> Result<T> {
+        // Check if circuit breaker allows the request
+        let should_allow = {
+            let mut circuit_breaker = self.circuit_breaker.lock()
+                .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
+            circuit_breaker.should_allow_request()
+        };
+
+        if !should_allow {
+            log::warn!("Circuit breaker is open, rejecting request");
+            return Err(anyhow::anyhow!("Circuit breaker is open - AI service is unavailable"));
+        }
+
+        // Execute the request
+        match request_fn.await {
+            Ok(result) => {
+                // Record success
+                let mut circuit_breaker = self.circuit_breaker.lock()
+                    .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
+                circuit_breaker.record_success();
+                log::debug!("Request succeeded, circuit breaker stats: success={}, failure={}, rate={:.2}%", 
+                    circuit_breaker.stats.success_count, 
+                    circuit_breaker.stats.failure_count, 
+                    circuit_breaker.stats.failure_rate * 100.0);
+                Ok(result)
+            }
+            Err(e) => {
+                // Record failure
+                let mut circuit_breaker = self.circuit_breaker.lock()
+                    .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
+                circuit_breaker.record_failure();
+                log::warn!("Request failed, circuit breaker stats: success={}, failure={}, rate={:.2}%", 
+                    circuit_breaker.stats.success_count, 
+                    circuit_breaker.stats.failure_count, 
+                    circuit_breaker.stats.failure_rate * 100.0);
+                Err(e)
+            }
+        }
+    }
+
+    /// Create a fallback response when AI service is unavailable
+    pub fn create_fallback_response(&self, request_type: &str, message: &str) -> FallbackResponse {
+        FallbackResponse {
+            response_type: request_type.to_string(),
+            data: serde_json::json!({
+                "fallback": true,
+                "service_unavailable": true,
+                "recommendation": "retry_later"
+            }),
+            message: message.to_string(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+        }
+    }
+
+    /// Make a GET request with circuit breaker protection and fallback
+    pub async fn get_with_fallback(&self, endpoint: &str) -> Result<reqwest::Response> {
+        let endpoint = endpoint.to_string();
+        let client = self.clone();
+        
+        match self.request_with_circuit_breaker(async move {
+            client.get(&endpoint).await
+        }).await {
+            Ok(response) => Ok(response),
+            Err(e) => {
+                log::error!("GET request failed and circuit breaker triggered: {}", e);
+                // Return a fallback error that the caller can handle
+                Err(anyhow::anyhow!("AI service unavailable (circuit breaker open): {}", e))
+            }
+        }
+    }
+
+    /// Make a POST request with circuit breaker protection and fallback
+    pub async fn post_with_fallback(&self, endpoint: &str, body: serde_json::Value) -> Result<reqwest::Response> {
+        let endpoint = endpoint.to_string();
+        let client = self.clone();
+        
+        match self.request_with_circuit_breaker(async move {
+            client.post(&endpoint, body).await
+        }).await {
+            Ok(response) => Ok(response),
+            Err(e) => {
+                log::error!("POST request failed and circuit breaker triggered: {}", e);
+                // Return a fallback error that the caller can handle
+                Err(anyhow::anyhow!("AI service unavailable (circuit breaker open): {}", e))
+            }
+        }
+    }
+
+    /// Perform health check with circuit breaker integration
+    pub async fn health_check_with_circuit_breaker(&self) -> Result<AIHealthCheckResponse> {
+        let client = self.clone();
+        
+        match self.request_with_circuit_breaker(async move {
+            client.health_check().await
+        }).await {
+            Ok(health_response) => {
+                // Additional circuit breaker logic based on health status
+                if health_response.status == AIServiceStatus::Unhealthy {
+                    let mut circuit_breaker = self.circuit_breaker.lock()
+                        .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
+                    circuit_breaker.record_failure();
+                    log::warn!("Health check indicates unhealthy service, recording failure");
+                }
+                Ok(health_response)
+            }
+            Err(e) => {
+                log::error!("Health check failed with circuit breaker protection: {}", e);
+                
+                // Return a fallback health response
+                Ok(AIHealthCheckResponse {
+                    status: AIServiceStatus::Unhealthy,
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs(),
+                    response_time_ms: 0,
+                    version: None,
+                    details: Some(serde_json::json!({
+                        "error": "circuit_breaker_open",
+                        "message": "Circuit breaker prevented health check request",
+                        "fallback": true
+                    })),
+                    endpoints: None,
+                    load: None,
+                })
+            }
+        }
+    }
+
+    /// Send AI request with circuit breaker protection
+    pub async fn send_ai_request_with_circuit_breaker(&self, payload: &AIRequestPayload) -> Result<AIResponsePayload> {
+        let client = self.clone();
+        let payload_clone = payload.clone();
+        
+        match self.request_with_circuit_breaker(async move {
+            client.send_ai_request_response(&payload_clone).await
+        }).await {
+            Ok(response) => Ok(response),
+            Err(e) => {
+                log::error!("AI request failed with circuit breaker protection: {}", e);
+                
+                // Create a fallback response
+                let error = AIResponseError::new(
+                    "CIRCUIT_BREAKER_OPEN".to_string(),
+                    format!("AI service unavailable (circuit breaker open): {}", e),
+                    ErrorCategory::ServiceError,
+                ).with_retryable(true);
+                
+                let fallback_response = AIResponsePayload::failure(
+                    payload.id.clone(),
+                    payload.service_type.clone(),
+                    error,
+                );
+                
+                Ok(fallback_response)
+            }
+        }
     }
 }
 
