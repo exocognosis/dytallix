@@ -248,6 +248,7 @@ pub struct AIRequestTransaction {
     pub request_data: Vec<u8>,
     pub payload: serde_json::Value,  // Added for compatibility
     pub ai_risk_score: Option<f64>,  // Added for risk scoring
+    pub ai_response: Option<serde_json::Value>,  // Added for AI response storage
     pub fee: Amount,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -558,9 +559,45 @@ impl Block {
     
     /// Verify all transactions in this block
     pub fn verify_transactions(&self) -> bool {
-        // TODO: Implement transaction verification
-        // For now, just check that we have transactions
-        !self.transactions.is_empty()
+        // Basic checks: we have transactions
+        if self.transactions.is_empty() {
+            return false;
+        }
+        
+        // Verify each transaction's signature
+        for tx in &self.transactions {
+            if !tx.verify_signature() {
+                return false;
+            }
+        }
+        
+        true
+    }
+    
+    /// Verify all transactions in this block with AI signature verification
+    pub async fn verify_transactions_with_ai(&self, ai_integration: &crate::consensus::ai_integration::AIIntegrationManager) -> Result<bool, Box<dyn std::error::Error>> {
+        // First run basic verification
+        if !self.verify_transactions() {
+            return Ok(false);
+        }
+        
+        // If AI verification is not required, skip it
+        if !ai_integration.config.require_ai_verification {
+            return Ok(true);
+        }
+        
+        // Verify AI responses for AI request transactions
+        for tx in &self.transactions {
+            if let Transaction::AIRequest(ai_tx) = tx {
+                if let Some(ref response) = ai_tx.ai_response {
+                    if !ai_integration.verify_ai_response(response).await? {
+                        return Ok(false);
+                    }
+                }
+            }
+        }
+        
+        Ok(true)
     }
 }
 
@@ -675,6 +712,27 @@ impl Transaction {
             Transaction::Call(tx) => tx.signing_message(),
             Transaction::Stake(tx) => tx.signing_message(),
             Transaction::AIRequest(tx) => tx.signing_message(),
+        }
+    }
+
+    /// Verify the transaction signature
+    pub fn verify_signature(&self) -> bool {
+        // Get the transaction signature
+        let signature = self.signature();
+        
+        // Build the signing message
+        let message = self.signing_message();
+        
+        // Create a temporary PQC manager to verify the signature
+        // In a real implementation, this would use a shared PQC manager instance
+        match dytallix_pqc::PQCManager::new() {
+            Ok(pqc_manager) => {
+                match pqc_manager.verify(&message, &signature.signature, &signature.public_key) {
+                    Ok(valid) => valid,
+                    Err(_) => false,
+                }
+            }
+            Err(_) => false,
         }
     }
 }

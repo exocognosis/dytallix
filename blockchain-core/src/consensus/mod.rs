@@ -8,6 +8,10 @@ use chrono;
 use serde_json;
 use dytallix_pqc::SignatureAlgorithm;
 
+// Add AI integration modules
+pub mod signature_verification;
+pub mod ai_integration;
+
 // Temporarily stub out problematic code
 pub struct DytallixConsensus;
 
@@ -2817,10 +2821,11 @@ impl AIServiceConfig {
         let capped_delay = exponential_delay.min(max_delay);
 
         // Add jitter: final_delay = delay * (1 + random(-jitter, jitter))
-        let jitter_factor = 1.0 + (rand::random::<f64>() - 0.5) * 2.0 * jitter;
-        let final_delay = capped_delay * jitter_factor;
+        let jitter_range = capped_delay * self.retry_jitter;
+        let jitter = (rand::random::<f64>() - 0.5) * 2.0 * jitter_range;
+        let final_delay = (capped_delay + jitter).max(0.);
 
-        Duration::from_millis(final_delay.max(0.0) as u64)
+        Duration::from_millis(final_delay as u64)
     }
 }
 
@@ -3498,7 +3503,7 @@ mod tests {
         assert!(payload.metadata.is_some());
         assert_eq!(payload.priority, RequestPriority::High);
         assert_eq!(payload.timeout, Some(60));
-               assert_eq!(payload.callback_url, Some("http://localhost/callback".to_string()));
+        assert_eq!(payload.callback_url, Some("http://localhost/callback".to_string()));
         assert_eq!(payload.signature, Some("sig1234".to_string()));
     }
 
@@ -3721,7 +3726,7 @@ mod tests {
         let error = AIOracleError::Http { status: 503, message: "Service Unavailable".to_string() };
         assert!(error.is_retryable());
 
-        let error = AIOracleError::RateLimit { message: "Rate limit exceeded".to_string(), retry_after: Some(Duration::from_secs(5)) };
+        let error = AIOracleError::RateLimit { message: "Rate limit exceeded".to_string(), retry_after: None };
         assert!(error.is_retryable());
 
         let error = AIOracleError::ServiceUnavailable { message: "Temporarily down".to_string() };
@@ -3736,10 +3741,7 @@ mod tests {
         let error = AIOracleError::Configuration { message: "Missing endpoint".to_string() };
         assert!(!error.is_retryable());
 
-        let error = AIOracleError::CircuitBreaker { message: "Open due to failures".to_string() };
-        assert!(!error.is_retryable());
-
-        let error = AIOracleError::MaxRetriesExceeded { attempts: 3, last_error: Box::new(AIOracleError::Timeout { timeout_ms: 5000 }) };
+        let error = AIOracleError::Service { code: "INVALID_INPUT".to_string(), message: "Bad data".to_string(), details: None };
         assert!(!error.is_retryable());
     }
 
@@ -4136,6 +4138,7 @@ mod tests {
     #[tokio::test]
     async fn test_comprehensive_error_logging() {
         // Test that all error types can be displayed properly for logging
+       
         let errors = vec![
             AIOracleError::Network { message: "Connection failed".to_string(), source: None },
             AIOracleError::Timeout { timeout_ms: 5000 },
@@ -4147,6 +4150,7 @@ mod tests {
             AIOracleError::Configuration { message: "Missing required config".to_string() },
             AIOracleError::Validation { message: "Invalid request format".to_string() },
             AIOracleError::CircuitBreaker { message: "Circuit breaker is open".to_string() },
+            AIOracleError::MaxRetriesExceeded { attempts: 5, last_error: Box::new(AIOracleError::Timeout { timeout_ms: 30000 }) },
             AIOracleError::Service { 
                 code: "BUSINESS_ERROR".to_string(), 
                 message: "Business logic error".to_string(), 

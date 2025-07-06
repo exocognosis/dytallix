@@ -60,11 +60,11 @@ This document breaks down the AI service integration into manageable tasks acros
 - [x] Test signature generation with various response types
 
 ### Task 2.3: Add Signature Verification in Blockchain
-- [ ] Implement PQC signature verification for oracle responses
-- [ ] Add oracle public key management and storage
-- [ ] Create oracle identity verification system
-- [ ] Implement certificate chain validation
-- [ ] Add signature verification to transaction validation flow
+- [x] Implement PQC signature verification for oracle responses
+- [x] Add oracle public key management and storage
+- [x] Create oracle identity verification system
+- [x] Implement certificate chain validation
+- [x] Add signature verification to transaction validation flow
 
 ### Task 2.4: Implement Oracle Registry and Reputation
 - [ ] Create oracle registration system with stake requirements
