@@ -13,6 +13,10 @@ pub mod signature_verification;
 pub mod ai_integration;
 pub mod oracle_registry;
 pub mod enhanced_ai_integration;
+pub mod replay_protection;
+
+#[cfg(test)]
+pub mod integration_tests;
 
 // Temporarily stub out problematic code
 pub struct DytallixConsensus;
@@ -98,6 +102,8 @@ pub struct AIResponsePayload {
     pub signature: Option<String>,
     /// Oracle ID that generated this response
     pub oracle_id: Option<String>,
+    /// Nonce for replay protection
+    pub nonce: String,
 }
 
 /// Priority levels for AI requests
@@ -214,6 +220,7 @@ impl AIResponsePayload {
             error: None,
             signature: None,
             oracle_id: None,
+            nonce: uuid::Uuid::new_v4().to_string(),
         }
     }
 
@@ -244,6 +251,7 @@ impl AIResponsePayload {
             error: Some(error),
             signature: None,
             oracle_id: None,
+            nonce: uuid::Uuid::new_v4().to_string(),
         }
     }
 
@@ -268,6 +276,7 @@ impl AIResponsePayload {
             error: Some(error),
             signature: None,
             oracle_id: None,
+            nonce: uuid::Uuid::new_v4().to_string(),
         }
     }
 

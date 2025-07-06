@@ -12,7 +12,8 @@ use chrono;
 
 use crate::consensus::{
     SignedAIOracleResponse, AIResponsePayload, AIOracleClient, AIServiceConfig,
-    signature_verification::{SignatureVerifier, VerificationConfig, VerificationError, OracleRegistryEntry}
+    signature_verification::{SignatureVerifier, VerificationConfig, VerificationError, OracleRegistryEntry},
+    replay_protection::{ReplayProtectionManager, ReplayProtectionConfig}
 };
 
 /// AI integration configuration
@@ -22,6 +23,8 @@ pub struct AIIntegrationConfig {
     pub verification_config: VerificationConfig,
     /// AI service configuration
     pub ai_service_config: AIServiceConfig,
+    /// Replay protection configuration
+    pub replay_protection_config: ReplayProtectionConfig,
     /// Whether AI verification is required for transactions
     pub require_ai_verification: bool,
     /// Whether to fail transactions if AI service is unavailable
@@ -39,6 +42,7 @@ impl Default for AIIntegrationConfig {
         Self {
             verification_config: VerificationConfig::default(),
             ai_service_config: AIServiceConfig::default(),
+            replay_protection_config: ReplayProtectionConfig::default(),
             require_ai_verification: false, // Start with optional verification
             fail_on_ai_unavailable: false,  // Graceful degradation by default
             ai_timeout_ms: 5000,            // 5 second timeout
@@ -91,6 +95,8 @@ pub struct AIIntegrationManager {
     verifier: Arc<SignatureVerifier>,
     /// AI oracle client
     ai_client: Arc<AIOracleClient>,
+    /// Replay protection manager
+    replay_protection: Arc<ReplayProtectionManager>,
     /// Response cache
     response_cache: Arc<RwLock<std::collections::HashMap<String, CachedResponse>>>,
     /// Statistics
@@ -138,11 +144,13 @@ impl AIIntegrationManager {
     pub async fn new(config: AIIntegrationConfig) -> Result<Self> {
         let verifier = Arc::new(SignatureVerifier::new(config.verification_config.clone())?);
         let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.base_url.clone())?);
+        let replay_protection = Arc::new(ReplayProtectionManager::new(config.replay_protection_config.clone()));
         
         Ok(Self {
             config,
             verifier,
             ai_client,
+            replay_protection,
             response_cache: Arc::new(RwLock::new(std::collections::HashMap::new())),
             stats: Arc::new(RwLock::new(AIIntegrationStats::default())),
         })
@@ -162,7 +170,35 @@ impl AIIntegrationManager {
         stats.total_requests += 1;
         drop(stats);
         
-        // Check cache first
+        // First, check replay protection
+        let request_hash_bytes = match request_hash {
+            Some(hash) => hash.to_vec(),
+            None => {
+                // Generate hash from response data if not provided
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                
+                let mut hasher = DefaultHasher::new();
+                signed_response.response.id.hash(&mut hasher);
+                signed_response.response.response_data.to_string().hash(&mut hasher);
+                hasher.finish().to_be_bytes().to_vec()
+            }
+        };
+        
+        // Check for replay attacks
+        if let Err(replay_error) = self.replay_protection.validate_nonce(
+            signed_response.response.nonce.parse().unwrap_or(0),
+            &signed_response.oracle_identity.oracle_id,
+            &hex::encode(&request_hash_bytes),
+        ) {
+            return AIVerificationResult::Failed {
+                error: format!("Replay protection failed: {}", replay_error),
+                oracle_id: Some(signed_response.oracle_identity.oracle_id.clone()),
+                response_id: Some(signed_response.response.id.clone()),
+            };
+        }
+        
+        // Check cache first (after replay protection)
         if self.config.enable_response_caching {
             if let Some(cached) = self.check_response_cache(&signed_response.response.id).await {
                 let mut stats = self.stats.write().await;
@@ -174,7 +210,7 @@ impl AIIntegrationManager {
             }
         }
         
-        // Perform verification
+        // Perform signature verification
         let result = match self.verifier.verify_signed_response(signed_response, request_hash) {
             Ok(()) => {
                 // Extract relevant information from the response
@@ -425,6 +461,33 @@ impl AIIntegrationManager {
         let mut cache = self.response_cache.write().await;
         let cutoff_time = chrono::Utc::now().timestamp() as u64 - self.config.response_cache_ttl;
         cache.retain(|_, cached| cached.cached_at > cutoff_time);
+        
+        // Clean up replay protection (no direct cleanup method, handled internally)
+        // self.replay_protection.cleanup();
+    }
+    
+    /// Invalidate cache for a specific oracle
+    pub async fn invalidate_oracle_cache(&self, oracle_id: &str) {
+        self.replay_protection.invalidate_oracle_cache(oracle_id);
+    }
+    
+    /// Get replay protection statistics
+    pub async fn get_replay_protection_stats(&self) -> serde_json::Value {
+        let health_metrics = self.replay_protection.get_cache_health();
+        serde_json::to_value(health_metrics).unwrap_or(serde_json::Value::Null)
+    }
+    
+    /// Get cache statistics
+    pub async fn get_cache_stats(&self) -> serde_json::Value {
+        let cache_size = self.response_cache.read().await.len();
+        let replay_health = self.replay_protection.get_cache_health();
+        let replay_stats = serde_json::to_value(replay_health).unwrap_or(serde_json::Value::Null);
+        
+        serde_json::json!({
+            "response_cache_size": cache_size,
+            "response_cache_ttl": self.config.response_cache_ttl,
+            "replay_protection": replay_stats
+        })
     }
     
     /// Health check for AI integration
@@ -432,6 +495,7 @@ impl AIIntegrationManager {
         let ai_health = self.ai_client.health_check().await.is_ok();
         let stats = self.get_statistics().await;
         let verification_stats = self.get_verification_statistics().await;
+        let cache_stats = self.get_cache_stats().await;
         
         Ok(serde_json::json!({
             "ai_service_available": ai_health,
@@ -439,11 +503,12 @@ impl AIIntegrationManager {
             "active_oracles": self.list_oracles().await.iter().filter(|o| o.is_active).count(),
             "verification_stats": verification_stats,
             "integration_stats": stats,
-            "cache_size": self.response_cache.read().await.len(),
+            "cache_stats": cache_stats,
             "config": {
                 "require_ai_verification": self.config.require_ai_verification,
                 "fail_on_ai_unavailable": self.config.fail_on_ai_unavailable,
                 "enable_response_caching": self.config.enable_response_caching,
+                "replay_protection_enabled": true, // Always enabled in this implementation
             }
         }))
     }
