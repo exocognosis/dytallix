@@ -2,6 +2,7 @@ use anyhow::Result;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use std::collections::HashMap;
 use uuid;
 use chrono;
 use serde_json;
@@ -979,8 +980,516 @@ impl AIOracleClient {
     }
 }
 
+/// Configuration for AI service communication and behavior
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIServiceConfig {
+    /// Base URL for AI service endpoints
+    pub base_url: String,
+    /// API key for authentication with AI service
+    pub api_key: Option<String>,
+    /// Request timeout in seconds
+    pub timeout_seconds: u64,
+    /// Maximum number of retry attempts
+    pub max_retries: u32,
+    /// Base delay for exponential backoff in milliseconds
+    pub base_retry_delay_ms: u64,
+    /// Maximum delay for exponential backoff in milliseconds  
+    pub max_retry_delay_ms: u64,
+    /// Jitter factor for retry delays (0.0 to 1.0)
+    pub retry_jitter: f64,
+    /// Health check interval in seconds
+    pub health_check_interval_seconds: u64,
+    /// Health check timeout in seconds
+    pub health_check_timeout_seconds: u64,
+    /// Number of consecutive failed health checks before marking service as unhealthy
+    pub health_check_failure_threshold: u32,
+    /// Number of consecutive successful health checks before marking service as healthy
+    pub health_check_success_threshold: u32,
+    /// Circuit breaker failure threshold (percentage)
+    pub circuit_breaker_failure_threshold: f64,
+    /// Circuit breaker recovery time in seconds
+    pub circuit_breaker_recovery_time_seconds: u64,
+    /// Connection pool configuration
+    pub connection_pool: ConnectionPoolConfig,
+    /// Request rate limit (requests per second)
+    pub rate_limit_per_second: Option<u32>,
+    /// Batch size for bulk operations
+    pub batch_size: u32,
+    /// Cache TTL for responses in seconds
+    pub cache_ttl_seconds: u64,
+    /// Enable request/response logging
+    pub enable_request_logging: bool,
+    /// Enable metrics collection
+    pub enable_metrics: bool,
+    /// Custom headers to include in requests
+    pub custom_headers: std::collections::HashMap<String, String>,
+    /// AI service endpoints for different service types
+    pub endpoints: AIServiceEndpoints,
+    /// Risk score configuration
+    pub risk_config: RiskScoringConfig,
+    /// Fallback configuration when AI service is unavailable
+    pub fallback_config: FallbackConfig,
+}
+
+/// Configuration for AI service endpoints
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIServiceEndpoints {
+    /// Fraud detection endpoint
+    pub fraud_detection: String,
+    /// Risk scoring endpoint
+    pub risk_scoring: String,
+    /// Contract analysis endpoint
+    pub contract_analysis: String,
+    /// Address reputation endpoint
+    pub address_reputation: String,
+    /// KYC verification endpoint
+    pub kyc: String,
+    /// AML compliance endpoint
+    pub aml: String,
+    /// Credit assessment endpoint
+    pub credit_assessment: String,
+    /// Transaction validation endpoint
+    pub transaction_validation: String,
+    /// Pattern analysis endpoint
+    pub pattern_analysis: String,
+    /// Threat detection endpoint
+    pub threat_detection: String,
+    /// Health check endpoint
+    pub health_check: String,
+    /// Batch processing endpoint
+    pub batch_processing: String,
+}
+
+/// Configuration for risk scoring thresholds and policies
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RiskScoringConfig {
+    /// Low risk threshold (0.0 to 1.0)
+    pub low_risk_threshold: f64,
+    /// Medium risk threshold (0.0 to 1.0)
+    pub medium_risk_threshold: f64,
+    /// High risk threshold (0.0 to 1.0)
+    pub high_risk_threshold: f64,
+    /// Auto-approve transactions below this threshold
+    pub auto_approve_threshold: f64,
+    /// Auto-reject transactions above this threshold
+    pub auto_reject_threshold: f64,
+    /// Require manual review for scores in this range
+    pub manual_review_threshold_range: (f64, f64),
+    /// Default risk score when AI service is unavailable
+    pub default_risk_score: f64,
+    /// Enable risk-based processing
+    pub enable_risk_based_processing: bool,
+    /// Risk score weights for different transaction types
+    pub transaction_type_weights: std::collections::HashMap<String, f64>,
+}
+
+/// Configuration for fallback behavior when AI service is unavailable
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FallbackConfig {
+    /// Enable fallback processing
+    pub enable_fallback: bool,
+    /// Fallback mode: "permissive" (allow all), "restrictive" (block all), or "default_scores"
+    pub fallback_mode: String,
+    /// Default risk scores by service type when in fallback mode
+    pub default_scores: std::collections::HashMap<String, f64>,
+    /// Cache previous results for fallback processing
+    pub use_cached_results: bool,
+    /// Cache retention time in seconds
+    pub cache_retention_seconds: u64,
+    /// Log fallback operations
+    pub log_fallback_operations: bool,
+}
+
+impl Default for AIServiceConfig {
+    fn default() -> Self {
+        let mut custom_headers = std::collections::HashMap::new();
+        custom_headers.insert("User-Agent".to_string(), "Dytallix-Blockchain/1.0".to_string());
+        custom_headers.insert("Content-Type".to_string(), "application/json".to_string());
+
+        let mut transaction_type_weights = std::collections::HashMap::new();
+        transaction_type_weights.insert("transfer".to_string(), 1.0);
+        transaction_type_weights.insert("contract_call".to_string(), 1.5);
+        transaction_type_weights.insert("contract_deploy".to_string(), 2.0);
+        transaction_type_weights.insert("stake".to_string(), 1.2);
+
+        let mut default_scores = std::collections::HashMap::new();
+        default_scores.insert("fraud_detection".to_string(), 0.5);
+        default_scores.insert("risk_scoring".to_string(), 0.5);
+        default_scores.insert("contract_analysis".to_string(), 0.3);
+        default_scores.insert("address_reputation".to_string(), 0.5);
+
+        Self {
+            base_url: "http://localhost:8080".to_string(),
+            api_key: None,
+            timeout_seconds: 30,
+            max_retries: 3,
+            base_retry_delay_ms: 100,
+            max_retry_delay_ms: 5000,
+            retry_jitter: 0.1,
+            health_check_interval_seconds: 30,
+            health_check_timeout_seconds: 5,
+            health_check_failure_threshold: 3,
+            health_check_success_threshold: 2,
+            circuit_breaker_failure_threshold: 0.5,
+            circuit_breaker_recovery_time_seconds: 60,
+            connection_pool: ConnectionPoolConfig::default(),
+            rate_limit_per_second: Some(100),
+            batch_size: 10,
+            cache_ttl_seconds: 300,
+            enable_request_logging: true,
+            enable_metrics: true,
+            custom_headers,
+            endpoints: AIServiceEndpoints::default(),
+            risk_config: RiskScoringConfig::default(),
+            fallback_config: FallbackConfig::default(),
+        }
+    }
+}
+
+impl Default for AIServiceEndpoints {
+    fn default() -> Self {
+        Self {
+            fraud_detection: "/api/v1/fraud-detection".to_string(),
+            risk_scoring: "/api/v1/risk-scoring".to_string(),
+            contract_analysis: "/api/v1/contract-analysis".to_string(),
+            address_reputation: "/api/v1/address-reputation".to_string(),
+            kyc: "/api/v1/kyc".to_string(),
+            aml: "/api/v1/aml".to_string(),
+            credit_assessment: "/api/v1/credit-assessment".to_string(),
+            transaction_validation: "/api/v1/transaction-validation".to_string(),
+            pattern_analysis: "/api/v1/pattern-analysis".to_string(),
+            threat_detection: "/api/v1/threat-detection".to_string(),
+            health_check: "/health".to_string(),
+            batch_processing: "/api/v1/batch".to_string(),
+        }
+    }
+}
+
+impl Default for RiskScoringConfig {
+    fn default() -> Self {
+        Self {
+            low_risk_threshold: 0.3,
+            medium_risk_threshold: 0.6,
+            high_risk_threshold: 0.8,
+            auto_approve_threshold: 0.2,
+            auto_reject_threshold: 0.9,
+            manual_review_threshold_range: (0.2, 0.9),
+            default_risk_score: 0.5,
+            enable_risk_based_processing: true,
+            transaction_type_weights: std::collections::HashMap::new(),
+        }
+    }
+}
+
+impl Default for FallbackConfig {
+    fn default() -> Self {
+        Self {
+            enable_fallback: true,
+            fallback_mode: "default_scores".to_string(),
+            default_scores: std::collections::HashMap::new(),
+            use_cached_results: true,
+            cache_retention_seconds: 3600,
+            log_fallback_operations: true,
+        }
+    }
+}
+
+impl AIServiceConfig {
+    /// Create a new configuration with minimal required fields
+    pub fn new(base_url: String) -> Self {
+        Self {
+            base_url,
+            ..Default::default()
+        }
+    }
+
+    /// Create a configuration optimized for development
+    pub fn development() -> Self {
+        Self {
+            base_url: "http://localhost:8080".to_string(),
+            timeout_seconds: 10,
+            max_retries: 2,
+            health_check_interval_seconds: 60,
+            enable_request_logging: true,
+            enable_metrics: false,
+            connection_pool: ConnectionPoolConfig::low_resource(),
+            fallback_config: FallbackConfig {
+                enable_fallback: true,
+                fallback_mode: "permissive".to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    /// Create a configuration optimized for production
+    pub fn production() -> Self {
+        Self {
+            base_url: "https://ai-service.dytallix.com".to_string(),
+            timeout_seconds: 30,
+            max_retries: 5,
+            health_check_interval_seconds: 15,
+            enable_request_logging: false,
+            enable_metrics: true,
+            connection_pool: ConnectionPoolConfig::high_performance(),
+            fallback_config: FallbackConfig {
+                enable_fallback: true,
+                fallback_mode: "restrictive".to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    /// Create a configuration for testing
+    pub fn testing() -> Self {
+        Self {
+            base_url: "http://localhost:8081".to_string(),
+            timeout_seconds: 5,
+            max_retries: 1,
+            health_check_interval_seconds: 10,
+            enable_request_logging: true,
+            enable_metrics: true,
+            connection_pool: ConnectionPoolConfig::low_resource(),
+            fallback_config: FallbackConfig {
+                enable_fallback: false,
+                fallback_mode: "default_scores".to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    /// Set API key for authentication
+    pub fn with_api_key(mut self, api_key: String) -> Self {
+        self.api_key = Some(api_key);
+        self
+    }
+
+    /// Set request timeout
+    pub fn with_timeout(mut self, timeout_seconds: u64) -> Self {
+        self.timeout_seconds = timeout_seconds;
+        self
+    }
+
+    /// Set retry configuration
+    pub fn with_retry_config(mut self, max_retries: u32, base_delay_ms: u64, max_delay_ms: u64) -> Self {
+        self.max_retries = max_retries;
+        self.base_retry_delay_ms = base_delay_ms;
+        self.max_retry_delay_ms = max_delay_ms;
+        self
+    }
+
+    /// Set health check configuration
+    pub fn with_health_check_config(mut self, interval_seconds: u64, timeout_seconds: u64, failure_threshold: u32) -> Self {
+        self.health_check_interval_seconds = interval_seconds;
+        self.health_check_timeout_seconds = timeout_seconds;
+        self.health_check_failure_threshold = failure_threshold;
+        self
+    }
+
+    /// Set circuit breaker configuration
+    pub fn with_circuit_breaker_config(mut self, failure_threshold: f64, recovery_time_seconds: u64) -> Self {
+        self.circuit_breaker_failure_threshold = failure_threshold;
+        self.circuit_breaker_recovery_time_seconds = recovery_time_seconds;
+        self
+    }
+
+    /// Set connection pool configuration
+    pub fn with_connection_pool(mut self, pool_config: ConnectionPoolConfig) -> Self {
+        self.connection_pool = pool_config;
+        self
+    }
+
+    /// Add custom header
+    pub fn with_custom_header(mut self, key: String, value: String) -> Self {
+        self.custom_headers.insert(key, value);
+        self
+    }
+
+    /// Set risk scoring configuration
+    pub fn with_risk_config(mut self, risk_config: RiskScoringConfig) -> Self {
+        self.risk_config = risk_config;
+        self
+    }
+
+    /// Set fallback configuration
+    pub fn with_fallback_config(mut self, fallback_config: FallbackConfig) -> Self {
+        self.fallback_config = fallback_config;
+        self
+    }
+
+    /// Validate the configuration
+    pub fn validate(&self) -> Result<(), String> {
+        if self.base_url.is_empty() {
+            return Err("Base URL cannot be empty".to_string());
+        }
+
+        if self.timeout_seconds == 0 {
+            return Err("Timeout must be greater than 0".to_string());
+        }
+
+        if self.max_retries > 10 {
+            return Err("Max retries cannot exceed 10".to_string());
+        }
+
+        if self.base_retry_delay_ms >= self.max_retry_delay_ms {
+            return Err("Base retry delay must be less than max retry delay".to_string());
+        }
+
+        if self.retry_jitter < 0.0 || self.retry_jitter > 1.0 {
+            return Err("Retry jitter must be between 0.0 and 1.0".to_string());
+        }
+
+        if self.circuit_breaker_failure_threshold < 0.0 || self.circuit_breaker_failure_threshold > 1.0 {
+            return Err("Circuit breaker failure threshold must be between 0.0 and 1.0".to_string());
+        }
+
+        if self.health_check_failure_threshold == 0 {
+            return Err("Health check failure threshold must be greater than 0".to_string());
+        }
+
+        if self.health_check_success_threshold == 0 {
+            return Err("Health check success threshold must be greater than 0".to_string());
+        }
+
+        // Validate risk scoring configuration
+        if self.risk_config.low_risk_threshold >= self.risk_config.medium_risk_threshold {
+            return Err("Low risk threshold must be less than medium risk threshold".to_string());
+        }
+
+        if self.risk_config.medium_risk_threshold >= self.risk_config.high_risk_threshold {
+            return Err("Medium risk threshold must be less than high risk threshold".to_string());
+        }
+
+        if self.risk_config.auto_approve_threshold >= self.risk_config.auto_reject_threshold {
+            return Err("Auto-approve threshold must be less than auto-reject threshold".to_string());
+        }
+
+        // Validate fallback configuration
+        let valid_fallback_modes = ["permissive", "restrictive", "default_scores"];
+        if !valid_fallback_modes.contains(&self.fallback_config.fallback_mode.as_str()) {
+            return Err(format!("Invalid fallback mode: {}. Must be one of: {:?}", 
+                              self.fallback_config.fallback_mode, valid_fallback_modes));
+        }
+
+        Ok(())
+    }
+
+    /// Load configuration from environment variables
+    pub fn from_env() -> Result<Self, String> {
+        let mut config = Self::default();
+
+        if let Ok(base_url) = std::env::var("AI_SERVICE_BASE_URL") {
+            config.base_url = base_url;
+        }
+
+        if let Ok(api_key) = std::env::var("AI_SERVICE_API_KEY") {
+            config.api_key = Some(api_key);
+        }
+
+        if let Ok(timeout) = std::env::var("AI_SERVICE_TIMEOUT_SECONDS") {
+            config.timeout_seconds = timeout.parse()
+                .map_err(|_| "Invalid AI_SERVICE_TIMEOUT_SECONDS format")?;
+        }
+
+        if let Ok(max_retries) = std::env::var("AI_SERVICE_MAX_RETRIES") {
+            config.max_retries = max_retries.parse()
+                .map_err(|_| "Invalid AI_SERVICE_MAX_RETRIES format")?;
+        }
+
+        if let Ok(base_delay) = std::env::var("AI_SERVICE_BASE_RETRY_DELAY_MS") {
+            config.base_retry_delay_ms = base_delay.parse()
+                .map_err(|_| "Invalid AI_SERVICE_BASE_RETRY_DELAY_MS format")?;
+        }
+
+        if let Ok(max_delay) = std::env::var("AI_SERVICE_MAX_RETRY_DELAY_MS") {
+            config.max_retry_delay_ms = max_delay.parse()
+                .map_err(|_| "Invalid AI_SERVICE_MAX_RETRY_DELAY_MS format")?;
+        }
+
+        if let Ok(health_interval) = std::env::var("AI_SERVICE_HEALTH_CHECK_INTERVAL_SECONDS") {
+            config.health_check_interval_seconds = health_interval.parse()
+                .map_err(|_| "Invalid AI_SERVICE_HEALTH_CHECK_INTERVAL_SECONDS format")?;
+        }
+
+        if let Ok(enable_logging) = std::env::var("AI_SERVICE_ENABLE_REQUEST_LOGGING") {
+            config.enable_request_logging = enable_logging.parse()
+                .map_err(|_| "Invalid AI_SERVICE_ENABLE_REQUEST_LOGGING format")?;
+        }
+
+        if let Ok(enable_metrics) = std::env::var("AI_SERVICE_ENABLE_METRICS") {
+            config.enable_metrics = enable_metrics.parse()
+                .map_err(|_| "Invalid AI_SERVICE_ENABLE_METRICS format")?;
+        }
+
+        if let Ok(fallback_mode) = std::env::var("AI_SERVICE_FALLBACK_MODE") {
+            config.fallback_config.fallback_mode = fallback_mode;
+        }
+
+        if let Ok(low_risk) = std::env::var("AI_SERVICE_LOW_RISK_THRESHOLD") {
+            config.risk_config.low_risk_threshold = low_risk.parse()
+                .map_err(|_| "Invalid AI_SERVICE_LOW_RISK_THRESHOLD format")?;
+        }
+
+        if let Ok(high_risk) = std::env::var("AI_SERVICE_HIGH_RISK_THRESHOLD") {
+            config.risk_config.high_risk_threshold = high_risk.parse()
+                .map_err(|_| "Invalid AI_SERVICE_HIGH_RISK_THRESHOLD format")?;
+        }
+
+        config.validate()?;
+        Ok(config)
+    }
+
+    /// Get the full URL for a specific service endpoint
+    pub fn get_endpoint_url(&self, service_type: &AIServiceType) -> String {
+        let endpoint = match service_type {
+            AIServiceType::FraudDetection => &self.endpoints.fraud_detection,
+            AIServiceType::RiskScoring => &self.endpoints.risk_scoring,
+            AIServiceType::ContractAnalysis => &self.endpoints.contract_analysis,
+            AIServiceType::AddressReputation => &self.endpoints.address_reputation,
+            AIServiceType::KYC => &self.endpoints.kyc,
+            AIServiceType::AML => &self.endpoints.aml,
+            AIServiceType::CreditAssessment => &self.endpoints.credit_assessment,
+            AIServiceType::TransactionValidation => &self.endpoints.transaction_validation,
+            AIServiceType::PatternAnalysis => &self.endpoints.pattern_analysis,
+            AIServiceType::ThreatDetection => &self.endpoints.threat_detection,
+            AIServiceType::Unknown => "/api/v1/unknown",
+        };
+
+        format!("{}{}", self.base_url.trim_end_matches('/'), endpoint)
+    }
+
+    /// Get health check URL
+    pub fn get_health_check_url(&self) -> String {
+        format!("{}{}", self.base_url.trim_end_matches('/'), self.endpoints.health_check)
+    }
+
+    /// Get batch processing URL
+    pub fn get_batch_url(&self) -> String {
+        format!("{}{}", self.base_url.trim_end_matches('/'), self.endpoints.batch_processing)
+    }
+
+    /// Calculate retry delay with exponential backoff and jitter
+    pub fn calculate_retry_delay(&self, attempt: u32) -> Duration {
+        let base_delay = self.base_retry_delay_ms as f64;
+        let max_delay = self.max_retry_delay_ms as f64;
+        let jitter = self.retry_jitter;
+
+        // Exponential backoff: delay = base_delay * 2^attempt
+        let exponential_delay = base_delay * (2_f64.powi(attempt as i32));
+        let capped_delay = exponential_delay.min(max_delay);
+
+        // Add jitter: final_delay = delay * (1 + random(-jitter, jitter))
+        let jitter_factor = 1.0 + (rand::random::<f64>() - 0.5) * 2.0 * jitter;
+        let final_delay = capped_delay * jitter_factor;
+
+        Duration::from_millis(final_delay.max(0.0) as u64)
+    }
+}
+
 /// Configuration for connection pooling and keep-alive settings
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectionPoolConfig {
     /// Maximum number of idle connections per host
     pub max_idle_per_host: usize,
@@ -1629,369 +2138,237 @@ mod tests {
     }
 
     #[test]
-    fn test_ai_response_payload_creation() {
-        let response_data = serde_json::json!({
-            "risk_score": 0.85,
-            "confidence": 0.92,
-            "flags": ["suspicious_amount", "new_account"]
-        });
-        
-        let response = AIResponsePayload::new(
-            "req-123".to_string(),
-            AIServiceType::FraudDetection,
-            response_data,
-            ResponseStatus::Success,
-        );
-        
-        assert!(!response.id.is_empty());
-        assert_eq!(response.request_id, "req-123");
-        assert_eq!(response.service_type, AIServiceType::FraudDetection);
-        assert_eq!(response.status, ResponseStatus::Success);
-        assert!(response.timestamp > 0);
-        assert_eq!(response.processing_time_ms, 0);
-        assert!(response.metadata.is_none());
-        assert!(response.error.is_none());
-        assert!(response.signature.is_none());
-        assert!(response.oracle_id.is_none());
+    fn test_ai_service_config_creation() {
+        let config = AIServiceConfig::new("https://api.example.com".to_string());
+        assert_eq!(config.base_url, "https://api.example.com");
+        assert_eq!(config.timeout_seconds, 30);
+        assert_eq!(config.max_retries, 3);
+        assert!(config.api_key.is_none());
     }
 
     #[test]
-    fn test_ai_response_payload_builder_pattern() {
-        let response_data = serde_json::json!({"score": 0.75});
-        let metadata = AIResponseMetadata::new("model-v1.0".to_string())
-            .with_confidence_score(0.90)
-            .with_oracle_reputation(0.95);
-        
-        let response = AIResponsePayload::success(
-            "req-456".to_string(),
-            AIServiceType::RiskScoring,
-            response_data,
-        )
-        .with_processing_time(150)
-        .with_metadata(metadata)
-        .with_oracle_id("oracle-123".to_string())
-        .with_signature("sig-abc".to_string());
-        
-        assert_eq!(response.request_id, "req-456");
-        assert_eq!(response.service_type, AIServiceType::RiskScoring);
-        assert_eq!(response.status, ResponseStatus::Success);
-        assert_eq!(response.processing_time_ms, 150);
-        assert!(response.metadata.is_some());
-        assert_eq!(response.oracle_id, Some("oracle-123".to_string()));
-        assert_eq!(response.signature, Some("sig-abc".to_string()));
+    fn test_ai_service_config_presets() {
+        let dev_config = AIServiceConfig::development();
+        assert_eq!(dev_config.base_url, "http://localhost:8080");
+        assert_eq!(dev_config.timeout_seconds, 10);
+        assert_eq!(dev_config.max_retries, 2);
+        assert_eq!(dev_config.fallback_config.fallback_mode, "permissive");
+
+        let prod_config = AIServiceConfig::production();
+        assert_eq!(prod_config.base_url, "https://ai-service.dytallix.com");
+        assert_eq!(prod_config.timeout_seconds, 30);
+        assert_eq!(prod_config.max_retries, 5);
+        assert_eq!(prod_config.fallback_config.fallback_mode, "restrictive");
+
+        let test_config = AIServiceConfig::testing();
+        assert_eq!(test_config.base_url, "http://localhost:8081");
+        assert_eq!(test_config.timeout_seconds, 5);
+        assert_eq!(test_config.max_retries, 1);
+        assert!(!test_config.fallback_config.enable_fallback);
     }
 
     #[test]
-    fn test_ai_response_payload_convenience_methods() {
-        // Test success response
-        let success_response = AIResponsePayload::success(
-            "req-123".to_string(),
-            AIServiceType::FraudDetection,
-            serde_json::json!({"result": "clean"}),
-        );
-        assert_eq!(success_response.status, ResponseStatus::Success);
-        assert!(success_response.is_successful());
-        assert!(!success_response.is_failure());
-        
-        // Test failure response
-        let error = AIResponseError::new(
-            "VALIDATION_ERROR".to_string(),
-            "Invalid input data".to_string(),
-            ErrorCategory::ValidationError,
-        );
-        let failure_response = AIResponsePayload::failure(
-            "req-456".to_string(),
-            AIServiceType::ContractAnalysis,
-            error,
-        );
-        assert_eq!(failure_response.status, ResponseStatus::Failure);
-        assert!(!failure_response.is_successful());
-        assert!(failure_response.is_failure());
-        assert!(failure_response.error.is_some());
-        assert_eq!(failure_response.error_message(), Some("Invalid input data"));
-        
-        // Test timeout response
-        let timeout_response = AIResponsePayload::timeout(
-            "req-789".to_string(),
-            AIServiceType::KYC,
-        );
-        assert_eq!(timeout_response.status, ResponseStatus::Timeout);
-        assert!(timeout_response.is_retryable());
-        assert!(timeout_response.error.is_some());
+    fn test_ai_service_config_builder_pattern() {
+        let config = AIServiceConfig::new("https://api.example.com".to_string())
+            .with_api_key("secret-key".to_string())
+            .with_timeout(60)
+            .with_retry_config(5, 200, 10000)
+            .with_health_check_config(20, 3, 5)
+            .with_circuit_breaker_config(0.7, 120);
+
+        assert_eq!(config.api_key, Some("secret-key".to_string()));
+        assert_eq!(config.timeout_seconds, 60);
+        assert_eq!(config.max_retries, 5);
+        assert_eq!(config.base_retry_delay_ms, 200);
+        assert_eq!(config.max_retry_delay_ms, 10000);
+        assert_eq!(config.health_check_interval_seconds, 20);
+        assert_eq!(config.health_check_timeout_seconds, 3);
+        assert_eq!(config.health_check_failure_threshold, 5);
+        assert_eq!(config.circuit_breaker_failure_threshold, 0.7);
+        assert_eq!(config.circuit_breaker_recovery_time_seconds, 120);
     }
 
     #[test]
-    fn test_ai_response_payload_serialization() {
-        let response_data = serde_json::json!({
-            "analysis": "transaction_approved",
-            "risk_level": "low"
-        });
+    fn test_ai_service_config_validation() {
+        let mut config = AIServiceConfig::new("https://api.example.com".to_string());
+        assert!(config.validate().is_ok());
+
+        // Test invalid base URL
+        config.base_url = "".to_string();
+        assert!(config.validate().is_err());
+
+        // Test invalid timeout
+        config.base_url = "https://api.example.com".to_string();
+        config.timeout_seconds = 0;
+        assert!(config.validate().is_err());
+
+        // Test invalid max retries
+        config.timeout_seconds = 30;
+        config.max_retries = 11;
+        assert!(config.validate().is_err());
+
+        // Test invalid retry delays
+        config.max_retries = 3;
+        config.base_retry_delay_ms = 5000;
+        config.max_retry_delay_ms = 1000;
+        assert!(config.validate().is_err());
+
+        // Test invalid jitter
+        config.base_retry_delay_ms = 100;
+        config.max_retry_delay_ms = 5000;
+        config.retry_jitter = 1.5;
+        assert!(config.validate().is_err());
+
+        // Test invalid circuit breaker threshold
+        config.retry_jitter = 0.1;
+        config.circuit_breaker_failure_threshold = 1.5;
+        assert!(config.validate().is_err());
+
+        // Test invalid risk thresholds
+        config.circuit_breaker_failure_threshold = 0.5;
+        config.risk_config.low_risk_threshold = 0.8;
+        config.risk_config.medium_risk_threshold = 0.6;
+        assert!(config.validate().is_err());
+
+        // Test invalid auto thresholds
+        config.risk_config.low_risk_threshold = 0.3;
+        config.risk_config.medium_risk_threshold = 0.6;
+        config.risk_config.auto_approve_threshold = 0.9;
+        config.risk_config.auto_reject_threshold = 0.1;
+        assert!(config.validate().is_err());
+
+        // Test invalid fallback mode
+        config.risk_config.auto_approve_threshold = 0.2;
+        config.risk_config.auto_reject_threshold = 0.9;
+        config.fallback_config.fallback_mode = "invalid_mode".to_string();
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_ai_service_config_endpoint_urls() {
+        let config = AIServiceConfig::new("https://api.example.com".to_string());
         
-        let metadata = AIResponseMetadata::new("model-v2.1".to_string())
-            .with_confidence_score(0.88)
-            .with_processing_stats(serde_json::json!({"processing_time": 120}));
+        assert_eq!(
+            config.get_endpoint_url(&AIServiceType::FraudDetection),
+            "https://api.example.com/api/v1/fraud-detection"
+        );
+        assert_eq!(
+            config.get_endpoint_url(&AIServiceType::RiskScoring),
+            "https://api.example.com/api/v1/risk-scoring"
+        );
+        assert_eq!(
+            config.get_endpoint_url(&AIServiceType::KYC),
+            "https://api.example.com/api/v1/kyc"
+        );
+        assert_eq!(
+            config.get_health_check_url(),
+            "https://api.example.com/health"
+        );
+        assert_eq!(
+            config.get_batch_url(),
+            "https://api.example.com/api/v1/batch"
+        );
+    }
+
+    #[test]
+    fn test_ai_service_config_endpoint_urls_with_trailing_slash() {
+        let config = AIServiceConfig::new("https://api.example.com/".to_string());
         
-        let response = AIResponsePayload::success(
-            "req-999".to_string(),
-            AIServiceType::TransactionValidation,
-            response_data,
-        )
-        .with_processing_time(120)
-        .with_metadata(metadata);
+        assert_eq!(
+            config.get_endpoint_url(&AIServiceType::FraudDetection),
+            "https://api.example.com/api/v1/fraud-detection"
+        );
+        assert_eq!(
+            config.get_health_check_url(),
+            "https://api.example.com/health"
+        );
+    }
+
+    #[test]
+    fn test_ai_service_config_retry_delay_calculation() {
+        let config = AIServiceConfig::new("https://api.example.com".to_string())
+            .with_retry_config(5, 100, 5000);
+
+        // Test exponential backoff
+        let delay1 = config.calculate_retry_delay(0);
+        let delay2 = config.calculate_retry_delay(1);
+        let delay3 = config.calculate_retry_delay(2);
+
+        // First retry should be around base_delay * 2^0 = 100ms
+        assert!(delay1.as_millis() >= 80 && delay1.as_millis() <= 120);
+        
+        // Second retry should be around base_delay * 2^1 = 200ms  
+        assert!(delay2.as_millis() >= 160 && delay2.as_millis() <= 240);
+        
+        // Third retry should be around base_delay * 2^2 = 400ms
+        assert!(delay3.as_millis() >= 320 && delay3.as_millis() <= 480);
+
+        // Test that delay is capped at max_retry_delay_ms
+        let long_delay = config.calculate_retry_delay(10);
+        assert!(long_delay.as_millis() <= 5500); // Should be capped + jitter
+    }
+
+    #[test]
+    fn test_ai_service_config_serialization() {
+        let config = AIServiceConfig::development();
         
         // Test JSON serialization
-        let json_str = response.to_json().unwrap();
-        assert!(!json_str.is_empty());
-        assert!(json_str.contains("\"request_id\":\"req-999\""));
-        assert!(json_str.contains("\"service_type\":\"TransactionValidation\""));
-        assert!(json_str.contains("\"status\":\"Success\""));
-        assert!(json_str.contains("\"processing_time_ms\":120"));
-        
+        let json_str = serde_json::to_string(&config).unwrap();
+        assert!(json_str.contains("\"base_url\""));
+        assert!(json_str.contains("\"timeout_seconds\""));
+        assert!(json_str.contains("\"max_retries\""));
+
         // Test JSON deserialization
-        let deserialized = AIResponsePayload::from_json(&json_str).unwrap();
-        assert_eq!(deserialized.request_id, response.request_id);
-        assert_eq!(deserialized.service_type, response.service_type);
-        assert_eq!(deserialized.status, response.status);
-        assert_eq!(deserialized.processing_time_ms, response.processing_time_ms);
-        
-        // Test pretty JSON
-        let pretty_json = response.to_json_pretty().unwrap();
-        assert!(pretty_json.contains("{\n"));
-        assert!(pretty_json.contains("\"request_id\": \"req-999\""));
+        let deserialized: AIServiceConfig = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(deserialized.base_url, config.base_url);
+        assert_eq!(deserialized.timeout_seconds, config.timeout_seconds);
+        assert_eq!(deserialized.max_retries, config.max_retries);
     }
 
     #[test]
-    fn test_ai_response_payload_validation() {
-        let response_data = serde_json::json!({"test": "data"});
-        let response = AIResponsePayload::success(
-            "req-123".to_string(),
-            AIServiceType::FraudDetection,
-            response_data,
-        );
-        
-        // Should validate successfully
-        assert!(response.validate().is_ok());
-        
-        // Test with empty response ID
-        let mut invalid_response = response.clone();
-        invalid_response.id = "".to_string();
-        let validation_result = invalid_response.validate();
-        assert!(validation_result.is_err());
-        assert_eq!(validation_result.err().unwrap(), "Response ID cannot be empty");
-        
-        // Test with empty request ID
-        let mut invalid_response = response.clone();
-        invalid_response.request_id = "".to_string();
-        let validation_result = invalid_response.validate();
-        assert!(validation_result.is_err());
-        assert_eq!(validation_result.err().unwrap(), "Request ID cannot be empty");
-        
-        // Test failure response without error
-        let mut invalid_response = response.clone();
-        invalid_response.status = ResponseStatus::Failure;
-        invalid_response.error = None;
-        let validation_result = invalid_response.validate();
-        assert!(validation_result.is_err());
-        assert_eq!(validation_result.err().unwrap(), "Failure responses must include error information");
-        
-        // Test invalid confidence score
-        let mut invalid_response = response.clone();
-        let invalid_metadata = AIResponseMetadata::new("model-v1.0".to_string())
-            .with_confidence_score(1.5); // Invalid score > 1.0
-        invalid_response.metadata = Some(invalid_metadata);
-        let validation_result = invalid_response.validate();
-        assert!(validation_result.is_err());
-        assert_eq!(validation_result.err().unwrap(), "Confidence score must be between 0.0 and 1.0");
+    fn test_ai_service_config_environment_loading() {
+        // Set some environment variables for testing
+        std::env::set_var("AI_SERVICE_BASE_URL", "https://test.example.com");
+        std::env::set_var("AI_SERVICE_API_KEY", "test-key");
+        std::env::set_var("AI_SERVICE_TIMEOUT_SECONDS", "45");
+        std::env::set_var("AI_SERVICE_MAX_RETRIES", "7");
+        std::env::set_var("AI_SERVICE_FALLBACK_MODE", "restrictive");
+
+        let config = AIServiceConfig::from_env().unwrap();
+        assert_eq!(config.base_url, "https://test.example.com");
+        assert_eq!(config.api_key, Some("test-key".to_string()));
+        assert_eq!(config.timeout_seconds, 45);
+        assert_eq!(config.max_retries, 7);
+        assert_eq!(config.fallback_config.fallback_mode, "restrictive");
+
+        // Clean up environment variables
+        std::env::remove_var("AI_SERVICE_BASE_URL");
+        std::env::remove_var("AI_SERVICE_API_KEY");
+        std::env::remove_var("AI_SERVICE_TIMEOUT_SECONDS");
+        std::env::remove_var("AI_SERVICE_MAX_RETRIES");
+        std::env::remove_var("AI_SERVICE_FALLBACK_MODE");
     }
 
     #[test]
-    fn test_ai_response_metadata() {
-        let metadata = AIResponseMetadata::new("model-v1.2".to_string())
-            .with_confidence_score(0.95)
-            .with_processing_stats(serde_json::json!({"tokens": 150, "time_ms": 200}))
-            .with_context(serde_json::json!({"debug": "info"}))
-            .with_oracle_reputation(0.98)
-            .with_correlation_id("corr-456".to_string());
-        
-        assert_eq!(metadata.model_version, "model-v1.2");
-        assert_eq!(metadata.confidence_score, Some(0.95));
-        assert!(metadata.processing_stats.is_some());
-        assert!(metadata.context.is_some());
-        assert_eq!(metadata.oracle_reputation, Some(0.98));
-        assert_eq!(metadata.correlation_id, Some("corr-456".to_string()));
+    fn test_ai_service_config_risk_scoring_config() {
+        let risk_config = RiskScoringConfig::default();
+        assert_eq!(risk_config.low_risk_threshold, 0.3);
+        assert_eq!(risk_config.medium_risk_threshold, 0.6);
+        assert_eq!(risk_config.high_risk_threshold, 0.8);
+        assert_eq!(risk_config.auto_approve_threshold, 0.2);
+        assert_eq!(risk_config.auto_reject_threshold, 0.9);
+        assert_eq!(risk_config.manual_review_threshold_range, (0.2, 0.9));
+        assert_eq!(risk_config.default_risk_score, 0.5);
+        assert!(risk_config.enable_risk_based_processing);
     }
 
     #[test]
-    fn test_ai_response_error() {
-        let error = AIResponseError::new(
-            "RATE_LIMIT".to_string(),
-            "Rate limit exceeded".to_string(),
-            ErrorCategory::RateLimitError,
-        )
-        .with_details("Try again in 60 seconds".to_string())
-        .with_retryable(true);
-        
-        assert_eq!(error.code, "RATE_LIMIT");
-        assert_eq!(error.message, "Rate limit exceeded");
-        assert_eq!(error.category, ErrorCategory::RateLimitError);
-        assert!(error.retryable);
-        assert_eq!(error.details, Some("Try again in 60 seconds".to_string()));
-        
-        // Test retryable constructor
-        let retryable_error = AIResponseError::retryable(
-            "NETWORK_ERROR".to_string(),
-            "Connection failed".to_string(),
-            ErrorCategory::NetworkError,
-        );
-        assert!(retryable_error.retryable);
-    }
-
-    #[test]
-    fn test_response_status_display() {
-        assert_eq!(ResponseStatus::Success.to_string(), "success");
-        assert_eq!(ResponseStatus::Failure.to_string(), "failure");
-        assert_eq!(ResponseStatus::Timeout.to_string(), "timeout");
-        assert_eq!(ResponseStatus::RateLimited.to_string(), "rate-limited");
-        assert_eq!(ResponseStatus::ServiceUnavailable.to_string(), "service-unavailable");
-        assert_eq!(ResponseStatus::InvalidRequest.to_string(), "invalid-request");
-        assert_eq!(ResponseStatus::InternalError.to_string(), "internal-error");
-    }
-
-    #[test]
-    fn test_error_category_display() {
-        assert_eq!(ErrorCategory::ValidationError.to_string(), "validation-error");
-        assert_eq!(ErrorCategory::ProcessingError.to_string(), "processing-error");
-        assert_eq!(ErrorCategory::NetworkError.to_string(), "network-error");
-        assert_eq!(ErrorCategory::AuthenticationError.to_string(), "authentication-error");
-        assert_eq!(ErrorCategory::RateLimitError.to_string(), "rate-limit-error");
-        assert_eq!(ErrorCategory::ServiceError.to_string(), "service-error");
-        assert_eq!(ErrorCategory::UnknownError.to_string(), "unknown-error");
-    }
-
-    #[test]
-    fn test_response_status_helpers() {
-        let success_response = AIResponsePayload::success(
-            "req-123".to_string(),
-            AIServiceType::FraudDetection,
-            serde_json::json!({"clean": true}),
-        );
-        assert!(success_response.is_successful());
-        assert!(!success_response.is_failure());
-        assert!(!success_response.is_retryable());
-        
-        let timeout_response = AIResponsePayload::timeout(
-            "req-456".to_string(),
-            AIServiceType::RiskScoring,
-        );
-        assert!(!timeout_response.is_successful());
-        assert!(timeout_response.is_retryable());
-        
-        let error = AIResponseError::retryable(
-            "TEMP_ERROR".to_string(),
-            "Temporary error".to_string(),
-            ErrorCategory::ProcessingError,
-        );
-        let failure_response = AIResponsePayload::failure(
-            "req-789".to_string(),
-            AIServiceType::ContractAnalysis,
-            error,
-        );
-        assert!(!failure_response.is_successful());
-        assert!(failure_response.is_failure());
-        assert!(failure_response.is_retryable());
-    }
-
-    #[test]
-    fn test_response_payload_age_and_helpers() {
-        let response = AIResponsePayload::success(
-            "req-123".to_string(),
-            AIServiceType::FraudDetection,
-            serde_json::json!({"score": 0.1}),
-        );
-        
-        // Age should be very small initially
-        assert!(response.age_seconds() < 2);
-        
-        // Test response without confidence score
-        assert_eq!(response.confidence_score(), None);
-        
-        // Test confidence score helper with a new response
-        let metadata = AIResponseMetadata::new("model-v1.0".to_string())
-            .with_confidence_score(0.87);
-        let response_with_metadata = response.with_metadata(metadata);
-        assert_eq!(response_with_metadata.confidence_score(), Some(0.87));
-    }
-
-    #[test]
-    fn test_response_payload_deserialization() {
-        let json_data = r#"{
-            "id": "resp-123",
-            "request_id": "req-456",
-            "service_type": "FraudDetection",
-            "response_data": {"risk_score": 0.25, "clean": true},
-            "timestamp": 1633072800,
-            "processing_time_ms": 250,
-            "status": "Success",
-            "metadata": {
-                "model_version": "v2.0",
-                "confidence_score": 0.95,
-                "oracle_reputation": 0.98,
-                "correlation_id": "corr-789"
-            },
-            "error": null,
-            "signature": "sig-def",
-            "oracle_id": "oracle-456"
-        }"#;
-        
-        let response: AIResponsePayload = serde_json::from_str(json_data).unwrap();
-        assert_eq!(response.id, "resp-123");
-        assert_eq!(response.request_id, "req-456");
-        assert_eq!(response.service_type, AIServiceType::FraudDetection);
-        assert_eq!(response.status, ResponseStatus::Success);
-        assert_eq!(response.processing_time_ms, 250);
-        assert!(response.metadata.is_some());
-        assert_eq!(response.signature, Some("sig-def".to_string()));
-        assert_eq!(response.oracle_id, Some("oracle-456".to_string()));
-        
-        let metadata = response.metadata.unwrap();
-        assert_eq!(metadata.model_version, "v2.0");
-        assert_eq!(metadata.confidence_score, Some(0.95));
-        assert_eq!(metadata.oracle_reputation, Some(0.98));
-        assert_eq!(metadata.correlation_id, Some("corr-789".to_string()));
-    }
-
-    #[test]
-    fn test_response_payload_with_error_deserialization() {
-        let json_data = r#"{
-            "id": "resp-error-123",
-            "request_id": "req-error-456",
-            "service_type": "RiskScoring",
-            "response_data": null,
-            "timestamp": 1633072800,
-            "processing_time_ms": 50,
-            "status": "Failure",
-            "metadata": null,
-            "error": {
-                "code": "INVALID_INPUT",
-                "message": "Required field missing",
-                "details": "The 'transaction_id' field is required",
-                "category": "ValidationError",
-                "retryable": false
-            },
-            "signature": null,
-            "oracle_id": "oracle-789"
-        }"#;
-        
-        let response: AIResponsePayload = serde_json::from_str(json_data).unwrap();
-        assert_eq!(response.status, ResponseStatus::Failure);
-        assert!(response.error.is_some());
-        assert!(!response.is_retryable());
-        
-        let error = response.error.unwrap();
-        assert_eq!(error.code, "INVALID_INPUT");
-        assert_eq!(error.message, "Required field missing");
-        assert_eq!(error.category, ErrorCategory::ValidationError);
-        assert!(!error.retryable);
-        assert_eq!(error.details, Some("The 'transaction_id' field is required".to_string()));
+    fn test_ai_service_config_fallback_config() {
+        let fallback_config = FallbackConfig::default();
+        assert!(fallback_config.enable_fallback);
+        assert_eq!(fallback_config.fallback_mode, "default_scores");
+        assert!(fallback_config.use_cached_results);
+        assert_eq!(fallback_config.cache_retention_seconds, 3600);
+        assert!(fallback_config.log_fallback_operations);
     }
 }
