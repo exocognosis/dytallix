@@ -49,6 +49,14 @@ default = ["std"]
 std = []
 runtime-benchmarks = []
 
+[[example]]
+name = "health_check_demo"
+path = "examples/health_check_demo.rs"
+
+[[example]]
+name = "circuit_breaker_demo"
+path = "examples/circuit_breaker_demo.rs"
+
 [[bin]]
 name = "dytallix-node"
 path = "src/main.rs"
