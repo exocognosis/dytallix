@@ -12,6 +12,7 @@ dytallix-pqc = { path = "../pqc-crypto" }
 # Core blockchain dependencies
 blake3 = "1.5"
 sha3 = "0.10"
+sha2 = "0.10"
 hex = "0.4"
 
 # Networking and async runtime

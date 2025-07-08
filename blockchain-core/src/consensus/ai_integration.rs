@@ -245,7 +245,7 @@ impl AIIntegrationManager {
     /// Create a new AI integration manager
     pub async fn new(config: AIIntegrationConfig) -> Result<Self> {
         let verifier = Arc::new(SignatureVerifier::new(config.verification_config.clone())?);
-        let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.base_url.clone())?);
+        let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.clone()));
         let replay_protection = Arc::new(ReplayProtectionManager::new(config.replay_protection_config.clone()));
         
         Ok(Self {
@@ -261,7 +261,7 @@ impl AIIntegrationManager {
     /// Create a new AI integration manager synchronously
     pub fn new_sync(config: AIIntegrationConfig) -> Result<Self> {
         let verifier = Arc::new(SignatureVerifier::new(config.verification_config.clone())?);
-        let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.base_url.clone())?);
+        let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.clone()));
         let replay_protection = Arc::new(ReplayProtectionManager::new(config.replay_protection_config.clone()));
         
         Ok(Self {
@@ -399,36 +399,29 @@ impl AIIntegrationManager {
             timestamp: chrono::Utc::now().timestamp() as u64,
             metadata: None,
             priority: crate::consensus::RequestPriority::Normal,
-            timeout: Some(30),
+            timeout_ms: 30000,
             callback_url: None,
-            signature: None,
+            requester_id: "ai_integration".to_string(),
+            correlation_id: Some(uuid::Uuid::new_v4().to_string()),
+            nonce: uuid::Uuid::new_v4().to_string(),
         };
         
-        match self.ai_client.send_ai_request(&request_payload).await {
-            Ok(response) => {
-                // Convert the response to JSON
-                match response.text().await {
-                    Ok(response_text) => {
-                        // Try to parse as signed response
-                        if let Ok(signed_response) = serde_json::from_str::<SignedAIOracleResponse>(&response_text) {
-                            self.verify_ai_response(&signed_response, None).await
-                        } else {
-                            // Handle as regular response
-                            AIVerificationResult::Failed {
-                                error: "Could not parse AI response".to_string(),
-                                oracle_id: None,
-                                response_id: None,
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        AIVerificationResult::Failed {
-                            error: format!("Failed to read response: {}", e),
-                            oracle_id: None,
-                            response_id: None,
-                        }
-                    }
-                }
+        // Convert request_data to HashMap<String, Value>
+        let mut analysis_data = std::collections::HashMap::new();
+        if let serde_json::Value::Object(obj) = request_payload.request_data {
+            for (key, value) in obj {
+                analysis_data.insert(key, value);
+            }
+        } else {
+            analysis_data.insert("data".to_string(), request_payload.request_data);
+        }
+        
+        match self.ai_client.request_ai_analysis(
+            crate::consensus::AIServiceType::TransactionValidation,
+            analysis_data
+        ).await {
+            Ok(signed_response) => {
+                self.verify_ai_response(&signed_response, None).await
             }
             Err(e) => {
                 let mut stats = self.stats.write().await;

@@ -630,7 +630,7 @@ impl AuditTrailManager {
         };
 
         RetentionInfo {
-            classification,
+            classification: classification.clone(),
             retention_days,
             archive_date: Utc::now() + Duration::days(retention_days as i64),
             deletion_date: Utc::now() + Duration::days(retention_days as i64 + 30),

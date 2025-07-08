@@ -7,7 +7,7 @@ use anyhow::Result;
 use serde_json;
 
 use crate::consensus::{
-    ai_integration::{AIIntegrationManager, AIIntegrationConfig},
+    ai_integration::{AIIntegrationManager, AIIntegrationConfig, RiskThresholds},
     replay_protection::ReplayProtectionConfig,
     signature_verification::VerificationConfig,
     AIServiceConfig,
@@ -36,6 +36,9 @@ async fn create_test_ai_integration() -> Result<AIIntegrationManager> {
         ai_timeout_ms: 5000,
         enable_response_caching: true,
         response_cache_ttl: 300,
+        enable_risk_based_processing: true,
+        log_risk_decisions: true,
+        risk_thresholds: RiskThresholds::default(),
     };
 
     AIIntegrationManager::new(config).await

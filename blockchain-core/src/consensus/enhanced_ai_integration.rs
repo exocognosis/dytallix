@@ -126,7 +126,7 @@ impl EnhancedAIIntegrationManager {
         
         // Create AI client
         let ai_client = Arc::new(
-            AIOracleClient::new(config.ai_service_config.base_url.clone())?
+            AIOracleClient::new(config.ai_service_config.clone())
         );
 
         Ok(Self {
