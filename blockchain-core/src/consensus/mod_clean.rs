@@ -5,6 +5,7 @@ use log::{info, debug, warn};
 use chrono::{DateTime, Utc};
 use serde_json;
 use std::path::Path;
+use uuid;
 
 use crate::runtime::DytallixRuntime;
 use crate::crypto::{PQCManager, PQCSignature};
@@ -220,6 +221,9 @@ pub struct ConsensusEngine {
     is_validator: bool,
     ai_client: AIOracleClient,
     ai_integration: Option<Arc<ai_integration::AIIntegrationManager>>,
+    high_risk_queue: Arc<crate::consensus::high_risk_queue::HighRiskQueue>,
+    audit_trail: Arc<crate::consensus::audit_trail::AuditTrailManager>,
+    performance_optimizer: Arc<crate::consensus::performance_optimizer::PerformanceOptimizer>,
 }
 
 impl ConsensusEngine {
@@ -268,6 +272,27 @@ impl ConsensusEngine {
                 None
             }
         };
+
+        // Initialize high-risk transaction queue
+        let high_risk_queue = Arc::new(
+            crate::consensus::high_risk_queue::HighRiskQueue::new(
+                crate::consensus::high_risk_queue::HighRiskQueueConfig::default()
+            )
+        );
+
+        // Initialize audit trail manager
+        let audit_trail = Arc::new(
+            crate::consensus::audit_trail::AuditTrailManager::new(
+                crate::consensus::audit_trail::AuditConfig::default()
+            )
+        );
+
+        // Initialize performance optimizer
+        let performance_optimizer = Arc::new(
+            crate::consensus::performance_optimizer::PerformanceOptimizer::new(
+                crate::consensus::performance_optimizer::PerformanceConfig::default()
+            )
+        );
         
         Ok(Self {
             runtime,
@@ -277,6 +302,9 @@ impl ConsensusEngine {
             is_validator: true, // For development
             ai_client,
             ai_integration,
+            high_risk_queue,
+            audit_trail,
+            performance_optimizer,
         })
     }
 
@@ -708,16 +736,36 @@ impl ConsensusEngine {
             match Self::perform_ai_transaction_analysis(ai_manager, tx).await {
                 Ok(ai_result) => {
                     match ai_result {
-                        ai_integration::AIVerificationResult::Verified { risk_score, .. } => {
-                            // Check risk score thresholds
-                            if let Some(score) = risk_score {
-                                if score > 0.8 {
-                                    info!("Transaction rejected by AI: high risk score {:.2}", score);
-                                    return Ok(false);
+                        ai_integration::AIVerificationResult::Verified { 
+                            risk_score, 
+                            processing_decision, 
+                            fraud_probability,
+                            confidence,
+                            .. 
+                        } => {
+                            // Apply risk-based processing decision
+                            match processing_decision {
+                                ai_integration::RiskProcessingDecision::AutoApprove => {
+                                    info!("Transaction auto-approved by AI: risk score {:.3}, fraud prob {:.3}, confidence {:.3}", 
+                                          risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0), confidence.unwrap_or(0.0));
+                                    Ok(true)
                                 }
-                                info!("Transaction AI validation passed: risk score {:.2}", score);
+                                ai_integration::RiskProcessingDecision::RequireReview { reason } => {
+                                    warn!("Transaction flagged for manual review: {} (risk: {:.3}, fraud: {:.3})", 
+                                          reason, risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0));
+                                    
+                                    // Add to high-risk queue for manual review
+                                    // This is a placeholder - in practice, we'd need to pass the high-risk queue reference
+                                    // and transaction hash to this static method, or restructure the validation flow
+                                    warn!("Transaction should be queued for manual review - implementing queue integration");
+                                    Ok(false) // Still reject for now until we restructure the validation flow
+                                }
+                                ai_integration::RiskProcessingDecision::AutoReject { reason } => {
+                                    warn!("Transaction auto-rejected by AI: {} (risk: {:.3}, fraud: {:.3})", 
+                                          reason, risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0));
+                                    Ok(false)
+                                }
                             }
-                            Ok(true)
                         }
                         ai_integration::AIVerificationResult::Failed { error, .. } => {
                             warn!("AI transaction validation failed: {}", error);
@@ -1085,5 +1133,616 @@ impl ConsensusEngine {
         }
         
         format!("{:x}", hasher.finish())
+    }
+
+    /// Calculate transaction hash for tracking
+    fn calculate_transaction_hash(&self, tx: &Transaction) -> String {
+        // For now, use the hash field from the transaction
+        // In production, this should use the actual transaction hash field or a standardized method
+        match tx {
+            Transaction::Transfer(transfer_tx) => transfer_tx.hash.clone(),
+            Transaction::Deploy(deploy_tx) => deploy_tx.hash.clone(),
+            Transaction::Call(call_tx) => call_tx.hash.clone(),
+            Transaction::Stake(stake_tx) => stake_tx.hash.clone(),
+            Transaction::AIRequest(ai_tx) => ai_tx.hash.clone(),
+        }
+    }
+
+    // High-Risk Queue Management Methods
+
+    /// Validate a single transaction with high-risk queue integration and audit trail
+    pub async fn validate_transaction_with_queue(&self, tx: &Transaction) -> Result<bool, String> {
+        // First perform basic validation
+        let basic_valid = Self::validate_transaction_static(&self.runtime, &self.pqc_manager, tx).await?;
+        if !basic_valid {
+            return Ok(false);
+        }
+
+        // If AI integration is available, check for high-risk flagging
+        if let Some(ai_manager) = &self.ai_integration {
+            // Convert transaction to AI data format
+            let transaction_data = match Self::transaction_to_ai_data(tx) {
+                Ok(data) => data,
+                Err(e) => {
+                    warn!("Failed to serialize transaction for AI analysis: {}", e);
+                    return Ok(true); // Proceed with basic validation if AI data conversion fails
+                }
+            };
+
+            let ai_result = ai_manager.validate_transaction_with_ai(transaction_data).await;
+            
+            match ai_result {
+                Ok(ai_integration::AIVerificationResult::Verified { 
+                    risk_score, 
+                    processing_decision, 
+                    fraud_probability,
+                    confidence,
+                    oracle_id,
+                    response_id,
+                    .. 
+                }) => {
+                    let processing_decision_clone = processing_decision.clone();
+                    let tx_hash = self.calculate_transaction_hash(tx);
+                    
+                    // Determine risk priority based on risk score and fraud probability
+                    let risk_priority = if let (Some(risk), Some(fraud)) = (risk_score, fraud_probability) {
+                        if risk > 0.8 || fraud > 0.7 {
+                            crate::consensus::notification_types::ReviewPriority::Critical
+                        } else if risk > 0.6 || fraud > 0.5 {
+                            crate::consensus::notification_types::ReviewPriority::High
+                        } else if risk > 0.4 || fraud > 0.3 {
+                            crate::consensus::notification_types::ReviewPriority::Medium
+                        } else {
+                            crate::consensus::notification_types::ReviewPriority::Low
+                        }
+                    } else {
+                        crate::consensus::notification_types::ReviewPriority::Medium
+                    };
+
+                    // Record audit trail entry for AI decision
+                    let audit_result = self.audit_trail.record_ai_decision(
+                        tx,
+                        tx_hash.clone(),
+                        ai_integration::AIVerificationResult::Verified {
+                            risk_score,
+                            processing_decision: processing_decision_clone.clone(),
+                            fraud_probability,
+                            confidence,
+                            oracle_id: oracle_id.clone(),
+                            response_id: response_id.clone(),
+                        },
+                        processing_decision_clone.clone(),
+                        crate::consensus::notification_types::ReviewPriority::Medium,
+                        oracle_id.clone(),
+                        response_id.clone(),
+                        None, // Block number not available during validation
+                    ).await;
+
+                    if let Err(e) = audit_result {
+                        warn!("Failed to record audit trail entry: {}", e);
+                    }
+
+                    match processing_decision {
+                        ai_integration::RiskProcessingDecision::AutoApprove => {
+                            info!("Transaction auto-approved by AI: risk score {:.3}, fraud prob {:.3}, confidence {:.3}", 
+                                  risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0), confidence.unwrap_or(0.0));
+                            Ok(true)
+                        }
+                        ai_integration::RiskProcessingDecision::RequireReview { ref reason } => {
+                            // Create AI result for queue
+                            let verified_result = ai_integration::AIVerificationResult::Verified {
+                                risk_score,
+                                processing_decision: processing_decision_clone.clone(),
+                                fraud_probability,
+                                confidence,
+                                oracle_id: oracle_id.clone(),
+                                response_id: response_id.clone(),
+                            };
+                            
+                            // Add to high-risk queue
+                            match self.high_risk_queue.enqueue_transaction(
+                                tx.clone(),
+                                tx_hash.clone(),
+                                verified_result,
+                                processing_decision_clone,
+                            ).await {
+                                Ok(queue_id) => {
+                                    info!("Transaction {} queued for manual review (queue ID: {}): {}", 
+                                          tx_hash, queue_id, reason);
+                                    // Return false for now - transaction will be processed after manual approval
+                                    Ok(false)
+                                }
+                                Err(e) => {
+                                    warn!("Failed to queue transaction for review: {}", e);
+                                    // If queueing fails, reject the transaction
+                                    Ok(false)
+                                }
+                            }
+                        }
+                        ai_integration::RiskProcessingDecision::AutoReject { reason } => {
+                            warn!("Transaction auto-rejected by AI: {} (risk: {:.3}, fraud: {:.3})", 
+                                  reason, risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0));
+                            Ok(false)
+                        }
+                    }
+                }
+                Ok(ai_integration::AIVerificationResult::Failed { error, oracle_id, response_id }) => {
+                    warn!("AI transaction validation failed: {}", error);
+                    
+                    // Record audit trail entry for failed AI decision
+                    let tx_hash = self.calculate_transaction_hash(tx);
+                    let audit_result = self.audit_trail.record_ai_decision(
+                        tx,
+                        tx_hash,
+                        ai_integration::AIVerificationResult::Failed { 
+                            error: error.clone(), 
+                            oracle_id: oracle_id.clone(),
+                            response_id: response_id.clone(),
+                        },
+                        ai_integration::RiskProcessingDecision::AutoReject { 
+                            reason: format!("AI validation failed: {}", error)
+                        },
+                        crate::consensus::notification_types::ReviewPriority::High,
+                        oracle_id.clone().unwrap_or_else(|| "unknown".to_string()),
+                        response_id.clone().unwrap_or_else(|| "unknown".to_string()),
+                        None,
+                    ).await;
+
+                    if let Err(e) = audit_result {
+                        warn!("Failed to record audit trail entry for failed AI validation: {}", e);
+                    }
+
+                    if ai_manager.is_ai_verification_required() {
+                        return Ok(false);
+                    }
+                    Ok(true)
+                }
+                Ok(ai_integration::AIVerificationResult::Unavailable { error, fallback_allowed }) => {
+                    // Record audit trail entry for unavailable AI service
+                    let tx_hash = self.calculate_transaction_hash(tx);
+                    let audit_result = self.audit_trail.record_ai_decision(
+                        tx,
+                        tx_hash,
+                        ai_integration::AIVerificationResult::Unavailable { 
+                            error: error.clone(),
+                            fallback_allowed, 
+                        },
+                        if fallback_allowed {
+                            ai_integration::RiskProcessingDecision::AutoApprove
+                        } else {
+                            ai_integration::RiskProcessingDecision::AutoReject { 
+                                reason: "AI service unavailable and fallback not allowed".to_string()
+                            }
+                        },
+                        crate::consensus::notification_types::ReviewPriority::Medium,
+                        "unavailable".to_string(),
+                        uuid::Uuid::new_v4().to_string(),
+                        None,
+                    ).await;
+
+                    if let Err(e) = audit_result {
+                        warn!("Failed to record audit trail entry for unavailable AI service: {}", e);
+                    }
+
+                    if !fallback_allowed && ai_manager.is_ai_verification_required() {
+                        warn!("AI service unavailable and verification required, rejecting transaction");
+                        return Ok(false);
+                    }
+                    Ok(true)
+                }
+                Ok(ai_integration::AIVerificationResult::Skipped { reason }) => {
+                    info!("AI verification skipped: {}", reason);
+                    
+                    // Record audit trail entry for skipped AI verification
+                    let tx_hash = self.calculate_transaction_hash(tx);
+                    let audit_result = self.audit_trail.record_ai_decision(
+                        tx,
+                        tx_hash,
+                        ai_integration::AIVerificationResult::Skipped { reason: reason.clone() },
+                        ai_integration::RiskProcessingDecision::AutoApprove,
+                        crate::consensus::notification_types::ReviewPriority::Low,
+                        "skipped".to_string(),
+                        uuid::Uuid::new_v4().to_string(),
+                        None,
+                    ).await;
+
+                    if let Err(e) = audit_result {
+                        warn!("Failed to record audit trail entry for skipped AI verification: {}", e);
+                    }
+
+                    Ok(true)
+                }
+                Err(e) => {
+                    warn!("AI analysis error: {}", e);
+                    
+                    // Record audit trail entry for AI analysis error
+                    let tx_hash = self.calculate_transaction_hash(tx);
+                    let audit_result = self.audit_trail.record_ai_decision(
+                        tx,
+                        tx_hash,
+                        ai_integration::AIVerificationResult::Failed { 
+                            error: format!("Analysis error: {}", e),
+                            oracle_id: None,
+                            response_id: None,
+                        },
+                        ai_integration::RiskProcessingDecision::AutoReject { 
+                            reason: format!("AI analysis error: {}", e)
+                        },
+                        crate::consensus::notification_types::ReviewPriority::High,
+                        "error".to_string(),
+                        uuid::Uuid::new_v4().to_string(),
+                        None,
+                    ).await;
+
+                    if let Err(e) = audit_result {
+                        warn!("Failed to record audit trail entry for AI analysis error: {}", e);
+                    }
+
+                    // If AI analysis fails and AI verification is required, reject
+                    if ai_manager.is_ai_verification_required() {
+                        return Ok(false);
+                    }
+                    // Otherwise, proceed with basic validation
+                    Ok(true)
+                }
+            }
+        } else {
+            // No AI integration, transaction passed basic validation
+            Ok(true)
+        }
+    }
+
+    /// Enhanced transaction validation with performance optimization
+    pub async fn validate_transaction_optimized(&self, tx: &Transaction) -> Result<bool, String> {
+        let tx_hash = self.calculate_transaction_hash(tx);
+        let start_time = std::time::Instant::now();
+
+        // First perform basic validation
+        let basic_valid = Self::validate_transaction_static(&self.runtime, &self.pqc_manager, tx).await?;
+        if !basic_valid {
+            return Ok(false);
+        }
+
+        // Check cache first
+        if let Some(cached_result) = self.performance_optimizer.get_cached_result(&tx_hash).await {
+            debug!("Using cached AI result for transaction {}", hex::encode(&tx_hash));
+            
+            // Record cache hit in metrics
+            self.performance_optimizer.record_request_metrics(
+                start_time.elapsed().as_millis() as u64, 
+                true
+            ).await;
+            
+            return self.process_ai_result(tx, &tx_hash, cached_result).await;
+        }
+
+        // Check if we should use fallback validation
+        if !self.performance_optimizer.is_service_healthy().await {
+            warn!("AI service unhealthy, using fallback validation for transaction {}", hex::encode(&tx_hash));
+            
+            let fallback_result = self.performance_optimizer.fallback_validation(&tx_hash, tx).await
+                .map_err(|e| format!("Fallback validation failed: {}", e))?;
+            
+            // Cache fallback result
+            let _ = self.performance_optimizer.cache_result(&tx_hash, &fallback_result).await;
+            
+            // Record audit trail for fallback decision
+            let _ = self.record_fallback_audit_trail(tx, &tx_hash, &fallback_result).await;
+            
+            self.performance_optimizer.record_request_metrics(
+                start_time.elapsed().as_millis() as u64, 
+                true
+            ).await;
+            
+            return self.process_ai_result(tx, &tx_hash, fallback_result).await;
+        }
+
+        // Check if we should use graceful degradation
+        if self.performance_optimizer.should_degrade().await {
+            warn!("System under load, using degraded AI validation for transaction {}", hex::encode(&tx_hash));
+            
+            // Use simplified AI validation or batching
+            if self.performance_optimizer.config.enable_batching {
+                // Add to batch for later processing
+                match self.performance_optimizer.add_to_batch(tx_hash.clone(), tx.clone()).await {
+                    Ok(batch_id) => {
+                        info!("Transaction {} added to batch {} due to system load", hex::encode(&tx_hash), batch_id);
+                        // For now, auto-approve batched transactions (they'll be processed later)
+                        return Ok(true);
+                    }
+                    Err(e) => {
+                        warn!("Failed to add transaction to batch: {}", e);
+                        // Fall through to regular processing
+                    }
+                }
+            }
+        }
+
+        // Regular AI validation with concurrency limiting
+        let _permit = self.performance_optimizer.acquire_request_permit().await
+            .map_err(|e| format!("Failed to acquire request permit: {}", e))?;
+
+        let ai_result = if let Some(ai_manager) = &self.ai_integration {
+            // Convert transaction to AI data format
+            let transaction_data = match Self::transaction_to_ai_data(tx) {
+                Ok(data) => data,
+                Err(e) => {
+                    warn!("Failed to serialize transaction for AI analysis: {}", e);
+                    
+                    self.performance_optimizer.record_request_metrics(
+                        start_time.elapsed().as_millis() as u64, 
+                        false
+                    ).await;
+                    
+                    // Use fallback if serialization fails
+                    let fallback_result = self.performance_optimizer.fallback_validation(&tx_hash, tx).await
+                        .map_err(|e| format!("Fallback validation failed after serialization error: {}", e))?;
+                    
+                    return self.process_ai_result(tx, &tx_hash, fallback_result).await;
+                }
+            };
+
+            // Perform AI validation with timeout monitoring
+            let ai_validation_start = std::time::Instant::now();
+            let ai_result = ai_manager.validate_transaction_with_ai(transaction_data).await;
+            let ai_duration = ai_validation_start.elapsed();
+
+            // Check for timeout
+            if ai_duration.as_secs() > self.performance_optimizer.config.fallback_timeout_threshold {
+                self.performance_optimizer.record_timeout().await;
+                
+                // Activate fallback mode if too many timeouts
+                let metrics = self.performance_optimizer.get_metrics().await;
+                if metrics.timeout_count > 5 && metrics.total_requests > 0 {
+                    let timeout_rate = metrics.timeout_count as f64 / metrics.total_requests as f64;
+                    if timeout_rate > 0.2 { // 20% timeout rate
+                        warn!("High timeout rate detected ({}%), activating fallback mode", timeout_rate * 100.0);
+                        let _ = self.performance_optimizer.activate_fallback(
+                            crate::consensus::performance_optimizer::FallbackMode::PatternBased
+                        ).await;
+                    }
+                }
+            }
+
+            ai_result
+        } else {
+            // No AI integration available, use fallback
+            self.performance_optimizer.fallback_validation(&tx_hash, tx).await
+                .map_err(|e| anyhow::anyhow!("Fallback validation failed: {}", e))
+        };
+
+        // Release the permit
+        self.performance_optimizer.release_request_permit().await;
+
+        match ai_result {
+            Ok(result) => {
+                // Cache the result
+                let _ = self.performance_optimizer.cache_result(&tx_hash, &result).await;
+                
+                // Record successful request metrics
+                self.performance_optimizer.record_request_metrics(
+                    start_time.elapsed().as_millis() as u64, 
+                    true
+                ).await;
+                
+                // Record audit trail
+                let _ = self.record_ai_audit_trail(tx, &tx_hash, &result).await;
+                
+                self.process_ai_result(tx, &tx_hash, result).await
+            }
+            Err(e) => {
+                warn!("AI validation failed for transaction {}: {}", hex::encode(&tx_hash), e);
+                
+                // Record failed request metrics
+                self.performance_optimizer.record_request_metrics(
+                    start_time.elapsed().as_millis() as u64, 
+                    false
+                ).await;
+                
+                // Use fallback validation
+                let fallback_result = self.performance_optimizer.fallback_validation(&tx_hash, tx).await
+                    .map_err(|e| format!("AI validation failed and fallback also failed: {}", e))?;
+                
+                // Cache fallback result
+                let _ = self.performance_optimizer.cache_result(&tx_hash, &fallback_result).await;
+                
+                // Record audit trail for fallback
+                let _ = self.record_fallback_audit_trail(tx, &tx_hash, &fallback_result).await;
+                
+                self.process_ai_result(tx, &tx_hash, fallback_result).await
+            }
+        }
+    }
+
+    /// Process AI result and determine transaction acceptance
+    async fn process_ai_result(
+        &self, 
+        tx: &Transaction, 
+        tx_hash: &str, 
+        ai_result: ai_integration::AIVerificationResult
+    ) -> Result<bool, String> {
+        match ai_result {
+            ai_integration::AIVerificationResult::Verified { ref processing_decision, .. } => {
+                match processing_decision {
+                    ai_integration::RiskProcessingDecision::AutoApprove => {
+                        debug!("Transaction {} auto-approved by AI", hex::encode(tx_hash));
+                        Ok(true)
+                    }
+                    ai_integration::RiskProcessingDecision::RequireReview { ref reason } => {
+                        // Add to high-risk queue
+                        match self.high_risk_queue.enqueue_transaction(
+                            tx.clone(),
+                            tx_hash.to_string(),
+                            ai_result.clone(),
+                            processing_decision.clone(),
+                        ).await {
+                            Ok(queue_id) => {
+                                info!("Transaction {} queued for manual review (queue ID: {}): {}", 
+                                      tx_hash, queue_id, reason);
+                                Ok(false) // Transaction will be processed after manual approval
+                            }
+                            Err(e) => {
+                                warn!("Failed to queue transaction for review: {}", e);
+                                Ok(false) // Reject if queueing fails
+                            }
+                        }
+                    }
+                    ai_integration::RiskProcessingDecision::AutoReject { reason } => {
+                        warn!("Transaction {} auto-rejected by AI: {}", hex::encode(tx_hash), reason);
+                        Ok(false)
+                    }
+                }
+            }
+            ai_integration::AIVerificationResult::Failed { error, .. } => {
+                warn!("AI verification failed for transaction {}: {}", hex::encode(tx_hash), error);
+                Ok(false)
+            }
+            ai_integration::AIVerificationResult::Unavailable { error, fallback_allowed } => {
+                if fallback_allowed {
+                    warn!("AI service unavailable but fallback allowed for transaction {}", hex::encode(tx_hash));
+                    Ok(true)
+                } else {
+                    warn!("AI service unavailable and fallback not allowed for transaction {}: {}", hex::encode(tx_hash), error);
+                    Ok(false)
+                }
+            }
+            ai_integration::AIVerificationResult::Skipped { reason } => {
+                info!("AI verification skipped for transaction {}: {}", hex::encode(tx_hash), reason);
+                Ok(true)
+            }
+        }
+    }
+
+    /// Record audit trail for AI decisions
+    async fn record_ai_audit_trail(
+        &self,
+        tx: &Transaction,
+        tx_hash: &str,
+        ai_result: &ai_integration::AIVerificationResult,
+    ) -> Result<(), String> {
+        // Determine priority and decision based on AI result
+        let (priority, decision) = match ai_result {
+            ai_integration::AIVerificationResult::Verified { processing_decision, risk_score, .. } => {
+                let priority = if let Some(score) = risk_score {
+                    if *score > 0.8 {
+                        crate::consensus::notification_types::ReviewPriority::Critical
+                    } else if *score > 0.6 {
+                        crate::consensus::notification_types::ReviewPriority::High
+                    } else if *score > 0.4 {
+                        crate::consensus::notification_types::ReviewPriority::Medium
+                    } else {
+                        crate::consensus::notification_types::ReviewPriority::Low
+                    }
+                } else {
+                    crate::consensus::notification_types::ReviewPriority::Medium
+                };
+                (priority, processing_decision.clone())
+            }
+            _ => (
+                crate::consensus::notification_types::ReviewPriority::Medium,
+                ai_integration::RiskProcessingDecision::AutoApprove
+            )
+        };
+
+        let oracle_id = match ai_result {
+            ai_integration::AIVerificationResult::Verified { oracle_id, .. } => oracle_id.clone(),
+            _ => "unknown".to_string(),
+        };
+
+        let response_id = match ai_result {
+            ai_integration::AIVerificationResult::Verified { response_id, .. } => response_id.clone(),
+            _ => uuid::Uuid::new_v4().to_string(),
+        };
+
+        let audit_result = self.audit_trail.record_ai_decision(
+            tx,
+            tx_hash.to_string(),
+            ai_result.clone(),
+            decision,
+            priority,
+            oracle_id,
+            response_id,
+            None, // Block number not available during validation
+        ).await;
+
+        match audit_result {
+            Ok(audit_id) => {
+                debug!("Recorded audit trail entry {} for transaction {}", audit_id, tx_hash);
+                Ok(())
+            }
+            Err(e) => {
+                warn!("Failed to record audit trail for transaction {}: {}", tx_hash, e);
+                Err(format!("Audit trail recording failed: {}", e))
+            }
+        }
+    }
+
+    /// Record audit trail for fallback decisions
+    async fn record_fallback_audit_trail(
+        &self,
+        tx: &Transaction,
+        tx_hash: &str,
+        fallback_result: &ai_integration::AIVerificationResult,
+    ) -> Result<(), String> {
+        // Similar to regular audit trail but mark as fallback
+        self.record_ai_audit_trail(tx, tx_hash, fallback_result).await
+    }
+
+    /// Get performance optimizer reference
+    pub fn get_performance_optimizer(&self) -> &Arc<crate::consensus::performance_optimizer::PerformanceOptimizer> {
+        &self.performance_optimizer
+    }
+
+    /// Process pending batches of transactions
+    pub async fn process_pending_batches(&self) -> Result<usize, String> {
+        let mut processed_count = 0;
+        
+        while let Some(batch) = self.performance_optimizer.get_next_batch().await {
+            info!("Processing batch {} with {} transactions", batch.batch_id, batch.transactions.len());
+            
+            for (tx_hash, transaction) in batch.transactions {
+                match self.validate_transaction_optimized(&transaction).await {
+                    Ok(valid) => {
+                        if valid {
+                            debug!("Batch transaction {} validated successfully", hex::encode(&tx_hash));
+                        } else {
+                            debug!("Batch transaction {} validation failed", hex::encode(&tx_hash));
+                        }
+                        processed_count += 1;
+                    }
+                    Err(e) => {
+                        warn!("Error validating batch transaction {}: {}", hex::encode(&tx_hash), e);
+                    }
+                }
+            }
+        }
+        
+        if processed_count > 0 {
+            info!("Processed {} transactions from batches", processed_count);
+        }
+        
+        Ok(processed_count)
+    }
+
+    /// Cleanup performance optimizer caches and metrics
+    pub async fn cleanup_performance_optimizer(&self) -> Result<(), String> {
+        // Cleanup expired cache entries
+        match self.performance_optimizer.cleanup_cache().await {
+            Ok(removed) => {
+                if removed > 0 {
+                    info!("Performance optimizer cleaned up {} cache entries", removed);
+                }
+            }
+            Err(e) => {
+                warn!("Failed to cleanup performance optimizer cache: {}", e);
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Get current performance metrics
+    pub async fn get_performance_metrics(&self) -> crate::consensus::performance_optimizer::PerformanceMetrics {
+        self.performance_optimizer.get_metrics().await
     }
 }

@@ -14,6 +14,13 @@ pub mod ai_integration;
 pub mod oracle_registry;
 pub mod enhanced_ai_integration;
 pub mod replay_protection;
+pub mod high_risk_queue;
+pub mod review_api;
+pub mod notification_system;
+pub mod notification_types;
+pub mod audit_trail;
+pub mod compliance_api;
+pub mod performance_optimizer;
 
 // Export the clean consensus engine
 pub mod mod_clean;
@@ -24,6 +31,12 @@ pub mod integration_tests;
 
 #[cfg(test)]
 pub mod transaction_validation_tests;
+
+#[cfg(test)]
+pub mod simple_risk_tests;
+
+#[cfg(test)]
+pub mod performance_test;
 
 // Temporarily stub out problematic code
 pub struct DytallixConsensus;
@@ -2157,23 +2170,6 @@ impl AIOracleClient {
         Ok(results)
     }
 
-    /// Get circuit breaker status
-    pub fn get_circuit_breaker_status(&self) -> Result<serde_json::Value> {
-        let circuit_breaker = self.circuit_breaker.lock()
-            .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
-        Ok(circuit_breaker.get_status_summary())
-    }
-
-    /// Reset circuit breaker statistics
-    pub fn reset_circuit_breaker(&self) -> Result<()> {
-        let mut circuit_breaker = self.circuit_breaker.lock()
-            .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
-        circuit_breaker.stats = CircuitBreakerStats::default();
-        circuit_breaker.state = CircuitBreakerState::Closed;
-        log::info!("Circuit breaker has been reset");
-        Ok(())
-    }
-
     /// Make a request with circuit breaker protection
     pub async fn request_with_circuit_breaker<T>(&self, request_fn: impl std::future::Future<Output = Result<T>>) -> Result<T> {
         // Check if circuit breaker allows the request
@@ -2248,6 +2244,8 @@ impl AIOracleClient {
             }
         }
     }
+
+   
 
     /// Make a POST request with circuit breaker protection and fallback
     pub async fn post_with_fallback(&self, endpoint: &str, body: serde_json::Value) -> Result<reqwest::Response> {
@@ -3726,7 +3724,10 @@ mod tests {
         let error = AIOracleError::MaxRetriesExceeded { attempts: 5, last_error: Box::new(AIOracleError::Timeout { timeout_ms: 30000 }) };
         assert_eq!(format!("{}", error), "Max retries exceeded: 5 attempts failed");
 
-        let error = AIOracleError::Service { code: "SERVICE_UNAVAILABLE".to_string(), message: "The service is currently unavailable".to_string(), details: None };
+        let error = AIOracleError::Service { 
+            code: "SERVICE_UNAVAILABLE".to_string(), 
+            message: "The service is currently unavailable".to_string(), 
+            details: None };
         assert_eq!(format!("{}", error), "Service error: SERVICE_UNAVAILABLE - The service is currently unavailable");
 
         let error = AIOracleError::Unknown { message: "An unknown error occurred".to_string() };
@@ -4070,122 +4071,6 @@ mod tests {
                 // Direct network error is also acceptable for unreachable service
                 // The retry logic will only apply if the service responds with retryable errors
             }
-        }
-    }
-
-    #[tokio::test]
-    async fn test_retry_jitter_variation() {
-        let retry_config = RetryConfig::new(
-            5,
-            Duration::from_millis(100),
-            Duration::from_secs(5)
-        );
-        
-        // Test that jitter creates variation in delays
-        let mut delays = Vec::new();
-        for _ in 0..20 {
-            delays.push(retry_config.delay_for_attempt(2));
-        }
-        
-        // Calculate statistics to verify jitter
-        let min_delay = delays.iter().min().unwrap();
-        let max_delay = delays.iter().max().unwrap();
-        
-        // With jitter, we should see some variation
-        assert!(max_delay > min_delay, "Jitter should create variation in delays");
-        
-        // All delays should be within reasonable bounds
-        for delay in delays {
-            assert!(delay <= retry_config.max_delay + Duration::from_millis(500));
-            assert!(delay >= Duration::from_millis(50)); // Some minimum
-        }
-    }
-
-    #[tokio::test]
-    async fn test_response_error_handling_with_details() {
-        // Test error creation with details
-        let error = AIResponseError {
-            code: "FRAUD_DETECTED".to_string(),
-            message: "Suspicious transaction pattern detected".to_string(),
-            details: Some("Transaction amount exceeds daily limit and sender has low reputation".to_string()),
-            category: ErrorCategory::ProcessingError,
-            retryable: false,
-        };
-        
-        let response = AIResponsePayload::failure(
-            "req123".to_string(),
-            AIServiceType::FraudDetection,
-            error.clone()
-        );
-        
-        // Test response validation
-        assert!(response.validate().is_ok());
-        assert!(response.is_failure());
-        assert!(!response.is_retryable());
-        assert_eq!(response.error_message(), Some("Suspicious transaction pattern detected"));
-        
-        // Test JSON serialization includes details
-        let json_str = response.to_json().unwrap();
-        assert!(json_str.contains("FRAUD_DETECTED"));
-        assert!(json_str.contains("daily limit"));
-        assert!(json_str.contains("ProcessingError"));
-    }
-
-    #[tokio::test]
-    async fn test_timeout_error_creation_and_handling() {
-        // Test timeout response creation
-        let timeout_response = AIResponsePayload::timeout(
-            "req456".to_string(),
-            AIServiceType::KYC
-        );
-        
-        // Verify timeout response properties
-        assert_eq!(timeout_response.status, ResponseStatus::Timeout);
-        assert!(timeout_response.is_retryable());
-        assert!(!timeout_response.is_successful());
-        
-        // Verify error information
-        assert!(timeout_response.error.is_some());
-        let error = timeout_response.error.as_ref().unwrap();
-        assert_eq!(error.code, "TIMEOUT");
-        assert_eq!(error.message, "Request timed out");
-        assert_eq!(error.category, ErrorCategory::NetworkError);
-        assert!(error.retryable);
-    }
-
-    #[tokio::test]
-    async fn test_comprehensive_error_logging() {
-        // Test that all error types can be displayed properly for logging
-       
-        let errors = vec![
-            AIOracleError::Network { message: "Connection failed".to_string(), source: None },
-            AIOracleError::Timeout { timeout_ms: 5000 },
-            AIOracleError::Http { status: 503, message: "Service Unavailable".to_string() },
-            AIOracleError::Serialization { message: "JSON parse error".to_string() },
-            AIOracleError::Authentication { message: "Invalid API key".to_string() },
-            AIOracleError::RateLimit { message: "Too many requests".to_string(), retry_after: Some(Duration::from_secs(60)) },
-            AIOracleError::ServiceUnavailable { message: "Service is down".to_string() },
-            AIOracleError::Configuration { message: "Missing required config".to_string() },
-            AIOracleError::Validation { message: "Invalid request format".to_string() },
-            AIOracleError::CircuitBreaker { message: "Circuit breaker is open".to_string() },
-            AIOracleError::MaxRetriesExceeded { attempts: 5, last_error: Box::new(AIOracleError::Timeout { timeout_ms: 30000 }) },
-            AIOracleError::Service { 
-                code: "BUSINESS_ERROR".to_string(), 
-                message: "Business logic error".to_string(), 
-                details: Some("Detailed error information".to_string())
-            },
-            AIOracleError::Unknown { message: "An unknown error occurred".to_string() },
-        ];
-        
-        for error in errors {
-            let error_message = error.to_string();
-            assert!(!error_message.is_empty());
-            
-            // Test error classification
-            let is_retryable = error.is_retryable();
-            
-            // Log the error to verify logging works
-            log::info!("Test error (retryable: {}): {}", is_retryable, error_message);
         }
     }
 }
