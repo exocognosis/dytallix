@@ -203,6 +203,24 @@ export function SmartContracts() {
                 complexity: 'Beginner'
               },
               {
+                name: 'DGT Governance Token',
+                description: 'Dytallix governance token with voting power',
+                language: 'Rust',
+                complexity: 'Advanced'
+              },
+              {
+                name: 'DRT Reward Token',
+                description: 'Adaptive emission reward token with burning',
+                language: 'Rust',
+                complexity: 'Advanced'
+              },
+              {
+                name: 'Emission Controller',
+                description: 'DAO-controlled DRT emission management',
+                language: 'Rust',
+                complexity: 'Expert'
+              },
+              {
                 name: 'NFT Contract',
                 description: 'Non-fungible token with metadata',
                 language: 'Rust',
@@ -245,7 +263,8 @@ export function SmartContracts() {
                       <span className={`text-xs px-2 py-1 rounded ${
                         template.complexity === 'Beginner' ? 'bg-green-900/50 text-green-400' :
                         template.complexity === 'Intermediate' ? 'bg-yellow-900/50 text-yellow-400' :
-                        'bg-red-900/50 text-red-400'
+                        template.complexity === 'Advanced' ? 'bg-red-900/50 text-red-400' :
+                        'bg-purple-900/50 text-purple-400'
                       }`}>
                         {template.complexity}
                       </span>

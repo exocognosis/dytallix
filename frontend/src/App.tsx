@@ -1,4 +1,3 @@
-
 import { Routes, Route } from 'react-router-dom'
 import { Navigation } from './components/Navigation'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -7,6 +6,7 @@ import { Wallet } from './pages/Wallet'
 import { Explorer } from './pages/Explorer'
 import { Analytics } from './pages/Analytics'
 import { SmartContracts } from './pages/SmartContracts'
+import { Tokenomics } from './pages/Tokenomics'
 import { Settings } from './pages/Settings'
 // import { useWebSocket } from './hooks/useWebSocket'
 
@@ -26,6 +26,7 @@ function App() {
             <Route path="/explorer" element={<Explorer />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/contracts" element={<SmartContracts />} />
+            <Route path="/tokenomics" element={<Tokenomics />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>

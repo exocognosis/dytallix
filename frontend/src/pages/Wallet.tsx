@@ -7,11 +7,14 @@ import {
   ArrowDownIcon,
   EyeIcon,
   EyeSlashIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  CurrencyDollarIcon,
+  ScaleIcon
 } from '@heroicons/react/24/outline'
 import { DocumentDuplicateIcon } from '@heroicons/react/24/outline'
 import { useWalletStore } from '../store/wallet'
 import { useBalance, useGenerateKeyPair, useSubmitTransaction } from '../hooks/useAPI'
+import { useTokenBalance } from '../hooks/useTokenomics'
 import { WalletAccount, TransactionRequest } from '../types'
 import toast from 'react-hot-toast'
 
@@ -34,10 +37,12 @@ export function Wallet() {
   })
 
   const { data: balanceData } = useBalance(activeAccount?.address || '')
+  const { data: tokenBalanceData } = useTokenBalance(activeAccount?.address || '')
   const generateKeyPair = useGenerateKeyPair()
   const submitTransaction = useSubmitTransaction()
 
   const balance = balanceData?.data || 0
+  const tokenBalance = tokenBalanceData?.data
 
   const handleCreateAccount = async () => {
     try {
@@ -207,12 +212,36 @@ export function Wallet() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Balance
+                  Native Balance
                 </label>
                 <div className="text-2xl font-bold text-white">
                   {(balance / 1000000).toFixed(6)} DYT
                 </div>
               </div>
+
+              {/* Token Balances */}
+              {tokenBalance && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      <ScaleIcon className="w-4 h-4 inline mr-1" />
+                      DGT (Governance)
+                    </label>
+                    <div className="text-xl font-bold text-blue-400">
+                      {tokenBalance.dgt.toLocaleString()}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      <CurrencyDollarIcon className="w-4 h-4 inline mr-1" />
+                      DRT (Rewards)
+                    </label>
+                    <div className="text-xl font-bold text-green-400">
+                      {tokenBalance.drt.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {activeAccount.key_pair && (
                 <div>

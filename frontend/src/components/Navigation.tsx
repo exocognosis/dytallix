@@ -9,7 +9,8 @@ import {
   CubeIcon,
   CommandLineIcon,
   Cog6ToothIcon,
-  BoltIcon
+  BoltIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline'
 import { useWalletStore } from '../store/wallet'
 import { useBlockchainStats } from '../hooks/useAPI'
@@ -20,6 +21,7 @@ const navigation = [
   { name: 'Explorer', href: '/explorer', icon: CubeIcon },
   { name: 'Analytics', href: '/analytics', icon: BoltIcon },
   { name: 'Smart Contracts', href: '/contracts', icon: CommandLineIcon },
+  { name: 'Tokenomics', href: '/tokenomics', icon: CurrencyDollarIcon },
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
 ]
 
