@@ -1,6 +1,7 @@
 pub mod runtime;
 pub mod oracle_simple;
 pub mod types;
+pub mod tokenomics;
 
 // Re-export oracle_simple as oracle for compatibility
 pub use oracle_simple as oracle;

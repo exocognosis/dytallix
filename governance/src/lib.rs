@@ -8,6 +8,11 @@ use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
 
+// Re-export tokenomics types for governance integration
+pub use dytallix_contracts::tokenomics::{
+    TokenomicsProposal, EmissionParameters, EmissionRate, Balance as TokenBalance
+};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Proposal {
     pub id: u64,
@@ -16,6 +21,21 @@ pub struct Proposal {
     pub created_at: DateTime<Utc>,
     pub voting_deadline: DateTime<Utc>,
     pub status: ProposalStatus,
+    pub proposal_type: ProposalType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProposalType {
+    /// Standard governance proposal (text-based)
+    Standard,
+    /// Tokenomics proposal for emission control
+    Tokenomics(TokenomicsProposal),
+}
+
+impl Default for ProposalType {
+    fn default() -> Self {
+        ProposalType::Standard
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,11 +87,13 @@ pub struct VoteResult {
 
 pub trait DaoGovernance {
     fn propose(&mut self, title: String, description: String, voting_duration_hours: u64) -> Result<u64, GovernanceError>;
+    fn propose_tokenomics(&mut self, title: String, description: String, voting_duration_hours: u64, tokenomics_proposal: TokenomicsProposal) -> Result<u64, GovernanceError>;
     fn vote(&mut self, proposal_id: u64, ballot: Ballot) -> Result<(), GovernanceError>;
     fn tally(&self, proposal_id: u64) -> Result<VoteResult, GovernanceError>;
     fn get_proposal(&self, proposal_id: u64) -> Result<Option<Proposal>, GovernanceError>;
     fn list_proposals(&self) -> Result<Vec<Proposal>, GovernanceError>;
     fn get_votes(&self, proposal_id: u64) -> Result<Vec<Ballot>, GovernanceError>;
+    fn execute_tokenomics_proposal(&mut self, proposal_id: u64) -> Result<Option<TokenomicsProposal>, GovernanceError>;
 }
 
 /// File-based governance implementation with persistence
@@ -217,6 +239,28 @@ impl DaoGovernance for FileBasedGovernance {
             created_at: Utc::now(),
             voting_deadline: Utc::now() + chrono::Duration::hours(voting_duration_hours as i64),
             status: ProposalStatus::Active,
+            proposal_type: ProposalType::Standard,
+        };
+
+        self.proposals.insert(proposal_id, proposal);
+        self.votes.insert(proposal_id, Vec::new());
+        self.save_data()?;
+
+        Ok(proposal_id)
+    }
+
+    fn propose_tokenomics(&mut self, title: String, description: String, voting_duration_hours: u64, tokenomics_proposal: TokenomicsProposal) -> Result<u64, GovernanceError> {
+        let proposal_id = self.next_proposal_id;
+        self.next_proposal_id += 1;
+
+        let proposal = Proposal {
+            id: proposal_id,
+            title,
+            description,
+            created_at: Utc::now(),
+            voting_deadline: Utc::now() + chrono::Duration::hours(voting_duration_hours as i64),
+            status: ProposalStatus::Active,
+            proposal_type: ProposalType::Tokenomics(tokenomics_proposal),
         };
 
         self.proposals.insert(proposal_id, proposal);
@@ -274,6 +318,24 @@ impl DaoGovernance for FileBasedGovernance {
 
     fn get_votes(&self, proposal_id: u64) -> Result<Vec<Ballot>, GovernanceError> {
         Ok(self.votes.get(&proposal_id).cloned().unwrap_or_default())
+    }
+
+    fn execute_tokenomics_proposal(&mut self, proposal_id: u64) -> Result<Option<TokenomicsProposal>, GovernanceError> {
+        // Check if proposal exists and is passed
+        let proposal = self.proposals.get(&proposal_id)
+            .ok_or(GovernanceError::ProposalNotFound)?;
+
+        if !matches!(proposal.status, ProposalStatus::Passed) {
+            return Ok(None);
+        }
+
+        // Extract tokenomics proposal if it exists
+        match &proposal.proposal_type {
+            ProposalType::Tokenomics(tokenomics_proposal) => {
+                Ok(Some(tokenomics_proposal.clone()))
+            },
+            ProposalType::Standard => Ok(None),
+        }
     }
 }
 
@@ -335,6 +397,27 @@ impl DaoGovernance for InMemoryGovernance {
             created_at: Utc::now(),
             voting_deadline: Utc::now() + chrono::Duration::hours(voting_duration_hours as i64),
             status: ProposalStatus::Active,
+            proposal_type: ProposalType::Standard,
+        };
+
+        self.proposals.insert(proposal_id, proposal);
+        self.votes.insert(proposal_id, Vec::new());
+
+        Ok(proposal_id)
+    }
+
+    fn propose_tokenomics(&mut self, title: String, description: String, voting_duration_hours: u64, tokenomics_proposal: TokenomicsProposal) -> Result<u64, GovernanceError> {
+        let proposal_id = self.next_proposal_id;
+        self.next_proposal_id += 1;
+
+        let proposal = Proposal {
+            id: proposal_id,
+            title,
+            description,
+            created_at: Utc::now(),
+            voting_deadline: Utc::now() + chrono::Duration::hours(voting_duration_hours as i64),
+            status: ProposalStatus::Active,
+            proposal_type: ProposalType::Tokenomics(tokenomics_proposal),
         };
 
         self.proposals.insert(proposal_id, proposal);
@@ -391,6 +474,24 @@ impl DaoGovernance for InMemoryGovernance {
     fn get_votes(&self, proposal_id: u64) -> Result<Vec<Ballot>, GovernanceError> {
         Ok(self.votes.get(&proposal_id).cloned().unwrap_or_default())
     }
+
+    fn execute_tokenomics_proposal(&mut self, proposal_id: u64) -> Result<Option<TokenomicsProposal>, GovernanceError> {
+        // Check if proposal exists and is passed
+        let proposal = self.proposals.get(&proposal_id)
+            .ok_or(GovernanceError::ProposalNotFound)?;
+
+        if !matches!(proposal.status, ProposalStatus::Passed) {
+            return Ok(None);
+        }
+
+        // Extract tokenomics proposal if it exists
+        match &proposal.proposal_type {
+            ProposalType::Tokenomics(tokenomics_proposal) => {
+                Ok(Some(tokenomics_proposal.clone()))
+            },
+            ProposalType::Standard => Ok(None),
+        }
+    }
 }
 
 // Legacy implementation for backward compatibility
@@ -398,6 +499,12 @@ pub struct DummyGovernance;
 
 impl DaoGovernance for DummyGovernance {
     fn propose(&mut self, title: String, description: String, _voting_duration_hours: u64) -> Result<u64, GovernanceError> {
+        // Generate a mock proposal ID
+        let proposal_id = title.len() as u64 + description.len() as u64;
+        Ok(proposal_id)
+    }
+
+    fn propose_tokenomics(&mut self, title: String, description: String, _voting_duration_hours: u64, _tokenomics_proposal: TokenomicsProposal) -> Result<u64, GovernanceError> {
         // Generate a mock proposal ID
         let proposal_id = title.len() as u64 + description.len() as u64;
         Ok(proposal_id)
@@ -427,6 +534,10 @@ impl DaoGovernance for DummyGovernance {
 
     fn get_votes(&self, _proposal_id: u64) -> Result<Vec<Ballot>, GovernanceError> {
         Ok(vec![])
+    }
+
+    fn execute_tokenomics_proposal(&mut self, _proposal_id: u64) -> Result<Option<TokenomicsProposal>, GovernanceError> {
+        Ok(None)
     }
 }
 
