@@ -20,7 +20,7 @@ from pydantic import BaseModel
 import uvicorn
 
 from fraud_detection import FraudDetector
-from risk_scoring import RiskScorer
+from risk_scoring import AdvancedRiskScorer
 from contract_nlp import ContractNLPGenerator
 from oracle import BlockchainOracle
 from blockchain_oracle import BlockchainOracle as AIOracle
@@ -48,11 +48,7 @@ app.add_middleware(
 
 # Initialize AI services
 fraud_detector = FraudDetector()
-risk_scorer = RiskScorer()
-contract_nlp = ContractNLPGenerator()
-# Initialize AI services
-fraud_detector = FraudDetector()
-risk_scorer = RiskScorer()
+risk_scorer = AdvancedRiskScorer()
 contract_nlp = ContractNLPGenerator()
 oracle = BlockchainOracle()
 
@@ -130,6 +126,18 @@ class ContractGenerationResponse(BaseModel):
     security_analysis: Dict
     estimated_gas: Optional[int] = None
 
+class ContractAuditRequest(BaseModel):
+    contract_code: str
+    contract_type: str = "general"
+    audit_level: str = "standard"
+
+class ContractAuditResponse(BaseModel):
+    security_score: float
+    vulnerabilities: List[str]
+    recommendations: List[str]
+    gas_efficiency: float
+    compliance_flags: List[str]
+
 @app.get("/")
 async def root():
     return {
@@ -138,8 +146,11 @@ async def root():
         "status": "operational",
         "endpoints": [
             "/analyze/fraud",
-            "/analyze/risk", 
+            "/analyze/risk",
+            "/analyze/contract",
             "/generate/contract",
+            "/oracle/request",
+            "/oracle/info",
             "/health"
         ]
     }
@@ -152,7 +163,7 @@ async def health_check():
         fraud_status = fraud_detector.is_ready()
         risk_status = risk_scorer.is_ready()
         nlp_status = contract_nlp.is_ready()
-        oracle_status = await oracle.is_connected()
+        oracle_status = oracle.is_connected
         signing_status = signing_service.is_initialized if signing_service else False
         
         return {
@@ -182,7 +193,7 @@ async def analyze_fraud(request: FraudAnalysisRequest):
         
         analysis = await fraud_detector.analyze_transaction(
             request.transaction.dict(),
-            request.historical_data or []
+            [tx.dict() for tx in request.historical_data] if request.historical_data else []
         )
         
         processing_time_ms = int((time.time() - start_time) * 1000)
@@ -243,9 +254,9 @@ async def analyze_risk(request: RiskScoreRequest):
     try:
         logger.info(f"Risk analysis request {request_id} for transaction: {request.transaction.from_address} -> {request.transaction.to_address}")
         
-        score_data = await risk_scorer.calculate_risk_score(
+        score_data = await risk_scorer.calculate_comprehensive_risk(
             request.transaction.dict(),
-            request.address_history or []
+            [tx.dict() for tx in request.address_history] if request.address_history else []
         )
         
         processing_time_ms = int((time.time() - start_time) * 1000)
@@ -254,25 +265,25 @@ async def analyze_risk(request: RiskScoreRequest):
         if signing_service and signing_service.is_initialized:
             signed_response = signing_service.sign_risk_scoring_response(
                 request_id=request_id,
-                risk_score=score_data["score"],
-                risk_category=score_data["level"],
-                contributing_factors=score_data["factors"],
+                risk_score=score_data.score,
+                risk_category=score_data.level,
+                contributing_factors=score_data.factors,
                 processing_time_ms=processing_time_ms
             )
             
             # Return signed response
             return {
-                "risk_score": score_data["score"],
-                "risk_level": score_data["level"],
-                "factors": score_data["factors"],
+                "risk_score": score_data.score,
+                "risk_level": score_data.level,
+                "factors": score_data.factors,
                 "signed_response": signed_response
             }
         else:
             # Return unsigned response
             return RiskScoreResponse(
-                risk_score=score_data["score"],
-                risk_level=score_data["level"],
-                factors=score_data["factors"]
+                risk_score=score_data.score,
+                risk_level=score_data.level,
+                factors=score_data.factors
             )
         
     except Exception as e:
@@ -383,12 +394,12 @@ async def models_status():
     """
     return {
         "fraud_detection": {
-            "model_loaded": fraud_detector.model is not None,
+            "model_loaded": fraud_detector.is_ready(),
             "model_version": fraud_detector.get_model_version(),
             "last_updated": fraud_detector.get_last_update_time()
         },
         "risk_scoring": {
-            "model_loaded": risk_scorer.model is not None,
+            "model_loaded": risk_scorer.is_ready(),
             "model_version": risk_scorer.get_model_version(),
             "last_updated": risk_scorer.get_last_update_time()
         },
@@ -399,10 +410,149 @@ async def models_status():
         }
     }
 
-@app.post("/analyze/contract")
-async def analyze_contract(request: Request):
-    # TODO: Parse request, call ContractAuditService, return result
-    return {"result": "dummy_contract_audit"}
+@app.post("/analyze/contract", response_model=ContractAuditResponse)
+async def analyze_contract(request: ContractAuditRequest):
+    """
+    Audit a smart contract for security vulnerabilities and compliance
+    """
+    start_time = time.time()
+    request_id = str(uuid.uuid4())
+    
+    try:
+        logger.info(f"Contract audit request {request_id} for {request.contract_type} contract")
+        
+        # Use the contract_nlp module's security analysis method
+        # Parse the contract code and analyze security
+        analysis = contract_nlp._analyze_contract_security(request.contract_code, {})
+        
+        # Calculate gas efficiency based on contract complexity
+        estimated_gas = contract_nlp._estimate_gas_cost(request.contract_code, request.contract_type)
+        gas_efficiency = min(1.0, max(0.0, 1.0 - (estimated_gas / 1000000.0)))  # Normalize to 0-1
+        
+        # Enhanced analysis based on audit level
+        if request.audit_level == "comprehensive":
+            # Perform additional checks for comprehensive audit
+            additional_checks = _perform_comprehensive_audit(request.contract_code)
+            analysis["vulnerabilities"].extend(additional_checks["vulnerabilities"])
+            analysis["recommendations"].extend(additional_checks["recommendations"])
+            analysis["compliance"].extend(additional_checks["compliance"])
+            # Adjust security score based on additional findings
+            analysis["security_score"] = max(0.0, analysis["security_score"] - len(additional_checks["vulnerabilities"]) * 0.05)
+        
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Sign the response if signing service is available
+        if signing_service and signing_service.is_initialized:
+            analysis_result = {
+                "contract_code": request.contract_code,
+                "language": "rust",
+                "security_analysis": analysis,
+                "estimated_gas": estimated_gas
+            }
+            
+            signed_response = signing_service.sign_contract_analysis_response(
+                request_id=request_id,
+                analysis_result=analysis_result,
+                processing_time_ms=processing_time_ms
+            )
+            
+            # Return signed response
+            return {
+                "security_score": analysis["security_score"],
+                "vulnerabilities": analysis["vulnerabilities"],
+                "recommendations": analysis["recommendations"],
+                "gas_efficiency": gas_efficiency,
+                "compliance_flags": analysis["compliance"],
+                "signed_response": signed_response
+            }
+        else:
+            # Return unsigned response
+            return ContractAuditResponse(
+                security_score=analysis["security_score"],
+                vulnerabilities=analysis["vulnerabilities"],
+                recommendations=analysis["recommendations"],
+                gas_efficiency=gas_efficiency,
+                compliance_flags=analysis["compliance"]
+            )
+        
+    except Exception as e:
+        logger.error(f"Contract audit failed: {e}")
+        
+        # Sign error response if signing service is available
+        if signing_service and signing_service.is_initialized:
+            error_response = signing_service.sign_error_response(
+                request_id=request_id,
+                error_code="CONTRACT_AUDIT_ERROR",
+                error_message=str(e),
+                processing_time_ms=int((time.time() - start_time) * 1000)
+            )
+            
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "error": "Contract audit failed",
+                    "message": str(e),
+                    "signed_response": error_response
+                }
+            )
+        else:
+            raise HTTPException(status_code=500, detail=f"Contract audit failed: {str(e)}")
+
+def _perform_comprehensive_audit(contract_code: str) -> Dict[str, List[str]]:
+    """Perform comprehensive security audit on contract code"""
+    result = {
+        "vulnerabilities": [],
+        "recommendations": [],
+        "compliance": []
+    }
+    
+    code_lower = contract_code.lower()
+    
+    # Check for common vulnerability patterns
+    if "unsafe" in code_lower:
+        result["vulnerabilities"].append("Unsafe code blocks detected")
+        result["recommendations"].append("Replace unsafe blocks with safe alternatives")
+    
+    if "unwrap()" in contract_code:
+        result["vulnerabilities"].append("Unsafe unwrap() calls that can cause panics")
+        result["recommendations"].append("Use expect() or proper error handling instead of unwrap()")
+    
+    if "unchecked" in code_lower:
+        result["vulnerabilities"].append("Unchecked arithmetic operations")
+        result["recommendations"].append("Use checked arithmetic to prevent overflow/underflow")
+    
+    # Check for proper error handling
+    if "Result<" not in contract_code and "Option<" not in contract_code:
+        result["vulnerabilities"].append("Limited error handling patterns")
+        result["recommendations"].append("Implement comprehensive error handling with Result/Option types")
+    
+    # Check for reentrancy protection
+    if "mutex" not in code_lower and "lock" not in code_lower:
+        result["vulnerabilities"].append("Missing reentrancy protection")
+        result["recommendations"].append("Implement mutex or other reentrancy protection mechanisms")
+    
+    # Check for access control
+    if "caller" not in code_lower and "owner" not in code_lower:
+        result["vulnerabilities"].append("Missing access control mechanisms")
+        result["recommendations"].append("Implement proper access control with owner/caller checks")
+    
+    # Check for input validation
+    if "assert" not in code_lower and "require" not in code_lower:
+        result["vulnerabilities"].append("Insufficient input validation")
+        result["recommendations"].append("Add comprehensive input validation with assert/require statements")
+    
+    # Check for event logging
+    if "event" not in code_lower and "log" not in code_lower:
+        result["recommendations"].append("Add event logging for better transparency and debugging")
+    
+    # Compliance checks
+    if "audit" in code_lower or "compliance" in code_lower:
+        result["compliance"].append("Contains audit/compliance annotations")
+    
+    if "timestamp" in code_lower:
+        result["compliance"].append("Time-based operations detected - ensure proper handling")
+    
+    return result
 
 # Oracle Management Endpoints
 

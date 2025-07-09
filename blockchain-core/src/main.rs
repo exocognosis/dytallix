@@ -1,11 +1,12 @@
 use std::sync::Arc;
 use tokio;
-use log::{info, warn};
+use log::{info, warn, error};
 
 mod runtime;
 mod storage;
 mod crypto; 
 mod types;
+mod api;
 // mod consensus;  // Temporarily disabled
 // mod networking;  // Temporarily disabled
 
@@ -75,6 +76,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     node_clone.start().await?;
     
     info!("Dytallix blockchain core is running!");
+    
+    // Start API server
+    tokio::spawn(async move {
+        if let Err(e) = api::start_api_server().await {
+            error!("API server error: {}", e);
+        }
+    });
     
     // Keep the main thread alive
     loop {

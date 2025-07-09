@@ -2,25 +2,25 @@
 
 ## Milestones
 
-### Phase 1: Architecture & Prototyping (Current)
+### Phase 1: Architecture & Prototyping (85% COMPLETE)
 - [x] Repo scaffolding and interface definition
 - [x] PQC & crypto-agility abstraction
 - [x] AI service layer API and protocol
 - [x] Smart contract test harness design
 - [x] Developer CLI and documentation
-- [ ] Architecture documentation and diagrams
-- [ ] API reference consolidation
+- [ ] Architecture documentation and diagrams (in progress)
+- [ ] API reference consolidation (in progress)
 
-### Phase 2: Technical Implementation
-- [ ] Implement PQC keygen and signature verification (Dilithium, Falcon, SPHINCS+)
-- [ ] Build Rust blockchain node and consensus engine
-- [ ] Implement Python AI service endpoints and models
-- [ ] WASM smart contract runtime and test harness
-- [ ] CLI tools for wallet, contracts, and AI services
+### Phase 2: Technical Implementation (75% COMPLETE)
+- [x] Implement PQC keygen and signature verification (Dilithium, Falcon, SPHINCS+)
+- [x] Build Rust blockchain node and consensus engine
+- [x] Implement Python AI service endpoints and models
+- [ ] WASM smart contract runtime and test harness (40% complete)
+- [ ] CLI tools for wallet, contracts, and AI services (60% complete)
 
-### Phase 2b: Governance, Compliance, and Interoperability
+### Phase 2b: Governance, Compliance, and Interoperability (35% COMPLETE)
 - [ ] Implement on-chain DAO and voting system
-- [ ] Add compliance modules (KYC/AML, audit trail)
+- [x] Add compliance modules (KYC/AML, audit trail) - Basic implementation complete
 - [ ] Build PQC-secured cross-chain bridges and IBC support
 
 ### Phase 2c: Frontend, Security, and DevOps

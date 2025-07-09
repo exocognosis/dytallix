@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use anyhow::Result;
 use colored::*;
-use log::{info, error};
+use log::info;
 
 mod commands;
 mod config;
@@ -20,7 +20,7 @@ struct Cli {
     command: Commands,
     
     /// Node URL
-    #[arg(long, default_value = "http://localhost:8080")]
+    #[arg(long, default_value = "http://localhost:3030")]
     node_url: String,
     
     /// AI services URL  

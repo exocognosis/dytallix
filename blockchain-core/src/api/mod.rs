@@ -2,14 +2,15 @@ use std::sync::Arc;
 use warp::Filter;
 use serde::{Deserialize, Serialize};
 use log::info;
-
-// use crate::DytallixNode; // Temporarily commented out for testing
+use rand;
 
 #[derive(Debug, Deserialize)]
 struct TransferRequest {
     from: String,
     to: String,
     amount: u64,
+    fee: Option<u64>,
+    nonce: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -24,6 +25,28 @@ struct BlockchainStats {
     current_block: u64,
     total_transactions: usize,
     network_peers: usize,
+    mempool_size: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct TransactionResponse {
+    hash: String,
+    status: String,
+    block_number: Option<u64>,
+}
+
+#[derive(Debug, Serialize)]
+struct TransactionDetails {
+    hash: String,
+    from: String,
+    to: String,
+    amount: u64,
+    fee: u64,
+    nonce: u64,
+    status: String,
+    block_number: Option<u64>,
+    timestamp: u64,
+    confirmations: u64,
 }
 
 impl<T> ApiResponse<T> {
@@ -44,9 +67,8 @@ impl<T> ApiResponse<T> {
     }
 }
 
-/*
-// Temporarily commented out for testing
-pub async fn start_api_server(node: Arc<dyn DytallixNode>) -> Result<(), Box<dyn std::error::Error>> {
+// Temporarily implementing basic API server for testing
+pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting Dytallix API server on port 3030...");
     
     // Health check endpoint
@@ -57,35 +79,26 @@ pub async fn start_api_server(node: Arc<dyn DytallixNode>) -> Result<(), Box<dyn
         });
     
     // Get blockchain stats
-    let node_for_stats = Arc::clone(&node);
     let stats = warp::path("stats")
         .and(warp::get())
-        .map(move || {
-            let node = Arc::clone(&node_for_stats);
-            tokio::spawn(async move {
-                match get_blockchain_stats(node).await {
-                    Ok(stats) => warp::reply::json(&ApiResponse::success(stats)),
-                    Err(e) => warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                }
-            });
-            warp::reply::json(&ApiResponse::success("Getting stats..."))
+        .map(|| {
+            let stats = BlockchainStats {
+                current_block: 1234,
+                total_transactions: 5678,
+                network_peers: 12,
+                mempool_size: 45,
+            };
+            warp::reply::json(&ApiResponse::success(stats))
         });
     
     // Get balance endpoint  
-    let node_for_balance = Arc::clone(&node);
     let balance = warp::path("balance")
         .and(warp::path::param::<String>())
         .and(warp::get())
-        .map(move |address: String| {
-            let node = Arc::clone(&node_for_balance);
-            let address_clone = address.clone();
-            tokio::spawn(async move {
-                match node.get_balance(&address_clone).await {
-                    Ok(balance) => info!("Balance for {}: {}", address_clone, balance),
-                    Err(e) => info!("Error getting balance: {}", e),
-                }
-            });
-            warp::reply::json(&ApiResponse::success(format!("Checking balance for {}", address)))
+        .map(|address: String| {
+            info!("Getting balance for address: {}", address);
+            let balance = 1000000u64; // Mock balance
+            warp::reply::json(&ApiResponse::success(balance))
         });
     
     // Submit transaction endpoint
@@ -94,8 +107,77 @@ pub async fn start_api_server(node: Arc<dyn DytallixNode>) -> Result<(), Box<dyn
         .and(warp::body::json())
         .map(|req: TransferRequest| {
             info!("Transaction request: {} -> {} ({})", req.from, req.to, req.amount);
-            warp::reply::json(&ApiResponse::success("Transaction submitted"))
+            let tx_response = TransactionResponse {
+                hash: format!("0x{:x}", rand::random::<u64>()),
+                status: "pending".to_string(),
+                block_number: None,
+            };
+            warp::reply::json(&ApiResponse::success(tx_response))
         });
+    
+    // Get transaction endpoint
+    let get_tx = warp::path("transaction")
+        .and(warp::path::param::<String>())
+        .and(warp::get())
+        .map(|hash: String| {
+            info!("Getting transaction: {}", hash);
+            let tx_details = TransactionDetails {
+                hash: hash.clone(),
+                from: "dyt1sender123".to_string(),
+                to: "dyt1receiver456".to_string(),
+                amount: 500000,
+                fee: 1000,
+                nonce: 42,
+                status: "confirmed".to_string(),
+                block_number: Some(1234),
+                timestamp: 1625097600,
+                confirmations: 6,
+            };
+            warp::reply::json(&ApiResponse::success(tx_details))
+        });
+    
+    // List transactions endpoint
+    let list_txs = warp::path("transactions")
+        .and(warp::get())
+        .and(warp::query::<std::collections::HashMap<String, String>>())
+        .map(|params: std::collections::HashMap<String, String>| {
+            let account = params.get("account");
+            let limit = params.get("limit").and_then(|l| l.parse::<usize>().ok()).unwrap_or(10);
+            
+            info!("Listing transactions for account: {:?}, limit: {}", account, limit);
+            
+            // Mock transaction list
+            let transactions = vec![
+                TransactionDetails {
+                    hash: "0x1234567890abcdef".to_string(),
+                    from: "dyt1sender123".to_string(),
+                    to: "dyt1receiver456".to_string(),
+                    amount: 500000,
+                    fee: 1000,
+                    nonce: 42,
+                    status: "confirmed".to_string(),
+                    block_number: Some(1234),
+                    timestamp: 1625097600,
+                    confirmations: 6,
+                },
+                TransactionDetails {
+                    hash: "0xfedcba0987654321".to_string(),
+                    from: "dyt1sender789".to_string(),
+                    to: "dyt1receiver012".to_string(),
+                    amount: 250000,
+                    fee: 1000,
+                    nonce: 43,
+                    status: "pending".to_string(),
+                    block_number: None,
+                    timestamp: 1625097700,
+                    confirmations: 0,
+                },
+            ];
+            
+            let limited_txs = transactions.into_iter().take(limit).collect::<Vec<_>>();
+            warp::reply::json(&ApiResponse::success(limited_txs))
+        });
+    
     
     // CORS headers
     let cors = warp::cors()
@@ -108,6 +190,8 @@ pub async fn start_api_server(node: Arc<dyn DytallixNode>) -> Result<(), Box<dyn
         .or(stats)
         .or(balance)
         .or(submit_tx)
+        .or(get_tx)
+        .or(list_txs)
         .with(cors)
         .with(warp::log("api"));
     
@@ -118,16 +202,3 @@ pub async fn start_api_server(node: Arc<dyn DytallixNode>) -> Result<(), Box<dyn
     
     Ok(())
 }
-
-async fn get_blockchain_stats(node: Arc<dyn DytallixNode>) -> Result<BlockchainStats, Box<dyn std::error::Error>> {
-    let current_block = node.get_current_block_number().await;
-    let (total_transactions, _) = node.get_transaction_pool_stats().await?;
-    let network_peers = 0; // TODO: Get from network manager
-    
-    Ok(BlockchainStats {
-        current_block,
-        total_transactions,
-        network_peers,
-    })
-}
-*/
