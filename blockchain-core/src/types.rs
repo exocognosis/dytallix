@@ -132,7 +132,9 @@ pub struct DeployTransaction {
     pub hash: TxHash,
     pub from: Address,
     pub contract_code: Vec<u8>,
-    pub initial_state: Vec<u8>,
+    pub constructor_args: Vec<u8>,
+    pub gas_limit: u64,
+    pub gas_price: u64,
     pub fee: Amount,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -143,11 +145,12 @@ impl DeployTransaction {
     /// Calculate hash of deployment data
     pub fn calculate_hash(&self) -> TxHash {
         let data = format!(
-            "{}:{}:{}:{}:{}:{}",
+            "{}:{}:{}:{}:{}:{}:{}",
             self.from,
             hex::encode(&self.contract_code),
-            hex::encode(&self.initial_state),
-            self.fee,
+            hex::encode(&self.constructor_args),
+            self.gas_limit,
+            self.gas_price,
             self.nonce,
             self.timestamp
         );
@@ -167,9 +170,12 @@ impl DeployTransaction {
 pub struct CallTransaction {
     pub hash: TxHash,
     pub from: Address,
-    pub contract_address: Address,
+    pub to: Address, // Contract address
     pub method: String,
-    pub params: Vec<u8>,
+    pub args: Vec<u8>,
+    pub value: Amount,
+    pub gas_limit: u64,
+    pub gas_price: u64,
     pub fee: Amount,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -180,12 +186,14 @@ impl CallTransaction {
     /// Calculate hash of call transaction data
     pub fn calculate_hash(&self) -> TxHash {
         let data = format!(
-            "{}:{}:{}:{}:{}:{}:{}",
+            "{}:{}:{}:{}:{}:{}:{}:{}:{}",
             self.from,
-            self.contract_address,
+            self.to,
             self.method,
-            hex::encode(&self.params),
-            self.fee,
+            hex::encode(&self.args),
+            self.value,
+            self.gas_limit,
+            self.gas_price,
             self.nonce,
             self.timestamp
         );
@@ -823,7 +831,7 @@ impl fmt::Display for Transaction {
                 write!(f, "Deploy contract by {}", tx.from)
             },
             Transaction::Call(tx) => {
-                write!(f, "Call {} by {}", tx.contract_address, tx.from)
+                write!(f, "Call {} by {}", tx.to, tx.from)
             },
             Transaction::Stake(tx) => {
                 write!(f, "Stake {:?}: {} ({})", tx.action, tx.validator, tx.amount)
@@ -853,7 +861,7 @@ impl DeployTransaction {
             "deploy:{}:{}:{}:{}:{}:{}",
             self.from,
             hex::encode(&self.contract_code),
-            hex::encode(&self.initial_state),
+            hex::encode(&self.constructor_args),
             self.fee,
             self.nonce,
             self.timestamp
@@ -868,9 +876,9 @@ impl CallTransaction {
         format!(
             "call:{}:{}:{}:{}:{}:{}:{}",
             self.from,
-            self.contract_address,
+            self.to,
             self.method,
-            hex::encode(&self.params),
+            hex::encode(&self.args),
             self.fee,
             self.nonce,
             self.timestamp

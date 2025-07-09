@@ -9,6 +9,9 @@ description = "Post-quantum AI-enhanced cryptocurrency node"
 # Our proven PQC implementation
 dytallix-pqc = { path = "../pqc-crypto" }
 
+# Smart contracts integration
+dytallix-contracts = { path = "../smart-contracts" }
+
 # Core blockchain dependencies
 blake3 = "1.5"
 sha3 = "0.10"

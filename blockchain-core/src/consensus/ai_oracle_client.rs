@@ -11,10 +11,10 @@ use anyhow::{Result, anyhow};
 use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use log::{info, debug, warn};
+use log::{info, warn};
 use chrono;
 
-use crate::consensus::types::{AIServiceType, AIResponseSignature};
+use crate::consensus::types::AIServiceType;
 use crate::consensus::SignedAIOracleResponse;
 
 /// AI Analysis Result structure

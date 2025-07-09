@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use tokio;
-use log::{info, warn, error};
+use log::{info, error};
 
 mod runtime;
 mod storage;

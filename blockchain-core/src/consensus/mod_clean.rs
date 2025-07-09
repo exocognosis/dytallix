@@ -1,15 +1,14 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use serde::{Serialize, Deserialize};
-use log::{info, debug, warn};
-use chrono::{DateTime, Utc};
+use log::{info, debug, warn, error};
 use serde_json;
 use std::path::Path;
 use uuid;
 
 use crate::runtime::DytallixRuntime;
-use crate::crypto::{PQCManager, PQCSignature};
-use crate::types::{Transaction, Block, BlockHeader, AIRequestTransaction, AIServiceType, TransferTransaction}; // Import from types
+use crate::crypto::PQCManager;
+use crate::types::{Transaction, Block, BlockHeader, AIServiceType, TransferTransaction}; // Import from types
 
 // AI Service Integration
 use std::collections::HashMap;
@@ -849,7 +848,7 @@ impl ConsensusEngine {
                     "deployer": deploy_tx.from,
                     "contract_address": hex::encode(&deploy_tx.contract_code[..std::cmp::min(20, deploy_tx.contract_code.len())]),
                     "code_size": deploy_tx.contract_code.len(),
-                    "initial_balance": deploy_tx.initial_state.len(),
+                    "initial_balance": deploy_tx.constructor_args.len(),
                     "gas_limit": 1000000u64,
                     "fee": deploy_tx.fee,
                     "nonce": deploy_tx.nonce,
@@ -861,9 +860,9 @@ impl ConsensusEngine {
                 Ok(serde_json::json!({
                     "transaction_type": "contract_call",
                     "caller": call_tx.from,
-                    "contract_address": call_tx.contract_address,
+                    "contract_address": call_tx.to,
                     "function_name": call_tx.method,
-                    "input_size": call_tx.params.len(),
+                    "input_size": call_tx.args.len(),
                     "gas_limit": 1000000u64,
                     "fee": call_tx.fee,
                     "nonce": call_tx.nonce,
@@ -924,21 +923,70 @@ impl ConsensusEngine {
 
     /// Basic validation for contract deployment transactions
     async fn validate_deploy_transaction_basic(
-        _runtime: &Arc<DytallixRuntime>,
-        _deploy_tx: &crate::types::DeployTransaction,
+        runtime: &Arc<DytallixRuntime>,
+        deploy_tx: &crate::types::DeployTransaction,
     ) -> Result<bool, String> {
-        // TODO: Implement contract deployment validation
-        // For now, just allow all deployments
+        // Check if deployer has sufficient balance for gas
+        let deployer_balance = runtime.get_balance(&deploy_tx.from).await
+            .map_err(|e| e.to_string())?;
+        
+        let gas_cost = deploy_tx.gas_limit * deploy_tx.gas_price;
+        if deployer_balance < gas_cost {
+            return Ok(false);
+        }
+        
+        // Validate contract code is not empty
+        if deploy_tx.contract_code.is_empty() {
+            return Ok(false);
+        }
+        
+        // Check contract code size (max 64KB)
+        if deploy_tx.contract_code.len() > 65536 {
+            return Ok(false);
+        }
+        
+        // Generate contract address (simplified)
+        let contract_address = format!("dyt1contract{}", &deploy_tx.hash[..8]);
+        
+        // Check if contract already exists at this address
+        if let Ok(Some(_)) = runtime.get_contract(&contract_address).await {
+            return Ok(false);
+        }
+        
         Ok(true)
     }
 
     /// Basic validation for contract call transactions
     async fn validate_call_transaction_basic(
-        _runtime: &Arc<DytallixRuntime>,
-        _call_tx: &crate::types::CallTransaction,
+        runtime: &Arc<DytallixRuntime>,
+        call_tx: &crate::types::CallTransaction,
     ) -> Result<bool, String> {
-        // TODO: Implement contract call validation
-        // For now, just allow all calls
+        // Check if caller has sufficient balance for gas + value
+        let caller_balance = runtime.get_balance(&call_tx.from).await
+            .map_err(|e| e.to_string())?;
+        
+        let gas_cost = call_tx.gas_limit * call_tx.gas_price;
+        let total_cost = gas_cost + call_tx.value;
+        
+        if caller_balance < total_cost {
+            return Ok(false);
+        }
+        
+        // Validate contract exists at the specified address
+        if let Ok(None) = runtime.get_contract(&call_tx.to).await {
+            return Ok(false);
+        }
+        
+        // Validate method name is not empty
+        if call_tx.method.trim().is_empty() {
+            return Ok(false);
+        }
+        
+        // Validate contract address format
+        if !call_tx.to.starts_with("dyt1") {
+            return Ok(false);
+        }
+        
         Ok(true)
     }
 
@@ -1009,12 +1057,55 @@ impl ConsensusEngine {
                     info!("Applied transfer: {} -> {} ({})", transfer_tx.from, transfer_tx.to, transfer_tx.amount);
                 }
                 Transaction::Deploy(deploy_tx) => {
-                    // TODO: Deploy smart contract
-                    info!("Applied contract deployment: {}", deploy_tx.hash);
+                    // Generate contract address (simplified)
+                    let contract_address = format!("dyt1contract{}", &deploy_tx.hash[..8]);
+                    
+                    // Deploy smart contract using the runtime
+                    match runtime.deploy_contract_full(
+                        &contract_address,
+                        deploy_tx.contract_code.clone(),
+                        &deploy_tx.from,
+                        deploy_tx.gas_limit,
+                        deploy_tx.constructor_args.clone(),
+                    ).await {
+                        Ok(deployed_address) => {
+                            info!("Successfully deployed contract: {} at address: {}", deploy_tx.hash, deployed_address);
+                        }
+                        Err(e) => {
+                            error!("Failed to deploy contract {}: {}", deploy_tx.hash, e);
+                            return Err(format!("Contract deployment failed: {}", e));
+                        }
+                    }
                 }
                 Transaction::Call(call_tx) => {
-                    // TODO: Execute smart contract call
-                    info!("Applied contract call: {}", call_tx.hash);
+                    // Execute smart contract call using the runtime
+                    match runtime.call_contract_method(
+                        &call_tx.to, // Use 'to' field as contract address
+                        &call_tx.from,
+                        &call_tx.method,
+                        &call_tx.args,
+                        call_tx.gas_limit,
+                        call_tx.value,
+                    ).await {
+                        Ok(execution_result) => {
+                            if execution_result.success {
+                                info!("Successfully executed contract call: {}, gas used: {}", 
+                                     call_tx.hash, execution_result.gas_used);
+                                
+                                // Log contract events
+                                for event in execution_result.events {
+                                    info!("Contract event: {} - topic: {}", call_tx.to, event.topic);
+                                }
+                            } else {
+                                warn!("Contract call failed: {}, gas used: {}", 
+                                     call_tx.hash, execution_result.gas_used);
+                            }
+                        }
+                        Err(e) => {
+                            error!("Failed to execute contract call {}: {}", call_tx.hash, e);
+                            return Err(format!("Contract execution failed: {}", e));
+                        }
+                    }
                 }
                 Transaction::Stake(stake_tx) => {
                     // TODO: Process staking transaction

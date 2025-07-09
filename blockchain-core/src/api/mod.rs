@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use warp::Filter;
 use serde::{Deserialize, Serialize};
 use log::info;

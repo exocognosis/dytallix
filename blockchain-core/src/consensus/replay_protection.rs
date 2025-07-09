@@ -9,9 +9,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, BTreeMap};
 use std::sync::{Arc, RwLock};
 use sha3::{Sha3_256, Digest};
-use log::{info, warn, error, debug};
+use log::{info, warn, debug};
 
-use crate::consensus::{SignedAIOracleResponse, AIRequestPayload, AIResponsePayload};
+use crate::consensus::{SignedAIOracleResponse, AIRequestPayload};
 
 /// Configuration for replay protection and caching
 #[derive(Debug, Clone, Serialize, Deserialize)]

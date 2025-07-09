@@ -13,7 +13,7 @@ use chrono;
 use log::{info, warn, error, debug};
 
 use crate::types::{Address, Amount, Timestamp};
-use dytallix_pqc::{PQCManager, Signature, SignatureAlgorithm};
+use dytallix_pqc::PQCManager;
 
 /// Oracle registry configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

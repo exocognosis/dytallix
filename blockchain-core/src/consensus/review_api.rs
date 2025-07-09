@@ -7,7 +7,7 @@
 use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
-use log::{info, warn, error};
+use log::info;
 use uuid::Uuid;
 
 use crate::consensus::high_risk_queue::{HighRiskQueue, QueuedTransaction, QueueStatistics, ReviewPriority};
@@ -200,7 +200,7 @@ impl TransactionReviewApi {
                 "Call".to_string(),
                 None,
                 Some(call.from.clone()),
-                Some(call.contract_address.clone()),
+                Some(call.to.clone()),
             ),
             crate::types::Transaction::Stake(stake) => (
                 "Stake".to_string(),

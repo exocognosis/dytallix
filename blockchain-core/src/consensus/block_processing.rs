@@ -6,7 +6,7 @@
 use std::sync::Arc;
 use std::collections::HashMap;
 use anyhow::{Result, anyhow};
-use log::{info, debug, warn, error};
+use log::{info, warn, error};
 use tokio::sync::RwLock;
 use serde_json::Value;
 use sha2::{Sha256, Digest};

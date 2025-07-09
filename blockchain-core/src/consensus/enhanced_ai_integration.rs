@@ -9,14 +9,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use chrono;
-use log::{info, warn, error, debug};
+use log::{info, warn, error};
 
 use crate::consensus::{
     AIServiceConfig, AIOracleClient, SignedAIOracleResponse,
     signature_verification::{SignatureVerifier, VerificationConfig},
-    oracle_registry::{OracleRegistry, OracleRegistryConfig, OracleRegistryEntry, OracleStatus},
+    oracle_registry::{OracleRegistry, OracleRegistryConfig, OracleStatus},
 };
-use crate::types::{Address, Amount, Transaction, AIRequestTransaction};
+use crate::types::{Address, Amount, Transaction};
 
 /// Enhanced AI integration configuration with oracle management
 #[derive(Debug, Clone, Serialize, Deserialize)]

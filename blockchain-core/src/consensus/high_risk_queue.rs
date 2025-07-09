@@ -11,12 +11,12 @@ use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 use anyhow::{Result, anyhow};
-use log::{info, warn, error, debug};
+use log::{info, warn};
 
 use crate::types::{Transaction, TxHash};
 use crate::consensus::ai_integration::{AIVerificationResult, RiskProcessingDecision};
 use crate::consensus::notification_system::{NotificationSystem, NotificationSystemConfig};
-use crate::consensus::notification_types::{NotificationType, NotificationChannel};
+use crate::consensus::notification_types::NotificationType;
 
 /// Status of a transaction in the high-risk queue
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

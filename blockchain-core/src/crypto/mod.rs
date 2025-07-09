@@ -144,8 +144,8 @@ impl PQCManager {
 // --- Message formatters ----------------------------------------------------
 
 use crate::types::{
-    AIRequestTransaction, CallTransaction, DeployTransaction, StakeAction, StakeTransaction,
-    TransferTransaction, AIServiceType,
+    AIRequestTransaction, CallTransaction, DeployTransaction, StakeTransaction,
+    TransferTransaction,
 };
 
 fn format_transfer_message(tx: &TransferTransaction) -> Vec<u8> {
@@ -161,7 +161,7 @@ fn format_deploy_message(tx: &DeployTransaction) -> Vec<u8> {
         "deploy:{}:{}:{}:{}:{}:{}",
         tx.from,
         hex::encode(&tx.contract_code),
-        hex::encode(&tx.initial_state),
+        hex::encode(&tx.constructor_args),
         tx.fee,
         tx.nonce,
         tx.timestamp
@@ -173,9 +173,9 @@ fn format_call_message(tx: &CallTransaction) -> Vec<u8> {
     format!(
         "call:{}:{}:{}:{}:{}:{}:{}",
         tx.from,
-        tx.contract_address,
+        tx.to,
         tx.method,
-        hex::encode(&tx.params),
+        hex::encode(&tx.args),
         tx.fee,
         tx.nonce,
         tx.timestamp

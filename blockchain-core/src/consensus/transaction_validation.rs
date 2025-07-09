@@ -8,7 +8,7 @@ use std::sync::Arc;
 use anyhow::{Result, anyhow};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
-use log::{info, debug, warn, error};
+use log::{info, warn};
 
 use crate::types::{Transaction, TransferTransaction, AIRequestTransaction};
 use crate::consensus::types::AIServiceType;

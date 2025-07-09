@@ -6,7 +6,7 @@
 use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
-use log::{info, warn, error};
+use log::{info, error};
 use chrono::{DateTime, Utc};
 
 use crate::consensus::audit_trail::{

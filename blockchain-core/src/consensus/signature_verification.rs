@@ -9,11 +9,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use chrono;
-use dytallix_pqc::{PQCManager, SignatureAlgorithm, PQCError};
+use dytallix_pqc::PQCManager;
 
 use crate::consensus::{
-    SignedAIOracleResponse, AIResponseSignature, OracleIdentity, 
-    OracleCertificate, VerificationData, TimestampProof
+    SignedAIOracleResponse, OracleIdentity
 };
 
 /// Errors that can occur during signature verification

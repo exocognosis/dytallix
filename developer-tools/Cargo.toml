@@ -24,6 +24,8 @@ dytallix-pqc = { path = "../pqc-crypto" }
 pqcrypto-dilithium = "0.5"
 hex = "0.4"
 sha3 = "0.10"
+blake3 = "1.5"
+base64 = "0.21"
 
 # File I/O and configuration
 toml = "0.8"

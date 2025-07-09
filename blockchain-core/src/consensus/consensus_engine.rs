@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 use std::path::Path;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use log::{info, debug, warn, error};
 use tokio::sync::RwLock;
 use serde_json::Value;
@@ -14,9 +14,11 @@ use std::collections::HashMap;
 
 use crate::runtime::DytallixRuntime;
 use crate::crypto::PQCManager;
-use crate::types::{Transaction, Block};
+use crate::types::{Transaction, Block, DeployTransaction, CallTransaction};
+use crate::storage::{StorageManager, ContractState};
 use crate::consensus::types::AIServiceType;
 use crate::consensus::ai_oracle_client::{AIOracleClient, AIServiceConfig};
+use dytallix_contracts::runtime::{ContractRuntime, ContractDeployment, ContractCall};
 use crate::consensus::ai_integration::{AIIntegrationManager, AIIntegrationConfig};
 use crate::consensus::transaction_validation::TransactionValidator;
 use crate::consensus::block_processing::BlockProcessor;
@@ -24,6 +26,48 @@ use crate::consensus::key_management::{KeyManager, NodeKeyStore};
 use crate::consensus::high_risk_queue::{HighRiskQueue, HighRiskQueueConfig};
 use crate::consensus::audit_trail::{AuditTrailManager, AuditConfig};
 use crate::consensus::performance_optimizer::{PerformanceOptimizer, PerformanceConfig};
+
+/// Contract execution result
+#[derive(Debug, Clone)]
+pub struct ExecutionResult {
+    pub success: bool,
+    pub gas_used: u64,
+    pub output: Vec<u8>,
+    pub error: Option<String>,
+}
+
+impl ExecutionResult {
+    pub fn success() -> Self {
+        Self {
+            success: true,
+            gas_used: 0,
+            output: Vec::new(),
+            error: None,
+        }
+    }
+
+    pub fn failure(error: String) -> Self {
+        Self {
+            success: false,
+            gas_used: 0,
+            output: Vec::new(),
+            error: Some(error),
+        }
+    }
+}
+
+/// Consensus engine error
+#[derive(Debug, thiserror::Error)]
+pub enum ConsensusError {
+    #[error("Storage error: {0}")]
+    Storage(#[from] Box<dyn std::error::Error>),
+    #[error("Contract not found: {0}")]
+    ContractNotFound(String),
+    #[error("Execution error: {0}")]
+    Execution(String),
+    #[error("Invalid transaction: {0}")]
+    InvalidTransaction(String),
+}
 
 /// Main Consensus Engine
 #[derive(Debug)]
@@ -45,6 +89,9 @@ pub struct ConsensusEngine {
     high_risk_queue: Arc<HighRiskQueue>,
     audit_trail: Arc<AuditTrailManager>,
     performance_optimizer: Arc<PerformanceOptimizer>,
+    
+    // WASM contract runtime
+    wasm_runtime: Arc<ContractRuntime>,
 }
 
 impl ConsensusEngine {
@@ -104,6 +151,12 @@ impl ConsensusEngine {
             ai_integration.clone(),
         ));
         
+        // Initialize WASM runtime
+        let wasm_runtime = Arc::new(ContractRuntime::new(
+            1_000_000, // Max gas per call
+            256,       // Max memory pages
+        ).map_err(|e| format!("Failed to initialize WASM runtime: {:?}", e))?);
+        
         Ok(Self {
             runtime,
             pqc_manager,
@@ -118,6 +171,7 @@ impl ConsensusEngine {
             high_risk_queue,
             audit_trail,
             performance_optimizer,
+            wasm_runtime,
         })
     }
 
@@ -377,5 +431,192 @@ impl ConsensusEngine {
     /// Get block processor reference
     pub fn get_block_processor(&self) -> Arc<BlockProcessor> {
         self.block_processor.clone()
+    }
+
+    /// Process contract transaction
+    pub async fn process_contract_transaction(
+        &self,
+        tx: &Transaction,
+        storage: &StorageManager,
+    ) -> Result<ExecutionResult, ConsensusError> {
+        match tx {
+            Transaction::Deploy(deploy_tx) => {
+                self.execute_deployment(deploy_tx, storage).await
+            }
+            Transaction::Call(call_tx) => {
+                self.execute_contract_call(call_tx, storage).await
+            }
+            _ => Ok(ExecutionResult::success()),
+        }
+    }
+
+    /// Execute contract deployment
+    async fn execute_deployment(
+        &self,
+        deploy_tx: &DeployTransaction,
+        storage: &StorageManager,
+    ) -> Result<ExecutionResult, ConsensusError> {
+        info!("Executing contract deployment from {}", deploy_tx.from);
+
+        // Generate contract address (simplified - in production use proper derivation)
+        let contract_address = format!("contract_{}", deploy_tx.hash);
+
+        // Check if contract already exists
+        if storage.contract_exists(&contract_address).await? {
+            return Ok(ExecutionResult::failure(
+                "Contract already exists".to_string()
+            ));
+        }
+
+        // Prepare WASM contract deployment
+        let deployment = ContractDeployment {
+            address: contract_address.clone(),
+            code: deploy_tx.contract_code.clone(),
+            initial_state: deploy_tx.constructor_args.clone(),
+            gas_limit: deploy_tx.gas_limit,
+            deployer: deploy_tx.from.clone(),
+            timestamp: deploy_tx.timestamp,
+            ai_audit_score: None,
+        };
+
+        // Deploy contract to WASM runtime
+        let deployed_address = match self.wasm_runtime.deploy_contract(deployment).await {
+            Ok(addr) => addr,
+            Err(e) => {
+                error!("WASM contract deployment failed: {:?}", e);
+                return Ok(ExecutionResult::failure(
+                    format!("Contract deployment failed: {:?}", e)
+                ));
+            }
+        };
+
+        // Create contract state for blockchain storage
+        let contract_state = ContractState::new(
+            deploy_tx.contract_code.clone(),
+            deploy_tx.from.clone(),
+            0, // TODO: Get actual block number
+            deploy_tx.timestamp,
+        );
+
+        // Store contract state in blockchain storage
+        storage.store_contract(&contract_address, &contract_state).await?;
+
+        info!("Contract deployed successfully at {}", deployed_address);
+        
+        Ok(ExecutionResult {
+            success: true,
+            gas_used: 1000, // TODO: Calculate actual gas used from WASM runtime
+            output: deployed_address.as_bytes().to_vec(),
+            error: None,
+        })
+    }
+
+    /// Execute contract call
+    async fn execute_contract_call(
+        &self,
+        call_tx: &CallTransaction,
+        storage: &StorageManager,
+    ) -> Result<ExecutionResult, ConsensusError> {
+        info!("Executing contract call from {} to {}", call_tx.from, call_tx.to);
+
+        // Check if contract exists
+        if !storage.contract_exists(&call_tx.to).await? {
+            return Ok(ExecutionResult::failure(
+                format!("Contract not found: {}", call_tx.to)
+            ));
+        }
+
+        // Get contract state
+        let mut contract_state = storage.get_contract(&call_tx.to).await?
+            .ok_or_else(|| ConsensusError::ContractNotFound(call_tx.to.clone()))?;
+
+        // Prepare WASM contract call
+        let call = ContractCall {
+            contract_address: call_tx.to.clone(),
+            caller: call_tx.from.clone(),
+            method: call_tx.method.clone(),
+            input_data: call_tx.args.clone(),
+            gas_limit: call_tx.gas_limit,
+            value: 0, // TODO: Add value transfer support
+            timestamp: call_tx.timestamp,
+        };
+
+        // Execute contract call in WASM runtime
+        let execution_result = match self.wasm_runtime.call_contract(call).await {
+            Ok(result) => result,
+            Err(e) => {
+                error!("WASM contract call failed: {:?}", e);
+                return Ok(ExecutionResult::failure(
+                    format!("Contract call failed: {:?}", e)
+                ));
+            }
+        };
+
+        // Update contract state
+        contract_state.increment_calls();
+        contract_state.update_timestamp(call_tx.timestamp);
+
+        // Apply state changes from WASM execution
+        for state_change in &execution_result.state_changes {
+            contract_state.set_storage(state_change.key.clone(), state_change.new_value.clone());
+        }
+
+        // Store updated state
+        storage.store_contract(&call_tx.to, &contract_state).await?;
+
+        info!("Contract call executed successfully: gas_used={}, success={}", 
+               execution_result.gas_used, execution_result.success);
+        
+        Ok(ExecutionResult {
+            success: execution_result.success,
+            gas_used: execution_result.gas_used,
+            output: execution_result.return_data,
+            error: if execution_result.success { None } else { Some("Contract execution failed".to_string()) },
+        })
+    }
+
+    /// Get contract state
+    pub async fn get_contract_state(
+        &self,
+        contract_address: &str,
+        storage: &StorageManager,
+    ) -> Result<Option<ContractState>, ConsensusError> {
+        Ok(storage.get_contract(&contract_address.to_string()).await?)
+    }
+
+    /// Deploy contract (convenience method)
+    pub async fn deploy_contract(
+        &self,
+        deploy_tx: &DeployTransaction,
+        storage: &StorageManager,
+    ) -> Result<String, ConsensusError> {
+        let result = self.execute_deployment(deploy_tx, storage).await?;
+        
+        if result.success {
+            let contract_address = String::from_utf8(result.output)
+                .map_err(|e| ConsensusError::Execution(e.to_string()))?;
+            Ok(contract_address)
+        } else {
+            Err(ConsensusError::Execution(
+                result.error.unwrap_or_else(|| "Unknown deployment error".to_string())
+            ))
+        }
+    }
+
+    /// Call contract method (convenience method)
+    pub async fn call_contract(
+        &self,
+        call_tx: &CallTransaction,
+        storage: &StorageManager,
+    ) -> Result<Vec<u8>, ConsensusError> {
+        let result = self.execute_contract_call(call_tx, storage).await?;
+        
+        if result.success {
+            Ok(result.output)
+        } else {
+            Err(ConsensusError::Execution(
+                result.error.unwrap_or_else(|| "Unknown call error".to_string())
+            ))
+        }
     }
 }

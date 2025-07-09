@@ -13,7 +13,7 @@ use log;
 
 use crate::consensus::{
     SignedAIOracleResponse, AIResponsePayload, AIOracleClient, AIServiceConfig,
-    signature_verification::{SignatureVerifier, VerificationConfig, VerificationError, OracleRegistryEntry},
+    signature_verification::{SignatureVerifier, VerificationConfig, OracleRegistryEntry},
     replay_protection::{ReplayProtectionManager, ReplayProtectionConfig}
 };
 
@@ -462,7 +462,7 @@ impl AIIntegrationManager {
         // Combine results with risk-based processing
         match (fraud_result, risk_result) {
             (AIVerificationResult::Verified { risk_score: fraud_score, confidence: fraud_confidence, .. }, 
-             AIVerificationResult::Verified { risk_score: risk_score, confidence: risk_confidence, oracle_id, response_id, .. }) => {
+             AIVerificationResult::Verified { risk_score, confidence: risk_confidence, oracle_id, response_id, .. }) => {
                 // Calculate combined risk score and fraud probability
                 let combined_risk_score = match (fraud_score, risk_score) {
                     (Some(f), Some(r)) => (f + r) / 2.0,

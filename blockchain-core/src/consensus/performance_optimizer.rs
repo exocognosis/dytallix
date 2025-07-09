@@ -14,7 +14,7 @@ use chrono::{DateTime, Utc, Duration};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 use anyhow::{Result, anyhow};
-use log::{info, warn, error, debug};
+use log::{info, warn, debug};
 
 use crate::types::{Transaction, TxHash};
 use crate::consensus::ai_integration::{AIVerificationResult, RiskProcessingDecision};

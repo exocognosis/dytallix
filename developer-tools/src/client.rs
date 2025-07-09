@@ -103,14 +103,16 @@ pub struct TransactionDetails {
     pub nonce: u64,
     pub status: String,
     pub block_number: Option<u64>,
-    pub timestamp: u64,
-    pub confirmations: u64,
+    pub timestamp: Option<i64>,
+    pub confirmations: Option<u64>,
+    pub signature: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BlockchainStats {
-    pub current_block: u64,
-    pub total_transactions: usize,
-    pub network_peers: usize,
-    pub mempool_size: usize,
+    pub block_height: u64,
+    pub total_transactions: u64,
+    pub peer_count: u64,
+    pub mempool_size: u64,
+    pub consensus_status: String,
 }

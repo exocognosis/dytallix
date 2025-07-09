@@ -1,5 +1,5 @@
 use anyhow::Result;
-use dytallix_pqc::{SignatureAlgorithm, KeyExchangeAlgorithm, PQCManager, KeyPair, Signature};
+use dytallix_pqc::{SignatureAlgorithm, KeyExchangeAlgorithm, PQCManager};
 use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
 use dirs::home_dir;
@@ -88,8 +88,8 @@ impl CryptoManager {
             signature_algorithm: "Dilithium5".to_string(),
             key_exchange_algorithm: "Kyber1024".to_string(),
             created_at: chrono::Utc::now().timestamp() as u64,
-            public_key_hex: "deadbeef".to_string(),
-            key_exchange_public_key_hex: "deadbeef".to_string(),
+            public_key_hex: "deadbeef".repeat(8),
+            key_exchange_public_key_hex: "deadbeef".repeat(8),
         }))
     }
     
