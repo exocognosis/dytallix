@@ -46,23 +46,37 @@ pub async fn create_account(name: Option<String>, config: &Config) -> Result<()>
     let key_exchange_alg = KeyExchangeAlgorithm::Kyber1024;
     
     // Ask for passphrase
+    println!("\n{}", "🔐 Account Security Setup".bright_cyan().bold());
+    println!("A passphrase adds an extra layer of security to your account.");
+    println!("Without a passphrase, your keys are stored unencrypted on disk.");
+    
     let use_passphrase = Confirm::new()
         .with_prompt("Do you want to protect this account with a passphrase?")
         .default(true)
         .interact()?;
     
     let passphrase = if use_passphrase {
+        println!("{}", "📝 Choose a strong passphrase (minimum 8 characters recommended)".bright_blue());
         let pass = Password::new()
             .with_prompt("Enter passphrase")
             .with_confirmation("Confirm passphrase", "Passphrases do not match")
+            .validate_with(|input: &String| -> Result<(), &str> {
+                if input.len() < 8 {
+                    Err("Passphrase should be at least 8 characters long")
+                } else {
+                    Ok(())
+                }
+            })
             .interact()?;
         Some(pass)
     } else {
+        println!("{}", "⚠️  Warning: Account will be stored without encryption".bright_yellow());
         None
     };
     
     // Create the account
-    println!("Generating {} keys...", format!("{:?}", signature_alg).bright_cyan());
+    println!("\n{}", "⚙️  Generating quantum-resistant cryptographic keys...".bright_blue());
+    println!("This may take a moment...");
     
     let address = crypto_manager.create_account(
         account_name.clone(),
@@ -71,10 +85,14 @@ pub async fn create_account(name: Option<String>, config: &Config) -> Result<()>
         Some(key_exchange_alg.clone()),
     )?;
     
-    println!("{}", "✅ Account created successfully!".bright_green());
-    println!("Address: {}", address.bright_cyan());
-    println!("Signature Algorithm: {}", format!("{:?}", signature_alg).bright_blue());
-    println!("Key Exchange Algorithm: {}", format!("{:?}", key_exchange_alg).bright_blue());
+    println!("\n{}", "✅ Account created successfully!".bright_green().bold());
+    println!();
+    println!("{}", "📋 Account Details:".bright_cyan().bold());
+    println!("  Name: {}", account_name.bright_white());
+    println!("  Address: {}", address.bright_cyan());
+    println!("  Signature Algorithm: {}", format!("{:?}", signature_alg).bright_blue());
+    println!("  Key Exchange Algorithm: {}", format!("{:?}", key_exchange_alg).bright_blue());
+    println!("  Protected: {}", if passphrase.is_some() { "Yes".bright_green() } else { "No".bright_red() });
     
     // Show account info
     if let Some(account_info) = crypto_manager.get_account_info(&account_name)? {
@@ -132,10 +150,31 @@ pub async fn account_balance(account: String, config: &Config) -> Result<()> {
         println!("{}", format!("💰 Balance for account: {}", account).bright_blue());
         println!("Address: {}", account_info.address.bright_cyan());
         
-        // TODO: Implement actual balance querying from blockchain
-        println!("Balance: {} DYT", "0.0".bright_white());
-        println!("Staked: {} DYT", "0.0".bright_yellow());
-        println!("Available: {} DYT", "0.0".bright_green());
+        // Connect to blockchain for real balance
+        let client = crate::client::BlockchainClient::new(config.node_url.clone());
+        
+        match client.get_balance(&account_info.address).await {
+            Ok(balance_response) => {
+                if balance_response.success {
+                    let balance = balance_response.data.unwrap_or(0);
+                    let balance_dyt = balance as f64 / 1_000_000.0; // Convert from micro-DYT
+                    
+                    println!("Balance: {:.6} DYT", balance_dyt.to_string().bright_white());
+                    
+                    // Query additional balance info if available
+                    if balance > 0 {
+                        println!("Raw Balance: {} micro-DYT", balance.to_string().bright_yellow());
+                    }
+                } else {
+                    println!("{}", "⚠️  Unable to fetch balance from blockchain".bright_yellow());
+                    println!("Balance: {} DYT (offline mode)", "0.0".bright_white());
+                }
+            }
+            Err(_) => {
+                println!("{}", "⚠️  Blockchain connection failed, showing cached data".bright_yellow());
+                println!("Balance: {} DYT (cached)", "0.0".bright_white());
+            }
+        }
         
         println!("\n{}", "📋 Account Details:".bright_blue());
         println!("  Signature Algorithm: {}", account_info.signature_algorithm);

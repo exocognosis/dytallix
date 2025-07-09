@@ -68,6 +68,28 @@ impl BlockchainClient {
         let result = response.json::<ApiResponse<BlockchainStats>>().await?;
         Ok(result)
     }
+    
+    // Smart contract methods
+    pub async fn deploy_smart_contract(&self, deployment_data: &DeploymentData) -> Result<serde_json::Value> {
+        let url = format!("{}/contract/deploy", self.base_url);
+        let response = self.client.post(&url).json(deployment_data).send().await?;
+        let result = response.json::<serde_json::Value>().await?;
+        Ok(result)
+    }
+    
+    pub async fn get_contract_info(&self, address: &str) -> Result<serde_json::Value> {
+        let url = format!("{}/contract/{}", self.base_url, address);
+        let response = self.client.get(&url).send().await?;
+        let result = response.json::<serde_json::Value>().await?;
+        Ok(result)
+    }
+    
+    pub async fn call_contract_method(&self, call_data: &ContractCallData) -> Result<serde_json::Value> {
+        let url = format!("{}/contract/call", self.base_url);
+        let response = self.client.post(&url).json(call_data).send().await?;
+        let result = response.json::<serde_json::Value>().await?;
+        Ok(result)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -115,4 +137,20 @@ pub struct BlockchainStats {
     pub peer_count: u64,
     pub mempool_size: u64,
     pub consensus_status: String,
+}
+
+// Smart contract data structures
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeploymentData {
+    pub code: String,  // Base64 encoded WASM
+    pub constructor_params: Option<serde_json::Value>,
+    pub gas_limit: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ContractCallData {
+    pub contract_address: String,
+    pub method: String,
+    pub params: Option<serde_json::Value>,
+    pub gas_limit: u64,
 }

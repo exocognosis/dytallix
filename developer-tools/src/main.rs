@@ -179,6 +179,16 @@ enum ContractCommands {
         #[arg(long)]
         to_block: Option<u64>,
     },
+    /// List available contract templates
+    Templates,
+    /// Initialize contract from template
+    Init {
+        /// Template name (token, escrow, voting, oracle)
+        template: String,
+        /// Output directory
+        #[arg(short, long)]
+        output: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -338,6 +348,12 @@ async fn execute_contract_command(command: ContractCommands, config: &Config) ->
         }
         ContractCommands::Events { address, from_block, to_block } => {
             smart_contract::contract_events(address, from_block, to_block, config).await
+        }
+        ContractCommands::Templates => {
+            smart_contract::list_contract_templates(config).await
+        }
+        ContractCommands::Init { template, output } => {
+            smart_contract::init_from_template(template, output, config).await
         }
     }
 }

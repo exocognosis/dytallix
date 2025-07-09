@@ -57,50 +57,48 @@ pub async fn analyze_fraud(input: String, config: &Config) -> Result<()> {
         "timestamp": chrono::Utc::now().to_rfc3339()
     });
     
-    // For now, simulate AI response since the service might not be fully running
-    let mock_response = serde_json::json!({
-        "fraud_score": 0.15,
-        "risk_level": "LOW",
-        "analysis": {
-            "suspicious_patterns": [],
-            "confidence": 0.87,
-            "factors": [
-                {
-                    "type": "transaction_amount",
-                    "score": 0.1,
-                    "description": "Transaction amount within normal range"
-                },
-                {
-                    "type": "account_history",
-                    "score": 0.05,
-                    "description": "No unusual account behavior detected"
-                },
-                {
-                    "type": "network_analysis",
-                    "score": 0.0,
-                    "description": "No suspicious network connections"
+    // Try real AI service first, fall back to simulation
+    let analysis_result = match client.post(&ai_url)
+        .json(&request_payload)
+        .timeout(std::time::Duration::from_secs(10))
+        .send()
+        .await 
+    {
+        Ok(response) => {
+            if response.status().is_success() {
+                match response.json::<Value>().await {
+                    Ok(result) => {
+                        println!("{}", "✅ Real-time AI fraud analysis complete!".bright_green());
+                        result
+                    }
+                    Err(_) => {
+                        println!("{}", "⚠️  AI service response parsing failed, using fallback".bright_yellow());
+                        get_mock_fraud_response(&analysis_data)
+                    }
                 }
-            ]
-        },
-        "recommendations": [
-            "Transaction appears legitimate",
-            "No immediate action required"
-        ]
-    });
+            } else {
+                println!("{}", format!("⚠️  AI service returned {}, using fallback", response.status()).bright_yellow());
+                get_mock_fraud_response(&analysis_data)
+            }
+        }
+        Err(e) => {
+            println!("{}", format!("⚠️  AI service unavailable ({}), using offline analysis", e).bright_yellow());
+            get_mock_fraud_response(&analysis_data)
+        }
+    };
     
-    println!("{}", "✅ Fraud analysis complete!".bright_green());
     println!("\n{}", "📊 Analysis Results:".bright_cyan().bold());
     
-    let fraud_score: f64 = mock_response["fraud_score"].as_f64().unwrap_or(0.0);
-    let risk_level = mock_response["risk_level"].as_str().unwrap_or("UNKNOWN");
-    let confidence: f64 = mock_response["analysis"]["confidence"].as_f64().unwrap_or(0.0);
+    let fraud_score: f64 = analysis_result["fraud_score"].as_f64().unwrap_or(0.0);
+    let risk_level = analysis_result["risk_level"].as_str().unwrap_or("UNKNOWN");
+    let confidence: f64 = analysis_result["analysis"]["confidence"].as_f64().unwrap_or(0.0);
     
     println!("Fraud Score: {:.2}%", (fraud_score * 100.0).to_string().bright_red());
     println!("Risk Level: {}", format_risk_level(risk_level));
     println!("Confidence: {:.1}%", (confidence * 100.0).to_string().bright_blue());
     
     // Display analysis factors
-    if let Some(factors) = mock_response["analysis"]["factors"].as_array() {
+    if let Some(factors) = analysis_result["analysis"]["factors"].as_array() {
         println!("\n{}", "🔍 Analysis Factors:".bright_blue());
         for factor in factors {
             let factor_type = factor["type"].as_str().unwrap_or("unknown");
@@ -116,7 +114,7 @@ pub async fn analyze_fraud(input: String, config: &Config) -> Result<()> {
     }
     
     // Display recommendations
-    if let Some(recommendations) = mock_response["recommendations"].as_array() {
+    if let Some(recommendations) = analysis_result["recommendations"].as_array() {
         println!("\n{}", "💡 Recommendations:".bright_green());
         for rec in recommendations {
             println!("  • {}", rec.as_str().unwrap_or("").bright_white());
@@ -469,4 +467,70 @@ fn format_risk_level(level: &str) -> colored::ColoredString {
         "CRITICAL" => level.on_red().bright_white(),
         _ => level.bright_white(),
     }
+}
+
+fn get_mock_fraud_response(transaction_data: &Value) -> Value {
+    let amount = transaction_data["amount"].as_u64().unwrap_or(0);
+    let from = transaction_data["from"].as_str().unwrap_or("unknown");
+    let to = transaction_data["to"].as_str().unwrap_or("unknown");
+    
+    // Simple heuristic-based fraud scoring
+    let fraud_score = if amount > 1_000_000 {
+        0.85  // High amount
+    } else if from == to {
+        0.95  // Self-transaction
+    } else if amount < 1000 {
+        0.15  // Small amount
+    } else {
+        0.25  // Normal transaction
+    };
+    
+    let risk_level = if fraud_score > 0.8 {
+        "HIGH"
+    } else if fraud_score > 0.5 {
+        "MEDIUM"
+    } else {
+        "LOW"
+    };
+    
+    serde_json::json!({
+        "fraud_score": fraud_score,
+        "risk_level": risk_level,
+        "analysis": {
+            "suspicious_patterns": [],
+            "confidence": 0.87,
+            "factors": [
+                {
+                    "type": "transaction_amount",
+                    "score": if amount > 1_000_000 { 0.8 } else { 0.1 },
+                    "description": if amount > 1_000_000 { 
+                        "High transaction amount detected" 
+                    } else { 
+                        "Transaction amount within normal range" 
+                    }
+                },
+                {
+                    "type": "account_pattern",
+                    "score": if from == to { 0.9 } else { 0.05 },
+                    "description": if from == to {
+                        "Self-transaction detected"
+                    } else {
+                        "Normal account interaction pattern"
+                    }
+                },
+                {
+                    "type": "network_analysis",
+                    "score": 0.0,
+                    "description": "No suspicious network connections detected"
+                }
+            ]
+        },
+        "recommendations": if fraud_score > 0.8 {
+            vec!["Manual review recommended", "Additional verification required"]
+        } else if fraud_score > 0.5 {
+            vec!["Additional monitoring recommended", "Verify transaction legitimacy"]
+        } else {
+            vec!["Transaction appears legitimate", "No immediate action required"]
+        }
+    })
 }
