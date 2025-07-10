@@ -1,0 +1,41 @@
+[package]
+name = "dytallix-interoperability"
+version = "0.9.3"
+edition = "2021"
+authors = ["Dytallix Team"]
+description = "Cross-chain bridge and IBC protocol implementation for Dytallix"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+rand = "0.8"
+thiserror = "1.0"
+tracing = "0.1"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Cryptography dependencies
+sha2 = "0.10"
+blake3 = "1.0"
+
+# Networking dependencies
+reqwest = { version = "0.11", features = ["json"] }
+websockets = "0.7"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.11"
+
+[features]
+default = ["std"]
+std = []
+no-std = []
+
+[[bin]]
+name = "bridge-cli"
+path = "src/bin/bridge_cli.rs"
+
+[[example]]
+name = "bridge_demo"
+path = "examples/bridge_demo.rs"
