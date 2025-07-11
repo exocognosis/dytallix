@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom'
 import { Navigation } from './components/Navigation'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { Homepage } from './pages/Homepage'
+import { About } from './pages/About'
 import { Dashboard } from './pages/Dashboard'
 import { Wallet } from './pages/Wallet'
 import { Explorer } from './pages/Explorer'
@@ -17,11 +19,13 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-gray-900 text-white relative">
         <Navigation />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 py-8 relative z-10">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Homepage />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/explorer" element={<Explorer />} />
             <Route path="/analytics" element={<Analytics />} />

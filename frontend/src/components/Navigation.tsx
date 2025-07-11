@@ -4,6 +4,8 @@ import { Disclosure, Menu, Transition } from '@headlessui/react'
 import { 
   Bars3Icon, 
   XMarkIcon,
+  HomeIcon,
+  InformationCircleIcon,
   WalletIcon,
   ChartBarIcon,
   CubeIcon,
@@ -16,11 +18,13 @@ import { useWalletStore } from '../store/wallet'
 import { useBlockchainStats } from '../hooks/useAPI'
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: ChartBarIcon },
+  { name: 'Home', href: '/', icon: HomeIcon },
+  { name: 'About', href: '/about', icon: InformationCircleIcon },
+  { name: 'Dashboard', href: '/dashboard', icon: ChartBarIcon },
   { name: 'Wallet', href: '/wallet', icon: WalletIcon },
   { name: 'Explorer', href: '/explorer', icon: CubeIcon },
   { name: 'Analytics', href: '/analytics', icon: BoltIcon },
-  { name: 'Smart Contracts', href: '/contracts', icon: CommandLineIcon },
+  { name: 'Contracts', href: '/contracts', icon: CommandLineIcon },
   { name: 'Tokenomics', href: '/tokenomics', icon: CurrencyDollarIcon },
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
 ]
