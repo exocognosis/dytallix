@@ -196,7 +196,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
     
     // Start the server
     warp::serve(routes)
-        .run(([127, 0, 0, 1], 3030))
+        .run(([0, 0, 0, 0], 3030))
         .await;
     
     Ok(())

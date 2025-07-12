@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dytallix – Quantum-Safe, AI-Enhanced Crypto</title>
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            color: #f9fafb;
+            margin: 0;
+            min-height: 100vh;
+            background-color: #111827;
+        }
+        
+        /* Navigation Styles - Match React App */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: #1f2937;
+            border-bottom: 1px solid #374151;
+            height: 64px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .nav-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .nav-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .nav-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: #d1d5db;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.875rem;
+        }
+        
+        .nav-link:hover {
+            color: white;
+            background-color: #374151;
+        }
+        
+        .nav-link.active {
+            color: white;
+            background-color: #111827;
+        }
+        
+        .nav-link .icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Status Indicator */
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #d1d5db;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #10b981;
+        }
+        
+        /* Mobile menu */
+        .mobile-menu-button {
+            display: none;
+            background: none;
+            border: none;
+            color: #d1d5db;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background-color: #1f2937;
+                flex-direction: column;
+                padding: 1rem;
+                border-top: 1px solid #374151;
+                gap: 0.5rem;
+            }
+            
+            .nav-links.mobile-open {
+                display: flex;
+            }
+            
+            .mobile-menu-button {
+                display: block;
+            }
+            
+            .nav-status {
+                display: none;
+            }
+        }
+        
+        /* Content Areas */
+        .content-wrapper {
+            margin-top: 64px;
+            min-height: calc(100vh - 64px);
+        }
+        
+        .content-section {
+            display: none;
+            padding: 2rem;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        /* Background Animation */
+        .bg-anim {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        /* Marketing Container (Home Page) */
+        .marketing-container {
+            position: relative;
+            z-index: 1;
+            max-width: 90vw;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            border: 1px solid #374151;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Page Header Styles */
+        .page-header {
+            border-bottom: 1px solid #374151;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .page-subtitle {
+            color: #9ca3af;
+            margin-top: 0.5rem;
+            font-size: 1.1rem;
+        }
+        
+        /* Feature Cards and Components */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .feature-card {
+            background: rgba(31, 41, 55, 0.5);
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            background: rgba(31, 41, 55, 0.8);
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+        
+        .feature-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .feature-description {
+            color: #d1d5db;
+            line-height: 1.6;
+        }
+        
+        /* Buttons and Actions */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            background: none;
+            font-size: 1rem;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+        
+        /* Text and Typography */
+        h1 { 
+            color: #f8fafc; 
+            font-size: 2rem; 
+            margin-bottom: 0.3em; 
+            letter-spacing: -0.02em; 
+            font-weight: 700;
+        }
+        h2 { 
+            color: #3b82f6; 
+            margin-top: 1.5em; 
+            font-size: 1.3rem; 
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+        ul, .bullets { 
+            margin: 1em 0; 
+            padding-left: 1em; 
+        }
+        li, .bullets li { 
+            margin-bottom: 0.7em; 
+            font-size: 1em; 
+            line-height: 1.6; 
+            color: #d1d5db;
+        }
+        .footer { 
+            margin-top: 2em; 
+            color: #6b7280; 
+            font-size: 0.85em; 
+            text-align: center; 
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .content-section {
+                padding: 1rem;
+            }
+            
+            .marketing-container {
+                max-width: 95vw;
+                padding: 1rem;
+                margin: 1rem auto;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+            
+            h1 { 
+                font-size: 1.8rem; 
+            }
+            h2 { 
+                font-size: 1.2rem; 
+            }
+            li, .bullets li { 
+                font-size: 0.95em; 
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas class="bg-anim"></canvas>
+    
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-brand" onclick="showSection('home')">
+                <div class="nav-logo">D</div>
+                <span class="nav-title">Dytallix</span>
+            </a>
+            
+            <div class="nav-links" id="navLinks">
+                <a href="#" class="nav-link" onclick="showSection('home')">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    Home
+                </a>
+                <a href="#" class="nav-link" onclick="showSection('dashboard')">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-link" onclick="showSection('wallet')">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V9a2 2 0 00-2-2H9"></path>
+                    </svg>
+                    Wallet
+                </a>
+                <a href="#" class="nav-link" onclick="showSection('explorer')">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    Explorer
+                </a>
+                <a href="#" class="nav-link" onclick="showSection('analytics')">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Analytics
+                </a>
+                <a href="#" class="nav-link" onclick="showSection('contracts')">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Contracts
+                </a>
+                <a href="#" class="nav-link" onclick="showSection('tokenomics')">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                    </svg>
+                    Tokenomics
+                </a>
+                <a href="#" class="nav-link" onclick="showSection('settings')">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Settings
+                </a>
+            </div>
+            
+            <div class="nav-status">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Connected</span>
+                </div>
+            </div>
+            
+            <button class="mobile-menu-button" onclick="toggleMobileMenu()">☰</button>
+        </div>
+    </nav>
+    
+    <!-- Navigation JavaScript -->
+    <script>
+        // Navigation Functions - Global scope
+        function showSection(sectionName) {
+            console.log('showSection called with:', sectionName);
+            
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show the selected section
+            const targetSection = document.getElementById(sectionName + '-section');
+            if (targetSection) {
+                targetSection.classList.add('active');
+                console.log('Showing section:', sectionName + '-section');
+            } else {
+                console.log('Section not found:', sectionName + '-section');
+            }
+            
+            // Add active class to the corresponding nav link
+            const allNavLinks = document.querySelectorAll('.nav-link');
+            allNavLinks.forEach(link => {
+                const linkText = link.textContent.toLowerCase().trim();
+                if (linkText.includes(sectionName) || 
+                    (sectionName === 'home' && linkText.includes('home'))) {
+                    link.classList.add('active');
+                }
+            });
+            
+            // Close mobile menu if open
+            const navLinksContainer = document.getElementById('navLinks');
+            navLinksContainer.classList.remove('mobile-open');
+        }
+        
+        function toggleMobileMenu() {
+            const navLinksContainer = document.getElementById('navLinks');
+            navLinksContainer.classList.toggle('mobile-open');
+        }
+        
+        // Initialize with home section active
+        document.addEventListener('DOMContentLoaded', function() {
+            showSection('home');
+        });
+    </script>
+    
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        
+        <!--                    HomeSection -->
+        <div id="home-section" class="content-section active">
+            <div class="marketing-container">
+                <h1 style="color: inherit; text-align: center; font-size: 2.4rem; margin-bottom: 0.2em;">Dytallix</h1>
+                <h2 style="text-align: center; color: #60a5fa; font-weight: 500; margin-top: 0; font-size: 1.2rem;">Quantum-Safe. AI-Enhanced. Future-Ready.</h2>
+                
+                <p style="font-size: 1.05em; line-height: 1.6; margin-top: 1.2em; color: #e2e8f0;">
+                    Dytallix is a next-generation cryptocurrency architected for resilience against quantum computing threats. It integrates <b style="color: #f8fafc;">Post-Quantum Cryptography (PQC)</b> standards such as CRYSTALS-Dilithium, Falcon, and SPHINCS+ with advanced <b style="color: #f8fafc;">Artificial Intelligence</b> to secure digital assets, smart contracts, and decentralized identities through cryptographic agility and adaptive threat detection.
+                </p>
+                
+                <h2>Crypto's Quantum Problem</h2>
+                <ul class="bullets">
+                    <li>Most cryptocurrencies rely on classical cryptographic primitives (ECDSA, RSA, SHA-2) that are vulnerable to Shor's and Grover's quantum algorithms</li>
+                    <li>Quantum adversaries could exploit these vulnerabilities to reconstruct private keys, enabling mass theft and unauthorized contract execution</li>
+                    <li>Quantum attacks have the potential to irreversibly compromise blockchain integrity, consensus, and immutability within hours</li>
+                </ul>
+                
+                <h2>How Dytallix Solves It</h2>
+                <ul class="bullets">
+                    <li><b>Quantum-Safe Security:</b> Implements NIST-approved PQC algorithms (Dilithium, Falcon, SPHINCS+) for digital signatures and key exchange, ensuring resistance to both classical and quantum attacks</li>
+                    <li><b>AI-Driven Protection:</b> Employs machine learning for real-time anomaly detection, on-chain fraud analytics, and automated smart contract auditing to proactively mitigate evolving threats</li>
+                    <li><b>Future-Resilient:</b> Features a modular, crypto-agile architecture supporting seamless algorithm upgrades and integration of emerging cryptographic primitives as new standards evolve</li>
+                </ul>
+                
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <a href="http://localhost:3000/wallet" class="btn btn-primary">
+                        🚀 Launch Wallet
+                    </a>
+                    <a href="http://localhost:3000/explorer" class="btn btn-secondary">
+                        🔍 Explorer
+                    </a>
+                    <a href="http://localhost:3000/analytics" class="btn" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
+                        🤖 AI Analytics
+                    </a>
+                </div>
+                
+                <p style="font-size: 1em; line-height: 1.6; text-align: center; margin: 2em 0; color: #cbd5e1;">
+                    Interested in partnering to build, promote, or work with us?<br>
+                    <a href="mailto:hello@dytallix.com" style="color: #3b82f6; text-decoration: none; font-weight: 600; border-bottom: 1px solid rgba(59, 130, 246, 0.3); transition: all 0.2s;">hello@dytallix.com</a>
+                </p>
+                
+                <div class="footer">
+                    &copy; 2025 Dytallix. Quantum-Safe. AI-Enhanced. Future-Ready.
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        // --- Advanced Quantum-Circuit Background Animation ---
+        <p style="font-size: 1.05em; line-height: 1.6; margin-top: 1.2em; color: #e2e8f0;">
+          Dytallix is a next-generation cryptocurrency architected for resilience against quantum computing threats. It integrates <b style="color: #f8fafc;">Post-Quantum Cryptography (PQC)</b> standards such as CRYSTALS-Dilithium, Falcon, and SPHINCS+ with advanced <b style="color: #f8fafc;">Artificial Intelligence</b> to secure digital assets, smart contracts, and decentralized identities through cryptographic agility and adaptive threat detection.
+        </p>
+        <h2>Crypto’s Quantum Problem</h2>
+        <ul class="bullets">
+            <li>Most cryptocurrencies rely on classical cryptographic primitives (ECDSA, RSA, SHA-2) that are vulnerable to Shor’s and Grover’s quantum algorithms</li>
+            <li>Quantum adversaries could exploit these vulnerabilities to reconstruct private keys, enabling mass theft and unauthorized contract execution</li>
+            <li>Quantum attacks have the potential to irreversibly compromise blockchain integrity, consensus, and immutability within hours</li>
+        </ul>
+        <h2>How Dytallix Solves It</h2>
+        <ul class="bullets"></ul>
+            <li><b>Quantum-Safe Security:</b> Implements NIST-approved PQC algorithms (Dilithium, Falcon, SPHINCS+) for digital signatures and key exchange, ensuring resistance to both classical and quantum attacks</li>
+            <li><b>AI-Driven Protection:</b> Employs machine learning for real-time anomaly detection, on-chain fraud analytics, and automated smart contract auditing to proactively mitigate evolving threats</li>
+            <li><b>Future-Resilient:</b> Features a modular, crypto-agile architecture supporting seamless algorithm upgrades and integration of emerging cryptographic primitives as new standards evolve</li>
+        </ul>
+        
+        <!-- Action Buttons -->
+        <div style="text-align: center; margin: 2.5em 0;">
+            <a href="http://localhost:3000" target="_blank" style="
+                display: inline-block;
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+                color: white;
+                padding: 12px 32px;
+                margin: 8px 12px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 1.1em;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(59, 130, 246, 0.4)'" 
+               onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 15px rgba(59, 130, 246, 0.3)'">
+                🚀 Launch Wallet
+            </a>
+            
+            <a href="http://localhost:3000/explorer" target="_blank" style="
+                display: inline-block;
+                background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+                color: white;
+                padding: 12px 32px;
+                margin: 8px 12px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 1.1em;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(16, 185, 129, 0.4)'" 
+               onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 15px rgba(16, 185, 129, 0.3)'">
+                🔍 Explorer
+            </a>
+            
+            <a href="http://localhost:3000/analytics" target="_blank" style="
+                display: inline-block;
+                background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+                color: white;
+                padding: 12px 32px;
+                margin: 8px 12px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 1.1em;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(245, 158, 11, 0.4)'" 
+               onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 15px rgba(245, 158, 11, 0.3)'">
+                🤖 AI Analytics
+            </a>
+        </div>
+        
+        <p style="font-size: 1em; line-height: 1.6; text-align: center; margin: 2em 0; color: #cbd5e1;">
+            Interested in partnering to build, promote, or work with us?<br>
+            <a href="mailto:hello@dytallix.com" style="color: #3b82f6; text-decoration: none; font-weight: 600; border-bottom: 1px solid rgba(59, 130, 246, 0.3); transition: all 0.2s;">hello@dytallix.com</a>
+        </p>
+        <div class="footer">
+            &copy; 2025 Dytallix. Quantum-Safe. AI-Enhanced. Future-Ready.
+        </div>
+    </div>
+    <script>
+        // --- Advanced Quantum-Circuit Background Animation ---
+
+        const canvas = document.querySelector('.bg-anim');
+        const ctx = canvas.getContext('2d');
+        let w = window.innerWidth;
+        let h = window.innerHeight;
+        
+        function resize() {
+            w = window.innerWidth;
+            h = window.innerHeight;
+            canvas.width = w;
+            canvas.height = h;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Circuit nodes with quantum properties
+        const NODES = 40;
+        const nodes = Array.from({length: NODES}).map((_, i) => ({
+            baseX: Math.random(),
+            baseY: Math.random(),
+            phase: Math.random() * Math.PI * 2,
+            speed: 0.2 + 0.4 * Math.random(),
+            amp: 0.02 + 0.04 * Math.random(),
+            size: 3 + 8 * Math.random(),
+            pulseSpeed: 0.8 + 1.2 * Math.random(),
+            type: Math.random() > 0.7 ? 'hub' : 'node', // Some nodes are larger hubs
+            quantumState: Math.random() * Math.PI * 2
+        }));
+
+        // Flowing energy streams
+        const STREAMS = 8;
+        const energyStreams = Array.from({length: STREAMS}).map(() => ({
+            path: [],
+            phase: Math.random() * Math.PI * 2,
+            speed: 0.5 + 1.0 * Math.random(),
+            width: 2 + 4 * Math.random(),
+            color: Math.random() > 0.5 ? 'cyan' : 'purple',
+            length: 15 + 25 * Math.random()
+        }));
+
+        // Initialize energy stream paths
+        energyStreams.forEach(stream => {
+            const startX = Math.random();
+            const startY = Math.random();
+            const angle = Math.random() * Math.PI * 2;
+            for (let i = 0; i < stream.length; i++) {
+                const t = i / stream.length;
+                stream.path.push({
+                    x: startX + Math.cos(angle + t * 0.5) * 0.3,
+                    y: startY + Math.sin(angle + t * 0.3) * 0.3,
+                    intensity: 1 - t * 0.7
+                });
+            }
+        });
+
+        // Circuit board patterns
+        const CIRCUITS = 12;
+        const circuits = Array.from({length: CIRCUITS}).map(() => ({
+            x: Math.random(),
+            y: Math.random(),
+            angle: Math.random() * Math.PI * 2,
+            length: 0.1 + 0.3 * Math.random(),
+            width: 1 + 2 * Math.random(),
+            phase: Math.random() * Math.PI * 2,
+            speed: 0.3 + 0.7 * Math.random(),
+            branches: Math.floor(2 + 4 * Math.random())
+        }));
+
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
+        function getQuantumColor(time, idx, baseHue = 220) {
+            const hue = baseHue + 40 * Math.sin(time / 8000 + idx * 0.3);
+            const saturation = 60 + 30 * Math.sin(time / 5000 + idx * 0.7);
+            const lightness = 50 + 20 * Math.sin(time / 3000 + idx * 0.5);
+            return `hsla(${hue}, ${saturation}%, ${lightness}%, 0.8)`;
+        }
+
+        function drawCircuitPath(startX, startY, angle, length, width, intensity) {
+            ctx.save();
+            ctx.globalAlpha = intensity;
+            ctx.strokeStyle = getQuantumColor(performance.now(), Math.random() * 10, 200);
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            
+            const endX = startX + Math.cos(angle) * length;
+            const endY = startY + Math.sin(angle) * length;
+            
+            // Create curved circuit paths
+            const midX = (startX + endX) / 2 + Math.sin(angle + Math.PI/2) * length * 0.2;
+            const midY = (startY + endY) / 2 + Math.cos(angle + Math.PI/2) * length * 0.2;
+            
+            ctx.quadraticCurveTo(midX, midY, endX, endY);
+            ctx.stroke();
+            
+            // Add circuit nodes at endpoints
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.beginPath();
+            ctx.arc(startX, startY, width * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(endX, endY, width * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        function drawEnergyStream(stream, time) {
+            if (stream.path.length < 2) return;
+            
+            const animPhase = time * 0.001 * stream.speed + stream.phase;
+            
+            ctx.save();
+            ctx.strokeStyle = stream.color === 'cyan' ? 
+                `hsla(180, 100%, 60%, 0.6)` : 
+                `hsla(280, 100%, 60%, 0.6)`;
+            ctx.lineWidth = stream.width;
+            ctx.lineCap = 'round';
+            ctx.shadowColor = ctx.strokeStyle;
+            ctx.shadowBlur = 15;
+            
+            // Draw flowing energy
+            for (let i = 0; i < stream.path.length - 1; i++) {
+                const t = i / stream.path.length;
+                const flowIntensity = Math.sin(animPhase + t * 6) * 0.5 + 0.5;
+                
+                ctx.globalAlpha = stream.path[i].intensity * flowIntensity * 0.8;
+                
+                ctx.beginPath();
+                ctx.moveTo(stream.path[i].x * w, stream.path[i].y * h);
+                ctx.lineTo(stream.path[i + 1].x * w, stream.path[i + 1].y * h);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+
+        function draw(time) {
+            // Dynamic gradient background
+            const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h));
+            grad.addColorStop(0, 'rgba(15, 23, 42, 1)');
+            grad.addColorStop(0.3, 'rgba(30, 41, 59, 0.95)');
+            grad.addColorStop(1, 'rgba(15, 23, 42, 1)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw circuit board patterns
+            circuits.forEach((circuit, idx) => {
+                const animTime = time * 0.001 * circuit.speed + circuit.phase;
+                const intensity = 0.3 + 0.4 * Math.sin(animTime);
+                
+                const baseX = circuit.x * w;
+                const baseY = circuit.y * h;
+                const mainLength = circuit.length * Math.min(w, h);
+                
+                // Main circuit line
+                drawCircuitPath(baseX, baseY, circuit.angle, mainLength, circuit.width, intensity);
+                
+                // Circuit branches
+                for (let i = 0; i < circuit.branches; i++) {
+                    const branchAngle = circuit.angle + (i - circuit.branches/2) * 0.5;
+                    const branchLength = mainLength * (0.3 + 0.4 * Math.sin(animTime + i));
+                    const branchX = baseX + Math.cos(circuit.angle) * mainLength * 0.7;
+                    const branchY = baseY + Math.sin(circuit.angle) * mainLength * 0.7;
+                    
+                    drawCircuitPath(branchX, branchY, branchAngle, branchLength, circuit.width * 0.7, intensity * 0.6);
+                }
+            });
+
+            // Draw flowing energy streams
+            energyStreams.forEach(stream => {
+                drawEnergyStream(stream, time);
+            });
+
+            // Animate quantum nodes
+            const nodePositions = nodes.map((n, idx) => {
+                const nx = lerp(0, w, n.baseX + n.amp * Math.sin(time/3000 * n.speed + n.phase));
+                const ny = lerp(0, h, n.baseY + n.amp * Math.cos(time/2800 * n.speed - n.phase));
+                const pulse = 0.7 + 0.6 * Math.sin(time/1500 * n.pulseSpeed + n.quantumState);
+                const sz = n.size * pulse;
+                
+                return {
+                    x: nx, y: ny, size: sz, 
+                    type: n.type,
+                    color: getQuantumColor(time, idx),
+                    quantumPhase: n.quantumState + time * 0.001
+                };
+            });
+
+            // Draw quantum node connections
+            for (let i = 0; i < nodePositions.length; i++) {
+                for (let j = i + 1; j < nodePositions.length; j++) {
+                    const n1 = nodePositions[i];
+                    const n2 = nodePositions[j];
+                    const dist = Math.hypot(n1.x - n2.x, n1.y - n2.y);
+                    const maxDist = Math.min(w, h) * 0.15;
+                    
+                    if (dist < maxDist) {
+                        const alpha = (1 - dist / maxDist) * 0.4;
+                        const connectionIntensity = Math.sin(time * 0.002 + i - j) * 0.3 + 0.5;
+                        
+                        ctx.save();
+                        ctx.globalAlpha = alpha * connectionIntensity;
+                        ctx.strokeStyle = getQuantumColor(time, i + j, 240);
+                        ctx.lineWidth = 2;
+                        ctx.shadowColor = ctx.strokeStyle;
+                        ctx.shadowBlur = 8;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(n1.x, n1.y);
+                        ctx.lineTo(n2.x, n2.y);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            }
+
+            // Draw quantum nodes with enhanced effects
+            nodePositions.forEach((n, idx) => {
+                ctx.save();
+                
+                // Quantum field effect
+                const fieldRadius = n.size * 3;
+                const fieldGrad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, fieldRadius);
+                fieldGrad.addColorStop(0, n.color.replace('0.8)', '0.1)'));
+                fieldGrad.addColorStop(1, n.color.replace('0.8)', '0)'));
+                
+                ctx.fillStyle = fieldGrad;
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, fieldRadius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Main node
+                ctx.globalAlpha = 0.9;
+                ctx.fillStyle = n.color;
+                ctx.shadowColor = n.color;
+                ctx.shadowBlur = 20;
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Hub nodes get extra effects
+                if (n.type === 'hub') {
+                    ctx.globalAlpha = 0.5;
+                    ctx.strokeStyle = n.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(n.x, n.y, n.size * 1.8, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                
+                // Quantum pulse rings
+                const pulseRadius = n.size * 2 * (1 + 0.5 * Math.sin(n.quantumPhase));
+                ctx.globalAlpha = 0.3;
+                ctx.strokeStyle = n.color;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, pulseRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.restore();
+            });
+
+            requestAnimationFrame(draw);
+        }
+        
+        draw(0);
+    </script>
+</body>
+</html>
+        // Add remaining sections to the content wrapper
+        const contentWrapper = document.querySelector('.content-wrapper');
+        
+        const additionalSections = `
+            <!-- Wallet Section -->
+            <div id="wallet-section" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg class="icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V9a2 2 0 00-2-2H9"></path>
+                        </svg>
+                        Quantum-Safe Wallet
+                    </h1>
+                    <p class="page-subtitle">Secure storage and management of your DYX tokens with post-quantum cryptography</p>
+                </div>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);">🔐</div>
+                        <h3 class="feature-title">Quantum-Safe Keys</h3>
+                        <p class="feature-description">CRYSTALS-Dilithium and Falcon signatures protect your assets against quantum attacks</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);">💸</div>
+                        <h3 class="feature-title">Secure Transactions</h3>
+                        <p class="feature-description">Send and receive DYX with confidence using post-quantum secure protocols</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);">🎯</div>
+                        <h3 class="feature-title">Staking Rewards</h3>
+                        <p class="feature-description">Earn rewards by participating in the quantum-safe consensus mechanism</p>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <a class="btn btn-primary" href="http://localhost:3000/wallet" target="_blank">Open React Wallet</a>
+                    <button class="btn btn-secondary" onclick="showSection('explorer')">View Transactions</button>
+                </div>
+            </div>
+            
+            <!-- Explorer Section -->
+            <div id="explorer-section" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg class="icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        Blockchain Explorer
+                    </h1>
+                    <p class="page-subtitle">Explore the Dytallix quantum-safe blockchain in real-time</p>
+                </div>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);">🔗</div>
+                        <h3 class="feature-title">Block Explorer</h3>
+                        <p class="feature-description">Browse blocks, transactions, and quantum-safe cryptographic proofs</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);">🔍</div>
+                        <h3 class="feature-title">Transaction Search</h3>
+                        <p class="feature-description">Search and verify transactions using post-quantum signatures</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);">📈</div>
+                        <h3 class="feature-title">Network Analytics</h3>
+                        <p class="feature-description">Real-time network statistics, hash rates, and quantum-safe metrics</p>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <a class="btn btn-primary" href="http://localhost:3000/explorer" target="_blank">Open React Explorer</a>
+                    <button class="btn btn-secondary" onclick="showSection('analytics')">View Analytics</button>
+                </div>
+            </div>
+            
+            <!-- Analytics Section -->
+            <div id="analytics-section" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg class="icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        AI Analytics
+                    </h1>
+                    <p class="page-subtitle">Machine learning insights and quantum-safe threat detection</p>
+                </div>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);">🧠</div>
+                        <h3 class="feature-title">AI Risk Assessment</h3>
+                        <p class="feature-description">Real-time threat detection and risk scoring using machine learning models</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);">📊</div>
+                        <h3 class="feature-title">Predictive Analytics</h3>
+                        <p class="feature-description">Market insights and transaction pattern analysis powered by AI</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);">🛡️</div>
+                        <h3 class="feature-title">Quantum Threat Monitor</h3>
+                        <p class="feature-description">Advanced detection of potential quantum computing threats to the network</p>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <a class="btn btn-primary" href="http://localhost:3000/analytics" target="_blank">Open React Analytics</a>
+                    <button class="btn btn-secondary" onclick="showSection('contracts')">Smart Contracts</button>
+                </div>
+            </div>
+            
+            <!-- Smart Contracts Section -->
+            <div id="contracts-section" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg class="icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Contracts
+                    </h1>
+                    <p class="page-subtitle">Quantum-safe smart contracts with AI-powered security auditing</p>
+                </div>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);">⚡</div>
+                        <h3 class="feature-title">Quantum-Safe Contracts</h3>
+                        <p class="feature-description">Deploy and interact with smart contracts protected by post-quantum cryptography</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);">🔍</div>
+                        <h3 class="feature-title">AI-Powered Auditing</h3>
+                        <p class="feature-description">Automated security analysis and vulnerability detection using machine learning</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);">🚀</div>
+                        <h3 class="feature-title">Contract Deployment</h3>
+                        <p class="feature-description">Easy deployment tools with built-in quantum-safe templates and best practices</p>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <a class="btn btn-primary" href="http://localhost:3000/contracts" target="_blank">Open React Interface</a>
+                    <button class="btn btn-secondary" onclick="showSection('tokenomics')">View Tokenomics</button>
+                </div>
+            </div>
+            
+            <!-- Tokenomics Section -->
+            <div id="tokenomics-section" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg class="icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        Tokenomics
+                    </h1>
+                    <p class="page-subtitle">DYX token economics and quantum-safe staking mechanisms</p>
+                </div>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);">💰</div>
+                        <h3 class="feature-title">Token Distribution</h3>
+                        <p class="feature-description">Transparent allocation and vesting schedules for DYX tokens</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);">🎯</div>
+                        <h3 class="feature-title">Staking Rewards</h3>
+                        <p class="feature-description">Earn rewards by securing the quantum-safe network through staking</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);">📈</div>
+                        <h3 class="feature-title">Economic Model</h3>
+                        <p class="feature-description">Deflationary mechanisms and utility-driven token value appreciation</p>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <a class="btn btn-primary" href="http://localhost:3000/tokenomics" target="_blank">Open React Interface</a>
+                    <button class="btn btn-secondary" onclick="showSection('settings')">Settings</button>
+                </div>
+            </div>
+            
+            <!-- Settings Section -->
+            <div id="settings-section" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg class="icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Settings
+                    </h1>
+                    <p class="page-subtitle">Configure your Dytallix experience and security preferences</p>
+                </div>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);">🔐</div>
+                        <h3 class="feature-title">Security Settings</h3>
+                        <p class="feature-description">Configure quantum-safe key generation and authentication preferences</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);">🌐</div>
+                        <h3 class="feature-title">Network Configuration</h3>
+                        <p class="feature-description">Select networks, configure RPC endpoints, and manage connections</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);">🎨</div>
+                        <h3 class="feature-title">User Interface</h3>
+                        <p class="feature-description">Customize themes, notifications, and display preferences</p>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <a class="btn btn-primary" href="http://localhost:3000/settings" target="_blank">Open React Settings</a>
+                    <button class="btn btn-secondary" onclick="showSection('home')">Back to Home</button>
+                </div>
+            </div>
+        `;
+        
+        contentWrapper.insertAdjacentHTML('beforeend', additionalSections);
+    </script>
+</body>
+</html>

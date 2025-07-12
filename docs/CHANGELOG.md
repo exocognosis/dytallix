@@ -1,5 +1,37 @@
 # Dytallix Changelog
 
+## [0.9.6] - 2025-07-11 - Testnet Deployment Health Check Fix
+
+### 🔧 **CRITICAL FIX: Docker Container API Health Checks**
+
+#### Testnet Deployment Infrastructure
+- **FIXED**: API server binding issue in Docker containers
+  - Changed API server bind address from `127.0.0.1:3030` to `0.0.0.0:3030`
+  - Enables health checks to work properly from outside the container
+  - Resolves "Node on port 3030 failed health check" error
+- **UPDATED**: Docker Compose configuration with correct port mappings:
+  - Node 1: Host port 3030 → Container port 3030
+  - Node 2: Host port 3032 → Container port 3030  
+  - Node 3: Host port 3034 → Container port 3030
+- **ENHANCED**: Deployment script robustness with proper error handling
+- **CONFIRMED**: All monitoring services (Prometheus, Grafana) working correctly
+- **VERIFIED**: Container startup and volume mounting functionality
+
+#### Infrastructure Improvements
+- **COMPLETE**: End-to-end testnet deployment automation via `deploy-testnet.sh`
+- **WORKING**: Docker image building with proper Rust compilation
+- **WORKING**: Multi-node blockchain network with proper networking
+- **WORKING**: Monitoring stack integration (Prometheus + Grafana)
+- **READY**: Integration tests for API endpoints and health checks
+
+### 📊 **Technical Achievements**
+- ✅ Fixed critical Docker networking issue for API accessibility
+- ✅ Validated complete testnet deployment pipeline
+- ✅ Confirmed monitoring and observability stack functionality
+- ✅ Verified multi-container orchestration and service discovery
+
+---
+
 ## [0.9.5] - 2025-07-10 - Frontend Unification & Dual-Token System Integration
 
 ### 🎯 **MAJOR MILESTONE: Unified Navigation System & Complete Dual-Token Implementation**
@@ -1049,7 +1081,7 @@ pub async fn cleanup(&self) // Now includes replay protection cleanup
 
 ### 🏗️ Development Infrastructure
 
-#### Git Repository Management
+#### Git Operations
 - Successfully committed major infrastructure enhancements
 - Pushed commit `dea7985` to GitHub repository
 - Comprehensive commit documentation

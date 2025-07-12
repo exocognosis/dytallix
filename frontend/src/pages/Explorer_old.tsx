@@ -5,27 +5,31 @@ import {
   ClockIcon,
   ArrowRightIcon
 } from '@heroicons/react/24/outline'
-import { useBlocks, useBlockchainStats, useTransactions } from '../hooks/useAPI'
-import { TransactionList } from '../components/TransactionList'
-import { format } from 'date-fns'
 
 export function Explorer() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchType, setSearchType] = useState<'all' | 'block' | 'transaction' | 'address'>('all')
-  
-  const { data: blocks, isLoading: blocksLoading } = useBlocks(10)
-  const { data: stats } = useBlockchainStats()
-  const { data: transactions, isLoading: txLoading } = useTransactions(undefined, 20)
 
   const handleSearch = () => {
     if (!searchQuery.trim()) return
-    
-    // Implement search logic based on query type
     console.log('Searching for:', searchQuery, 'Type:', searchType)
   }
 
+  // Mock data for demonstration
+  const mockBlocks = [
+    { height: 12345, hash: '0x1abc...def', timestamp: Date.now() - 30000, transactions: 15 },
+    { height: 12344, hash: '0x2abc...def', timestamp: Date.now() - 60000, transactions: 23 },
+    { height: 12343, hash: '0x3abc...def', timestamp: Date.now() - 90000, transactions: 8 },
+  ]
+
+  const mockTransactions = [
+    { hash: '0xa1b2...c3d4', from: '0x1234...5678', to: '0x9abc...def0', amount: '1.25 DTX', timestamp: Date.now() - 15000 },
+    { hash: '0xb2c3...d4e5', from: '0x2345...6789', to: '0xabcd...ef01', amount: '0.75 DTX', timestamp: Date.now() - 45000 },
+    { hash: '0xc3d4...e5f6', from: '0x3456...789a', to: '0xbcde...f012', amount: '2.10 DTX', timestamp: Date.now() - 75000 },
+  ]
+
   return (
-    <div className="space-y-6 relative z-10">
+    <div className="space-y-6">
       {/* Header */}
       <div className="border-b border-gray-700 pb-6">
         <h1 className="text-3xl font-bold text-white flex items-center">

@@ -128,7 +128,8 @@ generate_pqc_keys() {
     
     # Create a temporary Rust program to generate keys
     cat > /tmp/generate_keys.rs << 'EOF'
-use dytallix_pqc_crypto::PQCManager;
+extern crate dytallix_pqc;
+use dytallix_pqc::PQCManager;
 use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -143,9 +144,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 EOF
     
-    # Compile and run the key generator
-    rustc --extern dytallix_pqc_crypto=target/release/libdytallix_pqc_crypto.rlib /tmp/generate_keys.rs -o /tmp/generate_keys
-    /tmp/generate_keys "$temp_keys_file"
+    # Instead of manually compiling, let's create a simple CLI program
+    PQC_DIR="/Users/rickglenn/Desktop/dytallix/pqc-crypto"
+    cd "$PQC_DIR"
+    
+    # Create bin directory if it doesn't exist
+    mkdir -p src/bin
+    
+    # Create a simple keys generator binary
+    cat > src/bin/keygen.rs << 'EOF'
+use dytallix_pqc::PQCManager;
+use std::env;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let pqc_manager = PQCManager::new()?;
+    
+    let output_file = env::args().nth(1).unwrap_or_else(|| "pqc_keys.json".to_string());
+    pqc_manager.save_to_file(&output_file)?;
+    
+    println!("Keys generated and saved to: {}", output_file);
+    Ok(())
+}
+EOF
+
+    # Build and run with cargo
+    cargo build --release --bin keygen
+    cargo run --release --bin keygen -- "$temp_keys_file"
+    
+    cd "/Users/rickglenn/Desktop/dytallix/devops/secrets-management"
     
     # Clean up
     rm -f /tmp/generate_keys.rs /tmp/generate_keys

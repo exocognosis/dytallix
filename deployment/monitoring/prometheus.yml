@@ -1,0 +1,31 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'dytallix-nodes'
+    static_configs:
+      - targets: 
+        - 'dytallix-node-1:9090'
+        - 'dytallix-node-2:9090'
+        - 'dytallix-node-3:9090'
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+
+  - job_name: 'dytallix-health'
+    static_configs:
+      - targets:
+        - 'dytallix-node-1:8081'
+        - 'dytallix-node-2:8081'
+        - 'dytallix-node-3:8081'
+    metrics_path: '/health'
+    scrape_interval: 10s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
