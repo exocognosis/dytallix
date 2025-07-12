@@ -1,0 +1,63 @@
+[package]
+name = "dytallix-tests"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dytallix Team"]
+description = "Comprehensive test suite for Dytallix blockchain performance and stress testing"
+
+# Keep this package out of the main workspace
+[workspace]
+
+[dependencies]
+# Async runtime and utilities
+tokio = { version = "1.0", features = ["full", "test-util"] }
+tokio-test = "0.4"
+futures = "0.3"
+
+# Testing and benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.0"
+
+# Cryptographic libraries
+rand = "0.8"
+sha3 = "0.10"
+blake3 = "1.5"
+hex = "0.4"
+
+# Serialization and data handling
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Time and measurement
+chrono = { version = "0.4", features = ["serde"] }
+instant = "0.1"
+
+# Command line interface
+clap = { version = "4.4", features = ["derive"] }
+
+# Logging and monitoring
+log = "0.4"
+env_logger = "0.11"
+
+# Statistics and analysis
+statrs = "0.16"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+[dev-dependencies]
+tempfile = "3.8"
+
+[[bench]]
+name = "gas_price_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_performance_benchmarks"
+harness = false
+
+[features]
+default = ["stress_testing"]
+stress_testing = []
+detailed_metrics = []
