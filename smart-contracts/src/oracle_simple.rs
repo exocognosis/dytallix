@@ -36,6 +36,12 @@ pub struct SimpleOracle {
     authorized_providers: HashMap<Address, bool>,
 }
 
+impl Default for SimpleOracle {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SimpleOracle {
     pub fn new() -> Self {
         Self {

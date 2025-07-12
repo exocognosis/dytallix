@@ -1,6 +1,6 @@
 use warp::Filter;
 use serde::{Deserialize, Serialize};
-use log::{info, error};
+use log::info;
 use serde_json;
 use rand;
 
@@ -100,7 +100,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(warp::get())
         .map(|address: String| {
-            info!("Getting balance for address: {}", address);
+            info!("Getting balance for address: {address}");
             let balance = 1000000u64; // Mock balance
             warp::reply::json(&ApiResponse::success(balance))
         });
@@ -124,7 +124,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(warp::get())
         .map(|hash: String| {
-            info!("Getting transaction: {}", hash);
+            info!("Getting transaction: {hash}");
             let tx_details = TransactionDetails {
                 hash: hash.clone(),
                 from: "dyt1sender123".to_string(),
@@ -148,7 +148,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
             let account = params.get("account");
             let limit = params.get("limit").and_then(|l| l.parse::<usize>().ok()).unwrap_or(10);
             
-            info!("Listing transactions for account: {:?}, limit: {}", account, limit);
+            info!("Listing transactions for account: {account:?}, limit: {limit}");
             
             // Mock transaction list
             let transactions = vec![

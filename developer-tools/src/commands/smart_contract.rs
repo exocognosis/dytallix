@@ -45,7 +45,7 @@ pub async fn deploy_contract(contract: String, params: Option<String>, config: &
             }
         }
         Err(e) => {
-            println!("{}", format!("❌ Cannot connect to node: {}", e).bright_red());
+            println!("{}", format!("❌ Cannot connect to node: {e}").bright_red());
             return Err(anyhow::anyhow!("Node connection failed"));
         }
     }
@@ -67,7 +67,7 @@ pub async fn deploy_contract(contract: String, params: Option<String>, config: &
     let deployment_result = match client.deploy_smart_contract(&deployment_data).await {
         Ok(result) => result,
         Err(e) => {
-            println!("{}", format!("⚠️  Backend deployment failed, using simulation: {}", e).bright_yellow());
+            println!("{}", format!("⚠️  Backend deployment failed, using simulation: {e}").bright_yellow());
             // Simulate deployment for development
             serde_json::json!({
                 "success": true,
@@ -147,7 +147,7 @@ pub async fn call_contract(address: String, method: String, params: Option<Strin
     let call_result = match client.call_contract_method(&call_data).await {
         Ok(result) => result,
         Err(e) => {
-            println!("{}", format!("⚠️  Backend call failed, using simulation: {}", e).bright_yellow());
+            println!("{}", format!("⚠️  Backend call failed, using simulation: {e}").bright_yellow());
             // Simulate successful call
             serde_json::json!({
                 "success": true,
@@ -219,8 +219,7 @@ pub async fn contract_events(address: String, from_block: Option<u64>, to_block:
     let client = BlockchainClient::new(config.node_url.clone());
     
     // For now, simulate events since the backend isn't fully implemented
-    let mock_events = vec![
-        serde_json::json!({
+    let mock_events = [serde_json::json!({
             "event": "Transfer",
             "block_number": 12345,
             "transaction_hash": "0x123456789abcdef",
@@ -239,8 +238,7 @@ pub async fn contract_events(address: String, from_block: Option<u64>, to_block:
                 "spender": "dyt1spender123456789abcdef",
                 "amount": 100000
             }
-        })
-    ];
+        })];
     
     println!("{}", "✅ Contract events fetched successfully!".bright_green());
     println!("Found {} events:", mock_events.len().to_string().bright_cyan());
@@ -268,7 +266,7 @@ fn save_contract_info(address: &str, contract_file: &str, params: Option<&Value>
         "deployed_at": chrono::Utc::now().to_rfc3339()
     });
     
-    let info_file = config_dir.join(format!("{}.json", address));
+    let info_file = config_dir.join(format!("{address}.json"));
     std::fs::write(info_file, serde_json::to_string_pretty(&contract_info)?)?;
     
     Ok(())
@@ -302,15 +300,13 @@ pub async fn list_contract_templates(config: &Config) -> Result<()> {
     println!("{}", "📄 Available Smart Contract Templates".bright_blue());
     println!();
     
-    let templates = vec![
-        ("Simple Token", "ERC20-like token with PQC signatures", "token.wasm"),
+    let templates = [("Simple Token", "ERC20-like token with PQC signatures", "token.wasm"),
         ("Escrow Contract", "AI-enhanced escrow with fraud detection", "escrow.wasm"),
         ("Voting DAO", "Decentralized voting with governance", "voting.wasm"),
-        ("Oracle Consumer", "AI oracle data consumer contract", "oracle.wasm"),
-    ];
+        ("Oracle Consumer", "AI oracle data consumer contract", "oracle.wasm")];
     
     for (i, (name, description, file)) in templates.iter().enumerate() {
-        println!("{}. {} {}", (i + 1).to_string().bright_cyan(), name.bright_white(), format!("({})", file).bright_black());
+        println!("{}. {} {}", (i + 1).to_string().bright_cyan(), name.bright_white(), format!("({file})").bright_black());
         println!("   {}", description.bright_yellow());
         println!();
     }
@@ -320,7 +316,7 @@ pub async fn list_contract_templates(config: &Config) -> Result<()> {
 }
 
 pub async fn init_from_template(template_name: String, output_dir: Option<String>, config: &Config) -> Result<()> {
-    println!("{}", format!("🏗️  Initializing contract from template: {}", template_name).bright_blue());
+    println!("{}", format!("🏗️  Initializing contract from template: {template_name}").bright_blue());
     
     let output_path = output_dir.unwrap_or_else(|| format!("{}_contract", template_name.to_lowercase()));
     
@@ -339,7 +335,7 @@ pub async fn init_from_template(template_name: String, output_dir: Option<String
     println!("{}", "✅ Contract template created successfully!".bright_green());
     println!("Location: {}", output_path.bright_cyan());
     println!("\n{}", "📋 Next steps:".bright_blue());
-    println!("  1. cd {}", output_path);
+    println!("  1. cd {output_path}");
     println!("  2. cargo build --target wasm32-unknown-unknown --release");
     println!("  3. dytallix-cli contract deploy target/wasm32-unknown-unknown/release/*.wasm");
     
@@ -413,9 +409,9 @@ pub extern "C" fn balance_of(account: *const u8, account_len: usize) -> u64 {
 }
 "#;
 
-    std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
-    std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
-    std::fs::create_dir_all(format!("{}/src", output_path))?;
+    std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
+    std::fs::create_dir_all(format!("{output_path}/src"))?;
     
     Ok(())
 }
@@ -491,9 +487,9 @@ pub extern "C" fn release_funds() -> u32 {
 }
 "#;
 
-    std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
-    std::fs::create_dir_all(format!("{}/src", output_path))?;
-    std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    std::fs::create_dir_all(format!("{output_path}/src"))?;
+    std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
     
     Ok(())
 }
@@ -544,9 +540,9 @@ pub extern "C" fn vote(proposal_id: *const u8, proposal_len: usize, vote: u32) -
 }
 "#;
 
-    std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
-    std::fs::create_dir_all(format!("{}/src", output_path))?;
-    std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    std::fs::create_dir_all(format!("{output_path}/src"))?;
+    std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
     
     Ok(())
 }
@@ -586,9 +582,9 @@ pub extern "C" fn get_price() -> u64 {
 }
 "#;
 
-    std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
-    std::fs::create_dir_all(format!("{}/src", output_path))?;
-    std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    std::fs::create_dir_all(format!("{output_path}/src"))?;
+    std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
     
     Ok(())
 }

@@ -114,6 +114,12 @@ pub struct DytallixBridge {
     min_validator_signatures: usize,
 }
 
+impl Default for DytallixBridge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DytallixBridge {
     pub fn new() -> Self {
         let mut bridge = Self {
@@ -252,7 +258,7 @@ impl PQCBridge for DytallixBridge {
         let wrapped_asset = WrappedAsset {
             original_asset: asset,
             origin_chain: origin_chain.to_string(),
-            wrapped_contract: format!("wrapped_{}_{}", origin_chain, dest_address),
+            wrapped_contract: format!("wrapped_{origin_chain}_{dest_address}"),
             wrapping_timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
         };
         
@@ -284,7 +290,7 @@ impl PQCBridge for DytallixBridge {
     
     fn emergency_halt(&self, reason: &str) -> Result<(), BridgeError> {
         // TODO: Implement emergency halt mechanism
-        println!("EMERGENCY HALT: {}", reason);
+        println!("EMERGENCY HALT: {reason}");
         Ok(())
     }
     
@@ -356,6 +362,12 @@ pub struct DytallixIBC {
     next_sequence: HashMap<String, u64>,
 }
 
+impl Default for DytallixIBC {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DytallixIBC {
     pub fn new() -> Self {
         Self {
@@ -392,7 +404,7 @@ impl IBCModule for DytallixIBC {
         let channel_key = format!("{}_{}", packet.source_port, packet.source_channel);
         if let Some(channel) = self.channels.get(&channel_key) {
             if !matches!(channel.state, ChannelState::Open) {
-                return Err(IBCError::ChannelNotFound(format!("Channel {} is not open", channel_key)));
+                return Err(IBCError::ChannelNotFound(format!("Channel {channel_key} is not open")));
             }
         } else {
             return Err(IBCError::ChannelNotFound(channel_key));
@@ -426,7 +438,7 @@ impl IBCModule for DytallixIBC {
         let channel_key = format!("{}_{}", packet.dest_port, packet.dest_channel);
         if let Some(channel) = self.channels.get(&channel_key) {
             if !matches!(channel.state, ChannelState::Open) {
-                return Err(IBCError::ChannelNotFound(format!("Channel {} is not open", channel_key)));
+                return Err(IBCError::ChannelNotFound(format!("Channel {channel_key} is not open")));
             }
         } else {
             return Err(IBCError::ChannelNotFound(channel_key));
@@ -457,7 +469,7 @@ impl IBCModule for DytallixIBC {
         }
         
         // TODO: Verify acknowledgment and update state
-        println!("IBC packet acknowledged: {}", commitment_key);
+        println!("IBC packet acknowledged: {commitment_key}");
         
         Ok(())
     }
@@ -496,7 +508,7 @@ impl IBCModule for DytallixIBC {
     fn close_channel(&self, channel_id: String) -> Result<(), IBCError> {
         // TODO: Find and close the channel
         // TODO: Update channel state to Closed
-        println!("IBC channel closed: {}", channel_id);
+        println!("IBC channel closed: {channel_id}");
         Ok(())
     }
 }

@@ -310,7 +310,7 @@ impl AIIntegrationManager {
             &hex::encode(&request_hash_bytes),
         ) {
             return AIVerificationResult::Failed {
-                error: format!("Replay protection failed: {}", replay_error),
+                error: format!("Replay protection failed: {replay_error}"),
                 oracle_id: Some(signed_response.oracle_identity.oracle_id.clone()),
                 response_id: Some(signed_response.response.id.clone()),
             };
@@ -355,7 +355,7 @@ impl AIIntegrationManager {
             }
             Err(verification_error) => {
                 let result = AIVerificationResult::Failed {
-                    error: format!("{:?}", verification_error),
+                    error: format!("{verification_error:?}"),
                     oracle_id: Some(signed_response.oracle_identity.oracle_id.clone()),
                     response_id: Some(signed_response.response.id.clone()),
                 };
@@ -428,7 +428,7 @@ impl AIIntegrationManager {
                 stats.service_unavailable_count += 1;
                 
                 AIVerificationResult::Unavailable {
-                    error: format!("AI service error: {}", e),
+                    error: format!("AI service error: {e}"),
                     fallback_allowed: !self.config.fail_on_ai_unavailable,
                 }
             }
@@ -511,7 +511,7 @@ impl AIIntegrationManager {
             (AIVerificationResult::Failed { error, .. }, _) |
             (_, AIVerificationResult::Failed { error, .. }) => {
                 Ok(AIVerificationResult::Failed {
-                    error: format!("AI verification failed: {}", error),
+                    error: format!("AI verification failed: {error}"),
                     oracle_id: None,
                     response_id: None,
                 })
@@ -724,7 +724,7 @@ impl AIIntegrationManager {
         if let (Some(amount), Some(threshold)) = (transaction_amount, thresholds.amount_review_threshold) {
             if amount > threshold {
                 return RiskProcessingDecision::RequireReview {
-                    reason: format!("Large transaction amount: {} > {}", amount, threshold),
+                    reason: format!("Large transaction amount: {amount} > {threshold}"),
                 };
             }
         }
@@ -739,7 +739,7 @@ impl AIIntegrationManager {
             RiskProcessingDecision::AutoApprove
         } else {
             RiskProcessingDecision::RequireReview {
-                reason: format!("Medium risk score: {:.3} requires manual review", risk_score),
+                reason: format!("Medium risk score: {risk_score:.3} requires manual review"),
             }
         }
     }
@@ -765,7 +765,7 @@ impl AIIntegrationManager {
             "stake" => self.config.risk_thresholds.stake = thresholds,
             "ai_request" => self.config.risk_thresholds.ai_request = thresholds,
             _ => {
-                log::warn!("Unknown transaction type for risk threshold update: {}", transaction_type);
+                log::warn!("Unknown transaction type for risk threshold update: {transaction_type}");
             }
         }
     }
@@ -798,16 +798,13 @@ impl AIIntegrationManager {
         if self.config.log_risk_decisions {
             match decision {
                 RiskProcessingDecision::AutoApprove => {
-                    log::info!("RISK_DECISION: AUTO_APPROVE - TX: {} Type: {} Risk: {:.3} Fraud: {:.3} Confidence: {:.3}",
-                              transaction_hash, transaction_type, risk_score, fraud_probability, confidence);
+                    log::info!("RISK_DECISION: AUTO_APPROVE - TX: {transaction_hash} Type: {transaction_type} Risk: {risk_score:.3} Fraud: {fraud_probability:.3} Confidence: {confidence:.3}");
                 }
                 RiskProcessingDecision::RequireReview { reason } => {
-                    log::warn!("RISK_DECISION: REQUIRE_REVIEW - TX: {} Type: {} Risk: {:.3} Fraud: {:.3} Confidence: {:.3} Reason: {}",
-                              transaction_hash, transaction_type, risk_score, fraud_probability, confidence, reason);
+                    log::warn!("RISK_DECISION: REQUIRE_REVIEW - TX: {transaction_hash} Type: {transaction_type} Risk: {risk_score:.3} Fraud: {fraud_probability:.3} Confidence: {confidence:.3} Reason: {reason}");
                 }
                 RiskProcessingDecision::AutoReject { reason } => {
-                    log::error!("RISK_DECISION: AUTO_REJECT - TX: {} Type: {} Risk: {:.3} Fraud: {:.3} Confidence: {:.3} Reason: {}",
-                              transaction_hash, transaction_type, risk_score, fraud_probability, confidence, reason);
+                    log::error!("RISK_DECISION: AUTO_REJECT - TX: {transaction_hash} Type: {transaction_type} Risk: {risk_score:.3} Fraud: {fraud_probability:.3} Confidence: {confidence:.3} Reason: {reason}");
                 }
             }
         }

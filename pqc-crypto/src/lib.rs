@@ -239,19 +239,17 @@ impl PQCManager {
     /// Verify a signature using any known key (active or backups)
     pub fn verify_with_known_keys(&self, message: &[u8], signature: &Signature) -> Result<bool, PQCError> {
         // Try active key first
-        if self.signature_keypair.algorithm == signature.algorithm {
-            if self.verify(message, signature, &self.signature_keypair.public_key)? {
+        if self.signature_keypair.algorithm == signature.algorithm
+            && self.verify(message, signature, &self.signature_keypair.public_key)? {
                 return Ok(true);
             }
-        }
 
         // Try backups in reverse (newest first)
         for kp in self.signature_key_backups.iter().rev() {
-            if kp.algorithm == signature.algorithm {
-                if self.verify(message, signature, &kp.public_key)? {
+            if kp.algorithm == signature.algorithm
+                && self.verify(message, signature, &kp.public_key)? {
                     return Ok(true);
                 }
-            }
         }
 
         Ok(false)
@@ -311,7 +309,7 @@ impl PQCManager {
         // Preserve current keypair for backward compatibility
         self.signature_key_backups.push(self.signature_keypair.clone());
         self.signature_keypair = generate_signature_keypair(&algorithm)?;
-        log::info!("Switched to signature algorithm: {:?}", algorithm);
+        log::info!("Switched to signature algorithm: {algorithm:?}");
         Ok(())
     }
     
@@ -320,7 +318,7 @@ impl PQCManager {
         // Preserve current keypair
         self.key_exchange_key_backups.push(self.key_exchange_keypair.clone());
         self.key_exchange_keypair = generate_key_exchange_keypair(&algorithm)?;
-        log::info!("Switched to key exchange algorithm: {:?}", algorithm);
+        log::info!("Switched to key exchange algorithm: {algorithm:?}");
         Ok(())
     }
 
@@ -329,7 +327,7 @@ impl PQCManager {
         let algorithm = self.signature_keypair.algorithm.clone();
         self.signature_key_backups.push(self.signature_keypair.clone());
         self.signature_keypair = generate_signature_keypair(&algorithm)?;
-        log::info!("Rotated signature key for algorithm: {:?}", algorithm);
+        log::info!("Rotated signature key for algorithm: {algorithm:?}");
         Ok(())
     }
 
@@ -338,7 +336,7 @@ impl PQCManager {
         let algorithm = self.key_exchange_keypair.algorithm.clone();
         self.key_exchange_key_backups.push(self.key_exchange_keypair.clone());
         self.key_exchange_keypair = generate_key_exchange_keypair(&algorithm)?;
-        log::info!("Rotated key exchange key for algorithm: {:?}", algorithm);
+        log::info!("Rotated key exchange key for algorithm: {algorithm:?}");
         Ok(())
     }
 
@@ -543,6 +541,12 @@ pub struct AlgorithmMigration {
     to_algorithm: SignatureAlgorithm,
     migration_deadline: chrono::DateTime<chrono::Utc>,
     deprecation_warning_period: chrono::Duration,
+}
+
+impl Default for CryptoAgilityManager {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CryptoAgilityManager {

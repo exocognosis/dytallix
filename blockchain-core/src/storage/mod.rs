@@ -110,14 +110,14 @@ impl StorageManager {
     
     /// Store contract state
     pub async fn store_contract(&self, address: &Address, state: &ContractState) -> Result<(), Box<dyn std::error::Error>> {
-        let key = format!("contract:{}", address);
+        let key = format!("contract:{address}");
         let value = bincode::serialize(state)?;
         self.put(key.as_bytes(), &value).await
     }
 
     /// Get contract state
     pub async fn get_contract(&self, address: &Address) -> Result<Option<ContractState>, Box<dyn std::error::Error>> {
-        let key = format!("contract:{}", address);
+        let key = format!("contract:{address}");
         if let Some(data) = self.get(key.as_bytes()).await? {
             let state: ContractState = bincode::deserialize(&data)?;
             Ok(Some(state))
@@ -146,7 +146,7 @@ impl StorageManager {
 
     /// Check if contract exists
     pub async fn contract_exists(&self, address: &Address) -> Result<bool, Box<dyn std::error::Error>> {
-        let key = format!("contract:{}", address);
+        let key = format!("contract:{address}");
         self.exists(key.as_bytes()).await
     }
 

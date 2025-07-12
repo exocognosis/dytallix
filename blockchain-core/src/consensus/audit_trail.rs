@@ -355,7 +355,7 @@ impl AuditTrailManager {
             stats.entries_today += flush_count; // Simplified - would need date tracking
         }
 
-        info!("Flushed {} audit entries to storage", flush_count);
+        info!("Flushed {flush_count} audit entries to storage");
         Ok(flush_count)
     }
 
@@ -507,7 +507,7 @@ impl AuditTrailManager {
         }
 
         if archived_count > 0 {
-            info!("Archived {} old audit entries", archived_count);
+            info!("Archived {archived_count} old audit entries");
             
             let mut stats = self.stats.write().await;
             stats.archived_entries += archived_count;
@@ -526,7 +526,7 @@ impl AuditTrailManager {
         
         if let Some(entry) = storage.get_mut(&audit_id) {
             entry.compliance_status = new_status;
-            info!("Updated compliance status for audit entry {}", audit_id);
+            info!("Updated compliance status for audit entry {audit_id}");
             Ok(())
         } else {
             Err(anyhow!("Audit entry not found: {}", audit_id))
@@ -535,11 +535,9 @@ impl AuditTrailManager {
 
     // Helper methods
 
-    fn should_flush(&self) -> impl std::future::Future<Output = bool> + '_ {
-        async move {
-            let pending = self.pending_entries.read().await;
-            pending.len() >= self.config.batch_write_size
-        }
+    async fn should_flush(&self) -> bool {
+        let pending = self.pending_entries.read().await;
+        pending.len() >= self.config.batch_write_size
     }
 
     fn extract_transaction_metadata(&self, transaction: &Transaction) -> TransactionMetadata {

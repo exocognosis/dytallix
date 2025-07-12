@@ -90,8 +90,8 @@ pub async fn create_account(name: Option<String>, config: &Config) -> Result<()>
     println!("{}", "📋 Account Details:".bright_cyan().bold());
     println!("  Name: {}", account_name.bright_white());
     println!("  Address: {}", address.bright_cyan());
-    println!("  Signature Algorithm: {}", format!("{:?}", signature_alg).bright_blue());
-    println!("  Key Exchange Algorithm: {}", format!("{:?}", key_exchange_alg).bright_blue());
+    println!("  Signature Algorithm: {}", format!("{signature_alg:?}").bright_blue());
+    println!("  Key Exchange Algorithm: {}", format!("{key_exchange_alg:?}").bright_blue());
     println!("  Protected: {}", if passphrase.is_some() { "Yes".bright_green() } else { "No".bright_red() });
     
     // Show account info
@@ -147,7 +147,7 @@ pub async fn account_balance(account: String, config: &Config) -> Result<()> {
     let crypto_manager = CryptoManager::new()?;
     
     if let Some(account_info) = crypto_manager.get_account_info(&account)? {
-        println!("{}", format!("💰 Balance for account: {}", account).bright_blue());
+        println!("{}", format!("💰 Balance for account: {account}").bright_blue());
         println!("Address: {}", account_info.address.bright_cyan());
         
         // Connect to blockchain for real balance
@@ -182,7 +182,7 @@ pub async fn account_balance(account: String, config: &Config) -> Result<()> {
         println!("  Created: {}", format_timestamp(account_info.created_at));
         
     } else {
-        println!("{}", format!("Account '{}' not found", account).bright_red());
+        println!("{}", format!("Account '{account}' not found").bright_red());
         return Err(anyhow::anyhow!("Account not found"));
     }
     
@@ -193,7 +193,7 @@ pub async fn export_account(account: String, output: Option<String>, config: &Co
     let crypto_manager = CryptoManager::new()?;
     
     if crypto_manager.get_account_info(&account)?.is_none() {
-        println!("{}", format!("Account '{}' not found", account).bright_red());
+        println!("{}", format!("Account '{account}' not found").bright_red());
         return Err(anyhow::anyhow!("Account not found"));
     }
     
@@ -220,13 +220,13 @@ pub async fn export_account(account: String, output: Option<String>, config: &Co
     
     let output_file = output.unwrap_or_else(|| {
         if include_private_keys {
-            format!("{}_full_export.json", account)
+            format!("{account}_full_export.json")
         } else {
-            format!("{}_public_export.json", account)
+            format!("{account}_public_export.json")
         }
     });
     
-    println!("{}", format!("📤 Exporting account: {}", account).bright_blue());
+    println!("{}", format!("📤 Exporting account: {account}").bright_blue());
     
     let export_data = crypto_manager.export_account(&account, include_private_keys)?;
     
@@ -245,7 +245,7 @@ pub async fn export_account(account: String, output: Option<String>, config: &Co
 pub async fn import_account(file: String, config: &Config) -> Result<()> {
     let mut crypto_manager = CryptoManager::new()?;
     
-    println!("{}", format!("📥 Importing account from: {}", file).bright_blue());
+    println!("{}", format!("📥 Importing account from: {file}").bright_blue());
     
     let account_data = fs::read_to_string(&file)?;
     
@@ -290,7 +290,7 @@ pub async fn sign_message(account: String, message: String, config: &Config) -> 
     let mut crypto_manager = CryptoManager::new()?;
     
     if crypto_manager.get_account_info(&account)?.is_none() {
-        println!("{}", format!("Account '{}' not found", account).bright_red());
+        println!("{}", format!("Account '{account}' not found").bright_red());
         return Err(anyhow::anyhow!("Account not found"));
     }
     
@@ -329,7 +329,7 @@ pub async fn verify_signature(
         Some("falcon1024") | Some("Falcon1024") => SignatureAlgorithm::Falcon1024,
         Some("sphincs") | Some("SphincsSha256128s") => SignatureAlgorithm::SphincsSha256128s,
         Some(alg) => {
-            println!("{}", format!("Unknown algorithm: {}", alg).bright_red());
+            println!("{}", format!("Unknown algorithm: {alg}").bright_red());
             return Err(anyhow::anyhow!("Unknown algorithm"));
         }
     };

@@ -3,7 +3,6 @@ use dytallix_pqc::{SignatureAlgorithm, KeyExchangeAlgorithm, PQCManager};
 use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
 use dirs::home_dir;
-use chrono;
 
 /// Configuration for PQC operations
 #[derive(Debug, Clone, Serialize, Deserialize)]

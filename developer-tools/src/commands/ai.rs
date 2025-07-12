@@ -36,7 +36,7 @@ pub async fn analyze_fraud(input: String, config: &Config) -> Result<()> {
                 }
             }
             Err(e) => {
-                println!("{}", format!("⚠️  Could not fetch transaction data: {}", e).bright_yellow());
+                println!("{}", format!("⚠️  Could not fetch transaction data: {e}").bright_yellow());
                 // Create mock data for analysis
                 serde_json::json!({
                     "hash": input,
@@ -82,7 +82,7 @@ pub async fn analyze_fraud(input: String, config: &Config) -> Result<()> {
             }
         }
         Err(e) => {
-            println!("{}", format!("⚠️  AI service unavailable ({}), using offline analysis", e).bright_yellow());
+            println!("{}", format!("⚠️  AI service unavailable ({e}), using offline analysis").bright_yellow());
             get_mock_fraud_response(&analysis_data)
         }
     };

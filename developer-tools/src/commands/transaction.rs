@@ -31,7 +31,7 @@ pub async fn send_transaction(to: String, amount: u64, from: Option<String>, con
             println!("\n{}", "Select sender account:".bright_cyan());
             let account_names: Vec<String> = accounts.iter().map(|a| {
                 let preview = if a.len() > 16 { &a[..16] } else { a };
-                format!("{} ({})", a, preview)
+                format!("{a} ({preview})")
             }).collect();
             
             let selection = Select::new()
@@ -75,7 +75,7 @@ pub async fn send_transaction(to: String, amount: u64, from: Option<String>, con
             }
         }
         Err(e) => {
-            println!("{}", format!("⚠️  Could not check balance: {}", e).bright_yellow());
+            println!("{}", format!("⚠️  Could not check balance: {e}").bright_yellow());
         }
     }
     
@@ -128,7 +128,7 @@ pub async fn send_transaction(to: String, amount: u64, from: Option<String>, con
             }
         }
         Err(e) => {
-            println!("{}", format!("❌ Failed to submit transaction: {}", e).bright_red());
+            println!("{}", format!("❌ Failed to submit transaction: {e}").bright_red());
         }
     }
     
@@ -178,7 +178,7 @@ pub async fn get_transaction(hash: String, config: &Config) -> Result<()> {
             }
         }
         Err(e) => {
-            println!("{}", format!("❌ Failed to fetch transaction: {}", e).bright_red());
+            println!("{}", format!("❌ Failed to fetch transaction: {e}").bright_red());
         }
     }
     
@@ -234,7 +234,7 @@ pub async fn list_transactions(account: Option<String>, limit: u64, config: &Con
             }
         }
         Err(e) => {
-            println!("{}", format!("❌ Failed to list transactions: {}", e).bright_red());
+            println!("{}", format!("❌ Failed to list transactions: {e}").bright_red());
         }
     }
     

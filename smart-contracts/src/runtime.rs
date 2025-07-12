@@ -229,7 +229,7 @@ impl ContractRuntime {
                 Err(e) => {
                     return Err(ContractExecutionError {
                         code: ErrorCode::AIValidationFailed,
-                        message: format!("AI analysis failed: {}", e),
+                        message: format!("AI analysis failed: {e}"),
                         gas_used: 0,
                     });
                 }
@@ -350,7 +350,7 @@ impl ContractRuntime {
         let module = Module::new(&self.engine, contract.code.as_slice())
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::InvalidContract,
-                message: format!("Failed to load WASM module: {}", e),
+                message: format!("Failed to load WASM module: {e}"),
                 gas_used: 0,
             })?;
         
@@ -361,7 +361,7 @@ impl ContractRuntime {
             .and_then(|pre| pre.start(&mut store))
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to instantiate contract: {}", e),
+                message: format!("Failed to instantiate contract: {e}"),
                 gas_used: 0,
             })?;
         
@@ -380,13 +380,13 @@ impl ContractRuntime {
             .and_then(|export| export.into_func())
             .ok_or_else(|| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Function '{}' not found", func_name),
+                message: format!("Function '{func_name}' not found"),
                 gas_used: 0,
             })?
             .typed(&store)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Function '{}' not found: {}", func_name, e),
+                message: format!("Function '{func_name}' not found: {e}"),
                 gas_used: 0,
             })?;
         
@@ -411,7 +411,7 @@ impl ContractRuntime {
                 };
                 ContractExecutionError {
                     code: ErrorCode::ExecutionFailed,
-                    message: format!("Contract execution failed: {}", e),
+                    message: format!("Contract execution failed: {e}"),
                     gas_used: gas_before - gas_after,
                 }
             })?;
@@ -456,7 +456,7 @@ impl ContractRuntime {
             }
         }).map_err(|e| ContractExecutionError {
             code: ErrorCode::ExecutionFailed,
-            message: format!("Failed to register consume_gas: {}", e),
+            message: format!("Failed to register consume_gas: {e}"),
             gas_used: 0,
         })?;
         
@@ -503,7 +503,7 @@ impl ContractRuntime {
             }
         ).map_err(|e| ContractExecutionError {
             code: ErrorCode::ExecutionFailed,
-            message: format!("Failed to register storage_get: {}", e),
+            message: format!("Failed to register storage_get: {e}"),
             gas_used: 0,
         })?;
         
@@ -565,7 +565,7 @@ impl ContractRuntime {
             }
         ).map_err(|e| ContractExecutionError {
             code: ErrorCode::ExecutionFailed,
-            message: format!("Failed to register storage_set: {}", e),
+            message: format!("Failed to register storage_set: {e}"),
             gas_used: 0,
         })?;
         
@@ -622,7 +622,7 @@ impl ContractRuntime {
             }
         ).map_err(|e| ContractExecutionError {
             code: ErrorCode::ExecutionFailed,
-            message: format!("Failed to register emit_event: {}", e),
+            message: format!("Failed to register emit_event: {e}"),
             gas_used: 0,
         })?;
         
@@ -631,7 +631,7 @@ impl ContractRuntime {
             caller.data().execution_context.block_timestamp
         }).map_err(|e| ContractExecutionError {
             code: ErrorCode::ExecutionFailed,
-            message: format!("Failed to register block_timestamp: {}", e),
+            message: format!("Failed to register block_timestamp: {e}"),
             gas_used: 0,
         })?;
         
@@ -639,7 +639,7 @@ impl ContractRuntime {
             caller.data().execution_context.block_number
         }).map_err(|e| ContractExecutionError {
             code: ErrorCode::ExecutionFailed,
-            message: format!("Failed to register block_number: {}", e),
+            message: format!("Failed to register block_number: {e}"),
             gas_used: 0,
         })?;
         
@@ -680,7 +680,7 @@ impl ContractRuntime {
             Ok(_) => Ok(()),
             Err(e) => Err(ContractExecutionError {
                 code: ErrorCode::InvalidContract,
-                message: format!("WASM validation failed: {}", e),
+                message: format!("WASM validation failed: {e}"),
                 gas_used: 0,
             })
         }
@@ -715,7 +715,7 @@ impl ContractRuntime {
         memory.write(store, offset, data)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to write to memory: {}", e),
+                message: format!("Failed to write to memory: {e}"),
                 gas_used: 0,
             })?;
         
@@ -731,7 +731,7 @@ impl ContractRuntime {
         memory.read(&*store, ptr as usize, &mut len_bytes)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to read length from memory: {}", e),
+                message: format!("Failed to read length from memory: {e}"),
                 gas_used: 0,
             })?;
         
@@ -758,7 +758,7 @@ impl ContractRuntime {
         memory.read(&*store, (ptr as usize) + 4, &mut data)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to read data from memory: {}", e),
+                message: format!("Failed to read data from memory: {e}"),
                 gas_used: 0,
             })?;
         
@@ -774,7 +774,7 @@ impl ContractRuntime {
         memory.read(caller.as_context(), ptr as usize, &mut data)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to read memory slice: {}", e),
+                message: format!("Failed to read memory slice: {e}"),
                 gas_used: 0,
             })?;
         
@@ -792,7 +792,7 @@ impl ContractRuntime {
         memory.write(caller.as_context_mut(), ptr as usize, data)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to write memory slice: {}", e),
+                message: format!("Failed to write memory slice: {e}"),
                 gas_used: 0,
             })?;
 
@@ -817,7 +817,7 @@ impl ContractRuntime {
             bincode::serialize(contract_storage)
                 .map_err(|e| ContractExecutionError {
                     code: ErrorCode::StateError,
-                    message: format!("Failed to serialize state: {}", e),
+                    message: format!("Failed to serialize state: {e}"),
                     gas_used: 0,
                 })
         } else {
@@ -833,7 +833,7 @@ impl ContractRuntime {
         let state: HashMap<Vec<u8>, Vec<u8>> = bincode::deserialize(state_data)
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::StateError,
-                message: format!("Failed to deserialize state: {}", e),
+                message: format!("Failed to deserialize state: {e}"),
                 gas_used: 0,
             })?;
         

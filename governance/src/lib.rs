@@ -25,18 +25,15 @@ pub struct Proposal {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum ProposalType {
     /// Standard governance proposal (text-based)
+    #[default]
     Standard,
     /// Tokenomics proposal for emission control
     Tokenomics(TokenomicsProposal),
 }
 
-impl Default for ProposalType {
-    fn default() -> Self {
-        ProposalType::Standard
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProposalStatus {
@@ -69,7 +66,7 @@ impl std::fmt::Display for GovernanceError {
             GovernanceError::VotingClosed => write!(f, "Voting period is closed"),
             GovernanceError::AlreadyVoted => write!(f, "User has already voted on this proposal"),
             GovernanceError::ProposalNotFound => write!(f, "Proposal not found"),
-            GovernanceError::StorageError(msg) => write!(f, "Storage error: {}", msg),
+            GovernanceError::StorageError(msg) => write!(f, "Storage error: {msg}"),
         }
     }
 }
@@ -108,7 +105,7 @@ impl FileBasedGovernance {
     pub fn new(data_dir: PathBuf) -> Result<Self, GovernanceError> {
         // Ensure data directory exists
         if let Err(e) = fs::create_dir_all(&data_dir) {
-            return Err(GovernanceError::StorageError(format!("Failed to create data directory: {}", e)));
+            return Err(GovernanceError::StorageError(format!("Failed to create data directory: {e}")));
         }
 
         let mut governance = Self {
@@ -135,10 +132,10 @@ impl FileBasedGovernance {
         // Load proposals
         if self.proposals_file().exists() {
             let content = fs::read_to_string(self.proposals_file())
-                .map_err(|e| GovernanceError::StorageError(format!("Failed to read proposals: {}", e)))?;
+                .map_err(|e| GovernanceError::StorageError(format!("Failed to read proposals: {e}")))?;
             
             let proposals: HashMap<u64, Proposal> = serde_json::from_str(&content)
-                .map_err(|e| GovernanceError::StorageError(format!("Failed to parse proposals: {}", e)))?;
+                .map_err(|e| GovernanceError::StorageError(format!("Failed to parse proposals: {e}")))?;
             
             // Find the next proposal ID
             self.next_proposal_id = proposals.keys().max().unwrap_or(&0) + 1;
@@ -148,10 +145,10 @@ impl FileBasedGovernance {
         // Load votes
         if self.votes_file().exists() {
             let content = fs::read_to_string(self.votes_file())
-                .map_err(|e| GovernanceError::StorageError(format!("Failed to read votes: {}", e)))?;
+                .map_err(|e| GovernanceError::StorageError(format!("Failed to read votes: {e}")))?;
             
             self.votes = serde_json::from_str(&content)
-                .map_err(|e| GovernanceError::StorageError(format!("Failed to parse votes: {}", e)))?;
+                .map_err(|e| GovernanceError::StorageError(format!("Failed to parse votes: {e}")))?;
         }
 
         Ok(())
@@ -160,17 +157,17 @@ impl FileBasedGovernance {
     fn save_data(&self) -> Result<(), GovernanceError> {
         // Save proposals
         let proposals_json = serde_json::to_string_pretty(&self.proposals)
-            .map_err(|e| GovernanceError::StorageError(format!("Failed to serialize proposals: {}", e)))?;
+            .map_err(|e| GovernanceError::StorageError(format!("Failed to serialize proposals: {e}")))?;
         
         fs::write(self.proposals_file(), proposals_json)
-            .map_err(|e| GovernanceError::StorageError(format!("Failed to write proposals: {}", e)))?;
+            .map_err(|e| GovernanceError::StorageError(format!("Failed to write proposals: {e}")))?;
 
         // Save votes
         let votes_json = serde_json::to_string_pretty(&self.votes)
-            .map_err(|e| GovernanceError::StorageError(format!("Failed to serialize votes: {}", e)))?;
+            .map_err(|e| GovernanceError::StorageError(format!("Failed to serialize votes: {e}")))?;
         
         fs::write(self.votes_file(), votes_json)
-            .map_err(|e| GovernanceError::StorageError(format!("Failed to write votes: {}", e)))?;
+            .map_err(|e| GovernanceError::StorageError(format!("Failed to write votes: {e}")))?;
 
         Ok(())
     }
@@ -344,6 +341,12 @@ pub struct InMemoryGovernance {
     proposals: HashMap<u64, Proposal>,
     votes: HashMap<u64, Vec<Ballot>>,
     next_proposal_id: u64,
+}
+
+impl Default for InMemoryGovernance {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl InMemoryGovernance {

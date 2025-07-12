@@ -197,6 +197,7 @@ pub struct OracleRegistryEntry {
 
 /// Oracle whitelist/blacklist management
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct OracleAccessControl {
     /// Whitelisted oracle addresses (if empty, no whitelist)
     pub whitelist: Vec<Address>,
@@ -208,16 +209,6 @@ pub struct OracleAccessControl {
     pub access_notes: HashMap<Address, String>,
 }
 
-impl Default for OracleAccessControl {
-    fn default() -> Self {
-        Self {
-            whitelist: Vec::new(),
-            blacklist: Vec::new(),
-            temporary_suspensions: HashMap::new(),
-            access_notes: HashMap::new(),
-        }
-    }
-}
 
 /// Oracle registry and reputation management system
 pub struct OracleRegistry {
@@ -367,7 +358,7 @@ impl OracleRegistry {
         stats.last_updated = now;
         drop(stats);
 
-        info!("Oracle {} registered successfully with stake {}", oracle_address, stake_amount);
+        info!("Oracle {oracle_address} registered successfully with stake {stake_amount}");
         Ok(())
     }
 
@@ -385,7 +376,7 @@ impl OracleRegistry {
                     stats.active_count += 1;
                     stats.last_updated = oracle.last_activity;
                     
-                    info!("Oracle {} activated", oracle_address);
+                    info!("Oracle {oracle_address} activated");
                     Ok(())
                 }
                 _ => Err(anyhow::anyhow!("Oracle {} cannot be activated from status {:?}", oracle_address, oracle.status)),
@@ -510,8 +501,7 @@ impl OracleRegistry {
                 }
                 stats.last_updated = now;
 
-                error!("Oracle {} immediately slashed for: {}. Amount: {}", 
-                       oracle_address, slash_reason, slash_amount);
+                error!("Oracle {oracle_address} immediately slashed for: {slash_reason}. Amount: {slash_amount}");
             } else {
                 // Grace period slashing
                 oracle.stake.pending_slash = slash_amount;
@@ -519,8 +509,7 @@ impl OracleRegistry {
                 oracle.status = OracleStatus::Suspended;
                 oracle.last_activity = now;
 
-                warn!("Oracle {} scheduled for slashing after grace period. Reason: {}. Amount: {}", 
-                      oracle_address, slash_reason, slash_amount);
+                warn!("Oracle {oracle_address} scheduled for slashing after grace period. Reason: {slash_reason}. Amount: {slash_amount}");
             }
 
             Ok(())
@@ -555,7 +544,7 @@ impl OracleRegistry {
             let mut stats = self.stats.write().await;
             stats.slashed_count += slashed_count;
             stats.last_updated = now;
-            info!("Processed {} pending slashing operations", slashed_count);
+            info!("Processed {slashed_count} pending slashing operations");
         }
 
         Ok(())
@@ -566,7 +555,7 @@ impl OracleRegistry {
         let mut access_control = self.access_control.write().await;
         if !access_control.whitelist.contains(&oracle_address) {
             access_control.whitelist.push(oracle_address.clone());
-            info!("Oracle {} added to whitelist", oracle_address);
+            info!("Oracle {oracle_address} added to whitelist");
         }
         Ok(())
     }
@@ -577,7 +566,7 @@ impl OracleRegistry {
         if !access_control.blacklist.contains(&oracle_address) {
             access_control.blacklist.push(oracle_address.clone());
             access_control.access_notes.insert(oracle_address.clone(), reason.clone());
-            info!("Oracle {} added to blacklist: {}", oracle_address, reason);
+            info!("Oracle {oracle_address} added to blacklist: {reason}");
         }
 
         // Also suspend the oracle if it's currently registered
@@ -637,7 +626,7 @@ impl OracleRegistry {
             // Reset daily counters (simplified)
             oracle.performance.responses_24h = 0;
 
-            debug!("Applied daily maintenance to oracle {}", address);
+            debug!("Applied daily maintenance to oracle {address}");
         }
 
         // Process pending slashing

@@ -893,7 +893,7 @@ impl StakeTransaction {
         let action_str = match &self.action {
             StakeAction::Stake => "Stake".to_string(),
             StakeAction::Unstake => "Unstake".to_string(),
-            StakeAction::Delegate { to } => format!("Delegate:{}", to),
+            StakeAction::Delegate { to } => format!("Delegate:{to}"),
             StakeAction::Undelegate => "Undelegate".to_string(),
         };
         format!(

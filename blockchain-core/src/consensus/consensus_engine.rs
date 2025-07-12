@@ -109,7 +109,7 @@ impl ConsensusEngine {
         
         // Initialize keys
         if let Err(e) = key_manager.initialize() {
-            error!("Failed to initialize key management: {}", e);
+            error!("Failed to initialize key management: {e}");
             return Err(e.into());
         }
         
@@ -128,7 +128,7 @@ impl ConsensusEngine {
         let ai_integration = match AIIntegrationManager::new(AIIntegrationConfig::default()).await {
             Ok(manager) => Some(Arc::new(manager)),
             Err(e) => {
-                warn!("AI integration not available: {}", e);
+                warn!("AI integration not available: {e}");
                 None
             }
         };
@@ -155,7 +155,7 @@ impl ConsensusEngine {
         let wasm_runtime = Arc::new(ContractRuntime::new(
             1_000_000, // Max gas per call
             256,       // Max memory pages
-        ).map_err(|e| format!("Failed to initialize WASM runtime: {:?}", e))?);
+        ).map_err(|e| format!("Failed to initialize WASM runtime: {e:?}"))?);
         
         Ok(Self {
             runtime,
@@ -183,7 +183,7 @@ impl ConsensusEngine {
         {
             let mut key_manager = self.key_manager.write().await;
             if let Err(e) = key_manager.rotate_keys_if_needed() {
-                warn!("Failed to rotate keys: {}", e);
+                warn!("Failed to rotate keys: {e}");
             }
         }
         
@@ -195,7 +195,7 @@ impl ConsensusEngine {
         
         // Check AI service health
         if let Err(e) = self.check_ai_service_health().await {
-            warn!("AI service health check failed: {}", e);
+            warn!("AI service health check failed: {e}");
         }
         
         info!("Consensus engine started successfully");
@@ -249,7 +249,7 @@ impl ConsensusEngine {
         if let Some(metadata) = &response.response.metadata {
             if let Some(confidence) = metadata.confidence_score {
                 if confidence < self.ai_client.get_config().risk_threshold {
-                    warn!("AI analysis confidence score below threshold: {}", confidence);
+                    warn!("AI analysis confidence score below threshold: {confidence}");
                 }
             }
         }
@@ -483,9 +483,9 @@ impl ConsensusEngine {
         let deployed_address = match self.wasm_runtime.deploy_contract(deployment).await {
             Ok(addr) => addr,
             Err(e) => {
-                error!("WASM contract deployment failed: {:?}", e);
+                error!("WASM contract deployment failed: {e:?}");
                 return Ok(ExecutionResult::failure(
-                    format!("Contract deployment failed: {:?}", e)
+                    format!("Contract deployment failed: {e:?}")
                 ));
             }
         };
@@ -501,7 +501,7 @@ impl ConsensusEngine {
         // Store contract state in blockchain storage
         storage.store_contract(&contract_address, &contract_state).await?;
 
-        info!("Contract deployed successfully at {}", deployed_address);
+        info!("Contract deployed successfully at {deployed_address}");
         
         Ok(ExecutionResult {
             success: true,
@@ -545,9 +545,9 @@ impl ConsensusEngine {
         let execution_result = match self.wasm_runtime.call_contract(call).await {
             Ok(result) => result,
             Err(e) => {
-                error!("WASM contract call failed: {:?}", e);
+                error!("WASM contract call failed: {e:?}");
                 return Ok(ExecutionResult::failure(
-                    format!("Contract call failed: {:?}", e)
+                    format!("Contract call failed: {e:?}")
                 ));
             }
         };

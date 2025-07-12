@@ -116,13 +116,13 @@ impl BlockProcessor {
                 }
                 Err(e) => {
                     rejected_count += 1;
-                    error!("Transaction validation error: {}", e);
+                    error!("Transaction validation error: {e}");
                 }
             }
         }
         
         if rejected_count > 0 {
-            warn!("Rejected {} transactions during block proposal", rejected_count);
+            warn!("Rejected {rejected_count} transactions during block proposal");
         }
         
         // Calculate Merkle root
@@ -174,7 +174,7 @@ impl BlockProcessor {
         
         // 1. Basic block validation
         if let Err(e) = self.validate_basic_block(block) {
-            result.add_error(format!("Basic block validation failed: {}", e));
+            result.add_error(format!("Basic block validation failed: {e}"));
             return Ok(result);
         }
         
@@ -194,7 +194,7 @@ impl BlockProcessor {
                     transaction_results.push(tx_result);
                 }
                 Err(e) => {
-                    result.add_error(format!("Transaction validation error: {}", e));
+                    result.add_error(format!("Transaction validation error: {e}"));
                 }
             }
         }
@@ -215,7 +215,7 @@ impl BlockProcessor {
                     result.ai_analysis = Some(ai_result);
                 }
                 Err(e) => {
-                    result.add_warning(format!("AI block validation failed: {}", e));
+                    result.add_warning(format!("AI block validation failed: {e}"));
                 }
             }
         }

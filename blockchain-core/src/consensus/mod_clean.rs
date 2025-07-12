@@ -266,7 +266,7 @@ impl ConsensusEngine {
                 Some(Arc::new(manager))
             }
             Err(e) => {
-                warn!("Failed to initialize AI integration: {}", e);
+                warn!("Failed to initialize AI integration: {e}");
                 warn!("Continuing without AI integration - transactions will use basic validation only");
                 None
             }
@@ -412,7 +412,7 @@ impl ConsensusEngine {
             let mut block_number = 0u64;
             
             loop {
-                debug!("Validator tick - producing block #{}", block_number);
+                debug!("Validator tick - producing block #{block_number}");
                 
                 // Create a sample transaction for demonstration
                 let mut sample_tx = crate::types::TransferTransaction {
@@ -471,7 +471,7 @@ impl ConsensusEngine {
                                 
                                 // Apply block to state
                                 if let Err(e) = Self::apply_block_to_state(&runtime, &block).await {
-                                    log::error!("Failed to apply block to state: {}", e);
+                                    log::error!("Failed to apply block to state: {e}");
                                 } else {
                                     // Update current block
                                     let mut current = current_block.write().await;
@@ -488,7 +488,7 @@ impl ConsensusEngine {
                         }
                     }
                     Err(e) => {
-                        log::error!("Failed to create block proposal: {}", e);
+                        log::error!("Failed to create block proposal: {e}");
                     }
                 }
                 
@@ -767,7 +767,7 @@ impl ConsensusEngine {
                             }
                         }
                         ai_integration::AIVerificationResult::Failed { error, .. } => {
-                            warn!("AI transaction validation failed: {}", error);
+                            warn!("AI transaction validation failed: {error}");
                             // Check if AI verification is required
                             if ai_manager.is_ai_verification_required() {
                                 return Ok(false);
@@ -785,13 +785,13 @@ impl ConsensusEngine {
                             Ok(true)
                         }
                         ai_integration::AIVerificationResult::Skipped { reason } => {
-                            info!("AI verification skipped: {}", reason);
+                            info!("AI verification skipped: {reason}");
                             Ok(true)
                         }
                     }
                 }
                 Err(e) => {
-                    warn!("AI analysis error: {}", e);
+                    warn!("AI analysis error: {e}");
                     // If AI analysis fails and AI verification is required, reject
                     if ai_manager.is_ai_verification_required() {
                         return Ok(false);
@@ -815,14 +815,14 @@ impl ConsensusEngine {
         let transaction_data = match Self::transaction_to_ai_data(tx) {
             Ok(data) => data,
             Err(e) => {
-                return Err(format!("Failed to serialize transaction for AI analysis: {}", e));
+                return Err(format!("Failed to serialize transaction for AI analysis: {e}"));
             }
         };
 
         // Request AI analysis
         match ai_manager.validate_transaction_with_ai(transaction_data).await {
             Ok(result) => Ok(result),
-            Err(e) => Err(format!("AI validation request failed: {}", e)),
+            Err(e) => Err(format!("AI validation request failed: {e}")),
         }
     }
 
@@ -1073,7 +1073,7 @@ impl ConsensusEngine {
                         }
                         Err(e) => {
                             error!("Failed to deploy contract {}: {}", deploy_tx.hash, e);
-                            return Err(format!("Contract deployment failed: {}", e));
+                            return Err(format!("Contract deployment failed: {e}"));
                         }
                     }
                 }
@@ -1103,7 +1103,7 @@ impl ConsensusEngine {
                         }
                         Err(e) => {
                             error!("Failed to execute contract call {}: {}", call_tx.hash, e);
-                            return Err(format!("Contract execution failed: {}", e));
+                            return Err(format!("Contract execution failed: {e}"));
                         }
                     }
                 }
@@ -1255,7 +1255,7 @@ impl ConsensusEngine {
             let transaction_data = match Self::transaction_to_ai_data(tx) {
                 Ok(data) => data,
                 Err(e) => {
-                    warn!("Failed to serialize transaction for AI analysis: {}", e);
+                    warn!("Failed to serialize transaction for AI analysis: {e}");
                     return Ok(true); // Proceed with basic validation if AI data conversion fails
                 }
             };
@@ -1310,7 +1310,7 @@ impl ConsensusEngine {
                     ).await;
 
                     if let Err(e) = audit_result {
-                        warn!("Failed to record audit trail entry: {}", e);
+                        warn!("Failed to record audit trail entry: {e}");
                     }
 
                     match processing_decision {
@@ -1338,13 +1338,12 @@ impl ConsensusEngine {
                                 processing_decision_clone,
                             ).await {
                                 Ok(queue_id) => {
-                                    info!("Transaction {} queued for manual review (queue ID: {}): {}", 
-                                          tx_hash, queue_id, reason);
+                                    info!("Transaction {tx_hash} queued for manual review (queue ID: {queue_id}): {reason}");
                                     // Return false for now - transaction will be processed after manual approval
                                     Ok(false)
                                 }
                                 Err(e) => {
-                                    warn!("Failed to queue transaction for review: {}", e);
+                                    warn!("Failed to queue transaction for review: {e}");
                                     // If queueing fails, reject the transaction
                                     Ok(false)
                                 }
@@ -1358,7 +1357,7 @@ impl ConsensusEngine {
                     }
                 }
                 Ok(ai_integration::AIVerificationResult::Failed { error, oracle_id, response_id }) => {
-                    warn!("AI transaction validation failed: {}", error);
+                    warn!("AI transaction validation failed: {error}");
                     
                     // Record audit trail entry for failed AI decision
                     let tx_hash = self.calculate_transaction_hash(tx);
@@ -1371,7 +1370,7 @@ impl ConsensusEngine {
                             response_id: response_id.clone(),
                         },
                         ai_integration::RiskProcessingDecision::AutoReject { 
-                            reason: format!("AI validation failed: {}", error)
+                            reason: format!("AI validation failed: {error}")
                         },
                         crate::consensus::notification_types::ReviewPriority::High,
                         oracle_id.clone().unwrap_or_else(|| "unknown".to_string()),
@@ -1380,7 +1379,7 @@ impl ConsensusEngine {
                     ).await;
 
                     if let Err(e) = audit_result {
-                        warn!("Failed to record audit trail entry for failed AI validation: {}", e);
+                        warn!("Failed to record audit trail entry for failed AI validation: {e}");
                     }
 
                     if ai_manager.is_ai_verification_required() {
@@ -1412,7 +1411,7 @@ impl ConsensusEngine {
                     ).await;
 
                     if let Err(e) = audit_result {
-                        warn!("Failed to record audit trail entry for unavailable AI service: {}", e);
+                        warn!("Failed to record audit trail entry for unavailable AI service: {e}");
                     }
 
                     if !fallback_allowed && ai_manager.is_ai_verification_required() {
@@ -1422,7 +1421,7 @@ impl ConsensusEngine {
                     Ok(true)
                 }
                 Ok(ai_integration::AIVerificationResult::Skipped { reason }) => {
-                    info!("AI verification skipped: {}", reason);
+                    info!("AI verification skipped: {reason}");
                     
                     // Record audit trail entry for skipped AI verification
                     let tx_hash = self.calculate_transaction_hash(tx);
@@ -1438,13 +1437,13 @@ impl ConsensusEngine {
                     ).await;
 
                     if let Err(e) = audit_result {
-                        warn!("Failed to record audit trail entry for skipped AI verification: {}", e);
+                        warn!("Failed to record audit trail entry for skipped AI verification: {e}");
                     }
 
                     Ok(true)
                 }
                 Err(e) => {
-                    warn!("AI analysis error: {}", e);
+                    warn!("AI analysis error: {e}");
                     
                     // Record audit trail entry for AI analysis error
                     let tx_hash = self.calculate_transaction_hash(tx);
@@ -1452,12 +1451,12 @@ impl ConsensusEngine {
                         tx,
                         tx_hash,
                         ai_integration::AIVerificationResult::Failed { 
-                            error: format!("Analysis error: {}", e),
+                            error: format!("Analysis error: {e}"),
                             oracle_id: None,
                             response_id: None,
                         },
                         ai_integration::RiskProcessingDecision::AutoReject { 
-                            reason: format!("AI analysis error: {}", e)
+                            reason: format!("AI analysis error: {e}")
                         },
                         crate::consensus::notification_types::ReviewPriority::High,
                         "error".to_string(),
@@ -1466,7 +1465,7 @@ impl ConsensusEngine {
                     ).await;
 
                     if let Err(e) = audit_result {
-                        warn!("Failed to record audit trail entry for AI analysis error: {}", e);
+                        warn!("Failed to record audit trail entry for AI analysis error: {e}");
                     }
 
                     // If AI analysis fails and AI verification is required, reject
@@ -1512,7 +1511,7 @@ impl ConsensusEngine {
             warn!("AI service unhealthy, using fallback validation for transaction {}", hex::encode(&tx_hash));
             
             let fallback_result = self.performance_optimizer.fallback_validation(&tx_hash, tx).await
-                .map_err(|e| format!("Fallback validation failed: {}", e))?;
+                .map_err(|e| format!("Fallback validation failed: {e}"))?;
             
             // Cache fallback result
             let _ = self.performance_optimizer.cache_result(&tx_hash, &fallback_result).await;
@@ -1542,7 +1541,7 @@ impl ConsensusEngine {
                         return Ok(true);
                     }
                     Err(e) => {
-                        warn!("Failed to add transaction to batch: {}", e);
+                        warn!("Failed to add transaction to batch: {e}");
                         // Fall through to regular processing
                     }
                 }
@@ -1551,14 +1550,14 @@ impl ConsensusEngine {
 
         // Regular AI validation with concurrency limiting
         let _permit = self.performance_optimizer.acquire_request_permit().await
-            .map_err(|e| format!("Failed to acquire request permit: {}", e))?;
+            .map_err(|e| format!("Failed to acquire request permit: {e}"))?;
 
         let ai_result = if let Some(ai_manager) = &self.ai_integration {
             // Convert transaction to AI data format
             let transaction_data = match Self::transaction_to_ai_data(tx) {
                 Ok(data) => data,
                 Err(e) => {
-                    warn!("Failed to serialize transaction for AI analysis: {}", e);
+                    warn!("Failed to serialize transaction for AI analysis: {e}");
                     
                     self.performance_optimizer.record_request_metrics(
                         start_time.elapsed().as_millis() as u64, 
@@ -1567,7 +1566,7 @@ impl ConsensusEngine {
                     
                     // Use fallback if serialization fails
                     let fallback_result = self.performance_optimizer.fallback_validation(&tx_hash, tx).await
-                        .map_err(|e| format!("Fallback validation failed after serialization error: {}", e))?;
+                        .map_err(|e| format!("Fallback validation failed after serialization error: {e}"))?;
                     
                     return self.process_ai_result(tx, &tx_hash, fallback_result).await;
                 }
@@ -1632,7 +1631,7 @@ impl ConsensusEngine {
                 
                 // Use fallback validation
                 let fallback_result = self.performance_optimizer.fallback_validation(&tx_hash, tx).await
-                    .map_err(|e| format!("AI validation failed and fallback also failed: {}", e))?;
+                    .map_err(|e| format!("AI validation failed and fallback also failed: {e}"))?;
                 
                 // Cache fallback result
                 let _ = self.performance_optimizer.cache_result(&tx_hash, &fallback_result).await;
@@ -1668,12 +1667,11 @@ impl ConsensusEngine {
                             processing_decision.clone(),
                         ).await {
                             Ok(queue_id) => {
-                                info!("Transaction {} queued for manual review (queue ID: {}): {}", 
-                                      tx_hash, queue_id, reason);
+                                info!("Transaction {tx_hash} queued for manual review (queue ID: {queue_id}): {reason}");
                                 Ok(false) // Transaction will be processed after manual approval
                             }
                             Err(e) => {
-                                warn!("Failed to queue transaction for review: {}", e);
+                                warn!("Failed to queue transaction for review: {e}");
                                 Ok(false) // Reject if queueing fails
                             }
                         }
@@ -1758,12 +1756,12 @@ impl ConsensusEngine {
 
         match audit_result {
             Ok(audit_id) => {
-                debug!("Recorded audit trail entry {} for transaction {}", audit_id, tx_hash);
+                debug!("Recorded audit trail entry {audit_id} for transaction {tx_hash}");
                 Ok(())
             }
             Err(e) => {
-                warn!("Failed to record audit trail for transaction {}: {}", tx_hash, e);
-                Err(format!("Audit trail recording failed: {}", e))
+                warn!("Failed to record audit trail for transaction {tx_hash}: {e}");
+                Err(format!("Audit trail recording failed: {e}"))
             }
         }
     }
@@ -1809,7 +1807,7 @@ impl ConsensusEngine {
         }
         
         if processed_count > 0 {
-            info!("Processed {} transactions from batches", processed_count);
+            info!("Processed {processed_count} transactions from batches");
         }
         
         Ok(processed_count)
@@ -1821,11 +1819,11 @@ impl ConsensusEngine {
         match self.performance_optimizer.cleanup_cache().await {
             Ok(removed) => {
                 if removed > 0 {
-                    info!("Performance optimizer cleaned up {} cache entries", removed);
+                    info!("Performance optimizer cleaned up {removed} cache entries");
                 }
             }
             Err(e) => {
-                warn!("Failed to cleanup performance optimizer cache: {}", e);
+                warn!("Failed to cleanup performance optimizer cache: {e}");
             }
         }
         

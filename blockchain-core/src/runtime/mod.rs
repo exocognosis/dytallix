@@ -62,7 +62,7 @@ impl DytallixRuntime {
     pub async fn set_balance(&self, address: &str, amount: u64) -> Result<(), Box<dyn std::error::Error>> {
         let mut state = self.state.write().await;
         state.balances.insert(address.to_string(), amount);
-        debug!("Set balance for {}: {}", address, amount);
+        debug!("Set balance for {address}: {amount}");
         Ok(())
     }
     
@@ -79,7 +79,7 @@ impl DytallixRuntime {
         state.balances.insert(from.to_string(), from_balance - amount);
         state.balances.insert(to.to_string(), to_balance + amount);
         
-        info!("Transfer: {} -> {} amount: {}", from, to, amount);
+        info!("Transfer: {from} -> {to} amount: {amount}");
         Ok(())
     }
     
@@ -96,7 +96,7 @@ impl DytallixRuntime {
     }
     
     pub async fn deploy_contract(&self, address: &str, code: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Deploying contract at address: {}", address);
+        info!("Deploying contract at address: {address}");
         
         // Create deployment info
         let deployment = ContractDeployment {
@@ -120,7 +120,7 @@ impl DytallixRuntime {
         let mut state = self.state.write().await;
         state.contracts.insert(address.to_string(), code);
         
-        info!("Contract deployed successfully at address: {}", deployed_address);
+        info!("Contract deployed successfully at address: {deployed_address}");
         Ok(())
     }
     
@@ -174,7 +174,7 @@ impl DytallixRuntime {
         gas_limit: u64,
         value: u64,
     ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
-        debug!("Calling contract method {} at {} from {}", method, address, caller);
+        debug!("Calling contract method {method} at {address} from {caller}");
         
         let contract_call = ContractCall {
             contract_address: address.to_string(),
@@ -209,7 +209,7 @@ impl DytallixRuntime {
         gas_limit: u64,
         initial_state: Vec<u8>,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        info!("Deploying contract at address: {} from deployer: {}", address, deployer);
+        info!("Deploying contract at address: {address} from deployer: {deployer}");
         
         let deployment = ContractDeployment {
             address: address.to_string(),
@@ -231,7 +231,7 @@ impl DytallixRuntime {
         let mut state = self.state.write().await;
         state.contracts.insert(address.to_string(), code);
         
-        info!("Contract deployed successfully at address: {}", deployed_address);
+        info!("Contract deployed successfully at address: {deployed_address}");
         Ok(deployed_address)
     }
     

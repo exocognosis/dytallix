@@ -264,7 +264,7 @@ impl HighRiskQueue {
         };
         transaction.last_updated = Utc::now();
 
-        info!("Officer {} started reviewing transaction {}", officer_id, queue_id);
+        info!("Officer {officer_id} started reviewing transaction {queue_id}");
         
         self.update_stats().await;
         Ok(())
@@ -295,7 +295,7 @@ impl HighRiskQueue {
         // Remove from tracking (approved transactions are processed)
         hash_map.remove(&transaction.transaction_hash);
 
-        info!("Officer {} approved transaction {}", officer_id, queue_id);
+        info!("Officer {officer_id} approved transaction {queue_id}");
         
         self.update_stats().await;
         Ok(approved_transaction)
@@ -324,7 +324,7 @@ impl HighRiskQueue {
         // Remove from tracking (rejected transactions are discarded)
         hash_map.remove(&transaction.transaction_hash);
 
-        info!("Officer {} rejected transaction {}", officer_id, queue_id);
+        info!("Officer {officer_id} rejected transaction {queue_id}");
         
         self.update_stats().await;
         Ok(())
@@ -355,7 +355,7 @@ impl HighRiskQueue {
         for queue_id in queue_ids {
             match self.approve_transaction(queue_id, officer_id.clone(), None).await {
                 Ok(transaction) => approved.push(transaction),
-                Err(e) => warn!("Failed to approve transaction {}: {}", queue_id, e),
+                Err(e) => warn!("Failed to approve transaction {queue_id}: {e}"),
             }
         }
 
@@ -370,11 +370,11 @@ impl HighRiskQueue {
         for queue_id in queue_ids {
             match self.reject_transaction(queue_id, officer_id.clone(), reason.clone()).await {
                 Ok(_) => rejected_count += 1,
-                Err(e) => warn!("Failed to reject transaction {}: {}", queue_id, e),
+                Err(e) => warn!("Failed to reject transaction {queue_id}: {e}"),
             }
         }
 
-        info!("Officer {} bulk rejected {} transactions", officer_id, rejected_count);
+        info!("Officer {officer_id} bulk rejected {rejected_count} transactions");
         Ok(rejected_count)
     }
 
@@ -433,7 +433,7 @@ impl HighRiskQueue {
         }
 
         if expired_count > 0 {
-            info!("Expired {} transactions from queue", expired_count);
+            info!("Expired {expired_count} transactions from queue");
             self.update_stats().await;
         }
 
@@ -469,11 +469,8 @@ impl HighRiskQueue {
         let mut tags = Vec::new();
 
         // Add tag based on decision reason
-        match risk_decision {
-            RiskProcessingDecision::RequireReview { reason } => {
-                tags.push(format!("review-reason:{}", reason));
-            }
-            _ => {}
+        if let RiskProcessingDecision::RequireReview { reason } = risk_decision {
+            tags.push(format!("review-reason:{reason}"));
         }
 
         // Add tags based on AI result
@@ -516,16 +513,16 @@ impl HighRiskQueue {
         // Log the notification for now
         match notification {
             NotificationType::NewHighRiskTransaction { queue_id, transaction_hash: _, risk_score: _, ref priority } => {
-                warn!("🚨 New {:?} priority transaction queued for review: {}", priority, queue_id);
+                warn!("🚨 New {priority:?} priority transaction queued for review: {queue_id}");
             }
             NotificationType::TransactionExpired { queue_id, .. } => {
-                warn!("⏰ Transaction expired in queue: {}", queue_id);
+                warn!("⏰ Transaction expired in queue: {queue_id}");
             }
             NotificationType::ReviewTimeout { queue_id, ref officer_id, .. } => {
-                warn!("⏰ Review timeout for transaction {} (officer: {})", queue_id, officer_id);
+                warn!("⏰ Review timeout for transaction {queue_id} (officer: {officer_id})");
             }
             NotificationType::QueueCapacityWarning { current_size, max_size, .. } => {
-                warn!("⚠️ Queue approaching capacity: {}/{}", current_size, max_size);
+                warn!("⚠️ Queue approaching capacity: {current_size}/{max_size}");
             }
             _ => {
                 // Handle other notification types generically
