@@ -1,0 +1,9 @@
+[package]
+name = "dytallix-security"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dytallix Team"]
+description = "Security and monitoring module for Dytallix blockchain"
+
+[dependencies]
+# Future dependencies can be added as the security module grows

@@ -1,0 +1,12 @@
+[package]
+name = "dytallix-wallet"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dytallix Team"]
+description = "PQC wallet library for Dytallix blockchain"
+
+[dependencies]
+dytallix-pqc = { path = "../pqc-crypto" }
+blake3 = "1.5"
+sha2 = "0.10"
+hex = "0.4"
