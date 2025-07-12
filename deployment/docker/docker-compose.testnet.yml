@@ -30,7 +30,7 @@ services:
     environment:
       DYTALLIX_ENVIRONMENT: testnet
       DYTALLIX_NODE_ID: node-2
-      DYTALLIX_PORT: 3032
+      DYTALLIX_PORT: 3030
       DYTALLIX_P2P_PORT: 30304
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
@@ -53,7 +53,7 @@ services:
     environment:
       DYTALLIX_ENVIRONMENT: testnet
       DYTALLIX_NODE_ID: node-3
-      DYTALLIX_PORT: 3034
+      DYTALLIX_PORT: 3030
       DYTALLIX_P2P_PORT: 30305
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info

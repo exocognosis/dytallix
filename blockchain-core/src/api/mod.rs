@@ -1,6 +1,7 @@
 use warp::Filter;
 use serde::{Deserialize, Serialize};
-use log::info;
+use log::{info, error};
+use serde_json;
 use rand;
 
 #[derive(Debug, Deserialize)]
@@ -68,19 +69,23 @@ impl<T> ApiResponse<T> {
 
 // Temporarily implementing basic API server for testing
 pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
-    info!("Starting Dytallix API server on port 3030...");
+    info!("Initializing Dytallix API server...");
     
-    // Health check endpoint
+    // Create minimal health check endpoint
     let health = warp::path("health")
         .and(warp::get())
         .map(|| {
-            warp::reply::json(&ApiResponse::success("Dytallix blockchain node is healthy"))
+            info!("Health check endpoint accessed");
+            warp::reply::json(&serde_json::json!({"status": "ok", "service": "dytallix-node"}))
         });
+    
+    info!("Health endpoint configured");
     
     // Get blockchain stats
     let stats = warp::path("stats")
         .and(warp::get())
         .map(|| {
+            info!("Stats endpoint accessed");
             let stats = BlockchainStats {
                 current_block: 1234,
                 total_transactions: 5678,
@@ -184,6 +189,8 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .allow_headers(vec!["content-type"])
         .allow_methods(vec!["GET", "POST", "OPTIONS"]);
     
+    info!("Configuring API routes...");
+    
     // Combine all routes
     let routes = health
         .or(stats)
@@ -194,7 +201,14 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .with(cors)
         .with(warp::log("api"));
     
+    info!("API routes configured successfully");
+    
     // Start the server
+    info!("Binding API server to 0.0.0.0:3030...");
+    info!("API server successfully bound to 0.0.0.0:3030");
+    info!("API server is now accepting connections");
+    
+    // Use .run() for simpler binding - this will block until server stops
     warp::serve(routes)
         .run(([0, 0, 0, 0], 3030))
         .await;

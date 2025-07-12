@@ -1,6 +1,8 @@
 use std::sync::Arc;
+use std::process;
+use std::path::Path;
 use tokio;
-use log::{info, error};
+use log::{info, error, warn};
 
 mod runtime;
 mod storage;
@@ -67,25 +69,61 @@ impl DummyNode {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize logging as early as possible
     env_logger::init();
+    info!("Starting Dytallix Node - Debug Mode");
     
-    let node = Arc::new(DummyNode::new()?);
+    // Check for required files
+    info!("Checking for required configuration files...");
+    if !Path::new("pqc_keys.json").exists() {
+        warn!("pqc_keys.json not found - will generate new keys");
+    } else {
+        info!("Found pqc_keys.json");
+    }
+    
+    // Initialize node
+    info!("Initializing DummyNode...");
+    let node = match DummyNode::new() {
+        Ok(n) => {
+            info!("DummyNode initialized successfully");
+            Arc::new(n)
+        },
+        Err(e) => {
+            error!("Failed to initialize DummyNode: {}", e);
+            process::exit(1);
+        }
+    };
+    
     let node_clone = Arc::clone(&node);
     
     // Start node
-    node_clone.start().await?;
+    info!("Starting node services...");
+    if let Err(e) = node_clone.start().await {
+        error!("Failed to start node: {}", e);
+        process::exit(1);
+    }
+    info!("Node services started successfully");
     
     info!("Dytallix blockchain core is running!");
     
     // Start API server
+    info!("Starting API server on port 3030...");
     tokio::spawn(async move {
         if let Err(e) = api::start_api_server().await {
-            error!("API server error: {}", e);
+            error!("API server failed to start: {}", e);
+            process::exit(1);
         }
     });
     
+    info!("API server spawn initiated - waiting for startup...");
+    
+    // Give API server time to start
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    info!("Main loop starting - node should be fully operational");
+    
     // Keep the main thread alive
     loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+        info!("Node heartbeat - still running");
     }
 }

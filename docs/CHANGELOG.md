@@ -1,5 +1,29 @@
 # Dytallix Changelog
 
+## [0.9.7] - 2025-07-12 - Docker Compose Port Configuration Fix
+
+### 🔧 **CRITICAL FIX: Docker Container Port Mapping**
+
+#### Testnet Deployment Configuration
+- **FIXED**: Docker Compose port configuration mismatch
+  - Node 2: Changed `DYTALLIX_PORT: 3032` to `DYTALLIX_PORT: 3030` to match container mapping
+  - Node 3: Changed `DYTALLIX_PORT: 3034` to `DYTALLIX_PORT: 3030` to match container mapping
+  - **Issue**: Nodes were trying to bind to ports 3032/3034 internally while Docker mapped external ports to 3030
+  - **Result**: All health checks now pass successfully
+- **VERIFIED**: Complete testnet deployment working end-to-end
+  - All 3 nodes responding to `/health` endpoint
+  - Containers start and remain stable
+  - API server binds correctly to `0.0.0.0:3030` in each container
+- **CONFIRMED**: Monitoring stack (Prometheus, Grafana) operational
+
+#### Technical Resolution
+- ✅ Root cause identified: Environment variable vs port mapping mismatch
+- ✅ Configuration corrected: All nodes now bind to port 3030 internally
+- ✅ Health check validation: External ports 3030, 3032, 3034 all responding
+- ✅ Container stability: All services running without errors
+
+---
+
 ## [0.9.6] - 2025-07-11 - Testnet Deployment Health Check Fix
 
 ### 🔧 **CRITICAL FIX: Docker Container API Health Checks**
