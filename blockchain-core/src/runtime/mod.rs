@@ -95,8 +95,8 @@ impl DytallixRuntime {
         Ok(())
     }
     
-    pub async fn deploy_contract(&self, address: &str, code: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Deploying contract at address: {}", address);
+    pub async fn deploy_contract(&self, address: &str, code: Vec<u8>, deployer: &str) -> Result<(), Box<dyn std::error::Error>> {
+        info!("Deploying contract at address: {} from deployer: {}", address, deployer);
         
         // Create deployment info
         let deployment = ContractDeployment {
@@ -104,7 +104,7 @@ impl DytallixRuntime {
             code: code.clone(),
             initial_state: Vec::new(),
             gas_limit: 1_000_000, // 1M gas for deployment
-            deployer: "dyt1genesis".to_string(), // TODO: Get from transaction context
+            deployer: deployer.to_string(),
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
@@ -129,13 +129,13 @@ impl DytallixRuntime {
         Ok(state.contracts.get(address).cloned())
     }
     
-    pub async fn execute_contract(&self, address: &str, input: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        debug!("Executing contract at {} with {} bytes input", address, input.len());
+    pub async fn execute_contract(&self, address: &str, input: &[u8], caller: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        debug!("Executing contract at {} with {} bytes input from caller {}", address, input.len(), caller);
         
         // Create contract call
         let contract_call = ContractCall {
             contract_address: address.to_string(),
-            caller: "dyt1genesis".to_string(), // TODO: Get from transaction context
+            caller: caller.to_string(),
             method: "execute".to_string(), // TODO: Parse method from input
             input_data: input.to_vec(),
             gas_limit: 500_000, // 500K gas for execution

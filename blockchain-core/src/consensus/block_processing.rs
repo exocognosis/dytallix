@@ -10,6 +10,7 @@ use log::{info, warn, error};
 use tokio::sync::RwLock;
 use serde_json::Value;
 use sha2::{Sha256, Digest};
+use hex;
 
 use crate::types::{Transaction, Block, BlockHeader};
 use crate::consensus::transaction_validation::{TransactionValidator, ValidationResult};
@@ -141,7 +142,7 @@ impl BlockProcessor {
             number: 0, // TODO: Get actual block number
             parent_hash: previous_hash,
             transactions_root: merkle_root,
-            state_root: "0".repeat(64), // TODO: Calculate state root
+            state_root: Self::calculate_simple_state_root(&valid_transactions),
             timestamp: chrono::Utc::now().timestamp() as u64,
             validator: "validator_address".to_string(), // TODO: Get actual validator address
             signature: crate::types::PQCBlockSignature {
@@ -373,5 +374,50 @@ impl BlockProcessor {
     /// Get AI integration statistics
     pub async fn get_ai_integration_stats(&self) -> Option<Value> {
         self.transaction_validator.get_ai_integration_stats().await
+    }
+
+    /// Calculate a simple state root based on transactions
+    /// Note: This is a simplified implementation. A full implementation would
+    /// require access to the runtime state to compute the actual state root.
+    fn calculate_simple_state_root(transactions: &[Transaction]) -> String {
+        use sha2::{Sha256, Digest};
+        
+        let mut hasher = Sha256::new();
+        
+        // Hash all transaction data to create a simple state root
+        for tx in transactions {
+            match tx {
+                Transaction::Transfer(transfer_tx) => {
+                    hasher.update(transfer_tx.from.as_bytes());
+                    hasher.update(transfer_tx.to.as_bytes());
+                    hasher.update(&transfer_tx.amount.to_le_bytes());
+                    hasher.update(&transfer_tx.nonce.to_le_bytes());
+                }
+                Transaction::Deploy(deploy_tx) => {
+                    hasher.update(deploy_tx.from.as_bytes());
+                    hasher.update(&deploy_tx.contract_code);
+                    hasher.update(&deploy_tx.nonce.to_le_bytes());
+                }
+                Transaction::Call(call_tx) => {
+                    hasher.update(call_tx.from.as_bytes());
+                    hasher.update(call_tx.to.as_bytes());
+                    hasher.update(&call_tx.args);
+                    hasher.update(&call_tx.nonce.to_le_bytes());
+                }
+                Transaction::Stake(stake_tx) => {
+                    hasher.update(stake_tx.validator.as_bytes());
+                    hasher.update(&stake_tx.amount.to_le_bytes());
+                    hasher.update(&stake_tx.nonce.to_le_bytes());
+                }
+                Transaction::AIRequest(ai_tx) => {
+                    hasher.update(ai_tx.from.as_bytes());
+                    hasher.update(&ai_tx.request_data);
+                    hasher.update(&ai_tx.nonce.to_le_bytes());
+                }
+            }
+        }
+        
+        let hash = hasher.finalize();
+        hex::encode(hash)
     }
 }

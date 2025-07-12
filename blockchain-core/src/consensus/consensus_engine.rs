@@ -503,9 +503,12 @@ impl ConsensusEngine {
 
         info!("Contract deployed successfully at {}", deployed_address);
         
+        // Calculate deployment gas based on contract code size
+        let deployment_gas = self.calculate_deployment_gas(&deploy_tx.contract_code);
+        
         Ok(ExecutionResult {
             success: true,
-            gas_used: 1000, // TODO: Calculate actual gas used from WASM runtime
+            gas_used: deployment_gas,
             output: deployed_address.as_bytes().to_vec(),
             error: None,
         })
@@ -618,5 +621,17 @@ impl ConsensusEngine {
                 result.error.unwrap_or_else(|| "Unknown call error".to_string())
             ))
         }
+    }
+
+    /// Calculate gas cost for contract deployment based on code size
+    fn calculate_deployment_gas(&self, contract_code: &[u8]) -> u64 {
+        // Base deployment cost: 32000 gas
+        let base_cost = 32000u64;
+        
+        // Code storage cost: 200 gas per byte
+        let code_storage_cost = contract_code.len() as u64 * 200;
+        
+        // Total deployment gas
+        base_cost + code_storage_cost
     }
 }

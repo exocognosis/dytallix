@@ -5,6 +5,7 @@ use log::{info, debug, warn, error};
 use serde_json;
 use std::path::Path;
 use uuid;
+use hex;
 
 use crate::runtime::DytallixRuntime;
 use crate::crypto::PQCManager;
@@ -558,6 +559,8 @@ impl ConsensusEngine {
         drop(previous_block);
         
         let transactions_root = Self::calculate_merkle_root_static(&transactions);
+        let state_root = Self::calculate_state_root(runtime).await
+            .map_err(|e| format!("Failed to calculate state root: {}", e))?;
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| e.to_string())?
@@ -578,11 +581,11 @@ impl ConsensusEngine {
             number: block_number,
             parent_hash,
             transactions_root,
-            state_root: "0".repeat(64), // TODO: Calculate actual state root
+            state_root,
             timestamp,
             validator: "dyt1validator".to_string(), // TODO: Use actual validator address
             signature: placeholder_signature.clone(),
-            nonce: 0, // TODO: Implement proper nonce for PoW if needed
+            nonce: block_number, // Use block number as nonce for now
         };
         
         let mut block = Block {
@@ -1149,7 +1152,7 @@ impl ConsensusEngine {
                                 "{:?}",
                                 transfer_tx.signature.signature.algorithm
                             ),
-                            nonce: 0, // TODO: Use proper nonce
+                            nonce: transfer_tx.nonce,
                             timestamp: chrono::Utc::now().timestamp() as u64,
                         },
                         &transfer_tx.signature.public_key,
@@ -1186,7 +1189,7 @@ impl ConsensusEngine {
         let pqc_sig = crate::crypto::PQCSignature {
             signature: sig.signature.data.clone(),
             algorithm: format!("{:?}", sig.signature.algorithm),
-            nonce: 0, // TODO: Use proper nonce
+            nonce: tx.nonce(),
             timestamp: chrono::Utc::now().timestamp() as u64,
         };
 
@@ -1224,6 +1227,35 @@ impl ConsensusEngine {
         }
         
         format!("{:x}", hasher.finish())
+    }
+
+    /// Calculate state root from current runtime state
+    async fn calculate_state_root(runtime: &Arc<DytallixRuntime>) -> Result<String, Box<dyn std::error::Error>> {
+        use sha3::{Sha3_256, Digest};
+        
+        // Get current runtime state by reading the balance and nonce information
+        // In a full implementation, this would include all account states, contract storage, etc.
+        let mut hasher = Sha3_256::new();
+        
+        // We'll create a simplified state root based on the key accounts
+        // In production, this should traverse all accounts and contracts
+        
+        // Hash the genesis account state (as an example)
+        let genesis_balance = runtime.get_balance("dyt1genesis").await?;
+        let genesis_nonce = runtime.get_nonce("dyt1genesis").await?;
+        
+        hasher.update("dyt1genesis".as_bytes());
+        hasher.update(&genesis_balance.to_le_bytes());
+        hasher.update(&genesis_nonce.to_le_bytes());
+        
+        // In a full implementation, we would:
+        // 1. Get all account addresses
+        // 2. For each account, hash (address, balance, nonce, code_hash if contract)
+        // 3. Get all contract storage and hash the key-value pairs
+        // 4. Create a merkle tree of all these state items
+        
+        let hash = hasher.finalize();
+        Ok(hex::encode(hash))
     }
 
     /// Calculate transaction hash for tracking

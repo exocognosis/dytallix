@@ -5,6 +5,7 @@ use log::{info, debug, warn};
 use chrono::{DateTime, Utc};
 use serde_json;
 use std::path::Path;
+use hex;
 
 use crate::runtime::DytallixRuntime;
 use crate::crypto::{PQCManager, PQCSignature};
@@ -477,6 +478,8 @@ impl ConsensusEngine {
         drop(previous_block);
         
         let transactions_root = Self::calculate_merkle_root_static(&transactions);
+        let state_root = Self::calculate_state_root_backup(runtime).await
+            .map_err(|e| format!("Failed to calculate state root: {}", e))?;
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| e.to_string())?
@@ -497,7 +500,7 @@ impl ConsensusEngine {
             number: block_number,
             parent_hash,
             transactions_root,
-            state_root: "0".repeat(64), // TODO: Calculate actual state root
+            state_root,
             timestamp,
             validator: "dyt1validator".to_string(), // TODO: Use actual validator address
             signature: placeholder_signature.clone(),
@@ -800,5 +803,23 @@ impl ConsensusEngine {
         }
         
         format!("{:x}", hasher.finish())
+    }
+
+    /// Calculate state root from current runtime state (backup version)
+    async fn calculate_state_root_backup(runtime: &Arc<DytallixRuntime>) -> Result<String, Box<dyn std::error::Error>> {
+        use sha3::{Sha3_256, Digest};
+        
+        let mut hasher = Sha3_256::new();
+        
+        // Hash the genesis account state (simplified implementation)
+        let genesis_balance = runtime.get_balance("dyt1genesis").await?;
+        let genesis_nonce = runtime.get_nonce("dyt1genesis").await?;
+        
+        hasher.update("dyt1genesis".as_bytes());
+        hasher.update(&genesis_balance.to_le_bytes());
+        hasher.update(&genesis_nonce.to_le_bytes());
+        
+        let hash = hasher.finalize();
+        Ok(hex::encode(hash))
     }
 }
