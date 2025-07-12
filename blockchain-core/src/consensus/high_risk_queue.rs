@@ -217,7 +217,7 @@ impl HighRiskQueue {
         }
 
         // Update statistics
-        self.update_stats().await;
+        let _ = self.update_stats().await;
 
         // Send notification for high/critical priority transactions
         if matches!(priority, ReviewPriority::High | ReviewPriority::Critical) {
@@ -266,7 +266,7 @@ impl HighRiskQueue {
 
         info!("Officer {} started reviewing transaction {}", officer_id, queue_id);
         
-        self.update_stats().await;
+        let _ = self.update_stats().await;
         Ok(())
     }
 
@@ -297,7 +297,7 @@ impl HighRiskQueue {
 
         info!("Officer {} approved transaction {}", officer_id, queue_id);
         
-        self.update_stats().await;
+        let _ = self.update_stats().await;
         Ok(approved_transaction)
     }
 
@@ -326,7 +326,7 @@ impl HighRiskQueue {
 
         info!("Officer {} rejected transaction {}", officer_id, queue_id);
         
-        self.update_stats().await;
+        let _ = self.update_stats().await;
         Ok(())
     }
 
@@ -434,7 +434,7 @@ impl HighRiskQueue {
 
         if expired_count > 0 {
             info!("Expired {} transactions from queue", expired_count);
-            self.update_stats().await;
+            let _ = self.update_stats().await;
         }
 
         Ok(expired_count)
