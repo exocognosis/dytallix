@@ -1,7 +1,4 @@
-use std::path::Path;
-use std::fs;
-
-// Simple test to verify wallet address derivation works
+// Wallet testing utilities for Dytallix cryptocurrency
 mod pqc_crypto {
     pub enum PQCAlgorithm {
         Dilithium,
@@ -18,7 +15,9 @@ mod pqc_crypto {
         pub signature: Vec<u8>,
     }
 
+    #[allow(dead_code)]
     pub struct PQCKeyManager;
+    #[allow(dead_code)]
     pub struct DummyPQC;
 
     impl DummyPQC {
@@ -42,10 +41,9 @@ mod pqc_crypto {
 }
 
 use pqc_crypto::PQCAlgorithm;
-use pqc_crypto::{PQCKeyPair, Signature, PQCKeyManager, DummyPQC};
+use pqc_crypto::{PQCKeyPair, Signature, DummyPQC};
 use blake3;
 use sha2::{Sha256, Digest};
-use std::fmt;
 
 pub struct Wallet;
 
