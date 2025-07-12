@@ -10,6 +10,16 @@ members = [
 
 resolver = "2"
 
+[package]
+name = "dytallix"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+blake3 = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+
 [workspace.dependencies]
 # Shared dependencies for the workspace
 tokio = { version = "1.0", features = ["full"] }

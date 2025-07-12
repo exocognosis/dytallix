@@ -1,4 +1,10 @@
-// Simple test to debug the signing issue
+// Dytallix Passphrase Input Demo
+// 
+// This example demonstrates how to securely read user input for passphrases
+// in the Dytallix cryptocurrency system.
+//
+// Run with: cargo run --example passphrase_input_demo
+
 use std::io::{self, Write};
 
 fn main() {

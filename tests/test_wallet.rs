@@ -196,32 +196,5 @@ mod tests {
     }
 }
 
-fn main() {
-    // Test the wallet address derivation
-    println!("Testing Dytallix Wallet Address Derivation");
-    
-    // Test with sample public keys
-    let sample_pubkeys = vec![
-        b"sample_public_key_1".to_vec(),
-        b"sample_public_key_2".to_vec(),
-        b"a_longer_public_key_for_testing_purposes".to_vec(),
-    ];
-    
-    for (i, pubkey) in sample_pubkeys.iter().enumerate() {
-        let address = Wallet::get_address(pubkey);
-        println!("Sample public key {}: {:?}", i + 1, pubkey);
-        println!("Generated address: {}", address);
-        println!("Address is valid: {}", Wallet::validate_address(&address));
-        println!();
-    }
-    
-    // Test key generation
-    println!("Testing key generation:");
-    let keypair = Wallet::generate_keypair(PQCAlgorithm::Dilithium);
-    let address = Wallet::get_address(&keypair.public_key);
-    println!("Generated keypair public key: {:?}", keypair.public_key);
-    println!("Address from generated key: {}", address);
-    println!("Address is valid: {}", Wallet::validate_address(&address));
-    
-    println!("\nAll tests passed! Address derivation is working correctly.");
-}
+// Main function removed - this is now a test file
+// The functionality is tested through the unit tests above
