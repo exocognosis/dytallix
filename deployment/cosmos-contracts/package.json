@@ -1,0 +1,20 @@
+{
+  "name": "dytallix-cosmos-contracts",
+  "version": "1.0.0",
+  "description": "Dytallix Bridge Cosmos SDK Contracts",
+  "main": "index.js",
+  "scripts": {
+    "build": "cargo build --release --target wasm32-unknown-unknown",
+    "test": "cargo test",
+    "schema": "cargo run --bin schema",
+    "deploy:osmo-testnet": "node scripts/deploy-osmosis-testnet.js",
+    "deploy:atom-testnet": "node scripts/deploy-cosmos-hub-testnet.js"
+  },
+  "devDependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.31.0",
+    "@cosmjs/proto-signing": "^0.31.0",
+    "@cosmjs/stargate": "^0.31.0",
+    "@cosmjs/crypto": "^0.31.0",
+    "dotenv": "^16.3.0"
+  }
+}
