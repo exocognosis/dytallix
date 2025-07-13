@@ -15,7 +15,7 @@ pqcrypto-traits = "0.3"
 
 # Cryptographic utilities
 rand = "0.8"
-zeroize = { version = "1.6", features = ["derive"] }
+zeroize = { version = "1.8", features = ["derive"] }
 sha3 = "0.10"
 hex = "0.4"
 # Time handling for nonce/timestamp

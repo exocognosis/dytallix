@@ -8,7 +8,7 @@ use std::env;
 use std::process;
 use dytallix_interoperability::{
     Asset, AssetMetadata, DytallixBridge, DytallixIBC, PQCBridge, IBCModule, 
-    IBCPacket, BridgeTxId, BridgeValidator
+    IBCPacket, BridgeTxId
 };
 
 #[tokio::main]
@@ -163,9 +163,9 @@ async fn handle_bridge_commands(args: &[String]) {
             match bridge.mint_wrapped(asset, origin_chain, dest_address) {
                 Ok(wrapped_asset) => {
                     println!("✅ Wrapped asset minted successfully!");
-                    println!("Original Asset: {}", wrapped_asset.original_asset.id);
-                    println!("Amount: {}", wrapped_asset.original_asset.amount);
-                    println!("Origin Chain: {}", wrapped_asset.origin_chain);
+                    println!("Original Asset: {}", wrapped_asset.original_asset_id);
+                    println!("Amount: {}", wrapped_asset.amount);
+                    println!("Origin Chain: {}", wrapped_asset.original_chain);
                     println!("Wrapped Contract: {}", wrapped_asset.wrapped_contract);
                     println!("Destination: {}", dest_address);
                 }

@@ -2,7 +2,7 @@
 
 use dytallix_interoperability::{
     Asset, AssetMetadata, BridgeTxId, DytallixBridge, DytallixIBC, PQCBridge, IBCModule,
-    IBCPacket, BridgeValidator, BridgeStatus, BridgeError, IBCChannel, ChannelState
+    IBCPacket, BridgeValidator, BridgeStatus, BridgeError, ChannelState
 };
 
 #[tokio::test]

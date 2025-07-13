@@ -18,10 +18,36 @@ uuid = { version = "1.0", features = ["v4", "serde"] }
 # Cryptography dependencies
 sha2 = "0.10"
 blake3 = "1.0"
+hex = "0.4"
 
 # Networking dependencies
 reqwest = { version = "0.11", features = ["json"] }
 tokio-tungstenite = "0.20"
+futures = "0.3"
+
+# Ethereum integration
+ethers = { version = "2.0", features = ["ws", "rustls"] }
+ethers-contract = "2.0"
+
+# Cosmos/IBC integration  
+cosmos-sdk-proto = "0.19"
+ibc-proto = "0.32"
+tendermint = "0.33"
+tendermint-rpc = { version = "0.33", features = ["http-client", "websocket-client"] }
+cosmrs = { version = "0.14", features = ["rpc", "grpc"] }
+ibc-relayer-types = "0.26"
+tonic = "0.9"
+prost = "0.11"
+
+# Polkadot/Substrate integration
+subxt = { version = "0.32", features = ["substrate-compat"] }
+sp-core = "20.0"
+sp-runtime = "24.0"
+
+# Database integration
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "migrate"] }
+sea-orm = { version = "0.12", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
@@ -36,6 +62,6 @@ no-std = []
 name = "bridge-cli"
 path = "src/bin/bridge_cli.rs"
 
-[[example]]
-name = "bridge_demo"
-path = "examples/bridge_demo.rs"
+# [[example]]
+# name = "bridge_demo"
+# path = "examples/bridge_demo.rs"
