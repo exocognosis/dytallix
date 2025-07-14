@@ -58,6 +58,10 @@ pub enum BridgeError {
     TransactionFailed(String),
     SerializationError(String),
     ConfigurationError(String),
+    // Additional error types for production implementation
+    InvalidKey(String),
+    InvalidArguments(String),
+    InvalidTxHash(String),
     TransactionError(String),
 }
 
