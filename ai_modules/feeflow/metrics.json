@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-07-23T15:31:12.404594",
+  "timestamp": "2025-07-23T15:51:33.346061",
   "model_type": "feeflow_optimizer",
   "metrics": {
-    "mse": 43.0989964033841,
-    "mean_price": 20.062484458405645,
-    "price_volatility": 0.40116013645791015,
-    "correlation_util_price": 0.7697121981035172,
+    "mse": 43.15665319149836,
+    "mean_price": 20.054260818726398,
+    "price_volatility": 0.40145035111191485,
+    "correlation_util_price": 0.7700438511966152,
     "data_points": 1296000
   },
   "config_summary": {

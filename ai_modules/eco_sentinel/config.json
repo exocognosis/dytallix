@@ -1,0 +1,138 @@
+{
+  "random_forest_config": {
+    "n_estimators": 200,
+    "max_depth": 15,
+    "min_samples_split": 5,
+    "min_samples_leaf": 2,
+    "max_features": "sqrt",
+    "random_state": 42,
+    "n_jobs": -1,
+    "oob_score": true
+  },
+  "arima_config": {
+    "order": [2, 1, 2],
+    "seasonal_order": [1, 1, 1, 7],
+    "forecast_horizons": [1, 7, 30],
+    "confidence_levels": [0.8, 0.9, 0.95]
+  },
+  "feature_engineering": {
+    "price_features": [
+      "price_sma_7",
+      "price_sma_30",
+      "price_rsi_14", 
+      "price_bollinger_upper",
+      "price_bollinger_lower",
+      "price_macd",
+      "price_volatility_7d",
+      "price_volatility_30d"
+    ],
+    "volume_features": [
+      "volume_sma_7",
+      "volume_rsi_14",
+      "volume_volatility",
+      "volume_price_correlation"
+    ],
+    "network_features": [
+      "tvl_growth_rate",
+      "staking_ratio_change",
+      "validator_count_change",
+      "transaction_volume_growth",
+      "gas_fee_trend"
+    ],
+    "external_features": [
+      "btc_correlation_7d",
+      "eth_correlation_7d",
+      "market_sentiment_score",
+      "regulatory_risk_score"
+    ]
+  },
+  "risk_models": {
+    "market_risk": {
+      "volatility_weight": 0.4,
+      "liquidity_weight": 0.3,
+      "price_trend_weight": 0.3,
+      "thresholds": {
+        "low": 0.2,
+        "medium": 0.5,
+        "high": 0.7,
+        "critical": 0.85
+      }
+    },
+    "credit_risk": {
+      "collateralization_weight": 0.5,
+      "default_rate_weight": 0.3,
+      "concentration_weight": 0.2,
+      "thresholds": {
+        "low": 0.15,
+        "medium": 0.35,
+        "high": 0.6,
+        "critical": 0.8
+      }
+    },
+    "operational_risk": {
+      "network_congestion_weight": 0.3,
+      "validator_performance_weight": 0.4,
+      "governance_risk_weight": 0.3,
+      "thresholds": {
+        "low": 0.2,
+        "medium": 0.4,
+        "high": 0.6,
+        "critical": 0.8
+      }
+    },
+    "systemic_risk": {
+      "correlation_risk_weight": 0.4,
+      "contagion_risk_weight": 0.3,
+      "regulatory_risk_weight": 0.3,
+      "thresholds": {
+        "low": 0.25,
+        "medium": 0.45,
+        "high": 0.65,
+        "critical": 0.85
+      }
+    }
+  },
+  "alert_config": {
+    "price_drop_threshold": 0.15,
+    "volume_spike_threshold": 3.0,
+    "volatility_spike_threshold": 2.0,
+    "liquidity_drop_threshold": 0.5,
+    "correlation_spike_threshold": 0.9,
+    "alert_cooldown_hours": 6
+  },
+  "data_config": {
+    "synthetic_data": {
+      "days_of_history": 365,
+      "base_price": 10.0,
+      "base_volatility": 0.05,
+      "trend_strength": 0.3,
+      "seasonal_strength": 0.2,
+      "noise_level": 0.1
+    },
+    "feature_windows": {
+      "short_term": 7,
+      "medium_term": 30,
+      "long_term": 90
+    }
+  },
+  "forecasting_config": {
+    "model_combination_weights": {
+      "arima": 0.4,
+      "random_forest": 0.4,
+      "trend_analysis": 0.2
+    },
+    "confidence_intervals": {
+      "conservative": 0.8,
+      "standard": 0.9,
+      "aggressive": 0.95
+    }
+  },
+  "training_config": {
+    "validation_split": 0.2,
+    "test_split": 0.1,
+    "rolling_window_validation": true,
+    "save_model_path": "models/",
+    "metrics_path": "metrics.json",
+    "feature_importance_path": "feature_importance.json"
+  }
+}

@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-07-23T15:36:17.660182",
+  "timestamp": "2025-07-23T15:51:46.097667",
   "model_type": "stake_balancer",
   "metrics": {
-    "average_reward": 0.5863083423920283,
+    "average_reward": 0.5911503180960476,
     "episodes_trained": 1000,
     "convergence_score": 0.85
   }

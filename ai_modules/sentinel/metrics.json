@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-07-23T15:28:24.066912",
+  "timestamp": "2025-07-23T15:51:24.807461",
   "model_type": "simple_sentinel",
   "metrics": {
-    "accuracy": 0.627,
+    "accuracy": 0.6371111111111111,
     "training_samples": 9000,
     "normal_samples": 8000,
     "anomalous_samples": 1000
