@@ -1,0 +1,200 @@
+{
+  "optimization_config": {
+    "objectives": {
+      "performance": {
+        "weight": 0.3,
+        "metrics": ["tps", "latency", "throughput"],
+        "direction": "maximize"
+      },
+      "security": {
+        "weight": 0.3,
+        "metrics": ["finality_time", "validator_count", "nakamoto_coefficient"],
+        "direction": "maximize"
+      },
+      "decentralization": {
+        "weight": 0.25,
+        "metrics": ["validator_distribution", "accessibility", "governance_participation"],
+        "direction": "maximize"
+      },
+      "efficiency": {
+        "weight": 0.15,
+        "metrics": ["gas_costs", "energy_consumption", "validator_yield"],
+        "direction": "maximize"
+      }
+    },
+    "acquisition_function": {
+      "type": "upper_confidence_bound",
+      "kappa": 2.576,
+      "xi": 0.01,
+      "n_restarts": 25
+    }
+  },
+  "parameter_space": {
+    "consensus_parameters": {
+      "block_time": {
+        "type": "continuous",
+        "bounds": [1.0, 30.0],
+        "current": 12.0,
+        "unit": "seconds"
+      },
+      "block_size_limit": {
+        "type": "discrete",
+        "bounds": [1000000, 50000000],
+        "current": 8000000,
+        "unit": "bytes"
+      },
+      "finality_blocks": {
+        "type": "discrete",
+        "bounds": [1, 100],
+        "current": 32,
+        "unit": "blocks"
+      },
+      "validator_min_stake": {
+        "type": "continuous",
+        "bounds": [16.0, 1000.0],
+        "current": 32.0,
+        "unit": "tokens"
+      },
+      "max_validators": {
+        "type": "discrete",
+        "bounds": [100, 10000],
+        "current": 1000,
+        "unit": "count"
+      }
+    },
+    "economic_parameters": {
+      "base_fee": {
+        "type": "continuous",
+        "bounds": [0.001, 1.0],
+        "current": 0.1,
+        "unit": "tokens"
+      },
+      "inflation_rate": {
+        "type": "continuous",
+        "bounds": [0.01, 0.2],
+        "current": 0.05,
+        "unit": "percentage"
+      },
+      "validator_reward_rate": {
+        "type": "continuous",
+        "bounds": [0.02, 0.15],
+        "current": 0.08,
+        "unit": "percentage"
+      },
+      "treasury_allocation": {
+        "type": "continuous",
+        "bounds": [0.05, 0.3],
+        "current": 0.1,
+        "unit": "percentage"
+      }
+    },
+    "network_parameters": {
+      "gas_limit": {
+        "type": "discrete",
+        "bounds": [5000000, 100000000],
+        "current": 15000000,
+        "unit": "gas"
+      },
+      "mempool_size": {
+        "type": "discrete",
+        "bounds": [1000, 100000],
+        "current": 10000,
+        "unit": "transactions"
+      },
+      "max_peers": {
+        "type": "discrete",
+        "bounds": [50, 1000],
+        "current": 200,
+        "unit": "count"
+      }
+    }
+  },
+  "constraints": {
+    "hard_constraints": {
+      "security": {
+        "min_finality_time": 30.0,
+        "max_block_time": 20.0,
+        "min_validators": 100,
+        "max_inflation": 0.15
+      },
+      "performance": {
+        "min_tps": 100,
+        "max_latency": 10.0,
+        "min_uptime": 0.99
+      },
+      "economic": {
+        "min_validator_yield": 0.03,
+        "max_gas_fee": 1.0,
+        "min_treasury_ratio": 0.05
+      }
+    },
+    "soft_constraints": {
+      "performance_vs_security": 0.8,
+      "decentralization_vs_efficiency": 0.7,
+      "cost_vs_speed": 0.6
+    }
+  },
+  "bayesian_optimization": {
+    "gaussian_process": {
+      "kernel": "matern52",
+      "length_scale": 1.0,
+      "length_scale_bounds": [0.1, 10.0],
+      "nu": 2.5,
+      "alpha": 1e-10
+    },
+    "optimization_settings": {
+      "n_initial_points": 20,
+      "n_trials": 300,
+      "n_random_starts": 10,
+      "convergence_threshold": 0.01,
+      "patience": 20
+    }
+  },
+  "multi_objective": {
+    "algorithm": "nsga2_inspired",
+    "population_size": 50,
+    "generations": 100,
+    "crossover_rate": 0.9,
+    "mutation_rate": 0.1,
+    "tournament_size": 3
+  },
+  "simulation_config": {
+    "network_scenarios": [
+      "normal_load",
+      "high_congestion",
+      "validator_churn",
+      "economic_stress",
+      "governance_event",
+      "security_incident"
+    ],
+    "monte_carlo_runs": 100,
+    "confidence_level": 0.95
+  },
+  "rollout_strategy": {
+    "phases": {
+      "phase_1_testing": {
+        "duration_days": 7,
+        "network_percentage": 0.1,
+        "rollback_threshold": 0.05
+      },
+      "phase_2_gradual": {
+        "duration_days": 14,
+        "network_percentage": 0.3,
+        "rollback_threshold": 0.03
+      },
+      "phase_3_full": {
+        "duration_days": 30,
+        "network_percentage": 1.0,
+        "rollback_threshold": 0.02
+      }
+    },
+    "monitoring_frequency": "per_block",
+    "auto_rollback": true
+  },
+  "training_config": {
+    "historical_data_path": "data/parameter_history.json",
+    "validation_split": 0.2,
+    "save_model_path": "models/",
+    "metrics_path": "metrics.json"
+  }
+}

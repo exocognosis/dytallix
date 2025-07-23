@@ -1,0 +1,148 @@
+{
+  "bayesian_network_config": {
+    "nodes": [
+      "voter_stake",
+      "technical_expertise", 
+      "economic_interest",
+      "proposal_impact",
+      "market_conditions",
+      "voting_history",
+      "governance_engagement",
+      "vote_decision"
+    ],
+    "structure": {
+      "vote_decision": [
+        "voter_stake", 
+        "technical_expertise", 
+        "economic_interest", 
+        "proposal_impact",
+        "governance_engagement"
+      ],
+      "governance_engagement": ["voting_history", "voter_stake"],
+      "economic_interest": ["market_conditions", "voter_stake"]
+    },
+    "prior_probabilities": {
+      "voter_stake": {
+        "low": 0.6,
+        "medium": 0.3,
+        "high": 0.1
+      },
+      "technical_expertise": {
+        "low": 0.4,
+        "medium": 0.4,
+        "high": 0.2
+      },
+      "proposal_impact": {
+        "low": 0.3,
+        "medium": 0.5,
+        "high": 0.2
+      }
+    }
+  },
+  "agent_config": {
+    "voter_types": {
+      "retail_holder": {
+        "proportion": 0.7,
+        "avg_stake": 1000,
+        "engagement_level": 0.3,
+        "technical_knowledge": 0.2,
+        "vote_probability": 0.4
+      },
+      "institutional_investor": {
+        "proportion": 0.1,
+        "avg_stake": 100000,
+        "engagement_level": 0.8,
+        "technical_knowledge": 0.6,
+        "vote_probability": 0.9
+      },
+      "validator": {
+        "proportion": 0.05,
+        "avg_stake": 50000,
+        "engagement_level": 0.9,
+        "technical_knowledge": 0.8,
+        "vote_probability": 0.95
+      },
+      "developer": {
+        "proportion": 0.1,
+        "avg_stake": 5000,
+        "engagement_level": 0.7,
+        "technical_knowledge": 0.9,
+        "vote_probability": 0.8
+      },
+      "delegate": {
+        "proportion": 0.05,
+        "avg_stake": 20000,
+        "engagement_level": 0.85,
+        "technical_knowledge": 0.7,
+        "vote_probability": 0.9
+      }
+    },
+    "behavior_parameters": {
+      "stake_influence_factor": 0.3,
+      "expertise_influence_factor": 0.4,
+      "engagement_influence_factor": 0.3,
+      "herd_behavior_factor": 0.2,
+      "contrarian_probability": 0.1
+    }
+  },
+  "proposal_types": {
+    "parameter_change": {
+      "typical_threshold": 0.6,
+      "engagement_multiplier": 0.8,
+      "technical_requirement": 0.6
+    },
+    "protocol_upgrade": {
+      "typical_threshold": 0.75,
+      "engagement_multiplier": 1.2,
+      "technical_requirement": 0.8
+    },
+    "treasury_allocation": {
+      "typical_threshold": 0.55,
+      "engagement_multiplier": 1.0,
+      "technical_requirement": 0.3
+    },
+    "emergency_action": {
+      "typical_threshold": 0.8,
+      "engagement_multiplier": 1.5,
+      "technical_requirement": 0.7
+    }
+  },
+  "voting_mechanisms": {
+    "simple_majority": {
+      "threshold": 0.5,
+      "quorum_requirement": 0.4
+    },
+    "supermajority": {
+      "threshold": 0.67,
+      "quorum_requirement": 0.5
+    },
+    "qualified_majority": {
+      "threshold": 0.75,
+      "quorum_requirement": 0.6
+    },
+    "quadratic_voting": {
+      "cost_function": "quadratic",
+      "vote_budget": 100
+    }
+  },
+  "simulation_config": {
+    "monte_carlo_iterations": 1000,
+    "coalition_detection_threshold": 0.7,
+    "influence_propagation_rounds": 3,
+    "voter_interaction_probability": 0.2,
+    "delegation_follow_probability": 0.8
+  },
+  "network_learning": {
+    "structure_learning_algorithm": "hill_climbing",
+    "max_parents": 5,
+    "significance_level": 0.05,
+    "bootstrap_samples": 100
+  },
+  "training_config": {
+    "historical_data_path": "data/governance_history.json",
+    "validation_split": 0.2,
+    "cross_validation_folds": 5,
+    "save_model_path": "models/",
+    "metrics_path": "metrics.json"
+  }
+}

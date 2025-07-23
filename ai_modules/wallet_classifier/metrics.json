@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-07-23T15:51:46.058443",
+  "model_type": "wallet_classifier",
+  "metrics": {
+    "accuracy": 0.9019,
+    "total_samples": 10000,
+    "wallet_types": 7,
+    "features": 12
+  },
+  "wallet_types": [
+    "individual",
+    "business",
+    "exchange",
+    "defi",
+    "bot",
+    "mixer",
+    "suspicious"
+  ]
+}

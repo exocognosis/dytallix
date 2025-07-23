@@ -1,0 +1,71 @@
+{
+  "test_summary": {
+    "timestamp": "2025-07-23T15:51:10.162569",
+    "total_execution_time": 0.0012810230255126953,
+    "modules_tested": 8,
+    "successful_modules": 0,
+    "failed_modules": 8
+  },
+  "module_results": {
+    "Network Sentinel": {
+      "status": "failed",
+      "execution_time": 0.0001285076141357422,
+      "error": "No module named 'run'"
+    },
+    "FeeFlow Optimizer": {
+      "status": "failed",
+      "execution_time": 0.0001220703125,
+      "error": "No module named 'run'"
+    },
+    "Wallet Classifier": {
+      "status": "failed",
+      "execution_time": 0.00011968612670898438,
+      "error": "No module named 'run'"
+    },
+    "Stake Balancer": {
+      "status": "failed",
+      "execution_time": 0.00011444091796875,
+      "error": "No module named 'run'"
+    },
+    "GovSim": {
+      "status": "failed",
+      "execution_time": 0.00011420249938964844,
+      "error": "No module named 'run'"
+    },
+    "Economic Sentinel": {
+      "status": "failed",
+      "execution_time": 0.00011324882507324219,
+      "error": "No module named 'run'"
+    },
+    "Quantum Shield": {
+      "status": "failed",
+      "execution_time": 0.00010895729064941406,
+      "error": "No module named 'run'"
+    },
+    "Protocol Tuner": {
+      "status": "failed",
+      "execution_time": 0.00011396408081054688,
+      "error": "No module named 'run'"
+    }
+  },
+  "integration_test": {
+    "event_processed": {
+      "timestamp": "2025-07-23T15:51:10.162382",
+      "event_type": "high_volume_activity",
+      "data": {
+        "transaction_volume": 15000,
+        "gas_price_spike": 0.3,
+        "new_wallets": 500,
+        "governance_proposal": true
+      }
+    },
+    "module_responses": {},
+    "system_health": "degraded",
+    "confidence_level": 0.0
+  },
+  "system_metrics": {
+    "overall_health": "degraded",
+    "coverage": 0.0,
+    "performance": "good"
+  }
+}
