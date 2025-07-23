@@ -1,0 +1,115 @@
+{
+  "xgboost_config": {
+    "n_estimators": 100,
+    "max_depth": 6,
+    "learning_rate": 0.1,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "random_state": 42,
+    "objective": "multi:softprob",
+    "num_class": 7,
+    "eval_metric": "mlogloss"
+  },
+  "mlp_config": {
+    "input_size": 25,
+    "hidden_layers": [128, 64, 32],
+    "output_size": 7,
+    "dropout_rate": 0.3,
+    "activation": "relu",
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "epochs": 75,
+    "early_stopping_patience": 15,
+    "validation_split": 0.2
+  },
+  "feature_config": {
+    "transaction_features": [
+      "transaction_count",
+      "total_volume",
+      "avg_transaction_value",
+      "max_transaction_value",
+      "std_transaction_value",
+      "unique_counterparties",
+      "contract_interactions",
+      "gas_usage_avg",
+      "gas_usage_std"
+    ],
+    "temporal_features": [
+      "activity_regularity",
+      "time_spread",
+      "burst_frequency",
+      "dormant_periods",
+      "weekend_activity_ratio",
+      "night_activity_ratio"
+    ],
+    "network_features": [
+      "centrality_score",
+      "clustering_coefficient",
+      "path_length_avg",
+      "community_score"
+    ],
+    "financial_features": [
+      "balance_volatility",
+      "holdings_diversity",
+      "leverage_ratio",
+      "profit_loss_ratio",
+      "risk_score"
+    ]
+  },
+  "data_config": {
+    "wallet_types": {
+      "individual": {"weight": 0.4, "samples": 4000},
+      "business": {"weight": 0.2, "samples": 2000},
+      "exchange": {"weight": 0.1, "samples": 1000},
+      "defi": {"weight": 0.15, "samples": 1500},
+      "bot": {"weight": 0.08, "samples": 800},
+      "mixer": {"weight": 0.05, "samples": 500},
+      "suspicious": {"weight": 0.02, "samples": 200}
+    },
+    "feature_distributions": {
+      "individual": {
+        "transaction_count": {"mean": 50, "std": 30},
+        "avg_transaction_value": {"mean": 0.1, "std": 0.5},
+        "unique_counterparties": {"mean": 20, "std": 15}
+      },
+      "business": {
+        "transaction_count": {"mean": 200, "std": 100},
+        "avg_transaction_value": {"mean": 10, "std": 20},
+        "unique_counterparties": {"mean": 100, "std": 50}
+      },
+      "exchange": {
+        "transaction_count": {"mean": 10000, "std": 5000},
+        "avg_transaction_value": {"mean": 50, "std": 100},
+        "unique_counterparties": {"mean": 5000, "std": 2000}
+      }
+    }
+  },
+  "classification_config": {
+    "ensemble_weights": {
+      "xgboost": 0.7,
+      "mlp": 0.3
+    },
+    "confidence_thresholds": {
+      "high": 0.8,
+      "medium": 0.6,
+      "low": 0.4
+    },
+    "risk_mapping": {
+      "individual": "low",
+      "business": "low",
+      "exchange": "medium",
+      "defi": "medium",
+      "bot": "medium",
+      "mixer": "high",
+      "suspicious": "critical"
+    }
+  },
+  "training_config": {
+    "validation_split": 0.2,
+    "test_split": 0.1,
+    "cross_validation_folds": 5,
+    "save_model_path": "models/",
+    "metrics_path": "metrics.json",
+    "feature_importance_path": "feature_importance.json"
+  }
+}

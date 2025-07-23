@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-07-23T15:31:12.404594",
+  "model_type": "feeflow_optimizer",
+  "metrics": {
+    "mse": 43.0989964033841,
+    "mean_price": 20.062484458405645,
+    "price_volatility": 0.40116013645791015,
+    "correlation_util_price": 0.7697121981035172,
+    "data_points": 1296000
+  },
+  "config_summary": {
+    "data_points": 1296000,
+    "prediction_horizons": [
+      "immediate",
+      "short_term",
+      "medium_term",
+      "long_term"
+    ]
+  }
+}

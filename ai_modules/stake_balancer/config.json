@@ -1,0 +1,106 @@
+{
+  "fuzzy_logic_config": {
+    "input_variables": {
+      "staking_ratio": {
+        "range": [0, 1],
+        "fuzzy_sets": {
+          "low": [0, 0, 0.3, 0.5],
+          "medium": [0.3, 0.5, 0.5, 0.7],
+          "high": [0.5, 0.7, 1, 1]
+        }
+      },
+      "network_security": {
+        "range": [0, 1],
+        "fuzzy_sets": {
+          "weak": [0, 0, 0.4, 0.6],
+          "moderate": [0.4, 0.6, 0.6, 0.8],
+          "strong": [0.6, 0.8, 1, 1]
+        }
+      },
+      "validator_performance": {
+        "range": [0, 1],
+        "fuzzy_sets": {
+          "poor": [0, 0, 0.3, 0.5],
+          "average": [0.3, 0.5, 0.5, 0.7],
+          "excellent": [0.5, 0.7, 1, 1]
+        }
+      }
+    },
+    "output_variables": {
+      "reward_rate": {
+        "range": [0, 0.2],
+        "fuzzy_sets": {
+          "low": [0, 0, 0.05, 0.08],
+          "medium": [0.05, 0.08, 0.12, 0.15],
+          "high": [0.12, 0.15, 0.2, 0.2]
+        }
+      }
+    },
+    "rules": [
+      "IF staking_ratio IS low AND network_security IS weak THEN reward_rate IS high",
+      "IF staking_ratio IS high AND network_security IS strong THEN reward_rate IS low",
+      "IF validator_performance IS excellent THEN reward_rate IS medium",
+      "IF staking_ratio IS medium AND network_security IS moderate THEN reward_rate IS medium"
+    ]
+  },
+  "rl_config": {
+    "algorithm": "DQN",
+    "state_size": 15,
+    "action_size": 9,
+    "hidden_layers": [256, 128, 64],
+    "learning_rate": 0.0001,
+    "epsilon": {
+      "start": 1.0,
+      "end": 0.01,
+      "decay": 0.995
+    },
+    "memory_size": 10000,
+    "batch_size": 32,
+    "target_update_freq": 100,
+    "episodes": 50000,
+    "max_steps_per_episode": 200
+  },
+  "optimization_objectives": {
+    "security_weight": 0.4,
+    "decentralization_weight": 0.3,
+    "economic_efficiency_weight": 0.2,
+    "validator_satisfaction_weight": 0.1
+  },
+  "network_parameters": {
+    "min_validator_stake": 32,
+    "max_validators": 1000,
+    "target_staking_ratio": 0.6,
+    "inflation_bounds": [0.02, 0.15],
+    "slashing_rates": {
+      "downtime": 0.01,
+      "double_sign": 0.05,
+      "censorship": 0.1
+    }
+  },
+  "economic_config": {
+    "token_supply": 1000000000,
+    "target_inflation": 0.05,
+    "reward_pool_ratio": 0.8,
+    "treasury_ratio": 0.1,
+    "burn_ratio": 0.1
+  },
+  "simulation_config": {
+    "scenarios": [
+      "normal_operation",
+      "high_volatility",
+      "validator_exodus",
+      "stake_concentration",
+      "economic_stress",
+      "security_attack"
+    ],
+    "episode_length": 200,
+    "validation_episodes": 1000
+  },
+  "training_config": {
+    "save_model_path": "models/",
+    "metrics_path": "metrics.json",
+    "checkpoint_frequency": 1000,
+    "evaluation_frequency": 5000,
+    "log_level": "INFO"
+  }
+}

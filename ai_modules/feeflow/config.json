@@ -1,0 +1,88 @@
+{
+  "lstm_config": {
+    "sequence_length": 50,
+    "input_features": 8,
+    "hidden_size": 64,
+    "num_layers": 2,
+    "dropout": 0.2,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "epochs": 200,
+    "early_stopping_patience": 20,
+    "validation_split": 0.2
+  },
+  "rl_config": {
+    "state_size": 12,
+    "action_size": 5,
+    "hidden_size": 128,
+    "learning_rate": 0.0003,
+    "episodes": 15000,
+    "gamma": 0.99,
+    "entropy_coef": 0.01,
+    "value_coef": 0.5,
+    "max_episode_steps": 100
+  },
+  "data_config": {
+    "features": [
+      "gas_price",
+      "block_utilization",
+      "pending_transactions",
+      "mempool_size",
+      "transaction_count",
+      "average_transaction_value",
+      "hour_of_day",
+      "day_of_week"
+    ],
+    "synthetic_data": {
+      "days_of_history": 180,
+      "blocks_per_day": 7200,
+      "base_gas_price": 20.0,
+      "volatility": 0.3,
+      "seasonal_strength": 0.2
+    },
+    "normalization": {
+      "method": "min_max",
+      "feature_ranges": {
+        "gas_price": [1, 500],
+        "block_utilization": [0, 1],
+        "pending_transactions": [0, 10000],
+        "mempool_size": [0, 50000]
+      }
+    }
+  },
+  "prediction_config": {
+    "horizons": {
+      "immediate": 1,
+      "short_term": 5,
+      "medium_term": 20,
+      "long_term": 100
+    },
+    "confidence_levels": [0.8, 0.9, 0.95],
+    "update_frequency": "per_block"
+  },
+  "optimization_config": {
+    "congestion_thresholds": {
+      "low": 0.3,
+      "medium": 0.6,
+      "high": 0.8,
+      "critical": 0.95
+    },
+    "fee_multipliers": {
+      "low_priority": 0.8,
+      "standard": 1.0,
+      "high_priority": 1.5,
+      "urgent": 2.0
+    },
+    "timing_recommendations": {
+      "delay_thresholds": [0.7, 0.85],
+      "max_delay_minutes": 30
+    }
+  },
+  "training_config": {
+    "save_model_path": "models/",
+    "metrics_path": "metrics.json",
+    "checkpoint_frequency": 50,
+    "log_level": "INFO",
+    "device": "cpu"
+  }
+}
