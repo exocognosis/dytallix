@@ -1,0 +1,195 @@
+groups:
+  - name: dytallix_alerts
+    rules:
+      # Node availability alerts
+      - alert: DytallixNodeDown
+        expr: up{job="dytallix-health"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: dytallix
+        annotations:
+          summary: "Dytallix node {{ $labels.instance }} is down"
+          description: "Dytallix node {{ $labels.instance }} has been down for more than 30 seconds."
+
+      - alert: DytallixNodeUnhealthy
+        expr: dytallix_node_health_status != 1
+        for: 1m
+        labels:
+          severity: warning
+          service: dytallix
+        annotations:
+          summary: "Dytallix node {{ $labels.instance }} is unhealthy"
+          description: "Dytallix node {{ $labels.instance }} health status is not healthy for more than 1 minute."
+
+      # Performance alerts
+      - alert: DytallixLowTPS
+        expr: dytallix:transaction_rate_5m < 1000
+        for: 2m
+        labels:
+          severity: warning
+          service: dytallix
+        annotations:
+          summary: "Dytallix transaction throughput is low"
+          description: "Transaction rate ({{ $value }} TPS) is below target of 1000 TPS for more than 2 minutes."
+
+      - alert: DytallixSlowBlockTime
+        expr: dytallix_block_time_seconds > 2
+        for: 1m
+        labels:
+          severity: warning
+          service: dytallix
+        annotations:
+          summary: "Dytallix block production is slow"
+          description: "Block time ({{ $value }}s) is above target of 2s for more than 1 minute."
+
+      - alert: DytallixHighBlockTime
+        expr: dytallix_block_time_seconds > 5
+        for: 30s
+        labels:
+          severity: critical
+          service: dytallix
+        annotations:
+          summary: "Dytallix block production is critically slow"
+          description: "Block time ({{ $value }}s) is critically high for more than 30 seconds."
+
+      # Consensus alerts
+      - alert: DytallixConsensusFailure
+        expr: dytallix_consensus_active_validators < 2
+        for: 1m
+        labels:
+          severity: critical
+          service: dytallix
+        annotations:
+          summary: "Dytallix consensus has insufficient validators"
+          description: "Only {{ $value }} validators are active, minimum 2 required for consensus."
+
+      - alert: DytallixConsensusStalled
+        expr: increase(dytallix_blocks_total[5m]) == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: dytallix
+        annotations:
+          summary: "Dytallix blockchain is not producing blocks"
+          description: "No new blocks have been produced in the last 5 minutes."
+
+      # Resource alerts
+      - alert: DytallixHighMemoryUsage
+        expr: (container_memory_usage_bytes{name=~"dytallix-node-.*"} / container_spec_memory_limit_bytes) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          service: dytallix
+        annotations:
+          summary: "Dytallix node {{ $labels.name }} high memory usage"
+          description: "Memory usage is {{ $value }}% for more than 2 minutes."
+
+      - alert: DytallixHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{name=~"dytallix-node-.*"}[5m]) * 100 > 80
+        for: 3m
+        labels:
+          severity: warning
+          service: dytallix
+        annotations:
+          summary: "Dytallix node {{ $labels.name }} high CPU usage"
+          description: "CPU usage is {{ $value }}% for more than 3 minutes."
+
+      # Network connectivity alerts
+      - alert: DytallixNetworkPartition
+        expr: dytallix_peer_count < 2
+        for: 1m
+        labels:
+          severity: critical
+          service: dytallix
+        annotations:
+          summary: "Dytallix node {{ $labels.instance }} has insufficient peers"
+          description: "Node has only {{ $value }} peers, indicating potential network partition."
+
+      # Transaction pool alerts
+      - alert: DytallixTransactionPoolFull
+        expr: dytallix_transaction_pool_size > 10000
+        for: 5m
+        labels:
+          severity: warning
+          service: dytallix
+        annotations:
+          summary: "Dytallix transaction pool is filling up"
+          description: "Transaction pool size is {{ $value }}, indicating potential processing bottleneck."
+
+  - name: infrastructure_alerts
+    rules:
+      # System resource alerts
+      - alert: HighSystemMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High system memory usage"
+          description: "System memory usage is {{ $value }}% for more than 2 minutes."
+
+      - alert: HighSystemCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 3m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High system CPU usage"
+          description: "System CPU usage is {{ $value }}% for more than 3 minutes."
+
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+        for: 1m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value }}% full."
+
+      - alert: CriticalDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 30s
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Critical disk space"
+          description: "Disk space is {{ $value }}% full - immediate action required."
+
+  - name: monitoring_alerts
+    rules:
+      # Prometheus alerts
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: monitoring
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus monitoring system has been down for more than 1 minute."
+
+      - alert: PrometheusConfigReloadFailure
+        expr: prometheus_config_last_reload_successful != 1
+        for: 1m
+        labels:
+          severity: warning
+          service: monitoring
+        annotations:
+          summary: "Prometheus configuration reload failed"
+          description: "Prometheus configuration reload has failed."
+
+      # Grafana alerts
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: monitoring
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana dashboard system has been down for more than 2 minutes."

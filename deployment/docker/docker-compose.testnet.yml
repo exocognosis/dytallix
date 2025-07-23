@@ -12,6 +12,9 @@ services:
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
       DYTALLIX_METRICS_ENABLED: "true"
+      DYTALLIX_HEALTH_CHECK_ENABLED: "true"
+      DYTALLIX_TARGET_TPS: "${TARGET_TPS:-1000}"
+      DYTALLIX_TARGET_BLOCK_TIME: "${TARGET_BLOCK_TIME:-2}"
     ports:
       - "3030:3030"
       - "9090:9090"
@@ -23,6 +26,21 @@ services:
       - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
 
   dytallix-node-2:
     build: ../../
@@ -35,6 +53,9 @@ services:
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
       DYTALLIX_METRICS_ENABLED: "true"
+      DYTALLIX_HEALTH_CHECK_ENABLED: "true"
+      DYTALLIX_TARGET_TPS: "${TARGET_TPS:-1000}"
+      DYTALLIX_TARGET_BLOCK_TIME: "${TARGET_BLOCK_TIME:-2}"
     ports:
       - "3032:3030"
       - "9091:9090"
@@ -46,6 +67,21 @@ services:
       - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
 
   dytallix-node-3:
     build: ../../
@@ -58,6 +94,9 @@ services:
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
       DYTALLIX_METRICS_ENABLED: "true"
+      DYTALLIX_HEALTH_CHECK_ENABLED: "true"
+      DYTALLIX_TARGET_TPS: "${TARGET_TPS:-1000}"
+      DYTALLIX_TARGET_BLOCK_TIME: "${TARGET_BLOCK_TIME:-2}"
     ports:
       - "3034:3030"
       - "9092:9090"
@@ -69,6 +108,21 @@ services:
       - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
 
   prometheus:
     image: prom/prometheus:latest
@@ -77,14 +131,28 @@ services:
       - "9093:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
     networks:
       - dytallix_testnet
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      - dytallix-node-1
+      - dytallix-node-2
+      - dytallix-node-3
 
   grafana:
     image: grafana/grafana:latest
@@ -96,8 +164,38 @@ services:
       - ./monitoring/grafana:/etc/grafana/provisioning:ro
     environment:
       GF_SECURITY_ADMIN_PASSWORD: dytallix_testnet_admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-worldmap-panel"
+      GF_FEATURE_TOGGLES_ENABLE: "ngalert"
     networks:
       - dytallix_testnet
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: dytallix-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - dytallix_testnet
+    restart: unless-stopped
 
 volumes:
   node1_data:
