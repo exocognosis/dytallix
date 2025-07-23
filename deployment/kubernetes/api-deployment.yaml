@@ -1,0 +1,168 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dytallix-api
+  namespace: dytallix-production
+  labels:
+    app: dytallix-api
+    environment: production
+    component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dytallix-api
+      environment: production
+  template:
+    metadata:
+      labels:
+        app: dytallix-api
+        environment: production
+        component: api
+    spec:
+      containers:
+      - name: api
+        image: us-central1-docker.pkg.dev/dytallix/dytallix-testnet-repo/dytallix-api:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: RUST_ENV
+          value: "production"
+        - name: RUST_LOG
+          value: "info"
+        - name: API_PORT
+          value: "8080"
+        - name: METRICS_PORT
+          value: "9090"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: dytallix-secrets
+              key: database-url
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: "2"
+            memory: 4Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: pqc-keys
+          mountPath: /app/keys
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: pqc-keys
+        secret:
+          secretName: dytallix-pqc-keys
+          defaultMode: 0400
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dytallix-api-service
+  namespace: dytallix-production
+  labels:
+    app: dytallix-api
+    environment: production
+spec:
+  selector:
+    app: dytallix-api
+    environment: production
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dytallix-secrets
+  namespace: dytallix-production
+type: Opaque
+data:
+  # Base64 encoded placeholder - replace with actual values
+  database-url: cG9zdGdyZXNxbDovL3VzZXI6cGFzc3dvcmRAcG9zdGdyZXM6NTQzMi9keXRhbGxpeA==
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dytallix-pqc-keys
+  namespace: dytallix-production
+type: Opaque
+data:
+  # Base64 encoded PQC keys - replace with actual keys
+  keys.json: e30K  # {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dytallix-api-netpol
+  namespace: dytallix-production
+spec:
+  podSelector:
+    matchLabels:
+      app: dytallix-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: dytallix-frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 5432

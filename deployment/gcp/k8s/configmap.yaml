@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dytallix-bridge-config
+  namespace: dytallix-bridge
+data:
+  RUST_LOG: "info"
+  ENVIRONMENT: "testnet"
+  PORT: "8080"
+  METRICS_PORT: "9090"
+  # Chain configurations
+  ETHEREUM_RPC_URL: "https://ethereum-sepolia-rpc.publicnode.com"
+  COSMOS_RPC_URL: "https://rpc.sentry-02.theta-testnet.polypore.xyz"
+  POLKADOT_RPC_URL: "wss://rococo-rpc.polkadot.io"
+  # Bridge configuration
+  BRIDGE_MODE: "testnet"
+  MAX_RETRY_ATTEMPTS: "3"
+  RETRY_DELAY_MS: "1000"
+  CONFIRMATION_BLOCKS: "12"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dytallix-bridge-secrets
+  namespace: dytallix-bridge
+type: Opaque
+data:
+  # Base64 encoded secrets - these should be set properly for production
+  # For testnet, using placeholder values
+  ETHEREUM_PRIVATE_KEY: "cGxhY2Vob2xkZXI="  # placeholder
+  COSMOS_MNEMONIC: "cGxhY2Vob2xkZXI="      # placeholder
+  POLKADOT_SEED: "cGxhY2Vob2xkZXI="         # placeholder

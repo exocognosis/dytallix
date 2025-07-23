@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ID=${PROJECT_ID:-"dytallix-testnet"}
+PROJECT_ID=${PROJECT_ID:-"dytallix"}
 REGION=${REGION:-"us-central1"}
 ZONE=${ZONE:-"us-central1-a"}
 
@@ -153,7 +153,7 @@ echo "Deploying bridge application..."
 kubectl apply -f /tmp/dytallix-bridge-updated.yaml
 
 echo "Waiting for deployment to be ready..."
-kubectl wait --for=condition=available --timeout=600s deployment/dytallix-bridge-node -n dytallix-testnet
+kubectl wait --for=condition=available --timeout=600s deployment/dytallix-bridge-node -n dytallix
 
 print_success "Kubernetes deployment completed"
 
@@ -178,7 +178,7 @@ GRAFANA_EXTERNAL_IP=""
 
 # Try to get external IPs (may take some time)
 for i in {1..10}; do
-    BRIDGE_EXTERNAL_IP=$(kubectl get service dytallix-bridge-service -n dytallix-testnet -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+    BRIDGE_EXTERNAL_IP=$(kubectl get service dytallix-bridge-service -n dytallix -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
     PROMETHEUS_EXTERNAL_IP=$(kubectl get service prometheus -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
     GRAFANA_EXTERNAL_IP=$(kubectl get service grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
     
@@ -232,25 +232,25 @@ kubectl get pods --all-namespaces
 kubectl get services --all-namespaces
 
 # View deployment status
-kubectl get deployments -n dytallix-testnet
+kubectl get deployments -n dytallix
 \`\`\`
 
 ### View Logs
 \`\`\`bash
 # Bridge application logs
-kubectl logs -f deployment/dytallix-bridge-node -n dytallix-testnet
+kubectl logs -f deployment/dytallix-bridge-node -n dytallix
 
 # All bridge pod logs
-kubectl logs -n dytallix-testnet -l app=dytallix-bridge --tail=100
+kubectl logs -n dytallix -l app=dytallix-bridge --tail=100
 \`\`\`
 
 ### Scale Application
 \`\`\`bash
 # Scale bridge nodes
-kubectl scale deployment dytallix-bridge-node --replicas=5 -n dytallix-testnet
+kubectl scale deployment dytallix-bridge-node --replicas=5 -n dytallix
 
 # Check horizontal pod autoscaler
-kubectl get hpa -n dytallix-testnet
+kubectl get hpa -n dytallix
 \`\`\`
 
 ### Database Access
@@ -283,7 +283,7 @@ curl -s http://$BRIDGE_EXTERNAL_IP:9090/metrics | head -20
 
 ### Remove Kubernetes Resources
 \`\`\`bash
-kubectl delete namespace dytallix-testnet
+kubectl delete namespace dytallix
 kubectl delete namespace monitoring
 \`\`\`
 
@@ -321,14 +321,14 @@ gcloud projects delete $PROJECT_ID
 kubectl cluster-info
 
 # Describe problematic pod
-kubectl describe pod <pod-name> -n dytallix-testnet
+kubectl describe pod <pod-name> -n dytallix
 
 # Check events
-kubectl get events -n dytallix-testnet --sort-by='.lastTimestamp'
+kubectl get events -n dytallix --sort-by='.lastTimestamp'
 
 # Check resource usage
 kubectl top nodes
-kubectl top pods -n dytallix-testnet
+kubectl top pods -n dytallix
 \`\`\`
 
 ---
@@ -370,9 +370,9 @@ echo "3. Set up SSL certificates for production"
 echo "4. Configure backup and disaster recovery"
 echo ""
 echo -e "${YELLOW}🔍 Monitoring:${NC}"
-echo "- Watch pods: kubectl get pods -n dytallix-testnet -w"
-echo "- View logs: kubectl logs -f deployment/dytallix-bridge-node -n dytallix-testnet"
-echo "- Check metrics: kubectl top pods -n dytallix-testnet"
+echo "- Watch pods: kubectl get pods -n dytallix -w"
+echo "- View logs: kubectl logs -f deployment/dytallix-bridge-node -n dytallix"
+echo "- Check metrics: kubectl top pods -n dytallix"
 echo ""
 
 print_success "Complete GCP deployment finished successfully!"

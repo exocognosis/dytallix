@@ -1,6 +1,6 @@
 # Terraform variables configuration for Dytallix Bridge GCP deployment
 
-project_id = "dytallix-testnet"
+project_id = "dytallix"
 region     = "us-central1"
 zone       = "us-central1-a"
 

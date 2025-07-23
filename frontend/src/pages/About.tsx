@@ -175,23 +175,11 @@ export function About() {
       {/* Contact Information */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
         <h2 className="text-xl font-bold text-blue-400 mb-4">Get In Touch</h2>
-        <div className="grid md:grid-cols-3 gap-4 text-gray-300">
+        <div className="text-gray-300">
           <div>
-            <h4 className="font-semibold text-white mb-2">General Inquiries</h4>
+            <h4 className="font-semibold text-white mb-2">Contact Us</h4>
             <a href="mailto:hello@dytallix.com" className="text-blue-400 hover:text-blue-300 transition-colors">
               hello@dytallix.com
-            </a>
-          </div>
-          <div>
-            <h4 className="font-semibold text-white mb-2">Developer Support</h4>
-            <a href="mailto:dev@dytallix.com" className="text-blue-400 hover:text-blue-300 transition-colors">
-              dev@dytallix.com
-            </a>
-          </div>
-          <div>
-            <h4 className="font-semibold text-white mb-2">Partnerships</h4>
-            <a href="mailto:partnerships@dytallix.com" className="text-blue-400 hover:text-blue-300 transition-colors">
-              partnerships@dytallix.com
             </a>
           </div>
         </div>

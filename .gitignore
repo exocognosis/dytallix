@@ -98,3 +98,8 @@ htmlcov/
 # Documentation build
 docs/_build/
 docs/site/tests/stress_test_report_*.json
+
+# Terraform provider binaries
+deployment/gcp/terraform/.terraform/providers/
+*.terraform.lock.hcl
+terraform.tfstate*

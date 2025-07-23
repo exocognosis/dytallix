@@ -2,7 +2,7 @@
 # This file contains the main GCP settings for the deployment
 
 project:
-  id: dytallix-testnet
+  id: dytallix
   region: us-central1
   zone: us-central1-a
 

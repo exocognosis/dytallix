@@ -124,7 +124,7 @@ export function Analytics() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-xl font-bold text-white mb-4">24-Hour Fraud Analysis</h2>
         <div className="h-64 bg-gray-700 rounded-lg p-4 flex items-end justify-between">
-          {fraudAnalysisData.map((data, index) => (
+          {fraudAnalysisData.map((data, _index) => (
             <div key={data.time} className="flex flex-col items-center space-y-2">
               <div className="flex flex-col items-center space-y-1">
                 <div 

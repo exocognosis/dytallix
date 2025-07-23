@@ -20,56 +20,150 @@ terraform {
       source  = "hashicorp/helm"
       version = "~> 2.11"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.4"
+    }
+  }
+
+  # Enable remote state backend for team collaboration
+  # Uncomment and configure for production use
+  # backend "gcs" {
+  #   bucket = "dytallix-terraform-state"
+  #   prefix = "terraform/state"
+  # }
+}
+
+# Variables with enhanced validation and descriptions
+variable "project_id" {
+  description = "The GCP project ID where resources will be created"
+  type        = string
+  default     = "dytallix"
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_id))
+    error_message = "Project ID must be 6-30 characters, start with lowercase letter, and contain only lowercase letters, numbers, and hyphens."
   }
 }
 
-# Variables
-variable "project_id" {
-  description = "The GCP project ID"
-  type        = string
-  default     = "dytallix-testnet"
-}
-
 variable "region" {
-  description = "The GCP region"
+  description = "The GCP region for regional resources"
   type        = string
   default     = "us-central1"
+
+  validation {
+    condition = contains([
+      "us-central1", "us-east1", "us-west1", "us-west2",
+      "europe-west1", "europe-west2", "europe-west3",
+      "asia-southeast1", "asia-east1"
+    ], var.region)
+    error_message = "Region must be a valid GCP region."
+  }
 }
 
 variable "zone" {
-  description = "The GCP zone"
+  description = "The GCP zone for zonal resources"
   type        = string
   default     = "us-central1-a"
 }
 
 variable "cluster_name" {
-  description = "The GKE cluster name"
+  description = "The name of the GKE cluster"
   type        = string
   default     = "dytallix-bridge-cluster"
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]*[a-z0-9]$", var.cluster_name))
+    error_message = "Cluster name must start with lowercase letter and contain only lowercase letters, numbers, and hyphens."
+  }
 }
 
 variable "node_count" {
-  description = "Number of nodes in the GKE cluster"
+  description = "Initial number of nodes in the GKE cluster"
   type        = number
   default     = 3
+
+  validation {
+    condition     = var.node_count >= 1 && var.node_count <= 50
+    error_message = "Node count must be between 1 and 50."
+  }
 }
 
 variable "machine_type" {
   description = "Machine type for GKE nodes"
   type        = string
   default     = "e2-standard-4"
+
+  validation {
+    condition = contains([
+      "e2-medium", "e2-standard-2", "e2-standard-4", "e2-standard-8",
+      "n2-standard-2", "n2-standard-4", "n2-standard-8", "n2-highmem-4"
+    ], var.machine_type)
+    error_message = "Machine type must be a valid GCE machine type."
+  }
 }
 
 variable "disk_size_gb" {
-  description = "Disk size for GKE nodes"
+  description = "Boot disk size for GKE nodes in GB"
   type        = number
   default     = 100
+
+  validation {
+    condition     = var.disk_size_gb >= 20 && var.disk_size_gb <= 2000
+    error_message = "Disk size must be between 20 and 2000 GB."
+  }
 }
 
 variable "enable_monitoring" {
-  description = "Enable monitoring stack"
+  description = "Enable comprehensive monitoring stack"
   type        = bool
   default     = true
+}
+
+variable "environment" {
+  description = "Environment name (dev, staging, prod)"
+  type        = string
+  default     = "testnet"
+
+  validation {
+    condition     = contains(["dev", "staging", "testnet", "prod"], var.environment)
+    error_message = "Environment must be one of: dev, staging, testnet, prod."
+  }
+}
+
+variable "enable_backup" {
+  description = "Enable automated backups"
+  type        = bool
+  default     = true
+}
+
+variable "backup_retention_days" {
+  description = "Number of days to retain backups"
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.backup_retention_days >= 1 && var.backup_retention_days <= 365
+    error_message = "Backup retention must be between 1 and 365 days."
+  }
+}
+
+# Local values for resource naming and tagging
+locals {
+  common_labels = {
+    project     = "dytallix-bridge"
+    environment = var.environment
+    managed_by  = "terraform"
+    created_on  = formatdate("YYYY-MM-DD", timestamp())
+  }
+
+  resource_prefix = "${var.project_id}-${var.environment}"
+
+  # Network configuration
+  vpc_cidr      = "10.0.0.0/16"
+  subnet_cidr   = "10.0.1.0/24"
+  pods_cidr     = "10.1.0.0/16"
+  services_cidr = "10.2.0.0/16"
 }
 
 # Providers
@@ -106,7 +200,7 @@ data "google_client_config" "default" {}
 resource "google_project_service" "apis" {
   for_each = toset([
     "container.googleapis.com",
-    "cloudsql.googleapis.com",
+    # "cloudsql.googleapis.com",  # Requires additional permissions
     "storage.googleapis.com",
     "monitoring.googleapis.com",
     "logging.googleapis.com",
@@ -134,7 +228,7 @@ resource "google_service_account" "bridge_sa" {
 resource "google_project_iam_member" "bridge_sa_roles" {
   for_each = toset([
     "roles/container.admin",
-    "roles/cloudsql.client",
+    # "roles/cloudsql.client",  # Requires Cloud SQL API to be enabled
     "roles/storage.admin",
     "roles/monitoring.metricWriter",
     "roles/logging.logWriter"
@@ -145,9 +239,9 @@ resource "google_project_iam_member" "bridge_sa_roles" {
   member  = "serviceAccount:${google_service_account.bridge_sa.email}"
 }
 
-# GKE Cluster
+# GKE Cluster with enhanced configuration
 resource "google_container_cluster" "primary" {
-  name     = var.cluster_name
+  name     = "${local.resource_prefix}-cluster"
   location = var.zone
 
   # We can't create a cluster with no node pool defined, but we want to only use
@@ -160,6 +254,12 @@ resource "google_container_cluster" "primary" {
   network    = google_compute_network.vpc.name
   subnetwork = google_compute_subnetwork.subnet.name
 
+  # IP allocation policy for VPC-native networking
+  ip_allocation_policy {
+    cluster_secondary_range_name  = "gke-pods"
+    services_secondary_range_name = "gke-services"
+  }
+
   # Enable Workload Identity
   workload_identity_config {
     workload_pool = "${var.project_id}.svc.id.goog"
@@ -167,7 +267,8 @@ resource "google_container_cluster" "primary" {
 
   # Enable network policy
   network_policy {
-    enabled = true
+    enabled  = true
+    provider = "CALICO"
   }
 
   # Security configuration
@@ -177,11 +278,11 @@ resource "google_container_cluster" "primary" {
     master_ipv4_cidr_block  = "172.16.0.0/28"
   }
 
-  # Master authorized networks
+  # Master authorized networks - restrict in production
   master_authorized_networks_config {
     cidr_blocks {
-      cidr_block   = "0.0.0.0/0"
-      display_name = "All networks"
+      cidr_block   = var.environment == "prod" ? "10.0.0.0/8" : "0.0.0.0/0"
+      display_name = var.environment == "prod" ? "Internal networks" : "All networks"
     }
   }
 
@@ -200,9 +301,36 @@ resource "google_container_cluster" "primary" {
     gce_persistent_disk_csi_driver_config {
       enabled = true
     }
+    network_policy_config {
+      disabled = false
+    }
   }
 
-  depends_on = [google_project_service.apis]
+  # Enhanced security features
+  binary_authorization {
+    evaluation_mode = var.environment == "prod" ? "PROJECT_SINGLETON_POLICY_ENFORCE" : "DISABLED"
+  }
+
+  # Database encryption
+  database_encryption {
+    state    = var.environment == "prod" ? "ENCRYPTED" : "DECRYPTED"
+    key_name = var.environment == "prod" ? google_kms_crypto_key.cluster_key[0].id : null
+  }
+
+  # Maintenance policy
+  maintenance_policy {
+    daily_maintenance_window {
+      start_time = "03:00"
+    }
+  }
+
+  # Resource labels
+  resource_labels = local.common_labels
+
+  depends_on = [
+    google_project_service.apis,
+    google_compute_subnetwork.subnet
+  ]
 }
 
 # GKE Node Pool
@@ -253,61 +381,120 @@ resource "google_container_node_pool" "primary_nodes" {
 
 # VPC Network
 resource "google_compute_network" "vpc" {
-  name                    = "${var.cluster_name}-vpc"
+  name                    = "${local.resource_prefix}-vpc"
   auto_create_subnetworks = false
 }
 
-# Subnet
+# Subnet with improved CIDR management
 resource "google_compute_subnetwork" "subnet" {
-  name          = "${var.cluster_name}-subnet"
-  ip_cidr_range = "10.10.0.0/24"
+  name          = "${local.resource_prefix}-subnet"
+  ip_cidr_range = local.subnet_cidr
   region        = var.region
   network       = google_compute_network.vpc.name
 
+  # Secondary ranges for GKE
   secondary_ip_range {
-    range_name    = "services-range"
-    ip_cidr_range = "192.168.1.0/24"
+    range_name    = "gke-pods"
+    ip_cidr_range = local.pods_cidr
   }
 
   secondary_ip_range {
-    range_name    = "pod-ranges"
-    ip_cidr_range = "192.168.64.0/22"
+    range_name    = "gke-services"
+    ip_cidr_range = local.services_cidr
+  }
+
+  # Enable private Google access
+  private_ip_google_access = true
+
+  # Enable flow logs for network monitoring
+  log_config {
+    aggregation_interval = "INTERVAL_10_MIN"
+    flow_sampling        = 0.5
+    metadata             = "INCLUDE_ALL_METADATA"
   }
 }
 
-# Cloud SQL Instance
+# KMS key for cluster encryption (production only)
+resource "google_kms_key_ring" "cluster_key_ring" {
+  count    = var.environment == "prod" ? 1 : 0
+  name     = "${local.resource_prefix}-keyring"
+  location = var.region
+}
+
+resource "google_kms_crypto_key" "cluster_key" {
+  count           = var.environment == "prod" ? 1 : 0
+  name            = "${local.resource_prefix}-cluster-key"
+  key_ring        = google_kms_key_ring.cluster_key_ring[0].id
+  rotation_period = "2592000s" # 30 days
+
+  labels = local.common_labels
+}
+
+# Cloud SQL Instance with enhanced configuration
+# Commented out due to permissions issue - enable Cloud SQL API manually first
+/*
 resource "google_sql_database_instance" "bridge_db" {
-  name             = "dytallix-bridge-db"
+  name             = "${local.resource_prefix}-db"
   database_version = "POSTGRES_15"
   region           = var.region
 
   settings {
-    tier              = "db-custom-2-7680"
-    availability_type = "REGIONAL"
-    disk_size         = 100
+    tier              = var.environment == "prod" ? "db-custom-4-15360" : "db-custom-2-7680"
+    availability_type = var.environment == "prod" ? "REGIONAL" : "ZONAL"
+    disk_size         = var.environment == "prod" ? 200 : 100
     disk_type         = "PD_SSD"
     disk_autoresize   = true
 
     backup_configuration {
-      enabled    = true
-      start_time = "03:00"
-      location   = var.region
+      enabled                        = var.enable_backup
+      start_time                     = "03:00"
+      location                       = var.region
+      point_in_time_recovery_enabled = true
+      backup_retention_settings {
+        retained_backups = var.backup_retention_days
+        retention_unit   = "COUNT"
+      }
+      transaction_log_retention_days = 7
     }
 
     maintenance_window {
-      day          = 7  # Sunday
+      day          = 7 # Sunday
       hour         = 4
       update_track = "stable"
     }
 
     ip_configuration {
-      ipv4_enabled    = true
-      private_network = google_compute_network.vpc.id
-      require_ssl     = true
+      ipv4_enabled                                  = false
+      private_network                               = google_compute_network.vpc.id
+      enable_private_path_for_google_cloud_services = true
+      require_ssl                                   = true
+    }
+
+    # Database flags for performance
+    database_flags {
+      name  = "shared_preload_libraries"
+      value = "pg_stat_statements"
+    }
+
+    database_flags {
+      name  = "log_statement"
+      value = "all"
+    }
+
+    # Insights configuration for monitoring
+    insights_config {
+      query_insights_enabled  = true
+      record_application_tags = true
+      record_client_address   = true
     }
   }
 
-  deletion_protection = false
+  deletion_protection = var.environment == "prod" ? true : false
+
+  depends_on = [
+    google_project_service.apis,
+    google_compute_network.vpc
+  ]
 }
 
 # Cloud SQL Database
@@ -322,6 +509,7 @@ resource "google_sql_user" "bridge_user" {
   instance = google_sql_database_instance.bridge_db.name
   password = random_password.db_password.result
 }
+*/
 
 # Random password for database
 resource "random_password" "db_password" {
@@ -329,11 +517,14 @@ resource "random_password" "db_password" {
   special = true
 }
 
-# Cloud Storage Bucket
+# Cloud Storage Bucket with enhanced configuration
 resource "google_storage_bucket" "bridge_storage" {
-  name          = "${var.project_id}-bridge-storage"
+  name          = "${local.resource_prefix}-storage"
   location      = var.region
   storage_class = "REGIONAL"
+
+  # Uniform bucket-level access
+  uniform_bucket_level_access = true
 
   versioning {
     enabled = true
@@ -344,20 +535,78 @@ resource "google_storage_bucket" "bridge_storage" {
       age = 30
     }
     action {
+      type          = "SetStorageClass"
+      storage_class = "NEARLINE"
+    }
+  }
+
+  lifecycle_rule {
+    condition {
+      age = 365
+    }
+    action {
       type = "Delete"
     }
   }
+
+  # Enable logging
+  logging {
+    log_bucket = google_storage_bucket.access_logs.name
+  }
+
+  labels = local.common_labels
 }
 
-# Artifact Registry for container images
+# Access logs bucket
+resource "google_storage_bucket" "access_logs" {
+  name          = "${local.resource_prefix}-access-logs"
+  location      = var.region
+  storage_class = "STANDARD"
+
+  uniform_bucket_level_access = true
+
+  lifecycle_rule {
+    condition {
+      age = 90
+    }
+    action {
+      type = "Delete"
+    }
+  }
+
+  labels = local.common_labels
+}
+
+# Artifact Registry for container images with enhanced configuration
 resource "google_artifact_registry_repository" "bridge_repo" {
   location      = var.region
-  repository_id = "dytallix-bridge"
-  description   = "Dytallix Bridge container images"
+  repository_id = "${local.resource_prefix}-repo"
+  description   = "Dytallix Bridge container images for ${var.environment}"
   format        = "DOCKER"
+
+  # Cleanup policy
+  cleanup_policies {
+    id     = "delete-old-images"
+    action = "DELETE"
+    condition {
+      tag_state  = "UNTAGGED"
+      older_than = "2592000s" # 30 days
+    }
+  }
+
+  cleanup_policies {
+    id     = "keep-recent-tagged"
+    action = "KEEP"
+    condition {
+      tag_state  = "TAGGED"
+      newer_than = "604800s" # 7 days
+    }
+  }
+
+  labels = local.common_labels
 }
 
-# Outputs
+# Enhanced outputs with additional useful information
 output "cluster_endpoint" {
   description = "GKE Cluster Endpoint"
   value       = google_container_cluster.primary.endpoint
@@ -370,6 +619,18 @@ output "cluster_ca_certificate" {
   sensitive   = true
 }
 
+output "cluster_name" {
+  description = "GKE Cluster Name"
+  value       = google_container_cluster.primary.name
+}
+
+output "cluster_location" {
+  description = "GKE Cluster Location"
+  value       = google_container_cluster.primary.location
+}
+
+# Cloud SQL outputs - commented out due to permissions issue
+/*
 output "database_connection_name" {
   description = "Cloud SQL Connection Name"
   value       = google_sql_database_instance.bridge_db.connection_name
@@ -380,9 +641,31 @@ output "database_private_ip" {
   value       = google_sql_database_instance.bridge_db.private_ip_address
 }
 
+output "database_name" {
+  description = "Database Name"
+  value       = google_sql_database.bridge_database.name
+}
+
+output "database_user" {
+  description = "Database User"
+  value       = google_sql_user.bridge_user.name
+}
+
+output "database_password" {
+  description = "Database Password"
+  value       = random_password.db_password.result
+  sensitive   = true
+}
+*/
+
 output "storage_bucket_name" {
   description = "Storage Bucket Name"
   value       = google_storage_bucket.bridge_storage.name
+}
+
+output "storage_bucket_url" {
+  description = "Storage Bucket URL"
+  value       = google_storage_bucket.bridge_storage.url
 }
 
 output "artifact_registry_url" {
@@ -394,3 +677,43 @@ output "service_account_email" {
   description = "Service Account Email"
   value       = google_service_account.bridge_sa.email
 }
+
+output "vpc_network_name" {
+  description = "VPC Network Name"
+  value       = google_compute_network.vpc.name
+}
+
+output "subnet_name" {
+  description = "Subnet Name"
+  value       = google_compute_subnetwork.subnet.name
+}
+
+output "project_id" {
+  description = "Project ID"
+  value       = var.project_id
+}
+
+output "region" {
+  description = "Region"
+  value       = var.region
+}
+
+output "environment" {
+  description = "Environment"
+  value       = var.environment
+}
+
+# Kubectl configuration command
+output "kubectl_config_command" {
+  description = "Command to configure kubectl"
+  value       = "gcloud container clusters get-credentials ${google_container_cluster.primary.name} --zone=${var.zone} --project=${var.project_id}"
+}
+
+# Database connection string - commented out due to permissions issue
+/*
+output "database_url" {
+  description = "Database connection URL"
+  value       = "postgresql://${google_sql_user.bridge_user.name}:${random_password.db_password.result}@${google_sql_database_instance.bridge_db.private_ip_address}:5432/${google_sql_database.bridge_database.name}"
+  sensitive   = true
+}
+*/

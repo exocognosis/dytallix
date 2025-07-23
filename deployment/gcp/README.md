@@ -89,7 +89,32 @@ deployment/gcp/
 
 ## Deployment Methods
 
-### Method 1: Complete Terraform Deployment (Recommended)
+### Method 1: Enhanced Terraform Deployment (Most Future-Proof) ⭐
+
+The `deploy-enhanced-terraform-gcp.sh` script provides enterprise-grade infrastructure-as-code:
+
+- ✅ **Multi-Environment Support** (dev, testnet, prod)
+- ✅ **Terraform Workspaces** for environment isolation
+- ✅ **Advanced Validation** and security features
+- ✅ **Environment-Specific Configurations**
+- ✅ **Comprehensive Output Management**
+- ✅ **Built-in Rollback Capabilities**
+
+```bash
+# Deploy to testnet (default)
+./deploy-enhanced-terraform-gcp.sh apply testnet
+
+# Deploy to production
+./deploy-enhanced-terraform-gcp.sh apply prod
+
+# Plan production changes
+./deploy-enhanced-terraform-gcp.sh plan prod
+
+# Destroy development environment
+./deploy-enhanced-terraform-gcp.sh destroy dev
+```
+
+### Method 2: Complete Terraform Deployment (Recommended)
 
 The `deploy-terraform-gcp.sh` script provides a complete infrastructure-as-code deployment:
 
@@ -102,7 +127,7 @@ The `deploy-terraform-gcp.sh` script provides a complete infrastructure-as-code 
 ./deploy-terraform-gcp.sh
 ```
 
-### Method 2: Manual GCP Deployment
+### Method 3: Manual GCP Deployment
 
 The `deploy-to-gcp.sh` script uses gcloud commands directly:
 
@@ -122,7 +147,7 @@ The `deploy-to-gcp.sh` script uses gcloud commands directly:
 Key environment variables (set automatically by scripts):
 
 ```bash
-PROJECT_ID="dytallix-testnet"          # Your GCP project ID
+PROJECT_ID="dytallix"          # Your GCP project ID
 REGION="us-central1"                   # GCP region
 ZONE="us-central1-a"                   # GCP zone
 CLUSTER_NAME="dytallix-bridge-cluster" # GKE cluster name
@@ -152,6 +177,76 @@ The bridge configuration is managed via:
 1. **Kubernetes ConfigMaps** - Application configuration
 2. **Kubernetes Secrets** - Sensitive data (keys, passwords)
 3. **Environment Variables** - Runtime settings
+
+### Environment-Specific Configurations
+
+The enhanced Terraform deployment supports multiple environments with different configurations:
+
+#### Development Environment
+```bash
+# Minimal resources for cost efficiency
+./deploy-enhanced-terraform-gcp.sh apply dev
+```
+- **Resources**: 1 node, e2-medium instances
+- **Backup**: Disabled
+- **Security**: Basic settings
+- **Cost**: ~$50-80/month
+
+#### Testnet Environment (Default)
+```bash
+# Balanced resources for testing
+./deploy-enhanced-terraform-gcp.sh apply testnet
+```
+- **Resources**: 3 nodes, e2-standard-4 instances
+- **Backup**: 30-day retention
+- **Security**: Standard settings
+- **Cost**: ~$200-300/month
+
+#### Production Environment
+```bash
+# High-availability with full security
+./deploy-enhanced-terraform-gcp.sh apply prod
+```
+- **Resources**: 5 nodes, n2-standard-8 instances
+- **Backup**: 90-day retention, PITR enabled
+- **Security**: Full encryption, private endpoints
+- **Cost**: ~$800-1200/month
+
+#### Terraform Workspaces
+Each environment uses its own Terraform workspace for complete isolation:
+
+```bash
+# List workspaces
+cd terraform && terraform workspace list
+
+# Switch workspace manually
+terraform workspace select prod
+
+# Show current workspace
+terraform workspace show
+```
+
+#### State Management
+For production deployments, configure remote state backend:
+
+```hcl
+# Uncomment in terraform/main.tf
+backend "gcs" {
+  bucket = "your-terraform-state-bucket"
+  prefix = "terraform/state"
+}
+```
+
+#### Environment Variables
+Override defaults with environment variables:
+
+```bash
+export PROJECT_ID="my-custom-project"
+export REGION="europe-west1"
+export ZONE="europe-west1-b"
+
+./deploy-enhanced-terraform-gcp.sh apply prod
+```
 
 ## Services and Endpoints
 
@@ -236,14 +331,14 @@ After deployment, the following services will be available:
 1. **External IP Pending**
    ```bash
    # Check load balancer status
-   kubectl get services -n dytallix-testnet
+   kubectl get services -n dytallix
    # Wait 5-10 minutes for provisioning
    ```
 
 2. **Pods Not Starting**
    ```bash
    # Check pod status
-   kubectl describe pod <pod-name> -n dytallix-testnet
+   kubectl describe pod <pod-name> -n dytallix
    # Check resource limits and node capacity
    kubectl top nodes
    ```
@@ -251,28 +346,28 @@ After deployment, the following services will be available:
 3. **Database Connection Issues**
    ```bash
    # Check Cloud SQL proxy
-   kubectl logs deployment/cloudsql-proxy -n dytallix-testnet
+   kubectl logs deployment/cloudsql-proxy -n dytallix
    # Test database connectivity
-   kubectl exec -it <pod-name> -n dytallix-testnet -- psql $DATABASE_URL
+   kubectl exec -it <pod-name> -n dytallix -- psql $DATABASE_URL
    ```
 
 ### Debugging Commands
 
 ```bash
 # View all resources
-kubectl get all -n dytallix-testnet
+kubectl get all -n dytallix
 
 # Check events
-kubectl get events -n dytallix-testnet --sort-by='.lastTimestamp'
+kubectl get events -n dytallix --sort-by='.lastTimestamp'
 
 # View logs
-kubectl logs -f deployment/dytallix-bridge-node -n dytallix-testnet
+kubectl logs -f deployment/dytallix-bridge-node -n dytallix
 
 # Port forward for local access
-kubectl port-forward service/dytallix-bridge-service 3030:3030 -n dytallix-testnet
+kubectl port-forward service/dytallix-bridge-service 3030:3030 -n dytallix
 
 # Check resource usage
-kubectl top pods -n dytallix-testnet
+kubectl top pods -n dytallix
 ```
 
 ## Verification
@@ -295,7 +390,7 @@ This will check:
 
 ### Remove Application Only
 ```bash
-kubectl delete namespace dytallix-testnet
+kubectl delete namespace dytallix
 kubectl delete namespace monitoring
 ```
 

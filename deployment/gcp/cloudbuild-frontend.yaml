@@ -1,0 +1,55 @@
+steps:
+  # Install dependencies
+  - name: 'node:18'
+    dir: 'frontend'
+    entrypoint: 'npm'
+    args: ['ci']
+
+  # Build the frontend
+  - name: 'node:18'
+    dir: 'frontend'
+    entrypoint: 'npm'
+    args: ['run', 'build']
+
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '-f'
+      - 'deployment/gcp/Dockerfile.frontend'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/dytallix-frontend:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/dytallix-frontend:latest'
+      - '.'
+
+  # Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/dytallix-frontend:$COMMIT_SHA']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/dytallix-frontend:latest']
+
+  # Deploy to GKE
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - run
+      - --filename=deployment/gcp/k8s/dytallix-frontend.yaml
+      - --cluster=$_CLUSTER_NAME
+      - --location=$_CLUSTER_LOCATION
+      - --namespace=dytallix
+
+# Substitutions
+substitutions:
+  _CLUSTER_NAME: 'dytallix-bridge-cluster'
+  _CLUSTER_LOCATION: 'us-central1-a'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+# Images to push
+images:
+  - 'gcr.io/$PROJECT_ID/dytallix-frontend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/dytallix-frontend:latest'

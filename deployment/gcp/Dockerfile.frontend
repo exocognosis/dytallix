@@ -1,0 +1,51 @@
+# Multi-stage build for Dytallix Frontend
+FROM node:18-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    git \
+    python3 \
+    make \
+    g++
+
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install dependencies (including dev dependencies for build)
+RUN npm ci
+
+# Copy source code
+COPY frontend/ ./
+
+# Build the application
+RUN npm run build
+
+# Production stage - serve with nginx
+FROM nginx:alpine
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Copy built application
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY deployment/gcp/nginx.conf /etc/nginx/nginx.conf
+
+# Set permissions for nginx (user already exists in base image)
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    chown -R nginx:nginx /etc/nginx/conf.d
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:80/ || exit 1
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

@@ -12,8 +12,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-PROJECT_ID=${PROJECT_ID:-"dytallix-testnet"}
-NAMESPACE="dytallix-testnet"
+PROJECT_ID=${PROJECT_ID:-"dytallix"}
+NAMESPACE="dytallix"
 
 echo -e "${BLUE}🔐 Setting up Dytallix Bridge Environment for GCP${NC}"
 echo "Project ID: $PROJECT_ID"
@@ -138,7 +138,7 @@ metadata:
 data:
   bridge.toml: |
     [bridge]
-    name = "dytallix-testnet"
+    name = "dytallix"
     environment = "testnet"
     fee_basis_points = $BRIDGE_FEE
     max_transfer_amount = $MAX_TRANSFER_AMOUNT
@@ -296,7 +296,7 @@ cat <<'EOF' > verify-gcp-deployment.sh
 
 set -e
 
-NAMESPACE="dytallix-testnet"
+NAMESPACE="dytallix"
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'

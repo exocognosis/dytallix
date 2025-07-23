@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_ID="dytallix-testnet"
+PROJECT_ID="dytallix"
 REGION="us-central1"
 ZONE="us-central1-a"
 CLUSTER_NAME="dytallix-bridge-cluster"
@@ -206,10 +206,10 @@ print_step "9" "Creating Kubernetes Secrets"
 echo "Creating PQC keys secret..."
 kubectl create secret generic dytallix-pqc-keys \
     --from-file=../../deployment/docker/secrets/ \
-    --namespace=dytallix-testnet || echo "Secret may already exist"
+    --namespace=dytallix || echo "Secret may already exist"
 
 # Create namespace
-kubectl create namespace dytallix-testnet || echo "Namespace may already exist"
+kubectl create namespace dytallix || echo "Namespace may already exist"
 
 print_success "Kubernetes secrets created"
 
@@ -219,13 +219,13 @@ echo "Updating Kubernetes manifests for GCP..."
 
 # Update the image in the Kubernetes manifest
 sed "s|dytallix:testnet|gcr.io/$PROJECT_ID/dytallix-bridge:latest|g" \
-    ../kubernetes/dytallix-testnet.yaml > /tmp/dytallix-gcp.yaml
+    ../kubernetes/dytallix.yaml > /tmp/dytallix-gcp.yaml
 
 echo "Deploying to Kubernetes..."
 kubectl apply -f /tmp/dytallix-gcp.yaml
 
 echo "Waiting for deployment to be ready..."
-kubectl wait --for=condition=available --timeout=300s deployment/dytallix-node -n dytallix-testnet
+kubectl wait --for=condition=available --timeout=300s deployment/dytallix-node -n dytallix
 
 print_success "Deployment to GKE completed"
 
@@ -234,10 +234,10 @@ print_step "11" "Getting Service Information"
 echo "Waiting for external IP assignment..."
 sleep 30
 
-EXTERNAL_IP=$(kubectl get service dytallix-service -n dytallix-testnet -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+EXTERNAL_IP=$(kubectl get service dytallix-service -n dytallix -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 if [ -z "$EXTERNAL_IP" ]; then
     print_warning "External IP not yet assigned. Run the following command later to get it:"
-    echo "kubectl get service dytallix-service -n dytallix-testnet"
+    echo "kubectl get service dytallix-service -n dytallix"
 else
     echo -e "${GREEN}🌐 Bridge API Endpoint: http://$EXTERNAL_IP:3030${NC}"
     echo -e "${GREEN}📊 Metrics Endpoint: http://$EXTERNAL_IP:9090${NC}"
@@ -270,10 +270,10 @@ Services:
 - Health Check: http://$EXTERNAL_IP:8081/health
 
 Useful Commands:
-- View pods: kubectl get pods -n dytallix-testnet
-- View services: kubectl get services -n dytallix-testnet
-- View logs: kubectl logs -f deployment/dytallix-node -n dytallix-testnet
-- Scale deployment: kubectl scale deployment dytallix-node --replicas=5 -n dytallix-testnet
+- View pods: kubectl get pods -n dytallix
+- View services: kubectl get services -n dytallix
+- View logs: kubectl logs -f deployment/dytallix-node -n dytallix
+- Scale deployment: kubectl scale deployment dytallix-node --replicas=5 -n dytallix
 
 Cleanup Commands:
 - Delete cluster: gcloud container clusters delete $CLUSTER_NAME --zone=$ZONE
@@ -295,8 +295,8 @@ echo "3. Run bridge verification tests against the deployed endpoints"
 echo "4. Configure DNS if needed for production use"
 echo ""
 echo -e "${YELLOW}📝 Important:${NC}"
-echo "- Monitor the deployment: kubectl get pods -n dytallix-testnet -w"
-echo "- View logs: kubectl logs -f deployment/dytallix-node -n dytallix-testnet"
+echo "- Monitor the deployment: kubectl get pods -n dytallix -w"
+echo "- View logs: kubectl logs -f deployment/dytallix-node -n dytallix"
 echo "- Access monitoring via Google Cloud Console"
 echo ""
 

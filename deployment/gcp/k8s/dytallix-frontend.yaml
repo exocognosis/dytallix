@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dytallix-frontend
+  namespace: dytallix
+  labels:
+    app: dytallix-frontend
+    component: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dytallix-frontend
+  template:
+    metadata:
+      labels:
+        app: dytallix-frontend
+        component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: gcr.io/dytallix/dytallix-frontend:latest
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        env:
+        - name: NODE_ENV
+          value: "production"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dytallix-frontend-service
+  namespace: dytallix
+  labels:
+    app: dytallix-frontend
+spec:
+  selector:
+    app: dytallix-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dytallix-frontend-ingress
+  namespace: dytallix
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "dytallix-frontend-ip"
+    networking.gke.io/managed-certificates: "dytallix-frontend-ssl"
+    kubernetes.io/ingress.allow-http: "true"
+spec:
+  rules:
+  - host: frontend.dytallix.com
+    http:
+      paths:
+      - path: /*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: dytallix-frontend-service
+            port:
+              number: 80
+  - http:
+      paths:
+      - path: /*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: dytallix-frontend-service
+            port:
+              number: 80
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: dytallix-frontend-ssl
+  namespace: dytallix
+spec:
+  domains:
+    - frontend.dytallix.com

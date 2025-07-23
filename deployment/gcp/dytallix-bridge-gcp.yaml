@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: dytallix-testnet
+  name: dytallix
   labels:
     environment: testnet
     project: dytallix-bridge
@@ -10,7 +10,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dytallix-bridge-node
-  namespace: dytallix-testnet
+  namespace: dytallix
   labels:
     app: dytallix-bridge
     component: node
@@ -166,7 +166,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dytallix-bridge-service
-  namespace: dytallix-testnet
+  namespace: dytallix
   labels:
     app: dytallix-bridge
     component: service
@@ -202,7 +202,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dytallix-bridge-p2p
-  namespace: dytallix-testnet
+  namespace: dytallix
   labels:
     app: dytallix-bridge
     component: p2p
@@ -222,11 +222,11 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dytallix-bridge-config
-  namespace: dytallix-testnet
+  namespace: dytallix
 data:
   bridge.toml: |
     [bridge]
-    name = "dytallix-testnet"
+    name = "dytallix"
     environment = "testnet"
     
     [ethereum]
@@ -266,7 +266,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: dytallix-bridge-data
-  namespace: dytallix-testnet
+  namespace: dytallix
   labels:
     app: dytallix-bridge
     component: storage
@@ -282,7 +282,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: dytallix-bridge-logs
-  namespace: dytallix-testnet
+  namespace: dytallix
   labels:
     app: dytallix-bridge
     component: logs
@@ -298,7 +298,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: dytallix-bridge-sa
-  namespace: dytallix-testnet
+  namespace: dytallix
   annotations:
     iam.gke.io/gcp-service-account: dytallix-bridge-sa@PROJECT_ID.iam.gserviceaccount.com
 ---
@@ -306,7 +306,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: dytallix-bridge-network-policy
-  namespace: dytallix-testnet
+  namespace: dytallix
 spec:
   podSelector:
     matchLabels:
@@ -338,7 +338,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: dytallix-bridge-hpa
-  namespace: dytallix-testnet
+  namespace: dytallix
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

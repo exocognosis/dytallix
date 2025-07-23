@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dytallix-bridge
+  namespace: dytallix-bridge
+  labels:
+    app: dytallix-bridge
+    environment: testnet
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: dytallix-bridge
+  template:
+    metadata:
+      labels:
+        app: dytallix-bridge
+    spec:
+      serviceAccountName: dytallix-bridge-sa
+      containers:
+      - name: bridge
+        image: us-central1-docker.pkg.dev/dytallix/dytallix-testnet-repo/dytallix-bridge:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        envFrom:
+        - configMapRef:
+            name: dytallix-bridge-config
+        - secretRef:
+            name: dytallix-bridge-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "amd64"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dytallix-bridge-service
+  namespace: dytallix-bridge
+  labels:
+    app: dytallix-bridge
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: dytallix-bridge
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dytallix-bridge-sa
+  namespace: dytallix-bridge
+  annotations:
+    iam.gke.io/gcp-service-account: dytallix-bridge-sa@dytallix.iam.gserviceaccount.com

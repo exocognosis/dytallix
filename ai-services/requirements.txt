@@ -48,7 +48,7 @@ black==23.11.0
 flake8==6.1.0
 
 # PDF report generation
-fpdf==2.7.8
+fpdf2==2.7.8
 mypy==1.7.0
 
 # Reporting
