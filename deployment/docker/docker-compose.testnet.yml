@@ -23,6 +23,11 @@ services:
       - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9090"
+      - "prometheus.io/path=/metrics"
+    restart: unless-stopped
 
   dytallix-node-2:
     build: ../../
@@ -46,6 +51,11 @@ services:
       - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9090"
+      - "prometheus.io/path=/metrics"
+    restart: unless-stopped
 
   dytallix-node-3:
     build: ../../
@@ -69,6 +79,11 @@ services:
       - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9090"
+      - "prometheus.io/path=/metrics"
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:latest
@@ -77,14 +92,41 @@ services:
       - "9093:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--alertmanager.timeout=10s'
     networks:
       - dytallix_testnet
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: dytallix-alertmanager
+    ports:
+      - "9094:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/templates:/etc/alertmanager/templates:ro
+      - ./secrets/smtp_password:/etc/alertmanager/smtp_password:ro
+      - ./secrets/slack_webhook:/etc/alertmanager/slack_webhook:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9094'
+      - '--cluster.listen-address=0.0.0.0:9094'
+    networks:
+      - dytallix_testnet
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:latest
@@ -96,8 +138,86 @@ services:
       - ./monitoring/grafana:/etc/grafana/provisioning:ro
     environment:
       GF_SECURITY_ADMIN_PASSWORD: dytallix_testnet_admin
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      GF_FEATURE_TOGGLES_ENABLE: ngalert
     networks:
       - dytallix_testnet
+    restart: unless-stopped
+
+  # Node Exporter for system metrics (simplified for containerized environment)
+  node-exporter-1:
+    image: prom/node-exporter:latest
+    container_name: dytallix-node-exporter-1
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - dytallix_testnet
+    restart: unless-stopped
+    pid: host
+
+  node-exporter-2:
+    image: prom/node-exporter:latest
+    container_name: dytallix-node-exporter-2
+    ports:
+      - "9101:9100"
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - dytallix_testnet
+    restart: unless-stopped
+    pid: host
+
+  node-exporter-3:
+    image: prom/node-exporter:latest
+    container_name: dytallix-node-exporter-3
+    ports:
+      - "9102:9100"
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - dytallix_testnet
+    restart: unless-stopped
+    pid: host
+
+  # Log aggregation with Loki
+  loki:
+    image: grafana/loki:latest
+    container_name: dytallix-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - dytallix_testnet
+    restart: unless-stopped
+
+  # Log collector
+  promtail:
+    image: grafana/promtail:latest
+    container_name: dytallix-promtail
+    volumes:
+      - ./monitoring/promtail.yml:/etc/promtail/config.yml:ro
+      - node1_logs:/var/log/dytallix/node1:ro
+      - node2_logs:/var/log/dytallix/node2:ro
+      - node3_logs:/var/log/dytallix/node3:ro
+      - /var/log:/var/log:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - dytallix_testnet
+    restart: unless-stopped
 
 volumes:
   node1_data:
@@ -108,6 +228,8 @@ volumes:
   node3_logs:
   prometheus_data:
   grafana_data:
+  alertmanager_data:
+  loki_data:
 
 networks:
   dytallix_testnet:
