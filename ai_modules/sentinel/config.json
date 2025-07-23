@@ -1,0 +1,73 @@
+{
+  "model_config": {
+    "isolation_forest": {
+      "contamination": 0.1,
+      "n_estimators": 100,
+      "max_samples": "auto",
+      "max_features": 1.0,
+      "bootstrap": false,
+      "n_jobs": -1,
+      "random_state": 42
+    },
+    "autoencoder": {
+      "input_dim": 20,
+      "hidden_dims": [16, 8, 4, 8, 16],
+      "activation": "relu",
+      "learning_rate": 0.001,
+      "batch_size": 32,
+      "epochs": 30,
+      "validation_split": 0.2,
+      "early_stopping_patience": 5,
+      "dropout_rate": 0.1
+    }
+  },
+  "data_config": {
+    "features": [
+      "transaction_amount",
+      "gas_price",
+      "transaction_frequency",
+      "wallet_age_days",
+      "unique_interactions",
+      "time_since_last_tx",
+      "avg_tx_value",
+      "tx_count_24h",
+      "gas_used_ratio",
+      "contract_interactions",
+      "multi_sig_usage",
+      "cross_chain_activity",
+      "velocity_score",
+      "concentration_ratio",
+      "temporal_patterns_0",
+      "temporal_patterns_1",
+      "temporal_patterns_2",
+      "network_centrality",
+      "behavior_consistency",
+      "risk_score_external"
+    ],
+    "synthetic_data": {
+      "normal_samples": 8000,
+      "anomalous_samples": 1000,
+      "noise_level": 0.1
+    }
+  },
+  "detection_config": {
+    "thresholds": {
+      "low_risk": 0.3,
+      "medium_risk": 0.6,
+      "high_risk": 0.8
+    },
+    "ensemble_weights": {
+      "isolation_forest": 0.6,
+      "autoencoder": 0.4
+    },
+    "min_confidence": 0.5
+  },
+  "training_config": {
+    "validation_split": 0.2,
+    "test_split": 0.1,
+    "cross_validation_folds": 5,
+    "save_model_path": "models/",
+    "metrics_path": "metrics.json",
+    "log_level": "INFO"
+  }
+}
