@@ -143,7 +143,7 @@ validate_configurations() {
     log_step "Validating configurations..."
     
     # Check Prometheus configuration
-    if docker run --rm -v "$(pwd)/$DEPLOYMENT_DIR/monitoring:/etc/prometheus" prom/prometheus:latest promtool check config /etc/prometheus/prometheus.yml; then
+    if docker run --rm -v "$(pwd)/$DEPLOYMENT_DIR/monitoring:/etc/prometheus" --entrypoint promtool prom/prometheus:latest check config /etc/prometheus/prometheus.yml; then
         log_info "Prometheus configuration is valid"
     else
         log_error "Prometheus configuration is invalid"
@@ -151,7 +151,7 @@ validate_configurations() {
     fi
     
     # Check alert rules
-    if docker run --rm -v "$(pwd)/$DEPLOYMENT_DIR/monitoring:/etc/prometheus" prom/prometheus:latest promtool check rules /etc/prometheus/alert_rules.yml; then
+    if docker run --rm -v "$(pwd)/$DEPLOYMENT_DIR/monitoring:/etc/prometheus" --entrypoint promtool prom/prometheus:latest check rules /etc/prometheus/alert_rules.yml; then
         log_info "Alert rules are valid"
     else
         log_error "Alert rules are invalid"
@@ -159,7 +159,7 @@ validate_configurations() {
     fi
     
     # Check Alertmanager configuration
-    if docker run --rm -v "$(pwd)/$DEPLOYMENT_DIR/monitoring:/etc/alertmanager" prom/alertmanager:latest amtool check-config /etc/alertmanager/alertmanager.yml; then
+    if docker run --rm -v "$(pwd)/$DEPLOYMENT_DIR/monitoring:/etc/alertmanager" --entrypoint amtool prom/alertmanager:latest check-config /etc/alertmanager/alertmanager.yml; then
         log_info "Alertmanager configuration is valid"
     else
         log_error "Alertmanager configuration is invalid"

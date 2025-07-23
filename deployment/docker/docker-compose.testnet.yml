@@ -23,6 +23,11 @@ services:
       - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9090"
+      - "prometheus.io/path=/metrics"
+    restart: unless-stopped
 
   dytallix-node-2:
     build: ../../
@@ -46,6 +51,11 @@ services:
       - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9090"
+      - "prometheus.io/path=/metrics"
+    restart: unless-stopped
 
   dytallix-node-3:
     build: ../../
@@ -69,6 +79,11 @@ services:
       - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9090"
+      - "prometheus.io/path=/metrics"
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:latest
@@ -129,57 +144,51 @@ services:
       - dytallix_testnet
     restart: unless-stopped
 
-  # Node Exporter for system metrics
+  # Node Exporter for system metrics (simplified for containerized environment)
   node-exporter-1:
     image: prom/node-exporter:latest
     container_name: dytallix-node-exporter-1
     ports:
       - "9100:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/host'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
     networks:
       - dytallix_testnet
     restart: unless-stopped
+    pid: host
 
   node-exporter-2:
     image: prom/node-exporter:latest
     container_name: dytallix-node-exporter-2
     ports:
       - "9101:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/host'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
     networks:
       - dytallix_testnet
     restart: unless-stopped
+    pid: host
 
   node-exporter-3:
     image: prom/node-exporter:latest
     container_name: dytallix-node-exporter-3
     ports:
       - "9102:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/host'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
     networks:
       - dytallix_testnet
     restart: unless-stopped
+    pid: host
 
   # Log aggregation with Loki
   loki:
