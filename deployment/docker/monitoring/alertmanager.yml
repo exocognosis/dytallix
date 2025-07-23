@@ -1,0 +1,163 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@dytallix.com'
+  smtp_auth_username: 'alerts@dytallix.com'
+  smtp_auth_password_file: '/etc/alertmanager/smtp_password'
+  slack_api_url_file: '/etc/alertmanager/slack_webhook'
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      repeat_interval: 30m
+      
+    # Warning alerts - less frequent notifications
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 2m
+      repeat_interval: 4h
+      
+    # Node-specific alerts
+    - match:
+        component: node
+      receiver: 'node-alerts'
+      
+    # Blockchain-specific alerts
+    - match:
+        component: blockchain
+      receiver: 'blockchain-alerts'
+      
+    # PQC-specific alerts
+    - match:
+        component: pqc
+      receiver: 'pqc-alerts'
+
+# Inhibition rules to reduce noise
+inhibit_rules:
+  # Inhibit warning alerts if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+    
+  # Inhibit node alerts if node is down
+  - source_match:
+      alertname: 'DytallixNodeDown'
+    target_match_re:
+      alertname: '.*'
+    equal: ['instance']
+
+# Receiver configurations
+receivers:
+  - name: 'default'
+    slack_configs:
+      - channel: '#dytallix-alerts'
+        title: 'Dytallix Testnet Alert'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          {{ end }}
+        send_resolved: true
+        
+  - name: 'critical-alerts'
+    slack_configs:
+      - channel: '#dytallix-critical'
+        title: '🚨 CRITICAL: Dytallix Testnet Alert'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+        color: 'danger'
+    email_configs:
+      - to: 'ops-team@dytallix.com'
+        subject: '🚨 CRITICAL: Dytallix Testnet Alert - {{ .GroupLabels.alertname }}'
+        body: |
+          Critical alert in Dytallix testnet:
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Instance: {{ .Labels.instance }}
+          Started: {{ .StartsAt }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+          
+          Please investigate immediately.
+        
+  - name: 'warning-alerts'
+    slack_configs:
+      - channel: '#dytallix-warnings'
+        title: '⚠️ WARNING: Dytallix Testnet Alert'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+        
+  - name: 'node-alerts'
+    slack_configs:
+      - channel: '#dytallix-nodes'
+        title: '🖥️ Node Alert: Dytallix Testnet'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Node:* {{ .Labels.instance }}
+          *Component:* {{ .Labels.component }}
+          {{ end }}
+        send_resolved: true
+        
+  - name: 'blockchain-alerts'
+    slack_configs:
+      - channel: '#dytallix-blockchain'
+        title: '⛓️ Blockchain Alert: Dytallix Testnet'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          *Component:* {{ .Labels.component }}
+          {{ end }}
+        send_resolved: true
+        
+  - name: 'pqc-alerts'
+    slack_configs:
+      - channel: '#dytallix-pqc'
+        title: '🔐 Post-Quantum Crypto Alert: Dytallix Testnet'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          *Component:* {{ .Labels.component }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'

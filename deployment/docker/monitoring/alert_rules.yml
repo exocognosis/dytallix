@@ -1,0 +1,190 @@
+groups:
+  - name: dytallix.blockchain
+    rules:
+      # Node Availability Alerts
+      - alert: DytallixNodeDown
+        expr: up{job="dytallix-nodes"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: node
+        annotations:
+          summary: "Dytallix node {{ $labels.instance }} is down"
+          description: "Dytallix node {{ $labels.instance }} has been down for more than 5 minutes."
+          runbook_url: "https://docs.dytallix.com/runbooks/node-down"
+
+      # Block Production Monitoring
+      - alert: BlockProductionStall
+        expr: increase(dytallix_block_height[30s]) == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: blockchain
+        annotations:
+          summary: "Block production has stalled on {{ $labels.instance }}"
+          description: "No new blocks have been produced for more than 30 seconds on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/block-stall"
+
+      # Transaction Queue Backlog
+      - alert: TransactionQueueBacklog
+        expr: dytallix_transaction_queue_size > 1000
+        for: 2m
+        labels:
+          severity: warning
+          component: blockchain
+        annotations:
+          summary: "High transaction queue backlog on {{ $labels.instance }}"
+          description: "Transaction queue size is {{ $value }} on {{ $labels.instance }}, exceeding threshold of 1000."
+          runbook_url: "https://docs.dytallix.com/runbooks/tx-backlog"
+
+      # Peer Connectivity
+      - alert: LowPeerCount
+        expr: dytallix_peer_count < 2
+        for: 5m
+        labels:
+          severity: warning
+          component: network
+        annotations:
+          summary: "Low peer count on {{ $labels.instance }}"
+          description: "Node {{ $labels.instance }} has only {{ $value }} connected peers, which is below the minimum of 2."
+          runbook_url: "https://docs.dytallix.com/runbooks/low-peers"
+
+      # Synchronization Status
+      - alert: NodeOutOfSync
+        expr: dytallix_sync_status == 0
+        for: 10m
+        labels:
+          severity: warning
+          component: blockchain
+        annotations:
+          summary: "Node {{ $labels.instance }} is out of sync"
+          description: "Node {{ $labels.instance }} has been out of sync for more than 10 minutes."
+          runbook_url: "https://docs.dytallix.com/runbooks/sync-issues"
+
+  - name: dytallix.system
+    rules:
+      # Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}, exceeding 80% threshold."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-memory"
+
+      # Disk Usage
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}% on filesystem {{ $labels.mountpoint }} of {{ $labels.instance }}, exceeding 85% threshold."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-disk"
+
+      # CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}, exceeding 90% threshold for 10 minutes."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-cpu"
+
+  - name: dytallix.application
+    rules:
+      # Error Rate Monitoring
+      - alert: HighErrorRate
+        expr: rate(dytallix_errors_total[1m]) * 60 > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High error rate on {{ $labels.instance }}"
+          description: "Error rate is {{ $value }} errors per minute on {{ $labels.instance }}, exceeding threshold of 10."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-errors"
+
+      # API Response Time
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(dytallix_api_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High API latency on {{ $labels.instance }}"
+          description: "95th percentile API latency is {{ $value }}s on {{ $labels.instance }}, exceeding 1s threshold."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-latency"
+
+      # Smart Contract Deployment Failures
+      - alert: SmartContractDeploymentFailures
+        expr: rate(dytallix_contract_deployment_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: smart-contracts
+        annotations:
+          summary: "Smart contract deployment failures on {{ $labels.instance }}"
+          description: "Smart contract deployment failure rate is {{ $value }} per second on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/contract-failures"
+
+  - name: dytallix.post-quantum
+    rules:
+      # Post-Quantum Crypto Performance
+      - alert: SlowPQCOperations
+        expr: histogram_quantile(0.95, rate(dytallix_pqc_operation_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: pqc
+        annotations:
+          summary: "Slow post-quantum cryptography operations on {{ $labels.instance }}"
+          description: "95th percentile PQC operation time is {{ $value }}s on {{ $labels.instance }}, exceeding 5s threshold."
+          runbook_url: "https://docs.dytallix.com/runbooks/slow-pqc"
+
+      # PQC Key Generation Failures
+      - alert: PQCKeyGenerationFailures
+        expr: rate(dytallix_pqc_key_generation_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: pqc
+        annotations:
+          summary: "Post-quantum key generation failures on {{ $labels.instance }}"
+          description: "PQC key generation failures detected on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/pqc-key-failures"
+
+  - name: dytallix.network
+    rules:
+      # Network Partition Detection
+      - alert: NetworkPartition
+        expr: dytallix_network_partition_detected == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: network
+        annotations:
+          summary: "Network partition detected on {{ $labels.instance }}"
+          description: "A network partition has been detected on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/network-partition"
+
+      # Consensus Failures
+      - alert: ConsensusFailures
+        expr: rate(dytallix_consensus_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: consensus
+        annotations:
+          summary: "Consensus failures detected on {{ $labels.instance }}"
+          description: "Consensus failures are occurring on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/consensus-failures"

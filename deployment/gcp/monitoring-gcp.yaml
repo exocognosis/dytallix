@@ -40,6 +40,8 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /etc/prometheus
+        - name: rules
+          mountPath: /etc/prometheus/rules
         - name: storage
           mountPath: /prometheus
         resources:
@@ -53,6 +55,9 @@ spec:
       - name: config
         configMap:
           name: prometheus-config
+      - name: rules
+        configMap:
+          name: prometheus-rules
       - name: storage
         persistentVolumeClaim:
           claimName: prometheus-storage
@@ -113,6 +118,271 @@ subjects:
   name: prometheus
   namespace: monitoring
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+      - name: alertmanager
+        image: prom/alertmanager:v0.25.0
+        args:
+          - '--config.file=/etc/alertmanager/alertmanager.yml'
+          - '--storage.path=/alertmanager'
+          - '--web.external-url=http://alertmanager:9093'
+          - '--cluster.listen-address=0.0.0.0:9094'
+        ports:
+        - containerPort: 9093
+          name: web
+        - containerPort: 9094
+          name: cluster
+        volumeMounts:
+        - name: config
+          mountPath: /etc/alertmanager
+        - name: storage
+          mountPath: /alertmanager
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: config
+        configMap:
+          name: alertmanager-config
+      - name: storage
+        persistentVolumeClaim:
+          claimName: alertmanager-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 9093
+    targetPort: 9093
+    name: web
+  selector:
+    app: alertmanager
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: alertmanager-storage
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'alerts@dytallix.com'
+      smtp_auth_username: 'alerts@dytallix.com'
+      smtp_auth_password: 'your_app_password'
+      slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'default'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'critical-alerts'
+          group_wait: 10s
+          repeat_interval: 30m
+        - match:
+            severity: warning
+          receiver: 'warning-alerts'
+          group_wait: 2m
+          repeat_interval: 4h
+
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'instance']
+
+    receivers:
+      - name: 'default'
+        slack_configs:
+          - channel: '#dytallix-alerts'
+            title: 'Dytallix Production Alert'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Severity:* {{ .Labels.severity }}
+              *Instance:* {{ .Labels.instance }}
+              {{ end }}
+            send_resolved: true
+
+      - name: 'critical-alerts'
+        slack_configs:
+          - channel: '#dytallix-critical'
+            title: '🚨 CRITICAL: Dytallix Production Alert'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Severity:* {{ .Labels.severity }}
+              *Instance:* {{ .Labels.instance }}
+              *Runbook:* {{ .Annotations.runbook_url }}
+              {{ end }}
+            send_resolved: true
+            color: 'danger'
+        email_configs:
+          - to: 'ops-team@dytallix.com'
+            subject: '🚨 CRITICAL: Dytallix Production Alert - {{ .GroupLabels.alertname }}'
+            body: |
+              Critical alert in Dytallix production:
+              
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Severity: {{ .Labels.severity }}
+              Instance: {{ .Labels.instance }}
+              Started: {{ .StartsAt }}
+              Runbook: {{ .Annotations.runbook_url }}
+              {{ end }}
+
+      - name: 'warning-alerts'
+        slack_configs:
+          - channel: '#dytallix-warnings'
+            title: '⚠️ WARNING: Dytallix Production Alert'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Severity:* {{ .Labels.severity }}
+              *Instance:* {{ .Labels.instance }}
+              {{ end }}
+            send_resolved: true
+            color: 'warning'
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+data:
+  alert_rules.yml: |
+    groups:
+      - name: dytallix.blockchain
+        rules:
+          - alert: DytallixNodeDown
+            expr: up{job="dytallix-nodes"} == 0
+            for: 5m
+            labels:
+              severity: critical
+              component: node
+            annotations:
+              summary: "Dytallix node {{ $labels.instance }} is down"
+              description: "Dytallix node {{ $labels.instance }} has been down for more than 5 minutes."
+              runbook_url: "https://docs.dytallix.com/runbooks/node-down"
+
+          - alert: BlockProductionStall
+            expr: increase(dytallix_block_height[30s]) == 0
+            for: 30s
+            labels:
+              severity: critical
+              component: blockchain
+            annotations:
+              summary: "Block production has stalled on {{ $labels.instance }}"
+              description: "No new blocks have been produced for more than 30 seconds on {{ $labels.instance }}."
+              runbook_url: "https://docs.dytallix.com/runbooks/block-stall"
+
+          - alert: TransactionQueueBacklog
+            expr: dytallix_transaction_queue_size > 1000
+            for: 2m
+            labels:
+              severity: warning
+              component: blockchain
+            annotations:
+              summary: "High transaction queue backlog on {{ $labels.instance }}"
+              description: "Transaction queue size is {{ $value }} on {{ $labels.instance }}, exceeding threshold of 1000."
+              runbook_url: "https://docs.dytallix.com/runbooks/tx-backlog"
+
+          - alert: LowPeerCount
+            expr: dytallix_peer_count < 2
+            for: 5m
+            labels:
+              severity: warning
+              component: network
+            annotations:
+              summary: "Low peer count on {{ $labels.instance }}"
+              description: "Node {{ $labels.instance }} has only {{ $value }} connected peers, which is below the minimum of 2."
+              runbook_url: "https://docs.dytallix.com/runbooks/low-peers"
+
+      - name: dytallix.system
+        rules:
+          - alert: HighMemoryUsage
+            expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+            for: 5m
+            labels:
+              severity: warning
+              component: system
+            annotations:
+              summary: "High memory usage on {{ $labels.instance }}"
+              description: "Memory usage is {{ $value }}% on {{ $labels.instance }}, exceeding 80% threshold."
+              runbook_url: "https://docs.dytallix.com/runbooks/high-memory"
+
+          - alert: HighDiskUsage
+            expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 85
+            for: 5m
+            labels:
+              severity: critical
+              component: system
+            annotations:
+              summary: "High disk usage on {{ $labels.instance }}"
+              description: "Disk usage is {{ $value }}% on filesystem {{ $labels.mountpoint }} of {{ $labels.instance }}, exceeding 85% threshold."
+              runbook_url: "https://docs.dytallix.com/runbooks/high-disk"
+
+          - alert: HighCPUUsage
+            expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+            for: 10m
+            labels:
+              severity: warning
+              component: system
+            annotations:
+              summary: "High CPU usage on {{ $labels.instance }}"
+              description: "CPU usage is {{ $value }}% on {{ $labels.instance }}, exceeding 90% threshold for 10 minutes."
+              runbook_url: "https://docs.dytallix.com/runbooks/high-cpu"
+
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -120,76 +390,172 @@ metadata:
   namespace: monitoring
 data:
   prometheus.yml: |
-    global:
-      scrape_interval: 15s
-      evaluation_interval: 15s
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'dytallix-testnet'
+    environment: 'production'
 
-    rule_files:
-      - "/etc/prometheus/rules/*.yml"
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
 
-    scrape_configs:
-      - job_name: 'dytallix-bridge'
-        kubernetes_sd_configs:
-        - role: pod
-          namespaces:
-            names:
-            - dytallix
-        relabel_configs:
-        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-          action: keep
-          regex: true
-        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-          action: replace
-          target_label: __metrics_path__
-          regex: (.+)
-        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-          action: replace
-          regex: ([^:]+)(?::\d+)?;(\d+)
-          replacement: $1:$2
-          target_label: __address__
-        - action: labelmap
-          regex: __meta_kubernetes_pod_label_(.+)
-        - source_labels: [__meta_kubernetes_namespace]
-          action: replace
-          target_label: kubernetes_namespace
-        - source_labels: [__meta_kubernetes_pod_name]
-          action: replace
-          target_label: kubernetes_pod_name
+alerting:
+  alertmanagers:
+  - kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - monitoring
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      action: keep
+      regex: alertmanager
 
-      - job_name: 'kubernetes-apiservers'
-        kubernetes_sd_configs:
-        - role: endpoints
-        scheme: https
-        tls_config:
-          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-        relabel_configs:
-        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-          action: keep
-          regex: default;kubernetes;https
+scrape_configs:
+  # Dytallix blockchain nodes
+  - job_name: 'dytallix-nodes'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - dytallix-testnet
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      action: keep
+      regex: true
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+      action: replace
+      target_label: __metrics_path__
+      regex: (.+)
+    - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      action: replace
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: $1:$2
+      target_label: __address__
+    - action: labelmap
+      regex: __meta_kubernetes_pod_label_(.+)
+    - source_labels: [__meta_kubernetes_namespace]
+      action: replace
+      target_label: kubernetes_namespace
+    - source_labels: [__meta_kubernetes_pod_name]
+      action: replace
+      target_label: kubernetes_pod_name
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: 'dytallix_.*'
+      target_label: 'service'
+      replacement: 'dytallix'
 
-      - job_name: 'kubernetes-nodes'
-        kubernetes_sd_configs:
-        - role: node
-        scheme: https
-        tls_config:
-          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-        relabel_configs:
-        - action: labelmap
-          regex: __meta_kubernetes_node_label_(.+)
-        - target_label: __address__
-          replacement: kubernetes.default.svc:443
-        - source_labels: [__meta_kubernetes_node_name]
-          regex: (.+)
-          target_label: __metrics_path__
-          replacement: /api/v1/nodes/${1}/proxy/metrics
+  # Node metrics
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+    - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+    - action: labelmap
+      regex: __meta_kubernetes_node_label_(.+)
+    - target_label: __address__
+      replacement: kubernetes.default.svc:443
+    - source_labels: [__meta_kubernetes_node_name]
+      regex: (.+)
+      target_label: __metrics_path__
+      replacement: /api/v1/nodes/${1}/proxy/metrics
 
-    alerting:
-      alertmanagers:
-      - static_configs:
-        - targets:
-          - alertmanager:9093
+  # Kubelet metrics
+  - job_name: 'kubernetes-kubelet'
+    kubernetes_sd_configs:
+    - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+    - action: labelmap
+      regex: __meta_kubernetes_node_label_(.+)
+    - target_label: __address__
+      replacement: kubernetes.default.svc:443
+    - source_labels: [__meta_kubernetes_node_name]
+      regex: (.+)
+      target_label: __metrics_path__
+      replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
+  # Pod metrics
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+    - role: pod
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      action: keep
+      regex: true
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+      action: replace
+      target_label: __metrics_path__
+      regex: (.+)
+    - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      action: replace
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: $1:$2
+      target_label: __address__
+    - action: labelmap
+      regex: __meta_kubernetes_pod_label_(.+)
+    - source_labels: [__meta_kubernetes_namespace]
+      action: replace
+      target_label: kubernetes_namespace
+    - source_labels: [__meta_kubernetes_pod_name]
+      action: replace
+      target_label: kubernetes_pod_name
+
+  # API server
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+    - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+      action: keep
+      regex: default;kubernetes;https
+
+  # Service endpoints
+  - job_name: 'kubernetes-service-endpoints'
+    kubernetes_sd_configs:
+    - role: endpoints
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+      action: keep
+      regex: true
+    - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+      action: replace
+      target_label: __scheme__
+      regex: (https?)
+    - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+      action: replace
+      target_label: __metrics_path__
+      regex: (.+)
+    - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+      action: replace
+      target_label: __address__
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: $1:$2
+    - action: labelmap
+      regex: __meta_kubernetes_service_label_(.+)
+    - source_labels: [__meta_kubernetes_namespace]
+      action: replace
+      target_label: kubernetes_namespace
+    - source_labels: [__meta_kubernetes_service_name]
+      action: replace
+      target_label: kubernetes_name
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['localhost:9090']
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
