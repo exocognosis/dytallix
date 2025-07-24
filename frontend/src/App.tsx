@@ -10,16 +10,48 @@ import { Analytics } from './pages/Analytics'
 import { SmartContracts } from './pages/SmartContracts'
 import { Tokenomics } from './pages/Tokenomics'
 import { Settings } from './pages/Settings'
-// import { useWebSocket } from './hooks/useWebSocket'
+import { TestnetDiagnostics } from './pages/TestnetDiagnostics'
+import { useWebSocket } from './hooks/useWebSocket'
+import config from './services/config'
+import { useEffect } from 'react'
+import toast from 'react-hot-toast'
 
 function App() {
   // Initialize WebSocket connection for real-time updates
-  // TODO: Enable when backend WebSocket endpoint is ready
-  // useWebSocket()
+  const webSocket = useWebSocket()
+
+  useEffect(() => {
+    // Show environment indicator
+    if (config.isTestnet) {
+      toast(`🚀 Connected to ${config.get().networkName} testnet`, { 
+        duration: 5000,
+        icon: '🧪'
+      })
+    } else if (config.isDevelopment) {
+      toast(`🔧 Development mode active`, { 
+        duration: 3000,
+        icon: '⚙️'
+      })
+    }
+  }, [])
 
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-900 text-white relative">
+        {/* Environment indicator */}
+        {(config.isTestnet || config.isDevelopment) && (
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 text-center text-sm">
+            {config.environment.toUpperCase()} ENVIRONMENT - {config.get().networkName}
+            {config.isTestnet && (
+              <span className="ml-4">
+                <a href="/#/testnet-diagnostics" className="underline hover:no-underline">
+                  View Diagnostics
+                </a>
+              </span>
+            )}
+          </div>
+        )}
+        
         <Navigation />
         <main className="container mx-auto px-4 py-8 relative z-10">
           <Routes>
@@ -32,6 +64,9 @@ function App() {
             <Route path="/contracts" element={<SmartContracts />} />
             <Route path="/tokenomics" element={<Tokenomics />} />
             <Route path="/settings" element={<Settings />} />
+            {(config.isTestnet || config.isDevelopment) && (
+              <Route path="/testnet-diagnostics" element={<TestnetDiagnostics />} />
+            )}
           </Routes>
         </main>
       </div>
