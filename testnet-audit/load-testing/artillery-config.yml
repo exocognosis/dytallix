@@ -1,0 +1,259 @@
+config:
+  target: 'https://testnet-api.dytallix.io'
+  phases:
+    # Warm-up phase - gradually increase load
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm-up phase"
+    
+    # Sustained load phase - maintain steady load
+    - duration: 300
+      arrivalRate: 50
+      name: "Sustained load phase"
+    
+    # Peak load phase - test maximum capacity
+    - duration: 120
+      arrivalRate: 100
+      name: "Peak load phase"
+    
+    # Burst test - spike to very high load
+    - duration: 60
+      arrivalRate: 200
+      name: "Burst test phase"
+    
+    # Cool-down phase - reduce load gradually
+    - duration: 60
+      arrivalRate: 20
+      name: "Cool-down phase"
+
+  # Global settings
+  defaults:
+    headers:
+      User-Agent: 'Artillery/Dytallix-Testnet-Audit'
+      Content-Type: 'application/json'
+      Accept: 'application/json'
+  
+  # Payload configuration
+  payload:
+    - path: './test-data.csv'
+      fields:
+        - 'from_address'
+        - 'to_address'
+        - 'amount'
+        - 'fee'
+      order: sequence
+      skipHeader: true
+  
+  # Performance thresholds
+  ensure:
+    # Response time requirements
+    - http.response_time.p95: 2000  # 95th percentile under 2 seconds
+    - http.response_time.p99: 5000  # 99th percentile under 5 seconds
+    - http.response_time.median: 500  # Median under 500ms
+    
+    # Error rate requirements
+    - http.request_rate: 40  # Minimum 40 requests per second
+    - http.codes.200: 95     # At least 95% success rate
+    - http.codes.201: 0      # No 201 responses expected
+    - http.codes.202: 5      # Up to 5% 202 responses (accepted/queued)
+    
+    # WebSocket requirements
+    - ws.open_rate: 5        # Minimum 5 WebSocket connections per second
+    - ws.message_rate: 20    # Minimum 20 messages per second
+
+  # Plugin configurations
+  plugins:
+    metrics-by-endpoint:
+      # Track metrics per endpoint
+      useOnlyRequestNames: true
+    
+    expect:
+      # Automatic validation plugin
+      outputFormat: 'json'
+      
+    # Publish real-time metrics
+    publish-metrics:
+      - type: 'statsd'
+        host: 'localhost'
+        port: 8125
+        prefix: 'artillery.dytallix'
+
+# Scenario definitions
+scenarios:
+  # Primary API testing scenario
+  - name: "API Load Testing"
+    weight: 60
+    flow:
+      # Health check endpoints
+      - get:
+          url: "/status"
+          headers:
+            Cache-Control: "no-cache"
+          capture:
+            - json: "$.status"
+              as: "node_status"
+            - json: "$.uptime"
+              as: "node_uptime"
+          expect:
+            - statusCode: 200
+            - hasProperty: "status"
+            - equals:
+                - "{{ node_status }}"
+                - "running"
+      
+      # Block data endpoints
+      - get:
+          url: "/blocks?limit={{ $randomInt(1, 20) }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - property: "length"
+              min: 0
+              max: 20
+      
+      # Transaction endpoints
+      - get:
+          url: "/transactions?limit={{ $randomInt(1, 50) }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      # Network information
+      - get:
+          url: "/peers"
+          capture:
+            - json: "$.peers"
+              as: "peer_count"
+          expect:
+            - statusCode: 200
+            - hasProperty: "peers"
+      
+      - get:
+          url: "/stats"
+          capture:
+            - json: "$.transactions_per_second"
+              as: "current_tps"
+            - json: "$.network.active_peers"
+              as: "active_peers"
+          expect:
+            - statusCode: 200
+            - hasProperty: "network"
+      
+      # Balance queries
+      - get:
+          url: "/balance/test_address_{{ $randomInt(1, 1000) }}"
+          expect:
+            - statusCode: [200, 404]  # Both are acceptable
+      
+      # Transaction details
+      - get:
+          url: "/transaction/{{ $randomString(64) }}"
+          expect:
+            - statusCode: [200, 404]  # Both are acceptable
+
+  # Transaction submission scenario
+  - name: "Transaction Submission"
+    weight: 30
+    flow:
+      - post:
+          url: "/submit"
+          headers:
+            Content-Type: "application/json"
+          json:
+            from: "{{ from_address }}"
+            to: "{{ to_address }}"
+            amount: "{{ amount }}"
+            fee: "{{ fee }}"
+            nonce: "{{ $randomInt(1, 1000000) }}"
+            timestamp: "{{ $timestamp }}"
+            type: "transfer"
+            pqc_signature:
+              algorithm: "{{ $pick(['dilithium5', 'falcon1024', 'sphincs256']) }}"
+              signature: "{{ $randomString(128) }}"
+              public_key: "{{ $randomString(64) }}"
+              timestamp: "{{ $timestamp }}"
+          capture:
+            - json: "$.transaction_id"
+              as: "submitted_tx_id"
+            - json: "$.hash"
+              as: "submitted_tx_hash"
+          expect:
+            - statusCode: [200, 201, 202]
+            - hasProperty: ["transaction_id", "hash"]
+      
+      # Follow up with transaction verification
+      - think: 1  # Wait 1 second
+      
+      - get:
+          url: "/transaction/{{ submitted_tx_hash || submitted_tx_id }}"
+          ifTrue: "{{ submitted_tx_hash || submitted_tx_id }}"
+          expect:
+            - statusCode: [200, 404]  # Transaction might not be processed yet
+
+  # WebSocket stress testing scenario
+  - name: "WebSocket Load Testing"
+    weight: 10
+    engine: ws
+    flow:
+      - connect:
+          target: "wss://testnet-api.dytallix.io/ws"
+          headers:
+            User-Agent: "Artillery-WebSocket-Client"
+          
+      # Subscribe to real-time feeds
+      - send:
+          payload: |
+            {
+              "type": "subscribe",
+              "channels": ["blocks", "transactions", "network_stats"]
+            }
+      
+      # Send periodic ping messages
+      - loop:
+          - send:
+              payload: |
+                {
+                  "type": "ping",
+                  "timestamp": {{ $timestamp }}
+                }
+          - think: 10  # Wait 10 seconds between pings
+        count: 30  # Send 30 pings (5 minutes total)
+      
+      # Send unsubscribe message
+      - send:
+          payload: |
+            {
+              "type": "unsubscribe",
+              "channels": ["blocks", "transactions", "network_stats"]
+            }
+
+# Before and after hooks
+before:
+  flow:
+    # Generate test data file if it doesn't exist
+    - log: "🚀 Starting Dytallix Testnet Artillery Load Test"
+    - log: "📊 Target: {{ $environment.target }}"
+    - log: "👥 Simulating {{ $environment.config.phases[0].arrivalRate }} users initially"
+
+after:
+  flow:
+    - log: "🏁 Artillery Load Test Completed"
+    - log: "📈 Check the generated report for detailed metrics"
+    - log: "📊 Results saved to artillery-report.json"
+
+# Custom functions for test data generation
+functions:
+  generateTransactionData:
+    - set:
+        from_address: "test_user_{{ $randomInt(1, 10000) }}"
+        to_address: "recipient_{{ $randomInt(1, 10000) }}"
+        amount: "{{ $randomInt(1, 10000) }}"
+        fee: "{{ $randomInt(1, 100) }}"
+
+# Test data for transaction submissions
+# This would typically be loaded from test-data.csv
+# Example format:
+# from_address,to_address,amount,fee
+# user_001,recipient_001,1000,10
+# user_002,recipient_002,2500,15
+# user_003,recipient_003,500,5
