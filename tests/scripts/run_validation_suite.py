@@ -17,20 +17,37 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Add parent directory to path for imports
-sys.path.append(str(Path(__file__).parent.parent))
-
-from api.test_status import StatusAPITester
-from api.test_blocks import BlocksAPITester if os.path.exists(Path(__file__).parent.parent / "api" / "test_blocks.py") else None
-from api.test_transactions import TransactionsAPITester if os.path.exists(Path(__file__).parent.parent / "api" / "test_transactions.py") else None
-from api.test_peers import PeersAPITester if os.path.exists(Path(__file__).parent.parent / "api" / "test_peers.py") else None
-from websocket.test_realtime import WebSocketTester
-from security.test_vulnerabilities import SecurityTester
-from utils.performance_monitor import PerformanceMonitor, run_comprehensive_performance_test
-
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent))
+
+try:
+    from api.test_status import StatusAPITester
+except ImportError as e:
+    logger.error(f"Failed to import StatusAPITester: {e}")
+    StatusAPITester = None
+
+try:
+    from websocket.test_realtime import WebSocketTester
+except ImportError as e:
+    logger.warning(f"WebSocket testing not available: {e}")
+    WebSocketTester = None
+
+try:
+    from security.test_vulnerabilities import SecurityTester
+except ImportError as e:
+    logger.warning(f"Security testing not available: {e}")
+    SecurityTester = None
+
+try:
+    from utils.performance_monitor import PerformanceMonitor, run_comprehensive_performance_test
+except ImportError as e:
+    logger.warning(f"Performance testing not available: {e}")
+    PerformanceMonitor = None
+    run_comprehensive_performance_test = None
 
 class ValidationOrchestrator:
     def __init__(self, base_url: str = "http://localhost:3030", 
@@ -81,15 +98,15 @@ class ValidationOrchestrator:
         
         # Try to run other API tests if they exist
         api_test_classes = [
-            ("blocks", "BlocksAPITester"),
-            ("transactions", "TransactionsAPITester"), 
-            ("peers", "PeersAPITester")
+            ("blocks", "test_blocks", "BlocksAPITester"),
+            ("transactions", "test_transactions", "TransactionsAPITester"), 
+            ("peers", "test_peers", "PeersAPITester")
         ]
         
-        for test_name, class_name in api_test_classes:
+        for test_name, module_name, class_name in api_test_classes:
             try:
                 # Try to import and run the test
-                module_path = f"api.test_{test_name}"
+                module_path = f"api.{module_name}"
                 if self._module_exists(module_path):
                     module = __import__(module_path, fromlist=[class_name])
                     tester_class = getattr(module, class_name)
@@ -684,11 +701,14 @@ async def main():
     
     # Create HTML report
     if args.html_report:
-        from .report_generator import generate_html_report
-        html_content = generate_html_report(results)
-        with open(args.html_report, 'w') as f:
-            f.write(html_content)
-        logger.info(f"HTML report saved to {args.html_report}")
+        try:
+            from utils.report_html_generator import generate_html_report
+            html_content = generate_html_report(results)
+            with open(args.html_report, 'w') as f:
+                f.write(html_content)
+            logger.info(f"HTML report saved to {args.html_report}")
+        except ImportError:
+            logger.warning("HTML report generation not available")
     
     # Create Postman collection
     if args.create_postman:

@@ -10,7 +10,7 @@ import time
 import logging
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from ws_client import DytallixWebSocketClient
+from .ws_client import DytallixWebSocketClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
