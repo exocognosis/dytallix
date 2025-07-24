@@ -287,8 +287,25 @@ run_artillery_test() {
 run_websocket_test() {
     log "🔌 Starting WebSocket stress test..."
     
-    # Use existing WebSocket test if available
-    if [[ -f "$PROJECT_ROOT/tests/websocket/test_realtime.py" ]]; then
+    # Use enhanced WebSocket stress test
+    local ws_test_script="$AUDIT_DIR/load-testing/websocket_stress_test.py"
+    if [[ -f "$ws_test_script" ]]; then
+        python3 "$ws_test_script" \
+            --url "$TESTNET_WS_URL" \
+            --connections "$((CONCURRENT_USERS / 5))" \
+            --duration "$((TEST_DURATION / 2))" \
+            --message-rate 6 \
+            --output "$RESULTS_DIR/websocket-stress-results.json" \
+            > "$RESULTS_DIR/websocket-stress-test.log" 2>&1
+        
+        local ws_exit_code=$?
+        if [[ $ws_exit_code -eq 0 ]]; then
+            log_success "WebSocket stress test completed successfully"
+        else
+            log_warning "WebSocket stress test completed with issues (exit code: $ws_exit_code)"
+        fi
+    elif [[ -f "$PROJECT_ROOT/tests/websocket/test_realtime.py" ]]; then
+        # Fallback to existing WebSocket test
         python3 "$PROJECT_ROOT/tests/websocket/test_realtime.py" \
             --url "$TESTNET_WS_URL" \
             --connections "$((CONCURRENT_USERS / 10))" \
@@ -296,12 +313,12 @@ run_websocket_test() {
             > "$RESULTS_DIR/websocket-test.log" 2>&1
         
         if [[ $? -eq 0 ]]; then
-            log_success "WebSocket stress test completed"
+            log_success "WebSocket test completed (fallback)"
         else
-            log_warning "WebSocket stress test had issues (check logs)"
+            log_warning "WebSocket test had issues (check logs)"
         fi
     else
-        log_warning "WebSocket test script not found - skipping WebSocket stress test"
+        log_warning "WebSocket test scripts not found - skipping WebSocket stress test"
     fi
 }
 
