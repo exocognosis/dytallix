@@ -2,6 +2,10 @@ pub mod runtime;
 pub mod oracle_simple;
 pub mod types;
 pub mod tokenomics;
+pub mod cosmos_bridge;
+pub mod cosmos_bridge_optimized;
+pub mod gas_optimizer;
+pub mod storage_optimizer;
 
 // Re-export oracle_simple as oracle for compatibility
 pub use oracle_simple as oracle;
