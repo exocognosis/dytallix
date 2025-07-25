@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: 'default'
+  - name: 'dytallix-dashboards'
     orgId: 1
-    folder: ''
+    folder: 'Dytallix'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 10

@@ -1,7 +1,8 @@
 groups:
+  # Legacy alert rules with quick response times
   - name: dytallix_alerts
     rules:
-      # Node availability alerts
+      # Node availability alerts (more aggressive thresholds)
       - alert: DytallixNodeDown
         expr: up{job="dytallix-health"} == 0
         for: 30s
@@ -53,28 +54,73 @@ groups:
           summary: "Dytallix block production is critically slow"
           description: "Block time ({{ $value }}s) is critically high for more than 30 seconds."
 
-      # Consensus alerts
-      - alert: DytallixConsensusFailure
-        expr: dytallix_consensus_active_validators < 2
+  # Enhanced blockchain monitoring
+  - name: dytallix.blockchain
+    rules:
+      # Block Production Monitoring
+      - alert: BlockProductionStall
+        expr: increase(dytallix_block_height[30s]) == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: blockchain
+        annotations:
+          summary: "Block production has stalled on {{ $labels.instance }}"
+          description: "No new blocks have been produced for more than 30 seconds on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/block-stall"
+
+      # Transaction Queue Backlog
+      - alert: TransactionQueueBacklog
+        expr: dytallix_transaction_queue_size > 1000
+        for: 2m
+        labels:
+          severity: warning
+          component: blockchain
+        annotations:
+          summary: "High transaction queue backlog on {{ $labels.instance }}"
+          description: "Transaction queue size is {{ $value }} on {{ $labels.instance }}, exceeding threshold of 1000."
+          runbook_url: "https://docs.dytallix.com/runbooks/tx-backlog"
+
+      # Peer Connectivity
+      - alert: LowPeerCount
+        expr: dytallix_peer_count < 2
         for: 1m
         labels:
           severity: critical
-          service: dytallix
+          component: network
         annotations:
-          summary: "Dytallix consensus has insufficient validators"
-          description: "Only {{ $value }} validators are active, minimum 2 required for consensus."
+          summary: "Low peer count on {{ $labels.instance }}"
+          description: "Node {{ $labels.instance }} has only {{ $value }} connected peers, which is below the minimum of 2."
+          runbook_url: "https://docs.dytallix.com/runbooks/low-peers"
 
-      - alert: DytallixConsensusStalled
-        expr: increase(dytallix_blocks_total[5m]) == 0
+      # Synchronization Status
+      - alert: NodeOutOfSync
+        expr: dytallix_sync_status == 0
+        for: 10m
+        labels:
+          severity: warning
+          component: blockchain
+        annotations:
+          summary: "Node {{ $labels.instance }} is out of sync"
+          description: "Node {{ $labels.instance }} has been out of sync for more than 10 minutes."
+          runbook_url: "https://docs.dytallix.com/runbooks/sync-issues"
+
+  # System resource monitoring
+  - name: dytallix.system
+    rules:
+      # Memory Usage (comprehensive)
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
         for: 2m
         labels:
-          severity: critical
-          service: dytallix
+          severity: warning
+          component: system
         annotations:
-          summary: "Dytallix blockchain is not producing blocks"
-          description: "No new blocks have been produced in the last 5 minutes."
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}, exceeding 80% threshold."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-memory"
 
-      # Resource alerts
+      # Container-specific memory alerts
       - alert: DytallixHighMemoryUsage
         expr: (container_memory_usage_bytes{name=~"dytallix-node-.*"} / container_spec_memory_limit_bytes) * 100 > 80
         for: 2m
@@ -85,81 +131,135 @@ groups:
           summary: "Dytallix node {{ $labels.name }} high memory usage"
           description: "Memory usage is {{ $value }}% for more than 2 minutes."
 
-      - alert: DytallixHighCPUUsage
-        expr: rate(container_cpu_usage_seconds_total{name=~"dytallix-node-.*"}[5m]) * 100 > 80
-        for: 3m
-        labels:
-          severity: warning
-          service: dytallix
-        annotations:
-          summary: "Dytallix node {{ $labels.name }} high CPU usage"
-          description: "CPU usage is {{ $value }}% for more than 3 minutes."
-
-      # Network connectivity alerts
-      - alert: DytallixNetworkPartition
-        expr: dytallix_peer_count < 2
-        for: 1m
-        labels:
-          severity: critical
-          service: dytallix
-        annotations:
-          summary: "Dytallix node {{ $labels.instance }} has insufficient peers"
-          description: "Node has only {{ $value }} peers, indicating potential network partition."
-
-      # Transaction pool alerts
-      - alert: DytallixTransactionPoolFull
-        expr: dytallix_transaction_pool_size > 10000
+      # Disk Usage
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 85
         for: 5m
         labels:
-          severity: warning
-          service: dytallix
+          severity: critical
+          component: system
         annotations:
-          summary: "Dytallix transaction pool is filling up"
-          description: "Transaction pool size is {{ $value }}, indicating potential processing bottleneck."
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}% on filesystem {{ $labels.mountpoint }} of {{ $labels.instance }}, exceeding 85% threshold."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-disk"
 
-  - name: infrastructure_alerts
+      # CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}, exceeding 90% threshold for 10 minutes."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-cpu"
+
+  # Application monitoring
+  - name: dytallix.application
     rules:
-      # System resource alerts
-      - alert: HighSystemMemoryUsage
-        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+      # Error Rate Monitoring
+      - alert: HighErrorRate
+        expr: rate(dytallix_errors_total[1m]) * 60 > 10
         for: 2m
         labels:
           severity: warning
-          service: system
+          component: application
         annotations:
-          summary: "High system memory usage"
-          description: "System memory usage is {{ $value }}% for more than 2 minutes."
+          summary: "High error rate on {{ $labels.instance }}"
+          description: "Error rate is {{ $value }} errors per minute on {{ $labels.instance }}, exceeding threshold of 10."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-errors"
 
-      - alert: HighSystemCPUUsage
-        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
-        for: 3m
+      # API Response Time
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(dytallix_api_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
         labels:
           severity: warning
-          service: system
+          component: api
         annotations:
-          summary: "High system CPU usage"
-          description: "System CPU usage is {{ $value }}% for more than 3 minutes."
+          summary: "High API latency on {{ $labels.instance }}"
+          description: "95th percentile API latency is {{ $value }}s on {{ $labels.instance }}, exceeding 1s threshold."
+          runbook_url: "https://docs.dytallix.com/runbooks/high-latency"
 
-      - alert: LowDiskSpace
-        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+      # Smart Contract Deployment Failures
+      - alert: SmartContractDeploymentFailures
+        expr: rate(dytallix_contract_deployment_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: smart-contracts
+        annotations:
+          summary: "Smart contract deployment failures on {{ $labels.instance }}"
+          description: "Smart contract deployment failure rate is {{ $value }} per second on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/contract-failures"
+
+  # Post-quantum cryptography monitoring
+  - name: dytallix.post-quantum
+    rules:
+      # Post-Quantum Crypto Performance
+      - alert: SlowPQCOperations
+        expr: histogram_quantile(0.95, rate(dytallix_pqc_operation_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: pqc
+        annotations:
+          summary: "Slow post-quantum cryptography operations on {{ $labels.instance }}"
+          description: "95th percentile PQC operation time is {{ $value }}s on {{ $labels.instance }}, exceeding 5s threshold."
+          runbook_url: "https://docs.dytallix.com/runbooks/slow-pqc"
+
+      # PQC Key Generation Failures
+      - alert: PQCKeyGenerationFailures
+        expr: rate(dytallix_pqc_key_generation_failures_total[5m]) > 0
         for: 1m
         labels:
-          severity: warning
-          service: system
+          severity: critical
+          component: pqc
         annotations:
-          summary: "Low disk space"
-          description: "Disk space is {{ $value }}% full."
+          summary: "Post-quantum key generation failures on {{ $labels.instance }}"
+          description: "PQC key generation failures detected on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/pqc-key-failures"
 
-      - alert: CriticalDiskSpace
-        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
-        for: 30s
+  # Network and consensus monitoring
+  - name: dytallix.network
+    rules:
+      # Network Partition Detection
+      - alert: NetworkPartition
+        expr: dytallix_network_partition_detected == 1
+        for: 1m
         labels:
           severity: critical
-          service: system
+          component: network
         annotations:
-          summary: "Critical disk space"
-          description: "Disk space is {{ $value }}% full - immediate action required."
+          summary: "Network partition detected on {{ $labels.instance }}"
+          description: "A network partition has been detected on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/network-partition"
 
+      # Consensus Failures
+      - alert: ConsensusFailures
+        expr: rate(dytallix_consensus_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: consensus
+        annotations:
+          summary: "Consensus failures detected on {{ $labels.instance }}"
+          description: "Consensus failures are occurring on {{ $labels.instance }}."
+          runbook_url: "https://docs.dytallix.com/runbooks/consensus-failures"
+
+      # Consensus stalled (legacy alert)
+      - alert: DytallixConsensusStalled
+        expr: increase(dytallix_blocks_total[5m]) == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: dytallix
+        annotations:
+          summary: "Dytallix blockchain is not producing blocks"
+          description: "No new blocks have been produced in the last 5 minutes."
+
+  # Infrastructure monitoring
   - name: monitoring_alerts
     rules:
       # Prometheus alerts

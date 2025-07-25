@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dytallix Testnet Health Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .dashboard {
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.05"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.1;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            font-weight: 300;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            position: relative;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 30px;
+            margin: 20px 0 0 0;
+            border-radius: 10px;
+            position: relative;
+        }
+        
+        .status-item {
+            text-align: center;
+        }
+        
+        .status-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            padding: 40px;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .metric-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .metric-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.7;
+        }
+        
+        .metric-value {
+            font-size: 3.5em;
+            font-weight: 700;
+            margin: 15px 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .metric-change {
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .metric-change.positive {
+            color: #28a745;
+        }
+        
+        .metric-change.negative {
+            color: #dc3545;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-left: 10px;
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+        
+        .status-healthy { 
+            background: #28a745;
+        }
+        
+        .status-warning { 
+            background: #ffc107;
+            animation-name: pulse-warning;
+        }
+        
+        @keyframes pulse-warning {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+        
+        .status-critical { 
+            background: #dc3545;
+            animation-name: pulse-critical;
+        }
+        
+        @keyframes pulse-critical {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        
+        .charts-section {
+            padding: 40px;
+            background: #f8f9fa;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .chart-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+        
+        .chart-canvas {
+            height: 300px;
+        }
+        
+        .alerts-section {
+            background: white;
+            padding: 40px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .alerts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .alerts-title {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .alerts-filter {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+        
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .alert-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            border-left: 4px solid #ddd;
+        }
+        
+        .alert-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .alert-item.critical {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        
+        .alert-item.warning {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+        
+        .alert-item.info {
+            border-left-color: #17a2b8;
+            background: #f0f9ff;
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .alert-title {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .alert-time {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .alert-message {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .performance-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 40px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .summary-title {
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .summary-stat {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .summary-stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .summary-stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .refresh-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .refresh-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e9ecef;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .metric-value {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="container">
+            <div class="header">
+                <h1>🚀 Dytallix Testnet Health Dashboard</h1>
+                <p>Real-time Performance & Health Monitoring</p>
+                
+                <div class="status-bar">
+                    <div class="status-item">
+                        <div class="status-label">Last Updated</div>
+                        <div class="status-value" id="lastUpdate">Loading...</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">System Status</div>
+                        <div class="status-value" id="systemStatus">
+                            Monitoring <span class="status-indicator status-healthy"></span>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Uptime</div>
+                        <div class="status-value" id="systemUptime">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon">🚀</div>
+                    <div class="metric-label">Transactions Per Second</div>
+                    <div class="metric-value" id="tpsValue">--</div>
+                    <div class="metric-change" id="tpsChange">--</div>
+                    <span class="status-indicator" id="tpsStatus"></span>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-icon">⚡</div>
+                    <div class="metric-label">Confirmation Latency</div>
+                    <div class="metric-value" id="latencyValue">--</div>
+                    <div class="metric-change" id="latencyChange">--</div>
+                    <span class="status-indicator" id="latencyStatus"></span>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-icon">💾</div>
+                    <div class="metric-label">Memory Usage</div>
+                    <div class="metric-value" id="memoryValue">--</div>
+                    <div class="metric-change" id="memoryChange">--</div>
+                    <span class="status-indicator" id="memoryStatus"></span>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-icon">🖥️</div>
+                    <div class="metric-label">CPU Utilization</div>
+                    <div class="metric-value" id="cpuValue">--</div>
+                    <div class="metric-change" id="cpuChange">--</div>
+                    <span class="status-indicator" id="cpuStatus"></span>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-icon">🌐</div>
+                    <div class="metric-label">Active Peers</div>
+                    <div class="metric-value" id="peersValue">--</div>
+                    <div class="metric-change" id="peersChange">--</div>
+                    <span class="status-indicator" id="peersStatus"></span>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-icon">📊</div>
+                    <div class="metric-label">Success Rate</div>
+                    <div class="metric-value" id="successValue">--</div>
+                    <div class="metric-change" id="successChange">--</div>
+                    <span class="status-indicator" id="successStatus"></span>
+                </div>
+            </div>
+            
+            <div class="charts-section">
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">Transaction Throughput</div>
+                        <canvas id="tpsChart" class="chart-canvas"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <div class="chart-title">Confirmation Latency</div>
+                        <canvas id="latencyChart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+                
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">Resource Utilization</div>
+                        <canvas id="resourceChart" class="chart-canvas"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <div class="chart-title">Network Health</div>
+                        <canvas id="networkChart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alerts-section">
+                <div class="alerts-header">
+                    <h2 class="alerts-title">🚨 System Alerts</h2>
+                    <div class="alerts-filter">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="critical">Critical</button>
+                        <button class="filter-btn" data-filter="warning">Warnings</button>
+                        <button class="filter-btn" data-filter="info">Info</button>
+                    </div>
+                </div>
+                
+                <div id="alertsList">
+                    <!-- Alerts will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="performance-summary">
+                <h2 class="summary-title">📈 Performance Summary</h2>
+                <p>Overall system health and performance metrics for the current audit session</p>
+                
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="totalTransactions">0</div>
+                        <div class="summary-stat-label">Total Transactions</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="averageTps">0</div>
+                        <div class="summary-stat-label">Average TPS</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="peakTps">0</div>
+                        <div class="summary-stat-label">Peak TPS</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="averageLatency">0ms</div>
+                        <div class="summary-stat-label">Avg Latency</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="uptimePercent">99.9%</div>
+                        <div class="summary-stat-label">Uptime</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="totalAlerts">0</div>
+                        <div class="summary-stat-label">Total Alerts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="refresh-indicator" id="refreshIndicator" style="display: none;">
+        <div class="refresh-spinner"></div>
+        <span>Updating data...</span>
+    </div>
+
+    <script>
+        // Dashboard state management
+        class DashboardState {
+            constructor() {
+                this.metrics = [];
+                this.alerts = [];
+                this.isConnected = false;
+                this.lastUpdate = null;
+                this.charts = {};
+                this.updateInterval = null;
+                this.wsConnection = null;
+            }
+            
+            init() {
+                this.initializeCharts();
+                this.startDataUpdates();
+                this.setupEventListeners();
+                this.loadInitialData();
+            }
+            
+            initializeCharts() {
+                // TPS Chart
+                const tpsCtx = document.getElementById('tpsChart').getContext('2d');
+                this.charts.tps = new Chart(tpsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'TPS',
+                            data: [],
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.1)' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(0,0,0,0.1)' }
+                            }
+                        },
+                        animation: { duration: 750 }
+                    }
+                });
+                
+                // Latency Chart
+                const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+                this.charts.latency = new Chart(latencyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Latency (ms)',
+                            data: [],
+                            borderColor: '#764ba2',
+                            backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.1)' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(0,0,0,0.1)' }
+                            }
+                        },
+                        animation: { duration: 750 }
+                    }
+                });
+                
+                // Resource Chart (Doughnut)
+                const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+                this.charts.resource = new Chart(resourceCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Memory Used', 'Memory Free', 'CPU Used', 'CPU Free'],
+                        datasets: [{
+                            data: [45, 55, 35, 65],
+                            backgroundColor: [
+                                '#dc3545',
+                                '#e9ecef',
+                                '#ffc107',
+                                '#e9ecef'
+                            ],
+                            borderWidth: 0,
+                            cutout: '70%'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { padding: 20 }
+                            }
+                        },
+                        animation: { duration: 1000 }
+                    }
+                });
+                
+                // Network Chart (Bar)
+                const networkCtx = document.getElementById('networkChart').getContext('2d');
+                this.charts.network = new Chart(networkCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Active Peers', 'Pending Connections', 'Failed Connections'],
+                        datasets: [{
+                            data: [8, 2, 1],
+                            backgroundColor: [
+                                '#28a745',
+                                '#ffc107',
+                                '#dc3545'
+                            ],
+                            borderRadius: 5,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.1)' }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        },
+                        animation: { duration: 750 }
+                    }
+                });
+            }
+            
+            startDataUpdates() {
+                // Initial load
+                this.updateMetrics();
+                
+                // Set up periodic updates
+                this.updateInterval = setInterval(() => {
+                    this.updateMetrics();
+                }, 10000); // Update every 10 seconds
+            }
+            
+            setupEventListeners() {
+                // Alert filter buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.filterAlerts(e.target.dataset.filter);
+                    });
+                });
+            }
+            
+            loadInitialData() {
+                // Simulate initial data load
+                this.generateSampleData();
+                this.updateUI();
+            }
+            
+            generateSampleData() {
+                // Generate realistic sample data for demonstration
+                const now = new Date();
+                const timeLabels = [];
+                const tpsData = [];
+                const latencyData = [];
+                
+                for (let i = 19; i >= 0; i--) {
+                    const time = new Date(now.getTime() - i * 30000); // 30-second intervals
+                    timeLabels.push(time.toLocaleTimeString());
+                    
+                    // Realistic TPS with some variation
+                    const baseTps = 850;
+                    const variation = Math.sin(i * 0.3) * 100 + Math.random() * 50;
+                    tpsData.push(Math.max(0, Math.floor(baseTps + variation)));
+                    
+                    // Realistic latency with correlation to TPS
+                    const baseLatency = 45;
+                    const tpsImpact = Math.max(0, (tpsData[tpsData.length - 1] - 800) * 0.1);
+                    const latencyVariation = Math.random() * 20;
+                    latencyData.push(Math.floor(baseLatency + tpsImpact + latencyVariation));
+                }
+                
+                this.metrics = {
+                    tps: tpsData[tpsData.length - 1],
+                    latency: latencyData[latencyData.length - 1],
+                    memory: Math.floor(Math.random() * 30) + 40,
+                    cpu: Math.floor(Math.random() * 25) + 25,
+                    peers: Math.floor(Math.random() * 3) + 7,
+                    successRate: (95 + Math.random() * 4).toFixed(1),
+                    uptime: '99.8%',
+                    timeLabels,
+                    tpsHistory: tpsData,
+                    latencyHistory: latencyData
+                };
+                
+                // Generate sample alerts
+                this.alerts = [
+                    {
+                        type: 'info',
+                        title: 'Audit Session Started',
+                        message: 'Performance audit session initiated successfully',
+                        time: new Date(now.getTime() - 300000).toISOString()
+                    },
+                    {
+                        type: 'warning',
+                        title: 'High Memory Usage',
+                        message: 'Memory utilization reached 78% - monitoring closely',
+                        time: new Date(now.getTime() - 180000).toISOString()
+                    },
+                    {
+                        type: 'info',
+                        title: 'Load Test Completed',
+                        message: 'Locust load test phase completed successfully',
+                        time: new Date(now.getTime() - 120000).toISOString()
+                    }
+                ];
+            }
+            
+            updateMetrics() {
+                this.showRefreshIndicator();
+                
+                // Simulate data fetch with slight variations
+                setTimeout(() => {
+                    const currentTps = this.metrics.tps;
+                    const currentLatency = this.metrics.latency;
+                    
+                    // Update metrics with realistic variations
+                    this.metrics.tps += Math.floor((Math.random() - 0.5) * 100);
+                    this.metrics.tps = Math.max(500, Math.min(1200, this.metrics.tps));
+                    
+                    this.metrics.latency += Math.floor((Math.random() - 0.5) * 20);
+                    this.metrics.latency = Math.max(20, Math.min(200, this.metrics.latency));
+                    
+                    this.metrics.memory += Math.floor((Math.random() - 0.5) * 5);
+                    this.metrics.memory = Math.max(30, Math.min(90, this.metrics.memory));
+                    
+                    this.metrics.cpu += Math.floor((Math.random() - 0.5) * 10);
+                    this.metrics.cpu = Math.max(15, Math.min(85, this.metrics.cpu));
+                    
+                    // Update charts
+                    this.updateCharts();
+                    this.updateUI();
+                    this.hideRefreshIndicator();
+                }, 1000);
+            }
+            
+            updateCharts() {
+                const now = new Date();
+                
+                // Update TPS chart
+                this.metrics.timeLabels.push(now.toLocaleTimeString());
+                this.metrics.tpsHistory.push(this.metrics.tps);
+                
+                if (this.metrics.timeLabels.length > 20) {
+                    this.metrics.timeLabels.shift();
+                    this.metrics.tpsHistory.shift();
+                }
+                
+                this.charts.tps.data.labels = this.metrics.timeLabels;
+                this.charts.tps.data.datasets[0].data = this.metrics.tpsHistory;
+                this.charts.tps.update('none');
+                
+                // Update latency chart
+                this.metrics.latencyHistory.push(this.metrics.latency);
+                if (this.metrics.latencyHistory.length > 20) {
+                    this.metrics.latencyHistory.shift();
+                }
+                
+                this.charts.latency.data.labels = this.metrics.timeLabels;
+                this.charts.latency.data.datasets[0].data = this.metrics.latencyHistory;
+                this.charts.latency.update('none');
+                
+                // Update resource chart
+                this.charts.resource.data.datasets[0].data = [
+                    this.metrics.memory,
+                    100 - this.metrics.memory,
+                    this.metrics.cpu,
+                    100 - this.metrics.cpu
+                ];
+                this.charts.resource.update('none');
+                
+                // Update network chart (simulate network data)
+                const networkData = [
+                    this.metrics.peers,
+                    Math.floor(Math.random() * 3),
+                    Math.floor(Math.random() * 2)
+                ];
+                this.charts.network.data.datasets[0].data = networkData;
+                this.charts.network.update('none');
+            }
+            
+            updateUI() {
+                // Update timestamp
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+                
+                // Update metric values
+                document.getElementById('tpsValue').textContent = this.metrics.tps;
+                document.getElementById('latencyValue').textContent = this.metrics.latency + 'ms';
+                document.getElementById('memoryValue').textContent = this.metrics.memory + '%';
+                document.getElementById('cpuValue').textContent = this.metrics.cpu + '%';
+                document.getElementById('peersValue').textContent = this.metrics.peers;
+                document.getElementById('successValue').textContent = this.metrics.successRate + '%';
+                
+                // Update uptime
+                document.getElementById('systemUptime').textContent = this.metrics.uptime;
+                
+                // Update status indicators
+                this.updateStatusIndicators();
+                
+                // Update summary stats
+                this.updateSummaryStats();
+                
+                // Update alerts
+                this.updateAlerts();
+            }
+            
+            updateStatusIndicators() {
+                const indicators = {
+                    tps: { value: this.metrics.tps, thresholds: { warning: 600, critical: 400 } },
+                    latency: { value: this.metrics.latency, thresholds: { warning: 100, critical: 150 } },
+                    memory: { value: this.metrics.memory, thresholds: { warning: 70, critical: 85 } },
+                    cpu: { value: this.metrics.cpu, thresholds: { warning: 70, critical: 85 } },
+                    peers: { value: this.metrics.peers, thresholds: { warning: 5, critical: 3 } },
+                    success: { value: parseFloat(this.metrics.successRate), thresholds: { warning: 95, critical: 90 } }
+                };
+                
+                Object.entries(indicators).forEach(([key, config]) => {
+                    const element = document.getElementById(key + 'Status');
+                    let status = 'healthy';
+                    
+                    if (key === 'peers' || key === 'success') {
+                        // For peers and success rate, lower values are worse
+                        if (config.value <= config.thresholds.critical) {
+                            status = 'critical';
+                        } else if (config.value <= config.thresholds.warning) {
+                            status = 'warning';
+                        }
+                    } else {
+                        // For other metrics, higher values are worse
+                        if (config.value >= config.thresholds.critical) {
+                            status = 'critical';
+                        } else if (config.value >= config.thresholds.warning) {
+                            status = 'warning';
+                        }
+                    }
+                    
+                    element.className = `status-indicator status-${status}`;
+                });
+            }
+            
+            updateSummaryStats() {
+                // Calculate summary statistics
+                const totalTx = this.metrics.tpsHistory.reduce((sum, tps) => sum + tps, 0) * 30; // 30-second intervals
+                const avgTps = this.metrics.tpsHistory.reduce((sum, tps) => sum + tps, 0) / this.metrics.tpsHistory.length;
+                const peakTps = Math.max(...this.metrics.tpsHistory);
+                const avgLatency = this.metrics.latencyHistory.reduce((sum, lat) => sum + lat, 0) / this.metrics.latencyHistory.length;
+                
+                document.getElementById('totalTransactions').textContent = totalTx.toLocaleString();
+                document.getElementById('averageTps').textContent = Math.floor(avgTps);
+                document.getElementById('peakTps').textContent = peakTps;
+                document.getElementById('averageLatency').textContent = Math.floor(avgLatency) + 'ms';
+                document.getElementById('totalAlerts').textContent = this.alerts.length;
+            }
+            
+            updateAlerts() {
+                const alertsList = document.getElementById('alertsList');
+                
+                if (this.alerts.length === 0) {
+                    alertsList.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No alerts to display</p>';
+                    return;
+                }
+                
+                const alertsHtml = this.alerts.map(alert => `
+                    <div class="alert-item ${alert.type}" data-type="${alert.type}">
+                        <div class="alert-header">
+                            <div class="alert-title">${alert.title}</div>
+                            <div class="alert-time">${new Date(alert.time).toLocaleString()}</div>
+                        </div>
+                        <div class="alert-message">${alert.message}</div>
+                    </div>
+                `).join('');
+                
+                alertsList.innerHTML = alertsHtml;
+            }
+            
+            filterAlerts(filter) {
+                const alerts = document.querySelectorAll('.alert-item');
+                alerts.forEach(alert => {
+                    if (filter === 'all' || alert.dataset.type === filter) {
+                        alert.style.display = 'block';
+                    } else {
+                        alert.style.display = 'none';
+                    }
+                });
+            }
+            
+            showRefreshIndicator() {
+                document.getElementById('refreshIndicator').style.display = 'flex';
+            }
+            
+            hideRefreshIndicator() {
+                document.getElementById('refreshIndicator').style.display = 'none';
+            }
+        }
+        
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const dashboard = new DashboardState();
+            dashboard.init();
+            
+            // Global error handling
+            window.addEventListener('error', (event) => {
+                console.error('Dashboard error:', event.error);
+            });
+        });
+    </script>
+</body>
+</html>
