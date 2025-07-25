@@ -249,6 +249,18 @@ async function main() {
     fs.writeFileSync(path.join(abiDir, 'WrappedTokenFactory.json'), factoryAbi);
     
     console.log("   ✅ Contract ABIs saved");
+    
+    // Update integration files automatically
+    console.log("   🔄 Updating integration files...");
+    try {
+      const { updateIntegrationFiles } = require('./update-integration-files.js');
+      await updateIntegrationFiles(deploymentRecord);
+      console.log("   ✅ Integration files updated automatically");
+    } catch (error) {
+      console.log("   ⚠️  Failed to update integration files automatically:", error.message);
+      console.log("   💡 Run: node scripts/update-integration-files.js " + config.network);
+    }
+    
     console.log("");
 
     // Step 7: Display deployment summary
