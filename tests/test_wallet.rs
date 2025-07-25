@@ -1,7 +1,4 @@
-use std::path::Path;
-use std::fs;
-
-// Simple test to verify wallet address derivation works
+// Wallet testing utilities for Dytallix cryptocurrency
 mod pqc_crypto {
     pub enum PQCAlgorithm {
         Dilithium,
@@ -18,7 +15,9 @@ mod pqc_crypto {
         pub signature: Vec<u8>,
     }
 
+    #[allow(dead_code)]
     pub struct PQCKeyManager;
+    #[allow(dead_code)]
     pub struct DummyPQC;
 
     impl DummyPQC {
@@ -42,10 +41,9 @@ mod pqc_crypto {
 }
 
 use pqc_crypto::PQCAlgorithm;
-use pqc_crypto::{PQCKeyPair, Signature, PQCKeyManager, DummyPQC};
+use pqc_crypto::{PQCKeyPair, Signature, DummyPQC};
 use blake3;
 use sha2::{Sha256, Digest};
-use std::fmt;
 
 pub struct Wallet;
 
@@ -196,32 +194,5 @@ mod tests {
     }
 }
 
-fn main() {
-    // Test the wallet address derivation
-    println!("Testing Dytallix Wallet Address Derivation");
-    
-    // Test with sample public keys
-    let sample_pubkeys = vec![
-        b"sample_public_key_1".to_vec(),
-        b"sample_public_key_2".to_vec(),
-        b"a_longer_public_key_for_testing_purposes".to_vec(),
-    ];
-    
-    for (i, pubkey) in sample_pubkeys.iter().enumerate() {
-        let address = Wallet::get_address(pubkey);
-        println!("Sample public key {}: {:?}", i + 1, pubkey);
-        println!("Generated address: {}", address);
-        println!("Address is valid: {}", Wallet::validate_address(&address));
-        println!();
-    }
-    
-    // Test key generation
-    println!("Testing key generation:");
-    let keypair = Wallet::generate_keypair(PQCAlgorithm::Dilithium);
-    let address = Wallet::get_address(&keypair.public_key);
-    println!("Generated keypair public key: {:?}", keypair.public_key);
-    println!("Address from generated key: {}", address);
-    println!("Address is valid: {}", Wallet::validate_address(&address));
-    
-    println!("\nAll tests passed! Address derivation is working correctly.");
-}
+// Main function removed - this is now a test file
+// The functionality is tested through the unit tests above
