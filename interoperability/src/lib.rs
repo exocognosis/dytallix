@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+// Import PQC bridge functionality
+use dytallix_pqc::{BridgePQCManager, BridgeSignature, CrossChainPayload, MultiSigValidationResult};
+
 
 // ============================================================================
 // Core Types and Structures
@@ -98,6 +101,13 @@ pub struct PQCSignature {
     pub timestamp: u64,
 }
 
+/// Enhanced PQC signature that leverages the bridge PQC functionality
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnhancedPQCSignature {
+    pub bridge_signature: BridgeSignature,
+    pub legacy_signature: PQCSignature, // For backward compatibility
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BridgeValidator {
     pub id: String,
@@ -137,10 +147,13 @@ pub struct DytallixBridge {
     pending_transactions: HashMap<String, BridgeTx>,
     is_halted: bool,
     min_validator_signatures: usize,
+    pqc_manager: BridgePQCManager,
 }
 
 impl DytallixBridge {
     pub fn new() -> Self {
+        let mut pqc_manager = BridgePQCManager::new().expect("Failed to initialize BridgePQCManager");
+        
         let mut bridge = Self {
             validators: HashMap::new(),
             supported_chains: vec![
@@ -152,37 +165,72 @@ impl DytallixBridge {
             pending_transactions: HashMap::new(),
             is_halted: false,
             min_validator_signatures: 3, // 3-of-5 multi-sig minimum
+            pqc_manager,
         };
         
-        // Initialize default validators (in production, these would be loaded from chain state)
-        bridge.add_validator(BridgeValidator {
-            id: "validator_1".to_string(),
-            public_key: vec![0u8; 64], // Placeholder for PQC public key
-            algorithm: "dilithium".to_string(),
-            stake: 1000000,
-            reputation: 1.0,
-            is_active: true,
-        });
-        
-        bridge.add_validator(BridgeValidator {
-            id: "validator_2".to_string(),
-            public_key: vec![1u8; 64],
-            algorithm: "falcon".to_string(),
-            stake: 950000,
-            reputation: 0.98,
-            is_active: true,
-        });
-        
-        bridge.add_validator(BridgeValidator {
-            id: "validator_3".to_string(),
-            public_key: vec![2u8; 64],
-            algorithm: "sphincs+".to_string(),
-            stake: 800000,
-            reputation: 0.95,
-            is_active: true,
-        });
+        // Initialize default validators with PQC keys
+        bridge.initialize_default_validators();
         
         bridge
+    }
+    
+    /// Initialize default validators with proper PQC key generation
+    fn initialize_default_validators(&mut self) {
+        use dytallix_pqc::SignatureAlgorithm;
+        
+        // Generate and add validator 1 with Dilithium
+        if let Ok(keypair) = self.pqc_manager.generate_validator_keypair(&SignatureAlgorithm::Dilithium5) {
+            self.pqc_manager.add_validator(
+                "validator_1".to_string(),
+                keypair.public_key.clone(),
+                SignatureAlgorithm::Dilithium5,
+            );
+            
+            self.add_validator(BridgeValidator {
+                id: "validator_1".to_string(),
+                public_key: keypair.public_key,
+                algorithm: "dilithium".to_string(),
+                stake: 1000000,
+                reputation: 1.0,
+                is_active: true,
+            });
+        }
+        
+        // Generate and add validator 2 with Falcon
+        if let Ok(keypair) = self.pqc_manager.generate_validator_keypair(&SignatureAlgorithm::Falcon1024) {
+            self.pqc_manager.add_validator(
+                "validator_2".to_string(),
+                keypair.public_key.clone(),
+                SignatureAlgorithm::Falcon1024,
+            );
+            
+            self.add_validator(BridgeValidator {
+                id: "validator_2".to_string(),
+                public_key: keypair.public_key,
+                algorithm: "falcon".to_string(),
+                stake: 950000,
+                reputation: 0.98,
+                is_active: true,
+            });
+        }
+        
+        // Generate and add validator 3 with SPHINCS+
+        if let Ok(keypair) = self.pqc_manager.generate_validator_keypair(&SignatureAlgorithm::SphincsSha256128s) {
+            self.pqc_manager.add_validator(
+                "validator_3".to_string(),
+                keypair.public_key.clone(),
+                SignatureAlgorithm::SphincsSha256128s,
+            );
+            
+            self.add_validator(BridgeValidator {
+                id: "validator_3".to_string(),
+                public_key: keypair.public_key,
+                algorithm: "sphincs+".to_string(),
+                stake: 800000,
+                reputation: 0.95,
+                is_active: true,
+            });
+        }
     }
     
     pub fn add_validator(&mut self, validator: BridgeValidator) {
@@ -206,7 +254,12 @@ impl DytallixBridge {
             ));
         }
         
-        // Verify each signature
+        // Convert bridge transaction to CrossChainPayload for PQC verification
+        let payload = self.bridge_tx_to_payload(tx)?;
+        
+        // Collect enhanced signatures for verification
+        let mut bridge_signatures = Vec::new();
+        
         for sig in &tx.validator_signatures {
             if let Some(validator) = self.validators.get(&sig.validator_id) {
                 if !validator.is_active {
@@ -215,13 +268,9 @@ impl DytallixBridge {
                     ));
                 }
                 
-                // In production, this would perform actual PQC signature verification
-                // For now, we simulate successful verification
-                if sig.signature.is_empty() {
-                    return Err(BridgeError::PQCVerificationFailed(
-                        format!("Empty signature from validator {}", sig.validator_id)
-                    ));
-                }
+                // Convert legacy signature to bridge signature format
+                let bridge_sig = self.convert_legacy_to_bridge_signature(sig, &payload)?;
+                bridge_signatures.push(bridge_sig);
             } else {
                 return Err(BridgeError::ValidatorSignatureFailed(
                     format!("Unknown validator: {}", sig.validator_id)
@@ -229,7 +278,59 @@ impl DytallixBridge {
             }
         }
         
-        Ok(true)
+        // Use PQC manager for multi-signature verification
+        match self.pqc_manager.verify_multi_signature(&bridge_signatures, &payload) {
+            Ok(result) => Ok(result.consensus_reached),
+            Err(e) => Err(BridgeError::PQCVerificationFailed(format!("PQC verification failed: {:?}", e))),
+        }
+    }
+    
+    /// Convert a bridge transaction to a cross-chain payload for PQC verification
+    fn bridge_tx_to_payload(&self, tx: &BridgeTx) -> Result<CrossChainPayload, BridgeError> {
+        let mut metadata = HashMap::new();
+        metadata.insert("bridge_tx_id".to_string(), tx.id.0.clone());
+        metadata.insert("timestamp".to_string(), tx.timestamp.to_string());
+        
+        Ok(CrossChainPayload::GenericBridgePayload {
+            asset_id: tx.asset.id.clone(),
+            amount: tx.asset.amount,
+            source_chain: tx.source_chain.clone(),
+            dest_chain: tx.dest_chain.clone(),
+            source_address: tx.source_address.clone(),
+            dest_address: tx.dest_address.clone(),
+            metadata,
+        })
+    }
+    
+    /// Convert legacy PQC signature to bridge signature format
+    fn convert_legacy_to_bridge_signature(&self, legacy_sig: &PQCSignature, payload: &CrossChainPayload) -> Result<BridgeSignature, BridgeError> {
+        use dytallix_pqc::{Signature, SignatureAlgorithm};
+        
+        // Convert algorithm string to enum
+        let algorithm = match legacy_sig.algorithm.as_str() {
+            "dilithium" => SignatureAlgorithm::Dilithium5,
+            "falcon" => SignatureAlgorithm::Falcon1024,
+            "sphincs+" => SignatureAlgorithm::SphincsSha256128s,
+            _ => return Err(BridgeError::PQCVerificationFailed(format!("Unsupported algorithm: {}", legacy_sig.algorithm))),
+        };
+        
+        let signature = Signature {
+            data: legacy_sig.signature.clone(),
+            algorithm,
+        };
+        
+        // Calculate payload hash for verification
+        let payload_hash = serde_json::to_vec(payload)
+            .map_err(|e| BridgeError::SerializationError(format!("Payload serialization error: {}", e)))?;
+        let hash = blake3::hash(&payload_hash);
+        
+        Ok(BridgeSignature {
+            signature,
+            chain_id: "dytallix".to_string(), // Default chain for bridge operations
+            payload_hash: hash.as_bytes().to_vec(),
+            timestamp: legacy_sig.timestamp,
+            validator_id: legacy_sig.validator_id.clone(),
+        })
     }
     
     // Bridge asset management implementation
@@ -254,21 +355,40 @@ impl DytallixBridge {
     
     fn collect_validator_signatures(&self, bridge_tx: &BridgeTx) -> Result<Vec<PQCSignature>, BridgeError> {
         let mut signatures = Vec::new();
-        let tx_hash = self.calculate_bridge_tx_hash(bridge_tx)?;
         
-        // Collect signatures from active validators
+        // Convert bridge transaction to payload for signing
+        let payload = self.bridge_tx_to_payload(bridge_tx)?;
+        
+        // Collect signatures from active validators using PQC
         for (validator_id, validator) in &self.validators {
             if !validator.is_active {
                 continue;
             }
             
-            // In production, this would be an async network call to validator nodes
-            let signature = self.request_validator_signature(validator_id, &tx_hash)?;
-            signatures.push(signature);
-            
-            // Once we have enough signatures, we can proceed
-            if signatures.len() >= self.min_validator_signatures {
-                break;
+            // Generate PQC signature using the bridge manager
+            match self.pqc_manager.sign_bridge_payload(&payload, &bridge_tx.dest_chain, validator_id) {
+                Ok(bridge_signature) => {
+                    // Convert bridge signature back to legacy format for compatibility
+                    let legacy_signature = PQCSignature {
+                        validator_id: bridge_signature.validator_id.clone(),
+                        algorithm: format!("{:?}", bridge_signature.signature.algorithm).to_lowercase(),
+                        signature: bridge_signature.signature.data.clone(),
+                        public_key: self.pqc_manager.get_validator_public_key(validator_id)
+                            .unwrap_or(&vec![]).clone(),
+                        timestamp: bridge_signature.timestamp,
+                    };
+                    
+                    signatures.push(legacy_signature);
+                    
+                    // Once we have enough signatures, we can proceed
+                    if signatures.len() >= self.min_validator_signatures {
+                        break;
+                    }
+                }
+                Err(e) => {
+                    println!("Warning: Failed to get signature from validator {}: {:?}", validator_id, e);
+                    continue;
+                }
             }
         }
         
@@ -677,15 +797,19 @@ pub struct DytallixIBC {
     packet_commitments: HashMap<String, Vec<u8>>,
     packet_receipts: HashMap<String, bool>,
     next_sequence: HashMap<String, u64>,
+    pqc_manager: BridgePQCManager,
 }
 
 impl DytallixIBC {
     pub fn new() -> Self {
+        let pqc_manager = BridgePQCManager::new().expect("Failed to initialize IBC PQC manager");
+        
         Self {
             channels: HashMap::new(),
             packet_commitments: HashMap::new(),
             packet_receipts: HashMap::new(),
             next_sequence: HashMap::new(),
+            pqc_manager,
         }
     }
     
@@ -695,17 +819,61 @@ impl DytallixIBC {
     
     fn verify_packet_pqc_signature(&self, packet: &IBCPacket) -> Result<bool, IBCError> {
         if let Some(signature) = &packet.pqc_signature {
-            // Implement actual PQC signature verification
-            match signature.algorithm.as_str() {
-                "dilithium5" => self.verify_dilithium_signature(packet, signature),
-                "falcon1024" => self.verify_falcon_signature(packet, signature),
-                "sphincs+" => self.verify_sphincs_signature(packet, signature),
-                _ => Err(IBCError::PQCVerificationFailed(format!("Unsupported algorithm: {}", signature.algorithm))),
+            // Convert IBC packet to cross-chain payload
+            let payload = CrossChainPayload::CosmosIBCPacket {
+                sequence: packet.sequence,
+                source_port: packet.source_port.clone(),
+                source_channel: packet.source_channel.clone(),
+                dest_port: packet.dest_port.clone(),
+                dest_channel: packet.dest_channel.clone(),
+                data: packet.data.clone(),
+                timeout_height: packet.timeout_height,
+                timeout_timestamp: packet.timeout_timestamp,
+            };
+            
+            // Convert legacy signature to bridge signature format
+            let bridge_signature = self.convert_pqc_signature_to_bridge(signature, &payload)?;
+            
+            // Verify using the PQC manager
+            match self.pqc_manager.verify_bridge_signature(&bridge_signature, &payload) {
+                Ok(is_valid) => Ok(is_valid),
+                Err(e) => Err(IBCError::PQCVerificationFailed(format!("PQC verification failed: {:?}", e))),
             }
         } else {
             // Allow packets without signatures for backwards compatibility
             Ok(true)
         }
+    }
+    
+    /// Convert legacy PQC signature to bridge signature format for IBC
+    fn convert_pqc_signature_to_bridge(&self, pqc_sig: &PQCSignature, payload: &CrossChainPayload) -> Result<BridgeSignature, IBCError> {
+        use dytallix_pqc::{Signature, SignatureAlgorithm};
+        
+        // Convert algorithm string to enum
+        let algorithm = match pqc_sig.algorithm.as_str() {
+            "dilithium5" => SignatureAlgorithm::Dilithium5,
+            "falcon1024" => SignatureAlgorithm::Falcon1024,
+            "sphincs+" => SignatureAlgorithm::SphincsSha256128s,
+            _ => return Err(IBCError::PQCVerificationFailed(format!("Unsupported algorithm: {}", pqc_sig.algorithm))),
+        };
+        
+        let signature = Signature {
+            data: pqc_sig.signature.clone(),
+            algorithm,
+        };
+        
+        // Calculate payload hash
+        let payload_hash = serde_json::to_vec(payload)
+            .map_err(|e| IBCError::UnknownError(format!("Payload serialization error: {}", e)))?;
+        let hash = blake3::hash(&payload_hash);
+        
+        Ok(BridgeSignature {
+            signature,
+            chain_id: "cosmos".to_string(), // IBC packets use cosmos chain format
+            payload_hash: hash.as_bytes().to_vec(),
+            timestamp: pqc_sig.timestamp,
+            validator_id: pqc_sig.validator_id.clone(),
+        })
     }
     
     // PQC signature verification implementations

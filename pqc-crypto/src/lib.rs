@@ -600,6 +600,22 @@ impl CryptoAgilityManager {
     }
 }
 
+// Bridge-specific PQC functionality
+pub mod bridge;
+
+// Performance benchmarking module
+pub mod performance;
+
+pub use bridge::{
+    BridgePQCManager, BridgeSignature, CrossChainPayload, MultiSigValidationResult,
+    ChainConfig, SignatureFormat, HashAlgorithm, AddressFormat,
+};
+
+pub use performance::{
+    PQCBenchmarkResults, GasCostEstimation, PerformanceAnalysis, PQCPerformanceBenchmark,
+    run_pqc_performance_benchmarks,
+};
+
 #[cfg(test)]
 mod tests {
     use super::*;
