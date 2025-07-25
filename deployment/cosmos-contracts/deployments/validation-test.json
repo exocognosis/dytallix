@@ -1,0 +1,40 @@
+{
+  "network": "osmosis-testnet",
+  "rpc": "https://osmosis-testnet-rpc.polkachu.com",
+  "chainId": "osmo-test-5",
+  "validatorThreshold": 3,
+  "bridgeFeeBps": 10,
+  "supportedAssets": [
+    "uosmo"
+  ],
+  "deployment": {
+    "success": true,
+    "codeId": 42,
+    "contractAddress": "osmo1mock_contract_address_for_testing_purposes",
+    "transactionHash": "mock_tx_hash_for_testing",
+    "gasUsed": 245000,
+    "timestamp": "2025-07-25T01:19:25.837Z"
+  },
+  "features": {
+    "executeMessages": [
+      "LockAsset",
+      "UnlockAsset",
+      "AddSupportedAsset",
+      "RemoveSupportedAsset",
+      "AddValidator",
+      "RemoveValidator",
+      "UpdateConfig",
+      "Pause",
+      "Unpause"
+    ],
+    "queryMessages": [
+      "Config",
+      "SupportedAssets",
+      "LockedBalance",
+      "IsTransactionProcessed",
+      "Validators"
+    ]
+  },
+  "timestamp": "2025-07-25T01:19:25.837Z",
+  "status": "validation_complete"
+}
