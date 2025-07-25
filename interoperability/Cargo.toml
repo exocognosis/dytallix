@@ -7,6 +7,9 @@ description = "Cross-chain bridge and IBC protocol implementation for Dytallix"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+# Local workspace dependencies
+dytallix-pqc = { path = "../pqc-crypto" }
+
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["full"] }

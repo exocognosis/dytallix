@@ -18,6 +18,8 @@ rand = "0.8"
 zeroize = { version = "1.8", features = ["derive"] }
 sha3 = "0.10"
 hex = "0.4"
+blake3 = "1.5"
+
 # Time handling for nonce/timestamp
 chrono = { version = "0.4", features = ["serde"] }
 
@@ -42,9 +44,20 @@ tokio-test = "0.4"
 criterion = "0.5"
 tempfile = "3.8"
 
+# CLI dependencies
+clap = { version = "4.4", features = ["derive"] }
+env_logger = "0.10"
+
+# For interoperability testing
+dytallix-interoperability = { path = "../interoperability" }
+
 [features]
 default = ["dilithium", "kyber"]
 dilithium = []
 kyber = []
 falcon = []
 sphincs = []
+
+[[bin]]
+name = "pqc-bridge-cli"
+path = "src/bin/pqc_bridge_cli.rs"
