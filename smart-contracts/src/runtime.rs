@@ -116,6 +116,9 @@ pub struct ContractRuntime {
     execution_context: Arc<Mutex<Option<ExecutionContext>>>,
     state_tracker: Arc<Mutex<StateTracker>>,
     event_storage: Arc<Mutex<Vec<ContractEvent>>>,
+    // Performance tracking
+    performance_metrics: Arc<Mutex<Vec<PerformanceMetrics>>>,
+    metrics_enabled: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -141,6 +144,24 @@ struct GasMeter {
     gas_limit: Gas,
     gas_price: u64,
     operations_count: u64,
+    // Performance tracking
+    gas_used_by_operation: HashMap<String, Gas>,
+    execution_times: HashMap<String, Vec<u64>>, // microseconds
+    total_executions: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PerformanceMetrics {
+    pub contract_address: Address,
+    pub operation_type: String,
+    pub gas_used: Gas,
+    pub execution_time_us: u64,
+    pub memory_usage: u32,
+    pub storage_reads: u32,
+    pub storage_writes: u32,
+    pub timestamp: u64,
+    pub call_depth: u32,
+    pub success: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -189,11 +210,30 @@ impl ContractRuntime {
             execution_context: Arc::new(Mutex::new(None)),
             state_tracker: Arc::new(Mutex::new(StateTracker::new())),
             event_storage: Arc::new(Mutex::new(Vec::new())),
+            performance_metrics: Arc::new(Mutex::new(Vec::new())),
+            metrics_enabled: true,
         })
     }
     
     pub fn set_ai_analyzer(&mut self, analyzer: Arc<dyn ContractAIAnalyzer + Send + Sync>) {
         self.ai_analyzer = Some(analyzer);
+    }
+    
+    pub fn enable_performance_metrics(&mut self, enabled: bool) {
+        self.metrics_enabled = enabled;
+    }
+    
+    pub fn get_performance_metrics(&self) -> Vec<PerformanceMetrics> {
+        self.performance_metrics.lock().unwrap().clone()
+    }
+    
+    pub fn export_performance_metrics_json(&self) -> Result<String, serde_json::Error> {
+        let metrics = self.performance_metrics.lock().unwrap();
+        serde_json::to_string_pretty(&*metrics)
+    }
+    
+    pub fn clear_performance_metrics(&self) {
+        self.performance_metrics.lock().unwrap().clear();
     }
     
     pub async fn deploy_contract(
@@ -932,6 +972,9 @@ impl GasMeter {
             gas_limit: 0,
             gas_price: 1,
             operations_count: 0,
+            gas_used_by_operation: HashMap::new(),
+            execution_times: HashMap::new(),
+            total_executions: 0,
         }
     }
     
@@ -939,6 +982,32 @@ impl GasMeter {
         self.current_gas = gas_limit;
         self.gas_limit = gas_limit;
         self.operations_count = 0;
+        self.total_executions += 1;
+    }
+    
+    fn track_operation_gas(&mut self, operation: &str, gas_used: Gas) {
+        *self.gas_used_by_operation.entry(operation.to_string()).or_insert(0) += gas_used;
+    }
+    
+    fn track_operation_time(&mut self, operation: &str, execution_time_us: u64) {
+        self.execution_times.entry(operation.to_string()).or_insert_with(Vec::new).push(execution_time_us);
+    }
+    
+    fn get_operation_stats(&self) -> HashMap<String, (Gas, f64, u64)> {
+        let mut stats = HashMap::new();
+        
+        for (operation, gas_total) in &self.gas_used_by_operation {
+            let avg_time = if let Some(times) = self.execution_times.get(operation) {
+                if !times.is_empty() {
+                    times.iter().sum::<u64>() as f64 / times.len() as f64
+                } else { 0.0 }
+            } else { 0.0 };
+            
+            let executions = self.execution_times.get(operation).map(|v| v.len() as u64).unwrap_or(0);
+            stats.insert(operation.clone(), (*gas_total, avg_time, executions));
+        }
+        
+        stats
     }
     
     fn consume_gas(&mut self, amount: Gas) -> Result<(), ContractExecutionError> {
