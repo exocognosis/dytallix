@@ -8,7 +8,9 @@
     "test": "cargo test",
     "schema": "cargo run --bin schema",
     "deploy:osmo-testnet": "node scripts/deploy-osmosis-testnet.js",
-    "deploy:atom-testnet": "node scripts/deploy-cosmos-hub-testnet.js"
+    "deploy:atom-testnet": "node scripts/deploy-cosmos-hub-testnet.js",
+    "test:interface": "node test-deployment-interface.js",
+    "verify:ready": "./verify-deployment-ready.sh"
   },
   "devDependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.31.0",

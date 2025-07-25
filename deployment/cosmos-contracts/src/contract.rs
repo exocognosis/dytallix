@@ -83,7 +83,7 @@ pub fn execute(
 
 fn execute_lock_asset(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     asset: String,
     amount: Uint128,

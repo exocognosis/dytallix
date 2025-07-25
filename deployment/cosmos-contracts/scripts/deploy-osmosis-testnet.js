@@ -9,7 +9,7 @@ async function main() {
 
   // Configuration
   const config = {
-    rpcEndpoint: process.env.OSMOSIS_TESTNET_RPC || "https://rpc.osmotest5.osmosis.zone",
+    rpcEndpoint: process.env.OSMOSIS_TESTNET_RPC || "https://osmosis-testnet-rpc.polkachu.com",
     prefix: "osmo",
     denom: "uosmo",
     gasPrice: GasPrice.fromString("0.025uosmo"),
@@ -43,7 +43,7 @@ async function main() {
   console.log("Account balance:", balance);
 
   // Read the compiled contract
-  const contractWasm = fs.readFileSync("../target/wasm32-unknown-unknown/release/dytallix_cosmos_bridge.wasm");
+  const contractWasm = fs.readFileSync("./target/wasm32-unknown-unknown/release/dytallix_cosmos_bridge.wasm");
   
   console.log("📦 Uploading contract...");
   
