@@ -16,9 +16,15 @@ use std::sync::Arc;
 
 pub mod bridge_contract;
 pub mod wrapped_token;
+pub mod deployed_addresses;
 
 pub use bridge_contract::{EthereumBridgeContract, BridgeContractCall, BridgeContractEvent, EthereumClient, EthereumWsClient};
 pub use wrapped_token::{WrappedTokenContract, WrappedTokenRegistry, WrappedTokenDeploymentConfig};
+pub use deployed_addresses::{
+    NetworkAddresses, SEPOLIA_ADDRESSES, MAINNET_ADDRESSES,
+    get_network_addresses, get_all_networks, is_network_supported,
+    get_network_name, is_network_deployed, get_deployment_info, DeploymentInfo
+};
 
 // Ethereum-specific types
 #[derive(Debug, Clone, Serialize, Deserialize)]

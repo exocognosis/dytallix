@@ -7,6 +7,10 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:sepolia": "hardhat run scripts/deploy-sepolia.js --network sepolia",
+    "deploy:sepolia:complete": "hardhat run scripts/deploy-bridge-complete.js --network sepolia",
+    "verify:deployment": "hardhat run scripts/verify-deployment.js --network sepolia",
+    "configure:bridge": "hardhat run scripts/configure-bridge.js --network sepolia",
+    "update:integration": "node scripts/update-integration-files.js",
     "deploy:mainnet": "hardhat run scripts/deploy-mainnet.js --network mainnet",
     "verify:sepolia": "hardhat verify --network sepolia",
     "node": "hardhat node"
