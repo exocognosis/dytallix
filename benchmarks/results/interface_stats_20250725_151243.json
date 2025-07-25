@@ -1,0 +1,49 @@
+{"timestamp": "2025-07-25T15:13:38+00:00", "interface_stats": [
+{
+  "interface": "eth0",
+  "status": "up",
+  "speed_mbps": "50000",
+  "mtu": 1500,
+  "rx_bytes": 186522337,
+  "tx_bytes": 30790959,
+  "rx_packets": 145384,
+  "tx_packets": 30691,
+  "rx_errors": 0,
+  "tx_errors": 0,
+  "rx_dropped": 0,
+  "tx_dropped": 0,
+  "timestamp": "2025-07-25T15:13:38+00:00"
+}
+,
+{
+  "interface": "lo",
+  "status": "unknown",
+  "speed_mbps": "unknown",
+  "mtu": 65536,
+  "rx_bytes": 173179824,
+  "tx_bytes": 173179824,
+  "rx_packets": 91907,
+  "tx_packets": 91907,
+  "rx_errors": 0,
+  "tx_errors": 0,
+  "rx_dropped": 0,
+  "tx_dropped": 0,
+  "timestamp": "2025-07-25T15:13:38+00:00"
+}
+,
+{
+  "interface": "docker0",
+  "status": "down",
+  "speed_mbps": "-1",
+  "mtu": 1500,
+  "rx_bytes": 0,
+  "tx_bytes": 0,
+  "rx_packets": 0,
+  "tx_packets": 0,
+  "rx_errors": 0,
+  "tx_errors": 0,
+  "rx_dropped": 0,
+  "tx_dropped": 2,
+  "timestamp": "2025-07-25T15:13:38+00:00"
+}
+]}

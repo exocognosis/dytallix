@@ -1,0 +1,2 @@
+{"timestamp": "2025-07-25T15:13:38+00:00", "concurrent_tests": [
+{"service": "bridge_api", "endpoint": "http://localhost:8080", "concurrency_results": [
