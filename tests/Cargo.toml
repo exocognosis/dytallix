@@ -61,3 +61,10 @@ harness = false
 default = ["stress_testing"]
 stress_testing = []
 detailed_metrics = []
+security-audit = []
+
+# Security audit test runner binary
+[[bin]]
+name = "security_audit_runner"
+path = "src/bin/security_audit_runner.rs"
+required-features = ["security-audit"]

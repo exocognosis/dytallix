@@ -2,7 +2,8 @@
 //!
 //! This library provides common utilities and entry points for running
 //! the various test categories in the Dytallix test suite, including
-//! comprehensive cross-chain bridge testing with AI-enhanced test generation.
+//! comprehensive cross-chain bridge testing with AI-enhanced test generation
+//! and comprehensive security audit capabilities.
 
 use std::time::Duration;
 use tokio::time::Instant;
@@ -11,6 +12,9 @@ use tokio::time::Instant;
 pub mod ai_test_generator;
 pub mod bridge_orchestrator;
 pub mod monitoring_system;
+
+// Import security audit modules
+pub mod security;
 
 // Re-export key components
 pub use ai_test_generator::{
