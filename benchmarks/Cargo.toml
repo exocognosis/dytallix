@@ -1,0 +1,19 @@
+[package]
+name = "dytallix-benchmarks"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+md5 = "0.7"
+
+[[bin]]
+name = "osmosis_wasm_benchmark"
+path = "osmosis_wasm_benchmarks.rs"
+
+[[bin]]
+name = "sepolia_evm_benchmark"
+path = "sepolia_evm_benchmarks.rs"

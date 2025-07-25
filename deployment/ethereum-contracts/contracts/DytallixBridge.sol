@@ -71,6 +71,22 @@ contract DytallixBridge is
     event ValidatorAdded(address indexed validator);
     event ValidatorRemoved(address indexed validator);
     event BridgeConfigUpdated(uint256 threshold, uint256 feeBps);
+    
+    // Performance metrics events
+    event PerformanceMetric(
+        string indexed metricType,
+        uint256 gasUsed,
+        uint256 executionTime,
+        address indexed caller,
+        bytes32 indexed transactionHash
+    );
+    
+    event GasUsageReport(
+        string indexed operation,
+        uint256 gasStart,
+        uint256 gasEnd,
+        uint256 gasUsed
+    );
 
     modifier onlyValidator() {
         require(hasRole(VALIDATOR_ROLE, msg.sender), "Not a validator");
@@ -114,6 +130,9 @@ contract DytallixBridge is
         string calldata destinationChain,
         address recipient
     ) external nonReentrant whenNotPaused {
+        uint256 gasStart = gasleft();
+        uint256 startTime = block.timestamp;
+        
         require(supportedAssets[asset], "Asset not supported");
         require(amount > 0, "Amount must be positive");
         require(recipient != address(0), "Invalid recipient");
@@ -139,6 +158,13 @@ contract DytallixBridge is
             recipient,
             currentNonce
         );
+        
+        // Performance metrics
+        uint256 gasUsed = gasStart - gasleft();
+        uint256 executionTime = block.timestamp - startTime;
+        
+        emit GasUsageReport("lockAsset", gasStart, gasleft(), gasUsed);
+        emit PerformanceMetric("lockAsset", gasUsed, executionTime, msg.sender, keccak256(abi.encodePacked(asset, amount, currentNonce)));
     }
 
     /**
@@ -151,6 +177,9 @@ contract DytallixBridge is
         uint256 amount,
         bytes[] calldata signatures
     ) external onlyValidator nonReentrant whenNotPaused {
+        uint256 gasStart = gasleft();
+        uint256 startTime = block.timestamp;
+        
         require(!processedTransactions[transactionId], "Transaction already processed");
         require(supportedAssets[asset], "Asset not supported");
         require(signatures.length >= validatorThreshold, "Insufficient signatures");
@@ -169,6 +198,13 @@ contract DytallixBridge is
         IERC20(asset).safeTransfer(recipient, amount);
         
         emit AssetUnlocked(asset, recipient, amount, transactionId);
+        
+        // Performance metrics
+        uint256 gasUsed = gasStart - gasleft();
+        uint256 executionTime = block.timestamp - startTime;
+        
+        emit GasUsageReport("unlockAsset", gasStart, gasleft(), gasUsed);
+        emit PerformanceMetric("unlockAsset", gasUsed, executionTime, msg.sender, transactionId);
     }
 
     /**

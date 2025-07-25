@@ -1,0 +1,56 @@
+{"timestamp": "2025-07-25T15:11:26+00:00", "latency_tests": [
+{
+  "service": "bridge_api",
+  "endpoint": "http://localhost:8080",
+  "host": "localhost",
+  "port": "8080",
+  "ping_avg_ms": 0.060,
+  "tcp_connect_ms": 0,
+  "http_request_ms": 0,
+  "timestamp": "2025-07-25T15:11:36+00:00"
+}
+,
+{
+  "service": "redis_cache",
+  "endpoint": "localhost:6379",
+  "host": "localhost",
+  "port": "6379",
+  "ping_avg_ms": 0.059,
+  "tcp_connect_ms": 0,
+  "http_request_ms": 0,
+  "timestamp": "2025-07-25T15:11:45+00:00"
+}
+,
+{
+  "service": "monitoring",
+  "endpoint": "http://localhost:9090",
+  "host": "localhost",
+  "port": "9090",
+  "ping_avg_ms": 0.061,
+  "tcp_connect_ms": 0,
+  "http_request_ms": 0,
+  "timestamp": "2025-07-25T15:11:54+00:00"
+}
+,
+{
+  "service": "blockchain_rpc",
+  "endpoint": "http://localhost:3030",
+  "host": "localhost",
+  "port": "3030",
+  "ping_avg_ms": 0.058,
+  "tcp_connect_ms": 0,
+  "http_request_ms": 0,
+  "timestamp": "2025-07-25T15:12:04+00:00"
+}
+,
+{
+  "service": "database",
+  "endpoint": "localhost:5432",
+  "host": "localhost",
+  "port": "5432",
+  "ping_avg_ms": 0.058,
+  "tcp_connect_ms": 0,
+  "http_request_ms": 0,
+  "timestamp": "2025-07-25T15:12:13+00:00"
+}
+,

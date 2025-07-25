@@ -25,6 +25,22 @@ contract WrappedDytallix is ERC20, ERC20Burnable, AccessControl, Pausable {
     event BridgeUpdated(address indexed oldBridge, address indexed newBridge);
     event TokensMinted(address indexed to, uint256 amount, bytes32 indexed txHash);
     event TokensBurned(address indexed from, uint256 amount, string destinationChain);
+    
+    // Performance metrics events
+    event PerformanceMetric(
+        string indexed metricType,
+        uint256 gasUsed,
+        uint256 executionTime,
+        address indexed caller,
+        bytes32 indexed transactionHash
+    );
+    
+    event GasUsageReport(
+        string indexed operation,
+        uint256 gasStart,
+        uint256 gasEnd,
+        uint256 gasUsed
+    );
 
     constructor(
         string memory name,
@@ -51,11 +67,21 @@ contract WrappedDytallix is ERC20, ERC20Burnable, AccessControl, Pausable {
         uint256 amount, 
         bytes32 txHash
     ) external onlyRole(MINTER_ROLE) whenNotPaused {
+        uint256 gasStart = gasleft();
+        uint256 startTime = block.timestamp;
+        
         require(to != address(0), "Invalid recipient");
         require(amount > 0, "Amount must be positive");
         
         _mint(to, amount);
         emit TokensMinted(to, amount, txHash);
+        
+        // Performance metrics
+        uint256 gasUsed = gasStart - gasleft();
+        uint256 executionTime = block.timestamp - startTime;
+        
+        emit GasUsageReport("mint", gasStart, gasleft(), gasUsed);
+        emit PerformanceMetric("mint", gasUsed, executionTime, msg.sender, txHash);
     }
 
     /**
@@ -65,11 +91,22 @@ contract WrappedDytallix is ERC20, ERC20Burnable, AccessControl, Pausable {
         uint256 amount,
         string calldata destinationChain
     ) external whenNotPaused {
+        uint256 gasStart = gasleft();
+        uint256 startTime = block.timestamp;
+        
         require(amount > 0, "Amount must be positive");
         require(balanceOf(msg.sender) >= amount, "Insufficient balance");
         
         _burn(msg.sender, amount);
         emit TokensBurned(msg.sender, amount, destinationChain);
+        
+        // Performance metrics
+        uint256 gasUsed = gasStart - gasleft();
+        uint256 executionTime = block.timestamp - startTime;
+        bytes32 txHash = keccak256(abi.encodePacked(msg.sender, amount, destinationChain, block.timestamp));
+        
+        emit GasUsageReport("burnForBridge", gasStart, gasleft(), gasUsed);
+        emit PerformanceMetric("burnForBridge", gasUsed, executionTime, msg.sender, txHash);
     }
 
     /**

@@ -1,0 +1,8 @@
+{"timestamp": "2025-07-25T15:13:38+00:00", "bandwidth_tests": [
+{
+  "test_type": "tcp_bandwidth",
+  "server": "localhost:5201",
+  "status": "server_not_available",
+  "timestamp": "2025-07-25T15:13:38+00:00"
+}
+]}

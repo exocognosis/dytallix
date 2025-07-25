@@ -1,0 +1,53 @@
+{"timestamp": "2025-07-25T15:13:38+00:00", "throughput_tests": [
+{
+  "service": "bridge_api",
+  "endpoint": "http://localhost:8080",
+  "test_type": "http_load_test",
+  "duration_seconds": 5,
+  "concurrent_connections": 50,
+  "requests_per_second": 0,
+  "transfer_bytes_per_second": 0,
+  "average_latency_ms": "0",
+  "total_requests": 0,
+  "timestamp": "2025-07-25T15:13:38+00:00"
+}
+,
+{
+  "service": "monitoring",
+  "endpoint": "http://localhost:9090",
+  "test_type": "http_load_test",
+  "duration_seconds": 5,
+  "concurrent_connections": 50,
+  "requests_per_second": 0,
+  "transfer_bytes_per_second": 0,
+  "average_latency_ms": "0",
+  "total_requests": 0,
+  "timestamp": "2025-07-25T15:13:38+00:00"
+}
+,
+{
+  "service": "blockchain_rpc",
+  "endpoint": "http://localhost:3030",
+  "test_type": "http_load_test",
+  "duration_seconds": 5,
+  "concurrent_connections": 50,
+  "requests_per_second": 0,
+  "transfer_bytes_per_second": 0,
+  "average_latency_ms": "0",
+  "total_requests": 0,
+  "timestamp": "2025-07-25T15:13:38+00:00"
+}
+,
+{
+  "service": "ai_services",
+  "endpoint": "http://localhost:8000",
+  "test_type": "http_load_test",
+  "duration_seconds": 5,
+  "concurrent_connections": 50,
+  "requests_per_second": 0,
+  "transfer_bytes_per_second": 0,
+  "average_latency_ms": "0",
+  "total_requests": 0,
+  "timestamp": "2025-07-25T15:13:38+00:00"
+}
+]}
