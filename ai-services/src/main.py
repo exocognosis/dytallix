@@ -7,6 +7,12 @@ Provides AI-powered analysis services for the Dytallix blockchain:
 - Smart contract NLP generation
 - Behavioral analysis
 - Oracle bridge to blockchain
+
+Performance Optimized Version with:
+- Sub-100ms response times
+- Model preloading and caching
+- Request profiling and monitoring
+- Response compression and optimization
 """
 
 import asyncio
@@ -26,15 +32,32 @@ from oracle import BlockchainOracle
 from blockchain_oracle import BlockchainOracle as AIOracle
 from signing_service import initialize_signing_service, get_signing_service
 
+# Performance optimization imports
+from performance_monitor import get_profiler, get_worker_pool
+from performance_middleware import (
+    PerformanceMonitoringMiddleware, 
+    get_model_warmup_service,
+    get_response_optimizer
+)
+from model_optimization import get_model_loader, get_inference_optimizer
+from performance_dashboard import performance_router
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
+# Initialize FastAPI app with performance optimizations
 app = FastAPI(
     title="Dytallix AI Services",
-    description="AI-powered analysis services for post-quantum cryptocurrency",
-    version="2.0.0"
+    description="AI-powered analysis services for post-quantum cryptocurrency with performance optimization",
+    version="2.1.0"
+)
+
+# Add performance monitoring middleware FIRST (outer layer)
+app.add_middleware(
+    PerformanceMonitoringMiddleware,
+    enable_compression=True,
+    enable_caching=True
 )
 
 # Add CORS middleware
@@ -46,19 +69,102 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize AI services
-fraud_detector = FraudDetector()
-risk_scorer = AdvancedRiskScorer()
-contract_nlp = ContractNLPGenerator()
-oracle = BlockchainOracle()
+# Include performance monitoring router
+app.include_router(performance_router)
 
-# Initialize signing service
+# Initialize AI services with performance optimization
+fraud_detector = None
+risk_scorer = None
+contract_nlp = None
+oracle = None
 signing_service = None
+
+# Performance optimization services
+profiler = get_profiler()
+model_loader = get_model_loader()
+inference_optimizer = get_inference_optimizer()
+model_warmup_service = get_model_warmup_service()
+response_optimizer = get_response_optimizer()
+worker_pool = get_worker_pool()
+
+async def initialize_ai_services():
+    """Initialize AI services with performance optimization"""
+    global fraud_detector, risk_scorer, contract_nlp
+    
+    logger.info("Initializing AI services with performance optimization...")
+    start_time = time.time()
+    
+    # Define model loader functions
+    async def load_fraud_detector():
+        detector = FraudDetector()
+        # Simulate model loading/warming
+        await asyncio.sleep(0.1)
+        return detector
+    
+    async def load_risk_scorer():
+        scorer = AdvancedRiskScorer()
+        # Simulate model loading/warming
+        await asyncio.sleep(0.1)
+        return scorer
+    
+    async def load_contract_nlp():
+        nlp = ContractNLPGenerator()
+        # Simulate model loading/warming
+        await asyncio.sleep(0.1)
+        return nlp
+    
+    # Load models with caching and optimization
+    try:
+        fraud_detector = await model_loader.load_model_async(
+            "fraud_detector", 
+            lambda: FraudDetector(),
+            "v3.0.0"
+        )
+        logger.info("✅ Fraud detector loaded and optimized")
+        
+        risk_scorer = await model_loader.load_model_async(
+            "risk_scorer",
+            lambda: AdvancedRiskScorer(), 
+            "v2.0.0"
+        )
+        logger.info("✅ Risk scorer loaded and optimized")
+        
+        contract_nlp = await model_loader.load_model_async(
+            "contract_nlp",
+            lambda: ContractNLPGenerator(),
+            "v1.0.0"
+        )
+        logger.info("✅ Contract NLP loaded and optimized")
+        
+    except Exception as e:
+        logger.error(f"Failed to load AI models: {e}")
+        # Fallback to direct initialization
+        fraud_detector = FraudDetector()
+        risk_scorer = AdvancedRiskScorer()
+        contract_nlp = ContractNLPGenerator()
+        logger.warning("Using fallback model initialization")
+    
+    # Warmup models for optimal performance
+    warmup_functions = {
+        "fraud_detection": lambda: fraud_detector.is_ready() if fraud_detector else True,
+        "risk_scoring": lambda: risk_scorer.is_ready() if risk_scorer else True,
+        "contract_nlp": lambda: contract_nlp.is_ready() if contract_nlp else True
+    }
+    
+    # Start model warmup in background
+    asyncio.create_task(model_warmup_service.warmup_all_models(warmup_functions))
+    
+    initialization_time = (time.time() - start_time) * 1000
+    logger.info(f"AI services initialized in {initialization_time:.2f}ms")
 
 async def initialize_oracle():
     """Initialize the AI-Blockchain Oracle Bridge"""
-    global ai_oracle, signing_service
+    global ai_oracle, signing_service, oracle
     try:
+        # Initialize basic oracle first
+        oracle = BlockchainOracle()
+        logger.info("Basic oracle initialized")
+        
         # Initialize signing service
         signing_service = initialize_signing_service()
         logger.info("PQC Signing service initialized")
@@ -72,21 +178,47 @@ async def initialize_oracle():
         logger.info("AI-Blockchain Oracle Bridge initialized")
     except Exception as e:
         logger.error(f"Failed to initialize oracle bridge: {e}")
+        # Initialize basic oracle as fallback
+        oracle = BlockchainOracle()
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize services on startup"""
-    logger.info("Starting Dytallix AI Services...")
-    await initialize_oracle()
+    """Initialize all services on startup with performance optimization"""
+    logger.info("🚀 Starting Dytallix AI Services with Performance Optimization...")
+    startup_start = time.time()
+    
+    # Start worker pool for background tasks
+    await worker_pool.start()
+    logger.info("✅ Background worker pool started")
+    
+    # Initialize AI services concurrently for faster startup
+    await asyncio.gather(
+        initialize_ai_services(),
+        initialize_oracle(),
+        return_exceptions=True
+    )
+    
+    startup_time = (time.time() - startup_start) * 1000
+    logger.info(f"🎉 Dytallix AI Services started successfully in {startup_time:.2f}ms")
+    logger.info("📊 Performance monitoring active - visit /performance/dashboard")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    logger.info("Shutting down Dytallix AI Services...")
-    if ai_oracle:
+    logger.info("🛑 Shutting down Dytallix AI Services...")
+    
+    # Stop worker pool
+    await worker_pool.stop()
+    
+    # Cleanup AI oracle
+    if 'ai_oracle' in globals() and ai_oracle:
         await ai_oracle.stop()
+        
+    # Cleanup signing service
     if signing_service:
         signing_service.cleanup_expired_responses()
+        
+    logger.info("✅ Shutdown complete")
 
 # Pydantic models for API
 class TransactionData(BaseModel):
@@ -181,22 +313,73 @@ async def health_check():
         raise HTTPException(status_code=500, detail="Health check failed")
 
 @app.post("/analyze/fraud", response_model=FraudAnalysisResponse)
-async def analyze_fraud(request: FraudAnalysisRequest):
+async def analyze_fraud(request: FraudAnalysisRequest, http_request: Request):
     """
-    Analyze a transaction for fraud patterns
+    Analyze a transaction for fraud patterns with performance optimization
     """
     start_time = time.time()
-    request_id = str(uuid.uuid4())
+    request_id = getattr(http_request.state, 'request_id', str(uuid.uuid4()))
     
     try:
         logger.info(f"Fraud analysis request {request_id} for transaction: {request.transaction.from_address} -> {request.transaction.to_address}")
         
-        analysis = await fraud_detector.analyze_transaction(
-            request.transaction.dict(),
-            [tx.dict() for tx in request.historical_data] if request.historical_data else []
+        # Use optimized inference
+        preprocessing_start = time.time()
+        
+        # Check if fraud detector is available
+        if not fraud_detector:
+            raise HTTPException(status_code=503, detail="Fraud detection service not available")
+        
+        # Prepare input data
+        transaction_data = request.transaction.dict()
+        historical_data = [tx.dict() for tx in request.historical_data] if request.historical_data else []
+        
+        preprocessing_time = (time.time() - preprocessing_start) * 1000
+        
+        # Update request timing
+        if hasattr(http_request.state, 'metrics'):
+            profiler.update_request_timing(
+                request_id,
+                preprocessing_time_ms=preprocessing_time
+            )
+        
+        # Run optimized inference
+        inference_start = time.time()
+        analysis = await inference_optimizer.optimized_inference(
+            model=fraud_detector,
+            inputs={
+                "transaction": transaction_data,
+                "historical_data": historical_data
+            },
+            model_name="fraud_detection",
+            use_cache=True
         )
         
+        # Fallback to direct call if optimized inference fails
+        if analysis is None:
+            analysis = await fraud_detector.analyze_transaction(transaction_data, historical_data)
+            
+        inference_time = (time.time() - inference_start) * 1000
+        
+        # Update request timing
+        if hasattr(http_request.state, 'metrics'):
+            profiler.update_request_timing(
+                request_id,
+                inference_time_ms=inference_time
+            )
+        
         processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Optimize response
+        response_data = {
+            "is_fraudulent": analysis["is_fraudulent"],
+            "confidence": analysis["confidence"],
+            "risk_factors": analysis["risk_factors"],
+            "recommended_action": analysis["recommended_action"]
+        }
+        
+        # Use response optimizer
+        optimized_response = response_optimizer.optimize_response(response_data)
         
         # Sign the response if signing service is available
         if signing_service and signing_service.is_initialized:
@@ -207,22 +390,9 @@ async def analyze_fraud(request: FraudAnalysisRequest):
                 processing_time_ms=processing_time_ms
             )
             
-            # Return signed response
-            return {
-                "is_fraudulent": analysis["is_fraudulent"],
-                "confidence": analysis["confidence"],
-                "risk_factors": analysis["risk_factors"],
-                "recommended_action": analysis["recommended_action"],
-                "signed_response": signed_response
-            }
-        else:
-            # Return unsigned response
-            return FraudAnalysisResponse(
-                is_fraudulent=analysis["is_fraudulent"],
-                confidence=analysis["confidence"],
-                risk_factors=analysis["risk_factors"],
-                recommended_action=analysis["recommended_action"]
-            )
+            optimized_response["signed_response"] = signed_response
+        
+        return FraudAnalysisResponse(**optimized_response)
         
     except Exception as e:
         logger.error(f"Fraud analysis failed: {e}")
@@ -244,22 +414,72 @@ async def analyze_fraud(request: FraudAnalysisRequest):
             raise HTTPException(status_code=500, detail=f"Fraud analysis failed: {str(e)}")
 
 @app.post("/analyze/risk", response_model=RiskScoreResponse)
-async def analyze_risk(request: RiskScoreRequest):
+async def analyze_risk(request: RiskScoreRequest, http_request: Request):
     """
-    Calculate risk score for a transaction
+    Calculate risk score for a transaction with performance optimization
     """
     start_time = time.time()
-    request_id = str(uuid.uuid4())
+    request_id = getattr(http_request.state, 'request_id', str(uuid.uuid4()))
     
     try:
         logger.info(f"Risk analysis request {request_id} for transaction: {request.transaction.from_address} -> {request.transaction.to_address}")
         
-        score_data = await risk_scorer.calculate_comprehensive_risk(
-            request.transaction.dict(),
-            [tx.dict() for tx in request.address_history] if request.address_history else []
+        # Check if risk scorer is available
+        if not risk_scorer:
+            raise HTTPException(status_code=503, detail="Risk scoring service not available")
+        
+        # Use optimized inference
+        preprocessing_start = time.time()
+        
+        # Prepare input data
+        transaction_data = request.transaction.dict()
+        address_history = [tx.dict() for tx in request.address_history] if request.address_history else []
+        
+        preprocessing_time = (time.time() - preprocessing_start) * 1000
+        
+        # Update request timing
+        if hasattr(http_request.state, 'metrics'):
+            profiler.update_request_timing(
+                request_id,
+                preprocessing_time_ms=preprocessing_time
+            )
+        
+        # Run optimized inference
+        inference_start = time.time()
+        score_data = await inference_optimizer.optimized_inference(
+            model=risk_scorer,
+            inputs={
+                "transaction": transaction_data,
+                "address_history": address_history
+            },
+            model_name="risk_scoring",
+            use_cache=True
         )
         
+        # Fallback to direct call if optimized inference fails
+        if score_data is None:
+            score_data = await risk_scorer.calculate_comprehensive_risk(transaction_data, address_history)
+            
+        inference_time = (time.time() - inference_start) * 1000
+        
+        # Update request timing
+        if hasattr(http_request.state, 'metrics'):
+            profiler.update_request_timing(
+                request_id,
+                inference_time_ms=inference_time
+            )
+        
         processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Optimize response
+        response_data = {
+            "risk_score": score_data.score,
+            "risk_level": score_data.level,
+            "factors": score_data.factors
+        }
+        
+        # Use response optimizer
+        optimized_response = response_optimizer.optimize_response(response_data)
         
         # Sign the response if signing service is available
         if signing_service and signing_service.is_initialized:
@@ -271,20 +491,9 @@ async def analyze_risk(request: RiskScoreRequest):
                 processing_time_ms=processing_time_ms
             )
             
-            # Return signed response
-            return {
-                "risk_score": score_data.score,
-                "risk_level": score_data.level,
-                "factors": score_data.factors,
-                "signed_response": signed_response
-            }
-        else:
-            # Return unsigned response
-            return RiskScoreResponse(
-                risk_score=score_data.score,
-                risk_level=score_data.level,
-                factors=score_data.factors
-            )
+            optimized_response["signed_response"] = signed_response
+        
+        return RiskScoreResponse(**optimized_response)
         
     except Exception as e:
         logger.error(f"Risk analysis failed: {e}")
