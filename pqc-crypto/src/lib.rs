@@ -18,6 +18,7 @@ use serde::{Serialize, Deserialize};
 use thiserror::Error;
 use std::path::Path;
 use std::fs;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Error, Debug)]
 pub enum PQCError {
@@ -45,11 +46,17 @@ pub enum KeyExchangeAlgorithm {
     Kyber1024,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct KeyPair {
     pub public_key: Vec<u8>,
+    /// SECURITY WARNING: Secret key is stored in plain memory without zeroization.
+    /// VULNERABILITY: CV-001 - Secret keys remain in memory after use.
+    /// ATTACK VECTOR: Memory dump attacks can recover secret keys.
+    /// MITIGATION REQUIRED: Implement zeroize::Zeroize trait for secure cleanup.
     #[serde(skip)]
+    #[zeroize(skip)] // Public keys don't need zeroization
     pub secret_key: Vec<u8>,
+    #[zeroize(skip)] // Algorithm enum doesn't need zeroization
     pub algorithm: SignatureAlgorithm,
 }
 
@@ -59,11 +66,13 @@ pub struct Signature {
     pub algorithm: SignatureAlgorithm,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct KeyExchangeKeyPair {
+    #[zeroize(skip)] // Public keys don't need zeroization
     pub public_key: Vec<u8>,
     #[serde(skip)]
-    pub secret_key: Vec<u8>,
+    pub secret_key: Vec<u8>, // This will be zeroized on drop
+    #[zeroize(skip)] // Algorithm enum doesn't need zeroization
     pub algorithm: KeyExchangeAlgorithm,
 }
 
@@ -73,6 +82,7 @@ struct StoredKeys {
     key_exchange_keypair: KeyExchangeKeyPair,
 }
 
+#[derive(Debug, Clone)]
 pub struct PQCManager {
     signature_keypair: KeyPair,
     key_exchange_keypair: KeyExchangeKeyPair,
@@ -157,6 +167,17 @@ impl PQCManager {
         }
     }
     
+    /// Sign a message with the current active signature algorithm
+    /// 
+    /// SECURITY CONSIDERATIONS:
+    /// - Uses deterministic signing where possible to prevent nonce reuse attacks
+    /// - Secret key operations may be vulnerable to side-channel attacks
+    /// - Memory containing signature computation should be zeroized after use
+    /// 
+    /// POTENTIAL ATTACK VECTORS:
+    /// - Timing attacks during secret key operations (especially Falcon)
+    /// - Memory analysis attacks if intermediate values are not cleared
+    /// - Fault injection attacks during signature generation
     pub fn sign(&self, message: &[u8]) -> Result<Signature, PQCError> {
         match self.signature_keypair.algorithm {
             SignatureAlgorithm::Dilithium5 => {
@@ -195,6 +216,19 @@ impl PQCManager {
         }
     }
     
+    /// Verify a signature against a message and public key
+    /// 
+    /// SECURITY CONSIDERATIONS:
+    /// - Signature verification should be constant-time to prevent timing attacks
+    /// - Invalid signatures must be rejected without leaking information about failure reason
+    /// - Public key validation should be performed to prevent malformed key attacks
+    /// 
+    /// POTENTIAL ATTACK VECTORS:
+    /// - Timing side-channel attacks through verification time differences
+    /// - Invalid curve point attacks with malformed public keys
+    /// - Signature malleability if not properly validated
+    /// 
+    /// CRITICAL: This function must return constant time regardless of signature validity
     pub fn verify(&self, message: &[u8], signature: &Signature, public_key: &[u8]) -> Result<bool, PQCError> {
         match signature.algorithm {
             SignatureAlgorithm::Dilithium5 => {
@@ -325,6 +359,17 @@ impl PQCManager {
     }
 
     /// Rotate the active signature key while keeping old key as backup
+    /// 
+    /// SECURITY WARNING: Key rotation does not securely zeroize old keys from memory.
+    /// VULNERABILITY: Old secret keys remain accessible in memory after rotation.
+    /// ATTACK VECTOR: Memory dump attacks can recover historical secret keys.
+    /// 
+    /// SECURITY REQUIREMENTS:
+    /// - Old secret keys must be securely zeroized before storing as backup
+    /// - Key rotation should be atomic to prevent partial state attacks
+    /// - Backup keys should be encrypted with a separate key derivation
+    /// 
+    /// TODO: Implement secure key zeroization and encrypted backup storage
     pub fn rotate_signature_key(&mut self) -> Result<(), PQCError> {
         let algorithm = self.signature_keypair.algorithm.clone();
         self.signature_key_backups.push(self.signature_keypair.clone());

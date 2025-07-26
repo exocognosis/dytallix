@@ -6,6 +6,9 @@ use crate::{PQCManager, PQCError, Signature, SignatureAlgorithm, KeyPair};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
+use blake3::Hasher;
+use sha2::{Sha256, Digest};
+use sha3::{Keccak256};
 
 /// Bridge-specific signature that includes chain and payload information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,6 +18,10 @@ pub struct BridgeSignature {
     pub payload_hash: Vec<u8>,
     pub timestamp: u64,
     pub validator_id: String,
+    /// SECURITY FIX: CV-002 - Added nonce for replay attack protection
+    pub nonce: u64,
+    /// SECURITY ENHANCEMENT: Added sequence number for ordering validation
+    pub sequence: u64,
 }
 
 /// Cross-chain payload formats for different blockchain types
@@ -49,6 +56,17 @@ pub enum CrossChainPayload {
     },
 }
 
+/// Enhanced payload structure for replay protection
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct EnhancedPayload {
+    payload: CrossChainPayload,
+    chain_id: String,
+    validator_id: String,
+    nonce: u64,
+    sequence: u64,
+    timestamp: u64,
+}
+
 /// Multi-signature validation result
 #[derive(Debug, Clone)]
 pub struct MultiSigValidationResult {
@@ -65,6 +83,12 @@ pub struct BridgePQCManager {
     validator_keys: HashMap<String, (Vec<u8>, SignatureAlgorithm)>, // validator_id -> (public_key, algorithm)
     chain_configs: HashMap<String, ChainConfig>,
     min_signatures: usize,
+    /// SECURITY FIX: CV-002 - Added nonce tracking for replay protection
+    nonce_counter: std::sync::Arc<std::sync::atomic::AtomicU64>,
+    /// SECURITY ENHANCEMENT: Track used nonces to prevent replay attacks
+    used_nonces: std::sync::Arc<std::sync::Mutex<std::collections::HashSet<u64>>>,
+    /// SECURITY ENHANCEMENT: Sequence tracking for ordering validation
+    sequence_counter: std::sync::Arc<std::sync::atomic::AtomicU64>,
 }
 
 /// Configuration for different blockchain chains
@@ -132,6 +156,10 @@ impl BridgePQCManager {
             validator_keys: HashMap::new(),
             chain_configs,
             min_signatures: 3, // Default 3-of-N multi-sig
+            // SECURITY FIX: Initialize nonce and sequence counters for replay protection
+            nonce_counter: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(1)),
+            used_nonces: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashSet::new())),
+            sequence_counter: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(1)),
         })
     }
     
@@ -144,6 +172,10 @@ impl BridgePQCManager {
             validator_keys: HashMap::new(),
             chain_configs: HashMap::new(),
             min_signatures: 3,
+            // SECURITY FIX: Initialize security counters
+            nonce_counter: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(1)),
+            used_nonces: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashSet::new())),
+            sequence_counter: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(1)),
         };
         
         // Initialize default chain configs
@@ -180,26 +212,114 @@ impl BridgePQCManager {
     }
     
     /// Sign a cross-chain payload for bridge operations
+    /// 
+    /// SECURITY VULNERABILITIES:
+    /// - CV-002: Timestamp-based replay attacks - weak timestamp validation
+    /// - Missing nonce-based replay protection
+    /// - No validation of payload integrity before signing
+    /// 
+    /// ATTACK VECTORS:
+    /// - Replay attacks: Signatures can be replayed within large time windows
+    /// - Payload manipulation: No canonical serialization enforcement
+    /// - Cross-chain confusion: Same signature valid across different chains
+    /// 
+    /// CRITICAL SECURITY REQUIREMENTS:
+    /// - Implement nonce-based ordering to prevent replay attacks
+    /// - Add strict timestamp validation window (< 5 minutes)
+    /// - Enforce canonical payload serialization
+    /// - Include chain-specific context in signature
+    /// 
+    /// TODO: Add replay protection mechanism and payload validation
     pub fn sign_bridge_payload(&self, payload: &CrossChainPayload, chain_id: &str, validator_id: &str) -> Result<BridgeSignature, PQCError> {
-        // Serialize payload and calculate hash based on chain configuration
-        let payload_hash = self.calculate_payload_hash(payload, chain_id)?;
+        // SECURITY FIX: CV-002 - Generate unique nonce for replay protection
+        let nonce = self.nonce_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let sequence = self.sequence_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
         
-        // Sign the payload hash
+        // SECURITY ENHANCEMENT: Create enhanced payload hash including nonce and sequence
+        let enhanced_payload = EnhancedPayload {
+            payload: payload.clone(),
+            chain_id: chain_id.to_string(),
+            validator_id: validator_id.to_string(),
+            nonce,
+            sequence,
+            timestamp,
+        };
+        
+        // Serialize enhanced payload and calculate hash based on chain configuration
+        let payload_hash = self.calculate_enhanced_payload_hash(&enhanced_payload)?;
+        
+        // Sign the enhanced payload hash
         let signature = self.pqc_manager.sign(&payload_hash)?;
         
         Ok(BridgeSignature {
             signature,
             chain_id: chain_id.to_string(),
             payload_hash,
-            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            timestamp,
             validator_id: validator_id.to_string(),
+            nonce,
+            sequence,
         })
     }
     
     /// Verify a bridge signature from a specific validator
+    /// 
+    /// SECURITY VULNERABILITIES:
+    /// - CV-003: Algorithm downgrade attacks - no security level validation
+    /// - BR-002: Insufficient payload hash validation
+    /// - Missing timestamp validation for signature freshness
+    /// 
+    /// ATTACK VECTORS:
+    /// - Force use of weaker algorithms by manipulating signature algorithm field
+    /// - Payload hash manipulation if serialization is not deterministic
+    /// - Stale signature acceptance due to missing timeout validation
+    /// - Validator impersonation if key validation is insufficient
+    /// 
+    /// CRITICAL SECURITY GAPS:
+    /// - No algorithm security hierarchy enforcement
+    /// - Missing validator authorization checks
+    /// - No signature freshness validation
+    /// - Insufficient error information leakage protection
+    /// 
+    /// REQUIRED MITIGATIONS:
+    /// - Implement algorithm security level validation
+    /// - Add strict timestamp window checking
+    /// - Validate validator authorization status
+    /// - Ensure constant-time verification to prevent timing attacks
     pub fn verify_bridge_signature(&self, bridge_sig: &BridgeSignature, payload: &CrossChainPayload) -> Result<bool, PQCError> {
-        // Verify payload hash matches
-        let expected_hash = self.calculate_payload_hash(payload, &bridge_sig.chain_id)?;
+        // SECURITY FIX: CV-002 - Check for nonce replay attacks
+        if let Ok(mut used_nonces) = self.used_nonces.lock() {
+            if used_nonces.contains(&bridge_sig.nonce) {
+                return Ok(false); // Nonce already used - replay attack detected
+            }
+            used_nonces.insert(bridge_sig.nonce);
+        }
+        
+        // SECURITY ENHANCEMENT: Strict timestamp validation (5-minute window)
+        let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let time_diff = if current_time > bridge_sig.timestamp {
+            current_time - bridge_sig.timestamp
+        } else {
+            bridge_sig.timestamp - current_time
+        };
+        
+        if time_diff > 300 { // 5 minutes
+            return Ok(false); // Signature too old or from future
+        }
+        
+        // Reconstruct enhanced payload for verification
+        let enhanced_payload = EnhancedPayload {
+            payload: payload.clone(),
+            chain_id: bridge_sig.chain_id.clone(),
+            validator_id: bridge_sig.validator_id.clone(),
+            nonce: bridge_sig.nonce,
+            sequence: bridge_sig.sequence,
+            timestamp: bridge_sig.timestamp,
+        };
+        
+        // Verify enhanced payload hash matches
+        let expected_hash = self.calculate_enhanced_payload_hash(&enhanced_payload)?;
         if expected_hash != bridge_sig.payload_hash {
             return Ok(false);
         }
@@ -208,9 +328,17 @@ impl BridgePQCManager {
         let (public_key, algorithm) = self.validator_keys.get(&bridge_sig.validator_id)
             .ok_or_else(|| PQCError::InvalidKey(format!("Unknown validator: {}", bridge_sig.validator_id)))?;
         
-        // Verify algorithm matches
+        // SECURITY CRITICAL: Algorithm matching without security level validation
+        // VULNERABILITY: CV-003 - Allows algorithm downgrade attacks
+        // ATTACK: Malicious signatures can force use of weaker algorithms
+        // MITIGATION NEEDED: Implement algorithm security hierarchy validation
         if *algorithm != bridge_sig.signature.algorithm {
             return Ok(false);
+        }
+        
+        // SECURITY FIX: CV-003 - Validate algorithm security level
+        if !self.validate_algorithm_security_level(&bridge_sig.signature.algorithm, payload) {
+            return Ok(false); // Algorithm security level insufficient for payload
         }
         
         // Verify signature
@@ -218,6 +346,27 @@ impl BridgePQCManager {
     }
     
     /// Verify multiple signatures for multi-sig consensus
+    /// 
+    /// SECURITY VULNERABILITIES:
+    /// - BR-001: Weak multi-signature validation
+    /// - No prevention of signature reuse across different payloads
+    /// - Missing validator identity verification beyond key lookup
+    /// - No timeout validation for signature freshness
+    /// 
+    /// ATTACK VECTORS:
+    /// - Signature replay: Same signatures reused for different payloads
+    /// - Validator impersonation: Compromised validators not detected
+    /// - Consensus manipulation: Malicious validators can affect threshold
+    /// - Time-based attacks: Old signatures accepted without freshness check
+    /// 
+    /// CRITICAL SECURITY REQUIREMENTS:
+    /// - Each signature must include unique payload binding
+    /// - Implement validator authorization verification
+    /// - Add signature freshness validation
+    /// - Prevent signature reuse across different operations
+    /// - Implement byzantine fault tolerance considerations
+    /// 
+    /// TODO: Add signature uniqueness enforcement and byzantine fault tolerance
     pub fn verify_multi_signature(&self, signatures: &[BridgeSignature], payload: &CrossChainPayload) -> Result<MultiSigValidationResult, PQCError> {
         let mut valid_signatures = 0;
         let mut validator_results = HashMap::new();
@@ -241,6 +390,79 @@ impl BridgePQCManager {
         })
     }
     
+    /// Calculate enhanced payload hash for replay protection
+    fn calculate_enhanced_payload_hash(&self, enhanced_payload: &EnhancedPayload) -> Result<Vec<u8>, PQCError> {
+        let serialized = serde_json::to_vec(enhanced_payload)
+            .map_err(|e| PQCError::InvalidKey(format!("Enhanced payload serialization error: {}", e)))?;
+        
+        let chain_config = self.chain_configs.get(&enhanced_payload.chain_id)
+            .ok_or_else(|| PQCError::UnsupportedAlgorithm(format!("Unknown chain: {}", enhanced_payload.chain_id)))?;
+        
+        match chain_config.hash_algorithm {
+            HashAlgorithm::Blake3 => {
+                let mut hasher = Hasher::new();
+                hasher.update(&serialized);
+                Ok(hasher.finalize().as_bytes().to_vec())
+            }
+            HashAlgorithm::SHA256 => {
+                let mut hasher = Sha256::new();
+                hasher.update(&serialized);
+                Ok(hasher.finalize().to_vec())
+            }
+            HashAlgorithm::Keccak256 => {
+                let mut hasher = Keccak256::new();
+                hasher.update(&serialized);
+                Ok(hasher.finalize().to_vec())
+            }
+        }
+    }
+
+    /// SECURITY FIX: CV-003 - Validate algorithm security level for payload requirements
+    fn validate_algorithm_security_level(&self, algorithm: &SignatureAlgorithm, payload: &CrossChainPayload) -> bool {
+        let required_security_level = self.determine_required_security_level(payload);
+        let algorithm_security_level = self.get_algorithm_security_level(algorithm);
+        
+        // Algorithm must meet or exceed required security level
+        algorithm_security_level >= required_security_level
+    }
+
+    /// Determine required security level based on payload characteristics
+    fn determine_required_security_level(&self, payload: &CrossChainPayload) -> u8 {
+        match payload {
+            CrossChainPayload::GenericBridgePayload { amount, .. } => {
+                // Higher security for higher value transfers
+                if *amount > 10_000_000 { // > 10M units
+                    5 // Highest security level
+                } else if *amount > 1_000_000 { // > 1M units
+                    3 // Medium security level
+                } else {
+                    1 // Basic security level
+                }
+            }
+            CrossChainPayload::EthereumTransaction { value, .. } => {
+                // High security for Ethereum transactions due to gas costs
+                if *value > 1000 { // > 1000 Wei (example threshold)
+                    5
+                } else {
+                    3
+                }
+            }
+            CrossChainPayload::CosmosIBCPacket { .. } => {
+                // Medium security for IBC packets
+                3
+            }
+        }
+    }
+
+    /// Get security level of PQC algorithm (NIST security levels)
+    fn get_algorithm_security_level(&self, algorithm: &SignatureAlgorithm) -> u8 {
+        match algorithm {
+            SignatureAlgorithm::Dilithium5 => 5,      // Highest security (256-bit)
+            SignatureAlgorithm::Falcon1024 => 5,      // Highest security (256-bit)
+            SignatureAlgorithm::SphincsSha256128s => 1, // Conservative but lower performance
+        }
+    }
+
     /// Calculate payload hash based on chain configuration
     fn calculate_payload_hash(&self, payload: &CrossChainPayload, chain_id: &str) -> Result<Vec<u8>, PQCError> {
         let serialized = serde_json::to_vec(payload)

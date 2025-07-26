@@ -2,7 +2,7 @@
 //!
 //! Measures gas costs, compute overhead, and provides optimization recommendations.
 
-use dytallix_pqc::{BridgePQCManager, CrossChainPayload, SignatureAlgorithm};
+use crate::{BridgePQCManager, CrossChainPayload, SignatureAlgorithm};
 use std::collections::HashMap;
 use std::time::{Instant, Duration};
 use serde::{Serialize, Deserialize};
@@ -159,7 +159,7 @@ impl PQCPerformanceBenchmark {
         let key_gen_time = key_gen_start.elapsed();
         
         // Add validator for signing
-        let validator_id = format!("bench_validator_{}", chrono::Utc::now().timestamp_nanos());
+        let validator_id = format!("bench_validator_{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0));
         self.pqc_manager.add_validator(
             validator_id.clone(),
             keypair.public_key.clone(),
@@ -219,7 +219,7 @@ impl PQCPerformanceBenchmark {
         let networks = vec![
             ("Ethereum", 21000, 20_000_000_000u64, 1800.0), // (base_cost, gas_price_wei, eth_price_usd)
             ("Polygon", 21000, 30_000_000_000u64, 0.8),     // (base_cost, gas_price_wei, matic_price_usd)
-            ("Cosmos", 200000, 0.025, 10.0),                // (base_cost, gas_price_uatom, atom_price_usd) - simplified
+            ("Cosmos", 200000, 25u64, 10.0),                // (base_cost, gas_price_uatom, atom_price_usd) - simplified
         ];
         
         let mut estimations = Vec::new();
@@ -230,7 +230,7 @@ impl PQCPerformanceBenchmark {
                 
                 let cost_in_usd = if network_name == &"Cosmos" {
                     // Cosmos uses different gas calculation
-                    (total_gas as f64 * gas_price_raw * token_price_usd) / 1_000_000.0
+                    (total_gas as f64 * (*gas_price_raw as f64) * token_price_usd) / 1_000_000.0
                 } else {
                     // Ethereum-like networks
                     let cost_wei = total_gas * gas_price_raw;
@@ -347,7 +347,7 @@ impl PQCPerformanceBenchmark {
     /// Print detailed performance report
     pub fn print_performance_report(&self, analysis: &PerformanceAnalysis) {
         println!("\n📊 COMPREHENSIVE PQC PERFORMANCE ANALYSIS REPORT");
-        println!("=".repeat(60));
+        println!("{}", "=".repeat(60));
         
         // Algorithm comparison table
         println!("\n🔍 Algorithm Performance Comparison:");
@@ -410,7 +410,7 @@ impl PQCPerformanceBenchmark {
             println!("  • Best algorithm gas cost: {} units", best.estimated_gas_cost);
         }
         
-        println!("\n" + "=".repeat(60).as_str());
+        println!("\n{}", "=".repeat(60));
     }
     
     /// Export results to JSON for further analysis
