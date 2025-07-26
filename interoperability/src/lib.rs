@@ -1348,6 +1348,8 @@ impl IBCModule for DytallixIBC {
 
 pub mod connectors;
 pub mod storage;
+pub mod query_analysis;
+pub mod cache;
 
 pub use connectors::{
     ConnectorManager, ChainType,
