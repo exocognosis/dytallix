@@ -14,14 +14,19 @@ pub mod models;
 
 pub use models::*;
 
-/// Bridge storage manager using PostgreSQL
+use crate::query_analysis::{QueryAnalyzer, PerformanceAnalysisReport};
+use crate::cache::{BridgeCache, CacheConfig, CachePriority};
+
+/// Bridge storage manager using PostgreSQL with Redis caching
 #[derive(Debug, Clone)]
 pub struct BridgeStorage {
     pool: PgPool,
+    query_analyzer: Option<QueryAnalyzer>,
+    cache: Option<BridgeCache>,
 }
 
 impl BridgeStorage {
-    /// Create new bridge storage with database connection
+    /// Create new bridge storage with database connection and optional cache
     pub async fn new(database_url: &str) -> Result<Self, BridgeError> {
         let pool = PgPool::connect(database_url)
             .await
@@ -32,11 +37,32 @@ impl BridgeStorage {
             .run(&pool)
             .await
             .map_err(|e| BridgeError::ConnectionError(format!("Migration failed: {}", e)))?;
+
+        // Initialize query analyzer
+        let query_analyzer = Some(QueryAnalyzer::new(pool.clone()));
         
-        Ok(Self { pool })
+        Ok(Self { 
+            pool,
+            query_analyzer,
+            cache: None,
+        })
+    }
+
+    /// Create new bridge storage with Redis caching enabled
+    pub async fn new_with_cache(database_url: &str, cache_config: CacheConfig) -> Result<Self, BridgeError> {
+        let mut storage = Self::new(database_url).await?;
+        
+        // Initialize Redis cache
+        let cache = BridgeCache::new(cache_config)
+            .await
+            .map_err(|e| BridgeError::ConnectionError(format!("Cache initialization failed: {}", e)))?;
+        
+        storage.cache = Some(cache);
+        
+        Ok(storage)
     }
     
-    /// Store bridge transaction
+    /// Store bridge transaction with intelligent caching
     pub async fn store_bridge_transaction(&self, bridge_tx: &BridgeTx) -> Result<(), BridgeError> {
         let query = r#"
             INSERT INTO bridge_transactions (
@@ -81,11 +107,43 @@ impl BridgeStorage {
             .await
             .map_err(|e| BridgeError::NetworkError(format!("Failed to store bridge transaction: {}", e)))?;
         
+        // Cache the transaction if cache is available
+        if let Some(cache) = &self.cache {
+            let priority = match bridge_tx.status {
+                BridgeStatus::Pending | BridgeStatus::Confirmed => CachePriority::High,
+                BridgeStatus::Locked | BridgeStatus::Minted => CachePriority::Medium,
+                _ => CachePriority::Low,
+            };
+            
+            if let Err(e) = cache.cache_bridge_transaction(bridge_tx, priority).await {
+                // Log cache error but don't fail the operation
+                tracing::warn!("Failed to cache bridge transaction {}: {}", bridge_tx.id.0, e);
+            }
+        }
+        
         Ok(())
     }
     
-    /// Get bridge transaction by ID
+    /// Get bridge transaction by ID with cache-first approach
     pub async fn get_bridge_transaction(&self, tx_id: &BridgeTxId) -> Result<Option<BridgeTx>, BridgeError> {
+        // Try cache first if available
+        if let Some(cache) = &self.cache {
+            match cache.get_bridge_transaction(tx_id).await {
+                Ok(Some(cached_tx)) => {
+                    tracing::debug!("Cache hit for bridge transaction {}", tx_id.0);
+                    return Ok(Some(cached_tx));
+                }
+                Ok(None) => {
+                    tracing::debug!("Cache miss for bridge transaction {}", tx_id.0);
+                    // Continue to database lookup
+                }
+                Err(e) => {
+                    tracing::warn!("Cache error for transaction {}: {}", tx_id.0, e);
+                    // Continue to database lookup
+                }
+            }
+        }
+
         let query = r#"
             SELECT id, asset_id, asset_amount, asset_decimals, source_chain, dest_chain,
                    source_address, dest_address, source_tx_hash, dest_tx_hash, status,
@@ -138,6 +196,19 @@ impl BridgeStorage {
                 validator_signatures,
                 status,
             };
+            
+            // Cache the result if cache is available
+            if let Some(cache) = &self.cache {
+                let priority = match bridge_tx.status {
+                    BridgeStatus::Pending | BridgeStatus::Confirmed => CachePriority::High,
+                    BridgeStatus::Locked | BridgeStatus::Minted => CachePriority::Medium,
+                    _ => CachePriority::Low,
+                };
+                
+                if let Err(e) = cache.cache_bridge_transaction(&bridge_tx, priority).await {
+                    tracing::warn!("Failed to cache bridge transaction {}: {}", tx_id.0, e);
+                }
+            }
             
             Ok(Some(bridge_tx))
         } else {
@@ -447,6 +518,38 @@ impl BridgeStorage {
             failed_transactions: row.get::<i64, _>("failed_transactions") as u64,
             total_volume: row.get::<Option<i64>, _>("total_volume").unwrap_or(0) as u64,
         })
+    }
+
+    /// Enable database query tracking and performance monitoring
+    pub async fn enable_performance_monitoring(&self) -> Result<(), BridgeError> {
+        if let Some(analyzer) = &self.query_analyzer {
+            analyzer.enable_query_tracking()
+                .await
+                .map_err(|e| BridgeError::NetworkError(format!("Failed to enable query tracking: {}", e)))?;
+        }
+        Ok(())
+    }
+
+    /// Get comprehensive database performance analysis report
+    pub async fn get_performance_analysis(&self) -> Result<PerformanceAnalysisReport, BridgeError> {
+        if let Some(analyzer) = &self.query_analyzer {
+            analyzer.generate_performance_report()
+                .await
+                .map_err(|e| BridgeError::NetworkError(format!("Failed to generate performance report: {}", e)))
+        } else {
+            Err(BridgeError::NetworkError("Query analyzer not initialized".to_string()))
+        }
+    }
+
+    /// Get database health metrics for monitoring dashboard
+    pub async fn get_database_health(&self) -> Result<crate::query_analysis::DatabaseHealthMetrics, BridgeError> {
+        if let Some(analyzer) = &self.query_analyzer {
+            analyzer.get_database_health_metrics()
+                .await
+                .map_err(|e| BridgeError::NetworkError(format!("Failed to get health metrics: {}", e)))
+        } else {
+            Err(BridgeError::NetworkError("Query analyzer not initialized".to_string()))
+        }
     }
 }
 
