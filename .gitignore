@@ -103,3 +103,4 @@ docs/site/tests/stress_test_report_*.json
 deployment/gcp/terraform/.terraform/providers/
 *.terraform.lock.hcl
 terraform.tfstate*
+.pids/
