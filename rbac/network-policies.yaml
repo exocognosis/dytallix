@@ -1,0 +1,303 @@
+# Dytallix Bridge Network Policies
+# Microsegmentation policies for zero-trust networking
+---
+# Default deny-all policy for dytallix namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy-type: "default-deny"
+    security.dytallix.io/compliance: "cis-kubernetes"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Bridge node network policy - restrictive ingress, controlled egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dytallix-bridge-netpol
+  namespace: dytallix
+  labels:
+    app: dytallix-bridge
+    security.dytallix.io/policy-type: "microsegmentation"
+spec:
+  podSelector:
+    matchLabels:
+      app: dytallix-bridge
+      component: node
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow API access from anywhere (external clients)
+    - from: []
+      ports:
+        - port: 3030
+          protocol: TCP
+    # Allow health checks from anywhere
+    - from: []
+      ports:
+        - port: 8081
+          protocol: TCP
+    # Allow metrics collection from monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: dytallix-monitoring
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - port: 9090
+          protocol: TCP
+    # Allow P2P communication from other bridge nodes
+    - from:
+        - podSelector:
+            matchLabels:
+              app: dytallix-bridge
+              component: node
+      ports:
+        - port: 30303
+          protocol: TCP
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow HTTPS for external blockchain connections
+    - to: []
+      ports:
+        - port: 443
+          protocol: TCP
+    # Allow HTTP for blockchain RPC (testnet)
+    - to: []
+      ports:
+        - port: 80
+          protocol: TCP
+        - port: 8545
+          protocol: TCP  # Ethereum RPC
+        - port: 26657
+          protocol: TCP  # Cosmos RPC
+        - port: 9944
+          protocol: TCP  # Polkadot RPC
+    # Allow database connections (Cloud SQL)
+    - to: []
+      ports:
+        - port: 5432
+          protocol: TCP  # PostgreSQL
+        - port: 3306
+          protocol: TCP  # MySQL
+    # Allow communication with other bridge nodes in same namespace
+    - to:
+        - podSelector:
+            matchLabels:
+              app: dytallix-bridge
+      ports:
+        - port: 3030
+          protocol: TCP
+        - port: 30303
+          protocol: TCP
+---
+# API Gateway network policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dytallix-gateway-netpol
+  namespace: dytallix
+  labels:
+    app: dytallix-gateway
+    security.dytallix.io/policy-type: "gateway"
+spec:
+  podSelector:
+    matchLabels:
+      app: dytallix-gateway
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow external traffic to gateway
+    - from: []
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow communication to bridge nodes
+    - to:
+        - podSelector:
+            matchLabels:
+              app: dytallix-bridge
+      ports:
+        - port: 3030
+          protocol: TCP
+        - port: 8081
+          protocol: TCP
+    # Allow HTTPS for external services
+    - to: []
+      ports:
+        - port: 443
+          protocol: TCP
+---
+# Monitoring network policy for dytallix-monitoring namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-default-deny
+  namespace: dytallix-monitoring
+  labels:
+    security.dytallix.io/policy-type: "default-deny"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Prometheus network policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-netpol
+  namespace: dytallix-monitoring
+  labels:
+    app: prometheus
+    security.dytallix.io/policy-type: "monitoring"
+spec:
+  podSelector:
+    matchLabels:
+      app: prometheus
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow Grafana to query Prometheus
+    - from:
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - port: 9090
+          protocol: TCP
+    # Allow external access to Prometheus UI (for debugging)
+    - from: []
+      ports:
+        - port: 9090
+          protocol: TCP
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow scraping metrics from dytallix namespace
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: dytallix
+      ports:
+        - port: 9090
+          protocol: TCP
+        - port: 8081
+          protocol: TCP
+    # Allow scraping Kubernetes API metrics
+    - to: []
+      ports:
+        - port: 443
+          protocol: TCP
+    # Allow node exporter scraping
+    - to: []
+      ports:
+        - port: 9100
+          protocol: TCP
+---
+# Grafana network policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grafana-netpol
+  namespace: dytallix-monitoring
+  labels:
+    app: grafana
+    security.dytallix.io/policy-type: "dashboard"
+spec:
+  podSelector:
+    matchLabels:
+      app: grafana
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow external access to Grafana dashboards
+    - from: []
+      ports:
+        - port: 3000
+          protocol: TCP
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow querying Prometheus
+    - to:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - port: 9090
+          protocol: TCP
+    # Allow HTTPS for external datasources
+    - to: []
+      ports:
+        - port: 443
+          protocol: TCP
+---
+# Cross-namespace communication policy for monitoring
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-cross-namespace
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy-type: "cross-namespace"
+    security.dytallix.io/purpose: "monitoring"
+spec:
+  podSelector:
+    matchLabels:
+      app: dytallix-bridge
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow monitoring namespace to scrape metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: dytallix-monitoring
+              security.dytallix.io/network-isolation: "monitoring"
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - port: 9090
+          protocol: TCP
+        - port: 8081
+          protocol: TCP

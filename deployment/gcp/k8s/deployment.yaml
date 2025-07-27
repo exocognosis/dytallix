@@ -22,6 +22,15 @@ spec:
         app: dytallix-bridge
     spec:
       serviceAccountName: dytallix-bridge-sa
+      automountServiceAccountToken: true
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: bridge
         image: us-central1-docker.pkg.dev/dytallix/dytallix-testnet-repo/dytallix-bridge:latest
@@ -54,13 +63,17 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
+        # Container-level security context
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
           runAsUser: 1000
+          readOnlyRootFilesystem: true
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts:
         - name: tmp
           mountPath: /tmp
