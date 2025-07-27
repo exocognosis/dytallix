@@ -58,6 +58,7 @@ kyber = []
 falcon = []
 sphincs = []
 
-[[bin]]
-name = "pqc-bridge-cli"
-path = "src/bin/pqc_bridge_cli.rs"
+# Temporarily disable CLI until dependencies are available
+# [[bin]]
+# name = "pqc-bridge-cli"
+# path = "src/bin/pqc_bridge_cli.rs"
