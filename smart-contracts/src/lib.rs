@@ -6,6 +6,7 @@ pub mod cosmos_bridge;
 pub mod cosmos_bridge_optimized;
 pub mod gas_optimizer;
 pub mod storage_optimizer;
+pub mod security;
 
 // Re-export oracle_simple as oracle for compatibility
 pub use oracle_simple as oracle;
