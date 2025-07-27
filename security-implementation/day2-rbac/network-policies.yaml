@@ -1,0 +1,131 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dytallix-default-deny
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "default-deny"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dytallix-node-policy
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "node"
+spec:
+  podSelector:
+    matchLabels:
+      app: dytallix-node
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: dytallix-frontend
+    - podSelector:
+        matchLabels:
+          app: dytallix-ai-services
+    ports:
+    - protocol: TCP
+      port: 8545
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to:
+    - podSelector:
+        matchLabels:
+          app: dytallix-bridge
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dytallix-ai-services-policy
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "ai-services"
+spec:
+  podSelector:
+    matchLabels:
+      app: dytallix-ai-services
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: dytallix-frontend
+    - podSelector:
+        matchLabels:
+          app: dytallix-node
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to:
+    - podSelector:
+        matchLabels:
+          app: dytallix-node
+    ports:
+    - protocol: TCP
+      port: 8545
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dytallix-frontend-policy
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "frontend"
+spec:
+  podSelector:
+    matchLabels:
+      app: dytallix-frontend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 3000
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to:
+    - podSelector:
+        matchLabels:
+          app: dytallix-node
+    - podSelector:
+        matchLabels:
+          app: dytallix-ai-services
+    ports:
+    - protocol: TCP
+      port: 8545
+    - protocol: TCP
+      port: 8000

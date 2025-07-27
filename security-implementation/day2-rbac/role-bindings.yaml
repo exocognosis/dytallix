@@ -1,0 +1,63 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dytallix-node-binding
+  namespace: dytallix
+  labels:
+    security.dytallix.io/rbac: "enabled"
+subjects:
+- kind: ServiceAccount
+  name: dytallix-node
+  namespace: dytallix
+roleRef:
+  kind: ClusterRole
+  name: dytallix-node-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dytallix-ai-services-binding
+  namespace: dytallix
+  labels:
+    security.dytallix.io/rbac: "enabled"
+subjects:
+- kind: ServiceAccount
+  name: dytallix-ai-services
+  namespace: dytallix
+roleRef:
+  kind: ClusterRole
+  name: dytallix-ai-services-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dytallix-frontend-binding
+  namespace: dytallix
+  labels:
+    security.dytallix.io/rbac: "enabled"
+subjects:
+- kind: ServiceAccount
+  name: dytallix-frontend
+  namespace: dytallix
+roleRef:
+  kind: ClusterRole
+  name: dytallix-frontend-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dytallix-bridge-binding
+  namespace: dytallix
+  labels:
+    security.dytallix.io/rbac: "enabled"
+subjects:
+- kind: ServiceAccount
+  name: dytallix-bridge
+  namespace: dytallix
+roleRef:
+  kind: ClusterRole
+  name: dytallix-bridge-role
+  apiGroup: rbac.authorization.k8s.io

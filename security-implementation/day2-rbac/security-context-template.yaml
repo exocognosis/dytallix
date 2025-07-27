@@ -1,0 +1,45 @@
+# Security Context Template for Dytallix Pods
+# Add this to all deployment specs under template.spec
+
+securityContext:
+  # Pod-level security context
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containers:
+- name: container-name
+  # Container-level security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    capabilities:
+      drop:
+      - ALL
+      add:
+      - NET_BIND_SERVICE  # Only if needed for binding to privileged ports
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Writable volume mounts for read-only root filesystem
+  volumeMounts:
+  - name: tmp-volume
+    mountPath: /tmp
+  - name: var-cache
+    mountPath: /var/cache
+  - name: var-log
+    mountPath: /var/log
+
+volumes:
+- name: tmp-volume
+  emptyDir: {}
+- name: var-cache
+  emptyDir: {}
+- name: var-log
+  emptyDir: {}
