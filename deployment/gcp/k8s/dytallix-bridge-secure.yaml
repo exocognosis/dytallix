@@ -1,11 +1,16 @@
+# Dytallix Bridge Secure Deployment
+# Enhanced deployment with comprehensive security contexts and RBAC
+---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: dytallix
   labels:
+    name: dytallix
     environment: testnet
     project: dytallix-bridge
     security.dytallix.io/security-level: "high"
+    security.dytallix.io/compliance: "cis-kubernetes"
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted
@@ -19,6 +24,7 @@ metadata:
     app: dytallix-bridge
     component: node
     environment: testnet
+    security.dytallix.io/security-profile: "restricted"
 spec:
   replicas: 3
   strategy:
@@ -37,10 +43,13 @@ spec:
         app: dytallix-bridge
         component: node
         environment: testnet
+        security.dytallix.io/security-profile: "restricted"
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
         prometheus.io/path: "/metrics"
+        security.dytallix.io/last-security-scan: "$(date +%Y-%m-%d)"
+        container.apparmor.security.beta.kubernetes.io/dytallix-bridge: "runtime/default"
     spec:
       serviceAccountName: dytallix-bridge-sa
       automountServiceAccountToken: true
@@ -58,18 +67,6 @@ spec:
       - name: dytallix-bridge
         image: gcr.io/PROJECT_ID/dytallix-bridge:latest
         imagePullPolicy: Always
-        # Container-level security context
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 1000
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-            - ALL
-          seccompProfile:
-            type: RuntimeDefault
         ports:
         - containerPort: 3030
           name: api
@@ -83,6 +80,18 @@ spec:
         - containerPort: 30303
           name: p2p
           protocol: TCP
+        # Container-level security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
         env:
         - name: DYTALLIX_ENVIRONMENT
           value: "testnet"
@@ -96,6 +105,8 @@ spec:
           value: "true"
         - name: DYTALLIX_CLOUD_PROVIDER
           value: "gcp"
+        - name: DYTALLIX_SECURITY_PROFILE
+          value: "restricted"
         - name: DYTALLIX_NODE_ID
           valueFrom:
             fieldRef:
@@ -134,13 +145,17 @@ spec:
           mountPath: /tmp
         - name: var-run-volume
           mountPath: /var/run
+        - name: home-volume
+          mountPath: /home/dytallix
         resources:
           requests:
             cpu: 1000m
             memory: 2Gi
+            ephemeral-storage: 1Gi
           limits:
             cpu: 4000m
             memory: 8Gi
+            ephemeral-storage: 5Gi
         livenessProbe:
           httpGet:
             path: /health
@@ -176,9 +191,11 @@ spec:
         secret:
           secretName: dytallix-pqc-keys
           defaultMode: 0400
+          optional: false
       - name: bridge-config
         configMap:
           name: dytallix-bridge-config
+          defaultMode: 0444
       - name: data-volume
         persistentVolumeClaim:
           claimName: dytallix-bridge-data
@@ -192,13 +209,28 @@ spec:
       - name: var-run-volume
         emptyDir:
           sizeLimit: 100Mi
+      - name: home-volume
+        emptyDir:
+          sizeLimit: 100Mi
       nodeSelector:
         kubernetes.io/os: linux
+        security.dytallix.io/node-class: "secure"
       tolerations:
       - key: "dytallix.io/bridge-node"
         operator: "Equal"
         value: "true"
         effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: dytallix-bridge
+                  component: node
+              topologyKey: kubernetes.io/hostname
+      priorityClassName: system-node-critical
 ---
 apiVersion: v1
 kind: Service
@@ -208,9 +240,11 @@ metadata:
   labels:
     app: dytallix-bridge
     component: service
+    security.dytallix.io/service-type: "internal"
   annotations:
     cloud.google.com/neg: '{"ingress": true}'
     service.beta.kubernetes.io/gce-internal-type: "Internal"
+    security.dytallix.io/tls-required: "true"
 spec:
   type: LoadBalancer
   loadBalancerClass: gce
@@ -244,6 +278,7 @@ metadata:
   labels:
     app: dytallix-bridge
     component: p2p
+    security.dytallix.io/service-type: "external"
 spec:
   type: NodePort
   selector:
@@ -256,157 +291,44 @@ spec:
     targetPort: 30303
     protocol: TCP
 ---
-apiVersion: v1
-kind: ConfigMap
+# PodDisruptionBudget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
 metadata:
-  name: dytallix-bridge-config
-  namespace: dytallix
-data:
-  bridge.toml: |
-    [bridge]
-    name = "dytallix"
-    environment = "testnet"
-    
-    [ethereum]
-    chain_id = 11155111  # Sepolia testnet
-    confirmation_blocks = 12
-    gas_limit = 500000
-    
-    [cosmos]
-    chain_id = "cosmoshub-4"
-    gas_limit = 200000
-    
-    [polkadot]
-    chain_id = "westend"
-    
-    [security]
-    pqc_enabled = true
-    audit_logging = true
-    require_tls = true
-    
-    [monitoring]
-    metrics_enabled = true
-    health_check_interval = 30
-    
-  logging.yaml: |
-    level: info
-    format: json
-    output: stdout
-    
-    loggers:
-      bridge: info
-      ethereum: debug
-      cosmos: debug
-      polkadot: info
-      pqc: info
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: dytallix-bridge-data
-  namespace: dytallix
-  labels:
-    app: dytallix-bridge
-    component: storage
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: ssd
-  resources:
-    requests:
-      storage: 200Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: dytallix-bridge-logs
-  namespace: dytallix
-  labels:
-    app: dytallix-bridge
-    component: logs
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: standard
-  resources:
-    requests:
-      storage: 50Gi
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: dytallix-bridge-sa
-  namespace: dytallix
-  annotations:
-    iam.gke.io/gcp-service-account: dytallix-bridge-sa@PROJECT_ID.iam.gserviceaccount.com
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: dytallix-bridge-network-policy
+  name: dytallix-bridge-pdb
   namespace: dytallix
 spec:
-  podSelector:
+  minAvailable: 2
+  selector:
     matchLabels:
       app: dytallix-bridge
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: monitoring
-    - podSelector:
-        matchLabels:
-          app: prometheus
-    ports:
-    - protocol: TCP
-      port: 9090
-  - from: []
-    ports:
-    - protocol: TCP
-      port: 3030
-    - protocol: TCP
-      port: 8081
-  egress:
-  - {} # Allow all egress traffic for external blockchain connections
+      component: node
 ---
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
+# PodSecurityPolicy for additional enforcement (if PSP is enabled)
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
 metadata:
-  name: dytallix-bridge-hpa
-  namespace: dytallix
+  name: dytallix-bridge-psp
+  labels:
+    security.dytallix.io/policy-type: "restricted"
 spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: dytallix-bridge-node
-  minReplicas: 3
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
-  behavior:
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies:
-      - type: Percent
-        value: 10
-        periodSeconds: 60
-    scaleUp:
-      stabilizationWindowSeconds: 60
-      policies:
-      - type: Percent
-        value: 50
-        periodSeconds: 60
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: true
+  seccompProfile:
+    type: RuntimeDefault

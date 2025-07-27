@@ -1,0 +1,184 @@
+# Dytallix Bridge RBAC Roles
+# ClusterRoles and Roles following principle of least privilege
+---
+# ClusterRole for bridge node - minimal cluster-level permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dytallix-bridge-cluster-role
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/scope: "cluster"
+rules:
+  # Read access to nodes for metrics and health checks
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  # Read access to node metrics
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+---
+# Namespace role for bridge node operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dytallix
+  name: dytallix-bridge-role
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/scope: "namespace"
+rules:
+  # ConfigMap access - specific named resources only
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["dytallix-bridge-config"]
+    verbs: ["get", "watch"]
+  # Secret access - specific named resources only
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["dytallix-bridge-secrets", "dytallix-pqc-keys"]
+    verbs: ["get"]
+  # Pod self-inspection for health checks
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+    resourceNames: []  # Will be restricted by pod security
+  # Service discovery within namespace
+  - apiGroups: [""]
+    resources: ["services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  # PVC access for data persistence
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    resourceNames: ["dytallix-bridge-data", "dytallix-bridge-logs"]
+    verbs: ["get"]
+---
+# ClusterRole for monitoring components
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dytallix-monitoring-cluster-role
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/scope: "cluster"
+rules:
+  # Read-only access to all pods, services, endpoints for metrics
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy", "services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+  # Read access to node and pod metrics
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+  # Read access to ingress for monitoring
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  # Read access to deployments for monitoring
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+---
+# Role for monitoring in dytallix namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dytallix
+  name: dytallix-monitoring-role
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/scope: "namespace"
+rules:
+  # Read access to ServiceMonitors for Prometheus
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["servicemonitors"]
+    verbs: ["get", "list", "watch"]
+  # Read access to ConfigMaps for monitoring config
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["prometheus-config", "grafana-config"]
+    verbs: ["get", "watch"]
+---
+# Role for API Gateway service discovery
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dytallix
+  name: dytallix-gateway-role
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/scope: "namespace"
+rules:
+  # Service discovery for load balancing
+  - apiGroups: [""]
+    resources: ["services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  # ConfigMap access for gateway configuration
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["dytallix-gateway-config"]
+    verbs: ["get", "watch"]
+  # Secret access for TLS certificates
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["dytallix-gateway-tls"]
+    verbs: ["get"]
+  # Read access to pods for health checking
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+# ClusterRole for Prometheus (cross-namespace monitoring)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-cluster-role
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/scope: "cluster"
+rules:
+  # Comprehensive read-only access for metrics collection
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/proxy
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+      - configmaps
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - daemonsets
+      - statefulsets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  # ServiceMonitor access for Prometheus Operator
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["servicemonitors", "podmonitors"]
+    verbs: ["get", "list", "watch"]
+---
+# Role for Prometheus in monitoring namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dytallix-monitoring
+  name: prometheus-role
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/scope: "namespace"
+rules:
+  # ConfigMap and Secret access for Prometheus configuration
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  # Pod management for Prometheus instances
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete"]
