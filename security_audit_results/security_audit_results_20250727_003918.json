@@ -1,0 +1,406 @@
+{
+  "scan_metadata": {
+    "timestamp": "2025-07-27T00:39:18.238802",
+    "auditor": "Dytallix Security Audit System",
+    "project_root": "/home/runner/work/dytallix/dytallix",
+    "compliance_frameworks": [
+      "CIS Kubernetes Benchmark",
+      "NIST Cybersecurity Framework",
+      "SOC 2 Type II",
+      "GDPR Data Protection"
+    ]
+  },
+  "summary": {
+    "total_findings": 15,
+    "total_resources": 8,
+    "risk_distribution": {
+      "Critical": 0,
+      "High": 7,
+      "Medium": 8,
+      "Low": 0,
+      "Info": 0
+    },
+    "compliance_impact": {
+      "CIS Kubernetes Benchmark": 12,
+      "NIST Cybersecurity Framework": 0,
+      "SOC 2 Type II": 3,
+      "GDPR Data Protection": 2
+    },
+    "critical_findings": [],
+    "recommendations": [
+      "Address all HIGH risk findings within 1 week",
+      "Upgrade all endpoints to enforce TLS 1.3",
+      "Establish regular security audit schedule (monthly)",
+      "Implement automated security scanning in CI/CD pipeline"
+    ]
+  },
+  "findings": [
+    {
+      "resource_type": "GKE Cluster",
+      "resource_name": "dytallix-bridge-cluster",
+      "finding_id": "GKE-001",
+      "title": "GKE Cluster Not Using Private Nodes",
+      "description": "GKE cluster should use private nodes to enhance security",
+      "risk_level": "RiskLevel.HIGH",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Enable private nodes in GKE cluster configuration",
+      "timeline": "1 week",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Cloud SQL",
+      "resource_name": "bridge-database",
+      "finding_id": "SQL-001",
+      "title": "SSL Not Required for Database Connections",
+      "description": "Cloud SQL should require SSL for all connections",
+      "risk_level": "RiskLevel.HIGH",
+      "compliance_frameworks": [
+        "ComplianceFramework.SOC2_TYPE2",
+        "ComplianceFramework.GDPR"
+      ],
+      "remediation": "Enable require_ssl setting for Cloud SQL instance",
+      "timeline": "1 week",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Kubernetes Workload",
+      "resource_name": "dytallix-testnet",
+      "finding_id": "K8S-001",
+      "title": "Security Context Not Defined",
+      "description": "Kubernetes workloads should define security contexts",
+      "risk_level": "RiskLevel.MEDIUM",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add security context to all pod specifications",
+      "timeline": "2 weeks",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Kubernetes Workload",
+      "resource_name": "simple-demo",
+      "finding_id": "K8S-001",
+      "title": "Security Context Not Defined",
+      "description": "Kubernetes workloads should define security contexts",
+      "risk_level": "RiskLevel.MEDIUM",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add security context to all pod specifications",
+      "timeline": "2 weeks",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Storage",
+      "resource_name": "Node disks",
+      "finding_id": "ENC-002",
+      "title": "Disk Encryption Status Unknown",
+      "description": "Ensure all persistent disks use encryption at rest",
+      "risk_level": "RiskLevel.MEDIUM",
+      "compliance_frameworks": [
+        "ComplianceFramework.SOC2_TYPE2",
+        "ComplianceFramework.GDPR"
+      ],
+      "remediation": "Verify and document disk encryption status for all storage volumes",
+      "timeline": "1 week",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "TLS Configuration",
+      "resource_name": "nginx-proxy",
+      "finding_id": "TLS-001",
+      "title": "TLS 1.3 Not Enforced",
+      "description": "Should enforce TLS 1.3 for all HTTPS connections",
+      "risk_level": "RiskLevel.MEDIUM",
+      "compliance_frameworks": [
+        "ComplianceFramework.SOC2_TYPE2"
+      ],
+      "remediation": "Update TLS configuration to enforce TLS 1.3 minimum version",
+      "timeline": "2 weeks",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "RBAC",
+      "resource_name": "kubernetes-rbac",
+      "finding_id": "RBAC-001",
+      "title": "RBAC Configurations Not Found",
+      "description": "Kubernetes RBAC should be explicitly configured for access control",
+      "risk_level": "RiskLevel.HIGH",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Implement explicit RBAC configurations for all service accounts and users",
+      "timeline": "1 week",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Container Security",
+      "resource_name": "Dockerfile",
+      "finding_id": "CTR-001",
+      "title": "Container Running as Root User",
+      "description": "Containers should not run as root user",
+      "risk_level": "RiskLevel.HIGH",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add USER directive to run container as non-root user",
+      "timeline": "1 week",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Container Security",
+      "resource_name": "Dockerfile",
+      "finding_id": "CTR-002",
+      "title": "Container Packages Not Updated",
+      "description": "Container should update packages to latest versions",
+      "risk_level": "RiskLevel.MEDIUM",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add package upgrade step in Dockerfile",
+      "timeline": "2 weeks",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Container Security",
+      "resource_name": "ai-services/Dockerfile",
+      "finding_id": "CTR-001",
+      "title": "Container Running as Root User",
+      "description": "Containers should not run as root user",
+      "risk_level": "RiskLevel.HIGH",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add USER directive to run container as non-root user",
+      "timeline": "1 week",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Container Security",
+      "resource_name": "ai-services/Dockerfile",
+      "finding_id": "CTR-002",
+      "title": "Container Packages Not Updated",
+      "description": "Container should update packages to latest versions",
+      "risk_level": "RiskLevel.MEDIUM",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add package upgrade step in Dockerfile",
+      "timeline": "2 weeks",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Container Security",
+      "resource_name": "frontend/Dockerfile",
+      "finding_id": "CTR-001",
+      "title": "Container Running as Root User",
+      "description": "Containers should not run as root user",
+      "risk_level": "RiskLevel.HIGH",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add USER directive to run container as non-root user",
+      "timeline": "1 week",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Container Security",
+      "resource_name": "deployment/gcp/Dockerfile.api",
+      "finding_id": "CTR-002",
+      "title": "Container Packages Not Updated",
+      "description": "Container should update packages to latest versions",
+      "risk_level": "RiskLevel.MEDIUM",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add package upgrade step in Dockerfile",
+      "timeline": "2 weeks",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Container Security",
+      "resource_name": "deployment/gcp/Dockerfile.frontend",
+      "finding_id": "CTR-001",
+      "title": "Container Running as Root User",
+      "description": "Containers should not run as root user",
+      "risk_level": "RiskLevel.HIGH",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add USER directive to run container as non-root user",
+      "timeline": "1 week",
+      "status": "Open",
+      "evidence": null
+    },
+    {
+      "resource_type": "Container Security",
+      "resource_name": "deployment/gcp/Dockerfile",
+      "finding_id": "CTR-002",
+      "title": "Container Packages Not Updated",
+      "description": "Container should update packages to latest versions",
+      "risk_level": "RiskLevel.MEDIUM",
+      "compliance_frameworks": [
+        "ComplianceFramework.CIS_KUBERNETES"
+      ],
+      "remediation": "Add package upgrade step in Dockerfile",
+      "timeline": "2 weeks",
+      "status": "Open",
+      "evidence": null
+    }
+  ],
+  "resources": [
+    {
+      "resource_type": "Network Policy",
+      "resource_name": "calico-network-policy",
+      "resource_id": "network_policy",
+      "region": "us-central1",
+      "encryption_status": "Not applicable",
+      "access_control": "Policy-based",
+      "network_security": "Microsegmentation enabled",
+      "backup_status": "Not applicable",
+      "monitoring_status": "Enabled",
+      "compliance_status": "Compliant",
+      "risk_level": "RiskLevel.LOW",
+      "last_scan": "2025-07-27T00:39:18.238802"
+    },
+    {
+      "resource_type": "KMS Key",
+      "resource_name": "cluster-encryption-key",
+      "resource_id": "cluster_key",
+      "region": "us-central1",
+      "encryption_status": "Enabled (30-day rotation)",
+      "access_control": "Service account based",
+      "network_security": "Not applicable",
+      "backup_status": "Automatic",
+      "monitoring_status": "Enabled",
+      "compliance_status": "Compliant",
+      "risk_level": "RiskLevel.LOW",
+      "last_scan": "2025-07-27T00:39:18.238802"
+    },
+    {
+      "resource_type": "Cloud SQL",
+      "resource_name": "bridge-database",
+      "resource_id": "bridge_db",
+      "region": "us-central1",
+      "encryption_status": "Enabled (Google-managed)",
+      "access_control": "Private IP only",
+      "network_security": "VPC-native",
+      "backup_status": "Automated backups enabled",
+      "monitoring_status": "Enabled",
+      "compliance_status": "Compliant",
+      "risk_level": "RiskLevel.LOW",
+      "last_scan": "2025-07-27T00:39:18.238802"
+    },
+    {
+      "resource_type": "Storage Bucket",
+      "resource_name": "bridge-storage",
+      "resource_id": "bridge_storage",
+      "region": "us-central1",
+      "encryption_status": "Enabled (Google-managed)",
+      "access_control": "Uniform bucket-level access",
+      "network_security": "Not applicable",
+      "backup_status": "Lifecycle policies configured",
+      "monitoring_status": "Access logs enabled",
+      "compliance_status": "Compliant",
+      "risk_level": "RiskLevel.LOW",
+      "last_scan": "2025-07-27T00:39:18.238802"
+    },
+    {
+      "resource_type": "IAM",
+      "resource_name": "workload-identity",
+      "resource_id": "workload_pool",
+      "region": "global",
+      "encryption_status": "Not applicable",
+      "access_control": "Workload Identity enabled",
+      "network_security": "Not applicable",
+      "backup_status": "Not applicable",
+      "monitoring_status": "Enabled",
+      "compliance_status": "Compliant",
+      "risk_level": "RiskLevel.LOW",
+      "last_scan": "2025-07-27T00:39:18.238802"
+    },
+    {
+      "resource_type": "Secret Management",
+      "resource_name": "secrets-store",
+      "resource_id": "secret_mgmt",
+      "region": "global",
+      "encryption_status": "Encrypted",
+      "access_control": "Role-based",
+      "network_security": "Not applicable",
+      "backup_status": "Not applicable",
+      "monitoring_status": "Enabled",
+      "compliance_status": "Needs review",
+      "risk_level": "RiskLevel.MEDIUM",
+      "last_scan": "2025-07-27T00:39:18.238802"
+    },
+    {
+      "resource_type": "Audit Logging",
+      "resource_name": "gcp-audit-logs",
+      "resource_id": "audit_logs",
+      "region": "global",
+      "encryption_status": "Enabled",
+      "access_control": "Service account based",
+      "network_security": "Not applicable",
+      "backup_status": "Retained per policy",
+      "monitoring_status": "Enabled",
+      "compliance_status": "Compliant",
+      "risk_level": "RiskLevel.LOW",
+      "last_scan": "2025-07-27T00:39:18.238802"
+    },
+    {
+      "resource_type": "Monitoring",
+      "resource_name": "security-monitoring",
+      "resource_id": "monitoring_stack",
+      "region": "global",
+      "encryption_status": "Not applicable",
+      "access_control": "Role-based",
+      "network_security": "Not applicable",
+      "backup_status": "Not applicable",
+      "monitoring_status": "Enabled",
+      "compliance_status": "Compliant",
+      "risk_level": "RiskLevel.LOW",
+      "last_scan": "2025-07-27T00:39:18.238802"
+    }
+  ],
+  "compliance_status": {
+    "CIS Kubernetes Benchmark": {
+      "status": "Non-Compliant",
+      "score": 0,
+      "total_findings": 12,
+      "critical_high_findings": 6
+    },
+    "NIST Cybersecurity Framework": {
+      "status": "Compliant",
+      "score": 100,
+      "total_findings": 0,
+      "critical_high_findings": 0
+    },
+    "SOC 2 Type II": {
+      "status": "Non-Compliant",
+      "score": 80,
+      "total_findings": 3,
+      "critical_high_findings": 1
+    },
+    "GDPR Data Protection": {
+      "status": "Non-Compliant",
+      "score": 80,
+      "total_findings": 2,
+      "critical_high_findings": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "framework": "SOC 2 Type II",
+  "assessment_date": "2025-07-27T00:39:18.358486",
+  "findings": [],
+  "control_areas": {
+    "security": {
+      "implemented": 75,
+      "gaps": 3
+    },
+    "availability": {
+      "implemented": 80,
+      "gaps": 2
+    },
+    "processing_integrity": {
+      "implemented": 70,
+      "gaps": 4
+    },
+    "confidentiality": {
+      "implemented": 75,
+      "gaps": 3
+    }
+  }
+}

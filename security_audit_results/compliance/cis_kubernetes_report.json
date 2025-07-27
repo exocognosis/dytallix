@@ -1,0 +1,12 @@
+{
+  "framework": "CIS Kubernetes Benchmark",
+  "version": "1.6.1",
+  "assessment_date": "2025-07-27T00:39:18.358357",
+  "findings": [],
+  "summary": {
+    "total_controls": 100,
+    "implemented": 75,
+    "partial": 15,
+    "not_implemented": 10
+  }
+}

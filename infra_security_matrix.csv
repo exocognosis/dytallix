@@ -1,0 +1,9 @@
+Resource Type,Resource Name,Resource ID,Region,Encryption Status,Access Control,Network Security,Backup Status,Monitoring Status,Compliance Status,Risk Level,Last Scan
+Network Policy,calico-network-policy,network_policy,us-central1,Not applicable,Policy-based,Microsegmentation enabled,Not applicable,Enabled,Compliant,Low,2025-07-27T00:39:18.238802
+KMS Key,cluster-encryption-key,cluster_key,us-central1,Enabled (30-day rotation),Service account based,Not applicable,Automatic,Enabled,Compliant,Low,2025-07-27T00:39:18.238802
+Cloud SQL,bridge-database,bridge_db,us-central1,Enabled (Google-managed),Private IP only,VPC-native,Automated backups enabled,Enabled,Compliant,Low,2025-07-27T00:39:18.238802
+Storage Bucket,bridge-storage,bridge_storage,us-central1,Enabled (Google-managed),Uniform bucket-level access,Not applicable,Lifecycle policies configured,Access logs enabled,Compliant,Low,2025-07-27T00:39:18.238802
+IAM,workload-identity,workload_pool,global,Not applicable,Workload Identity enabled,Not applicable,Not applicable,Enabled,Compliant,Low,2025-07-27T00:39:18.238802
+Secret Management,secrets-store,secret_mgmt,global,Encrypted,Role-based,Not applicable,Not applicable,Enabled,Needs review,Medium,2025-07-27T00:39:18.238802
+Audit Logging,gcp-audit-logs,audit_logs,global,Enabled,Service account based,Not applicable,Retained per policy,Enabled,Compliant,Low,2025-07-27T00:39:18.238802
+Monitoring,security-monitoring,monitoring_stack,global,Not applicable,Role-based,Not applicable,Not applicable,Enabled,Compliant,Low,2025-07-27T00:39:18.238802
