@@ -1,0 +1,223 @@
+# Binary Authorization Policy
+# Ensures only verified and signed container images can be deployed
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dytallix-binary-authorization-policy
+  namespace: dytallix
+  labels:
+    security.dytallix.io/type: "binary-authorization"
+data:
+  policy.yaml: |
+    # Binary Authorization Policy for Dytallix
+    name: projects/dytallix/policy
+    description: "Binary Authorization policy for Dytallix blockchain bridge"
+    globalPolicyEvaluationMode: ENABLE
+    
+    # Default admission rule - require attestation
+    defaultAdmissionRule:
+      evaluationMode: REQUIRE_ATTESTATION
+      enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+      requireAttestationsBy:
+      - projects/dytallix/attestors/prod-attestor
+      - projects/dytallix/attestors/security-attestor
+    
+    # Cluster-specific admission rules
+    clusterAdmissionRules:
+      us-central1-a.dytallix-bridge-cluster:
+        evaluationMode: REQUIRE_ATTESTATION
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+        requireAttestationsBy:
+        - projects/dytallix/attestors/cluster-attestor
+        - projects/dytallix/attestors/security-attestor
+    
+    # Kubernetes service account admission rules
+    kubernetesServiceAccountAdmissionRules:
+      # System service accounts - allow with logging
+      kube-system/*:
+        evaluationMode: ALWAYS_ALLOW
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+      
+      # Dytallix service accounts - require attestation
+      dytallix/*:
+        evaluationMode: REQUIRE_ATTESTATION
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+        requireAttestationsBy:
+        - projects/dytallix/attestors/dytallix-attestor
+    
+    # Istio service account rules (if using service mesh)
+    istioServiceIdentityAdmissionRules:
+      # Allow Istio system components
+      cluster.local/ns/istio-system/sa/istio-proxy:
+        evaluationMode: ALWAYS_ALLOW
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+
+---
+# Attestor configuration for container image verification
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dytallix-attestors-config
+  namespace: dytallix
+  labels:
+    security.dytallix.io/type: "attestors"
+data:
+  attestors.yaml: |
+    # Production Attestor
+    - name: projects/dytallix/attestors/prod-attestor
+      description: "Production environment attestor"
+      userOwnedGrafeasNote:
+        noteReference: projects/dytallix/notes/prod-note
+        publicKeys:
+        - asciiArmoredPgpPublicKey: |
+            -----BEGIN PGP PUBLIC KEY BLOCK-----
+            # Production PGP public key would go here
+            -----END PGP PUBLIC KEY BLOCK-----
+        - pkixPublicKey:
+            publicKeyPem: |
+              -----BEGIN PUBLIC KEY-----
+              # Production RSA public key would go here
+              -----END PUBLIC KEY-----
+            signatureAlgorithm: RSA_PSS_2048_SHA256
+    
+    # Security Attestor
+    - name: projects/dytallix/attestors/security-attestor
+      description: "Security team attestor for vulnerability scanning"
+      userOwnedGrafeasNote:
+        noteReference: projects/dytallix/notes/security-note
+        publicKeys:
+        - pkixPublicKey:
+            publicKeyPem: |
+              -----BEGIN PUBLIC KEY-----
+              # Security team RSA public key would go here
+              -----END PUBLIC KEY-----
+            signatureAlgorithm: RSA_PSS_2048_SHA256
+    
+    # Dytallix Application Attestor
+    - name: projects/dytallix/attestors/dytallix-attestor
+      description: "Dytallix application-specific attestor"
+      userOwnedGrafeasNote:
+        noteReference: projects/dytallix/notes/dytallix-note
+        publicKeys:
+        - pkixPublicKey:
+            publicKeyPem: |
+              -----BEGIN PUBLIC KEY-----
+              # Dytallix application RSA public key would go here
+              -----END PUBLIC KEY-----
+            signatureAlgorithm: RSA_PSS_4096_SHA512
+
+---
+# Container image policy for specific registries
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dytallix-image-policy
+  namespace: dytallix
+  labels:
+    security.dytallix.io/type: "image-policy"
+data:
+  image-policy.yaml: |
+    # Allowed container registries and policies
+    imageAdmissionRules:
+      # Google Container Registry - require attestation
+      gcr.io/dytallix/*:
+        evaluationMode: REQUIRE_ATTESTATION
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+        requireAttestationsBy:
+        - projects/dytallix/attestors/prod-attestor
+      
+      # Artifact Registry - require attestation
+      us-central1-docker.pkg.dev/dytallix/*:
+        evaluationMode: REQUIRE_ATTESTATION
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+        requireAttestationsBy:
+        - projects/dytallix/attestors/prod-attestor
+        - projects/dytallix/attestors/security-attestor
+      
+      # Docker Hub - block all except specific allowed images
+      docker.io/*:
+        evaluationMode: ALWAYS_DENY
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+      
+      # Allow specific base images from Docker Hub
+      docker.io/library/alpine:*:
+        evaluationMode: ALWAYS_ALLOW
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+      
+      docker.io/library/ubuntu:*:
+        evaluationMode: REQUIRE_ATTESTATION
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+        requireAttestationsBy:
+        - projects/dytallix/attestors/security-attestor
+      
+      # Google system images - allow with logging
+      gke.gcr.io/*:
+        evaluationMode: ALWAYS_ALLOW
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+      
+      k8s.gcr.io/*:
+        evaluationMode: ALWAYS_ALLOW
+        enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+
+---
+# Binary Authorization webhook configuration
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: dytallix-binary-authorization
+  labels:
+    security.dytallix.io/type: "binary-authorization"
+webhooks:
+- name: binary-authorization.dytallix.io
+  clientConfig:
+    service:
+      name: binary-authorization-webhook
+      namespace: kube-system
+      path: "/validate-image"
+  rules:
+  - operations: [ "CREATE", "UPDATE" ]
+    apiGroups: ["apps", ""]
+    apiVersions: ["v1"]
+    resources: ["pods", "deployments", "replicasets", "daemonsets", "statefulsets"]
+  failurePolicy: Fail
+  admissionReviewVersions: ["v1", "v1beta1"]
+  timeoutSeconds: 30
+
+---
+# Image vulnerability scanning policy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dytallix-vulnerability-policy
+  namespace: dytallix
+  labels:
+    security.dytallix.io/type: "vulnerability-scanning"
+data:
+  vulnerability-policy.yaml: |
+    # Vulnerability scanning requirements
+    vulnerabilityPolicy:
+      # Maximum allowed vulnerability severity
+      maximumFixableSeverity: MEDIUM
+      maximumUnfixableSeverity: LOW
+      
+      # Allowlist for specific CVEs that have been reviewed and accepted
+      allowlistCVEs:
+      # - CVE-2021-XXXXX  # Example: accepted CVE with business justification
+      
+      # Package allowlist for known-good packages
+      allowlistPackages:
+      - packageType: GO
+        packageName: github.com/dytallix/secure-crypto
+        packageVersion: v1.2.3
+      
+      # Scan configuration
+      scanConfig:
+        # Scan on image push
+        scanOnPush: true
+        # Scan on schedule
+        scanSchedule: "0 2 * * *"  # Daily at 2 AM
+        # Fail deployment on high/critical vulnerabilities
+        failOnHighSeverity: true
+        failOnCriticalSeverity: true
