@@ -489,7 +489,6 @@ async def dashboard_home():
         <div class="dashboard-container">
             <div class="header">
                 <h1><i class="fas fa-rocket"></i> Dytallix Performance Dashboard</h1>
-                <div class="subtitle">Real-time system monitoring with interactive visualizations</div>
                 <div class="status-bar">
                     <div class="status-item">
                         <div class="status-dot"></div>
@@ -533,21 +532,21 @@ async def dashboard_home():
                     <div class="metric-icon"><i class="fas fa-microchip"></i></div>
                     <div class="metric-value" id="cpu-value">---%</div>
                     <div class="metric-label">CPU Usage</div>
-                    <div class="metric-change change-positive" id="cpu-change">+2.3%</div>
+                    <div class="metric-change change-positive" id="cpu-change">Excellent</div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-icon"><i class="fas fa-memory"></i></div>
                     <div class="metric-value" id="memory-value">---%</div>
                     <div class="metric-label">Memory Usage</div>
-                    <div class="metric-change change-negative" id="memory-change">-1.2%</div>
+                    <div class="metric-change change-positive" id="memory-change">Good</div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-icon"><i class="fas fa-hdd"></i></div>
                     <div class="metric-value" id="disk-value">---%</div>
                     <div class="metric-label">Disk Usage</div>
-                    <div class="metric-change change-positive" id="disk-change">+0.1%</div>
+                    <div class="metric-change change-positive" id="disk-change">Excellent</div>
                 </div>
                 
                 <div class="metric-card">
@@ -883,19 +882,33 @@ async def dashboard_home():
             }
             
             function updateMetricChanges(data) {
-                // Simulate metric changes
-                const changes = [
-                    Math.random() * 4 - 2, // CPU change
-                    Math.random() * 3 - 1.5, // Memory change
-                    Math.random() * 0.5 - 0.25 // Disk change
-                ];
+                // Color code based on system performance logic:
+                // Green = Low usage (good), Red = High usage (concerning)
                 
+                const currentUsage = [data.cpu_percent, data.memory_percent, data.disk_percent];
                 const elements = ['cpu-change', 'memory-change', 'disk-change'];
-                changes.forEach((change, index) => {
+                const thresholds = [70, 80, 85]; // CPU, Memory, Disk warning thresholds
+                
+                currentUsage.forEach((usage, index) => {
                     const element = document.getElementById(elements[index]);
-                    const isPositive = change > 0;
-                    element.className = `metric-change ${isPositive ? 'change-positive' : 'change-negative'}`;
-                    element.textContent = (isPositive ? '+' : '') + change.toFixed(1) + '%';
+                    const change = (Math.random() * 4 - 2); // Simulate change for display
+                    
+                    // Determine color based on current usage level, not change direction
+                    const isGood = usage < thresholds[index];
+                    element.className = `metric-change ${isGood ? 'change-positive' : 'change-negative'}`;
+                    
+                    // Show status instead of arbitrary change
+                    if (usage < thresholds[index] * 0.5) {
+                        element.textContent = 'Excellent';
+                    } else if (usage < thresholds[index] * 0.7) {
+                        element.textContent = 'Good';
+                    } else if (usage < thresholds[index]) {
+                        element.textContent = 'Normal';
+                    } else if (usage < thresholds[index] * 1.2) {
+                        element.textContent = 'High';
+                    } else {
+                        element.textContent = 'Critical';
+                    }
                 });
             }
             

@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: gcr.io/dytallix/dytallix-frontend:latest
+        image: us-central1-docker.pkg.dev/dytallix/dytallix-testnet-repo/dytallix-frontend:latest
         ports:
         - containerPort: 80
           name: http
