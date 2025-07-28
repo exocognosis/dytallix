@@ -1,0 +1,306 @@
+# Calico Enhanced Network Policies
+# Implements microsegmentation with explicit allow rules for each service
+# Uses Calico-specific features for enhanced security
+
+---
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: dytallix-global-deny-all
+  labels:
+    security.dytallix.io/policy: "global-deny"
+spec:
+  order: 1000
+  selector: "projectcalico.org/namespace == 'dytallix'"
+  types:
+  - Ingress
+  - Egress
+  # Global deny-all policy with highest order (lowest priority)
+
+---
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: dytallix-node-microsegmentation
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "node-microsegmentation"
+spec:
+  order: 100
+  selector: app == "dytallix-node"
+  types:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow frontend connections on RPC port
+  - action: Allow
+    source:
+      selector: app == "dytallix-frontend"
+    destination:
+      ports:
+      - 8545
+  # Allow AI services connections
+  - action: Allow
+    source:
+      selector: app == "dytallix-ai-services"
+    destination:
+      ports:
+      - 8545
+  # Allow bridge service connections
+  - action: Allow
+    source:
+      selector: app == "dytallix-bridge"
+    destination:
+      ports:
+      - 8545
+  # Allow monitoring and health checks
+  - action: Allow
+    source:
+      namespaceSelector: name == "kube-system"
+    destination:
+      ports:
+      - 8080
+      - 9090
+  egress:
+  # Allow DNS
+  - action: Allow
+    destination:
+      ports:
+      - 53
+  # Allow bridge service communication
+  - action: Allow
+    destination:
+      selector: app == "dytallix-bridge"
+      ports:
+      - 8080
+  # Allow external blockchain connections (controlled)
+  - action: Allow
+    destination:
+      nets:
+      - 0.0.0.0/0
+      ports:
+      - 443  # HTTPS
+      - 80   # HTTP (for some blockchain RPCs)
+      - 8545 # Ethereum RPC
+      - 26657 # Cosmos RPC
+
+---
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: dytallix-ai-services-microsegmentation
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "ai-microsegmentation"
+spec:
+  order: 100
+  selector: app == "dytallix-ai-services"
+  types:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow frontend connections
+  - action: Allow
+    source:
+      selector: app == "dytallix-frontend"
+    destination:
+      ports:
+      - 8000
+  # Allow node connections for AI processing
+  - action: Allow
+    source:
+      selector: app == "dytallix-node"
+    destination:
+      ports:
+      - 8000
+  # Allow monitoring
+  - action: Allow
+    source:
+      namespaceSelector: name == "kube-system"
+    destination:
+      ports:
+      - 8080
+      - 9090
+  egress:
+  # Allow DNS
+  - action: Allow
+    destination:
+      ports:
+      - 53
+  # Allow node communication
+  - action: Allow
+    destination:
+      selector: app == "dytallix-node"
+      ports:
+      - 8545
+  # Allow external AI service calls (restricted)
+  - action: Allow
+    destination:
+      nets:
+      - 0.0.0.0/0
+      ports:
+      - 443  # HTTPS only for external AI services
+
+---
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: dytallix-frontend-microsegmentation
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "frontend-microsegmentation"
+spec:
+  order: 100
+  selector: app == "dytallix-frontend"
+  types:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow external user access
+  - action: Allow
+    source:
+      nets:
+      - 0.0.0.0/0
+    destination:
+      ports:
+      - 3000
+      - 80
+      - 443
+  # Allow load balancer health checks
+  - action: Allow
+    source:
+      nets:
+      - 130.211.0.0/22  # Google Cloud Load Balancer health check ranges
+      - 35.191.0.0/16
+    destination:
+      ports:
+      - 3000
+      - 8080
+  egress:
+  # Allow DNS
+  - action: Allow
+    destination:
+      ports:
+      - 53
+  # Allow backend service communication
+  - action: Allow
+    destination:
+      selector: app == "dytallix-node"
+      ports:
+      - 8545
+  - action: Allow
+    destination:
+      selector: app == "dytallix-ai-services"
+      ports:
+      - 8000
+  # Allow external CDN/asset loading (restricted)
+  - action: Allow
+    destination:
+      nets:
+      - 0.0.0.0/0
+      ports:
+      - 443  # HTTPS for CDN
+      - 80   # HTTP (if needed)
+
+---
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: dytallix-bridge-microsegmentation
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "bridge-microsegmentation"
+spec:
+  order: 100
+  selector: app == "dytallix-bridge"
+  types:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow node connections
+  - action: Allow
+    source:
+      selector: app == "dytallix-node"
+    destination:
+      ports:
+      - 8080
+  # Allow monitoring
+  - action: Allow
+    source:
+      namespaceSelector: name == "kube-system"
+    destination:
+      ports:
+      - 8080
+      - 9090
+  egress:
+  # Allow DNS
+  - action: Allow
+    destination:
+      ports:
+      - 53
+  # Allow external blockchain connections
+  - action: Allow
+    destination:
+      nets:
+      - 0.0.0.0/0
+      ports:
+      - 443   # HTTPS
+      - 80    # HTTP
+      - 8545  # Ethereum RPC
+      - 26657 # Cosmos RPC
+      - 1317  # Cosmos REST API
+
+---
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: dytallix-security-logging
+  labels:
+    security.dytallix.io/policy: "security-logging"
+spec:
+  order: 10
+  selector: "projectcalico.org/namespace == 'dytallix'"
+  types:
+  - Ingress
+  - Egress
+  ingress:
+  - action: Log
+    source: {}
+  egress:
+  - action: Log
+    destination: {}
+  # Log all traffic for security monitoring
+
+---
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: dytallix-emergency-access
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "emergency-access"
+spec:
+  order: 50
+  selector: security.dytallix.io/emergency-access == "true"
+  types:
+  - Ingress
+  - Egress
+  ingress:
+  # Emergency access from specific management CIDR
+  - action: Allow
+    source:
+      nets:
+      - 10.0.0.0/24  # Management subnet
+    destination:
+      ports:
+      - 22   # SSH (if enabled)
+      - 443  # HTTPS management
+  egress:
+  # Allow emergency egress
+  - action: Allow
+    destination:
+      nets:
+      - 10.0.0.0/8   # Internal networks
+      ports:
+      - 443
+      - 53

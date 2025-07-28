@@ -1,0 +1,226 @@
+# Pod Security Standards - Restricted Profile
+# Enforces the most restrictive security policies for all pods
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dytallix
+  labels:
+    # Enforce Pod Security Standards - Restricted profile
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    # Additional security labels
+    security.dytallix.io/hardened: "true"
+    security.dytallix.io/profile: "restricted"
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: dytallix-pod-security-policy
+  labels:
+    security.dytallix.io/policy: "pod-security"
+webhooks:
+- name: pod-security.dytallix.io
+  clientConfig:
+    service:
+      name: dytallix-pod-security-webhook
+      namespace: dytallix
+      path: "/validate-pods"
+  rules:
+  - operations: [ "CREATE", "UPDATE" ]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["pods"]
+  failurePolicy: Fail
+  admissionReviewVersions: ["v1", "v1beta1"]
+
+---
+# Security Context Constraints for all Dytallix pods
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dytallix-security-context
+  namespace: dytallix
+  labels:
+    security.dytallix.io/type: "security-context"
+data:
+  security-context.yaml: |
+    # Pod-level security context (add to spec.securityContext)
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      fsGroupChangePolicy: "OnRootMismatch"
+      seccompProfile:
+        type: RuntimeDefault
+      supplementalGroups: []
+      sysctls: []
+    
+    # Container-level security context (add to each container)
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      capabilities:
+        drop:
+        - ALL
+        # Only add specific capabilities if absolutely needed
+        # add:
+        # - NET_BIND_SERVICE  # Only for binding to privileged ports <1024
+      seccompProfile:
+        type: RuntimeDefault
+      privileged: false
+      procMount: Default
+    
+    # Required volume mounts for read-only root filesystem
+    volumeMounts:
+    - name: tmp-volume
+      mountPath: /tmp
+    - name: var-cache
+      mountPath: /var/cache
+    - name: var-log
+      mountPath: /var/log
+    - name: var-run
+      mountPath: /var/run
+    
+    # Required volumes
+    volumes:
+    - name: tmp-volume
+      emptyDir:
+        sizeLimit: 1Gi
+    - name: var-cache
+      emptyDir:
+        sizeLimit: 1Gi
+    - name: var-log
+      emptyDir:
+        sizeLimit: 1Gi
+    - name: var-run
+      emptyDir:
+        sizeLimit: 100Mi
+
+---
+# Network Policy for Pod Security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pod-security-network-restrictions
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "pod-security"
+spec:
+  podSelector:
+    matchLabels:
+      security.dytallix.io/restricted: "true"
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Only allow ingress from same namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: dytallix
+  egress:
+  # Only allow egress to same namespace and system services
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: dytallix
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# Resource Quota for security compliance
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: dytallix-security-quota
+  namespace: dytallix
+  labels:
+    security.dytallix.io/type: "resource-quota"
+spec:
+  hard:
+    # Limit resources to prevent resource exhaustion attacks
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    # Limit number of objects
+    pods: "50"
+    services: "20"
+    persistentvolumeclaims: "10"
+    secrets: "50"
+    configmaps: "50"
+    # Security-related limits
+    services.nodeports: "0"  # Prevent NodePort services
+    services.loadbalancers: "2"  # Limit LoadBalancers
+
+---
+# Limit Range for additional security
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: dytallix-security-limits
+  namespace: dytallix
+  labels:
+    security.dytallix.io/type: "limit-range"
+spec:
+  limits:
+  # Pod limits
+  - type: Pod
+    max:
+      cpu: "4"
+      memory: 8Gi
+    min:
+      cpu: 100m
+      memory: 128Mi
+  # Container limits
+  - type: Container
+    default:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 100Mi
+    max:
+      cpu: "2"
+      memory: 4Gi
+      ephemeral-storage: 2Gi
+    min:
+      cpu: 50m
+      memory: 64Mi
+      ephemeral-storage: 50Mi
+
+---
+# Security monitoring ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dytallix-pod-security-metrics
+  namespace: dytallix
+  labels:
+    security.dytallix.io/monitoring: "true"
+spec:
+  selector:
+    matchLabels:
+      security.dytallix.io/metrics: "true"
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true

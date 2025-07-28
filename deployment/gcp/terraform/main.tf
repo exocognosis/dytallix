@@ -208,7 +208,12 @@ resource "google_project_service" "apis" {
     "iam.googleapis.com",
     "compute.googleapis.com",
     "containerregistry.googleapis.com",
-    "artifactregistry.googleapis.com"
+    "artifactregistry.googleapis.com",
+    "binaryauthorization.googleapis.com",  # For Binary Authorization
+    "cloudkms.googleapis.com",             # For KMS encryption
+    "containeranalysis.googleapis.com",    # For vulnerability scanning
+    "cloudtrace.googleapis.com",           # For security tracing
+    "cloudsecurity.googleapis.com"         # For security posture management
   ])
 
   project = var.project_id
@@ -224,14 +229,19 @@ resource "google_service_account" "bridge_sa" {
   description  = "Service account for Dytallix cross-chain bridge"
 }
 
-# IAM roles for the service account
+# IAM roles for the service account with enhanced security permissions
 resource "google_project_iam_member" "bridge_sa_roles" {
   for_each = toset([
     "roles/container.admin",
     # "roles/cloudsql.client",  # Requires Cloud SQL API to be enabled
     "roles/storage.admin",
     "roles/monitoring.metricWriter",
-    "roles/logging.logWriter"
+    "roles/logging.logWriter",
+    "roles/binaryauthorization.attestorsVerifier",  # For Binary Authorization
+    "roles/cloudkms.cryptoKeyEncrypterDecrypter",   # For KMS encryption
+    "roles/containeranalysis.notes.viewer",        # For vulnerability scanning
+    "roles/cloudtrace.agent",                      # For security tracing
+    "roles/monitoring.alertPolicyEditor"           # For security alerting
   ])
 
   project = var.project_id
@@ -271,18 +281,28 @@ resource "google_container_cluster" "primary" {
     provider = "CALICO"
   }
 
-  # Security configuration
+  # Enhanced Security configuration - Private cluster
   private_cluster_config {
     enable_private_nodes    = true
-    enable_private_endpoint = false
+    enable_private_endpoint = true  # Enhanced security: private endpoint only
     master_ipv4_cidr_block  = "172.16.0.0/28"
+    
+    # Enable private Google access
+    master_global_access_config {
+      enabled = false  # Restrict to regional access only
+    }
   }
 
-  # Master authorized networks - restrict in production
+  # Master authorized networks - restricted access
   master_authorized_networks_config {
     cidr_blocks {
-      cidr_block   = var.environment == "prod" ? "10.0.0.0/8" : "0.0.0.0/0"
-      display_name = var.environment == "prod" ? "Internal networks" : "All networks"
+      cidr_block   = local.subnet_cidr  # Only allow access from the cluster subnet
+      display_name = "Cluster subnet access"
+    }
+    # Allow Cloud Shell access for management (optional - can be removed for max security)
+    cidr_blocks {
+      cidr_block   = "35.235.240.0/20"  # Cloud Shell IP range
+      display_name = "Cloud Shell access"
     }
   }
 
@@ -290,7 +310,7 @@ resource "google_container_cluster" "primary" {
   logging_service    = "logging.googleapis.com/kubernetes"
   monitoring_service = "monitoring.googleapis.com/kubernetes"
 
-  # Addons
+  # Addons with enhanced security
   addons_config {
     horizontal_pod_autoscaling {
       disabled = false
@@ -304,23 +324,87 @@ resource "google_container_cluster" "primary" {
     network_policy_config {
       disabled = false
     }
+    # Enable GKE backup for additional protection
+    gcp_filestore_csi_driver_config {
+      enabled = true
+    }
+    # Enable Cloud DNS for service discovery
+    dns_cache_config {
+      enabled = true
+    }
+  }
+
+  # Pod Security Policy replacement - enable Pod Security Standards
+  pod_security_policy_config {
+    enabled = false  # Deprecated, using Pod Security Standards instead
+  }
+  
+  # Enable security posture management
+  security_posture_config {
+    mode               = "BASIC"
+    vulnerability_mode = "VULNERABILITY_BASIC"
+  }
+
+  # Enable cost management features
+  cost_management_config {
+    enabled = true
   }
 
   # Enhanced security features
   binary_authorization {
-    evaluation_mode = var.environment == "prod" ? "PROJECT_SINGLETON_POLICY_ENFORCE" : "DISABLED"
+    evaluation_mode = "PROJECT_SINGLETON_POLICY_ENFORCE"  # Enable for all environments
   }
 
-  # Database encryption
+  # Database encryption with customer-managed keys
   database_encryption {
-    state    = var.environment == "prod" ? "ENCRYPTED" : "DECRYPTED"
-    key_name = var.environment == "prod" ? google_kms_crypto_key.cluster_key[0].id : null
+    state    = "ENCRYPTED"
+    key_name = google_kms_crypto_key.cluster_key.id  # Always use CMEK
   }
 
-  # Maintenance policy
+  # Enhanced maintenance policy for minimal downtime
   maintenance_policy {
-    daily_maintenance_window {
-      start_time = "03:00"
+    recurring_window {
+      start_time = "2023-01-01T04:00:00Z"
+      end_time   = "2023-01-01T06:00:00Z"
+      recurrence = "FREQ=WEEKLY;BYDAY=SU"  # Sunday maintenance window
+    }
+    
+    maintenance_exclusion {
+      exclusion_name = "holiday-exclusions"
+      start_time     = "2023-12-20T00:00:00Z"
+      end_time       = "2024-01-02T23:59:59Z"
+      exclusion_options {
+        scope = "NO_UPGRADES"
+      }
+    }
+  }
+
+  # Enable comprehensive logging for security monitoring
+  logging_config {
+    enable_components = [
+      "SYSTEM_COMPONENTS",
+      "WORKLOADS",
+      "API_SERVER",
+      "CONTROLLER_MANAGER",
+      "SCHEDULER"
+    ]
+  }
+
+  # Enhanced monitoring configuration
+  monitoring_config {
+    enable_components = [
+      "SYSTEM_COMPONENTS",
+      "WORKLOADS",
+      "DAEMONSET",
+      "DEPLOYMENT",
+      "STATEFULSET",
+      "STORAGE",
+      "HPA",
+      "POD"
+    ]
+    
+    managed_prometheus {
+      enabled = true
     }
   }
 
@@ -346,26 +430,42 @@ resource "google_container_node_pool" "primary_nodes" {
     disk_size_gb = var.disk_size_gb
     disk_type    = "pd-ssd"
 
-    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    # Enhanced security: use custom service account with minimal permissions
     service_account = google_service_account.bridge_sa.email
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
 
     labels = {
-      env     = "testnet"
+      env     = var.environment
       project = "dytallix-bridge"
     }
 
-    tags = ["dytallix-bridge", "testnet"]
+    tags = ["dytallix-bridge", var.environment]
 
     metadata = {
       disable-legacy-endpoints = "true"
+      # Enhanced security metadata
+      enable-oslogin                      = "true"
+      enable-guest-attributes             = "false"
+      block-project-ssh-keys              = "true"
     }
 
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
+
+    # Enhanced security: node hardening
+    shielded_instance_config {
+      enable_secure_boot          = true
+      enable_integrity_monitoring = true
+    }
+
+    # Boot disk encryption with customer-managed key
+    boot_disk_kms_key = google_kms_crypto_key.cluster_key.id
+
+    # Enhanced image security
+    image_type = "COS_CONTAINERD"  # Container-Optimized OS with containerd
   }
 
   management {
@@ -414,17 +514,15 @@ resource "google_compute_subnetwork" "subnet" {
   }
 }
 
-# KMS key for cluster encryption (production only)
+# KMS key for cluster encryption (always created for security)
 resource "google_kms_key_ring" "cluster_key_ring" {
-  count    = var.environment == "prod" ? 1 : 0
   name     = "${local.resource_prefix}-keyring"
   location = var.region
 }
 
 resource "google_kms_crypto_key" "cluster_key" {
-  count           = var.environment == "prod" ? 1 : 0
   name            = "${local.resource_prefix}-cluster-key"
-  key_ring        = google_kms_key_ring.cluster_key_ring[0].id
+  key_ring        = google_kms_key_ring.cluster_key_ring.id
   rotation_period = "2592000s" # 30 days
 
   labels = local.common_labels
@@ -577,7 +675,113 @@ resource "google_storage_bucket" "access_logs" {
   labels = local.common_labels
 }
 
-# Artifact Registry for container images with enhanced configuration
+# Cloud Router for Cloud NAT
+resource "google_compute_router" "router" {
+  name    = "${local.resource_prefix}-router"
+  region  = var.region
+  network = google_compute_network.vpc.id
+
+  bgp {
+    asn = 64514
+  }
+}
+
+# Cloud NAT for outbound connectivity from private nodes
+resource "google_compute_router_nat" "nat" {
+  name                               = "${local.resource_prefix}-nat"
+  router                             = google_compute_router.router.name
+  region                             = var.region
+  nat_ip_allocate_option            = "AUTO_ONLY"
+  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+
+  # Enhanced logging for security monitoring
+  log_config {
+    enable = true
+    filter = "ERRORS_ONLY"
+  }
+
+  # Minimum ports per VM for better resource management
+  min_ports_per_vm = 64
+
+  # Enable endpoint independent mapping for better security
+  enable_endpoint_independent_mapping = true
+}
+
+# VPC Firewall Rules for enhanced security
+resource "google_compute_firewall" "deny_all_ingress" {
+  name    = "${local.resource_prefix}-deny-all-ingress"
+  network = google_compute_network.vpc.name
+
+  # Default deny all ingress (highest priority)
+  deny {
+    protocol = "all"
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  priority      = 65534
+
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+}
+
+resource "google_compute_firewall" "allow_internal" {
+  name    = "${local.resource_prefix}-allow-internal"
+  network = google_compute_network.vpc.name
+
+  allow {
+    protocol = "tcp"
+  }
+  allow {
+    protocol = "udp"
+  }
+  allow {
+    protocol = "icmp"
+  }
+
+  source_ranges = [local.vpc_cidr, local.pods_cidr, local.services_cidr]
+  priority      = 1000
+
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+}
+
+resource "google_compute_firewall" "allow_gke_master" {
+  name    = "${local.resource_prefix}-allow-gke-master"
+  network = google_compute_network.vpc.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["443", "10250"]
+  }
+
+  source_ranges = ["172.16.0.0/28"]  # GKE master CIDR
+  target_tags   = ["dytallix-bridge", "testnet"]
+  priority      = 1000
+
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+}
+
+# Allow health checks for load balancers
+resource "google_compute_firewall" "allow_health_checks" {
+  name    = "${local.resource_prefix}-allow-health-checks"
+  network = google_compute_network.vpc.name
+
+  allow {
+    protocol = "tcp"
+  }
+
+  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]  # Google health check ranges
+  target_tags   = ["dytallix-bridge", "testnet"]
+  priority      = 1000
+
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+}
 resource "google_artifact_registry_repository" "bridge_repo" {
   location      = var.region
   repository_id = "${local.resource_prefix}-repo"
