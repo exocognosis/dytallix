@@ -12,7 +12,8 @@ import {
   CommandLineIcon,
   Cog6ToothIcon,
   BoltIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  CpuChipIcon
 } from '@heroicons/react/24/outline'
 import { useWalletStore } from '../store/wallet'
 import { useBlockchainStats } from '../hooks/useAPI'
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Home', href: '/', icon: HomeIcon },
   { name: 'About', href: '/about', icon: InformationCircleIcon },
   { name: 'Dashboard', href: '/dashboard', icon: ChartBarIcon },
+  { name: 'Enterprise AI', href: '/enterprise-ai', icon: CpuChipIcon },
   { name: 'Wallet', href: '/wallet', icon: WalletIcon },
   { name: 'Explorer', href: '/explorer', icon: CubeIcon },
   { name: 'Analytics', href: '/analytics', icon: BoltIcon },
@@ -39,7 +41,7 @@ export function Navigation() {
   const { data: stats, isLoading: statsLoading } = useBlockchainStats()
 
   return (
-    <Disclosure as="nav" className="bg-gray-800 border-b border-gray-700">
+    <Disclosure as="nav" className="bg-black border-b border-gray-700">
       {({ open }) => (
         <>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -64,7 +66,7 @@ export function Navigation() {
                           to={item.href}
                           className={classNames(
                             isActive
-                              ? 'bg-gray-900 text-white'
+                              ? 'bg-gray-800 text-white'
                               : 'text-gray-300 hover:bg-gray-700 hover:text-white',
                             'rounded-md px-3 py-2 text-sm font-medium flex items-center space-x-1'
                           )}
@@ -102,7 +104,7 @@ export function Navigation() {
                   {/* Account Menu */}
                   <Menu as="div" className="relative ml-3">
                     <div>
-                      <Menu.Button className="relative flex max-w-xs items-center rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
+                      <Menu.Button className="relative flex max-w-xs items-center rounded-full bg-black text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black">
                         <span className="sr-only">Open user menu</span>
                         <div className="flex items-center space-x-2 px-3 py-2 rounded-md border border-gray-600">
                           <WalletIcon className="w-4 h-4 text-gray-300" />
@@ -179,7 +181,7 @@ export function Navigation() {
 
               {/* Mobile menu button */}
               <div className="-mr-2 flex md:hidden">
-                <Disclosure.Button className="relative inline-flex items-center justify-center rounded-md bg-gray-800 p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
+                <Disclosure.Button className="relative inline-flex items-center justify-center rounded-md bg-black p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black">
                   <span className="sr-only">Open main menu</span>
                   {open ? (
                     <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
@@ -203,7 +205,7 @@ export function Navigation() {
                     to={item.href}
                     className={classNames(
                       isActive
-                        ? 'bg-gray-900 text-white'
+                        ? 'bg-gray-800 text-white'
                         : 'text-gray-300 hover:bg-gray-700 hover:text-white',
                       'block rounded-md px-3 py-2 text-base font-medium flex items-center space-x-2'
                     )}
