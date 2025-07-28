@@ -18,7 +18,9 @@ use crate::types::{Transaction, Block, DeployTransaction, CallTransaction};
 use crate::storage::{StorageManager, ContractState};
 use crate::consensus::types::AIServiceType;
 use crate::consensus::ai_oracle_client::{AIOracleClient, AIServiceConfig};
-use dytallix_contracts::runtime::{ContractRuntime, ContractDeployment, ContractCall};
+// Temporarily disabled due to smart contracts compilation issues
+// use dytallix_contracts::runtime::{ContractRuntime, ContractDeployment, ContractCall};
+use crate::contracts::{ContractRuntime, ContractDeployment, ContractCall};
 use crate::consensus::ai_integration::{AIIntegrationManager, AIIntegrationConfig};
 use crate::consensus::transaction_validation::TransactionValidator;
 use crate::consensus::block_processing::BlockProcessor;
@@ -477,6 +479,7 @@ impl ConsensusEngine {
             deployer: deploy_tx.from.clone(),
             timestamp: deploy_tx.timestamp,
             ai_audit_score: None,
+            metadata: serde_json::json!({}),
         };
 
         // Deploy contract to WASM runtime
@@ -539,6 +542,9 @@ impl ConsensusEngine {
             gas_limit: call_tx.gas_limit,
             value: 0, // TODO: Add value transfer support
             timestamp: call_tx.timestamp,
+            contract_id: call_tx.to.clone(),
+            function: call_tx.method.clone(),
+            args: serde_json::json!({}),
         };
 
         // Execute contract call in WASM runtime
@@ -557,8 +563,10 @@ impl ConsensusEngine {
         contract_state.update_timestamp(call_tx.timestamp);
 
         // Apply state changes from WASM execution
-        for state_change in &execution_result.state_changes {
-            contract_state.set_storage(state_change.key.clone(), state_change.new_value.clone());
+        for (key, value) in &execution_result.state_changes {
+            let key_bytes = key.as_bytes().to_vec();
+            let value_bytes = serde_json::to_vec(value).unwrap_or_default();
+            contract_state.set_storage(key_bytes, value_bytes);
         }
 
         // Store updated state
@@ -570,7 +578,7 @@ impl ConsensusEngine {
         Ok(ExecutionResult {
             success: execution_result.success,
             gas_used: execution_result.gas_used,
-            output: execution_result.return_data,
+            output: execution_result.return_value,
             error: if execution_result.success { None } else { Some("Contract execution failed".to_string()) },
         })
     }

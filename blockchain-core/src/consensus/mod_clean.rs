@@ -1094,7 +1094,7 @@ impl ConsensusEngine {
                                 
                                 // Log contract events
                                 for event in execution_result.events {
-                                    info!("Contract event: {} - topic: {}", call_tx.to, event.topic);
+                                    info!("Contract event: {} - {:?}", call_tx.to, event);
                                 }
                             } else {
                                 warn!("Contract call failed: {}, gas used: {}", 

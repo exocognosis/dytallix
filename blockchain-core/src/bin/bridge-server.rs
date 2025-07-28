@@ -26,7 +26,7 @@ type AppState = Arc<RwLock<HashMap<String, String>>>;
 #[tokio::main]
 async fn main() {
     // Initialize tracing
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
     
     info!("Starting Dytallix Cross-Chain Bridge (Testnet)");
     

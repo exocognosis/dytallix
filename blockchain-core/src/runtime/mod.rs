@@ -3,7 +3,9 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use serde::{Serialize, Deserialize};
 use log::{info, debug};
-use dytallix_contracts::runtime::{ContractRuntime, ContractDeployment, ContractCall, ExecutionResult};
+// Temporarily disabled due to smart contracts compilation issues
+// use dytallix_contracts::runtime::{ContractRuntime, ContractDeployment, ContractCall, ExecutionResult};
+use crate::contracts::{ContractRuntime, ContractDeployment, ContractCall, ExecutionResult};
 use crate::storage::StorageManager;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -110,11 +112,12 @@ impl DytallixRuntime {
                 .unwrap_or_default()
                 .as_secs(),
             ai_audit_score: None,
+            metadata: serde_json::json!({}),
         };
         
         // Deploy to contract runtime
         let deployed_address = self.contract_runtime.deploy_contract(deployment).await
-            .map_err(|e| format!("Contract deployment failed: {}", e.message))?;
+            .map_err(|e| format!("Contract deployment failed: {}", e))?;
         
         // Also store in legacy state for backward compatibility
         let mut state = self.state.write().await;
@@ -144,21 +147,24 @@ impl DytallixRuntime {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs(),
+            contract_id: address.to_string(),
+            function: "execute".to_string(),
+            args: serde_json::json!({}),
         };
         
         // Execute contract call
         let execution_result = self.contract_runtime.call_contract(contract_call).await
-            .map_err(|e| format!("Contract execution failed: {}", e.message))?;
+            .map_err(|e| format!("Contract execution failed: {}", e))?;
         
         if execution_result.success {
             debug!("Contract execution successful, gas used: {}", execution_result.gas_used);
             
             // Log events if any
             for event in &execution_result.events {
-                info!("Contract event: {} - {:?}", event.topic, event.data);
+                info!("Contract event: {:?}", event);
             }
             
-            Ok(execution_result.return_data)
+            Ok(execution_result.return_value)
         } else {
             Err(format!("Contract execution failed, gas used: {}", execution_result.gas_used).into())
         }
@@ -187,10 +193,13 @@ impl DytallixRuntime {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs(),
+            contract_id: address.to_string(),
+            function: method.to_string(),
+            args: serde_json::json!({}),
         };
         
         let execution_result = self.contract_runtime.call_contract(contract_call).await
-            .map_err(|e| format!("Contract call failed: {}", e.message))?;
+            .map_err(|e| format!("Contract call failed: {}", e))?;
         
         Ok(execution_result)
     }
@@ -222,10 +231,11 @@ impl DytallixRuntime {
                 .unwrap_or_default()
                 .as_secs(),
             ai_audit_score: None,
+            metadata: serde_json::json!({}),
         };
         
         let deployed_address = self.contract_runtime.deploy_contract(deployment).await
-            .map_err(|e| format!("Contract deployment failed: {}", e.message))?;
+            .map_err(|e| format!("Contract deployment failed: {}", e))?;
         
         // Update legacy state
         let mut state = self.state.write().await;

@@ -5,3 +5,4 @@ pub mod crypto;
 pub mod networking;
 pub mod runtime;
 pub mod storage;
+pub mod contracts;
