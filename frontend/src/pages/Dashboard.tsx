@@ -8,12 +8,12 @@ import {
   CpuChipIcon,
   BoltIcon
 } from '@heroicons/react/24/outline'
+import { motion } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useBlockchainStats, useTransactions, useAIHealth } from '../hooks/useAPI'
 import { useWalletStore } from '../store/wallet'
-import { StatCard } from '../components/StatCard'
 import { TransactionList } from '../components/TransactionList'
 import { ChartContainer } from '../components/ChartContainer'
-import { AIStatusCard } from '../components/AIStatusCard'
 import { LoadingSkeleton, CardSkeleton } from '../components/LoadingSkeleton'
 
 export function Dashboard() {
@@ -23,157 +23,255 @@ export function Dashboard() {
     activeAccount?.address, 
     5
   )
-  const { data: aiHealth, isLoading: aiLoading } = useAIHealth()
+  const { data: aiHealth } = useAIHealth()
 
   const blockchainStats = stats?.data
   const recentTransactions = transactions?.data || []
 
   return (
-    <div className="space-y-6">
+    <main className="bg-black text-white min-h-screen px-6 py-12">
       {/* Header */}
-      <div className="border-b border-gray-700 pb-6">
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-        <p className="mt-2 text-gray-400">
-          Monitor your Dytallix blockchain activity and network status
-        </p>
-      </div>
+      <section className="max-w-6xl mx-auto mb-12">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.6 }}
+          className="text-center space-y-4"
+        >
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-lg text-gray-300">
+            Monitor your Dytallix blockchain activity and network status
+          </p>
+        </motion.div>
+      </section>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Block Height"
-          value={blockchainStats?.block_height?.toLocaleString() || '0'}
-          icon={CubeIcon}
-          loading={statsLoading}
-          trend={{ value: 12, isPositive: true }}
-        />
-        <StatCard
-          title="Total Transactions"
-          value={blockchainStats?.total_transactions?.toLocaleString() || '0'}
-          icon={CurrencyDollarIcon}
-          loading={statsLoading}
-          trend={{ value: 8.5, isPositive: true }}
-        />
-        <StatCard
-          title="Network Peers"
-          value={blockchainStats?.peer_count?.toString() || '0'}
-          icon={UsersIcon}
-          loading={statsLoading}
-          trend={{ value: 3, isPositive: true }}
-        />
-        <StatCard
-          title="Mempool Size"
-          value={blockchainStats?.mempool_size?.toString() || '0'}
-          icon={ClockIcon}
-          loading={statsLoading}
-          trend={{ value: 15, isPositive: false }}
-        />
-      </div>
+      <section className="max-w-6xl mx-auto mb-12">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              title: "Block Height",
+              value: blockchainStats?.block_height?.toLocaleString() || '0',
+              icon: CubeIcon,
+              color: "text-blue-400",
+              trend: { value: 12, isPositive: true }
+            },
+            {
+              title: "Total Transactions", 
+              value: blockchainStats?.total_transactions?.toLocaleString() || '0',
+              icon: CurrencyDollarIcon,
+              color: "text-green-400",
+              trend: { value: 8.5, isPositive: true }
+            },
+            {
+              title: "Network Peers",
+              value: blockchainStats?.peer_count?.toString() || '0',
+              icon: UsersIcon,
+              color: "text-purple-400",
+              trend: { value: 3, isPositive: true }
+            },
+            {
+              title: "Mempool Size",
+              value: blockchainStats?.mempool_size?.toString() || '0',
+              icon: ClockIcon,
+              color: "text-cyan-400",
+              trend: { value: 15, isPositive: false }
+            }
+          ].map((stat, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.6 }}
+            >
+              <Card className="bg-gray-900 border-gray-800 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">{stat.title}</p>
+                      <p className="text-2xl font-bold text-white">{stat.value}</p>
+                      {stat.trend && (
+                        <p className={`text-sm ${stat.trend.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                          {stat.trend.isPositive ? '+' : '-'}{stat.trend.value}%
+                        </p>
+                      )}
+                    </div>
+                    <stat.icon className={`w-8 h-8 ${stat.color}`} />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
       {/* AI Services Status */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <AIStatusCard
-          title="Fraud Detection"
-          status={aiHealth ? 'operational' : 'unknown'}
-          icon={ShieldCheckIcon}
-          loading={aiLoading}
-          description="Real-time transaction fraud analysis"
-        />
-        <AIStatusCard
-          title="Risk Scoring"
-          status={aiHealth ? 'operational' : 'unknown'}
-          icon={ArrowTrendingUpIcon}
-          loading={aiLoading}
-          description="AI-powered risk assessment"
-        />
-        <AIStatusCard
-          title="Contract Analysis"
-          status={aiHealth ? 'operational' : 'unknown'}
-          icon={CpuChipIcon}
-          loading={aiLoading}
-          description="Smart contract auditing"
-        />
-      </div>
+      <section className="max-w-6xl mx-auto mb-12">
+        <motion.h2 
+          initial={{ opacity: 0 }} 
+          whileInView={{ opacity: 1 }} 
+          viewport={{ once: true }} 
+          className="text-2xl font-bold mb-6"
+        >
+          AI Services Status
+        </motion.h2>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {[
+            {
+              title: "Fraud Detection",
+              status: aiHealth ? 'operational' : 'unknown',
+              icon: ShieldCheckIcon,
+              description: "Real-time transaction fraud analysis",
+              color: "text-red-400"
+            },
+            {
+              title: "Risk Scoring",
+              status: aiHealth ? 'operational' : 'unknown', 
+              icon: ArrowTrendingUpIcon,
+              description: "AI-powered risk assessment",
+              color: "text-yellow-400"
+            },
+            {
+              title: "Contract Analysis",
+              status: aiHealth ? 'operational' : 'unknown',
+              icon: CpuChipIcon,
+              description: "Smart contract auditing",
+              color: "text-blue-400"
+            }
+          ].map((service, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.6 }}
+            >
+              <Card className="bg-gray-900 border-gray-800 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-white">{service.title}</h3>
+                    <service.icon className={`w-6 h-6 ${service.color}`} />
+                  </div>
+                  <p className="text-gray-400 text-sm mb-3">{service.description}</p>
+                  <div className="flex items-center">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${service.status === 'operational' ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                    <span className={`text-sm ${service.status === 'operational' ? 'text-green-400' : 'text-gray-400'}`}>
+                      {service.status === 'operational' ? 'Operational' : 'Unknown'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Recent Transactions */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700">
-          <div className="px-6 py-4 border-b border-gray-700">
-            <h3 className="text-lg font-medium text-white flex items-center">
-              <BoltIcon className="w-5 h-5 mr-2" />
-              Recent Transactions
-            </h3>
-          </div>
-          <div className="p-6">
-            {txLoading ? (
-              <LoadingSkeleton />
-            ) : (
-              <TransactionList
-                transactions={recentTransactions}
-                loading={txLoading}
-                showHeader={false}
-                maxItems={5}
-              />
-            )}
-          </div>
-        </div>
+      <section className="max-w-6xl mx-auto mb-12">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Recent Transactions */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <Card className="bg-gray-900 border-gray-800 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center text-white">
+                  <BoltIcon className="w-5 h-5 mr-2" />
+                  Recent Transactions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {txLoading ? (
+                  <LoadingSkeleton />
+                ) : (
+                  <TransactionList
+                    transactions={recentTransactions}
+                    loading={txLoading}
+                    showHeader={false}
+                    maxItems={5}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        {/* Network Activity Chart */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700">
-          <div className="px-6 py-4 border-b border-gray-700">
-            <h3 className="text-lg font-medium text-white flex items-center">
-              <ArrowTrendingUpIcon className="w-5 h-5 mr-2" />
-              Network Activity
-            </h3>
-          </div>
-          <div className="p-6">
-            {statsLoading ? (
-              <CardSkeleton />
-            ) : (
-              <ChartContainer
-                data={[
-                  { time: '00:00', transactions: 45, blocks: 3 },
-                  { time: '04:00', transactions: 52, blocks: 4 },
-                  { time: '08:00', transactions: 78, blocks: 5 },
-                  { time: '12:00', transactions: 94, blocks: 6 },
-                  { time: '16:00', transactions: 89, blocks: 6 },
-                  { time: '20:00', transactions: 67, blocks: 4 },
-                ]}
-              />
-            )}
-          </div>
+          {/* Network Activity Chart */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <Card className="bg-gray-900 border-gray-800 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center text-white">
+                  <ArrowTrendingUpIcon className="w-5 h-5 mr-2" />
+                  Network Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {statsLoading ? (
+                  <CardSkeleton />
+                ) : (
+                  <ChartContainer
+                    data={[
+                      { time: '00:00', transactions: 45, blocks: 3 },
+                      { time: '04:00', transactions: 52, blocks: 4 },
+                      { time: '08:00', transactions: 78, blocks: 5 },
+                      { time: '12:00', transactions: 94, blocks: 6 },
+                      { time: '16:00', transactions: 89, blocks: 6 },
+                      { time: '20:00', transactions: 67, blocks: 4 },
+                    ]}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
-      </div>
+      </section>
 
       {/* Post-Quantum Security Status */}
-      <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-lg border border-blue-700/50 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium text-white flex items-center">
-              <ShieldCheckIcon className="w-5 h-5 mr-2" />
-              Post-Quantum Security Status
-            </h3>
-            <p className="mt-1 text-blue-200">
-              Your network is protected with quantum-resistant cryptography
-            </p>
-          </div>
-          <div className="flex space-x-4 text-sm">
-            <div className="text-center">
-              <div className="text-green-400 font-semibold">Dilithium</div>
-              <div className="text-blue-200">Active</div>
-            </div>
-            <div className="text-center">
-              <div className="text-green-400 font-semibold">Falcon</div>
-              <div className="text-blue-200">Active</div>
-            </div>
-            <div className="text-center">
-              <div className="text-green-400 font-semibold">SPHINCS+</div>
-              <div className="text-blue-200">Active</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <section className="max-w-6xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <Card className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 border-blue-700/50 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-white flex items-center">
+                    <ShieldCheckIcon className="w-5 h-5 mr-2" />
+                    Post-Quantum Security Status
+                  </h3>
+                  <p className="mt-1 text-blue-200">
+                    Your network is protected with quantum-resistant cryptography
+                  </p>
+                </div>
+                <div className="flex space-x-4 text-sm">
+                  <div className="text-center">
+                    <div className="text-green-400 font-semibold">Dilithium</div>
+                    <div className="text-blue-200">Active</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-green-400 font-semibold">Falcon</div>
+                    <div className="text-blue-200">Active</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-green-400 font-semibold">SPHINCS+</div>
+                    <div className="text-blue-200">Active</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </section>
+    </main>
   )
 }

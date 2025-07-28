@@ -1,5 +1,8 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Button } from '../components/ui/button'
 
 interface FAQItem {
   question: string
@@ -69,121 +72,197 @@ export function About() {
   }
 
   return (
-    <div className="space-y-6">
+    <main className="bg-black text-white min-h-screen px-6 py-12">
       {/* Header */}
-      <div className="border-b border-gray-700 pb-6">
-        <h1 className="text-3xl font-bold text-white">About Dytallix</h1>
-        <p className="mt-2 text-gray-400">
-          Learn more about our quantum-safe blockchain technology and ecosystem
-        </p>
-      </div>
+      <section className="max-w-6xl mx-auto mb-12">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.6 }}
+          className="text-center space-y-4"
+        >
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+            About Dytallix
+          </h1>
+          <p className="text-lg text-gray-300">
+            Learn more about our quantum-safe blockchain technology and ecosystem
+          </p>
+        </motion.div>
+      </section>
 
-      {/* About Section */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-6">
-        <h2 className="text-xl font-bold text-blue-400 mb-4">Our Mission</h2>
-        <div className="text-gray-300 space-y-4">
-          <p>
-            Dytallix is pioneering the next generation of blockchain technology by combining post-quantum cryptography with artificial intelligence to create a truly quantum-safe ecosystem. Our mission is to protect digital assets and decentralized applications against the emerging threat of quantum computing while maintaining the performance and usability that users expect.
-          </p>
-          <p>
-            As quantum computers advance toward breaking classical cryptographic systems, Dytallix provides a future-proof foundation for the decentralized economy. We believe that quantum resistance shouldn't come at the cost of innovation, which is why we've built a platform that enhances security while enabling new possibilities for developers and users.
-          </p>
-        </div>
-      </div>
+      {/* Mission Section */}
+      <section className="max-w-6xl mx-auto mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Card className="bg-gray-900 border-gray-800 shadow-lg">
+            <CardContent className="p-6 space-y-4">
+              <h2 className="text-2xl font-bold text-blue-400 mb-4">Our Mission</h2>
+              <div className="text-gray-300 space-y-4 leading-relaxed">
+                <p>
+                  Dytallix is pioneering the next generation of blockchain technology by combining post-quantum cryptography with artificial intelligence to create a truly quantum-safe ecosystem. Our mission is to protect digital assets and decentralized applications against the emerging threat of quantum computing while maintaining the performance and usability that users expect.
+                </p>
+                <p>
+                  As quantum computers advance toward breaking classical cryptographic systems, Dytallix provides a future-proof foundation for the decentralized economy. We believe that quantum resistance shouldn't come at the cost of innovation, which is why we've built a platform that enhances security while enabling new possibilities for developers and users.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </section>
 
       {/* FAQ Section */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-6">
-        <h2 className="text-xl font-bold text-blue-400 mb-6">Frequently Asked Questions</h2>
-        
-        <div className="space-y-4">
-          {faqData.map((item, index) => (
-            <div key={index} className="border border-gray-700 rounded-lg">
-              <button
-                onClick={() => toggleItem(index)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-700 transition-colors rounded-lg"
-              >
-                <span className="font-semibold text-white">{item.question}</span>
-                {openItems.includes(index) ? (
-                  <ChevronUpIcon className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDownIcon className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
+      <section className="max-w-6xl mx-auto mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <Card className="bg-gray-900 border-gray-800 shadow-lg">
+            <CardContent className="p-6 space-y-6">
+              <h2 className="text-2xl font-bold text-green-400 mb-6">Frequently Asked Questions</h2>
               
-              {openItems.includes(index) && (
-                <div className="px-4 pb-4">
-                  <div className="pt-2 border-t border-gray-700">
-                    <p className="text-gray-300 leading-relaxed">{item.answer}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+              <div className="space-y-4">
+                {faqData.map((item, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className="border border-gray-700 rounded-lg overflow-hidden"
+                  >
+                    <Button
+                      variant="ghost"
+                      onClick={() => toggleItem(index)}
+                      className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-800 transition-colors rounded-none h-auto"
+                    >
+                      <span className="font-semibold text-white">{item.question}</span>
+                      {openItems.includes(index) ? (
+                        <ChevronUpIcon className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                      )}
+                    </Button>
+                    
+                    {openItems.includes(index) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="px-4 pb-4"
+                      >
+                        <div className="pt-2 border-t border-gray-700">
+                          <p className="text-gray-300 leading-relaxed">{item.answer}</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </section>
 
       {/* Technical Specifications */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-6">
-        <h2 className="text-xl font-bold text-blue-400 mb-4">Technical Specifications</h2>
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <div>
-              <h4 className="font-semibold text-white mb-2">Post-Quantum Cryptography</h4>
-              <ul className="text-gray-300 text-sm space-y-1">
-                <li>• CRYSTALS-Dilithium (Digital Signatures)</li>
-                <li>• Falcon (Compact Signatures)</li>
-                <li>• SPHINCS+ (Stateless Hash-based Signatures)</li>
-                <li>• Kyber (Key Encapsulation)</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-white mb-2">Consensus</h4>
-              <ul className="text-gray-300 text-sm space-y-1">
-                <li>• Quantum-Proof Delegated Proof of Stake</li>
-                <li>• 3-second block times</li>
-                <li>• 10,000+ TPS capacity</li>
-                <li>• Instant finality</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            <div>
-              <h4 className="font-semibold text-white mb-2">AI Features</h4>
-              <ul className="text-gray-300 text-sm space-y-1">
-                <li>• Real-time anomaly detection</li>
-                <li>• Automated contract auditing</li>
-                <li>• Predictive threat analysis</li>
-                <li>• Risk scoring algorithms</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-white mb-2">Development</h4>
-              <ul className="text-gray-300 text-sm space-y-1">
-                <li>• EVM Compatible</li>
-                <li>• Solidity Support</li>
-                <li>• Web3.js Integration</li>
-                <li>• Quantum-safe SDKs</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+      <section className="max-w-6xl mx-auto mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <Card className="bg-gray-900 border-gray-800 shadow-lg">
+            <CardContent className="p-6 space-y-6">
+              <h2 className="text-2xl font-bold text-purple-400 mb-6">Technical Specifications</h2>
+              <div className="grid md:grid-cols-2 gap-8">
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.5 }}
+                  className="space-y-6"
+                >
+                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                    <h4 className="font-semibold text-white mb-3 text-lg">Post-Quantum Cryptography</h4>
+                    <ul className="text-gray-300 text-sm space-y-2">
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> CRYSTALS-Dilithium (Digital Signatures)</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Falcon (Compact Signatures)</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> SPHINCS+ (Stateless Hash-based Signatures)</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Kyber (Key Encapsulation)</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                    <h4 className="font-semibold text-white mb-3 text-lg">Consensus</h4>
+                    <ul className="text-gray-300 text-sm space-y-2">
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Quantum-Proof Delegated Proof of Stake</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> 3-second block times</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> 10,000+ TPS capacity</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Instant finality</li>
+                    </ul>
+                  </div>
+                </motion.div>
+                
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.6 }}
+                  className="space-y-6"
+                >
+                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                    <h4 className="font-semibold text-white mb-3 text-lg">AI Features</h4>
+                    <ul className="text-gray-300 text-sm space-y-2">
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Real-time anomaly detection</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Automated contract auditing</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Predictive threat analysis</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Risk scoring algorithms</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                    <h4 className="font-semibold text-white mb-3 text-lg">Development</h4>
+                    <ul className="text-gray-300 text-sm space-y-2">
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> EVM Compatible</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Solidity Support</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Web3.js Integration</li>
+                      <li className="flex items-center"><span className="text-purple-400 mr-2">•</span> Quantum-safe SDKs</li>
+                    </ul>
+                  </div>
+                </motion.div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </section>
 
       {/* Contact Information */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-        <h2 className="text-xl font-bold text-blue-400 mb-4">Get In Touch</h2>
-        <div className="text-gray-300">
-          <div>
-            <h4 className="font-semibold text-white mb-2">Contact Us</h4>
-            <a href="mailto:hello@dytallix.com" className="text-blue-400 hover:text-blue-300 transition-colors">
-              hello@dytallix.com
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
+      <section className="max-w-6xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <Card className="bg-gray-900 border-gray-800 shadow-lg">
+            <CardContent className="p-6 space-y-4">
+              <h2 className="text-2xl font-bold text-orange-400 mb-6">Get In Touch</h2>
+              <div className="text-gray-300">
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <h4 className="font-semibold text-white mb-3 text-lg">Contact Us</h4>
+                  <Button
+                    variant="outline"
+                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/20"
+                    onClick={() => window.location.href = 'mailto:hello@dytallix.com'}
+                  >
+                    hello@dytallix.com
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </section>
+    </main>
   )
 }

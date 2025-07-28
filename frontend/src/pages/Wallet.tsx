@@ -12,6 +12,9 @@ import {
   ScaleIcon
 } from '@heroicons/react/24/outline'
 import { DocumentDuplicateIcon } from '@heroicons/react/24/outline'
+import { motion } from 'framer-motion';
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useWalletStore } from '../store/wallet'
 import { useBalance, useGenerateKeyPair, useSubmitTransaction } from '../hooks/useAPI'
 import { useTokenBalance } from '../hooks/useTokenomics'
@@ -94,220 +97,265 @@ export function Wallet() {
   }
 
   return (
-    <div className="space-y-6">
+    <main className="bg-black text-white min-h-screen px-6 py-12">
       {/* Header */}
-      <div className="border-b border-gray-700 pb-6">
-        <h1 className="text-3xl font-bold text-white flex items-center">
-          <WalletIcon className="w-8 h-8 mr-3" />
-          Wallet
-        </h1>
-        <p className="mt-2 text-gray-400">
-          Manage your Post-Quantum cryptocurrency accounts and transactions
-        </p>
-      </div>
+      <section className="max-w-6xl mx-auto mb-12">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.6 }}
+          className="text-center space-y-4"
+        >
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight flex items-center justify-center">
+            <WalletIcon className="w-12 h-12 mr-4" />
+            Wallet
+          </h1>
+          <p className="text-lg text-gray-300">
+            Manage your Post-Quantum cryptocurrency accounts and transactions
+          </p>
+        </motion.div>
+      </section>
 
       {/* Account Selection */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-white">Accounts</h2>
-          <button
-            onClick={() => setShowCreateAccount(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Create Account
-          </button>
-        </div>
-
-        {accounts.length === 0 ? (
-          <div className="text-center py-8">
-            <WalletIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-300">No accounts</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Create your first Post-Quantum account to get started.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {accounts.map((account) => (
-              <div
-                key={account.address}
-                className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                  activeAccount?.address === account.address
-                    ? 'border-blue-500 bg-blue-900/20'
-                    : 'border-gray-600 hover:border-gray-500'
-                }`}
-                onClick={() => setActiveAccount(account)}
+      <section className="max-w-6xl mx-auto mb-12">
+        <Card className="bg-gray-900 border-gray-800 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white">Accounts</CardTitle>
+              <Button
+                onClick={() => setShowCreateAccount(true)}
+                className="flex items-center px-4 py-2 rounded-lg"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">
-                        {account.address.slice(0, 2).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-white font-medium">
-                          {account.address.slice(0, 8)}...{account.address.slice(-6)}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            copyToClipboard(account.address)
-                          }}
-                          className="text-gray-400 hover:text-white"
-                        >
-                          <DocumentDuplicateIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-sm text-gray-400">
-                          Balance: {(balance / 1000000).toFixed(6)} DYT
-                        </span>
-                        {account.key_pair && (
-                          <span className="text-xs bg-green-900/50 text-green-400 px-2 py-1 rounded">
-                            {account.key_pair.algorithm}
+                <PlusIcon className="w-4 h-4 mr-2" />
+                Create Account
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {accounts.length === 0 ? (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-8"
+              >
+                <WalletIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-300">No accounts</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Create your first Post-Quantum account to get started.
+                </p>
+              </motion.div>
+            ) : (
+              <div className="space-y-3">
+                {accounts.map((account, index) => (
+                  <motion.div
+                    key={account.address}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.6 }}
+                    className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                      activeAccount?.address === account.address
+                        ? 'border-blue-500 bg-blue-900/20'
+                        : 'border-gray-600 hover:border-gray-500'
+                    }`}
+                    onClick={() => setActiveAccount(account)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            {account.address.slice(0, 2).toUpperCase()}
                           </span>
-                        )}
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-white font-medium">
+                              {account.address.slice(0, 8)}...{account.address.slice(-6)}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                copyToClipboard(account.address)
+                              }}
+                              className="text-gray-400 hover:text-white"
+                            >
+                              <DocumentDuplicateIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span className="text-sm text-gray-400">
+                              Balance: {(balance / 1000000).toFixed(6)} DYT
+                            </span>
+                            {account.key_pair && (
+                              <span className="text-xs bg-green-900/50 text-green-400 px-2 py-1 rounded">
+                                {account.key_pair.algorithm}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
+                      {activeAccount?.address === account.address && (
+                        <div className="text-blue-400">
+                          <ShieldCheckIcon className="w-5 h-5" />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  {activeAccount?.address === account.address && (
-                    <div className="text-blue-400">
-                      <ShieldCheckIcon className="w-5 h-5" />
-                    </div>
-                  )}
-                </div>
+                  </motion.div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
       {/* Active Account Details */}
       {activeAccount && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Account Info */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Account Details</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Address
-                </label>
-                <div className="flex items-center space-x-2">
-                  <code className="block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white font-mono text-sm">
-                    {activeAccount.address}
-                  </code>
-                  <button
-                    onClick={() => copyToClipboard(activeAccount.address)}
-                    className="p-2 text-gray-400 hover:text-white"
-                  >
-                    <DocumentDuplicateIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Native Balance
-                </label>
-                <div className="text-2xl font-bold text-white">
-                  {(balance / 1000000).toFixed(6)} DYT
-                </div>
-              </div>
-
-              {/* Token Balances */}
-              {tokenBalance && (
-                <div className="grid grid-cols-2 gap-4">
+        <section className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Account Info */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <Card className="bg-gray-900 border-gray-800 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-white">Account Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-1">
-                      <ScaleIcon className="w-4 h-4 inline mr-1" />
-                      DGT (Governance)
+                      Address
                     </label>
-                    <div className="text-xl font-bold text-blue-400">
-                      {tokenBalance.dgt.toLocaleString()}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                      <CurrencyDollarIcon className="w-4 h-4 inline mr-1" />
-                      DRT (Rewards)
-                    </label>
-                    <div className="text-xl font-bold text-green-400">
-                      {tokenBalance.drt.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeAccount.key_pair && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Private Key
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <code className="block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white font-mono text-sm">
-                      {showPrivateKey 
-                        ? activeAccount.key_pair.private_key 
-                        : '••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••'
-                      }
-                    </code>
-                    <button
-                      onClick={() => setShowPrivateKey(!showPrivateKey)}
-                      className="p-2 text-gray-400 hover:text-white"
-                    >
-                      {showPrivateKey ? (
-                        <EyeSlashIcon className="w-4 h-4" />
-                      ) : (
-                        <EyeIcon className="w-4 h-4" />
-                      )}
-                    </button>
-                    {showPrivateKey && (
+                    <div className="flex items-center space-x-2">
+                      <code className="block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white font-mono text-sm">
+                        {activeAccount.address}
+                      </code>
                       <button
-                        onClick={() => copyToClipboard(activeAccount.key_pair!.private_key)}
+                        onClick={() => copyToClipboard(activeAccount.address)}
                         className="p-2 text-gray-400 hover:text-white"
                       >
                         <DocumentDuplicateIcon className="w-4 h-4" />
                       </button>
-                    )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Actions */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Actions</h3>
-            
-            <div className="space-y-3">
-              <button
-                onClick={() => setShowSendForm(true)}
-                className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <ArrowUpIcon className="w-4 h-4 mr-2" />
-                Send DYT
-              </button>
-              
-              <button
-                onClick={() => copyToClipboard(activeAccount.address)}
-                className="w-full flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-              >
-                <ArrowDownIcon className="w-4 h-4 mr-2" />
-                Receive DYT
-              </button>
-            </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Native Balance
+                    </label>
+                    <div className="text-2xl font-bold text-white">
+                      {(balance / 1000000).toFixed(6)} DYT
+                    </div>
+                  </div>
+
+                  {/* Token Balances */}
+                  {tokenBalance && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                          <ScaleIcon className="w-4 h-4 inline mr-1" />
+                          DGT (Governance)
+                        </label>
+                        <div className="text-xl font-bold text-blue-400">
+                          {tokenBalance.dgt.toLocaleString()}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                          <CurrencyDollarIcon className="w-4 h-4 inline mr-1" />
+                          DRT (Rewards)
+                        </label>
+                        <div className="text-xl font-bold text-green-400">
+                          {tokenBalance.drt.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeAccount.key_pair && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Private Key
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <code className="block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white font-mono text-sm">
+                          {showPrivateKey 
+                            ? activeAccount.key_pair.private_key 
+                            : '••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••'
+                          }
+                        </code>
+                        <button
+                          onClick={() => setShowPrivateKey(!showPrivateKey)}
+                          className="p-2 text-gray-400 hover:text-white"
+                        >
+                          {showPrivateKey ? (
+                            <EyeSlashIcon className="w-4 h-4" />
+                          ) : (
+                            <EyeIcon className="w-4 h-4" />
+                          )}
+                        </button>
+                        {showPrivateKey && (
+                          <button
+                            onClick={() => copyToClipboard(activeAccount.key_pair!.private_key)}
+                            className="p-2 text-gray-400 hover:text-white"
+                          >
+                            <DocumentDuplicateIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Actions */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <Card className="bg-gray-900 border-gray-800 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-white">Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button
+                    onClick={() => setShowSendForm(true)}
+                    className="w-full flex items-center justify-center py-3 rounded-lg"
+                  >
+                    <ArrowUpIcon className="w-4 h-4 mr-2" />
+                    Send DYT
+                  </Button>
+                  
+                  <Button
+                    onClick={() => copyToClipboard(activeAccount.address)}
+                    variant="outline"
+                    className="w-full flex items-center justify-center py-3 rounded-lg"
+                  >
+                    <ArrowDownIcon className="w-4 h-4 mr-2" />
+                    Receive DYT
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Create Account Modal */}
       {showCreateAccount && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 w-full max-w-md">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="bg-gray-800 rounded-lg border border-gray-700 p-6 w-full max-w-md"
+          >
             <h3 className="text-lg font-semibold text-white mb-4">Create New Account</h3>
             
             <div className="space-y-4">
@@ -327,31 +375,40 @@ export function Wallet() {
               </div>
               
               <div className="flex space-x-3">
-                <button
+                <Button
                   onClick={handleCreateAccount}
                   disabled={generateKeyPair.isLoading}
-                  className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center"
                 >
                   <KeyIcon className="w-4 h-4 mr-2" />
                   {generateKeyPair.isLoading ? 'Creating...' : 'Create Account'}
-                </button>
+                </Button>
                 
-                <button
+                <Button
                   onClick={() => setShowCreateAccount(false)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                  variant="outline"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Send Transaction Modal */}
       {showSendForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 w-full max-w-md">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="bg-gray-800 rounded-lg border border-gray-700 p-6 w-full max-w-md"
+          >
             <h3 className="text-lg font-semibold text-white mb-4">Send DYT</h3>
             
             <form onSubmit={handleSendTransaction} className="space-y-4">
@@ -399,26 +456,26 @@ export function Wallet() {
               </div>
               
               <div className="flex space-x-3">
-                <button
+                <Button
                   type="submit"
                   disabled={submitTransaction.isLoading}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex-1"
                 >
                   {submitTransaction.isLoading ? 'Sending...' : 'Send Transaction'}
-                </button>
+                </Button>
                 
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowSendForm(false)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                  variant="outline"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
-    </div>
+    </main>
   )
 }
