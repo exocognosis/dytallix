@@ -166,6 +166,50 @@ export function Dashboard() {
         </div>
       </section>
 
+      {/* AI Modules Grid */}
+      <section className="max-w-6xl mx-auto mb-12">
+        <motion.h2 
+          initial={{ opacity: 0 }} 
+          whileInView={{ opacity: 1 }} 
+          viewport={{ once: true }} 
+          className="text-2xl font-bold mb-6"
+        >
+          AI Modules
+        </motion.h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4 mb-8" style={{gridTemplateRows: 'repeat(2, 1fr)'}}>
+          {[
+            { name: "Risk Assessment", icon: ShieldCheckIcon, color: "text-red-400", status: "active" },
+            { name: "Fraud Detection", icon: ArrowTrendingUpIcon, color: "text-orange-400", status: "active" },
+            { name: "Pattern Analysis", icon: CpuChipIcon, color: "text-blue-400", status: "active" },
+            { name: "Smart Routing", icon: BoltIcon, color: "text-green-400", status: "active" },
+            { name: "Anomaly Detection", icon: UsersIcon, color: "text-purple-400", status: "active" },
+            { name: "Predictive Analytics", icon: ClockIcon, color: "text-cyan-400", status: "active" },
+            { name: "ML Optimization", icon: CubeIcon, color: "text-yellow-400", status: "active" },
+            { name: "Neural Networks", icon: CurrencyDollarIcon, color: "text-pink-400", status: "active" }
+          ].map((module, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05, duration: 0.4 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              <Card className="bg-gray-900 border-gray-800 shadow-lg hover:border-gray-700 transition-all duration-200">
+                <CardContent className="p-4 text-center">
+                  <module.icon className={`w-8 h-8 mx-auto mb-3 ${module.color}`} />
+                  <h3 className="text-sm font-medium text-white mb-2">{module.name}</h3>
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-green-400 mr-2"></div>
+                    <span className="text-xs text-green-400">Active</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       {/* Main Content Grid */}
       <section className="max-w-6xl mx-auto mb-12">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -103,66 +103,72 @@ async def dashboard_home():
             }
             
             body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: #000000;
                 color: #ffffff;
                 min-height: 100vh;
-                padding: 20px;
+                padding: 24px 48px;
+                line-height: 1.6;
             }
             
             .container {
-                max-width: 1400px;
+                max-width: 1200px;
                 margin: 0 auto;
             }
             
             .header {
                 text-align: center;
-                margin-bottom: 40px;
+                margin-bottom: 48px;
             }
             
             .header h1 {
-                font-size: 3em;
+                font-size: clamp(2rem, 4vw, 3.5rem);
                 font-weight: 700;
-                background: linear-gradient(135deg, #4CAF50, #81C784);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                margin-bottom: 10px;
+                color: #ffffff;
+                margin-bottom: 16px;
+                letter-spacing: -0.02em;
             }
             
             .header .subtitle {
-                color: #b0b0b0;
-                font-size: 1.2em;
-                font-weight: 300;
+                color: #d1d5db;
+                font-size: clamp(1rem, 2vw, 1.25rem);
+                font-weight: 400;
             }
             
             .status-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 30px;
-                padding: 20px;
-                background: linear-gradient(135deg, #2a2a2a, #353535);
-                border-radius: 15px;
-                border: 2px solid rgba(76, 175, 80, 0.2);
+                margin-bottom: 48px;
+                padding: 24px;
+                background: #111827;
+                border-radius: 12px;
+                border: 1px solid #374151;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+                transition: all 0.3s ease;
+            }
+            
+            .status-header:hover {
+                background: #1f2937;
+                border-color: #06b6d4;
             }
             
             .status-info {
                 display: flex;
                 align-items: center;
-                gap: 20px;
+                gap: 32px;
             }
             
             .status-item {
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 12px;
             }
             
             .status-dot {
                 width: 8px;
                 height: 8px;
-                background: #4CAF50;
+                background: #10b981;
                 border-radius: 50%;
                 animation: pulse 2s infinite;
             }
@@ -170,31 +176,37 @@ async def dashboard_home():
             .main-grid {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 30px;
-                margin-bottom: 40px;
+                gap: 24px;
+                margin-bottom: 48px;
             }
             
             .chart-container {
-                background: linear-gradient(135deg, #2a2a2a, #353535);
-                border-radius: 15px;
-                padding: 25px;
-                border: 2px solid rgba(76, 175, 80, 0.2);
+                background: #111827;
+                border-radius: 12px;
+                padding: 24px;
+                border: 1px solid #374151;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
                 transition: all 0.3s ease;
             }
             
             .chart-container:hover {
-                border-color: rgba(76, 175, 80, 0.4);
-                box-shadow: 0 10px 30px rgba(76, 175, 80, 0.1);
+                background: #1f2937;
+                border-color: #06b6d4;
             }
             
             .chart-title {
-                color: #4CAF50;
-                font-size: 1.4em;
+                color: #ffffff;
+                font-size: 1.25rem;
                 font-weight: 600;
                 margin-bottom: 20px;
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 12px;
+            }
+            
+            .chart-title i {
+                color: #06b6d4;
+                font-size: 1.1em;
             }
             
             .chart-wrapper {
@@ -204,155 +216,153 @@ async def dashboard_home():
             
             .metrics-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                margin-bottom: 40px;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 24px;
+                margin-bottom: 48px;
             }
             
             .metric-card {
-                background: linear-gradient(135deg, #2a2a2a, #353535);
-                border-radius: 15px;
-                padding: 25px;
+                background: #111827;
+                border-radius: 12px;
+                padding: 24px;
                 text-align: center;
                 transition: all 0.3s ease;
-                border: 2px solid rgba(76, 175, 80, 0.2);
+                border: 1px solid #374151;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
             }
             
             .metric-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 10px 30px rgba(76, 175, 80, 0.2);
-                border-color: rgba(76, 175, 80, 0.4);
+                background: #1f2937;
+                border-color: #10b981;
+                transform: translateY(-2px);
             }
             
             .metric-icon {
-                font-size: 2.5em;
-                color: #4CAF50;
-                margin-bottom: 15px;
+                font-size: 2rem;
+                margin-bottom: 12px;
             }
             
+            .metric-icon.cpu { color: #06b6d4; }
+            .metric-icon.memory { color: #8b5cf6; }
+            .metric-icon.disk { color: #10b981; }
+            .metric-icon.network { color: #f59e0b; }
+            
             .metric-value {
-                font-size: 2.5em;
+                font-size: 2rem;
                 font-weight: 700;
                 color: #ffffff;
-                margin-bottom: 10px;
+                margin-bottom: 8px;
             }
             
             .metric-label {
-                color: #b0b0b0;
-                font-size: 1.1em;
-                margin-bottom: 10px;
+                color: #9ca3af;
+                font-size: 0.875rem;
+                margin-bottom: 8px;
             }
             
             .metric-change {
                 font-weight: 600;
-                font-size: 0.9em;
-                padding: 5px 12px;
-                border-radius: 20px;
+                font-size: 0.75rem;
+                padding: 4px 8px;
+                border-radius: 6px;
             }
             
             .change-positive {
-                background: rgba(76, 175, 80, 0.2);
-                color: #4CAF50;
+                background: rgba(16, 185, 129, 0.1);
+                color: #10b981;
             }
             
             .change-negative {
-                background: rgba(244, 67, 54, 0.2);
-                color: #f44336;
+                background: rgba(239, 68, 68, 0.1);
+                color: #ef4444;
             }
             
             .change-neutral {
-                background: rgba(255, 193, 7, 0.2);
-                color: #FFC107;
+                background: rgba(245, 158, 11, 0.1);
+                color: #f59e0b;
             }
             
             /* Core Services Section */
             .core-services-section {
-                margin-bottom: 40px;
+                margin-bottom: 48px;
             }
             
             .section-title {
-                color: #4CAF50;
-                font-size: 2em;
-                font-weight: 600;
-                margin-bottom: 30px;
+                color: #ffffff;
+                font-size: 1.875rem;
+                font-weight: 700;
+                margin-bottom: 24px;
                 display: flex;
                 align-items: center;
-                gap: 15px;
+                gap: 12px;
+            }
+            
+            .section-title i {
+                color: #a855f7;
             }
             
             .services-grid {
                 display: grid;
                 grid-template-columns: repeat(4, 1fr);
-                gap: 25px;
+                grid-template-rows: 1fr;
+                gap: 20px;
                 min-height: 200px;
+                max-width: 1400px;
+                margin: 0 auto;
             }
             
             .service-row {
-                background: linear-gradient(135deg, #2a2a2a, #353535);
-                border-radius: 15px;
-                padding: 25px;
+                background: #111827;
+                border-radius: 12px;
+                padding: 20px;
                 display: flex;
                 flex-direction: column;
                 transition: all 0.3s ease;
-                border: 2px solid rgba(76, 175, 80, 0.2);
+                border: 1px solid #374151;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
                 position: relative;
                 overflow: hidden;
                 min-height: 180px;
             }
             
-            .service-row::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 3px;
-                background: linear-gradient(90deg, #4CAF50, #81C784);
-            }
-            
             .service-row:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 15px 40px rgba(76, 175, 80, 0.2);
-                border-color: rgba(76, 175, 80, 0.4);
+                background: #1f2937;
+                border-color: #10b981;
+                transform: translateY(-2px);
             }
             
             .service-row.encryption-row {
-                border-color: rgba(255, 193, 7, 0.3);
-                background: linear-gradient(135deg, #2a2a2a, #3a3020);
-            }
-            
-            .service-row.encryption-row::before {
-                background: linear-gradient(90deg, #FFC107, #FFD54F);
+                border-color: #f59e0b;
             }
             
             .service-row.encryption-row:hover {
-                border-color: rgba(255, 193, 7, 0.6);
-                box-shadow: 0 15px 40px rgba(255, 193, 7, 0.2);
+                border-color: #f59e0b;
+                background: #1f2937;
             }
             
             .service-info {
                 display: flex;
                 align-items: center;
-                gap: 15px;
-                margin-bottom: 15px;
+                gap: 16px;
+                margin-bottom: 16px;
             }
             
             .service-icon {
-                width: 50px;
-                height: 50px;
-                background: linear-gradient(135deg, #4CAF50, #81C784);
-                border-radius: 12px;
+                width: 40px;
+                height: 40px;
+                background: #06b6d4;
+                border-radius: 8px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 1.3em;
+                font-size: 1.2em;
                 color: white;
                 flex-shrink: 0;
             }
             
             .encryption-row .service-icon {
-                background: linear-gradient(135deg, #FFC107, #FFD54F);
-                color: #333;
+                background: #f59e0b;
+                color: #000;
             }
             
             .service-details {
@@ -360,49 +370,47 @@ async def dashboard_home():
             }
             
             .service-name {
-                font-size: 1.1em;
+                font-size: 1rem;
                 font-weight: 600;
                 color: #ffffff;
-                margin-bottom: 5px;
+                margin-bottom: 4px;
             }
             
             .service-description {
-                color: #b0b0b0;
-                font-size: 0.9em;
-                line-height: 1.3;
-            }
+                color: #9ca3af;
+                font-size: 0.875rem;
                 line-height: 1.4;
             }
             
             .service-status {
                 display: flex;
                 flex-direction: column;
-                gap: 10px;
+                gap: 8px;
                 margin-top: auto;
             }
             
             .status-indicator {
-                width: 12px;
-                height: 12px;
+                width: 8px;
+                height: 8px;
                 border-radius: 50%;
-                margin-bottom: 5px;
+                margin-bottom: 4px;
             }
             
             .status-indicator.online {
-                background: #4CAF50;
-                box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+                background: #10b981;
+                box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
                 animation: pulse 2s infinite;
             }
             
             .status-indicator.offline {
-                background: #f44336;
-                box-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
+                background: #ef4444;
+                box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
             }
             
             .status-text {
                 font-weight: 600;
-                font-size: 0.9em;
-                color: #4CAF50;
+                font-size: 0.875rem;
+                color: #10b981;
                 display: flex;
                 align-items: center;
                 gap: 8px;
@@ -412,153 +420,137 @@ async def dashboard_home():
                 display: flex;
                 flex-wrap: wrap;
                 gap: 8px;
-                font-size: 0.85em;
-                color: #888;
-                margin-top: 5px;
+                font-size: 0.75rem;
+                color: #6b7280;
+                margin-top: 8px;
             }
             
             .service-metrics span {
                 white-space: nowrap;
-                padding: 3px 8px;
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: 6px;
-                font-size: 0.8em;
+                padding: 2px 6px;
+                background: rgba(55, 65, 81, 0.5);
+                border-radius: 4px;
+                font-size: 0.75rem;
             }
             
             .encryption-metrics {
                 flex-direction: column !important;
-                gap: 5px !important;
-            }
-            
-            .encryption-metrics span {
-                display: flex;
-                align-items: center;
-                gap: 5px;
-                padding: 4px 8px;
-            }
-            
-            .encryption-metrics {
-                gap: 8px;
+                gap: 4px !important;
             }
             
             .encryption-metrics span {
                 display: flex;
                 align-items: center;
                 gap: 6px;
+                padding: 3px 6px;
             }
             
             .crypto-status {
                 font-weight: 600;
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 0.8em;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 0.75rem;
             }
             
             .crypto-status.active {
-                background: rgba(76, 175, 80, 0.2);
-                color: #4CAF50;
-                border: 1px solid rgba(76, 175, 80, 0.3);
+                background: rgba(16, 185, 129, 0.1);
+                color: #10b981;
+                border: 1px solid rgba(16, 185, 129, 0.2);
             }
             
             .crypto-status.inactive {
-                background: rgba(244, 67, 54, 0.2);
-                color: #f44336;
-                border: 1px solid rgba(244, 67, 54, 0.3);
+                background: rgba(239, 68, 68, 0.1);
+                color: #ef4444;
+                border: 1px solid rgba(239, 68, 68, 0.2);
             }
             
             /* AI Modules Section */
             .ai-modules-section {
-                margin-bottom: 40px;
+                margin-bottom: 48px;
             }
             
             .ai-modules-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                gap: 25px;
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-rows: repeat(2, 1fr);
+                gap: 24px;
+                max-width: 1200px;
+                margin: 0 auto;
             }
             
             .ai-module-card {
-                background: linear-gradient(135deg, #2a2a2a, #353535);
-                border-radius: 15px;
-                padding: 25px;
+                background: #111827;
+                border-radius: 12px;
+                padding: 20px;
                 transition: all 0.3s ease;
-                border: 2px solid rgba(33, 150, 243, 0.2);
+                border: 1px solid #374151;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
                 position: relative;
                 overflow: hidden;
             }
             
             .ai-module-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 15px 40px rgba(33, 150, 243, 0.2);
-                border-color: rgba(33, 150, 243, 0.4);
-            }
-            
-            .ai-module-card::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 3px;
-                background: linear-gradient(90deg, #2196F3, #64B5F6);
+                background: #1f2937;
+                border-color: #06b6d4;
+                transform: translateY(-2px);
             }
             
             .module-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 15px;
+                margin-bottom: 12px;
             }
             
             .module-name {
-                font-size: 1.2em;
+                font-size: 1rem;
                 font-weight: 600;
-                color: #2196F3;
+                color: #06b6d4;
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 8px;
             }
             
             .module-status {
-                font-size: 0.85em;
+                font-size: 0.75rem;
                 font-weight: 600;
-                padding: 4px 10px;
-                border-radius: 12px;
-                background: rgba(76, 175, 80, 0.2);
-                color: #4CAF50;
-                border: 1px solid rgba(76, 175, 80, 0.3);
+                padding: 2px 8px;
+                border-radius: 4px;
+                background: rgba(16, 185, 129, 0.1);
+                color: #10b981;
+                border: 1px solid rgba(16, 185, 129, 0.2);
             }
             
             .module-metric {
-                font-size: 2.2em;
+                font-size: 1.875rem;
                 font-weight: 700;
                 color: #ffffff;
-                margin-bottom: 15px;
+                margin-bottom: 12px;
             }
             
             .module-description {
-                color: #b0b0b0;
-                font-size: 0.9em;
+                color: #9ca3af;
+                font-size: 0.875rem;
                 line-height: 1.4;
-                margin-bottom: 15px;
+                margin-bottom: 12px;
             }
             
             .module-details {
                 display: flex;
                 justify-content: space-between;
-                font-size: 0.85em;
-                color: #888;
+                font-size: 0.75rem;
+                color: #6b7280;
             }
             
             .network-stats {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 25px;
-                margin-bottom: 40px;
+                gap: 24px;
+                margin-bottom: 48px;
             }
             
             .loading-skeleton {
-                background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+                background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
                 background-size: 200% 100%;
                 animation: loading 1.5s infinite;
                 border-radius: 4px;
@@ -580,17 +572,17 @@ async def dashboard_home():
                 position: fixed;
                 top: 30px;
                 right: 30px;
-                background: linear-gradient(135deg, #4CAF50, #81C784);
+                background: #10b981;
                 color: white;
                 padding: 12px 20px;
-                border-radius: 25px;
-                font-size: 0.9em;
+                border-radius: 8px;
+                font-size: 0.875rem;
                 font-weight: 500;
                 opacity: 0;
                 transform: translateY(-20px);
                 transition: all 0.3s ease;
                 z-index: 1000;
-                box-shadow: 0 5px 20px rgba(76, 175, 80, 0.3);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
             }
             
             .refresh-indicator.show {
@@ -608,13 +600,19 @@ async def dashboard_home():
                 }
                 
                 .ai-modules-grid {
-                    grid-template-columns: 1fr;
+                    grid-template-columns: repeat(2, 1fr);
+                    grid-template-rows: repeat(4, 1fr);
+                }
+                
+                .services-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                    grid-template-rows: repeat(2, 1fr);
                 }
                 
                 .service-row {
                     flex-direction: column;
                     text-align: center;
-                    gap: 20px;
+                    gap: 16px;
                 }
                 
                 .service-status {

@@ -22,11 +22,11 @@ export function Settings() {
           transition={{ duration: 0.6 }}
           className="text-center space-y-4"
         >
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight flex items-center justify-center">
-            <Cog6ToothIcon className="w-12 h-12 mr-4" />
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight flex items-center justify-center">
+            <Cog6ToothIcon className="w-12 h-12 mr-4 text-gray-400" />
             Settings
           </h1>
-          <p className="text-lg text-gray-300">
+          <p className="text-lg md:text-xl text-gray-300">
             Configure your Dytallix wallet and application preferences
           </p>
         </motion.div>
