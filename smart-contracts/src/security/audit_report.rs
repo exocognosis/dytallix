@@ -333,7 +333,7 @@ impl AuditReportGenerator {
 
         for (priority, title) in &priority_groups {
             let priority_recs: Vec<_> = report.recommendations.iter()
-                .filter(|r| matches!(r.priority, p) if p == *priority)
+                .filter(|r| r.priority == *priority)
                 .collect();
             
             if !priority_recs.is_empty() {

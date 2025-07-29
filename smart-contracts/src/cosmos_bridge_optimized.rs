@@ -632,7 +632,7 @@ pub fn execute_batch_confirm_bridge(
     }
     
     let mut processed_count = 0u32;
-    let mut responses = Vec::new();
+    let mut responses: Vec<Response> = Vec::new();
     
     for batch in confirmations {
         for (validator, _signature) in batch.confirmations {

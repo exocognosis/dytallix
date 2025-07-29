@@ -961,6 +961,8 @@ impl Clone for ContractRuntime {
             execution_context: Arc::clone(&self.execution_context),
             state_tracker: Arc::clone(&self.state_tracker),
             event_storage: Arc::clone(&self.event_storage),
+            performance_metrics: Arc::clone(&self.performance_metrics),
+            metrics_enabled: self.metrics_enabled,
         }
     }
 }
