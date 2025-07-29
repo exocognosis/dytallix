@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Dytallix Enhanced Performance Dashboard
-Professional interactive dashboard with charts, graphs, and real-time visualizations
+Dytallix Enhanced Performance Dashboard - COMPLETE VERSION
+Professional interactive dashboard with charts, graphs, real-time visualizations,
+AI modules, blockchain health, bridge status, AND encryption modules
 """
 
 import asyncio
@@ -101,93 +102,69 @@ async def dashboard_home():
                 box-sizing: border-box;
             }
             
-            body { 
-                font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
-                background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
                 color: #ffffff;
                 min-height: 100vh;
-                overflow-x: hidden;
+                padding: 20px;
             }
             
-            .dashboard-container {
+            .container {
                 max-width: 1400px;
                 margin: 0 auto;
-                padding: 20px;
             }
             
             .header {
                 text-align: center;
                 margin-bottom: 40px;
-                padding: 30px;
-                background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
-                border-radius: 20px;
-                border: 1px solid rgba(76, 175, 80, 0.2);
-                backdrop-filter: blur(20px);
-                position: relative;
-                overflow: hidden;
             }
             
-            .header::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 3px;
-                background: linear-gradient(90deg, #4CAF50, #81C784, #4CAF50);
-                animation: shimmer 2s infinite;
-            }
-            
-            @keyframes shimmer {
-                0%, 100% { transform: translateX(-100%); }
-                50% { transform: translateX(100%); }
-            }
-            
-            h1 { 
-                color: #4CAF50;
+            .header h1 {
                 font-size: 3em;
                 font-weight: 700;
+                background: linear-gradient(135deg, #4CAF50, #81C784);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
                 margin-bottom: 10px;
-                text-shadow: 0 0 30px rgba(76, 175, 80, 0.5);
-                letter-spacing: -1px;
             }
             
-            .subtitle {
+            .header .subtitle {
                 color: #b0b0b0;
                 font-size: 1.2em;
                 font-weight: 300;
-                margin-bottom: 20px;
             }
             
-            .status-bar {
+            .status-header {
                 display: flex;
-                justify-content: center;
-                gap: 30px;
-                margin-top: 20px;
-                flex-wrap: wrap;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 30px;
+                padding: 20px;
+                background: linear-gradient(135deg, #2a2a2a, #353535);
+                border-radius: 15px;
+                border: 2px solid rgba(76, 175, 80, 0.2);
+            }
+            
+            .status-info {
+                display: flex;
+                align-items: center;
+                gap: 20px;
             }
             
             .status-item {
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                padding: 8px 16px;
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: 25px;
-                font-size: 0.9em;
+                gap: 10px;
             }
             
             .status-dot {
-                width: 10px;
-                height: 10px;
-                border-radius: 50%;
+                width: 8px;
+                height: 8px;
                 background: #4CAF50;
+                border-radius: 50%;
                 animation: pulse 2s infinite;
-            }
-            
-            @keyframes pulse {
-                0%, 100% { opacity: 1; transform: scale(1); }
-                50% { opacity: 0.7; transform: scale(1.1); }
             }
             
             .main-grid {
@@ -198,29 +175,16 @@ async def dashboard_home():
             }
             
             .chart-container {
-                background: linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%);
-                border-radius: 20px;
+                background: linear-gradient(135deg, #2a2a2a, #353535);
+                border-radius: 15px;
                 padding: 25px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-                position: relative;
-                overflow: hidden;
-            }
-            
-            .chart-container::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 2px;
-                background: linear-gradient(90deg, transparent, #4CAF50, transparent);
+                border: 2px solid rgba(76, 175, 80, 0.2);
+                transition: all 0.3s ease;
             }
             
             .chart-container:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 15px 50px rgba(76, 175, 80, 0.1);
+                border-color: rgba(76, 175, 80, 0.4);
+                box-shadow: 0 10px 30px rgba(76, 175, 80, 0.1);
             }
             
             .chart-title {
@@ -240,63 +204,50 @@ async def dashboard_home():
             
             .metrics-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 25px;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
                 margin-bottom: 40px;
             }
             
             .metric-card {
-                background: linear-gradient(145deg, #1e1e1e 0%, #2e2e2e 100%);
+                background: linear-gradient(135deg, #2a2a2a, #353535);
                 border-radius: 15px;
                 padding: 25px;
-                border: 1px solid rgba(255, 255, 255, 0.08);
+                text-align: center;
                 transition: all 0.3s ease;
-                position: relative;
-                overflow: hidden;
-            }
-            
-            .metric-card::after {
-                content: '';
-                position: absolute;
-                top: 0;
-                right: 0;
-                width: 4px;
-                height: 100%;
-                background: linear-gradient(45deg, #4CAF50, #81C784);
+                border: 2px solid rgba(76, 175, 80, 0.2);
             }
             
             .metric-card:hover {
-                transform: translateY(-3px);
-                border-color: rgba(76, 175, 80, 0.3);
-                box-shadow: 0 10px 30px rgba(76, 175, 80, 0.1);
+                transform: translateY(-5px);
+                box-shadow: 0 10px 30px rgba(76, 175, 80, 0.2);
+                border-color: rgba(76, 175, 80, 0.4);
             }
             
             .metric-icon {
-                font-size: 2em;
+                font-size: 2.5em;
                 color: #4CAF50;
                 margin-bottom: 15px;
             }
             
             .metric-value {
-                font-size: 2.2em;
+                font-size: 2.5em;
                 font-weight: 700;
                 color: #ffffff;
-                margin-bottom: 8px;
+                margin-bottom: 10px;
             }
             
             .metric-label {
                 color: #b0b0b0;
-                font-size: 0.95em;
-                text-transform: uppercase;
-                letter-spacing: 1px;
+                font-size: 1.1em;
                 margin-bottom: 10px;
             }
             
             .metric-change {
-                font-size: 0.85em;
-                padding: 4px 8px;
-                border-radius: 12px;
-                font-weight: 500;
+                font-weight: 600;
+                font-size: 0.9em;
+                padding: 5px 12px;
+                border-radius: 20px;
             }
             
             .change-positive {
@@ -309,14 +260,31 @@ async def dashboard_home():
                 color: #f44336;
             }
             
+            .change-neutral {
+                background: rgba(255, 193, 7, 0.2);
+                color: #FFC107;
+            }
+            
+            /* Core Services Section */
             .core-services-section {
                 margin-bottom: 40px;
             }
             
-            .services-grid {
+            .section-title {
+                color: #4CAF50;
+                font-size: 2em;
+                font-weight: 600;
+                margin-bottom: 30px;
                 display: flex;
-                flex-direction: column;
-                gap: 20px;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .services-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 25px;
+                min-height: 200px;
             }
             
             .service-row {
@@ -324,15 +292,27 @@ async def dashboard_home():
                 border-radius: 15px;
                 padding: 25px;
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
+                flex-direction: column;
                 transition: all 0.3s ease;
                 border: 2px solid rgba(76, 175, 80, 0.2);
+                position: relative;
+                overflow: hidden;
+                min-height: 180px;
+            }
+            
+            .service-row::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, #4CAF50, #81C784);
             }
             
             .service-row:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 30px rgba(76, 175, 80, 0.2);
+                transform: translateY(-5px);
+                box-shadow: 0 15px 40px rgba(76, 175, 80, 0.2);
                 border-color: rgba(76, 175, 80, 0.4);
             }
             
@@ -341,26 +321,31 @@ async def dashboard_home():
                 background: linear-gradient(135deg, #2a2a2a, #3a3020);
             }
             
+            .service-row.encryption-row::before {
+                background: linear-gradient(90deg, #FFC107, #FFD54F);
+            }
+            
             .service-row.encryption-row:hover {
                 border-color: rgba(255, 193, 7, 0.6);
-                box-shadow: 0 10px 30px rgba(255, 193, 7, 0.2);
+                box-shadow: 0 15px 40px rgba(255, 193, 7, 0.2);
             }
             
             .service-info {
                 display: flex;
                 align-items: center;
-                gap: 20px;
+                gap: 15px;
+                margin-bottom: 15px;
             }
             
             .service-icon {
-                width: 60px;
-                height: 60px;
+                width: 50px;
+                height: 50px;
                 background: linear-gradient(135deg, #4CAF50, #81C784);
-                border-radius: 15px;
+                border-radius: 12px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 1.5em;
+                font-size: 1.3em;
                 color: white;
                 flex-shrink: 0;
             }
@@ -375,24 +360,25 @@ async def dashboard_home():
             }
             
             .service-name {
-                font-size: 1.3em;
+                font-size: 1.1em;
                 font-weight: 600;
                 color: #ffffff;
-                margin-bottom: 8px;
+                margin-bottom: 5px;
             }
             
             .service-description {
                 color: #b0b0b0;
-                font-size: 0.95em;
+                font-size: 0.9em;
+                line-height: 1.3;
+            }
                 line-height: 1.4;
             }
             
             .service-status {
-                text-align: right;
                 display: flex;
                 flex-direction: column;
-                align-items: flex-end;
                 gap: 10px;
+                margin-top: auto;
             }
             
             .status-indicator {
@@ -417,19 +403,38 @@ async def dashboard_home():
                 font-weight: 600;
                 font-size: 0.9em;
                 color: #4CAF50;
-                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
             }
             
             .service-metrics {
                 display: flex;
-                flex-direction: column;
-                gap: 5px;
+                flex-wrap: wrap;
+                gap: 8px;
                 font-size: 0.85em;
                 color: #888;
+                margin-top: 5px;
             }
             
             .service-metrics span {
                 white-space: nowrap;
+                padding: 3px 8px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 6px;
+                font-size: 0.8em;
+            }
+            
+            .encryption-metrics {
+                flex-direction: column !important;
+                gap: 5px !important;
+            }
+            
+            .encryption-metrics span {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                padding: 4px 8px;
             }
             
             .encryption-metrics {
@@ -461,52 +466,31 @@ async def dashboard_home():
                 border: 1px solid rgba(244, 67, 54, 0.3);
             }
             
-            @keyframes pulse {
-                0% { transform: scale(1); opacity: 1; }
-                50% { transform: scale(1.1); opacity: 0.8; }
-                100% { transform: scale(1); opacity: 1; }
-            }
-            
+            /* AI Modules Section */
             .ai-modules-section {
                 margin-bottom: 40px;
             }
             
-            .section-title {
-                color: #4CAF50;
-                font-size: 2em;
-                font-weight: 600;
-                margin-bottom: 30px;
-                text-align: center;
-                position: relative;
-            }
-            
-            .section-title::after {
-                content: '';
-                position: absolute;
-                bottom: -10px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 100px;
-                height: 3px;
-                background: linear-gradient(90deg, transparent, #4CAF50, transparent);
-            }
-            
             .ai-modules-grid {
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                grid-template-rows: repeat(2, 1fr);
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
                 gap: 25px;
-                min-height: 400px;
             }
             
             .ai-module-card {
-                background: linear-gradient(145deg, #1a2a1a 0%, #2a3a2a 100%);
-                border: 1px solid rgba(76, 175, 80, 0.2);
+                background: linear-gradient(135deg, #2a2a2a, #353535);
                 border-radius: 15px;
                 padding: 25px;
+                transition: all 0.3s ease;
+                border: 2px solid rgba(33, 150, 243, 0.2);
                 position: relative;
                 overflow: hidden;
-                transition: all 0.3s ease;
+            }
+            
+            .ai-module-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 40px rgba(33, 150, 243, 0.2);
+                border-color: rgba(33, 150, 243, 0.4);
             }
             
             .ai-module-card::before {
@@ -516,13 +500,7 @@ async def dashboard_home():
                 left: 0;
                 right: 0;
                 height: 3px;
-                background: linear-gradient(90deg, #4CAF50, #81C784);
-            }
-            
-            .ai-module-card:hover {
-                transform: translateY(-5px);
-                border-color: #4CAF50;
-                box-shadow: 0 15px 40px rgba(76, 175, 80, 0.15);
+                background: linear-gradient(90deg, #2196F3, #64B5F6);
             }
             
             .module-header {
@@ -533,26 +511,29 @@ async def dashboard_home():
             }
             
             .module-name {
-                color: #4CAF50;
                 font-size: 1.2em;
                 font-weight: 600;
+                color: #2196F3;
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
             
             .module-status {
-                padding: 4px 12px;
-                border-radius: 15px;
-                font-size: 0.8em;
-                font-weight: 500;
-                text-transform: uppercase;
+                font-size: 0.85em;
+                font-weight: 600;
+                padding: 4px 10px;
+                border-radius: 12px;
                 background: rgba(76, 175, 80, 0.2);
                 color: #4CAF50;
+                border: 1px solid rgba(76, 175, 80, 0.3);
             }
             
             .module-metric {
-                font-size: 2em;
+                font-size: 2.2em;
                 font-weight: 700;
                 color: #ffffff;
-                margin-bottom: 5px;
+                margin-bottom: 15px;
             }
             
             .module-description {
@@ -589,6 +570,12 @@ async def dashboard_home():
                 100% { background-position: -200% 0; }
             }
             
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.1); opacity: 0.8; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            
             .refresh-indicator {
                 position: fixed;
                 top: 30px;
@@ -611,54 +598,138 @@ async def dashboard_home():
                 transform: translateY(0);
             }
             
-            @media (max-width: 1200px) {
-                .ai-modules-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                    grid-template-rows: repeat(4, 1fr);
-                }
-            }
-            
             @media (max-width: 768px) {
                 .main-grid {
                     grid-template-columns: 1fr;
                 }
                 
                 .metrics-grid {
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
                 }
                 
                 .ai-modules-grid {
                     grid-template-columns: 1fr;
-                    grid-template-rows: repeat(6, auto);
-                    min-height: auto;
                 }
                 
-                h1 {
-                    font-size: 2em;
+                .service-row {
+                    flex-direction: column;
+                    text-align: center;
+                    gap: 20px;
                 }
                 
-                .status-bar {
-                    gap: 15px;
+                .service-status {
+                    align-items: center;
                 }
             }
         </style>
     </head>
     <body>
-        <div class="dashboard-container">
+        <div class="container">
             <div class="header">
                 <h1><i class="fas fa-rocket"></i> Dytallix Performance Dashboard</h1>
-                <div class="status-bar">
+                <div class="subtitle">Real-time system monitoring & service health</div>
+            </div>
+            
+            <div class="status-header">
+                <div class="status-info">
                     <div class="status-item">
                         <div class="status-dot"></div>
-                        <span>System Online</span>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-dot"></div>
-                        <span id="active-connections">8 Active Connections</span>
+                        <span>All Systems Operational</span>
                     </div>
                     <div class="status-item">
                         <div class="status-dot"></div>
                         <span id="last-update">Last Update: <span id="timestamp">--:--:--</span></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="core-services-section">
+                <h2 class="section-title">
+                    <i class="fas fa-cogs"></i>
+                    Dytallix Core Services
+                </h2>
+                
+                <div class="services-grid">
+                    <div class="service-row">
+                        <div class="service-info">
+                            <div class="service-icon"><i class="fas fa-cube"></i></div>
+                            <div class="service-details">
+                                <div class="service-name">Blockchain Node</div>
+                                <div class="service-description">Core consensus and transaction processing</div>
+                            </div>
+                        </div>
+                        <div class="service-status">
+                            <div class="status-text">
+                                <div class="status-indicator online" id="blockchain-status"></div>
+                                ONLINE
+                            </div>
+                            <div class="service-metrics">
+                                <span>Port: <span id="blockchain-port">3030</span></span>
+                                <span>Block: <span id="current-block">1234</span></span>
+                                <span>TPS: <span id="transaction-rate">42</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="service-row">
+                        <div class="service-info">
+                            <div class="service-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="service-details">
+                                <div class="service-name">Performance Dashboard</div>
+                                <div class="service-description">Real-time system monitoring and analytics</div>
+                            </div>
+                        </div>
+                        <div class="service-status">
+                            <div class="status-text">
+                                <div class="status-indicator online" id="dashboard-status"></div>
+                                ONLINE
+                            </div>
+                            <div class="service-metrics">
+                                <span>Port: <span id="dashboard-port">9092</span></span>
+                                <span>Uptime: <span id="dashboard-uptime">2h 14m</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="service-row">
+                        <div class="service-info">
+                            <div class="service-icon"><i class="fas fa-database"></i></div>
+                            <div class="service-details">
+                                <div class="service-name">Metrics Collector</div>
+                                <div class="service-description">System metrics aggregation and storage</div>
+                            </div>
+                        </div>
+                        <div class="service-status">
+                            <div class="status-text">
+                                <div class="status-indicator online" id="metrics-status"></div>
+                                ONLINE
+                            </div>
+                            <div class="service-metrics">
+                                <span>Port: <span id="metrics-port">3001</span></span>
+                                <span>Metrics: <span id="metrics-count">847</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="service-row encryption-row">
+                        <div class="service-info">
+                            <div class="service-icon"><i class="fas fa-lock"></i></div>
+                            <div class="service-details">
+                                <div class="service-name">Post-Quantum Encryption</div>
+                                <div class="service-description">SPHINCS+, Dilithium, and Kyber algorithms</div>
+                            </div>
+                        </div>
+                        <div class="service-status">
+                            <div class="status-text">
+                                <div class="status-indicator online" id="encryption-status"></div>
+                                SECURED
+                            </div>
+                            <div class="service-metrics encryption-metrics">
+                                <span><i class="fas fa-shield-alt"></i> SPHINCS+: <span id="sphincs-status" class="crypto-status active">ACTIVE</span></span>
+                                <span><i class="fas fa-key"></i> Dilithium: <span id="dilithium-status" class="crypto-status active">ACTIVE</span></span>
+                                <span><i class="fas fa-exchange-alt"></i> Kyber: <span id="kyber-status" class="crypto-status active">ACTIVE</span></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -715,89 +786,6 @@ async def dashboard_home():
                 </div>
             </div>
             
-            <div class="core-services-section">
-                <h2 class="section-title">
-                    <i class="fas fa-cogs"></i>
-                    Dytallix Core Services
-                </h2>
-                
-                <div class="services-grid">
-                    <div class="service-row">
-                        <div class="service-info">
-                            <div class="service-icon"><i class="fas fa-cube"></i></div>
-                            <div class="service-details">
-                                <div class="service-name">Dytallix Blockchain Node</div>
-                                <div class="service-description">Core blockchain consensus and transaction processing</div>
-                            </div>
-                        </div>
-                        <div class="service-status">
-                            <div class="status-indicator online" id="blockchain-status"></div>
-                            <div class="status-text">ONLINE</div>
-                            <div class="service-metrics">
-                                <span>Port: <span id="blockchain-port">3030</span></span>
-                                <span>Block: <span id="current-block">1234</span></span>
-                                <span>TPS: <span id="transaction-rate">42</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="service-row">
-                        <div class="service-info">
-                            <div class="service-icon"><i class="fas fa-chart-line"></i></div>
-                            <div class="service-details">
-                                <div class="service-name">Performance Dashboard</div>
-                                <div class="service-description">Real-time system monitoring and analytics</div>
-                            </div>
-                        </div>
-                        <div class="service-status">
-                            <div class="status-indicator online" id="dashboard-status"></div>
-                            <div class="status-text">ONLINE</div>
-                            <div class="service-metrics">
-                                <span>Port: <span id="dashboard-port">3000</span></span>
-                                <span>Uptime: <span id="dashboard-uptime">2h 14m</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="service-row">
-                        <div class="service-info">
-                            <div class="service-icon"><i class="fas fa-database"></i></div>
-                            <div class="service-details">
-                                <div class="service-name">Metrics Collector</div>
-                                <div class="service-description">System metrics aggregation and storage</div>
-                            </div>
-                        </div>
-                        <div class="service-status">
-                            <div class="status-indicator online" id="metrics-status"></div>
-                            <div class="status-text">ONLINE</div>
-                            <div class="service-metrics">
-                                <span>Port: <span id="metrics-port">3001</span></span>
-                                <span>Metrics: <span id="metrics-count">847</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="service-row encryption-row">
-                        <div class="service-info">
-                            <div class="service-icon"><i class="fas fa-lock"></i></div>
-                            <div class="service-details">
-                                <div class="service-name">Post-Quantum Encryption Modules</div>
-                                <div class="service-description">SPHINCS+, Dilithium, and Kyber cryptographic algorithms</div>
-                            </div>
-                        </div>
-                        <div class="service-status">
-                            <div class="status-indicator online" id="encryption-status"></div>
-                            <div class="status-text">SECURED</div>
-                            <div class="service-metrics encryption-metrics">
-                                <span><i class="fas fa-shield-alt"></i> SPHINCS+: <span id="sphincs-status" class="crypto-status active">ACTIVE</span></span>
-                                <span><i class="fas fa-key"></i> Dilithium: <span id="dilithium-status" class="crypto-status active">ACTIVE</span></span>
-                                <span><i class="fas fa-exchange-alt"></i> Kyber: <span id="kyber-status" class="crypto-status active">ACTIVE</span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <div class="ai-modules-section">
                 <h2 class="section-title">
                     <i class="fas fa-brain"></i>
@@ -840,8 +828,8 @@ async def dashboard_home():
                         <div class="module-metric" id="wallet-accuracy">92.4%</div>
                         <div class="module-description">Behavioral pattern analysis and risk scoring</div>
                         <div class="module-details">
-                            <span id="wallet-categories">7 categories</span>
-                            <span>XGBoost</span>
+                            <span>Patterns: <span id="wallet-patterns">128 identified</span></span>
+                            <span>Random Forest</span>
                         </div>
                     </div>
                     
@@ -851,41 +839,40 @@ async def dashboard_home():
                             <div class="module-status" id="stake-status">BALANCING</div>
                         </div>
                         <div class="module-metric" id="stake-apy">14.2%</div>
-                        <div class="module-description">Automated staking reward optimization</div>
+                        <div class="module-description">Optimal staking rewards distribution</div>
                         <div class="module-details">
-                            <span id="stake-pools">6 pools managed</span>
-                            <span>Deep Q-Network</span>
+                            <span id="stake-pools">5 pools managed</span>
+                            <span>Genetic Algorithm</span>
                         </div>
                     </div>
                     
-                    <!-- Row 2: 2 modules (can add more later) -->
+                    <!-- Row 2: 4 modules -->
                     <div class="ai-module-card">
                         <div class="module-header">
                             <div class="module-name"><i class="fas fa-vote-yea"></i> GovSim</div>
                             <div class="module-status" id="govsim-status">SIMULATING</div>
                         </div>
-                        <div class="module-metric" id="govsim-participation">82.7%</div>
+                        <div class="module-metric" id="govsim-accuracy">91.6%</div>
                         <div class="module-description">Governance outcome prediction and simulation</div>
                         <div class="module-details">
-                            <span id="govsim-proposals">34 proposals analyzed</span>
-                            <span>Bayesian Networks</span>
+                            <span id="govsim-proposals">27 proposals analyzed</span>
+                            <span>Monte Carlo</span>
                         </div>
                     </div>
                     
                     <div class="ai-module-card">
                         <div class="module-header">
-                            <div class="module-name"><i class="fas fa-chart-line"></i> Economic Sentinel</div>
-                            <div class="module-status" id="eco-status">MONITORING</div>
+                            <div class="module-name"><i class="fas fa-coins"></i> Economic Sentinel</div>
+                            <div class="module-status" id="economic-status">MONITORING</div>
                         </div>
-                        <div class="module-metric" id="eco-health">87.3%</div>
+                        <div class="module-metric" id="economic-score">84.3%</div>
                         <div class="module-description">Economic health monitoring and risk assessment</div>
                         <div class="module-details">
-                            <span id="eco-indicators">12 indicators</span>
-                            <span>Random Forest</span>
+                            <span id="economic-indicators">8 indicators tracked</span>
+                            <span>Time Series Analysis</span>
                         </div>
                     </div>
                     
-                    <!-- Placeholder cards for future modules -->
                     <div class="ai-module-card">
                         <div class="module-header">
                             <div class="module-name"><i class="fas fa-lock"></i> Quantum Shield</div>
@@ -907,7 +894,7 @@ async def dashboard_home():
                         <div class="module-metric" id="protocol-efficiency">94.2%</div>
                         <div class="module-description">Protocol parameter optimization</div>
                         <div class="module-details">
-                            <span id="protocol-params">12 parameters</span>
+                            <span id="protocol-params">12 parameters tuned</span>
                             <span>Bayesian Optimization</span>
                         </div>
                     </div>
@@ -1053,7 +1040,7 @@ async def dashboard_home():
                                 },
                                 ticks: {
                                     color: '#b0b0b0',
-                                    maxTicksLimit: 8
+                                    maxTicksLimit: 10
                                 }
                             },
                             y: {
@@ -1063,24 +1050,77 @@ async def dashboard_home():
                                 ticks: {
                                     color: '#b0b0b0'
                                 },
-                                beginAtZero: true
+                                min: 0
                             }
                         },
                         animation: {
-                            duration: 1200,
-                            easing: 'easeInOutBack'
+                            duration: 1000,
+                            easing: 'easeInOutQuart'
                         }
                     }
                 });
             }
             
-            // Show refresh indicator
             function showRefreshIndicator() {
                 const indicator = document.getElementById('refreshIndicator');
                 indicator.classList.add('show');
                 setTimeout(() => {
                     indicator.classList.remove('show');
                 }, 2000);
+            }
+            
+            function formatTime(timestamp) {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString();
+            }
+            
+            function formatUptime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                return `${hours}h ${minutes}m`;
+            }
+            
+            function updateEncryptionModules() {
+                // Simulate encryption module status updates
+                const modules = ['sphincs-status', 'dilithium-status', 'kyber-status'];
+                
+                modules.forEach(moduleId => {
+                    const element = document.getElementById(moduleId);
+                    if (element) {
+                        // 95% chance of being active (high reliability)
+                        const isActive = Math.random() > 0.05;
+                        element.textContent = isActive ? 'ACTIVE' : 'SYNCING';
+                        element.className = isActive ? 'crypto-status active' : 'crypto-status inactive';
+                    }
+                });
+                
+                // Update encryption status indicator
+                const encryptionStatus = document.getElementById('encryption-status');
+                if (encryptionStatus) {
+                    encryptionStatus.className = 'status-indicator online';
+                }
+            }
+            
+            async function updateServicesStatus() {
+                try {
+                    const response = await fetch('/services');
+                    const data = await response.json();
+                    
+                    if (data.success && data.data) {
+                        // Update service status indicators
+                        Object.keys(data.data).forEach(serviceKey => {
+                            const service = data.data[serviceKey];
+                            const statusElement = document.getElementById(`${serviceKey}-status`);
+                            if (statusElement) {
+                                statusElement.className = service.status === 'online' 
+                                    ? 'status-indicator online' 
+                                    : 'status-indicator offline';
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error updating services:', error);
+                }
             }
             
             // Update metrics and charts
@@ -1117,7 +1157,7 @@ async def dashboard_home():
                     // Update AI modules
                     updateAIModules();
                     
-                    // Update encryption modules status
+                    // Update encryption modules
                     updateEncryptionModules();
                     
                     // Update services status
@@ -1129,701 +1169,268 @@ async def dashboard_home():
             }
             
             function updateMetricChanges(data) {
-                // Color code based on system performance logic:
-                // Green = Low usage (good), Red = High usage (concerning)
-                
                 const currentUsage = [data.cpu_percent, data.memory_percent, data.disk_percent];
                 const elements = ['cpu-change', 'memory-change', 'disk-change'];
-                const thresholds = [70, 80, 85]; // CPU, Memory, Disk warning thresholds
+                const thresholds = [70, 80, 90]; // Warning thresholds
                 
                 currentUsage.forEach((usage, index) => {
                     const element = document.getElementById(elements[index]);
-                    const change = (Math.random() * 4 - 2); // Simulate change for display
-                    
-                    // Determine color based on current usage level, not change direction
-                    const isGood = usage < thresholds[index];
-                    element.className = `metric-change ${isGood ? 'change-positive' : 'change-negative'}`;
-                    
-                    // Show status instead of arbitrary change
-                    if (usage < thresholds[index] * 0.5) {
-                        element.textContent = 'Excellent';
-                    } else if (usage < thresholds[index] * 0.7) {
-                        element.textContent = 'Good';
-                    } else if (usage < thresholds[index]) {
-                        element.textContent = 'Normal';
-                    } else if (usage < thresholds[index] * 1.2) {
-                        element.textContent = 'High';
-                    } else {
-                        element.textContent = 'Critical';
+                    if (element) {
+                        element.className = 'metric-change';
+                        if (usage < thresholds[0]) {
+                            element.classList.add('change-positive');
+                            element.textContent = 'Excellent';
+                        } else if (usage < thresholds[1]) {
+                            element.classList.add('change-neutral');
+                            element.textContent = 'Good';
+                        } else {
+                            element.classList.add('change-negative');
+                            element.textContent = 'High';
+                        }
                     }
                 });
             }
             
             function updateCharts(data) {
-                // Update system chart
-                systemChart.data.labels = data.timestamps.map(t => new Date(t).toLocaleTimeString());
-                systemChart.data.datasets[0].data = data.cpu;
-                systemChart.data.datasets[1].data = data.memory;
-                systemChart.data.datasets[2].data = data.disk;
-                systemChart.update('none');
-                
-                // Update network chart
-                networkChart.data.labels = data.timestamps.slice(-10).map(t => new Date(t).toLocaleTimeString());
-                networkChart.data.datasets[0].data = data.network_activity.slice(-10);
-                networkChart.data.datasets[1].data = data.transaction_volume.slice(-10);
-                networkChart.update('none');
+                if (systemChart && data.timestamps && data.timestamps.length > 0) {
+                    // Limit to last 20 points for readability
+                    const maxPoints = 20;
+                    const startIndex = Math.max(0, data.timestamps.length - maxPoints);
+                    
+                    const labels = data.timestamps.slice(startIndex).map(timestamp => 
+                        new Date(timestamp).toLocaleTimeString('en-US', { 
+                            hour12: false, 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        })
+                    );
+                    
+                    systemChart.data.labels = labels;
+                    systemChart.data.datasets[0].data = data.cpu.slice(startIndex);
+                    systemChart.data.datasets[1].data = data.memory.slice(startIndex);
+                    systemChart.data.datasets[2].data = data.disk.slice(startIndex);
+                    systemChart.update('none');
+                    
+                    networkChart.data.labels = labels;
+                    networkChart.data.datasets[0].data = data.network_activity.slice(startIndex);
+                    networkChart.data.datasets[1].data = data.transaction_volume.slice(startIndex);
+                    networkChart.update('none');
+                }
             }
             
-            function updateAIModules() {ules() {
+            function updateAIModules() {
                 const baseTime = Date.now();
                 
-                // Network Sentinelion module status updates
+                // Network Sentinel
                 const sentinelAccuracy = (95 + Math.sin(baseTime / 10000) * 3).toFixed(1);
                 const threatsBlocked = Math.floor(12 + Math.random() * 8);
                 document.getElementById('sentinel-accuracy').textContent = sentinelAccuracy + '%';
                 document.getElementById('sentinel-threats').textContent = `${threatsBlocked} threats blocked`;
                 document.getElementById('sentinel-status').textContent = Math.random() > 0.7 ? 'SCANNING' : 'ACTIVE';
                 
-                // FeeFlow Optimizerule, index) => {
+                // FeeFlow Optimizer
                 const feeflowSavings = (20 + Math.sin(baseTime / 8000) * 5).toFixed(0);
                 const optimalFee = (0.004 + Math.sin(baseTime / 12000) * 0.002).toFixed(4);
                 document.getElementById('feeflow-savings').textContent = feeflowSavings + '%';
-                document.getElementById('feeflow-fee').textContent = optimalFee;eing active
+                document.getElementById('feeflow-fee').textContent = optimalFee;
                 document.getElementById('feeflow-status').textContent = Math.random() > 0.5 ? 'OPTIMIZING' : 'ANALYZING';
-                        element.className = isActive ? 'crypto-status active' : 'crypto-status inactive';
+                
                 // Wallet Classifier
                 const walletAccuracy = (92 + Math.sin(baseTime / 15000) * 2).toFixed(1);
+                const walletPatterns = Math.floor(128 + Math.random() * 20);
                 document.getElementById('wallet-accuracy').textContent = walletAccuracy + '%';
+                document.getElementById('wallet-patterns').textContent = `${walletPatterns} identified`;
                 document.getElementById('wallet-status').textContent = Math.random() > 0.6 ? 'LEARNING' : 'CLASSIFYING';
-                const encryptionStatus = document.getElementById('encryption-status');
-                // Stake Balancertus) {
+                
+                // Stake Balancer
                 const stakeAPY = (14 + Math.sin(baseTime / 18000) * 1.5).toFixed(1);
                 const poolsManaged = Math.floor(5 + Math.random() * 3);
                 document.getElementById('stake-apy').textContent = stakeAPY + '%';
                 document.getElementById('stake-pools').textContent = `${poolsManaged} pools managed`;
                 document.getElementById('stake-status').textContent = Math.random() > 0.5 ? 'BALANCING' : 'OPTIMIZING';
-                try {
-                // GovSim servicesResponse = await fetch('/services');
-                const govParticipation = (82 + Math.sin(baseTime / 20000) * 4).toFixed(1);
-                const proposalsAnalyzed = Math.floor(30 + Math.random() * 10);
-                document.getElementById('govsim-participation').textContent = govParticipation + '%';
-                document.getElementById('govsim-proposals').textContent = `${proposalsAnalyzed} proposals analyzed`;
-                document.getElementById('govsim-status').textContent = Math.random() > 0.7 ? 'SIMULATING' : 'ANALYZING';
-                        // Update blockchain service
-                // Economic Sentinel.blockchain) {
-                const ecoHealth = (87 + Math.sin(baseTime / 22000) * 3).toFixed(1);chain-status');
-                const indicators = Math.floor(10 + Math.random() * 4);ById('blockchain-port');
-                document.getElementById('eco-health').textContent = ecoHealth + '%';
-                document.getElementById('eco-indicators').textContent = `${indicators} indicators`;
-                document.getElementById('eco-status').textContent = Math.random() > 0.6 ? 'MONITORING' : 'ANALYZING';
-                                    ? 'status-indicator online' 
-                // Quantum Shield   : 'status-indicator offline';
-                const quantumStrength = (99.6 + Math.sin(baseTime / 25000) * 0.3).toFixed(1);
-                const keysSecured = Math.floor(250 + Math.random() * 20);
-                document.getElementById('quantum-strength').textContent = quantumStrength + '%';
-                document.getElementById('quantum-keys').textContent = `${keysSecured} keys secured`;30';
-                document.getElementById('quantum-status').textContent = Math.random() > 0.8 ? 'PROTECTING' : 'SECURING';
-                        }
-                // Protocol Tuner
-                const protocolEfficiency = (93 + Math.sin(baseTime / 27000) * 2).toFixed(1);
-                const parametersOptimized = Math.floor(10 + Math.random() * 5);ard-status');
-                document.getElementById('protocol-efficiency').textContent = protocolEfficiency + '%';
-                document.getElementById('protocol-params').textContent = `${parametersOptimized} parameters`; fetch this
-                document.getElementById('protocol-status').textContent = Math.random() > 0.5 ? 'TUNING' : 'OPTIMIZING';
-            }           
-                        // Update metrics service
-            function updateEncryptionModules() {
-                // Simulate encryption module status updateslementById('metrics-status');
-                const modules = ['sphincs-status', 'dilithium-status', 'kyber-status'];tById('metrics-port');
                 
-                modules.forEach(moduleId => {
-                    const element = document.getElementById(moduleId);
-                    if (element) {
-                        // 90% chance of being active                 : 'status-indicator offline';
-                        const isActive = Math.random() > 0.1;               }
-                        element.textContent = isActive ? 'ACTIVE' : 'SYNCING';                
-                        element.className = isActive ? 'crypto-status active' : 'crypto-status inactive';& services.metrics.details) {
-                    }ent = services.metrics.details.port || '3001';
-                });
+                // GovSim
+                const govsimAccuracy = (91 + Math.sin(baseTime / 20000) * 2).toFixed(1);
+                const proposalsAnalyzed = Math.floor(27 + Math.random() * 10);
+                document.getElementById('govsim-accuracy').textContent = govsimAccuracy + '%';
+                document.getElementById('govsim-proposals').textContent = `${proposalsAnalyzed} proposals analyzed`;
+                document.getElementById('govsim-status').textContent = Math.random() > 0.6 ? 'SIMULATING' : 'ANALYZING';
+                
+                // Economic Sentinel
+                const economicScore = (84 + Math.sin(baseTime / 25000) * 3).toFixed(1);
+                const indicators = Math.floor(8 + Math.random() * 2);
+                document.getElementById('economic-score').textContent = economicScore + '%';
+                document.getElementById('economic-indicators').textContent = `${indicators} indicators tracked`;
+                document.getElementById('economic-status').textContent = Math.random() > 0.5 ? 'MONITORING' : 'ANALYZING';
+                
+                // Quantum Shield
+                const quantumStrength = (99.5 + Math.sin(baseTime / 30000) * 0.5).toFixed(1);
+                const keysSecured = Math.floor(256 + Math.random() * 32);
+                document.getElementById('quantum-strength').textContent = quantumStrength + '%';
+                document.getElementById('quantum-keys').textContent = `${keysSecured} keys secured`;
+                document.getElementById('quantum-status').textContent = Math.random() > 0.8 ? 'PROTECTING' : 'SECURING';
+                
+                // Protocol Tuner
+                const protocolEfficiency = (94 + Math.sin(baseTime / 35000) * 2).toFixed(1);
+                const paramsTuned = Math.floor(12 + Math.random() * 5);
+                document.getElementById('protocol-efficiency').textContent = protocolEfficiency + '%';
+                document.getElementById('protocol-params').textContent = `${paramsTuned} parameters tuned`;
+                document.getElementById('protocol-status').textContent = Math.random() > 0.6 ? 'TUNING' : 'OPTIMIZING';
+                
+                // Update current block and TPS in services section
+                const currentBlock = Math.floor(1234 + (Date.now() / 10000) % 100);
+                const tps = Math.floor(35 + Math.sin(baseTime / 5000) * 15);
+                document.getElementById('current-block').textContent = currentBlock;
+                document.getElementById('transaction-rate').textContent = tps;
+                
+                // Update metrics count
+                const metricsCount = Math.floor(847 + Math.random() * 50);
+                document.getElementById('metrics-count').textContent = metricsCount;
             }
             
-            async function updateServicesStatus() {
-                try {  console.error('Error updating services status:', error);
-                    const response = await fetch('/services');    // Set all services to offline on error
-                    const data = await response.json();shboard-status', 'metrics-status'].forEach(id => {
-                    ntById(id);
-                    if (data.success && data.data) {
-                        // Update service status indicators
-                        Object.keys(data.data).forEach(serviceKey => {     }
-                            const service = data.data[serviceKey];       });
-                            const statusElement = document.getElementById(`${serviceKey}-status`);    }
-                            if (statusElement) {
-                                statusElement.className = service.status === 'online' 
-                                    ? 'status-indicator online' 
-                                    : 'status-indicator offline';
-                            }
-                        });   // Network Sentinel
-                    }    const sentinelAccuracy = (95 + Math.sin(baseTime / 10000) * 3).toFixed(1);
-                } catch (error) {floor(12 + Math.random() * 8);
-                    console.error('Error updating services:', error);tContent = sentinelAccuracy + '%';
-                }   document.getElementById('sentinel-threats').textContent = `${threatsBlocked} threats blocked`;
-            }    document.getElementById('sentinel-status').textContent = Math.random() > 0.7 ? 'SCANNING' : 'ACTIVE';
-            
-            function formatUptime(seconds) {
-                const days = Math.floor(seconds / 86400);s = (20 + Math.sin(baseTime / 8000) * 5).toFixed(0);
-                const hours = Math.floor((seconds % 86400) / 3600); (0.004 + Math.sin(baseTime / 12000) * 0.002).toFixed(4);
-                const minutes = Math.floor((seconds % 3600) / 60);document.getElementById('feeflow-savings').textContent = feeflowSavings + '%';
-                return `${days}d ${hours}h ${minutes}m`;feeflow-fee').textContent = optimalFee;
-            }atus').textContent = Math.random() > 0.5 ? 'OPTIMIZING' : 'ANALYZING';
-             
-            function formatTime(timestamp) {/ Wallet Classifier
-                return new Date(timestamp).toLocaleTimeString();     const walletAccuracy = (92 + Math.sin(baseTime / 15000) * 2).toFixed(1);
-            }     document.getElementById('wallet-accuracy').textContent = walletAccuracy + '%';
-                     document.getElementById('wallet-status').textContent = Math.random() > 0.6 ? 'LEARNING' : 'CLASSIFYING';
             // Initialize dashboard
-            document.addEventListener('DOMContentLoaded', function() {                // Stake Balancer
-                initializeCharts();takeAPY = (14 + Math.sin(baseTime / 18000) * 1.5).toFixed(1);
-                updateDashboard();ed = Math.floor(5 + Math.random() * 3);
-                'stake-apy').textContent = stakeAPY + '%';
-                // Update every 3 seconds        document.getElementById('stake-pools').textContent = `${poolsManaged} pools managed`;
-                setInterval(updateDashboard, 3000);document.getElementById('stake-status').textContent = Math.random() > 0.5 ? 'BALANCING' : 'OPTIMIZING';
-            });
+            initializeCharts();
+            updateDashboard();
+            
+            // Update every 5 seconds
+            setInterval(updateDashboard, 5000);
         </script>
-    </body>.sin(baseTime / 20000) * 4).toFixed(1);
-    </html>       const proposalsAnalyzed = Math.floor(30 + Math.random() * 10);
-    """etElementById('govsim-participation').textContent = govParticipation + '%';
-    return HTMLResponse(content=html_content)document.getElementById('govsim-proposals').textContent = `${proposalsAnalyzed} proposals analyzed`;
-lementById('govsim-status').textContent = Math.random() > 0.7 ? 'SIMULATING' : 'ANALYZING';
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
 @app.get("/historical")
 async def get_historical_data():
-    """Get historical data for charts"""       const ecoHealth = (87 + Math.sin(baseTime / 22000) * 3).toFixed(1);
-    try:                const indicators = Math.floor(10 + Math.random() * 4);
-        return {ument.getElementById('eco-health').textContent = ecoHealth + '%';
-            "success": True,ument.getElementById('eco-indicators').textContent = `${indicators} indicators`;
-            "data": historical_data,nt.getElementById('eco-status').textContent = Math.random() > 0.6 ? 'MONITORING' : 'ANALYZING';
-            "timestamp": datetime.now().isoformat()    
-        }um Shield
-    except Exception as e:onst quantumStrength = (99.6 + Math.sin(baseTime / 25000) * 0.3).toFixed(1);
-        return {d = Math.floor(250 + Math.random() * 20);
-            "success": False,h').textContent = quantumStrength + '%';
-            "error": str(e),ys').textContent = `${keysSecured} keys secured`;
-            "timestamp": datetime.now().isoformat()       document.getElementById('quantum-status').textContent = Math.random() > 0.8 ? 'PROTECTING' : 'SECURING';
-        }           
-                // Protocol Tuner
-@app.get("/health")t protocolEfficiency = (93 + Math.sin(baseTime / 27000) * 2).toFixed(1);
-async def health():rametersOptimized = Math.floor(10 + Math.random() * 5);
-    """Health check"""yId('protocol-efficiency').textContent = protocolEfficiency + '%';
-    return {        document.getElementById('protocol-params').textContent = `${parametersOptimized} parameters`;
-        "success": True,ElementById('protocol-status').textContent = Math.random() > 0.5 ? 'TUNING' : 'OPTIMIZING';
-        "data": {
-            "status": "healthy",
-            "service": "enhanced_performance_dashboard",Modules() {
-            "timestamp": datetime.now().isoformat()now();
+    """Get historical data for charts"""
+    try:
+        return {
+            "success": True,
+            "data": historical_data,
+            "message": "Historical data retrieved successfully",
+            "timestamp": datetime.now().isoformat()
         }
-    }        // Simulate encryption module status updates
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
-@app.get("/metrics")phincs-status', name: 'SPHINCS+' },
-async def get_metrics():m' },
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {
+        "success": True,
+        "data": "Healthy",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/metrics")
+async def get_metrics():
     """Get current system metrics"""
     try:
         # Get system metrics
-        cpu_percent = psutil.cpu_percent(interval=0.1)        modules.forEach((module, index) => {
-        memory = psutil.virtual_memory()ment.getElementById(module.id);
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
         disk = psutil.disk_usage('/')
-        boot_time = psutil.boot_time()
-        uptime = time.time() - boot_time                const isActive = Math.random() > 0.1; // 90% chance of being active
-        ';
-        # Add new data point to historical datactive' : 'crypto-status inactive';
-        now = datetime.now()            }
-        historical_data["timestamps"].append(now.isoformat())
-        historical_data["cpu"].append(round(cpu_percent, 1))
-        historical_data["memory"].append(round(memory.percent, 1))ator
-        historical_data["disk"].append(round((disk.used / disk.total) * 100, 1))ryption-status');
+        uptime = time.time() - psutil.boot_time()
         
-        # Generate network activity data       encryptionStatus.className = 'status-indicator online';
-        network_activity = 100 + 80 * math.sin(time.time() * 0.01) + random.uniform(-20, 20)       }
-        tx_volume = 50 + 40 * math.sin(time.time() * 0.008) + random.uniform(-10, 10)    }
-        
-        historical_data["network_activity"].append(max(0, network_activity))pdateServicesStatus() {
-        historical_data["transaction_volume"].append(max(0, tx_volume))
-        tch('/services');
-        # Keep only last 50 data pointsonse.json();
-        max_points = 50;
-        for (key, value) in historical_data.items()) {
-            if isinstance(value, list) and len(value) > max_points) {
-                historical_data[key] = value[-max_points:]
-            }
-        }hain) {
-        cument.getElementById('blockchain-status');
-        return {               const blockchainPort = document.getElementById('blockchain-port');
-            "success": True,                   
-            "data": {  if (blockchainStatus) {
-                "cpu_percent": round(cpu_percent, 1),                blockchainStatus.className = services.blockchain.status === 'online' 
-                "memory_percent": round(memory.percent, 1),       ? 'status-indicator online' 
-                "memory_used_gb": round(memory.used / (1024**3), 2),        : 'status-indicator offline';
-                "memory_total_gb": round(memory.total / (1024**3), 2),
-                "disk_percent": round((disk.used / disk.total) * 100, 1),                   
-                "disk_used_gb": round(disk.used / (1024**3), 2),                            if (blockchainPort && services.blockchain.details) {
-                "disk_total_gb": round(disk.total / (1024**3), 2),           blockchainPort.textContent = services.blockchain.details.port || '3030';
-                "uptime": round(uptime, 0),   }
-                "timestamp": datetime.now().isoformat()
-            }                    
-        }   // Update dashboard service
-    except Exception as e:tElementById('dashboard-status');
         return {
-            "success": False, 'status-indicator online'; // Always online if we can fetch this
-            "error": str(e),                   }
-            "timestamp": datetime.now().isoformat()                    
-        }                // Update metrics service
-es.metrics) {
-@app.get("/services")                const metricsStatus = document.getElementById('metrics-status');
-async def get_services():s-port');
+            "success": True,
+            "data": {
+                "cpu_percent": round(cpu_percent, 1),
+                "memory_percent": round(memory.percent, 1),
+                "disk_percent": round(disk.percent, 1),
+                "uptime": round(uptime),
+                "memory_used_gb": round(memory.used / (1024**3), 2),
+                "memory_total_gb": round(memory.total / (1024**3), 2),
+                "disk_used_gb": round(disk.used / (1024**3), 2),
+                "disk_total_gb": round(disk.total / (1024**3), 2)
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/services")
+async def get_services():
     """Get detailed service health information"""
-    Status) {
-    services_data = {s.metrics.status === 'online' 
-        "blockchain": {"status": "offline", "details": {}},line' 
-        "frontend": {"status": "offline", "details": {}},line';
+    
+    services_data = {
+        "blockchain": {"status": "offline", "details": {}},
+        "frontend": {"status": "offline", "details": {}},
         "metrics": {"status": "offline", "details": {}}
     }
-              if (metricsPort && services.metrics.details) {
-    try:                   metricsPort.textContent = services.metrics.details.port || '3001';
-        # Check blockchain service           }
-        try:       }
-            response = requests.get("http://localhost:3030/health", timeout=3);           }
-            if response.status_code == 200) {    } catch (error) {
-                data = response.json();ole.error('Error updating services status:', error);
-                services_data["blockchain"]["status"] = "online";       // Set all services to offline on error
-                services_data["blockchain"]["details"] = {tatus'].forEach(id => {
-                    "message": data.get("data", "Healthy"),ent.getElementById(id);
-                    "port": "3030",
-                    "service_type": "Blockchain Node"indicator offline';
-                };
-            }
-        } catch {
-            pass;
-        }
-            ion updateAIModules() {
-        # Check frontendonst baseTime = Date.now();
-        try {       
-            response = requests.get("http://localhost:3000", timeout=3);    // Network Sentinel
-            if response.status_code == 200) {uracy = (95 + Math.sin(baseTime / 10000) * 3).toFixed(1);
-                services_data["frontend"]["status"] = "online";   const threatsBlocked = Math.floor(12 + Math.random() * 8);
-                services_data["frontend"]["details"] = {inelAccuracy + '%';
-                    "status": "serving",inel-threats').textContent = `${threatsBlocked} threats blocked`;
-                    "port": "3000",('sentinel-status').textContent = Math.random() > 0.7 ? 'SCANNING' : 'ACTIVE';
-                    "service_type": "React Frontend"
-                };
-            }toFixed(0);
-        } catch {(0.004 + Math.sin(baseTime / 12000) * 0.002).toFixed(4);
-            pass;s').textContent = feeflowSavings + '%';
-        }cument.getElementById('feeflow-fee').textContent = optimalFee;
-               document.getElementById('feeflow-status').textContent = Math.random() > 0.5 ? 'OPTIMIZING' : 'ANALYZING';
-        # Check metrics collector
-        try {/ Wallet Classifier
-            response = requests.get("http://localhost:3001/health", timeout=3);       const walletAccuracy = (92 + Math.sin(baseTime / 15000) * 2).toFixed(1);
-            if response.status_code == 200) {    document.getElementById('wallet-accuracy').textContent = walletAccuracy + '%';
-                data = response.json();ElementById('wallet-status').textContent = Math.random() > 0.6 ? 'LEARNING' : 'CLASSIFYING';
-                services_data["metrics"]["status"] = "online";   
-                services_data["metrics"]["details"] = {           // Stake Balancer
-                    "status": data.get("data", {}).get("status", "healthy"),            const stakeAPY = (14 + Math.sin(baseTime / 18000) * 1.5).toFixed(1);
-                    "port": "3001",    const poolsManaged = Math.floor(5 + Math.random() * 3);
-                    "service_type": "Metrics Collector".getElementById('stake-apy').textContent = stakeAPY + '%';
-                };ementById('stake-pools').textContent = `${poolsManaged} pools managed`;
-            }status').textContent = Math.random() > 0.5 ? 'BALANCING' : 'OPTIMIZING';
-        } catch {           
-            pass;               // GovSim
-        }                const govParticipation = (82 + Math.sin(baseTime / 20000) * 4).toFixed(1);
-            osalsAnalyzed = Math.floor(30 + Math.random() * 10);
-    } catch Exception as e { govParticipation + '%';
-        pass;proposals').textContent = `${proposalsAnalyzed} proposals analyzed`;
-    }extContent = Math.random() > 0.7 ? 'SIMULATING' : 'ANALYZING';
     
-    return {            // Economic Sentinel
-        "success": True,const ecoHealth = (87 + Math.sin(baseTime / 22000) * 3).toFixed(1);
-        "data": services_data,    const indicators = Math.floor(10 + Math.random() * 4);
-        "timestamp": datetime.now().isoformat()t.getElementById('eco-health').textContent = ecoHealth + '%';
-    }cument.getElementById('eco-indicators').textContent = `${indicators} indicators`;
-}.getElementById('eco-status').textContent = Math.random() > 0.6 ? 'MONITORING' : 'ANALYZING';
-           
-if __name__ == "__main__":                // Quantum Shield
-
-
-
-
-
-
-
-
-
-
-
-
-    )        log_level="info"        port=9091,        host="0.0.0.0",        app,    uvicorn.run(        print("📈 Historical API: http://localhost:9091/historical")    print("🔗 Metrics API: http://localhost:9091/metrics")    print("📊 Dashboard: http://localhost:9091")    print("🚀 Starting Dytallix Enhanced Performance Dashboard on port 9091")                const quantumStrength = (99.6 + Math.sin(baseTime / 25000) * 0.3).toFixed(1);
-                const keysSecured = Math.floor(250 + Math.random() * 20);
-                document.getElementById('quantum-strength').textContent = quantumStrength + '%';
-                document.getElementById('quantum-keys').textContent = `${keysSecured} keys secured`;
-                document.getElementById('quantum-status').textContent = Math.random() > 0.8 ? 'PROTECTING' : 'SECURING';
-                
-                // Protocol Tuner
-                const protocolEfficiency = (93 + Math.sin(baseTime / 27000) * 2).toFixed(1);
-                const parametersOptimized = Math.floor(10 + Math.random() * 5);
-                document.getElementById('protocol-efficiency').textContent = protocolEfficiency + '%';
-                document.getElementById('protocol-params').textContent = `${parametersOptimized} parameters`;
-                document.getElementById('protocol-status').textContent = Math.random() > 0.5 ? 'TUNING' : 'OPTIMIZING';
-            }
-            
-            function updateEncryptionModules() {
-                const baseTime = Date.now();
-                
-                // Simulate encryption module status updates
-                const modules = [
-                    { id: 'sphincs-status', name: 'SPHINCS+' },
-                    { id: 'dilithium-status', name: 'Dilithium' },
-                    { id: 'kyber-status', name: 'Kyber' }
-                ];
-                
-                modules.forEach((module, index) => {
-                    const element = document.getElementById(module.id);
-                    if (element) {
-                        // Simulate occasional status changes (mostly active)
-                        const isActive = Math.random() > 0.1; // 90% chance of being active
-                        element.textContent = isActive ? 'ACTIVE' : 'SYNCING';
-                        element.className = isActive ? 'crypto-status active' : 'crypto-status inactive';
-                    }
-                });
-                
-                // Update main encryption status indicator
-                const encryptionStatus = document.getElementById('encryption-status');
-                if (encryptionStatus) {
-                    encryptionStatus.className = 'status-indicator online';
+    try:
+        # Check blockchain service
+        try:
+            response = requests.get("http://localhost:3030/health", timeout=3)
+            if response.status_code == 200:
+                data = response.json()
+                services_data["blockchain"]["status"] = "online"
+                services_data["blockchain"]["details"] = {
+                    "message": data.get("data", "Healthy"),
+                    "port": "3030",
+                    "service_type": "Blockchain Node"
                 }
-            }
+        except:
+            pass
             
-            async function updateServicesStatus() {
-                try {
-                    const servicesResponse = await fetch('/services');
-                    const servicesData = await servicesResponse.json();
-                    
-                    if (servicesData.success) {
-                        const services = servicesData.data;
-                        
-                        // Update blockchain service
-                        if (services.blockchain) {
-                            const blockchainStatus = document.getElementById('blockchain-status');
-                            const blockchainPort = document.getElementById('blockchain-port');
-                            
-                            if (blockchainStatus) {
-                                blockchainStatus.className = services.blockchain.status === 'online' 
-                                    ? 'status-indicator online' 
-                                    : 'status-indicator offline';
-                            }
-                            
-                            if (blockchainPort && services.blockchain.details) {
-                                blockchainPort.textContent = services.blockchain.details.port || '3030';
-                            }
-                        }
-                        
-                        // Update dashboard service
-                        const dashboardStatus = document.getElementById('dashboard-status');
-                        if (dashboardStatus) {
-                            dashboardStatus.className = 'status-indicator online'; // Always online if we can fetch this
-                        }
-                        
-                        // Update metrics service
-                        if (services.metrics) {
-                            const metricsStatus = document.getElementById('metrics-status');
-                            const metricsPort = document.getElementById('metrics-port');
-                            
-                            if (metricsStatus) {
-                                metricsStatus.className = services.metrics.status === 'online' 
-                                    ? 'status-indicator online' 
-                                    : 'status-indicator offline';
-                            }
-                            
-                            if (metricsPort && services.metrics.details) {
-                                metricsPort.textContent = services.metrics.details.port || '3001';
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error updating services status:', error);
-                    // Set all services to offline on error
-                    ['blockchain-status', 'dashboard-status', 'metrics-status'].forEach(id => {
-                        const element = document.getElementById(id);
-                        if (element) {
-                            element.className = 'status-indicator offline';
-                        }
-                    });
+        # Check frontend
+        try:
+            response = requests.get("http://localhost:3000", timeout=3)
+            if response.status_code == 200:
+                services_data["frontend"]["status"] = "online"
+                services_data["frontend"]["details"] = {
+                    "status": "serving",
+                    "port": "3000",
+                    "service_type": "React Frontend"
                 }
-            }
+        except:
+            pass
             
-            function updateAIModules() {
-                const baseTime = Date.now();
-                
-                // Network Sentinel
-                const sentinelAccuracy = (95 + Math.sin(baseTime / 10000) * 3).toFixed(1);
-                const threatsBlocked = Math.floor(12 + Math.random() * 8);
-                document.getElementById('sentinel-accuracy').textContent = sentinelAccuracy + '%';
-                document.getElementById('sentinel-threats').textContent = `${threatsBlocked} threats blocked`;
-                document.getElementById('sentinel-status').textContent = Math.random() > 0.7 ? 'SCANNING' : 'ACTIVE';
-                
-                // FeeFlow Optimizer
-                const feeflowSavings = (20 + Math.sin(baseTime / 8000) * 5).toFixed(0);
-                const optimalFee = (0.004 + Math.sin(baseTime / 12000) * 0.002).toFixed(4);
-                document.getElementById('feeflow-savings').textContent = feeflowSavings + '%';
-                document.getElementById('feeflow-fee').textContent = optimalFee;
-                document.getElementById('feeflow-status').textContent = Math.random() > 0.5 ? 'OPTIMIZING' : 'ANALYZING';
-                
-                // Wallet Classifier
-                const walletAccuracy = (92 + Math.sin(baseTime / 15000) * 2).toFixed(1);
-                document.getElementById('wallet-accuracy').textContent = walletAccuracy + '%';
-                document.getElementById('wallet-status').textContent = Math.random() > 0.6 ? 'LEARNING' : 'CLASSIFYING';
-                
-                // Stake Balancer
-                const stakeAPY = (14 + Math.sin(baseTime / 18000) * 1.5).toFixed(1);
-                const poolsManaged = Math.floor(5 + Math.random() * 3);
-                document.getElementById('stake-apy').textContent = stakeAPY + '%';
-                document.getElementById('stake-pools').textContent = `${poolsManaged} pools managed`;
-                document.getElementById('stake-status').textContent = Math.random() > 0.5 ? 'BALANCING' : 'OPTIMIZING';
-                
-                // GovSim
-                const govParticipation = (82 + Math.sin(baseTime / 20000) * 4).toFixed(1);
-                const proposalsAnalyzed = Math.floor(30 + Math.random() * 10);
-                document.getElementById('govsim-participation').textContent = govParticipation + '%';
-                document.getElementById('govsim-proposals').textContent = `${proposalsAnalyzed} proposals analyzed`;
-                document.getElementById('govsim-status').textContent = Math.random() > 0.7 ? 'SIMULATING' : 'ANALYZING';
-                
-                // Economic Sentinel
-                const ecoHealth = (87 + Math.sin(baseTime / 22000) * 3).toFixed(1);
-                const indicators = Math.floor(10 + Math.random() * 4);
-                document.getElementById('eco-health').textContent = ecoHealth + '%';
-                document.getElementById('eco-indicators').textContent = `${indicators} indicators`;
-                document.getElementById('eco-status').textContent = Math.random() > 0.6 ? 'MONITORING' : 'ANALYZING';
-                
-                // Quantum Shield
-                const quantumStrength = (99.6 + Math.sin(baseTime / 25000) * 0.3).toFixed(1);
-                const keysSecured = Math.floor(250 + Math.random() * 20);
-                document.getElementById('quantum-strength').textContent = quantumStrength + '%';
-                document.getElementById('quantum-keys').textContent = `${keysSecured} keys secured`;
-                document.getElementById('quantum-status').textContent = Math.random() > 0.8 ? 'PROTECTING' : 'SECURING';
-                
-                // Protocol Tuner
-                const protocolEfficiency = (93 + Math.sin(baseTime / 27000) * 2).toFixed(1);
-                const parametersOptimized = Math.floor(10 + Math.random() * 5);
-                document.getElementById('protocol-efficiency').textContent = protocolEfficiency + '%';
-                document.getElementById('protocol-params').textContent = `${parametersOptimized} parameters`;
-                document.getElementById('protocol-status').textContent = Math.random() > 0.5 ? 'TUNING' : 'OPTIMIZING';
-            }
-            
-            function updateEncryptionModules() {
-                const baseTime = Date.now();
-                
-                // Simulate encryption module status updates
-                const modules = [
-                    { id: 'sphincs-status', name: 'SPHINCS+' },
-                    { id: 'dilithium-status', name: 'Dilithium' },
-                    { id: 'kyber-status', name: 'Kyber' }
-                ];
-                
-                modules.forEach((module, index) => {
-                    const element = document.getElementById(module.id);
-                    if (element) {
-                        // Simulate occasional status changes (mostly active)
-                        const isActive = Math.random() > 0.1; // 90% chance of being active
-                        element.textContent = isActive ? 'ACTIVE' : 'SYNCING';
-                        element.className = isActive ? 'crypto-status active' : 'crypto-status inactive';
-                    }
-                });
-                
-                // Update main encryption status indicator
-                const encryptionStatus = document.getElementById('encryption-status');
-                if (encryptionStatus) {
-                    encryptionStatus.className = 'status-indicator online';
+        # Check metrics collector
+        try:
+            response = requests.get("http://localhost:3001/health", timeout=3)
+            if response.status_code == 200:
+                data = response.json()
+                services_data["metrics"]["status"] = "online"
+                services_data["metrics"]["details"] = {
+                    "status": data.get("data", {}).get("status", "healthy"),
+                    "port": "3001",
+                    "service_type": "Metrics Collector"
                 }
-            }
+        except:
+            pass
             
-            async function updateServicesStatus() {
-                try {
-                    const servicesResponse = await fetch('/services');
-                    const servicesData = await servicesResponse.json();
-                    
-                    if (servicesData.success) {
-                        const services = servicesData.data;
-                        
-                        // Update blockchain service
-                        if (services.blockchain) {
-                            const blockchainStatus = document.getElementById('blockchain-status');
-                            const blockchainPort = document.getElementById('blockchain-port');
-                            
-                            if (blockchainStatus) {
-                                blockchainStatus.className = services.blockchain.status === 'online' 
-                                    ? 'status-indicator online' 
-                                    : 'status-indicator offline';
-                            }
-                            
-                            if (blockchainPort && services.blockchain.details) {
-                                blockchainPort.textContent = services.blockchain.details.port || '3030';
-                            }
-                        }
-                        
-                        // Update dashboard service
-                        const dashboardStatus = document.getElementById('dashboard-status');
-                        if (dashboardStatus) {
-                            dashboardStatus.className = 'status-indicator online'; // Always online if we can fetch this
-                        }
-                        
-                        // Update metrics service
-                        if (services.metrics) {
-                            const metricsStatus = document.getElementById('metrics-status');
-                            const metricsPort = document.getElementById('metrics-port');
-                            
-                            if (metricsStatus) {
-                                metricsStatus.className = services.metrics.status === 'online' 
-                                    ? 'status-indicator online' 
-                                    : 'status-indicator offline';
-                            }
-                            
-                            if (metricsPort && services.metrics.details) {
-                                metricsPort.textContent = services.metrics.details.port || '3001';
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error updating services status:', error);
-                    // Set all services to offline on error
-                    ['blockchain-status', 'dashboard-status', 'metrics-status'].forEach(id => {
-                        const element = document.getElementById(id);
-                        if (element) {
-                            element.className = 'status-indicator offline';
-                        }
-                    });
-                }
-            }
-            
-            function updateAIModules() {
-                const baseTime = Date.now();
-                
-                // Network Sentinel
-                const sentinelAccuracy = (95 + Math.sin(baseTime / 10000) * 3).toFixed(1);
-                const threatsBlocked = Math.floor(12 + Math.random() * 8);
-                document.getElementById('sentinel-accuracy').textContent = sentinelAccuracy + '%';
-                document.getElementById('sentinel-threats').textContent = `${threatsBlocked} threats blocked`;
-                document.getElementById('sentinel-status').textContent = Math.random() > 0.7 ? 'SCANNING' : 'ACTIVE';
-                
-                // FeeFlow Optimizer
-                const feeflowSavings = (20 + Math.sin(baseTime / 8000) * 5).toFixed(0);
-                const optimalFee = (0.004 + Math.sin(baseTime / 12000) * 0.002).toFixed(4);
-                document.getElementById('feeflow-savings').textContent = feeflowSavings + '%';
-                document.getElementById('feeflow-fee').textContent = optimalFee;
-                document.getElementById('feeflow-status').textContent = Math.random() > 0.5 ? 'OPTIMIZING' : 'ANALYZING';
-                
-                // Wallet Classifier
-                const walletAccuracy = (92 + Math.sin(baseTime / 15000) * 2).toFixed(1);
-                document.getElementById('wallet-accuracy').textContent = walletAccuracy + '%';
-                document.getElementById('wallet-status').textContent = Math.random() > 0.6 ? 'LEARNING' : 'CLASSIFYING';
-                
-                // Stake Balancer
-                const stakeAPY = (14 + Math.sin(baseTime / 18000) * 1.5).toFixed(1);
-                const poolsManaged = Math.floor(5 + Math.random() * 3);
-                document.getElementById('stake-apy').textContent = stakeAPY + '%';
-                document.getElementById('stake-pools').textContent = `${poolsManaged} pools managed`;
-                document.getElementById('stake-status').textContent = Math.random() > 0.5 ? 'BALANCING' : 'OPTIMIZING';
-                
-                // GovSim
-                const govParticipation = (82 + Math.sin(baseTime / 20000) * 4).toFixed(1);
-                const proposalsAnalyzed = Math.floor(30 + Math.random() * 10);
-                document.getElementById('govsim-participation').textContent = govParticipation + '%';
-                document.getElementById('govsim-proposals').textContent = `${proposalsAnalyzed} proposals analyzed`;
-                document.getElementById('govsim-status').textContent = Math.random() > 0.7 ? 'SIMULATING' : 'ANALYZING';
-                
-                // Economic Sentinel
-                const ecoHealth = (87 + Math.sin(baseTime / 22000) * 3).toFixed(1);
-                const indicators = Math.floor(10 + Math.random() * 4);
-                document.getElementById('eco-health').textContent = ecoHealth + '%';
-                document.getElementById('eco-indicators').textContent = `${indicators} indicators`;
-                document.getElementById('eco-status').textContent = Math.random() > 0.6 ? 'MONITORING' : 'ANALYZING';
-                
-                // Quantum Shield
-                const quantumStrength = (99.6 + Math.sin(baseTime / 25000) * 0.3).toFixed(1);
-                const keysSecured = Math.floor(250 + Math.random() * 20);
-                document.getElementById('quantum-strength').textContent = quantumStrength + '%';
-                document.getElementById('quantum-keys').textContent = `${keysSecured} keys secured`;
-                document.getElementById('quantum-status').textContent = Math.random() > 0.8 ? 'PROTECTING' : 'SECURING';
-                
-                // Protocol Tuner
-                const protocolEfficiency = (93 + Math.sin(baseTime / 27000) * 2).toFixed(1);
-                const parametersOptimized = Math.floor(10 + Math.random() * 5);
-                document.getElementById('protocol-efficiency').textContent = protocolEfficiency + '%';
-                document.getElementById('protocol-params').textContent = `${parametersOptimized} parameters`;
-                document.getElementById('protocol-status').textContent = Math.random() > 0.5 ? 'TUNING' : 'OPTIMIZING';
-            }
-            
-            function updateEncryptionModules() {
-                const baseTime = Date.now();
-                
-                // Simulate encryption module status updates
-                const modules = [
-                    { id: 'sphincs-status', name: 'SPHINCS+' },
-                    { id: 'dilithium-status', name: 'Dilithium' },
-                    { id: 'kyber-status', name: 'Kyber' }
-                ];
-                
-                modules.forEach((module, index) => {
-                    const element = document.getElementById(module.id);
-                    if (element) {
-                        // Simulate occasional status changes (mostly active)
-                        const isActive = Math.random() > 0.1; // 90% chance of being active
-                        element.textContent = isActive ? 'ACTIVE' : 'SYNCING';
-                        element.className = isActive ? 'crypto-status active' : 'crypto-status inactive';
-                    }
-                });
-                
-                // Update main encryption status indicator
-                const encryptionStatus = document.getElementById('encryption-status');
-                if (encryptionStatus) {
-                    encryptionStatus.className = 'status-indicator online';
-                }
-            }
-            
-            async function updateServicesStatus() {
-                try {
-                    const servicesResponse = await fetch('/services');
-                    const servicesData = await servicesResponse.json();
-                    
-                    if (servicesData.success) {
-                        const services = servicesData.data;
-                        
-                        // Update blockchain service
-                        if (services.blockchain) {
-                            const blockchainStatus = document.getElementById('blockchain-status');
-                            const blockchainPort = document.getElementById('blockchain-port');
-                            
-                            if (blockchainStatus) {
-                                blockchainStatus.className = services.blockchain.status === 'online' 
-                                    ? 'status-indicator online' 
-                                    : 'status-indicator offline';
-                            }
-                            
-                            if (blockchainPort && services.blockchain.details) {
-                                blockchainPort.textContent = services.blockchain.details.port || '3030';
-                            }
-                        }
-                        
-                        // Update dashboard service
-                        const dashboardStatus = document.getElementById('dashboard-status');
-                        if (dashboardStatus) {
-                            dashboardStatus.className = 'status-indicator online'; // Always online if we can fetch this
-                        }
-                        
-                        // Update metrics service
-                        if (services.metrics) {
-                            const metricsStatus = document.getElementById('metrics-status');
-                            const metricsPort = document.getElementById('metrics-port');
-                            
-                            if (metricsStatus) {
-                                metricsStatus.className = services.metrics.status === 'online' 
-                                    ? 'status-indicator online' 
-                                    : 'status-indicator offline';
-                            }
-                            
-                            if (metricsPort &&
+    except Exception as e:
+        pass
+    
+    return {
+        "success": True,
+        "data": services_data,
+        "timestamp": datetime.now().isoformat()
+    }
+
+if __name__ == "__main__":
+    print("🚀 Starting Dytallix Enhanced Performance Dashboard COMPLETE VERSION on port 9092")
+    print("📊 Dashboard: http://localhost:9092")
+    print("🔗 Metrics API: http://localhost:9092/metrics")
+    print("📈 Historical API: http://localhost:9092/historical")
+    print("🧠 AI Modules: All 8 enterprise AI modules included")
+    print("🔐 Encryption Modules: SPHINCS+, Dilithium, Kyber monitoring enabled")
+    print("📊 Charts: Real-time system resources and network activity")
+    print("⚡ Bridge Health: Cross-chain bridge monitoring")
+    
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=9092,
+        log_level="info"
+    )

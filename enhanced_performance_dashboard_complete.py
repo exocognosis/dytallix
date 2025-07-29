@@ -281,9 +281,10 @@ async def dashboard_home():
             }
             
             .services-grid {
-                display: flex;
-                flex-direction: column;
-                gap: 20px;
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 25px;
+                min-height: 200px;
             }
             
             .service-row {
@@ -291,15 +292,27 @@ async def dashboard_home():
                 border-radius: 15px;
                 padding: 25px;
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
+                flex-direction: column;
                 transition: all 0.3s ease;
                 border: 2px solid rgba(76, 175, 80, 0.2);
+                position: relative;
+                overflow: hidden;
+                min-height: 180px;
+            }
+            
+            .service-row::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, #4CAF50, #81C784);
             }
             
             .service-row:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 30px rgba(76, 175, 80, 0.2);
+                transform: translateY(-5px);
+                box-shadow: 0 15px 40px rgba(76, 175, 80, 0.2);
                 border-color: rgba(76, 175, 80, 0.4);
             }
             
@@ -308,26 +321,31 @@ async def dashboard_home():
                 background: linear-gradient(135deg, #2a2a2a, #3a3020);
             }
             
+            .service-row.encryption-row::before {
+                background: linear-gradient(90deg, #FFC107, #FFD54F);
+            }
+            
             .service-row.encryption-row:hover {
                 border-color: rgba(255, 193, 7, 0.6);
-                box-shadow: 0 10px 30px rgba(255, 193, 7, 0.2);
+                box-shadow: 0 15px 40px rgba(255, 193, 7, 0.2);
             }
             
             .service-info {
                 display: flex;
                 align-items: center;
-                gap: 20px;
+                gap: 15px;
+                margin-bottom: 15px;
             }
             
             .service-icon {
-                width: 60px;
-                height: 60px;
+                width: 50px;
+                height: 50px;
                 background: linear-gradient(135deg, #4CAF50, #81C784);
-                border-radius: 15px;
+                border-radius: 12px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 1.5em;
+                font-size: 1.3em;
                 color: white;
                 flex-shrink: 0;
             }
@@ -342,24 +360,25 @@ async def dashboard_home():
             }
             
             .service-name {
-                font-size: 1.3em;
+                font-size: 1.1em;
                 font-weight: 600;
                 color: #ffffff;
-                margin-bottom: 8px;
+                margin-bottom: 5px;
             }
             
             .service-description {
                 color: #b0b0b0;
-                font-size: 0.95em;
+                font-size: 0.9em;
+                line-height: 1.3;
+            }
                 line-height: 1.4;
             }
             
             .service-status {
-                text-align: right;
                 display: flex;
                 flex-direction: column;
-                align-items: flex-end;
                 gap: 10px;
+                margin-top: auto;
             }
             
             .status-indicator {
@@ -384,19 +403,38 @@ async def dashboard_home():
                 font-weight: 600;
                 font-size: 0.9em;
                 color: #4CAF50;
-                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
             }
             
             .service-metrics {
                 display: flex;
-                flex-direction: column;
-                gap: 5px;
+                flex-wrap: wrap;
+                gap: 8px;
                 font-size: 0.85em;
                 color: #888;
+                margin-top: 5px;
             }
             
             .service-metrics span {
                 white-space: nowrap;
+                padding: 3px 8px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 6px;
+                font-size: 0.8em;
+            }
+            
+            .encryption-metrics {
+                flex-direction: column !important;
+                gap: 5px !important;
+            }
+            
+            .encryption-metrics span {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                padding: 4px 8px;
             }
             
             .encryption-metrics {
@@ -616,13 +654,15 @@ async def dashboard_home():
                         <div class="service-info">
                             <div class="service-icon"><i class="fas fa-cube"></i></div>
                             <div class="service-details">
-                                <div class="service-name">Dytallix Blockchain Node</div>
-                                <div class="service-description">Core blockchain consensus and transaction processing</div>
+                                <div class="service-name">Blockchain Node</div>
+                                <div class="service-description">Core consensus and transaction processing</div>
                             </div>
                         </div>
                         <div class="service-status">
-                            <div class="status-indicator online" id="blockchain-status"></div>
-                            <div class="status-text">ONLINE</div>
+                            <div class="status-text">
+                                <div class="status-indicator online" id="blockchain-status"></div>
+                                ONLINE
+                            </div>
                             <div class="service-metrics">
                                 <span>Port: <span id="blockchain-port">3030</span></span>
                                 <span>Block: <span id="current-block">1234</span></span>
@@ -640,10 +680,12 @@ async def dashboard_home():
                             </div>
                         </div>
                         <div class="service-status">
-                            <div class="status-indicator online" id="dashboard-status"></div>
-                            <div class="status-text">ONLINE</div>
+                            <div class="status-text">
+                                <div class="status-indicator online" id="dashboard-status"></div>
+                                ONLINE
+                            </div>
                             <div class="service-metrics">
-                                <span>Port: <span id="dashboard-port">3000</span></span>
+                                <span>Port: <span id="dashboard-port">9092</span></span>
                                 <span>Uptime: <span id="dashboard-uptime">2h 14m</span></span>
                             </div>
                         </div>
@@ -658,8 +700,10 @@ async def dashboard_home():
                             </div>
                         </div>
                         <div class="service-status">
-                            <div class="status-indicator online" id="metrics-status"></div>
-                            <div class="status-text">ONLINE</div>
+                            <div class="status-text">
+                                <div class="status-indicator online" id="metrics-status"></div>
+                                ONLINE
+                            </div>
                             <div class="service-metrics">
                                 <span>Port: <span id="metrics-port">3001</span></span>
                                 <span>Metrics: <span id="metrics-count">847</span></span>
@@ -671,13 +715,15 @@ async def dashboard_home():
                         <div class="service-info">
                             <div class="service-icon"><i class="fas fa-lock"></i></div>
                             <div class="service-details">
-                                <div class="service-name">Post-Quantum Encryption Modules</div>
-                                <div class="service-description">SPHINCS+, Dilithium, and Kyber cryptographic algorithms</div>
+                                <div class="service-name">Post-Quantum Encryption</div>
+                                <div class="service-description">SPHINCS+, Dilithium, and Kyber algorithms</div>
                             </div>
                         </div>
                         <div class="service-status">
-                            <div class="status-indicator online" id="encryption-status"></div>
-                            <div class="status-text">SECURED</div>
+                            <div class="status-text">
+                                <div class="status-indicator online" id="encryption-status"></div>
+                                SECURED
+                            </div>
                             <div class="service-metrics encryption-metrics">
                                 <span><i class="fas fa-shield-alt"></i> SPHINCS+: <span id="sphincs-status" class="crypto-status active">ACTIVE</span></span>
                                 <span><i class="fas fa-key"></i> Dilithium: <span id="dilithium-status" class="crypto-status active">ACTIVE</span></span>
