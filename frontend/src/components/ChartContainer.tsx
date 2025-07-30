@@ -15,18 +15,22 @@ interface ChartContainerProps {
   data: any[]
   type?: 'line' | 'bar'
   className?: string
+  lines?: Array<{
+    dataKey: string
+    stroke: string
+    name: string
+  }>
 }
 
 export function ChartContainer({ 
   data, 
   type = 'line',
-  className = ''
+  className = '',
+  lines
 }: ChartContainerProps) {
-  const chartHeight = 300
-
   if (data.length === 0) {
     return (
-      <div className={`flex items-center justify-center h-[${chartHeight}px] ${className}`}>
+      <div className={`flex items-center justify-center h-[200px] ${className}`}>
         <div className="text-center">
           <div className="text-gray-400 text-sm">No data available</div>
         </div>
@@ -36,7 +40,7 @@ export function ChartContainer({
 
   if (type === 'bar') {
     return (
-      <div className={`w-full h-[${chartHeight}px] ${className}`}>
+      <div className={`w-full h-[200px] ${className}`}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -66,7 +70,7 @@ export function ChartContainer({
   }
 
   return (
-    <div className={`w-full h-[${chartHeight}px] ${className}`}>
+    <div className={`w-full h-[200px] ${className}`}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -87,22 +91,39 @@ export function ChartContainer({
               color: '#F9FAFB'
             }}
           />
-          <Line 
-            type="monotone" 
-            dataKey="transactions" 
-            stroke="#3B82F6" 
-            strokeWidth={2}
-            dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6 }}
-          />
-          <Line 
-            type="monotone" 
-            dataKey="blocks" 
-            stroke="#10B981" 
-            strokeWidth={2}
-            dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6 }}
-          />
+          {lines ? (
+            lines.map((line, index) => (
+              <Line 
+                key={index}
+                type="monotone" 
+                dataKey={line.dataKey} 
+                stroke={line.stroke} 
+                strokeWidth={1.5}
+                dot={{ fill: line.stroke, strokeWidth: 1, r: 2 }}
+                activeDot={{ r: 3, strokeWidth: 0 }}
+                name={line.name}
+              />
+            ))
+          ) : (
+            <>
+              <Line 
+                type="monotone" 
+                dataKey="transactions" 
+                stroke="#3B82F6" 
+                strokeWidth={1.5}
+                dot={{ fill: '#3B82F6', strokeWidth: 1, r: 2 }}
+                activeDot={{ r: 3, strokeWidth: 0 }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="blocks" 
+                stroke="#10B981" 
+                strokeWidth={1.5}
+                dot={{ fill: '#10B981', strokeWidth: 1, r: 2 }}
+                activeDot={{ r: 3, strokeWidth: 0 }}
+              />
+            </>
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

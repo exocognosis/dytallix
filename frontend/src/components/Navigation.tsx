@@ -44,7 +44,7 @@ export function Navigation() {
     <Disclosure as="nav" className="bg-dashboard-bg border-b border-dashboard-border">
       {({ open }) => (
         <>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex h-16 items-center justify-between">
               {/* Left: Logo */}
               <div className="flex items-center">

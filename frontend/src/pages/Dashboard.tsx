@@ -30,14 +30,15 @@ export function Dashboard() {
 
   return (
     <main className="bg-dashboard-bg text-dashboard-text min-h-screen px-6 py-12">
-      {/* Header */}
-      <section className="max-w-6xl mx-auto mb-12">
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ duration: 0.6 }}
-          className="text-center space-y-4"
-        >
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <section className="mb-12">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-4"
+          >
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-dashboard-text">
             🚀 Dytallix Performance Dashboard
           </h1>
@@ -47,8 +48,136 @@ export function Dashboard() {
         </motion.div>
       </section>
 
+      {/* System Metrics Charts */}
+      <section className="mb-12">
+        <motion.h2 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="text-2xl font-bold mb-6 text-dashboard-text"
+        >
+          System Performance Metrics
+        </motion.h2>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* System Activity Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover">
+              <CardHeader>
+                <CardTitle className="flex items-center text-dashboard-text">
+                  <CpuChipIcon className="w-5 h-5 mr-2 text-primary-400" />
+                  System Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  data={[
+                    { time: '08:00', cpu: 23, requests: 45 },
+                    { time: '08:30', cpu: 31, requests: 67 },
+                    { time: '09:00', cpu: 42, requests: 89 },
+                    { time: '09:30', cpu: 45, requests: 102 },
+                    { time: '10:00', cpu: 48, requests: 125 },
+                    { time: '10:30', cpu: 61, requests: 145 },
+                    { time: '11:00', cpu: 64, requests: 167 },
+                    { time: '11:30', cpu: 72, requests: 189 },
+                    { time: '12:00', cpu: 75, requests: 203 },
+                    { time: '12:30', cpu: 68, requests: 185 },
+                    { time: '13:00', cpu: 59, requests: 156 },
+                    { time: '13:30', cpu: 51, requests: 128 },
+                  ]}
+                  lines={[
+                    { dataKey: 'cpu', stroke: '#3b82f6', name: 'CPU %' },
+                    { dataKey: 'requests', stroke: '#8b5cf6', name: 'Requests/min' }
+                  ]}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Memory Allocation Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover">
+              <CardHeader>
+                <CardTitle className="flex items-center text-dashboard-text">
+                  <CubeIcon className="w-5 h-5 mr-2 text-quantum-400" />
+                  Memory Allocation
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  data={[
+                    { time: '08:00', used: 1.8, available: 6.2 },
+                    { time: '08:30', used: 2.1, available: 5.9 },
+                    { time: '09:00', used: 2.6, available: 5.4 },
+                    { time: '09:30', used: 3.1, available: 4.9 },
+                    { time: '10:00', used: 3.7, available: 4.3 },
+                    { time: '10:30', used: 4.2, available: 3.8 },
+                    { time: '11:00', used: 4.8, available: 3.2 },
+                    { time: '11:30', used: 5.3, available: 2.7 },
+                    { time: '12:00', used: 4.7, available: 3.3 },
+                    { time: '12:30', used: 4.1, available: 3.9 },
+                    { time: '13:00', used: 3.5, available: 4.5 },
+                    { time: '13:30', used: 2.9, available: 5.1 },
+                  ]}
+                  lines={[
+                    { dataKey: 'used', stroke: '#f59e0b', name: 'Used (GB)' },
+                    { dataKey: 'available', stroke: '#10b981', name: 'Available (GB)' }
+                  ]}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* On-Chain Activity Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover">
+              <CardHeader>
+                <CardTitle className="flex items-center text-dashboard-text">
+                  <BoltIcon className="w-5 h-5 mr-2 text-primary-500" />
+                  On-Chain Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  data={[
+                    { time: '08:00', transactions: 12, blocks: 1, volume: 3.2 },
+                    { time: '08:30', transactions: 25, blocks: 2, volume: 6.8 },
+                    { time: '09:00', transactions: 42, blocks: 3, volume: 12.4 },
+                    { time: '09:30', transactions: 47, blocks: 3, volume: 14.8 },
+                    { time: '10:00', transactions: 61, blocks: 4, volume: 19.2 },
+                    { time: '10:30', transactions: 67, blocks: 5, volume: 21.7 },
+                    { time: '11:00', transactions: 84, blocks: 6, volume: 28.4 },
+                    { time: '11:30', transactions: 96, blocks: 7, volume: 34.6 },
+                    { time: '12:00', transactions: 94, blocks: 7, volume: 33.1 },
+                    { time: '12:30', transactions: 79, blocks: 5, volume: 26.2 },
+                    { time: '13:00', transactions: 65, blocks: 4, volume: 20.1 },
+                    { time: '13:30', transactions: 51, blocks: 3, volume: 15.4 },
+                  ]}
+                  lines={[
+                    { dataKey: 'transactions', stroke: '#ef4444', name: 'Transactions' },
+                    { dataKey: 'blocks', stroke: '#06b6d4', name: 'Blocks' },
+                    { dataKey: 'volume', stroke: '#8b5cf6', name: 'Volume (DYT)' }
+                  ]}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Stats Grid */}
-      <section className="max-w-6xl mx-auto mb-12">
+      <section className="mb-12">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
@@ -108,7 +237,7 @@ export function Dashboard() {
       </section>
 
       {/* AI Services Status */}
-      <section className="max-w-6xl mx-auto mb-12">
+      <section className="mb-12">
         <motion.h2 
           initial={{ opacity: 0 }} 
           whileInView={{ opacity: 1 }} 
@@ -169,7 +298,7 @@ export function Dashboard() {
       </section>
 
       {/* AI Modules Grid */}
-      <section className="max-w-6xl mx-auto mb-12">
+      <section className="mb-12">
         <motion.h2 
           initial={{ opacity: 0 }} 
           whileInView={{ opacity: 1 }} 
@@ -213,7 +342,7 @@ export function Dashboard() {
       </section>
 
       {/* Main Content Grid */}
-      <section className="max-w-6xl mx-auto mb-12">
+      <section className="mb-12">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Recent Transactions */}
           <motion.div
@@ -280,7 +409,7 @@ export function Dashboard() {
       </section>
 
       {/* Post-Quantum Security Status */}
-      <section className="max-w-6xl mx-auto">
+      <section>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -318,6 +447,7 @@ export function Dashboard() {
           </Card>
         </motion.div>
       </section>
+      </div>
     </main>
   )
 }
