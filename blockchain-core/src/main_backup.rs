@@ -88,18 +88,37 @@ impl DytallixNode for DummyNode {
             ai_risk_score: Some(0.2),
         };
     
-    fn get_block(&self, _hash: &str) -> Option<Block> {
-        // TODO: Implement block retrieval
-        None
+    fn get_block(&self, hash: &str) -> Option<Block> {
+        // Implement block retrieval from storage
+        match self.storage.get_block_by_hash(hash) {
+            Ok(Some(block)) => Some(block),
+            Ok(None) => {
+                log::warn!("Block not found: {}", hash);
+                None
+            }
+            Err(e) => {
+                log::error!("Error retrieving block {}: {}", hash, e);
+                None
+            }
+        }
     }
     
     fn get_status(&self) -> NodeStatus {
         NodeStatus::Running
     }
 
-    async fn get_balance(&self, _address: &str) -> Result<u64, String> {
-        // TODO: Implement balance retrieval
-        Ok(0)
+    async fn get_balance(&self, address: &str) -> Result<u64, String> {
+        // Implement balance retrieval from storage
+        match self.storage.get_address_balance(address).await {
+            Ok(balance) => {
+                log::info!("Retrieved balance for address {}: {}", address, balance);
+                Ok(balance)
+            }
+            Err(e) => {
+                log::error!("Error retrieving balance for address {}: {}", address, e);
+                Err(format!("Failed to retrieve balance: {}", e))
+            }
+        }
     }
 }
         // TODO: Lookup block

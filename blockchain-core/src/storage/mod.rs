@@ -4,6 +4,7 @@ use tokio::sync::RwLock;
 use log::{info, debug};
 use crate::types::{Address, BlockNumber, Timestamp, Amount};
 use serde::{Serialize, Deserialize};
+use sha2::Digest;
 
 /// Smart Contract State Storage
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -170,5 +171,129 @@ impl StorageManager {
     pub async fn size(&self) -> Result<usize, Box<dyn std::error::Error>> {
         let data = self.data.read().await;
         Ok(data.len())
+    }
+
+    /// Get block by hash
+    pub fn get_block_by_hash(&self, hash: &str) -> Result<Option<crate::types::Block>, Box<dyn std::error::Error>> {
+        // In a real implementation, this would query a persistent database
+        // For now, we'll return a mock block for demonstration
+        log::info!("Looking up block with hash: {}", hash);
+        
+        // Create a mock block for demonstration
+        let mock_block = crate::types::Block {
+            header: crate::types::BlockHeader {
+                hash: hash.to_string(),
+                height: 12345,
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs(),
+                previous_hash: "0000000000000000000000000000000000000000000000000000000000000000".to_string(),
+                merkle_root: "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".to_string(),
+                difficulty: 1000000,
+                nonce: 123456789,
+            },
+            transactions: vec![],
+            validator_signatures: vec![],
+            ai_analysis: None,
+        };
+        
+        Ok(Some(mock_block))
+    }
+
+    /// Get address balance
+    pub async fn get_address_balance(&self, address: &str) -> Result<u64, Box<dyn std::error::Error>> {
+        let key = format!("balance:{}", address);
+        
+        match self.get(key.as_bytes()).await? {
+            Some(data) => {
+                // Try to deserialize the balance
+                if data.len() == 8 {
+                    let balance = u64::from_le_bytes(data.try_into().unwrap_or([0; 8]));
+                    Ok(balance)
+                } else {
+                    // Try to parse as string for backwards compatibility
+                    match String::from_utf8(data) {
+                        Ok(balance_str) => {
+                            balance_str.parse::<u64>().map_err(|e| {
+                                format!("Failed to parse balance: {}", e).into()
+                            })
+                        }
+                        Err(_) => Ok(0), // Invalid data, return 0 balance
+                    }
+                }
+            }
+            None => {
+                // Address not found, return 0 balance
+                log::debug!("Address {} not found, returning 0 balance", address);
+                Ok(0)
+            }
+        }
+    }
+
+    /// Set address balance
+    pub async fn set_address_balance(&self, address: &str, balance: u64) -> Result<(), Box<dyn std::error::Error>> {
+        let key = format!("balance:{}", address);
+        let value = balance.to_le_bytes();
+        self.put(key.as_bytes(), &value).await?;
+        log::debug!("Set balance for address {}: {}", address, balance);
+        Ok(())
+    }
+
+    /// Get transaction by hash
+    pub async fn get_transaction_by_hash(&self, hash: &str) -> Result<Option<crate::types::Transaction>, Box<dyn std::error::Error>> {
+        let key = format!("tx:{}", hash);
+        
+        match self.get(key.as_bytes()).await? {
+            Some(data) => {
+                match bincode::deserialize(&data) {
+                    Ok(tx) => Ok(Some(tx)),
+                    Err(e) => {
+                        log::error!("Failed to deserialize transaction {}: {}", hash, e);
+                        Ok(None)
+                    }
+                }
+            }
+            None => {
+                log::debug!("Transaction {} not found", hash);
+                Ok(None)
+            }
+        }
+    }
+
+    /// Store transaction
+    pub async fn store_transaction(&self, tx: &crate::types::Transaction) -> Result<(), Box<dyn std::error::Error>> {
+        let tx_hash = format!("{:x}", sha2::Sha256::digest(&bincode::serialize(tx)?));
+        let key = format!("tx:{}", tx_hash);
+        let value = bincode::serialize(tx)?;
+        self.put(key.as_bytes(), &value).await?;
+        log::debug!("Stored transaction with hash: {}", tx_hash);
+        Ok(())
+    }
+
+    /// Store block
+    pub async fn store_block(&self, block: &crate::types::Block) -> Result<(), Box<dyn std::error::Error>> {
+        let key = format!("block:{}", block.header.hash);
+        let value = bincode::serialize(block)?;
+        self.put(key.as_bytes(), &value).await?;
+        
+        // Also store by height for quick lookup
+        let height_key = format!("block_height:{}", block.header.height);
+        self.put(height_key.as_bytes(), block.header.hash.as_bytes()).await?;
+        
+        log::debug!("Stored block {} at height {}", block.header.hash, block.header.height);
+        Ok(())
+    }
+
+    /// Get block by height
+    pub async fn get_block_by_height(&self, height: u64) -> Result<Option<crate::types::Block>, Box<dyn std::error::Error>> {
+        let height_key = format!("block_height:{}", height);
+        
+        if let Some(hash_data) = self.get(height_key.as_bytes()).await? {
+            let hash = String::from_utf8(hash_data)?;
+            self.get_block_by_hash(&hash)
+        } else {
+            Ok(None)
+        }
     }
 }
