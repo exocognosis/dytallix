@@ -4,15 +4,15 @@ type ButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghos
 type ButtonSize = "default" | "sm" | "lg" | "icon"
 
 const getButtonClasses = (variant: ButtonVariant = "default", size: ButtonSize = "default") => {
-  const baseClasses = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+  const baseClasses = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-dashboard-bg disabled:pointer-events-none disabled:opacity-50"
   
   const variantClasses = {
-    default: "bg-blue-600 text-white hover:bg-blue-700",
-    destructive: "bg-red-600 text-white hover:bg-red-700",
-    outline: "border border-gray-600 bg-transparent hover:bg-gray-800 text-white",
-    secondary: "bg-gray-700 text-white hover:bg-gray-600",
-    ghost: "hover:bg-gray-800 text-white",
-    link: "text-blue-400 underline-offset-4 hover:underline",
+    default: "bg-primary-600 text-white hover:bg-primary-700 shadow-lg hover:shadow-xl",
+    destructive: "bg-red-600 text-white hover:bg-red-700 shadow-lg hover:shadow-xl",
+    outline: "border border-dashboard-border-hover bg-transparent hover:bg-dashboard-card text-dashboard-text hover:border-primary-400",
+    secondary: "bg-dashboard-card text-dashboard-text hover:bg-dashboard-card-hover border border-dashboard-border",
+    ghost: "hover:bg-dashboard-card text-dashboard-text",
+    link: "text-primary-400 underline-offset-4 hover:underline hover:text-primary-300",
   }
   
   const sizeClasses = {

@@ -29,7 +29,7 @@ export function Dashboard() {
   const recentTransactions = transactions?.data || []
 
   return (
-    <main className="bg-black text-white min-h-screen px-6 py-12">
+    <main className="bg-dashboard-bg text-dashboard-text min-h-screen px-6 py-12">
       {/* Header */}
       <section className="max-w-6xl mx-auto mb-12">
         <motion.div 
@@ -38,9 +38,11 @@ export function Dashboard() {
           transition={{ duration: 0.6 }}
           className="text-center space-y-4"
         >
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-lg text-gray-300">
-            Monitor your Dytallix blockchain activity and network status
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-dashboard-text">
+            🚀 Dytallix Performance Dashboard
+          </h1>
+          <p className="text-lg text-dashboard-text-muted">
+            Real-time system monitoring & service health
           </p>
         </motion.div>
       </section>
@@ -53,28 +55,28 @@ export function Dashboard() {
               title: "Block Height",
               value: blockchainStats?.block_height?.toLocaleString() || '0',
               icon: CubeIcon,
-              color: "text-blue-400",
+              color: "text-primary-400",
               trend: { value: 12, isPositive: true }
             },
             {
               title: "Total Transactions", 
               value: blockchainStats?.total_transactions?.toLocaleString() || '0',
               icon: CurrencyDollarIcon,
-              color: "text-green-400",
+              color: "text-primary-500",
               trend: { value: 8.5, isPositive: true }
             },
             {
               title: "Network Peers",
               value: blockchainStats?.peer_count?.toString() || '0',
               icon: UsersIcon,
-              color: "text-purple-400",
+              color: "text-quantum-400",
               trend: { value: 3, isPositive: true }
             },
             {
               title: "Mempool Size",
               value: blockchainStats?.mempool_size?.toString() || '0',
               icon: ClockIcon,
-              color: "text-cyan-400",
+              color: "text-quantum-500",
               trend: { value: 15, isPositive: false }
             }
           ].map((stat, i) => (
@@ -84,14 +86,14 @@ export function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1, duration: 0.6 }}
             >
-              <Card className="bg-gray-900 border-gray-800 shadow-lg">
+              <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-400">{stat.title}</p>
-                      <p className="text-2xl font-bold text-white">{stat.value}</p>
+                      <p className="text-sm text-dashboard-text-gray">{stat.title}</p>
+                      <p className="text-2xl font-bold text-dashboard-text">{stat.value}</p>
                       {stat.trend && (
-                        <p className={`text-sm ${stat.trend.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                        <p className={`text-sm ${stat.trend.isPositive ? 'text-primary-400' : 'text-red-400'}`}>
                           {stat.trend.isPositive ? '+' : '-'}{stat.trend.value}%
                         </p>
                       )}
@@ -111,7 +113,7 @@ export function Dashboard() {
           initial={{ opacity: 0 }} 
           whileInView={{ opacity: 1 }} 
           viewport={{ once: true }} 
-          className="text-2xl font-bold mb-6"
+          className="text-2xl font-bold mb-6 text-dashboard-text"
         >
           AI Services Status
         </motion.h2>
@@ -136,7 +138,7 @@ export function Dashboard() {
               status: aiHealth ? 'operational' : 'unknown',
               icon: CpuChipIcon,
               description: "Smart contract auditing",
-              color: "text-blue-400"
+              color: "text-primary-400"
             }
           ].map((service, i) => (
             <motion.div
@@ -146,16 +148,16 @@ export function Dashboard() {
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.6 }}
             >
-              <Card className="bg-gray-900 border-gray-800 shadow-lg">
+              <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-white">{service.title}</h3>
+                    <h3 className="text-lg font-semibold text-dashboard-text">{service.title}</h3>
                     <service.icon className={`w-6 h-6 ${service.color}`} />
                   </div>
-                  <p className="text-gray-400 text-sm mb-3">{service.description}</p>
+                  <p className="text-dashboard-text-gray text-sm mb-3">{service.description}</p>
                   <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${service.status === 'operational' ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                    <span className={`text-sm ${service.status === 'operational' ? 'text-green-400' : 'text-gray-400'}`}>
+                    <div className={`w-2 h-2 rounded-full mr-2 ${service.status === 'operational' ? 'bg-dashboard-success pulse-green' : 'bg-dashboard-text-gray'}`}></div>
+                    <span className={`text-sm ${service.status === 'operational' ? 'text-dashboard-success' : 'text-dashboard-text-gray'}`}>
                       {service.status === 'operational' ? 'Operational' : 'Unknown'}
                     </span>
                   </div>
@@ -172,18 +174,18 @@ export function Dashboard() {
           initial={{ opacity: 0 }} 
           whileInView={{ opacity: 1 }} 
           viewport={{ once: true }} 
-          className="text-2xl font-bold mb-6"
+          className="text-2xl font-bold mb-6 text-dashboard-text"
         >
-          AI Modules
+          AI Modules Performance
         </motion.h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4 mb-8" style={{gridTemplateRows: 'repeat(2, 1fr)'}}>
           {[
             { name: "Risk Assessment", icon: ShieldCheckIcon, color: "text-red-400", status: "active" },
             { name: "Fraud Detection", icon: ArrowTrendingUpIcon, color: "text-orange-400", status: "active" },
-            { name: "Pattern Analysis", icon: CpuChipIcon, color: "text-blue-400", status: "active" },
-            { name: "Smart Routing", icon: BoltIcon, color: "text-green-400", status: "active" },
-            { name: "Anomaly Detection", icon: UsersIcon, color: "text-purple-400", status: "active" },
-            { name: "Predictive Analytics", icon: ClockIcon, color: "text-cyan-400", status: "active" },
+            { name: "Pattern Analysis", icon: CpuChipIcon, color: "text-primary-400", status: "active" },
+            { name: "Smart Routing", icon: BoltIcon, color: "text-primary-500", status: "active" },
+            { name: "Anomaly Detection", icon: UsersIcon, color: "text-quantum-400", status: "active" },
+            { name: "Predictive Analytics", icon: ClockIcon, color: "text-quantum-500", status: "active" },
             { name: "ML Optimization", icon: CubeIcon, color: "text-yellow-400", status: "active" },
             { name: "Neural Networks", icon: CurrencyDollarIcon, color: "text-pink-400", status: "active" }
           ].map((module, i) => (
@@ -195,13 +197,13 @@ export function Dashboard() {
               transition={{ delay: i * 0.05, duration: 0.4 }}
               whileHover={{ scale: 1.02 }}
             >
-              <Card className="bg-gray-900 border-gray-800 shadow-lg hover:border-gray-700 transition-all duration-200">
+              <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover transition-all duration-200">
                 <CardContent className="p-4 text-center">
                   <module.icon className={`w-8 h-8 mx-auto mb-3 ${module.color}`} />
-                  <h3 className="text-sm font-medium text-white mb-2">{module.name}</h3>
+                  <h3 className="text-sm font-medium text-dashboard-text mb-2">{module.name}</h3>
                   <div className="flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-green-400 mr-2"></div>
-                    <span className="text-xs text-green-400">Active</span>
+                    <div className="w-2 h-2 rounded-full bg-dashboard-success mr-2 pulse-green"></div>
+                    <span className="text-xs text-dashboard-success">Active</span>
                   </div>
                 </CardContent>
               </Card>
@@ -220,10 +222,10 @@ export function Dashboard() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <Card className="bg-gray-900 border-gray-800 shadow-lg">
+            <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover">
               <CardHeader>
-                <CardTitle className="flex items-center text-white">
-                  <BoltIcon className="w-5 h-5 mr-2" />
+                <CardTitle className="flex items-center text-dashboard-text">
+                  <BoltIcon className="w-5 h-5 mr-2 text-primary-400" />
                   Recent Transactions
                 </CardTitle>
               </CardHeader>
@@ -249,10 +251,10 @@ export function Dashboard() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <Card className="bg-gray-900 border-gray-800 shadow-lg">
+            <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover">
               <CardHeader>
-                <CardTitle className="flex items-center text-white">
-                  <ArrowTrendingUpIcon className="w-5 h-5 mr-2" />
+                <CardTitle className="flex items-center text-dashboard-text">
+                  <ArrowTrendingUpIcon className="w-5 h-5 mr-2 text-quantum-400" />
                   Network Activity
                 </CardTitle>
               </CardHeader>
@@ -285,30 +287,30 @@ export function Dashboard() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <Card className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 border-blue-700/50 shadow-lg">
+          <Card className="bg-gradient-to-r from-dashboard-card to-dashboard-card-hover border-dashboard-border-hover shadow-lg glow-green">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium text-white flex items-center">
-                    <ShieldCheckIcon className="w-5 h-5 mr-2" />
+                  <h3 className="text-lg font-medium text-dashboard-text flex items-center">
+                    <ShieldCheckIcon className="w-5 h-5 mr-2 text-primary-400" />
                     Post-Quantum Security Status
                   </h3>
-                  <p className="mt-1 text-blue-200">
+                  <p className="mt-1 text-dashboard-text-muted">
                     Your network is protected with quantum-resistant cryptography
                   </p>
                 </div>
                 <div className="flex space-x-4 text-sm">
                   <div className="text-center">
-                    <div className="text-green-400 font-semibold">Dilithium</div>
-                    <div className="text-blue-200">Active</div>
+                    <div className="text-dashboard-success font-semibold">Dilithium</div>
+                    <div className="text-dashboard-text-muted">Active</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-green-400 font-semibold">Falcon</div>
-                    <div className="text-blue-200">Active</div>
+                    <div className="text-dashboard-success font-semibold">Falcon</div>
+                    <div className="text-dashboard-text-muted">Active</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-green-400 font-semibold">SPHINCS+</div>
-                    <div className="text-blue-200">Active</div>
+                    <div className="text-dashboard-success font-semibold">SPHINCS+</div>
+                    <div className="text-dashboard-text-muted">Active</div>
                   </div>
                 </div>
               </div>

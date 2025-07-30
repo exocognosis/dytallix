@@ -86,32 +86,42 @@ Based on comprehensive project analysis, **Dytallix is at 90-95% completion** an
 
 **Week 1 Deliverable**: ✅ **Fully operational testnet with bridge and AI services**
 
-#### **Week 2 (August 5-11): Cross-Chain Bridge Validation**
-**Primary Goal**: End-to-end cross-chain transaction testing
+#### **Week 2 (August 5-11): Cross-Chain Bridge Validation & Production Branch Setup**
+**Primary Goal**: End-to-end cross-chain transaction testing + Public repository preparation
 
 **Daily Tasks (1.5 hours)**:
-- **Monday**: Ethereum ↔ Dytallix bridge testing
+- **Monday**: Production branch migration initiation + Ethereum ↔ Dytallix bridge testing
+  - **CRITICAL**: Execute production branch migration per `PRODUCTION_BRANCH_MIGRATION_PLAN.md`
+  - Create public repository: `dytallix/dytallix-mainnet`
   - Execute ETH → DGT asset transfers
   - Validate wrapped token creation and management
   - Test multi-signature validator consensus
-- **Tuesday**: Cosmos ↔ Dytallix IBC integration
+- **Tuesday**: Repository sanitization + Cosmos ↔ Dytallix IBC integration
+  - Complete sensitive data removal from production branch
+  - Sanitize configuration files and create templates
   - Execute OSMO → DGT transfers via IBC protocol
   - Validate cross-chain message verification
   - Test asset locking/unlocking mechanisms
-- **Wednesday**: Polkadot integration testing
+- **Wednesday**: Documentation preparation + Polkadot integration testing
+  - Create production-ready README and documentation
+  - Set up GitHub Actions CI/CD pipeline
   - Deploy Substrate client with XCM messaging
   - Test DOT → DGT cross-chain transfers
   - Validate parachain communication protocols
-- **Thursday**: Multi-chain transaction routing
+- **Thursday**: Public repository launch + Multi-chain transaction routing
+  - **MILESTONE**: Launch public repository `dytallix/dytallix-mainnet`
+  - Configure repository security and branch protection
   - Test complex multi-hop transactions
   - Validate atomic swap mechanisms
   - Test rollback and failure recovery
-- **Friday**: Bridge security validation
+- **Friday**: Community preparation + Bridge security validation
+  - Prepare developer documentation and community guidelines
+  - Set up issue templates and contribution guidelines
   - Execute penetration testing scenarios
   - Validate PQC signature verification
   - Test emergency halt/resume procedures
 
-**Week 2 Deliverable**: ✅ **Production-ready cross-chain bridge with 3 blockchain ecosystems**
+**Week 2 Deliverable**: ✅ **Production-ready cross-chain bridge + Public repository launched**
 
 #### **Week 3 (August 12-18): Performance Optimization & Stress Testing**
 **Primary Goal**: Meet production performance benchmarks
@@ -433,12 +443,12 @@ Based on comprehensive project analysis, **Dytallix is at 90-95% completion** an
 
 ### **Production Branch Creation Plan**
 
-#### **Week 1: Production Branch Initialization**
+#### **Week 2: Production Branch Initialization (August 5-11)**
 **Action Items**:
 1. **Create Public Repository**:
    ```bash
    # Create new public repository: dytallix/dytallix-mainnet
-   git remote add public https://github.com/dytallix/dytallix-mainnet.git
+   git remote add production https://github.com/dytallix/dytallix-mainnet.git
    ```
 
 2. **Production Branch Setup**:
@@ -449,20 +459,24 @@ Based on comprehensive project analysis, **Dytallix is at 90-95% completion** an
    ```
 
 3. **Security Review for Public Release**:
-   - Remove any sensitive configuration or API keys
+   - **CRITICAL**: Execute `PRODUCTION_BRANCH_MIGRATION_PLAN.md` 
+   - Remove all sensitive configuration, API keys, and cryptographic material
+   - Sanitize deployment scripts and replace credentials with templates
    - Update documentation for public consumption
    - Implement proper license and contribution guidelines
 
 4. **Production Configuration**:
-   - Create production-specific configuration files
+   - Create production-specific configuration templates
    - Update deployment scripts for production environments
-   - Configure production secrets management
+   - Configure production secrets management with placeholders
+   - Set up GitHub Actions CI/CD pipeline
 
 #### **Production Release Strategy**
 1. **Development Branch**: Continue private development in `main`
-2. **Production Branch**: Public branch with production releases
-3. **Release Process**: Merge stable features from `main` to `production`
+2. **Production Branch**: Public branch with production releases (`dytallix/dytallix-mainnet`)
+3. **Release Process**: Merge stable features from `main` to `production` (with sanitization)
 4. **Version Tagging**: Semantic versioning for production releases
+5. **Security**: No sensitive development data in public repository
 
 ---
 

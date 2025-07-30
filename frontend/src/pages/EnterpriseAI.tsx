@@ -1,4 +1,6 @@
-import React from "react";
+import "keen-slider/keen-slider.min.css";
+import React, { useState } from "react";
+import { useKeenSlider } from "keen-slider/react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../components/ui/card";
 import {
@@ -8,7 +10,9 @@ import {
   UserGroupIcon,
   ExclamationTriangleIcon,
   LockClosedIcon,
-  CogIcon
+  CogIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from "@heroicons/react/24/outline";
 
 const aiModules = [
@@ -247,137 +251,275 @@ const aiModules = [
 ];
 
 export const EnterpriseAI: React.FC = () => {
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [loaded, setLoaded] = useState(false)
+  const [sliderRef, instanceRef] = useKeenSlider<HTMLDivElement>({
+    initial: 0,
+    slideChanged(slider) {
+      setCurrentSlide(slider.track.details.rel)
+    },
+    created() {
+      setLoaded(true)
+    },
+    loop: true,
+    slides: { perView: 1, spacing: 10 },
+  });
   return (
-    <main className="bg-black text-white min-h-screen px-6 py-12">
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto text-center space-y-6">
-        <motion.h1 
-          initial={{ opacity: 0, y: -20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ duration: 0.6 }}
-          className="text-4xl md:text-5xl font-bold tracking-tight"
-        >
-          Enterprise AI Modules
-        </motion.h1>
-        <motion.p 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }} 
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="text-lg md:text-xl text-gray-300 max-w-4xl mx-auto"
-        >
-          Dytallix's comprehensive suite of 8 specialized AI modules provides advanced automation, 
-          optimization, and intelligence capabilities for blockchain networks and enterprise applications.
-        </motion.p>
-      </section>
-
-      {/* AI Modules Grid */}
-      <section className="max-w-7xl mx-auto mt-16">
-        <div className="space-y-16">
-          {aiModules.map((module, index) => (
-            <motion.div
-              key={module.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.6 }}
-              className="relative"
+    <main className="bg-black text-white min-h-screen">
+      {/* Hero Section - Enterprise AI Ecosystem */}
+      <section className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+        <div className="text-center space-y-12">
+          {/* Main Hero Content */}
+          <div className="space-y-6">
+            <motion.h1 
+              initial={{ opacity: 0, y: -20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.6 }}
+              className="text-4xl md:text-6xl font-bold tracking-tight"
             >
-              <Card className="bg-gray-900 border-gray-800 shadow-2xl overflow-hidden">
-                <CardContent className="p-8">
-                  <div className="grid lg:grid-cols-2 gap-8">
-                    {/* Module Info */}
-                    <div className="space-y-6">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${module.color} flex items-center justify-center`}>
-                          <module.icon className="w-8 h-8 text-white" />
-                        </div>
-                        <div>
-                          <h2 className="text-2xl font-bold text-white">{module.name}</h2>
-                          <p className="text-gray-400">{module.tagline}</p>
-                        </div>
-                      </div>
-                      
-                      <p className="text-gray-300 leading-relaxed">{module.description}</p>
-                      
-                      <div>
-                        <h3 className="text-lg font-semibold text-white mb-3">Core Functions</h3>
-                        <ul className="space-y-2">
-                          {module.functions.map((func, i) => (
-                            <li key={i} className="flex items-start space-x-3">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <span className="text-gray-300">{func}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <h4 className="text-sm font-semibold text-gray-400 mb-2">Performance Metrics</h4>
-                        <p className="text-sm text-gray-300">{module.metrics}</p>
-                      </div>
-                    </div>
+              Enterprise AI Ecosystem
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="text-xl md:text-2xl text-gray-300 max-w-5xl mx-auto leading-relaxed"
+            >
+              Dytallix's intelligent infrastructure deploys 8 specialized AI modules as an interconnected ecosystem, 
+              delivering post-quantum security, real-time optimization, and autonomous governance for next-generation blockchain networks.
+            </motion.p>
+          </div>
 
-                    {/* Industry Applications */}
-                    <div className="space-y-6">
-                      <h3 className="text-xl font-semibold text-white">Industry Applications</h3>
-                      <div className="space-y-6">
-                        {module.industries.map((industry, i) => (
-                          <div key={i} className="bg-gray-800 rounded-lg p-5">
-                            <h4 className="text-lg font-semibold text-white mb-3">{industry.name}</h4>
-                            <ul className="space-y-2">
-                              {industry.useCases.map((useCase, j) => (
-                                <li key={j} className="flex items-start space-x-3">
-                                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                  <span className="text-gray-300 text-sm">{useCase}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+          {/* Ecosystem Overview */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="grid lg:grid-cols-2 gap-12 items-start text-left"
+          >
+            {/* Left - Core Capabilities */}
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold mb-4">Unified Intelligence Architecture</h2>
+                <p className="text-lg text-gray-300 leading-relaxed">
+                  Each AI module operates as both an independent specialist and a collaborative participant in Dytallix's 
+                  distributed intelligence network. Cross-module data sharing and consensus mechanisms enable emergent 
+                  behaviors that exceed the sum of individual components.
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-white">Enterprise-Grade Performance</h3>
+                <ul className="space-y-3">
+                  <li className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-gray-300">Sub-second response times for mission-critical decisions</span>
+                  </li>
+                  <li className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-gray-300">Quantum-resistant cryptographic foundation</span>
+                  </li>
+                  <li className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-gray-300">Autonomous scaling for enterprise transaction volumes</span>
+                  </li>
+                  <li className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-gray-300">Modular deployment for selective enterprise integration</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Right - Intelligence Modules Grid */}
+            <div className="space-y-6">
+              <h3 className="text-xl font-semibold text-white text-center lg:text-left">Cross-Module Intelligence Matrix</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { 
+                    title: "Threat Intelligence", 
+                    desc: "Network Sentinel + Economic Sentinel collaborative risk assessment",
+                    color: "from-red-500 to-orange-500"
+                  },
+                  { 
+                    title: "Optimization Engine", 
+                    desc: "FeeFlow + Protocol Tuner dynamic parameter adjustment",
+                    color: "from-blue-500 to-cyan-500"
+                  },
+                  { 
+                    title: "Governance Nexus", 
+                    desc: "GovSim + Stake Balancer democratic consensus optimization",
+                    color: "from-purple-500 to-pink-500"
+                  },
+                  { 
+                    title: "Security Protocol", 
+                    desc: "Quantum Shield + Wallet Classifier identity verification",
+                    color: "from-gray-500 to-slate-500"
+                  }
+                ].map((module, i) => (
+                  <Card key={i} className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
+                    <CardContent className="p-4">
+                      <div className={`w-full h-2 rounded-full bg-gradient-to-r ${module.color} mb-3`}></div>
+                      <h4 className="text-sm font-semibold text-white mb-2">{module.title}</h4>
+                      <p className="text-gray-400 text-xs leading-relaxed">{module.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-lg p-4 border border-blue-800/50">
+                <h4 className="text-sm font-semibold text-blue-300 mb-2">Autonomous Intelligence</h4>
+                <p className="text-blue-200 text-xs">
+                  Real-time module orchestration enables predictive threat mitigation, 
+                  adaptive resource allocation, and self-optimizing network parameters 
+                  without human intervention.
+                </p>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Integration Section */}
-      <section className="max-w-7xl mx-auto mt-24">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-center space-y-8"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold">Integrated AI Ecosystem</h2>
-          <p className="text-lg text-gray-300 max-w-4xl mx-auto">
-            Our AI modules work together as a cohesive system, sharing insights and optimizing 
-            performance across the entire blockchain network. Modular architecture allows 
-            selective deployment based on your specific enterprise needs.
-          </p>
+      <hr className="border-gray-800 my-16" />
+
+      {/* AI Modules Grid */}
+      <section className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">AI Modules Overview</h2>
+        <p className="text-lg text-gray-300 text-center mb-12 max-w-3xl mx-auto">
+          Explore Dytallix's modular AI components designed to address security, optimization, compliance, and governance in decentralized networks.
+        </p>
+        
+        <div className="text-center mb-6">
+          <span className="text-gray-400 text-sm">
+            {currentSlide + 1} of {aiModules.length} AI Modules
+          </span>
+        </div>
+        
+        {/* Container with padding for external arrows */}
+        <div className="px-12 md:px-16">
+          <div className="relative">
+          {/* Navigation Arrows - Outside the slider */}
+          {loaded && instanceRef.current && (
+            <>
+              <button
+                onClick={(e: any) =>
+                  e.stopPropagation() || instanceRef.current?.prev()
+                }
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-12 text-gray-500 hover:text-gray-300 transition-colors duration-200 z-10"
+                aria-label="Previous slide"
+              >
+                <ChevronLeftIcon className="w-6 h-6 md:w-8 md:h-8" />
+              </button>
+              <button
+                onClick={(e: any) =>
+                  e.stopPropagation() || instanceRef.current?.next()
+                }
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-12 text-gray-500 hover:text-gray-300 transition-colors duration-200 z-10"
+                aria-label="Next slide"
+              >
+                <ChevronRightIcon className="w-6 h-6 md:w-8 md:h-8" />
+              </button>
+            </>
+          )}
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
-            {[
-              { title: "Real-time Processing", desc: "Sub-second response times for critical decisions" },
-              { title: "Scalable Architecture", desc: "Handles enterprise-grade transaction volumes" },
-              { title: "Quantum-Safe Security", desc: "Post-quantum cryptography integration" },
-              { title: "Cross-Module Intelligence", desc: "Modules share insights for enhanced performance" }
-            ].map((feature, i) => (
-              <Card key={i} className="bg-gray-900 border-gray-800">
-                <CardContent className="p-6 text-center">
-                  <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                  <p className="text-gray-400 text-sm">{feature.desc}</p>
-                </CardContent>
-              </Card>
+          <div className="keen-slider" ref={sliderRef}>
+            {aiModules.map((module, index) => (
+              <div className="keen-slider__slide" key={module.id}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.6 }}
+                  className="relative px-4"
+                >
+                  <Card className="bg-gray-900 border-gray-800 shadow-2xl overflow-hidden">
+                    <CardContent className="p-8">
+                      <div className="grid lg:grid-cols-2 gap-8">
+                        {/* Module Info */}
+                        <div className="space-y-6">
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${module.color} flex items-center justify-center`}>
+                            <module.icon className="w-8 h-8 text-white" />
+                          </div>
+                          <div>
+                            <h2 className="text-3xl font-bold text-white">{module.name}</h2>
+                            <p className="text-gray-400">{module.tagline}</p>
+                          </div>
+                        </div>
+                        
+                        <p className="text-gray-300 leading-relaxed">{module.description}</p>
+                        
+                        <div>
+                          <h3 className="text-lg font-semibold text-white mb-3">Core Functions</h3>
+                          <ul className="space-y-2">
+                            {module.functions.map((func, i) => (
+                              <li key={i} className="flex items-start space-x-3">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <span className="text-gray-300">{func}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        
+                        <div className="bg-gray-800 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-gray-400 mb-2">Performance Metrics</h4>
+                          <p className="text-sm text-gray-300">{module.metrics}</p>
+                        </div>
+                      </div>
+
+                      {/* Industry Applications */}
+                      <div className="space-y-6">
+                        <h3 className="text-xl font-semibold text-white">Industry Applications</h3>
+                        <div className="space-y-6">
+                          {module.industries.map((industry, i) => (
+                            <div key={i} className="bg-gray-800 rounded-lg p-5">
+                              <h4 className="text-lg font-semibold text-white mb-3">{industry.name}</h4>
+                              <ul className="space-y-2">
+                                {industry.useCases.map((useCase, j) => (
+                                  <li key={j} className="flex items-start space-x-3">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    <span className="text-gray-300 text-sm">{useCase}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Dots Indicator */}
+        {loaded && instanceRef.current && (
+          <div className="flex justify-center mt-8 space-x-3">
+            {aiModules.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  instanceRef.current?.moveToIdx(idx)
+                }}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  currentSlide === idx 
+                    ? "bg-blue-500 scale-125 shadow-lg" 
+                    : "bg-gray-600 hover:bg-gray-500 hover:scale-110"
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
             ))}
           </div>
-        </motion.div>
+        )}
+      </div>
+        </div>
       </section>
 
+      <hr className="border-gray-800 my-16" />
+
       {/* CTA Section */}
-      <section className="max-w-4xl mx-auto mt-24 text-center">
+      <section className="max-w-4xl mx-auto text-center py-16 px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -405,6 +547,8 @@ export const EnterpriseAI: React.FC = () => {
           </div>
         </motion.div>
       </section>
+
+      <hr className="border-gray-800 my-16" />
     </main>
   );
 };

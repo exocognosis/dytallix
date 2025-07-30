@@ -38,10 +38,10 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-black text-white relative">
+      <div className="min-h-screen bg-dashboard-bg text-dashboard-text relative">
         {/* Environment indicator */}
         {(config.isTestnet || config.isDevelopment) && (
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 text-center text-sm">
+          <div className="bg-gradient-to-r from-primary-600 to-quantum-600 text-white px-4 py-1 text-center text-sm">
             {config.environment.toUpperCase()} ENVIRONMENT - {config.get().networkName}
             {config.isTestnet && (
               <span className="ml-4">
