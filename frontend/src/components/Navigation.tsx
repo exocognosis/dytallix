@@ -46,6 +46,7 @@ export function Navigation() {
         <>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-16 items-center justify-between">
+              {/* Left: Logo */}
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <Link to="/" className="flex items-center space-x-2">
@@ -55,30 +56,34 @@ export function Navigation() {
                     <span className="text-dashboard-text font-bold text-xl">Dytallix</span>
                   </Link>
                 </div>
-                <div className="hidden md:block">
-                  <div className="ml-10 flex items-baseline space-x-4">
-                    {navigation.map((item) => {
-                      const isActive = location.pathname === item.href
-                      const Icon = item.icon
-                      return (
-                        <Link
-                          key={item.name}
-                          to={item.href}
-                          className={classNames(
-                            isActive
-                              ? 'bg-dashboard-card-hover text-dashboard-text border-dashboard-border-hover border'
-                              : 'text-dashboard-text-muted hover:bg-dashboard-card hover:text-dashboard-text',
-                            'rounded-md px-3 py-2 text-sm font-medium flex items-center space-x-1 transition-all duration-200 whitespace-nowrap'
-                          )}
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span>{item.name}</span>
-                        </Link>
-                      )
-                    })}
-                  </div>
+              </div>
+
+              {/* Center: Navigation Links */}
+              <div className="hidden md:block">
+                <div className="flex items-baseline space-x-4">
+                  {navigation.map((item) => {
+                    const isActive = location.pathname === item.href
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className={classNames(
+                          isActive
+                            ? 'bg-dashboard-card-hover text-dashboard-text border-dashboard-border-hover border'
+                            : 'text-dashboard-text-muted hover:bg-dashboard-card hover:text-dashboard-text',
+                          'rounded-md px-3 py-2 text-sm font-medium flex items-center space-x-1 transition-all duration-200 whitespace-nowrap'
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{item.name}</span>
+                      </Link>
+                    )
+                  })}
                 </div>
               </div>
+
+              {/* Right: Status and Account */}
 
               {/* Right side - Status and Account */}
               <div className="hidden md:block">
