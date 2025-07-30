@@ -68,7 +68,7 @@ export function Navigation() {
                             isActive
                               ? 'bg-dashboard-card-hover text-dashboard-text border-dashboard-border-hover border'
                               : 'text-dashboard-text-muted hover:bg-dashboard-card hover:text-dashboard-text',
-                            'rounded-md px-3 py-2 text-sm font-medium flex items-center space-x-1 transition-all duration-200'
+                            'rounded-md px-3 py-2 text-sm font-medium flex items-center space-x-1 transition-all duration-200 whitespace-nowrap'
                           )}
                         >
                           <Icon className="w-4 h-4" />
@@ -207,7 +207,7 @@ export function Navigation() {
                       isActive
                         ? 'bg-dashboard-card-hover text-dashboard-text border border-dashboard-border-hover'
                         : 'text-dashboard-text-muted hover:bg-dashboard-card hover:text-dashboard-text',
-                      'block rounded-md px-3 py-2 text-base font-medium flex items-center space-x-2 transition-all duration-200'
+                      'block rounded-md px-3 py-2 text-base font-medium flex items-center space-x-2 transition-all duration-200 whitespace-nowrap'
                     )}
                   >
                     <Icon className="w-5 h-5" />
