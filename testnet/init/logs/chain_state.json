@@ -1,0 +1,97 @@
+{"blocks": [
+    {
+      "height": 1,
+      "hash": "6487ebce7d3071955640dc49f33ba3b5d4e2bbcdd0fba30ccba71c3d11dd3b4c",
+      "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "time": "2025-07-31T15:14:04.000000Z",
+      "proposer": "validator-1",
+      "tx_count": 2,
+      "signatures_count": 3
+    },
+    {
+      "height": 2,
+      "hash": "8d86b7e1d586471c09e3d8001f0b0c49f44a70215f083aceb24fb1c4de156b3e",
+      "previous_hash": "6487ebce7d3071955640dc49f33ba3b5d4e2bbcdd0fba30ccba71c3d11dd3b4c",
+      "time": "2025-07-31T15:14:09.000000Z",
+      "proposer": "validator-2",
+      "tx_count": 1,
+      "signatures_count": 3
+    },
+    {
+      "height": 3,
+      "hash": "fed95d17e3e231f65d574d5fdb523f4fc91a3ce8ff8ee26627a27516f042ddcd",
+      "previous_hash": "8d86b7e1d586471c09e3d8001f0b0c49f44a70215f083aceb24fb1c4de156b3e",
+      "time": "2025-07-31T15:14:14.000000Z",
+      "proposer": "validator-3",
+      "tx_count": 2,
+      "signatures_count": 3
+    },
+    {
+      "height": 4,
+      "hash": "0a001bfaded10d48a0caf339d686d20f56e31376193f2707a5731cd6b7057315",
+      "previous_hash": "fed95d17e3e231f65d574d5fdb523f4fc91a3ce8ff8ee26627a27516f042ddcd",
+      "time": "2025-07-31T15:14:19.000000Z",
+      "proposer": "validator-4",
+      "tx_count": 2,
+      "signatures_count": 3
+    },
+    {
+      "height": 5,
+      "hash": "c97aae1d00cf6bc67aa8f9f8718e159fc5252ec854782ce79f7c53ad9af6db9e",
+      "previous_hash": "0a001bfaded10d48a0caf339d686d20f56e31376193f2707a5731cd6b7057315",
+      "time": "2025-07-31T15:14:24.000000Z",
+      "proposer": "validator-1",
+      "tx_count": 5,
+      "signatures_count": 3
+    },
+    {
+      "height": 6,
+      "hash": "5ba4f34d0a292151a61f3775e2250a26747771bb3f76f007ae20e39e1157c221",
+      "previous_hash": "c97aae1d00cf6bc67aa8f9f8718e159fc5252ec854782ce79f7c53ad9af6db9e",
+      "time": "2025-07-31T15:14:29.000000Z",
+      "proposer": "validator-2",
+      "tx_count": 1,
+      "signatures_count": 3
+    },
+    {
+      "height": 7,
+      "hash": "48f743a7c687e4be51cbc6f978f5c0100e15371a2fef78a3f0e7cb4d9b1b7a09",
+      "previous_hash": "5ba4f34d0a292151a61f3775e2250a26747771bb3f76f007ae20e39e1157c221",
+      "time": "2025-07-31T15:14:34.000000Z",
+      "proposer": "validator-3",
+      "tx_count": 5,
+      "signatures_count": 3
+    },
+    {
+      "height": 8,
+      "hash": "975951b83c1e2b04f21521b743211b8172bd8038d0f5e17a78233d7609bcbabe",
+      "previous_hash": "48f743a7c687e4be51cbc6f978f5c0100e15371a2fef78a3f0e7cb4d9b1b7a09",
+      "time": "2025-07-31T15:14:39.000000Z",
+      "proposer": "validator-4",
+      "tx_count": 3,
+      "signatures_count": 3
+    },
+    {
+      "height": 9,
+      "hash": "c60f4369b6ea70417d85b3c6c4e404eb54b9eef974711e1037553f080044cbb9",
+      "previous_hash": "975951b83c1e2b04f21521b743211b8172bd8038d0f5e17a78233d7609bcbabe",
+      "time": "2025-07-31T15:14:44.000000Z",
+      "proposer": "validator-1",
+      "tx_count": 3,
+      "signatures_count": 3
+    },
+    {
+      "height": 10,
+      "hash": "a1ff9e2a18d01c6140f82eb4ac5bcd0a85c409dedfc6b5ada9c57d91688c5836",
+      "previous_hash": "c60f4369b6ea70417d85b3c6c4e404eb54b9eef974711e1037553f080044cbb9",
+      "time": "2025-07-31T15:14:49.000000Z",
+      "proposer": "validator-2",
+      "tx_count": 4,
+      "signatures_count": 3
+    }
+  ],
+  "total_blocks": 10,
+  "latest_height": 10,
+  "latest_hash": "a1ff9e2a18d01c6140f82eb4ac5bcd0a85c409dedfc6b5ada9c57d91688c5836",
+  "chain_id": "dytallix-testnet-1"
+}
