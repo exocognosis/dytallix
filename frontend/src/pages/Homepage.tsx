@@ -31,16 +31,21 @@ export const Homepage: React.FC = () => {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="flex flex-wrap justify-center gap-4"
         >
-          <Link to="/dashboard">
+          <Link to="/testnet">
             <Button className="text-lg px-8 py-4 rounded-2xl shadow-xl bg-primary-600 hover:bg-primary-700 text-white border-0 glow-green">
               Join the Testnet
             </Button>
           </Link>
           <Link to="/explorer">
-            <Button variant="outline" className="text-lg px-8 py-4 rounded-2xl shadow-xl border-dashboard-border-hover text-dashboard-text hover:bg-dashboard-card">
+            <Button className="text-lg px-8 py-4 rounded-2xl shadow-xl bg-primary-600 hover:bg-primary-700 text-white border-0 glow-green">
               Explore Blockchain
             </Button>
           </Link>
+          <a href="https://discord.gg/fw34A8bK" target="_blank" rel="noopener noreferrer">
+            <Button className="text-lg px-8 py-4 rounded-2xl shadow-xl bg-indigo-600 hover:bg-indigo-700 text-white border-0 glow-purple">
+              Join the Discord
+            </Button>
+          </a>
         </motion.div>
       </section>
 
@@ -96,9 +101,10 @@ export const Homepage: React.FC = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
             { title: "Digital Wallet", link: "/wallet", desc: "Secure quantum-resistant wallet for managing your digital assets", color: "text-primary-400" },
-            { title: "Blockchain Explorer", link: "/explorer", desc: "Explore transactions, blocks, and network activity in real-time", color: "text-quantum-400" },
+            { title: "Testnet Dashboard", link: "/testnet", desc: "Live testnet environment for quantum-safe blockchain development", color: "text-quantum-400" },
+            { title: "Blockchain Explorer", link: "/explorer", desc: "Explore transactions, blocks, and network activity in real-time", color: "text-quantum-500" },
             { title: "Enterprise AI", link: "/enterprise-ai", desc: "8 specialized AI modules for automation and optimization", color: "text-primary-500" },
-            { title: "Analytics Dashboard", link: "/analytics", desc: "Advanced market analytics and trading insights", color: "text-quantum-500" },
+            { title: "Analytics Dashboard", link: "/analytics", desc: "Advanced market analytics and trading insights", color: "text-quantum-600" },
             { title: "Smart Contracts", link: "/contracts", desc: "Deploy and interact with quantum-safe smart contracts", color: "text-primary-600" },
             { title: "Tokenomics", link: "/tokenomics", desc: "Understand DGT/DRT dual-token economics and governance", color: "text-yellow-400" },
             { title: "Settings", link: "/settings", desc: "Configure your account and security preferences", color: "text-dashboard-text-gray" },
@@ -127,29 +133,134 @@ export const Homepage: React.FC = () => {
         </div>
       </section>
 
-      {/* About Section */}
-      <section className="max-w-4xl mx-auto mt-32 text-center space-y-6">
-        <motion.h2 
+      {/* Why Dytallix Section */}
+      <section className="max-w-6xl mx-auto mt-32 space-y-12">
+        <motion.div
           initial={{ opacity: 0 }} 
           whileInView={{ opacity: 1 }} 
           viewport={{ once: true }} 
-          className="text-3xl md:text-4xl font-bold text-dashboard-text"
+          className="text-center space-y-6"
         >
-          Why Dytallix?
-        </motion.h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-dashboard-text">
+            Why Dytallix?
+          </h2>
+          <p className="text-dashboard-text-gray text-lg max-w-3xl mx-auto">
+            Dytallix is the answer to a looming threat: quantum decryption. We future-proof digital assets through 
+            advanced PQC, zero-knowledge systems, and decentralized AI decisioning.
+          </p>
+          <p className="text-dashboard-text-muted text-xl font-semibold">
+            Our mission is to evolve blockchain before it becomes obsolete.
+          </p>
+        </motion.div>
+
+        {/* Dynamic Cards showcasing Dytallix virtues */}
+        <div className="grid md:grid-cols-3 gap-8">
+          {[
+            {
+              title: "Quantum-Resistant Future",
+              icon: "🛡️",
+              gradient: "from-quantum-400 to-quantum-600",
+              description: "The quantum threat is real. IBM's quantum computers are already breaking traditional encryption. Dytallix implements NIST-approved post-quantum cryptography today.",
+              highlights: [
+                "Dilithium & Falcon signatures",
+                "SPHINCS+ quantum-safe hashing",
+                "Future-proof key exchange",
+                "Crypto-agile architecture"
+              ],
+              stats: "99.9% quantum attack resistance"
+            },
+            {
+              title: "On-Chain AI Intelligence",
+              icon: "🧠",
+              gradient: "from-primary-400 to-primary-600",
+              description: "Revolutionary AI modules running directly on-chain, providing autonomous threat detection, smart contract auditing, and predictive analytics without centralized control.",
+              highlights: [
+                "Real-time anomaly detection",
+                "Automated smart contract audits", 
+                "Predictive market analytics",
+                "Decentralized AI governance"
+              ],
+              stats: "8 specialized AI modules"
+            },
+            {
+              title: "Uncompromising Security",
+              icon: "⚡",
+              gradient: "from-yellow-400 to-orange-500",
+              description: "Zero-knowledge proofs, multi-signature wallets, and hardware security modules create an impenetrable fortress for your digital assets.",
+              highlights: [
+                "Zero-knowledge privacy",
+                "Multi-signature protection",
+                "Hardware security integration",
+                "Advanced threat monitoring"
+              ],
+              stats: "Military-grade encryption"
+            }
+          ].map((card, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.2, duration: 0.6 }}
+              whileHover={{ y: -5, scale: 1.02 }}
+              className="group"
+            >
+              <Card className="bg-dashboard-card border-dashboard-border shadow-xl dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover transition-all duration-500 h-full relative overflow-hidden">
+                {/* Gradient overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-500`} />
+                
+                <CardContent className="p-8 space-y-6 relative z-10">
+                  {/* Icon and title */}
+                  <div className="text-center space-y-3">
+                    <div className="text-4xl mb-3 transform group-hover:scale-110 transition-transform duration-300">
+                      {card.icon}
+                    </div>
+                    <h3 className="text-xl font-bold text-dashboard-text group-hover:text-primary-400 transition-colors duration-300">
+                      {card.title}
+                    </h3>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-dashboard-text-muted text-sm leading-relaxed">
+                    {card.description}
+                  </p>
+
+                  {/* Highlights */}
+                  <div className="space-y-2">
+                    {card.highlights.map((highlight, idx) => (
+                      <div key={idx} className="flex items-center space-x-2 text-sm">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-400 group-hover:bg-primary-300 transition-colors duration-300" />
+                        <span className="text-dashboard-text-gray">{highlight}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Stats */}
+                  <div className="pt-4 border-t border-dashboard-border">
+                    <div className={`text-center font-semibold bg-gradient-to-r ${card.gradient} bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-300`}>
+                      {card.stats}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Bottom CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="space-y-4"
+          transition={{ delay: 0.8, duration: 0.6 }}
+          className="text-center pt-8"
         >
-          <p className="text-dashboard-text-gray text-lg">
-            Dytallix is the answer to a looming threat: quantum decryption. We future-proof digital assets through advanced PQC, zero-knowledge systems, and decentralized AI decisioning.
-          </p>
-          <p className="text-dashboard-text-muted text-lg">
-            Our mission is to evolve blockchain before it becomes obsolete.
-          </p>
+          <Link to="/about">
+            <Button variant="outline" className="text-lg px-8 py-4 rounded-2xl shadow-xl border-dashboard-border-hover text-dashboard-text hover:bg-dashboard-card group">
+              Learn More About Our Technology
+              <span className="ml-2 group-hover:translate-x-1 transition-transform duration-300">→</span>
+            </Button>
+          </Link>
         </motion.div>
       </section>
 

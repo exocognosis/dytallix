@@ -57,7 +57,7 @@ http {
     add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
 
     server {
-        listen ${PORT:-8080};
+        listen ${PORT};
         server_name _;
         root /usr/share/nginx/html;
         index index.html;
@@ -73,13 +73,10 @@ http {
             add_header Cache-Control "public, immutable";
         }
 
-        # API proxy (if needed)
+        # API proxy (return 503 for now since bridge service isn't deployed yet)
         location /api/ {
-            proxy_pass http://dytallix-bridge-service:8080/;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
+            return 503 "Bridge service not available";
+            add_header Content-Type text/plain;
         }
 
         # Health check endpoint

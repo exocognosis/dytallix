@@ -12,6 +12,7 @@ import { SmartContracts } from './pages/SmartContracts'
 import { Tokenomics } from './pages/Tokenomics'
 import { Settings } from './pages/Settings'
 import { TestnetDiagnostics } from './pages/TestnetDiagnostics'
+import { TestnetDashboard } from './pages/TestnetDashboard'
 import { useWebSocket } from './hooks/useWebSocket'
 import config from './services/config'
 import { useEffect } from 'react'
@@ -66,6 +67,7 @@ function App() {
             <Route path="/contracts" element={<SmartContracts />} />
             <Route path="/tokenomics" element={<Tokenomics />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/testnet" element={<TestnetDashboard />} />
             {(config.isTestnet || config.isDevelopment) && (
               <Route path="/testnet-diagnostics" element={<TestnetDiagnostics />} />
             )}

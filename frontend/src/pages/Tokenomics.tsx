@@ -149,18 +149,22 @@ export function Tokenomics() {
           viewport={{ once: true }} 
           className="text-2xl font-bold mb-6 text-center"
         >
-          DGT Token Distribution
+          Token Distribution
         </motion.h2>
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* DGT Distribution */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
+            className="space-y-6"
           >
-            <Card className="bg-gray-900 border-gray-800 shadow-lg">
+            <h3 className="text-xl font-semibold text-blue-400 text-center">DGT Token Distribution</h3>
+            
+            <Card className="bg-gradient-to-br from-blue-900/50 to-blue-700/30 border-blue-700/50 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center text-white">
+                <CardTitle className="flex items-center text-blue-400">
                   <ChartPieIcon className="w-5 h-5 mr-2" />
                   Allocation Breakdown
                 </CardTitle>
@@ -184,7 +188,7 @@ export function Tokenomics() {
                     >
                       <div className="flex items-center space-x-3">
                         <div className={`w-4 h-4 rounded ${item.color}`}></div>
-                        <span className="text-gray-300">{item.label}</span>
+                        <span className="text-blue-200">{item.label}</span>
                       </div>
                       <span className="text-white font-semibold">{item.percentage}%</span>
                     </motion.div>
@@ -192,17 +196,10 @@ export function Tokenomics() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-          >
-            <Card className="bg-gray-900 border-gray-800 shadow-lg">
+            <Card className="bg-gradient-to-br from-blue-900/50 to-blue-700/30 border-blue-700/50 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center text-white">
+                <CardTitle className="flex items-center text-blue-400">
                   <LockClosedIcon className="w-5 h-5 mr-2" />
                   Vesting Schedule
                 </CardTitle>
@@ -224,8 +221,84 @@ export function Tokenomics() {
                       transition={{ delay: i * 0.1, duration: 0.6 }}
                       className="flex flex-col space-y-1"
                     >
-                      <div className="text-gray-300 font-medium">{item.category}</div>
+                      <div className="text-blue-200 font-medium">{item.category}</div>
                       <div className={`text-sm ${item.color}`}>{item.vesting}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* DRT Distribution */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="space-y-6"
+          >
+            <h3 className="text-xl font-semibold text-green-400 text-center">DRT Token Distribution</h3>
+            
+            <Card className="bg-gradient-to-br from-green-900/50 to-green-700/30 border-green-700/50 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center text-green-400">
+                  <ChartPieIcon className="w-5 h-5 mr-2" />
+                  Emission Schedule
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { label: "Block Rewards", percentage: 60, color: "bg-green-500" },
+                    { label: "Staking Rewards", percentage: 25, color: "bg-blue-500" },
+                    { label: "AI Module Incentives", percentage: 10, color: "bg-purple-500" },
+                    { label: "Bridge Operations", percentage: 5, color: "bg-yellow-500" }
+                  ].map((item, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1, duration: 0.6 }}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-4 h-4 rounded ${item.color}`}></div>
+                        <span className="text-green-200">{item.label}</span>
+                      </div>
+                      <span className="text-white font-semibold">{item.percentage}%</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-green-900/50 to-green-700/30 border-green-700/50 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center text-green-400">
+                  <FireIcon className="w-5 h-5 mr-2" />
+                  Burn Mechanisms
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { category: "Transaction Fees", burn: "100% Burned", color: "text-red-400" },
+                    { category: "AI Service Fees", burn: "50% Burned", color: "text-orange-400" },
+                    { category: "Bridge Fees", burn: "75% Burned", color: "text-red-400" },
+                    { category: "Governance Proposals", burn: "Penalty Burns", color: "text-pink-400" }
+                  ].map((item, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1, duration: 0.6 }}
+                      className="flex flex-col space-y-1"
+                    >
+                      <div className="text-green-200 font-medium">{item.category}</div>
+                      <div className={`text-sm ${item.color}`}>{item.burn}</div>
                     </motion.div>
                   ))}
                 </div>

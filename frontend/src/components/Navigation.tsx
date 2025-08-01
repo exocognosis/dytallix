@@ -13,7 +13,8 @@ import {
   Cog6ToothIcon,
   BoltIcon,
   CurrencyDollarIcon,
-  CpuChipIcon
+  CpuChipIcon,
+  BeakerIcon
 } from '@heroicons/react/24/outline'
 import { useWalletStore } from '../store/wallet'
 import { useBlockchainStats } from '../hooks/useAPI'
@@ -22,6 +23,7 @@ const navigation = [
   { name: 'Home', href: '/', icon: HomeIcon },
   { name: 'About', href: '/about', icon: InformationCircleIcon },
   { name: 'Dashboard', href: '/dashboard', icon: ChartBarIcon },
+  { name: 'Testnet', href: '/testnet', icon: BeakerIcon },
   { name: 'Enterprise AI', href: '/enterprise-ai', icon: CpuChipIcon },
   { name: 'Wallet', href: '/wallet', icon: WalletIcon },
   { name: 'Explorer', href: '/explorer', icon: CubeIcon },
