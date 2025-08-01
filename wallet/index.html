@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dytallix PQC Wallet</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="wallet-root">
+        <!-- Wallet interface will be built with vanilla JS -->
+        <div class="wallet-container">
+            <!-- Header -->
+            <div class="wallet-header">
+                <h1 class="wallet-title">Dytallix PQC Wallet</h1>
+                <p class="wallet-subtitle">
+                    Post-Quantum Cryptography Wallet for Dytallix Blockchain
+                </p>
+                <div class="pqc-info">
+                    <h4>🔐 Post-Quantum Security</h4>
+                    <p>
+                        This wallet uses <span id="current-algorithm">Dilithium</span> post-quantum cryptography to ensure your 
+                        transactions remain secure even against quantum computer attacks.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Alerts container -->
+            <div id="alerts-container"></div>
+
+            <!-- Main Wallet Grid -->
+            <div class="wallet-grid">
+                <!-- Key Management -->
+                <div class="wallet-card">
+                    <h2 class="card-title">
+                        <div class="card-icon">🔑</div>
+                        Key Management
+                    </h2>
+                    
+                    <div class="form-group">
+                        <label class="form-label">PQC Algorithm</label>
+                        <select class="form-input" id="algorithm-select">
+                            <option value="Dilithium">Dilithium (Signature)</option>
+                            <option value="Kyber">Kyber (Key Exchange)</option>
+                        </select>
+                    </div>
+
+                    <button class="button" id="generate-keypair-btn">
+                        Generate New Dilithium Keypair
+                    </button>
+
+                    <div id="keypair-display" style="display: none;">
+                        <div class="algorithm-badge" id="algorithm-badge">Dilithium</div>
+                        
+                        <div class="key-display">
+                            <div class="key-label">Public Address</div>
+                            <div class="key-value public-address" id="public-address"></div>
+                        </div>
+
+                        <div class="key-display">
+                            <div class="key-label">Public Key</div>
+                            <div class="key-value" id="public-key"></div>
+                        </div>
+
+                        <div class="key-display">
+                            <div class="key-label">Private Key</div>
+                            <div class="key-value private-key-redacted">
+                                [REDACTED FOR SECURITY - Check console for testing]
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Form -->
+                <div class="wallet-card">
+                    <h2 class="card-title">
+                        <div class="card-icon">💸</div>
+                        Send Transaction
+                    </h2>
+
+                    <div class="form-group">
+                        <label class="form-label">Recipient Address</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="recipient-address"
+                            placeholder="dyt1..."
+                        />
+                        <div class="error-message" id="recipient-error" style="display: none;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Amount (DYT)</label>
+                        <input
+                            type="number"
+                            class="form-input"
+                            id="amount"
+                            placeholder="0.00"
+                            min="0"
+                            step="0.000001"
+                        />
+                        <div class="error-message" id="amount-error" style="display: none;"></div>
+                    </div>
+
+                    <button class="button" id="send-transaction-btn">
+                        Send Transaction
+                    </button>
+
+                    <p id="keypair-warning" style="color: #666; font-size: 0.9rem; margin-top: 10px;">
+                        Generate a keypair first to send transactions
+                    </p>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="transaction-history" id="transaction-history" style="display: none;">
+                <h2 class="card-title">
+                    <div class="card-icon">📜</div>
+                    Transaction History
+                </h2>
+                <div id="transactions-list"></div>
+            </div>
+        </div>
+    </div>
+    <script src="wallet.js"></script>
+</body>
+</html>
