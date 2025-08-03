@@ -1,0 +1,208 @@
+{
+  "network": {
+    "name": "dytallix-mainnet",
+    "chain_id": "dytallix-mainnet-1",
+    "genesis_time": "2025-08-03T19:00:26.000000000Z"
+  },
+  "dgt_allocations": [
+    {
+      "address": "0xCommunityTreasury",
+      "amount": 400000000000000000000000000,
+      "vesting": null
+    },
+    {
+      "address": "0xStakingRewards",
+      "amount": 250000000000000000000000000,
+      "vesting": {
+        "total_amount": 250000000000000000000000000,
+        "cliff_duration": 0,
+        "vesting_duration": 126144000,
+        "start_time": 1754247626
+      }
+    },
+    {
+      "address": "0xDevTeam",
+      "amount": 150000000000000000000000000,
+      "vesting": {
+        "total_amount": 150000000000000000000000000,
+        "cliff_duration": 31536000,
+        "vesting_duration": 126144000,
+        "start_time": 1754247626
+      }
+    },
+    {
+      "address": "0xValidators",
+      "amount": 100000000000000000000000000,
+      "vesting": {
+        "total_amount": 100000000000000000000000000,
+        "cliff_duration": 15552000,
+        "vesting_duration": 77760000,
+        "start_time": 1754247626
+      }
+    },
+    {
+      "address": "0xEcosystemFund",
+      "amount": 100000000000000000000000000,
+      "vesting": {
+        "total_amount": 100000000000000000000000000,
+        "cliff_duration": 0,
+        "vesting_duration": 157680000,
+        "start_time": 1754247626
+      }
+    }
+  ],
+  "drt_emission": {
+    "annual_inflation_rate": 500,
+    "initial_supply": 0,
+    "emission_breakdown": {
+      "block_rewards": 60,
+      "staking_rewards": 25,
+      "ai_module_incentives": 10,
+      "bridge_operations": 5
+    }
+  },
+  "burn_rules": {
+    "transaction_fee_burn_rate": 100,
+    "ai_service_fee_burn_rate": 50,
+    "bridge_fee_burn_rate": 75
+  },
+  "validators": [
+    {
+      "address": "dyt1validator1000000000000000000000000000",
+      "stake": 32000000000000000000000000,
+      "public_key": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "signature_algorithm": "Dilithium5",
+      "active": true,
+      "commission": 500
+    },
+    {
+      "address": "dyt1validator2000000000000000000000000000",
+      "stake": 32000000000000000000000000,
+      "public_key": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "signature_algorithm": "Dilithium5",
+      "active": true,
+      "commission": 500
+    },
+    {
+      "address": "dyt1validator3000000000000000000000000000",
+      "stake": 32000000000000000000000000,
+      "public_key": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "signature_algorithm": "Dilithium5",
+      "active": true,
+      "commission": 500
+    }
+  ],
+  "governance": {
+    "proposal_threshold": 1000000000000000000000000,
+    "voting_period": 50400,
+    "quorum_threshold": 3333,
+    "pass_threshold": 5000
+  },
+  "staking": {
+    "minimum_validator_stake": 32000000000000000000000000,
+    "max_validators": 100,
+    "double_sign_slash_rate": 500,
+    "downtime_slash_rate": 100,
+    "offline_threshold": 300
+  },
+  "genesis_hash": null
+}
