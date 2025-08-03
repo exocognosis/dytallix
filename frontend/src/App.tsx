@@ -13,6 +13,7 @@ import { Tokenomics } from './pages/Tokenomics'
 import { Settings } from './pages/Settings'
 import { TestnetDiagnostics } from './pages/TestnetDiagnostics'
 import { TestnetDashboard } from './pages/TestnetDashboard'
+import { Faucet } from './pages/Faucet'
 import { useWebSocket } from './hooks/useWebSocket'
 import config from './services/config'
 import { useEffect } from 'react'
@@ -68,6 +69,7 @@ function App() {
             <Route path="/tokenomics" element={<Tokenomics />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/testnet" element={<TestnetDashboard />} />
+            <Route path="/faucet" element={<Faucet />} />
             {(config.isTestnet || config.isDevelopment) && (
               <Route path="/testnet-diagnostics" element={<TestnetDiagnostics />} />
             )}

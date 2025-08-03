@@ -88,8 +88,9 @@ export const TestnetDashboard: React.FC = () => {
               },
               {
                 title: "Testnet Faucet",
-                description: "Get test DGT tokens for development",
+                description: "Get test DGT & DRT tokens for development",
                 url: "/faucet",
+                internal: "/faucet",
                 icon: "💧",
                 color: "text-primary-400",
                 gradient: "from-primary-400 to-primary-600"
@@ -325,11 +326,11 @@ export const TestnetDashboard: React.FC = () => {
                 Create Testnet Wallet
               </Button>
             </Link>
-            <a href="http://faucet.dytallix.com" target="_blank" rel="noopener noreferrer">
+            <Link to="/faucet">
               <Button variant="outline" className="text-lg px-8 py-4 rounded-2xl shadow-xl border-dashboard-border-hover text-dashboard-text hover:bg-dashboard-card">
                 Get Test Tokens
               </Button>
-            </a>
+            </Link>
             <a href="https://github.com/HisMadRealm/dytallix" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" className="text-lg px-8 py-4 rounded-2xl shadow-xl border-dashboard-border-hover text-dashboard-text hover:bg-dashboard-card">
                 View Documentation
