@@ -15,6 +15,10 @@ export const QUERY_KEYS = {
   CONTRACT: 'contract',
   AI_HEALTH: 'ai-health',
   AI_STATS: 'ai-stats',
+  AI_MODULE_STATUS: 'ai-module-status',
+  SYSTEM_METRICS: 'system-metrics',
+  NETWORK_ACTIVITY: 'network-activity',
+  POST_QUANTUM_STATUS: 'post-quantum-status',
 } as const
 
 // Blockchain queries
@@ -101,6 +105,50 @@ export function useAIStatistics() {
     () => api.getAIStatistics(),
     {
       refetchInterval: 60000, // Refresh every minute
+    }
+  )
+}
+
+export function useAIModuleStatus() {
+  return useQuery(
+    QUERY_KEYS.AI_MODULE_STATUS,
+    () => api.getAIModuleStatus(),
+    {
+      refetchInterval: 30000, // Refresh every 30 seconds
+      retry: 2,
+    }
+  )
+}
+
+export function useSystemMetrics() {
+  return useQuery(
+    QUERY_KEYS.SYSTEM_METRICS,
+    () => api.getSystemMetrics(),
+    {
+      refetchInterval: 10000, // Refresh every 10 seconds for real-time feel
+      retry: 3,
+    }
+  )
+}
+
+export function useNetworkActivity() {
+  return useQuery(
+    QUERY_KEYS.NETWORK_ACTIVITY,
+    () => api.getNetworkActivity(),
+    {
+      refetchInterval: 15000, // Refresh every 15 seconds
+      retry: 2,
+    }
+  )
+}
+
+export function usePostQuantumStatus() {
+  return useQuery(
+    QUERY_KEYS.POST_QUANTUM_STATUS,
+    () => api.getPostQuantumStatus(),
+    {
+      refetchInterval: 60000, // Refresh every minute (status changes rarely)
+      retry: 2,
     }
   )
 }

@@ -10,7 +10,15 @@ import {
 } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { useBlockchainStats, useTransactions, useAIHealth } from '../hooks/useAPI'
+import { 
+  useBlockchainStats, 
+  useTransactions, 
+  useAIHealth, 
+  useAIModuleStatus,
+  useSystemMetrics,
+  useNetworkActivity,
+  usePostQuantumStatus
+} from '../hooks/useAPI'
 import { useWalletStore } from '../store/wallet'
 import { TransactionList } from '../components/TransactionList'
 import { ChartContainer } from '../components/ChartContainer'
@@ -24,9 +32,16 @@ export function Dashboard() {
     5
   )
   const { data: aiHealth } = useAIHealth()
+  const { data: aiModuleStatus, isLoading: aiModuleLoading } = useAIModuleStatus()
+  const { data: systemMetrics, isLoading: systemLoading } = useSystemMetrics()
+  const { data: networkActivity, isLoading: networkLoading } = useNetworkActivity()
+  const { data: pqcStatus, isLoading: pqcLoading } = usePostQuantumStatus()
 
   const blockchainStats = stats?.data
   const recentTransactions = transactions?.data || []
+  const systemData = systemMetrics?.data
+  const networkData = networkActivity?.data
+  const pqcData = pqcStatus?.data
 
   return (
     <main className="bg-dashboard-bg text-dashboard-text min-h-screen px-6 py-12">
@@ -73,26 +88,24 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  data={[
-                    { time: '08:00', cpu: 23, requests: 45 },
-                    { time: '08:30', cpu: 31, requests: 67 },
-                    { time: '09:00', cpu: 42, requests: 89 },
-                    { time: '09:30', cpu: 45, requests: 102 },
-                    { time: '10:00', cpu: 48, requests: 125 },
-                    { time: '10:30', cpu: 61, requests: 145 },
-                    { time: '11:00', cpu: 64, requests: 167 },
-                    { time: '11:30', cpu: 72, requests: 189 },
-                    { time: '12:00', cpu: 75, requests: 203 },
-                    { time: '12:30', cpu: 68, requests: 185 },
-                    { time: '13:00', cpu: 59, requests: 156 },
-                    { time: '13:30', cpu: 51, requests: 128 },
-                  ]}
-                  lines={[
-                    { dataKey: 'cpu', stroke: '#3b82f6', name: 'CPU %' },
-                    { dataKey: 'requests', stroke: '#8b5cf6', name: 'Requests/min' }
-                  ]}
-                />
+                {systemLoading ? (
+                  <CardSkeleton />
+                ) : (
+                  <ChartContainer
+                    data={systemData?.system_activity || [
+                      { time: '08:00', cpu: 23, requests: 45 },
+                      { time: '08:30', cpu: 31, requests: 67 },
+                      { time: '09:00', cpu: 42, requests: 89 },
+                      { time: '09:30', cpu: 45, requests: 102 },
+                      { time: '10:00', cpu: 48, requests: 125 },
+                      { time: '10:30', cpu: 61, requests: 145 },
+                    ]}
+                    lines={[
+                      { dataKey: 'cpu', stroke: '#3b82f6', name: 'CPU %' },
+                      { dataKey: 'requests', stroke: '#8b5cf6', name: 'Requests/min' }
+                    ]}
+                  />
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -111,26 +124,28 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  data={[
-                    { time: '08:00', used: 1.8, available: 6.2 },
-                    { time: '08:30', used: 2.1, available: 5.9 },
-                    { time: '09:00', used: 2.6, available: 5.4 },
-                    { time: '09:30', used: 3.1, available: 4.9 },
-                    { time: '10:00', used: 3.7, available: 4.3 },
-                    { time: '10:30', used: 4.2, available: 3.8 },
-                    { time: '11:00', used: 4.8, available: 3.2 },
-                    { time: '11:30', used: 5.3, available: 2.7 },
-                    { time: '12:00', used: 4.7, available: 3.3 },
-                    { time: '12:30', used: 4.1, available: 3.9 },
-                    { time: '13:00', used: 3.5, available: 4.5 },
-                    { time: '13:30', used: 2.9, available: 5.1 },
-                  ]}
-                  lines={[
-                    { dataKey: 'used', stroke: '#f59e0b', name: 'Used (GB)' },
-                    { dataKey: 'available', stroke: '#10b981', name: 'Available (GB)' }
-                  ]}
-                />
+                {systemLoading ? (
+                  <CardSkeleton />
+                ) : (
+                  <ChartContainer
+                    data={systemData?.system_activity?.map(item => ({
+                      time: item.time,
+                      used: item.memory_used,
+                      available: item.memory_available
+                    })) || [
+                      { time: '08:00', used: 1.8, available: 6.2 },
+                      { time: '08:30', used: 2.1, available: 5.9 },
+                      { time: '09:00', used: 2.6, available: 5.4 },
+                      { time: '09:30', used: 3.1, available: 4.9 },
+                      { time: '10:00', used: 3.7, available: 4.3 },
+                      { time: '10:30', used: 4.2, available: 3.8 },
+                    ]}
+                    lines={[
+                      { dataKey: 'used', stroke: '#f59e0b', name: 'Used (GB)' },
+                      { dataKey: 'available', stroke: '#10b981', name: 'Available (GB)' }
+                    ]}
+                  />
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -149,27 +164,30 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  data={[
-                    { time: '08:00', transactions: 12, blocks: 1, volume: 3.2 },
-                    { time: '08:30', transactions: 25, blocks: 2, volume: 6.8 },
-                    { time: '09:00', transactions: 42, blocks: 3, volume: 12.4 },
-                    { time: '09:30', transactions: 47, blocks: 3, volume: 14.8 },
-                    { time: '10:00', transactions: 61, blocks: 4, volume: 19.2 },
-                    { time: '10:30', transactions: 67, blocks: 5, volume: 21.7 },
-                    { time: '11:00', transactions: 84, blocks: 6, volume: 28.4 },
-                    { time: '11:30', transactions: 96, blocks: 7, volume: 34.6 },
-                    { time: '12:00', transactions: 94, blocks: 7, volume: 33.1 },
-                    { time: '12:30', transactions: 79, blocks: 5, volume: 26.2 },
-                    { time: '13:00', transactions: 65, blocks: 4, volume: 20.1 },
-                    { time: '13:30', transactions: 51, blocks: 3, volume: 15.4 },
-                  ]}
-                  lines={[
-                    { dataKey: 'transactions', stroke: '#ef4444', name: 'Transactions' },
-                    { dataKey: 'blocks', stroke: '#06b6d4', name: 'Blocks' },
-                    { dataKey: 'volume', stroke: '#8b5cf6', name: 'Volume (DYT)' }
-                  ]}
-                />
+                {systemLoading ? (
+                  <CardSkeleton />
+                ) : (
+                  <ChartContainer
+                    data={systemData?.system_activity?.map(item => ({
+                      time: item.time,
+                      transactions: item.transactions,
+                      blocks: item.blocks,
+                      volume: parseFloat(item.volume)
+                    })) || [
+                      { time: '08:00', transactions: 12, blocks: 1, volume: 3.2 },
+                      { time: '08:30', transactions: 25, blocks: 2, volume: 6.8 },
+                      { time: '09:00', transactions: 42, blocks: 3, volume: 12.4 },
+                      { time: '09:30', transactions: 47, blocks: 3, volume: 14.8 },
+                      { time: '10:00', transactions: 61, blocks: 4, volume: 19.2 },
+                      { time: '10:30', transactions: 67, blocks: 5, volume: 21.7 },
+                    ]}
+                    lines={[
+                      { dataKey: 'transactions', stroke: '#ef4444', name: 'Transactions' },
+                      { dataKey: 'blocks', stroke: '#06b6d4', name: 'Blocks' },
+                      { dataKey: 'volume', stroke: '#8b5cf6', name: 'Volume (DYT)' }
+                    ]}
+                  />
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -182,7 +200,8 @@ export function Dashboard() {
           {[
             {
               title: "Block Height",
-              value: blockchainStats?.block_height?.toLocaleString() || '0',
+              value: blockchainStats?.current_block?.toLocaleString() || 
+                     blockchainStats?.block_height?.toLocaleString() || '0',
               icon: CubeIcon,
               color: "text-primary-400",
               trend: { value: 12, isPositive: true }
@@ -196,7 +215,8 @@ export function Dashboard() {
             },
             {
               title: "Network Peers",
-              value: blockchainStats?.peer_count?.toString() || '0',
+              value: blockchainStats?.network_peers?.toString() || 
+                     blockchainStats?.peer_count?.toString() || '0',
               icon: UsersIcon,
               color: "text-quantum-400",
               trend: { value: 3, isPositive: true }
@@ -250,21 +270,21 @@ export function Dashboard() {
           {[
             {
               title: "Fraud Detection",
-              status: aiHealth ? 'operational' : 'unknown',
+              status: aiHealth?.services?.fraud_detection ? 'operational' : 'unknown',
               icon: ShieldCheckIcon,
               description: "Real-time transaction fraud analysis",
               color: "text-red-400"
             },
             {
               title: "Risk Scoring",
-              status: aiHealth ? 'operational' : 'unknown', 
+              status: aiHealth?.services?.risk_scoring ? 'operational' : 'unknown', 
               icon: ArrowTrendingUpIcon,
               description: "AI-powered risk assessment",
               color: "text-yellow-400"
             },
             {
               title: "Contract Analysis",
-              status: aiHealth ? 'operational' : 'unknown',
+              status: aiHealth?.services?.contract_nlp ? 'operational' : 'unknown',
               icon: CpuChipIcon,
               description: "Smart contract auditing",
               color: "text-primary-400"
@@ -309,14 +329,32 @@ export function Dashboard() {
         </motion.h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4 mb-8" style={{gridTemplateRows: 'repeat(2, 1fr)'}}>
           {[
-            { name: "Risk Assessment", icon: ShieldCheckIcon, color: "text-red-400", status: "active" },
-            { name: "Fraud Detection", icon: ArrowTrendingUpIcon, color: "text-orange-400", status: "active" },
-            { name: "Pattern Analysis", icon: CpuChipIcon, color: "text-primary-400", status: "active" },
-            { name: "Smart Routing", icon: BoltIcon, color: "text-primary-500", status: "active" },
-            { name: "Anomaly Detection", icon: UsersIcon, color: "text-quantum-400", status: "active" },
-            { name: "Predictive Analytics", icon: ClockIcon, color: "text-quantum-500", status: "active" },
-            { name: "ML Optimization", icon: CubeIcon, color: "text-yellow-400", status: "active" },
-            { name: "Neural Networks", icon: CurrencyDollarIcon, color: "text-pink-400", status: "active" }
+            { 
+              name: "Risk Assessment", 
+              icon: ShieldCheckIcon, 
+              color: "text-red-400", 
+              status: aiModuleStatus?.risk_scoring?.model_loaded ? "active" : "inactive",
+              loading: aiModuleLoading
+            },
+            { 
+              name: "Fraud Detection", 
+              icon: ArrowTrendingUpIcon, 
+              color: "text-orange-400", 
+              status: aiModuleStatus?.fraud_detection?.model_loaded ? "active" : "inactive",
+              loading: aiModuleLoading
+            },
+            { 
+              name: "Pattern Analysis", 
+              icon: CpuChipIcon, 
+              color: "text-primary-400", 
+              status: aiModuleStatus?.contract_nlp?.model_loaded ? "active" : "inactive",
+              loading: aiModuleLoading
+            },
+            { name: "Smart Routing", icon: BoltIcon, color: "text-primary-500", status: "active", loading: false },
+            { name: "Anomaly Detection", icon: UsersIcon, color: "text-quantum-400", status: "active", loading: false },
+            { name: "Predictive Analytics", icon: ClockIcon, color: "text-quantum-500", status: "active", loading: false },
+            { name: "ML Optimization", icon: CubeIcon, color: "text-yellow-400", status: "active", loading: false },
+            { name: "Neural Networks", icon: CurrencyDollarIcon, color: "text-pink-400", status: "active", loading: false }
           ].map((module, i) => (
             <motion.div
               key={i}
@@ -328,12 +366,28 @@ export function Dashboard() {
             >
               <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover transition-all duration-200">
                 <CardContent className="p-4 text-center">
-                  <module.icon className={`w-8 h-8 mx-auto mb-3 ${module.color}`} />
-                  <h3 className="text-sm font-medium text-dashboard-text mb-2">{module.name}</h3>
-                  <div className="flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-dashboard-success mr-2 pulse-green"></div>
-                    <span className="text-xs text-dashboard-success">Active</span>
-                  </div>
+                  {module.loading ? (
+                    <div className="animate-pulse">
+                      <div className="w-8 h-8 bg-dashboard-text-gray rounded mx-auto mb-3"></div>
+                      <div className="h-4 bg-dashboard-text-gray rounded mb-2"></div>
+                      <div className="h-3 bg-dashboard-text-gray rounded w-1/2 mx-auto"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <module.icon className={`w-8 h-8 mx-auto mb-3 ${module.color}`} />
+                      <h3 className="text-sm font-medium text-dashboard-text mb-2">{module.name}</h3>
+                      <div className="flex items-center justify-center">
+                        <div className={`w-2 h-2 rounded-full mr-2 ${
+                          module.status === 'active' ? 'bg-dashboard-success pulse-green' : 'bg-dashboard-text-gray'
+                        }`}></div>
+                        <span className={`text-xs ${
+                          module.status === 'active' ? 'text-dashboard-success' : 'text-dashboard-text-gray'
+                        }`}>
+                          {module.status === 'active' ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -388,11 +442,11 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {statsLoading ? (
+                {networkLoading ? (
                   <CardSkeleton />
                 ) : (
                   <ChartContainer
-                    data={[
+                    data={networkData?.network_activity || [
                       { time: '00:00', transactions: 45, blocks: 3 },
                       { time: '04:00', transactions: 52, blocks: 4 },
                       { time: '08:00', transactions: 78, blocks: 5 },
@@ -418,31 +472,74 @@ export function Dashboard() {
         >
           <Card className="bg-gradient-to-r from-dashboard-card to-dashboard-card-hover border-dashboard-border-hover shadow-lg glow-green">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium text-dashboard-text flex items-center">
-                    <ShieldCheckIcon className="w-5 h-5 mr-2 text-primary-400" />
-                    Post-Quantum Security Status
-                  </h3>
-                  <p className="mt-1 text-dashboard-text-muted">
-                    Your network is protected with quantum-resistant cryptography
-                  </p>
-                </div>
-                <div className="flex space-x-4 text-sm">
-                  <div className="text-center">
-                    <div className="text-dashboard-success font-semibold">Dilithium</div>
-                    <div className="text-dashboard-text-muted">Active</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-dashboard-success font-semibold">Falcon</div>
-                    <div className="text-dashboard-text-muted">Active</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-dashboard-success font-semibold">SPHINCS+</div>
-                    <div className="text-dashboard-text-muted">Active</div>
+              {pqcLoading ? (
+                <div className="animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="h-6 bg-dashboard-text-gray rounded w-64 mb-2"></div>
+                      <div className="h-4 bg-dashboard-text-gray rounded w-96"></div>
+                    </div>
+                    <div className="flex space-x-4">
+                      <div className="h-8 bg-dashboard-text-gray rounded w-16"></div>
+                      <div className="h-8 bg-dashboard-text-gray rounded w-16"></div>
+                      <div className="h-8 bg-dashboard-text-gray rounded w-16"></div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-dashboard-text flex items-center">
+                      <ShieldCheckIcon className="w-5 h-5 mr-2 text-primary-400" />
+                      Post-Quantum Security Status
+                    </h3>
+                    <p className="mt-1 text-dashboard-text-muted">
+                      {pqcData?.status === 'active' 
+                        ? 'Your network is protected with quantum-resistant cryptography'
+                        : 'Post-quantum cryptography status unknown'
+                      }
+                    </p>
+                  </div>
+                  <div className="flex space-x-4 text-sm">
+                    <div className="text-center">
+                      <div className={`font-semibold ${
+                        pqcData?.algorithms?.dilithium?.status === 'active' 
+                          ? 'text-dashboard-success' 
+                          : 'text-dashboard-text-gray'
+                      }`}>
+                        Dilithium
+                      </div>
+                      <div className="text-dashboard-text-muted">
+                        {pqcData?.algorithms?.dilithium?.status === 'active' ? 'Active' : 'Unknown'}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className={`font-semibold ${
+                        pqcData?.algorithms?.falcon?.status === 'active' 
+                          ? 'text-dashboard-success' 
+                          : 'text-dashboard-text-gray'
+                      }`}>
+                        Falcon
+                      </div>
+                      <div className="text-dashboard-text-muted">
+                        {pqcData?.algorithms?.falcon?.status === 'active' ? 'Active' : 'Unknown'}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className={`font-semibold ${
+                        pqcData?.algorithms?.sphincs?.status === 'active' 
+                          ? 'text-dashboard-success' 
+                          : 'text-dashboard-text-gray'
+                      }`}>
+                        SPHINCS+
+                      </div>
+                      <div className="text-dashboard-text-muted">
+                        {pqcData?.algorithms?.sphincs?.status === 'active' ? 'Active' : 'Unknown'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
