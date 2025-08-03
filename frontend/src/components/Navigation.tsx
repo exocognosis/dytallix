@@ -16,8 +16,9 @@ import {
   CpuChipIcon,
   BeakerIcon
 } from '@heroicons/react/24/outline'
-import { useWalletStore } from '../store/wallet'
+import { useWallet } from '../context/WalletContext'
 import { useBlockchainStats } from '../hooks/useAPI'
+import { ConnectWalletButton } from '../components/ConnectWalletButton'
 
 const navigation = [
   { name: 'Home', href: '/', icon: HomeIcon },
@@ -39,7 +40,7 @@ function classNames(...classes: string[]) {
 
 export function Navigation() {
   const location = useLocation()
-  const { activeAccount, isConnected } = useWalletStore()
+  const { address, isConnected, disconnect } = useWallet()
   const { data: stats, isLoading: statsLoading } = useBlockchainStats()
 
   return (
@@ -108,81 +109,8 @@ export function Navigation() {
                     </div>
                   )}
 
-                  {/* Account Menu */}
-                  <Menu as="div" className="relative ml-3">
-                    <div>
-                      <Menu.Button className="relative flex max-w-xs items-center rounded-full bg-dashboard-bg text-sm focus:outline-none focus:ring-2 focus:ring-dashboard-border-hover focus:ring-offset-2 focus:ring-offset-dashboard-bg">
-                        <span className="sr-only">Open user menu</span>
-                        <div className="flex items-center space-x-2 px-3 py-2 rounded-md border border-dashboard-border hover:border-dashboard-border-hover transition-all duration-200">
-                          <WalletIcon className="w-4 h-4 text-dashboard-text-muted" />
-                          <span className="text-dashboard-text-muted">
-                            {isConnected && activeAccount 
-                              ? `${activeAccount.address.slice(0, 6)}...${activeAccount.address.slice(-4)}`
-                              : 'Connect Wallet'
-                            }
-                          </span>
-                        </div>
-                      </Menu.Button>
-                    </div>
-                    <Transition
-                      as={Fragment}
-                      enter="transition ease-out duration-100"
-                      enterFrom="transform opacity-0 scale-95"
-                      enterTo="transform opacity-100 scale-100"
-                      leave="transition ease-in duration-75"
-                      leaveFrom="transform opacity-100 scale-100"
-                      leaveTo="transform opacity-0 scale-95"
-                    >
-                      <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-dashboard-card border border-dashboard-border py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        {isConnected ? (
-                          <>
-                            <Menu.Item>
-                              {({ active }) => (
-                                <Link
-                                  to="/wallet"
-                                  className={classNames(
-                                    active ? 'bg-dashboard-card-hover' : '',
-                                    'block px-4 py-2 text-sm text-dashboard-text'
-                                  )}
-                                >
-                                  View Wallet
-                                </Link>
-                              )}
-                            </Menu.Item>
-                            <Menu.Item>
-                              {({ active }) => (
-                                <button
-                                  className={classNames(
-                                    active ? 'bg-dashboard-card-hover' : '',
-                                    'block px-4 py-2 text-sm text-dashboard-text w-full text-left'
-                                  )}
-                                  onClick={() => {
-                                    // Handle disconnect
-                                  }}
-                                >
-                                  Disconnect
-                                </button>
-                              )}
-                            </Menu.Item>
-                          </>
-                        ) : (
-                          <Menu.Item>
-                            {({ active }) => (
-                              <Link
-                                to="/wallet"
-                                className={classNames(
-                                  active ? 'bg-dashboard-card-hover' : '',
-                                  'block px-4 py-2 text-sm text-dashboard-text'
-                                )}
-                              >
-                                Connect Wallet
-                              </Link>
-                            )}
-                          </Menu.Item>
-                        )}
-                      </Menu.Items>
-                    </Transition>
-                  </Menu>
+                  {/* Wallet Connection Button */}
+                  <ConnectWalletButton />
                 </div>
               </div>
 

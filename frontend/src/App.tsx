@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { Navigation } from './components/Navigation'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { WalletProvider } from './context/WalletContext'
 import { Homepage } from './pages/Homepage'
 import { About } from './pages/About'
 import { Dashboard } from './pages/Dashboard'
@@ -38,43 +39,45 @@ function App() {
   }, [])
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-dashboard-bg text-dashboard-text relative">
-        {/* Environment indicator */}
-        {(config.isTestnet || config.isDevelopment) && (
-          <div className="bg-gradient-to-r from-primary-600 to-quantum-600 text-white px-4 py-1 text-center text-sm">
-            {config.environment.toUpperCase()} ENVIRONMENT - {config.get().networkName}
-            {config.isTestnet && (
-              <span className="ml-4">
-                <a href="/#/testnet-diagnostics" className="underline hover:no-underline">
-                  View Diagnostics
-                </a>
-              </span>
-            )}
-          </div>
-        )}
-        
-        <Navigation />
-        <main className="relative z-10">
-          <Routes>
-            <Route path="/" element={<Homepage />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/enterprise-ai" element={<EnterpriseAI />} />
-            <Route path="/wallet" element={<Wallet />} />
-            <Route path="/explorer" element={<Explorer />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/contracts" element={<SmartContracts />} />
-            <Route path="/tokenomics" element={<Tokenomics />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/testnet" element={<TestnetDashboard />} />
-            {(config.isTestnet || config.isDevelopment) && (
-              <Route path="/testnet-diagnostics" element={<TestnetDiagnostics />} />
-            )}
-          </Routes>
-        </main>
-      </div>
-    </ErrorBoundary>
+    <WalletProvider>
+      <ErrorBoundary>
+        <div className="min-h-screen bg-dashboard-bg text-dashboard-text relative">
+          {/* Environment indicator */}
+          {(config.isTestnet || config.isDevelopment) && (
+            <div className="bg-gradient-to-r from-primary-600 to-quantum-600 text-white px-4 py-1 text-center text-sm">
+              {config.environment.toUpperCase()} ENVIRONMENT - {config.get().networkName}
+              {config.isTestnet && (
+                <span className="ml-4">
+                  <a href="/#/testnet-diagnostics" className="underline hover:no-underline">
+                    View Diagnostics
+                  </a>
+                </span>
+              )}
+            </div>
+          )}
+          
+          <Navigation />
+          <main className="relative z-10">
+            <Routes>
+              <Route path="/" element={<Homepage />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/enterprise-ai" element={<EnterpriseAI />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/explorer" element={<Explorer />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/contracts" element={<SmartContracts />} />
+              <Route path="/tokenomics" element={<Tokenomics />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/testnet" element={<TestnetDashboard />} />
+              {(config.isTestnet || config.isDevelopment) && (
+                <Route path="/testnet-diagnostics" element={<TestnetDiagnostics />} />
+              )}
+            </Routes>
+          </main>
+        </div>
+      </ErrorBoundary>
+    </WalletProvider>
   )
 }
 
