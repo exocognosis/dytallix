@@ -101,7 +101,7 @@ export const Homepage: React.FC = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
             { title: "Digital Wallet", link: "/wallet", desc: "Secure quantum-resistant wallet for managing your digital assets", color: "text-primary-400" },
-            { title: "Testnet Dashboard", link: "/testnet", desc: "Live testnet environment for quantum-safe blockchain development", color: "text-quantum-400" },
+            { title: "Testnet Faucet", link: "http://178.156.187.81", desc: "Get testnet tokens (DGT/DRT) for development and testing", color: "text-quantum-400", external: true },
             { title: "Blockchain Explorer", link: "/explorer", desc: "Explore transactions, blocks, and network activity in real-time", color: "text-quantum-500" },
             { title: "Enterprise AI", link: "/enterprise-ai", desc: "8 specialized AI modules for automation and optimization", color: "text-primary-500" },
             { title: "Analytics Dashboard", link: "/analytics", desc: "Advanced market analytics and trading insights", color: "text-quantum-600" },
@@ -116,18 +116,33 @@ export const Homepage: React.FC = () => {
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.6 }}
             >
-              <Link to={item.link} className="block">
-                <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover transition-all duration-300 group">
-                  <CardContent className="p-6 space-y-3">
-                    <h4 className={`font-semibold ${item.color} group-hover:opacity-80 mb-1`}>
-                      {item.title} →
-                    </h4>
-                    <p className="text-dashboard-text-gray text-sm">
-                      {item.desc}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+              {item.external ? (
+                <a href={item.link} target="_blank" rel="noopener noreferrer" className="block">
+                  <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover transition-all duration-300 group">
+                    <CardContent className="p-6 space-y-3">
+                      <h4 className={`font-semibold ${item.color} group-hover:opacity-80 mb-1`}>
+                        {item.title} →
+                      </h4>
+                      <p className="text-dashboard-text-gray text-sm">
+                        {item.desc}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </a>
+              ) : (
+                <Link to={item.link} className="block">
+                  <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover transition-all duration-300 group">
+                    <CardContent className="p-6 space-y-3">
+                      <h4 className={`font-semibold ${item.color} group-hover:opacity-80 mb-1`}>
+                        {item.title} →
+                      </h4>
+                      <p className="text-dashboard-text-gray text-sm">
+                        {item.desc}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )}
             </motion.div>
           ))}
         </div>

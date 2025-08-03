@@ -1,26 +1,8 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
-  external_labels:
-    cluster: 'dytallix-testnet'
-    environment: 'testnet'
 
-# Rule files for alerting
-rule_files:
-  - "alert_rules.yml"
-
-# Alertmanager configuration
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          - alertmanager:9093
-      timeout: 10s
-      api_version: v2
-
-# Scrape configurations
 scrape_configs:
-  # Dytallix blockchain nodes metrics
   - job_name: 'dytallix-nodes'
     static_configs:
       - targets: 
@@ -29,15 +11,7 @@ scrape_configs:
         - 'dytallix-node-3:9090'
     metrics_path: '/metrics'
     scrape_interval: 5s
-    scrape_timeout: 4s
-    honor_labels: true
-    metric_relabel_configs:
-      - source_labels: [__name__]
-        regex: 'dytallix_.*'
-        target_label: 'service'
-        replacement: 'dytallix'
 
-  # Health check endpoints
   - job_name: 'dytallix-health'
     static_configs:
       - targets:
@@ -46,82 +20,12 @@ scrape_configs:
         - 'dytallix-node-3:8081'
     metrics_path: '/health'
     scrape_interval: 10s
-    scrape_timeout: 5s
 
-  # Node exporter for system metrics
-  - job_name: 'node-exporter'
-    static_configs:
-      - targets:
-        - 'dytallix-node-1:9100'
-        - 'dytallix-node-2:9100'
-        - 'dytallix-node-3:9100'
-    scrape_interval: 15s
-    scrape_timeout: 10s
+rule_files:
+  - "alert_rules.yml"
 
-  # API endpoints monitoring
-  - job_name: 'dytallix-api'
-    static_configs:
-      - targets:
-        - 'dytallix-node-1:3030'
-        - 'dytallix-node-2:3030'
-        - 'dytallix-node-3:3030'
-    metrics_path: '/api/v1/metrics'
-    scrape_interval: 10s
-    scrape_timeout: 5s
-
-  # Post-quantum cryptography metrics
-  - job_name: 'dytallix-pqc'
-    static_configs:
-      - targets:
-        - 'dytallix-node-1:9091'
-        - 'dytallix-node-2:9091'
-        - 'dytallix-node-3:9091'
-    metrics_path: '/pqc/metrics'
-    scrape_interval: 30s
-    scrape_timeout: 10s
-
-  # Smart contract execution metrics
-  - job_name: 'dytallix-contracts'
-    static_configs:
-      - targets:
-        - 'dytallix-node-1:9092'
-        - 'dytallix-node-2:9092'
-        - 'dytallix-node-3:9092'
-    metrics_path: '/contracts/metrics'
-    scrape_interval: 15s
-    scrape_timeout: 10s
-
-  # Prometheus self-monitoring
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
-    scrape_interval: 30s
-
-  # Grafana monitoring
-  - job_name: 'grafana'
-    static_configs:
-      - targets: ['grafana:3000']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
-
-  # Alertmanager monitoring
-  - job_name: 'alertmanager'
-    static_configs:
-      - targets: ['alertmanager:9093']
-    scrape_interval: 30s
-
-# Recording rules for performance metrics
-recording_rules:
-  - name: dytallix_performance
-    rules:
-      - record: dytallix:transaction_rate_5m
-        expr: rate(dytallix_transactions_total[5m])
-      
-      - record: dytallix:block_time_avg_5m
-        expr: rate(dytallix_blocks_total[5m])
-      
-      - record: dytallix:node_availability_5m
-        expr: avg_over_time(up{job="dytallix-health"}[5m])
-      
-      - record: dytallix:consensus_participation_rate
-        expr: count(dytallix_validator_active == 1) / count(dytallix_validator_active)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093

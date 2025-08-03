@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 const winston = require('winston');
 const dotenv = require('dotenv');
 
-const faucetController = require('./controllers/faucetController');
+const faucetController = require('./controllers/faucetController-dual');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { validateRequest } = require('./middleware/validation');
 const rateLimitMiddleware = require('./middleware/rateLimit');
@@ -76,19 +76,37 @@ app.get('/health', (req, res) => {
 // API info endpoint
 app.get('/api/info', (req, res) => {
   res.json({
-    service: 'Dytallix Testnet Faucet',
-    version: '1.0.0',
+    service: 'Dytallix Testnet Faucet - Dual Token System',
+    version: '2.0.0',
     chainId: process.env.CHAIN_ID || 'dytallix-testnet-1',
-    faucetAmount: process.env.FAUCET_AMOUNT || '1000000udyt',
+    tokenSystem: 'Dual Token (DGT + DRT)',
+    tokens: {
+      DGT: {
+        amount: process.env.DGT_FAUCET_AMOUNT || '10000000udgt',
+        formatted: '10 DGT per request',
+        purpose: 'Governance and voting',
+        supply: 'Fixed (1B DGT)'
+      },
+      DRT: {
+        amount: process.env.DRT_FAUCET_AMOUNT || '100000000udrt', 
+        formatted: '100 DRT per request',
+        purpose: 'Rewards and transaction fees',
+        supply: 'Inflationary (~6% annual)'
+      }
+    },
     rateLimits: {
       windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 3600000,
       maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 5,
       cooldownMs: parseInt(process.env.IP_COOLDOWN_MS) || 1800000
     },
     endpoints: {
-      faucet: '/api/faucet',
+      faucet: '/api/faucet (supports tokenType: DGT, DRT, or both)',
       status: '/api/status',
       balance: '/api/balance/:address'
+    },
+    tokenomics: {
+      DGT: 'Governance token for voting and protocol decisions',
+      DRT: 'Reward token for staking rewards and transaction fees'
     }
   });
 });
@@ -97,11 +115,11 @@ app.get('/api/info', (req, res) => {
 app.post('/api/faucet', 
   rateLimitMiddleware,
   validateRequest,
-  faucetController.sendTokens
+  (req, res) => faucetController.sendTokens(req, res)
 );
 
-app.get('/api/status', faucetController.getStatus);
-app.get('/api/balance/:address', faucetController.getBalance);
+app.get('/api/status', (req, res) => faucetController.getStatus(req, res));
+app.get('/api/balance/:address', (req, res) => faucetController.getBalance(req, res));
 
 // Error handling middleware
 app.use(notFound);

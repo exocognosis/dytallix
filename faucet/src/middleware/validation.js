@@ -19,6 +19,12 @@ const faucetRequestSchema = Joi.object({
       'string.pattern.base': 'Address must be a valid Dytallix address starting with "dyt"',
       'any.required': 'Address is required'
     }),
+  tokenType: Joi.string()
+    .valid('DGT', 'DRT', 'both')
+    .default('both')
+    .messages({
+      'any.only': 'Token type must be one of: DGT (governance), DRT (rewards), or both'
+    }),
   captcha: Joi.string().optional() // For future captcha implementation
 });
 

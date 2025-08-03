@@ -174,7 +174,7 @@ class DytallixAPI {
 
   async getStats(): Promise<ApiResponse<BlockchainStats>> {
     return this.performanceWrapper('getStats', async () => {
-      const response = await this.blockchain.get('/stats')
+      const response = await this.blockchain.get('/status')
       return response.data
     })
   }

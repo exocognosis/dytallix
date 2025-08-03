@@ -89,8 +89,7 @@ export const TestnetDashboard: React.FC = () => {
               {
                 title: "Testnet Faucet",
                 description: "Get test DGT tokens for development",
-                url: "http://faucet.dytallix.com",
-                internal: "/faucet",
+                url: "/faucet",
                 icon: "💧",
                 color: "text-primary-400",
                 gradient: "from-primary-400 to-primary-600"

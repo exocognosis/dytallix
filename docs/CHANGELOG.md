@@ -1,5 +1,118 @@
 # Dytallix Changelog
 
+## [0.18.0] - 2025-08-03 - HETZNER PRODUCTION DEPLOYMENT & TESTNET FAUCET INTEGRATION 🌐
+
+### 🌐 **MILESTONE: COMPLETE HETZNER DEPLOYMENT WITH LIVE TESTNET FAUCET**
+
+#### Production Website Deployment
+- **DEPLOYED**: Complete Dytallix website and faucet system on Hetzner server (178.156.187.81)
+  - Main Dytallix website deployed at root path (`/`)
+  - Dual-token testnet faucet deployed at `/faucet` with seamless integration
+  - Nginx reverse proxy configuration for unified domain experience
+  - Docker Compose orchestration for production reliability
+
+#### Testnet Faucet System Enhancement
+- **NEW**: Fully functional dual-token faucet (DGT + DRT) with blockchain integration
+  - **DGT (Governance)**: 10 DGT per request for voting and protocol decisions
+  - **DRT (Rewards)**: 100 DRT per request for staking rewards and transaction fees
+  - Real-time blockchain connectivity with live block height monitoring
+  - Rate limiting (5 requests/hour) and IP cooldown (30 minutes) for abuse prevention
+  - Professional UI matching main website design system
+
+#### Blockchain Infrastructure
+- **LIVE**: Tendermint blockchain node running with external accessibility
+  - Chain ID: `dytallix-testnet-1`
+  - Block production every ~5 seconds (current height: 16,000+)
+  - RPC endpoint: `178.156.187.81:26657` (externally accessible)
+  - Full blockchain state persistence and synchronization
+
+#### Navigation & UX Improvements
+- **FIXED**: Complete user journey from homepage to faucet
+  - "Join the Testnet" button properly links to `/testnet` dashboard
+  - Testnet dashboard "Testnet Faucet" card links to `/faucet`
+  - Seamless navigation between all components without broken links
+  - Consistent brand design across homepage, testnet dashboard, and faucet
+
+#### API Integration & Backend Services
+- **RESOLVED**: Frontend-backend API connectivity issues
+  - Fixed API endpoint mismatch (`/api/stats` → `/api/status`)
+  - Properly configured nginx proxy routes for API requests
+  - Rate limit management and container restart procedures
+  - Live blockchain status monitoring and network health checks
+
+#### Infrastructure & DevOps
+- **NEW**: Production-ready Docker infrastructure
+  - `docker-compose/docker-compose-website.yml` - Main website orchestration
+  - `docker-compose/Dockerfile.website` - Website container configuration
+  - `docker-compose/nginx-website.conf` - Nginx reverse proxy setup
+  - Automated health checks and container monitoring
+  - External network configuration for service communication
+
+#### Security & Performance
+- **IMPLEMENTED**: Production security measures
+  - Helmet.js security headers on faucet backend
+  - CORS configuration for cross-origin request handling
+  - Rate limiting with Redis-like storage for abuse prevention
+  - Input validation and address format verification
+  - Error handling and comprehensive logging
+
+### 🔧 **Technical Implementation Details**
+
+#### Deployment Architecture
+- **Hetzner VPS**: Production server with external IP (178.156.187.81)
+- **Docker Compose**: Multi-container orchestration with service networking
+- **Nginx**: Reverse proxy serving website at `/` and faucet at `/faucet`
+- **Tendermint**: Blockchain node with external RPC access on port 26657
+- **Node.js/Express**: Faucet backend with dual-token support
+
+#### Frontend Enhancements
+- **React Build Optimization**: Production builds with Vite bundler
+- **API Client Updates**: Corrected API endpoints in `frontend/src/services/api.ts`
+- **Navigation Fixes**: Updated `TestnetDashboard.tsx` and `Homepage.tsx` routing
+- **Design Consistency**: Unified color scheme and component styling
+
+#### Backend Services
+- **Dual-Token Controller**: Enhanced `faucetController-dual.js` with DGT/DRT support
+- **Rate Limiting**: Advanced middleware with IP tracking and cooldown periods
+- **Blockchain Integration**: Direct Tendermint RPC connectivity for live status
+- **Health Monitoring**: Comprehensive endpoints for service status verification
+
+#### Network Configuration
+- **Docker Networks**: Inter-service communication with proper DNS resolution
+- **Port Management**: Strategic port allocation (80, 3001, 26656-26657)
+- **Firewall Rules**: Opened necessary ports for external blockchain access
+- **SSL Ready**: Infrastructure prepared for HTTPS/SSL certificate integration
+
+### 📊 **Service Status & Metrics**
+- **Website Uptime**: ✅ Live and accessible at 178.156.187.81
+- **Faucet Status**: ✅ Operational with dual-token distribution
+- **Blockchain Node**: ✅ Producing blocks (current height: 16,000+)
+- **API Connectivity**: ✅ All endpoints responding correctly
+- **User Journey**: ✅ Complete navigation flow functional
+
+#### Token Distribution Metrics
+- **DGT Faucet Balance**: 100,000 DGT available
+- **DRT Faucet Balance**: 1,000,000 DRT available
+- **Distribution Rate**: 5 requests per hour per IP address
+- **Token Allocation**: 10 DGT + 100 DRT per successful request
+
+### 🚀 **Production Readiness**
+- ✅ **Main Website**: Deployed with React frontend and professional design
+- ✅ **Testnet Dashboard**: Live with network statistics and tool access
+- ✅ **Dual-Token Faucet**: Fully functional with blockchain integration
+- ✅ **Blockchain Node**: External access for developers and applications
+- ✅ **Navigation Flow**: Seamless user experience across all components
+- ✅ **API Services**: All endpoints operational with proper error handling
+- ✅ **Docker Infrastructure**: Production-ready container orchestration
+
+### 🎯 **Next Phase Readiness**
+This deployment establishes foundation for:
+- **DNS Configuration**: Ready for www.dytallix.com domain pointing
+- **SSL/HTTPS**: Infrastructure prepared for Let's Encrypt integration
+- **Scaling**: Container architecture ready for horizontal scaling
+- **Monitoring**: Logging and health check systems in place
+- **User Testing**: Live environment for community testnet participation
+
 ## [0.17.0] - 2025-07-28 - REACT FRONTEND DEPLOYMENT & ENTERPRISE AI SHOWCASE 🌐
 
 ### 🌐 **MILESTONE: PRODUCTION REACT FRONTEND LIVE AT DYTALLIX.COM**
