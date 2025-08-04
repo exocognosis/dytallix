@@ -13,12 +13,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { 
   useBlockchainStats, 
   useTransactions, 
-  useAIHealth, 
   useAIModuleStatus,
-  useSystemMetrics,
-  useNetworkActivity,
   usePostQuantumStatus
 } from '../hooks/useAPI'
+import { 
+  useSystemPerformanceMetrics,
+  useBlockchainPerformanceMetrics,
+  useNetworkActivityMetrics,
+  useAIHealthStatus
+} from '../hooks/usePerformanceData'
 import { useWalletStore } from '../store/wallet'
 import { TransactionList } from '../components/TransactionList'
 import { ChartContainer } from '../components/ChartContainer'
@@ -26,22 +29,35 @@ import { LoadingSkeleton, CardSkeleton } from '../components/LoadingSkeleton'
 
 export function Dashboard() {
   const { activeAccount } = useWalletStore()
-  const { data: stats, isLoading: statsLoading } = useBlockchainStats()
+  
+  // Legacy hooks
+  const { data: stats } = useBlockchainStats()
   const { data: transactions, isLoading: txLoading } = useTransactions(
     activeAccount?.address, 
     5
   )
-  const { data: aiHealth } = useAIHealth()
   const { data: aiModuleStatus, isLoading: aiModuleLoading } = useAIModuleStatus()
-  const { data: systemMetrics, isLoading: systemLoading } = useSystemMetrics()
-  const { data: networkActivity, isLoading: networkLoading } = useNetworkActivity()
   const { data: pqcStatus, isLoading: pqcLoading } = usePostQuantumStatus()
+  
+  // New real-time performance data hooks
+  const { data: systemMetrics, isLoading: systemLoading } = useSystemPerformanceMetrics()
+  const { data: blockchainMetrics } = useBlockchainPerformanceMetrics()
+  const { data: networkActivityData, isLoading: networkLoading } = useNetworkActivityMetrics()
+  const { data: aiHealthData } = useAIHealthStatus()
 
-  const blockchainStats = stats?.data
+  // Data extraction
   const recentTransactions = transactions?.data || []
   const systemData = systemMetrics?.data
-  const networkData = networkActivity?.data
+  const blockchainData = blockchainMetrics?.data
+  const networkData = networkActivityData?.data
   const pqcData = pqcStatus?.data
+  const aiHealth = aiHealthData?.data
+
+  // Use real data when available, fallback to legacy data
+  const blockchainStats = blockchainData || stats?.data
+  
+  // Chart data for display
+  const displayNetworkData = networkData?.network_activity
 
   return (
     <main className="bg-dashboard-bg text-dashboard-text min-h-screen px-6 py-12">
@@ -92,7 +108,7 @@ export function Dashboard() {
                   <CardSkeleton />
                 ) : (
                   <ChartContainer
-                    data={systemData?.system_activity || [
+                    data={displayNetworkData || [
                       { time: '08:00', cpu: 23, requests: 45 },
                       { time: '08:30', cpu: 31, requests: 67 },
                       { time: '09:00', cpu: 42, requests: 89 },
@@ -128,11 +144,7 @@ export function Dashboard() {
                   <CardSkeleton />
                 ) : (
                   <ChartContainer
-                    data={systemData?.system_activity?.map(item => ({
-                      time: item.time,
-                      used: item.memory_used,
-                      available: item.memory_available
-                    })) || [
+                    data={displayNetworkData || [
                       { time: '08:00', used: 1.8, available: 6.2 },
                       { time: '08:30', used: 2.1, available: 5.9 },
                       { time: '09:00', used: 2.6, available: 5.4 },
@@ -168,7 +180,7 @@ export function Dashboard() {
                   <CardSkeleton />
                 ) : (
                   <ChartContainer
-                    data={systemData?.system_activity?.map(item => ({
+                    data={systemData?.system_activity?.map((item: any) => ({
                       time: item.time,
                       transactions: item.transactions,
                       blocks: item.blocks,
