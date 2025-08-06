@@ -1,0 +1,108 @@
+{
+  "network": {
+    "chain_id": "dytallix-testnet-1",
+    "block_time_seconds": 6,
+    "blocks_per_year": 5256000,
+    "genesis_timestamp": 0,
+    "is_testnet": true
+  },
+  "governance": {
+    "minimum_proposal_deposit": "10000000000000000000",
+    "voting_period_seconds": 604800,
+    "minimum_quorum": 0.15,
+    "proposal_threshold": 0.51,
+    "time_lock_period_seconds": 172800
+  },
+  "staking": {
+    "minimum_stake": "1000000000000000000",
+    "unbonding_period_seconds": 1814400,
+    "max_validators": 100,
+    "slashing": {
+      "double_signing_penalty": 0.05,
+      "downtime_penalty": 0.01,
+      "governance_violation_penalty": 0.10
+    }
+  },
+  "dgt_token": {
+    "name": "Dytallix Governance Token",
+    "symbol": "DGT",
+    "decimals": 18,
+    "total_supply": "1000000000000000000000000000",
+    "allocation": {
+      "community_treasury": 0.40,
+      "staking_rewards": 0.25,
+      "dev_team": 0.15,
+      "initial_validators": 0.10,
+      "ecosystem_fund": 0.10
+    }
+  },
+  "drt_token": {
+    "name": "Dytallix Reward Token",
+    "symbol": "DRT", 
+    "decimals": 18,
+    "annual_inflation_rate": 0.05,
+    "emission": {
+      "block_rewards": 0.60,
+      "staking_rewards": 0.25,
+      "ai_module_incentives": 0.10,
+      "bridge_operations": 0.05
+    },
+    "burn": {
+      "transaction_fee_burn": 1.00,
+      "ai_service_fee_burn": 0.50,
+      "bridge_fee_burn": 0.75
+    }
+  },
+  "emission_targets": {
+    "staking_reward_pool": "dyt1_staking_rewards_pool",
+    "ai_incentive_pool": "dyt1_ai_incentives_pool", 
+    "bridge_operations_pool": "dyt1_bridge_operations_pool"
+  },
+  "fee_collectors": {
+    "transaction_fees": "dyt1_fee_collector_tx",
+    "ai_service_fees": "dyt1_fee_collector_ai",
+    "bridge_fees": "dyt1_fee_collector_bridge"
+  },
+  "testnet_config": {
+    "enable_faucet": true,
+    "faucet_address": "dyt1_testnet_faucet",
+    "faucet_daily_limit_dgt": "1000000000000000000000",
+    "faucet_daily_limit_drt": "10000000000000000000000",
+    "mock_data": {
+      "enable_mock_validators": true,
+      "mock_validator_count": 4,
+      "mock_delegations": true,
+      "mock_proposals": true
+    },
+    "safety_limits": {
+      "max_proposal_deposit": "1000000000000000000000",
+      "max_stake_per_validator": "10000000000000000000000",
+      "max_delegation_per_user": "5000000000000000000000"
+    }
+  },
+  "integration": {
+    "blockchain_core_module": "dytallix_blockchain_core",
+    "smart_contracts_module": "dytallix_contracts",
+    "governance_module": "dytallix_governance",
+    "bridge_module": "dytallix_interoperability"
+  },
+  "deployment": {
+    "deployment_order": [
+      "config_validation",
+      "dgt_token_initialization", 
+      "drt_token_initialization",
+      "allocation_setup",
+      "vesting_schedules",
+      "staking_setup",
+      "governance_setup",
+      "emission_setup",
+      "burn_setup",
+      "integration_tests"
+    ],
+    "rollback_procedures": {
+      "enable_state_snapshots": true,
+      "snapshot_interval_blocks": 1000,
+      "max_snapshots": 10
+    }
+  }
+}

@@ -1,0 +1,43 @@
+[package]
+name = "dytallix-tokenomics"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dytallix Team"]
+description = "Dual-token economic system for Dytallix blockchain"
+
+[dependencies]
+# Workspace dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+blake3 = { workspace = true }
+sha3 = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+
+# Substrate dependencies for blockchain integration
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2", default-features = false, features = ["derive"] }
+
+# Additional dependencies
+thiserror = "1.0"
+anyhow = "1.0"
+log = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+rust_decimal = { version = "1.33", features = ["serde"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+rand = "0.8"
+
+[features]
+default = ["std"]
+std = [
+    "scale/std",
+    "scale-info/std",
+    "serde/std",
+]
+
+[lib]
+name = "dytallix_tokenomics"
+path = "src/lib.rs"
