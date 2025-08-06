@@ -2,14 +2,14 @@
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use scale::{Decode, Encode};
+
 use rust_decimal::Decimal;
 use crate::{Address, Balance, Result, TokenomicsError, Timestamp};
 use crate::config::DrtConfig;
 use super::{Token, TransferEvent, ApprovalEvent, MintEvent, BurnEvent};
 
 /// DRT Token implementation with inflation and burning capabilities
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DrtToken {
     /// Token configuration
     pub config: DrtConfig,
@@ -60,7 +60,7 @@ impl DrtToken {
     }
     
     /// Calculate emission amount for a given time period
-    pub fn calculate_emission(&self, from_timestamp: Timestamp, to_timestamp: Timestamp, blocks_per_year: u64) -> Result<Balance> {
+    pub fn calculate_emission(&self, from_timestamp: Timestamp, to_timestamp: Timestamp, _blocks_per_year: u64) -> Result<Balance> {
         if to_timestamp <= from_timestamp {
             return Ok(0);
         }
@@ -140,7 +140,7 @@ impl DrtToken {
     }
     
     /// Process emission for a new block
-    pub fn process_emission(&mut self, timestamp: Timestamp, block_number: u64, blocks_per_year: u64) -> Result<EmissionResult> {
+    pub fn process_emission(&mut self, timestamp: Timestamp, _block_number: u64, blocks_per_year: u64) -> Result<EmissionResult> {
         if timestamp <= self.last_emission_timestamp {
             return Ok(EmissionResult::default());
         }

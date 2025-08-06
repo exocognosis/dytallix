@@ -2,14 +2,15 @@
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use scale::{Decode, Encode};
+
 use rust_decimal::Decimal;
 use crate::{Address, Balance, Timestamp, Result, TokenomicsError};
 use crate::config::{AllocationConfig, DgtConfig};
-use super::{VestingSchedule, VestingManager};
+use super::{VestingSchedule};
+use super::vesting_schedule::VestingManager;
 
 /// Stakeholder group types
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum StakeholderGroup {
     CommunityTreasury,
     StakingRewards,
@@ -19,7 +20,7 @@ pub enum StakeholderGroup {
 }
 
 /// Allocation details for a stakeholder group
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AllocationDetails {
     /// Stakeholder group
     pub group: StakeholderGroup,
@@ -32,7 +33,7 @@ pub struct AllocationDetails {
 }
 
 /// Vesting configuration for different allocation types
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VestingConfig {
     /// Cliff duration in seconds
     pub cliff_duration: u64,
@@ -43,7 +44,7 @@ pub struct VestingConfig {
 }
 
 /// Allocation manager handles token distribution to stakeholder groups
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AllocationManager {
     /// DGT token configuration
     pub config: DgtConfig,

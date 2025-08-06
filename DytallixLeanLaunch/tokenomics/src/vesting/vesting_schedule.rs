@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use scale::{Decode, Encode};
+
 use crate::{Address, Balance, Timestamp, Result, TokenomicsError};
 
 /// Vesting schedule for token allocations
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VestingSchedule {
     /// Account being vested
     pub account: Address,
@@ -154,7 +154,7 @@ impl VestingSchedule {
 }
 
 /// Vesting schedule manager
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VestingManager {
     /// All vesting schedules by account
     pub schedules: HashMap<Address, Vec<VestingSchedule>>,

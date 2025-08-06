@@ -2,12 +2,12 @@
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use scale::{Decode, Encode};
+
 use crate::{Address, Balance, Timestamp, Result, TokenomicsError};
 use crate::config::StakingConfig;
 
 /// Validator status
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ValidatorStatus {
     Active,
     Inactive,
@@ -16,7 +16,7 @@ pub enum ValidatorStatus {
 }
 
 /// Validator information
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidatorInfo {
     /// Validator address
     pub address: Address,
@@ -41,7 +41,7 @@ pub struct ValidatorInfo {
 }
 
 /// Delegation information
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Delegation {
     /// Delegator address
     pub delegator: Address,
@@ -56,7 +56,7 @@ pub struct Delegation {
 }
 
 /// Unbonding delegation
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnbondingDelegation {
     /// Delegator address
     pub delegator: Address,
@@ -71,7 +71,7 @@ pub struct UnbondingDelegation {
 }
 
 /// Slashing event
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SlashingEvent {
     /// Validator that was slashed
     pub validator: Address,
@@ -86,7 +86,7 @@ pub struct SlashingEvent {
 }
 
 /// Reasons for slashing
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SlashingReason {
     DoubleSigning,
     Downtime,
@@ -94,7 +94,7 @@ pub enum SlashingReason {
 }
 
 /// Staking manager handles all staking operations
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StakingManager {
     /// Staking configuration
     pub config: StakingConfig,

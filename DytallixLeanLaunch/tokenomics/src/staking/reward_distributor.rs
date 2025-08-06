@@ -2,13 +2,14 @@
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use scale::{Decode, Encode};
+
 use rust_decimal::Decimal;
 use crate::{Address, Balance, Result, TokenomicsError};
-use super::{StakingManager, ValidatorInfo, Delegation};
+use super::StakingManager;
+use super::staking_manager::{ValidatorInfo, Delegation};
 
 /// Reward distribution record
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RewardDistribution {
     /// Block number when rewards were distributed
     pub block_number: u64,
@@ -21,7 +22,7 @@ pub struct RewardDistribution {
 }
 
 /// Validator reward breakdown
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidatorReward {
     /// Validator address
     pub validator: Address,
@@ -36,7 +37,7 @@ pub struct ValidatorReward {
 }
 
 /// Reward distributor manages DRT rewards for stakers
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RewardDistributor {
     /// Historical reward distributions
     pub distributions: Vec<RewardDistribution>,

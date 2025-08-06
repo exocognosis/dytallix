@@ -7,7 +7,7 @@ pub use dgt_token::DgtToken;
 pub use drt_token::DrtToken;
 
 use serde::{Deserialize, Serialize};
-use scale::{Decode, Encode};
+
 use crate::{Address, Balance, Result};
 
 /// Common token interface
@@ -41,7 +41,7 @@ pub trait Token {
 }
 
 /// Token transfer event
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferEvent {
     /// Source account
     pub from: Address,
@@ -56,7 +56,7 @@ pub struct TransferEvent {
 }
 
 /// Token approval event
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalEvent {
     /// Token owner
     pub owner: Address,
@@ -71,7 +71,7 @@ pub struct ApprovalEvent {
 }
 
 /// Token mint event
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MintEvent {
     /// Account receiving minted tokens
     pub to: Address,
@@ -84,7 +84,7 @@ pub struct MintEvent {
 }
 
 /// Token burn event
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BurnEvent {
     /// Account from which tokens were burned
     pub from: Address,

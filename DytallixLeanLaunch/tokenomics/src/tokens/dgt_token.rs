@@ -2,13 +2,13 @@
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use scale::{Decode, Encode};
+
 use crate::{Address, Balance, Result, TokenomicsError};
 use crate::config::DgtConfig;
 use super::{Token, TransferEvent, ApprovalEvent};
 
 /// DGT Token implementation with governance and staking capabilities
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DgtToken {
     /// Token configuration
     pub config: DgtConfig,

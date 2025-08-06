@@ -2,12 +2,12 @@
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use scale::{Decode, Encode};
+
 use rust_decimal::Decimal;
 use crate::{Address, Balance, Timestamp, Result, TokenomicsError};
 
 /// Vote choice
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum VoteChoice {
     Yes,
     No,
@@ -15,7 +15,7 @@ pub enum VoteChoice {
 }
 
 /// Individual vote record
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vote {
     /// Voter address
     pub voter: Address,
@@ -32,7 +32,7 @@ pub struct Vote {
 }
 
 /// Voting results for a proposal
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VotingResult {
     /// Total yes votes (quadratic weighted)
     pub yes_votes: Balance,
@@ -51,7 +51,7 @@ pub struct VotingResult {
 }
 
 /// Voting system with quadratic voting
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VotingSystem {
     /// Votes by proposal ID
     pub votes: HashMap<u64, Vec<Vote>>,
@@ -158,7 +158,8 @@ impl VotingSystem {
             return Ok(cached.clone());
         }
         
-        let votes = self.votes.get(&proposal_id).unwrap_or(&Vec::new());
+        let empty_votes = Vec::new();
+        let votes = self.votes.get(&proposal_id).unwrap_or(&empty_votes);
         
         let mut yes_votes = 0u128;
         let mut no_votes = 0u128;
