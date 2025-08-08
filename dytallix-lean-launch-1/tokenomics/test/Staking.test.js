@@ -1,0 +1,20 @@
+const { expect } = require('chai')
+const { ethers } = require('hardhat')
+
+describe('StakingModule', function () {
+  it('stakes and earns rewards', async function () {
+    const [owner, user] = await ethers.getSigners()
+    const DGT = await ethers.getContractFactory('DGTToken')
+    const dgt = await DGT.deploy()
+    const DRT = await ethers.getContractFactory('DRTToken')
+    const drt = await DRT.deploy()
+    const Stake = await ethers.getContractFactory('StakingModule')
+    const stake = await Stake.deploy(await dgt.getAddress(), await drt.getAddress())
+    await dgt.transfer(user.address, ethers.parseEther('10'))
+    await dgt.connect(user).approve(await stake.getAddress(), ethers.parseEther('10'))
+    await stake.connect(user).stake(ethers.parseEther('10'))
+    await stake.distribute(ethers.parseEther('5'))
+    await stake.connect(user).claim()
+    expect(await drt.balanceOf(user.address)).to.equal(ethers.parseEther('5'))
+  })
+})
