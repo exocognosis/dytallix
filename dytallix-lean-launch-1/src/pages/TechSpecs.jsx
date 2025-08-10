@@ -53,38 +53,16 @@ const TechSpecs = () => {
         <div className="grid grid-2">
           {specifications.map((category, index) => (
             <div key={index} className="card">
-              <h2 style={{ 
-                fontSize: '1.5rem', 
-                fontWeight: '600', 
-                marginBottom: '24px',
-                color: '#1f2937',
-                borderBottom: '2px solid #e5e7eb',
-                paddingBottom: '12px'
-              }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 16 }}>
                 {category.category}
               </h2>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {category.specs.map((spec, specIndex) => (
-                  <div key={specIndex} style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    gap: '16px'
-                  }}>
-                    <span style={{ 
-                      fontWeight: '500', 
-                      color: '#374151',
-                      minWidth: '120px'
-                    }}>
+                  <div key={specIndex} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                    <span style={{ fontWeight: 600 }}>
                       {spec.label}:
                     </span>
-                    <span style={{ 
-                      color: '#6b7280',
-                      textAlign: 'right',
-                      fontSize: '0.9rem',
-                      lineHeight: '1.4'
-                    }}>
+                    <span className="muted" style={{ textAlign: 'right', fontSize: '0.95rem', lineHeight: 1.5 }}>
                       {spec.value}
                     </span>
                   </div>
@@ -94,25 +72,24 @@ const TechSpecs = () => {
           ))}
         </div>
 
-        <div className="card" style={{ marginTop: '40px' }}>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: '600', marginBottom: '24px', color: '#1f2937' }}>
+        <div className="card" style={{ marginTop: 28 }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 16 }}>
             Architecture Overview
           </h2>
-          <div style={{ display: 'grid', gap: '24px' }}>
-            <p style={{ color: '#6b7280', lineHeight: '1.6' }}>
-              Dytallix is built on a modular architecture that separates concerns between consensus, 
-              execution, and data availability layers. This design allows for maximum flexibility 
+          <div style={{ display: 'grid', gap: 16 }}>
+            <p className="muted" style={{ lineHeight: 1.7 }}>
+              Dytallix is built on a modular architecture that separates concerns between consensus,
+              execution, and data availability layers. This design allows for maximum flexibility
               and upgradeability while maintaining security guarantees.
             </p>
-            
-            <div style={{ display: 'grid', gap: '16px' }}>
-              <h3 style={{ color: '#374151', fontWeight: '600' }}>Core Components:</h3>
-              <ul style={{ paddingLeft: '20px', color: '#6b7280', lineHeight: '1.6' }}>
-                <li><strong>Consensus Layer:</strong> Byzantine Fault Tolerant PoS with instant finality</li>
-                <li><strong>Execution Layer:</strong> WASM-based virtual machine for smart contracts</li>
-                <li><strong>Data Layer:</strong> Merkle-compressed state with rollup support</li>
-                <li><strong>Network Layer:</strong> LibP2P with custom PQC transport encryption</li>
-                <li><strong>AI Layer:</strong> Integrated machine learning for security and optimization</li>
+            <div style={{ display: 'grid', gap: 10 }}>
+              <h3 style={{ fontWeight: 700 }}>Core Components:</h3>
+              <ul style={{ paddingLeft: 20 }}>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Consensus Layer:</strong> Byzantine Fault Tolerant PoS with instant finality</li>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Execution Layer:</strong> WASM-based virtual machine for smart contracts</li>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Data Layer:</strong> Merkle-compressed state with rollup support</li>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Network Layer:</strong> LibP2P with custom PQC transport encryption</li>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>AI Layer:</strong> Integrated machine learning for security and optimization</li>
               </ul>
             </div>
           </div>

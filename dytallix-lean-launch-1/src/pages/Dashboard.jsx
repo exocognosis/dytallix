@@ -1,14 +1,15 @@
 import React from 'react'
+import '../styles/global.css'
 import BlockHeightWidget from '../components/BlockHeightWidget.jsx'
 import PQCStatusCard from '../components/PQCStatusCard.jsx'
 
-const Monitor = () => {
+const Dashboard = () => {
   return (
     <div className="section">
       <div className="container">
         <div className="section-header">
-          <h2 className="section-title">Network Monitor</h2>
-          <p className="section-subtitle">Live network insights from the local node and PQC layer</p>
+          <h2 className="section-title">Network Dashboard</h2>
+          <p className="section-subtitle">Real-time network analytics, performance metrics, and activity.</p>
         </div>
         <div className="grid grid-2">
           <BlockHeightWidget />
@@ -19,4 +20,4 @@ const Monitor = () => {
   )
 }
 
-export default Monitor
+export default Dashboard

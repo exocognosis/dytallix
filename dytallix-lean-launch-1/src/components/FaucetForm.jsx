@@ -198,6 +198,19 @@ const FaucetForm = () => {
         </div>
       )}
 
+      {/* Faucet Information (above Note). Styled */}
+      <div className={styles.faucetInfo}>
+        <h3 className={styles.faucetInfoTitle}>Faucet Information</h3>
+        <div className={styles.faucetInfoPanel}>
+          <ul className={styles.faucetInfoList}>
+            <li className={`muted ${styles.faucetInfoItem}`}><strong>Network:</strong> Dytallix Testnet</li>
+            <li className={`muted ${styles.faucetInfoItem}`}><strong>DGT Amount:</strong> 2 DGT per request (24h cooldown)</li>
+            <li className={`muted ${styles.faucetInfoItem}`}><strong>DRT Amount:</strong> 5 DRT per request (6h cooldown)</li>
+            <li className={`muted ${styles.faucetInfoItem}`}><strong>Network ID:</strong> dytallix-testnet-1</li>
+          </ul>
+        </div>
+      </div>
+
       <div className={styles.info}>
         <p>
           <strong>Note:</strong> This is a testnet faucet. Tokens have no real value 

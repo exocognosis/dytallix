@@ -15,9 +15,10 @@ const BlockHeightWidget = () => {
   }, [])
 
   return (
-    <div className="card">
-      <h3>Block Height</h3>
-      <p>{height}</p>
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <h3 style={{ margin: 0 }}>Block Height</h3>
+      <span className="muted" style={{ fontSize: '0.9rem' }}>Local node (mock)</span>
+      <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary-400)' }}>{height}</div>
     </div>
   )
 }

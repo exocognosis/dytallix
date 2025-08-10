@@ -13,66 +13,50 @@ const Modules = () => {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gap: '60px' }}>
+        <div style={{ display: 'grid', gap: 28 }}>
           <div className="card">
-            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <h2 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '16px', color: '#1f2937' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>
                 🔍 Transaction Anomaly Detection
               </h2>
-              <p style={{ color: '#6b7280', fontSize: '1.125rem', lineHeight: '1.6' }}>
-                Our AI continuously monitors transaction patterns to detect suspicious activities 
-                and potential security threats in real-time.
+              <p className="muted" style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>
+                Our AI continuously monitors transaction patterns to detect suspicious activities and potential security threats in real-time.
               </p>
             </div>
             <AnomalyDemo />
           </div>
 
           <div className="card">
-            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <h2 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '16px', color: '#1f2937' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>
                 🛡️ Smart Contract Security Scanner
               </h2>
-              <p style={{ color: '#6b7280', fontSize: '1.125rem', lineHeight: '1.6' }}>
-                Advanced static analysis powered by machine learning to identify vulnerabilities 
-                and security issues in smart contract code.
+              <p className="muted" style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>
+                Advanced static analysis powered by machine learning to identify vulnerabilities and security issues in smart contract code.
               </p>
             </div>
             <ContractScannerDemo />
           </div>
 
           <div className="card">
-            <h2 style={{ fontSize: '1.75rem', fontWeight: '600', marginBottom: '24px', color: '#1f2937' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 12 }}>
               Available AI Modules
             </h2>
-            
-            <div className="grid grid-2" style={{ gap: '24px' }}>
-              <div style={{ padding: '20px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                <h3 style={{ color: '#374151', marginBottom: '12px' }}>Network Optimization</h3>
-                <p style={{ color: '#6b7280', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                  ML algorithms optimize network parameters in real-time based on usage patterns and performance metrics.
-                </p>
-              </div>
-              
-              <div style={{ padding: '20px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                <h3 style={{ color: '#374151', marginBottom: '12px' }}>Fraud Prevention</h3>
-                <p style={{ color: '#6b7280', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                  Advanced pattern recognition to identify and prevent fraudulent transactions and activities.
-                </p>
-              </div>
-              
-              <div style={{ padding: '20px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                <h3 style={{ color: '#374151', marginBottom: '12px' }}>Gas Estimation</h3>
-                <p style={{ color: '#6b7280', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                  Intelligent gas price prediction and optimization for efficient transaction processing.
-                </p>
-              </div>
-              
-              <div style={{ padding: '20px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                <h3 style={{ color: '#374151', marginBottom: '12px' }}>Validator Selection</h3>
-                <p style={{ color: '#6b7280', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                  AI-driven validator selection and rotation to maximize network security and decentralization.
-                </p>
-              </div>
+            <div className="grid grid-2" style={{ gap: 16 }}>
+              {[{
+                title: 'Network Optimization', desc: 'ML algorithms optimize network parameters in real-time based on usage patterns and performance metrics.'
+              },{
+                title: 'Fraud Prevention', desc: 'Advanced pattern recognition to identify and prevent fraudulent transactions and activities.'
+              },{
+                title: 'Gas Estimation', desc: 'Intelligent gas price prediction and optimization for efficient transaction processing.'
+              },{
+                title: 'Validator Selection', desc: 'AI-driven validator selection and rotation to maximize network security and decentralization.'
+              }].map((m, i) => (
+                <div key={i} className="card" style={{ padding: 20 }}>
+                  <h3 style={{ marginBottom: 8 }}>{m.title}</h3>
+                  <p className="muted" style={{ fontSize: '0.95rem', lineHeight: 1.6 }}>{m.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
