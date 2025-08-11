@@ -1,0 +1,307 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/Users/rickglenn/Desktop/dytallix/dytallix-lean-launch/tokenomics/BurnManager.sol": {
+      "lastModificationDate": 1754660423543,
+      "contentHash": "6b58d3d3e76b917b7d5496bf6143de72",
+      "sourceName": "tokenomics/BurnManager.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./DRTToken.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "BurnManager"
+      ]
+    },
+    "/Users/rickglenn/Desktop/dytallix/dytallix-lean-launch/tokenomics/DRTToken.sol": {
+      "lastModificationDate": 1754660423543,
+      "contentHash": "3ca8ed8acb78b7275f0079e33ccab2a3",
+      "sourceName": "tokenomics/DRTToken.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "DRTToken"
+      ]
+    },
+    "/Users/rickglenn/Desktop/dytallix/dytallix-lean-launch/tokenomics/BurnModule/BurnModule.sol": {
+      "lastModificationDate": 1754660423543,
+      "contentHash": "2fadcac60ea448b91add4538c785e448",
+      "sourceName": "tokenomics/BurnModule/BurnModule.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../DRTToken.sol",
+        "../BurnManager.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "BurnModule"
+      ]
+    },
+    "/Users/rickglenn/Desktop/dytallix/dytallix-lean-launch/tokenomics/StakingModule/StakingModule.sol": {
+      "lastModificationDate": 1754660423544,
+      "contentHash": "df7afeab1e669c07ac910bb899dd8372",
+      "sourceName": "tokenomics/StakingModule/StakingModule.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../DGTToken.sol",
+        "../DRTToken.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "StakingModule"
+      ]
+    },
+    "/Users/rickglenn/Desktop/dytallix/dytallix-lean-launch/tokenomics/DGTToken.sol": {
+      "lastModificationDate": 1754660423543,
+      "contentHash": "8260531688fbc068b58e5bd984de5917",
+      "sourceName": "tokenomics/DGTToken.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "DGTToken"
+      ]
+    },
+    "/Users/rickglenn/Desktop/dytallix/dytallix-lean-launch/tokenomics/VestingSchedule.sol": {
+      "lastModificationDate": 1754660423544,
+      "contentHash": "4a0ac5d3047ae19512aacb8887484eb8",
+      "sourceName": "tokenomics/VestingSchedule.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./DGTToken.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "VestingSchedule"
+      ]
+    },
+    "/Users/rickglenn/Desktop/dytallix/dytallix-lean-launch/tokenomics/GovernanceModule/GovernanceModule.sol": {
+      "lastModificationDate": 1754660423543,
+      "contentHash": "1bde9169258792bad82e6b56c6a659e6",
+      "sourceName": "tokenomics/GovernanceModule/GovernanceModule.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../DGTToken.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "GovernanceModule"
+      ]
+    },
+    "/Users/rickglenn/Desktop/dytallix/dytallix-lean-launch/tokenomics/EmissionSchedule.sol": {
+      "lastModificationDate": 1754660423543,
+      "contentHash": "af6061a11dfc9d430cc366b365bb7305",
+      "sourceName": "tokenomics/EmissionSchedule.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./DRTToken.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "EmissionSchedule"
+      ]
+    }
+  }
+}

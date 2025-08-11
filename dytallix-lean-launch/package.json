@@ -12,6 +12,7 @@
     "test": "hardhat test",
     "test:ui": "vitest",
     "server": "node server/index.js",
+    "start": "node server/index.js",
     "dev:full": "concurrently \"npm run server\" \"npm run dev\""
   },
   "dependencies": {

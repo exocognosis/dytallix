@@ -1,5 +1,9 @@
 {
   "dependencies": {
     "node-fetch": "^2.7.0"
+  },
+  "scripts": {
+    "start:faucet:dev": "npm --prefix dytallix-lean-launch-1 run dev:full",
+    "build:faucet": "npm --prefix dytallix-lean-launch-1 run build"
   }
 }

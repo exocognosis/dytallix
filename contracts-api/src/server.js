@@ -102,6 +102,33 @@ app.post('/contracts/deploy-template', async (req, res) => {
       deployments.push(deployment)
 
       return res.json({ success: true, data: deployment })
+    } else if (templateId === 'nft-pqc') {
+      // Simulated ERC-721 equivalent deployment (no on-disk artifact yet)
+      const [name='DytalNFT', symbol='DNFT', baseURI='ipfs://'] = args
+      const signer = await provider.getSigner(0)
+      const creator = await signer.getAddress()
+      const address = ethers.Wallet.createRandom().address
+      const abi = [
+        { "type":"constructor", "inputs":[{"name":"name","type":"string"},{"name":"symbol","type":"string"},{"name":"baseURI","type":"string"}] },
+        { "type":"function", "name":"mint", "stateMutability":"nonpayable", "inputs":[{"name":"to","type":"address"}], "outputs":[{"name":"tokenId","type":"uint256"}] }
+      ]
+      const item = { address, name, templateId, network: RPC_URL, abi, creator, created_at: Date.now() }
+      deployments.push(item)
+      return res.json({ success: true, data: item })
+    } else if (templateId === 'multisig-pqc') {
+      // Simulated MultiSig deployment
+      const [owners=[], threshold=2] = args
+      const signer = await provider.getSigner(0)
+      const creator = await signer.getAddress()
+      const address = ethers.Wallet.createRandom().address
+      const abi = [
+        { "type":"constructor", "inputs":[{"name":"owners","type":"address[]"},{"name":"threshold","type":"uint256"}] },
+        { "type":"function", "name":"submitTx", "stateMutability":"nonpayable", "inputs":[{"name":"data","type":"bytes"}], "outputs":[{"name":"hash","type":"bytes32"}] },
+        { "type":"function", "name":"executed", "stateMutability":"view", "inputs":[{"name":"hash","type":"bytes32"}], "outputs":[{"name":"ok","type":"bool"}] }
+      ]
+      const item = { address, name: 'MultiSig', templateId, network: RPC_URL, abi, creator, created_at: Date.now(), meta: { owners, threshold } }
+      deployments.push(item)
+      return res.json({ success: true, data: item })
     } else {
       return res.status(400).json({ success: false, error: 'Template not yet implemented' })
     }
