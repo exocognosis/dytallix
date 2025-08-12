@@ -13,7 +13,9 @@
     "test:ui": "vitest",
     "server": "node server/index.js",
     "start": "node server/index.js",
-    "dev:full": "concurrently \"npm run server\" \"npm run dev\""
+    "dev:full": "concurrently \"npm run server\" \"npm run dev\"",
+    "e2e:staging": "playwright test --config=e2e/playwright.config.ts",
+    "security:audit": "bash scripts/security_audit.sh"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -24,7 +26,12 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "morgan": "^1.10.0",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "@cosmjs/stargate": "^0.32.4",
+    "@cosmjs/encoding": "^0.32.4",
+    "@cosmjs/proto-signing": "^0.32.4",
+    "libsodium-wrappers": "^0.7.13",
+    "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
     "@testing-library/react": "^14.0.0",
@@ -41,6 +48,8 @@
     "jsdom": "^22.1.0",
     "vite": "^4.5.0",
     "vitest": "^1.6.0",
-    "@nomicfoundation/hardhat-toolbox": "^3.0.0"
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@playwright/test": "^1.46.0",
+    "@types/node": "^20.14.5"
   }
 }

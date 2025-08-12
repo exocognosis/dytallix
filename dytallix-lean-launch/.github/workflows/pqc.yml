@@ -1,0 +1,70 @@
+name: PQC Build & Test
+
+on:
+  push:
+    paths:
+      - 'src/crypto/pqc/**'
+      - 'vendor/pqclean/**'
+      - 'scripts/**'
+      - 'public/wasm/pqc/**'
+      - '.github/workflows/pqc.yml'
+  pull_request:
+    paths:
+      - 'src/crypto/pqc/**'
+      - 'vendor/pqclean/**'
+      - 'scripts/**'
+      - 'public/wasm/pqc/**'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+      PQC_STRICT_KAT: 1
+      EMSCRIPTEN_VERSION: 3.1.57
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Cache emsdk
+        uses: actions/cache@v4
+        with:
+          path: emsdk
+          key: emsdk-${{ env.EMSCRIPTEN_VERSION }}
+      - name: Install emscripten toolchain
+        run: |
+          if [ ! -d emsdk ]; then
+            git clone https://github.com/emscripten-core/emsdk.git
+          fi
+          cd emsdk
+          ./emsdk install ${EMSCRIPTEN_VERSION}
+          ./emsdk activate ${EMSCRIPTEN_VERSION}
+          source ./emsdk_env.sh
+          echo "EMSDK=$(pwd)" >> $GITHUB_ENV
+          echo "PATH=$(pwd):$(pwd)/upstream/emscripten:$PATH" >> $GITHUB_ENV
+      - name: Install deps
+        run: npm ci
+      - name: Build PQC WASM (signed if key provided)
+        env:
+          MANIFEST_SIGN_KEY: ${{ secrets.MANIFEST_SIGN_KEY || '' }}
+        run: |
+          source $EMSDK/emsdk_env.sh
+          bash scripts/build_pqc_wasm.sh
+      - name: Verify manifest hashes (script)
+        run: bash scripts/verify_manifest.sh
+      - name: Run unit tests (vitest)
+        run: npx vitest run --coverage
+      - name: Security audit & licenses
+        run: bash scripts/security_audit.sh
+      - name: Upload WASM & manifest (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pqc-wasm-${{ github.sha }}
+          path: |
+            public/wasm/pqc/*.wasm
+            public/wasm/pqc/manifest.json
+            public/wasm/pqc/build_meta.json
+          if-no-files-found: error

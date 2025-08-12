@@ -16,6 +16,10 @@ export default defineConfig({
     port: 5173,
     open: false,
     host: true,
+    headers: {
+      // Relaxed for dev/HMR; use strict CSP in production via proxy/server
+      'Content-Security-Policy': "default-src 'self' http: https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8787',

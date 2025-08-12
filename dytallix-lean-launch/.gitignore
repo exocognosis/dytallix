@@ -68,3 +68,8 @@ temp/
 
 # Mock data backups (if any)
 *.backup
+
+# PQC build artifacts / vendor support
+/tmp_pqc_build/
+vendor/pqclean/.git/
+vendor/pqclean/.github/

@@ -3,6 +3,33 @@
  * Manages environment-specific settings for development, testnet, and production
  */
 
+interface ImportMetaEnv {
+  VITE_ENVIRONMENT?: string
+  VITE_APP_NAME?: string
+  VITE_BLOCKCHAIN_API_URL?: string
+  VITE_AI_API_URL?: string
+  VITE_WEBSOCKET_URL?: string
+  VITE_LOG_LEVEL?: string
+  VITE_ENABLE_DEBUG_TOOLS?: string
+  VITE_ENABLE_MOCK_DATA?: string
+  VITE_NETWORK_NAME?: string
+  VITE_CHAIN_ID?: string
+  VITE_CONFIRMATION_BLOCKS?: string
+  VITE_AI_ANALYSIS_ENABLED?: string
+  VITE_AI_TIMEOUT?: string
+  VITE_ENABLE_METAMASK?: string
+  VITE_ENABLE_PQC_WALLET?: string
+  VITE_ETHEREUM_TESTNET_RPC?: string
+  VITE_ETHEREUM_CHAIN_ID?: string
+  VITE_COSMOS_TESTNET_RPC?: string
+  VITE_ENABLE_PERFORMANCE_MONITORING?: string
+  VITE_ENABLE_NETWORK_LOGGING?: string
+  VITE_ENABLE_ERROR_REPORTING?: string
+}
+interface ImportMeta {
+  env: ImportMetaEnv
+}
+
 export interface EnvironmentConfig {
   environment: string
   appName: string
@@ -19,7 +46,8 @@ export interface EnvironmentConfig {
   
   // Blockchain Settings
   networkName: string
-  chainId: number
+  // Accept either numeric or string chain IDs (Cosmos-style e.g. "dockerchain")
+  chainId: number | string
   confirmationBlocks: number
   
   // AI Services
@@ -53,6 +81,17 @@ class ConfigService {
     }
   }
 
+  private parseChainId(raw: any): number | string {
+    if (!raw) return 1337 // default dev id
+    const str = String(raw).trim()
+    if (/^\d+$/.test(str)) {
+      // purely numeric -> number
+      const n = Number(str)
+      return Number.isNaN(n) ? 1337 : n
+    }
+    return str // cosmos-style string id
+  }
+
   private loadEnvironmentConfig(): EnvironmentConfig {
     return {
       environment: import.meta.env.VITE_ENVIRONMENT || 'development',
@@ -70,7 +109,7 @@ class ConfigService {
       
       // Blockchain Settings
       networkName: import.meta.env.VITE_NETWORK_NAME || 'development',
-      chainId: parseInt(import.meta.env.VITE_CHAIN_ID) || 1337,
+      chainId: this.parseChainId(import.meta.env.VITE_CHAIN_ID),
       confirmationBlocks: parseInt(import.meta.env.VITE_CONFIRMATION_BLOCKS) || 1,
       
       // AI Services
@@ -151,8 +190,10 @@ class ConfigService {
 
   // Network configuration for MetaMask
   getNetworkConfig() {
+    // Only meaningful for EVM networks; we keep previous behaviour for numeric IDs.
+    const numericChainId = typeof this.config.chainId === 'number' ? this.config.chainId : 1337
     return {
-      chainId: `0x${this.config.chainId.toString(16)}`,
+      chainId: `0x${numericChainId.toString(16)}`,
       chainName: this.config.networkName,
       nativeCurrency: {
         name: 'Dytallix Governance Token',

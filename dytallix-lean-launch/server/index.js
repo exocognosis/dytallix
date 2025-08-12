@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import { requestLogger, logError } from './logger.js'
+import { requestLogger, logError, logInfo } from './logger.js'
 import { assertNotLimited, markGranted } from './rateLimit.js'
 import { transfer, getMaxFor } from './transfer.js'
 import { ethers } from 'ethers'
@@ -12,6 +12,25 @@ const app = express()
 const PORT = process.env.PORT || 8787
 const ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:5173'
 const COOLDOWN_MIN = parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10)
+const ENABLE_SEC_HEADERS = process.env.ENABLE_SEC_HEADERS === '1'
+const ENABLE_CSP = process.env.ENABLE_CSP === '1' || ENABLE_SEC_HEADERS
+
+// Optional security headers (safe for API responses)
+if (ENABLE_SEC_HEADERS) {
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Referrer-Policy', 'no-referrer')
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    res.setHeader('X-Frame-Options', 'DENY')
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-site')
+    if (ENABLE_CSP) {
+      res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; connect-src 'self' wss:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+    }
+    next()
+  })
+  logInfo('Security headers enabled', { ENABLE_CSP })
+}
 
 app.use(cors({ origin: ORIGIN }))
 app.use(express.json({ limit: '25kb' }))
