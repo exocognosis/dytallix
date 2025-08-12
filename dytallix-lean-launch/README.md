@@ -82,7 +82,7 @@ dytallix-lean-launch/
 ### Pages & Functionality
 
 - **Home Page**: Platform overview with key features and statistics
-- **Faucet**: Request testnet DYTX tokens for development
+- **Faucet**: Request testnet DGT/DRT tokens for development with Cosmos integration
 - **Tech Specs**: Detailed technical specifications and architecture
 - **AI Modules**: Interactive demos of AI-powered security features
 - **Roadmap**: Development timeline and future plans
@@ -96,26 +96,39 @@ dytallix-lean-launch/
 
 ### Technical Features
 
-- **React + JavaScript**: Modern React application without TypeScript
+- **React + JavaScript**: Modern React application with Cosmos SDK integration
 - **CSS Modules**: Scoped styling for maintainable CSS
 - **React Router**: Client-side routing for single-page application
 - **Vite**: Fast development server and optimized builds
+- **CosmJS**: Cosmos blockchain integration library
 - **Responsive Design**: Mobile-friendly responsive layout
-- **Mock APIs**: Simulated backend responses for development
+- **Environment-driven**: Configuration via environment variables for different networks
 
 ## 🔧 Configuration
 
 ### Environment Variables
 
-Create a `.env` file in the root directory for custom configuration:
+Create environment files for different deployment stages. Copy `.env.staging` as a template:
 
 ```env
-# API Base URL (optional, defaults to testnet)
-REACT_APP_API_BASE_URL=https://api.testnet.dytallix.com
+# Cosmos Network Configuration
+VITE_LCD_HTTP_URL=https://lcd-testnet.dytallix.com
+VITE_RPC_HTTP_URL=https://rpc-testnet.dytallix.com
+VITE_RPC_WS_URL=wss://rpc-testnet.dytallix.com/websocket
+VITE_CHAIN_ID=dytallix-testnet-1
 
-# Enable development features
-REACT_APP_DEV_MODE=true
+# Optional: Faucet API endpoint
+VITE_FAUCET_API_URL=https://api-testnet.dytallix.com/faucet
+
+# Development mode (enables mock fallbacks)
+VITE_DEV_MODE=true
 ```
+
+**Required Environment Variables:**
+- `VITE_LCD_HTTP_URL`: Cosmos LCD (REST) endpoint for querying chain state
+- `VITE_RPC_HTTP_URL`: Cosmos RPC endpoint for transactions and queries
+- `VITE_RPC_WS_URL`: WebSocket RPC endpoint for real-time updates
+- `VITE_CHAIN_ID`: Cosmos chain identifier (must be a string)
 
 ### Build Configuration
 
@@ -144,14 +157,23 @@ function Component() {
 }
 ```
 
-## 🔌 API Integration
+## 🔌 Cosmos Integration
 
-The application includes a mock API layer (`src/lib/api.js`) that simulates:
+The application integrates with the Cosmos SDK using CosmJS for blockchain interactions:
 
-- Faucet token requests
-- Transaction analysis
-- Smart contract scanning
-- Network statistics
+- **CosmJS**: Cosmos JavaScript library for transactions and queries
+- **LCD/RPC Endpoints**: Query chain state and submit transactions
+- **WebSocket**: Real-time updates for transaction status
+- **Bech32 Addresses**: Native Cosmos address format (`dytallix1...`)
+
+### Faucet Integration
+
+The faucet component supports both development and production modes:
+
+- **Development Mode**: Uses mock API responses with fallback behavior
+- **Production Mode**: Makes actual API calls to Cosmos faucet endpoints
+- **Address Validation**: Validates bech32 Cosmos addresses before submission
+- **Cooldown Management**: Prevents spam requests with client-side cooldown tracking
 
 Replace mock implementations with actual API calls when backend services are available.
 

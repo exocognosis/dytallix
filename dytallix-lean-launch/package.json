@@ -8,9 +8,17 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "server": "node server/index.js",
+    "dev:full": "concurrently \"npm run dev\" \"npm run server\"",
+    "test:ui": "echo 'No UI tests configured yet' && exit 0"
   },
   "dependencies": {
+    "@cosmjs/encoding": "^0.34.0",
+    "@cosmjs/proto-signing": "^0.34.0",
+    "@cosmjs/stargate": "^0.34.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.0"
@@ -19,6 +27,7 @@
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.1.0",
+    "concurrently": "^9.2.0",
     "eslint": "^8.53.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",

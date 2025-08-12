@@ -26,7 +26,7 @@ const Faucet = () => {
             <h3 style={{ marginBottom: '16px', color: '#1f2937' }}>Faucet Information</h3>
             <ul style={{ listStyle: 'none', padding: 0 }}>
               <li style={{ margin: '8px 0', color: '#6b7280' }}>
-                <strong>Network:</strong> Dytallix Testnet
+                <strong>Network:</strong> Dytallix Testnet ({import.meta.env.VITE_CHAIN_ID || 'dytallix-testnet-1'})
               </li>
               <li style={{ margin: '8px 0', color: '#6b7280' }}>
                 <strong>DGT Amount:</strong> 2 DGT per request (24h cooldown)
@@ -35,7 +35,7 @@ const Faucet = () => {
                 <strong>DRT Amount:</strong> 5 DRT per request (6h cooldown)
               </li>
               <li style={{ margin: '8px 0', color: '#6b7280' }}>
-                <strong>Network ID:</strong> dytallix-testnet-1
+                <strong>Network ID:</strong> {import.meta.env.VITE_CHAIN_ID || 'dytallix-testnet-1'}
               </li>
             </ul>
           </div>
