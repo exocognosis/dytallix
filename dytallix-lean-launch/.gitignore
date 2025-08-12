@@ -70,7 +70,8 @@ temp/
 *.backup
 
 # EVM/Hardhat artifacts (proactive prevention)
-artifacts/
+artifacts/*
+!artifacts/hardhat_audit/
 cache/
 deployments/
 hardhat.config.js
