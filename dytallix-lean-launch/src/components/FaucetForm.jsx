@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import styles from '../styles/FaucetForm.module.css'
 import dgtIcon from '../assets/dgt.svg'
 import drtIcon from '../assets/drt.svg'
+import { getCosmosConfig } from '../config/cosmos.js'
 
 const FaucetForm = () => {
   const [address, setAddress] = useState('')
@@ -96,13 +97,28 @@ const FaucetForm = () => {
     setMessage('')
 
     try {
-      // Mock API call - replace with actual faucet endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const config = getCosmosConfig()
       
-      // Simulate success/error with higher success rate
-      const success = Math.random() > 0.2
+      // Call actual faucet endpoint
+      const response = await fetch(config.faucetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: address.trim(),
+          token: selectedToken,
+          amount: tokenConfig[selectedToken].amount
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
       
-      if (success) {
+      if (result.success) {
         const config = tokenConfig[selectedToken]
         setMessage(config.successMessage)
         setMessageType('success')
@@ -116,12 +132,40 @@ const FaucetForm = () => {
         // Save cooldowns to localStorage
         localStorage.setItem('dytallix-faucet-cooldowns', JSON.stringify(newCooldowns))
       } else {
-        setMessage(`Failed to send ${selectedToken} tokens. Please try again later.`)
+        setMessage(result.message || `Failed to send ${selectedToken} tokens. Please try again later.`)
         setMessageType('error')
       }
     } catch (error) {
-      setMessage('An error occurred. Please try again.')
-      setMessageType('error')
+      console.error('Faucet request failed:', error)
+      
+      // Fallback to mock behavior in development or when faucet is unavailable
+      if (import.meta.env.DEV || error.message.includes('fetch')) {
+        console.warn('Falling back to mock faucet behavior')
+        
+        // Simulate success with high probability for testing
+        const success = Math.random() > 0.2
+        
+        if (success) {
+          const config = tokenConfig[selectedToken]
+          setMessage(`${config.successMessage} (Mock mode - faucet service unavailable)`)
+          setMessageType('success')
+          setAddress('')
+          
+          // Set cooldown
+          const cooldownEnd = Date.now() + (config.cooldownMinutes * 60 * 1000)
+          const newCooldowns = { ...cooldowns, [selectedToken]: cooldownEnd }
+          setCooldowns(newCooldowns)
+          
+          // Save cooldowns to localStorage
+          localStorage.setItem('dytallix-faucet-cooldowns', JSON.stringify(newCooldowns))
+        } else {
+          setMessage(`Failed to send ${selectedToken} tokens. Please try again later. (Mock mode)`)
+          setMessageType('error')
+        }
+      } else {
+        setMessage('Network error. Please check your connection and try again.')
+        setMessageType('error')
+      }
     } finally {
       setIsLoading(false)
     }

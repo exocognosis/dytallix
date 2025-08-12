@@ -8,8 +8,14 @@ import TechSpecs from './pages/TechSpecs.jsx'
 import Modules from './pages/Modules.jsx'
 import Roadmap from './pages/Roadmap.jsx'
 import DevResources from './pages/DevResources.jsx'
+import { validateConfig } from './config/cosmos.js'
 
 function App() {
+  // Validate configuration on app load
+  React.useEffect(() => {
+    validateConfig()
+  }, [])
+
   return (
     <div className="app">
       <Navbar />

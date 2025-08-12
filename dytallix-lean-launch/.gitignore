@@ -68,3 +68,10 @@ temp/
 
 # Mock data backups (if any)
 *.backup
+
+# EVM/Hardhat artifacts (proactive prevention)
+artifacts/
+cache/
+deployments/
+hardhat.config.js
+hardhat.config.ts
