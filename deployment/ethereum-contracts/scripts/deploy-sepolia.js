@@ -42,24 +42,24 @@ async function main() {
   // 3. Deploy initial WrappedDytallix token
   console.log("\n📦 Creating wrapped DYT token...");
   const createTx = await factory.createWrappedToken(
-    "dytallix:dyt",
-    "Wrapped Dytallix",
-    "wDYT",
+    "dytallix:dgt",
+    "Wrapped Dytallix Governance Token",
+    "wDGT",
     "dytallix",
-    "0x0000000000000000000000000000000000000000" // Placeholder for DYT address on Dytallix chain
+    "0x0000000000000000000000000000000000000000" // Placeholder for DGT address on Dytallix chain
   );
   await createTx.wait();
   
-  const wrappedDytAddress = await factory.getWrappedToken("dytallix:dyt");
-  console.log("✅ Wrapped DYT deployed to:", wrappedDytAddress);
+  const wrappedDgtAddress = await factory.getWrappedToken("dytallix:dgt");
+  console.log("✅ Wrapped DGT deployed to:", wrappedDgtAddress);
 
   // 4. Configure bridge with supported assets
   console.log("\n⚙️ Configuring bridge...");
   
-  // Add wrapped DYT as supported asset
-  const addAssetTx = await bridge.addSupportedAsset(wrappedDytAddress);
+  // Add wrapped DGT as supported asset
+  const addAssetTx = await bridge.addSupportedAsset(wrappedDgtAddress);
   await addAssetTx.wait();
-  console.log("✅ Added wrapped DYT as supported asset");
+  console.log("✅ Added wrapped DGT as supported asset");
 
   // 5. Set up initial validators (if provided)
   const validators = process.env.VALIDATORS ? process.env.VALIDATORS.split(',') : [];

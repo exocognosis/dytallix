@@ -19,7 +19,7 @@ import { useWalletStore } from '../store/wallet'
 import { useBalance, useGenerateKeyPair, useSubmitTransaction } from '../hooks/useAPI'
 import { useTokenBalance } from '../hooks/useTokenomics'
 import { WalletAccount, TransactionRequest } from '../types'
-import { TOKENS, formatAmountWithSymbol, getTokenByMicroDenom } from '../lib/tokens'
+import { TOKENS, formatAmountWithSymbol } from '../lib/tokens'
 import toast from 'react-hot-toast'
 
 interface SendFormData {

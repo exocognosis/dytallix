@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 
 /**
  * @title WrappedDytallix
- * @dev Wrapped DYT token for Ethereum network
- * Represents DYT tokens locked on the Dytallix chain
+ * @dev Wrapped DGT token for Ethereum network
+ * Represents DGT tokens locked on the Dytallix chain
  */
 contract WrappedDytallix is ERC20, ERC20Burnable, AccessControl, Pausable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");

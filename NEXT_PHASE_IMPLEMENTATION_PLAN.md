@@ -187,7 +187,7 @@ From our completed implementations, these mock functions need real backends:
 
 ### **Week 1 Targets:**
 - [ ] Ethereum testnet bridge deployment successful
-- [ ] First cross-chain transaction (ETH → DYT) completed
+- [ ] First cross-chain transaction (ETH → DGT) completed
 - [ ] PostgreSQL integration functional
 - [ ] P2P validator network with 3 nodes operational
 
