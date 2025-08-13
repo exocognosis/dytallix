@@ -2,13 +2,14 @@ use anyhow::Result;
 use crate::config::Config;
 use crate::client::{BlockchainClient, TransactionRequest};
 use crate::crypto::CryptoManager;
+use crate::tokens::{format_amount_with_symbol, micro_to_display, display_to_micro, DGT_TOKEN};
 use colored::*;
 use dialoguer::{Select, Confirm};
 
 pub async fn send_transaction(to: String, amount: u64, from: Option<String>, config: &Config) -> Result<()> {
     println!("{}", "💸 Sending transaction...".bright_blue());
     println!("To: {}", to.bright_cyan());
-    println!("Amount: {} DYT", amount.to_string().bright_white());
+    println!("Amount: {}", format_amount_with_symbol(amount, "udgt").bright_white());
     
     // Create blockchain client
     let client = BlockchainClient::new(config.node_url.clone());
@@ -61,13 +62,15 @@ pub async fn send_transaction(to: String, amount: u64, from: Option<String>, con
         Ok(response) => {
             if response.success {
                 if let Some(balance) = response.data {
-                    println!("Current balance: {} DYT", balance.to_string().bright_green());
+                    println!("Current balance: {}", format_amount_with_symbol(balance, "udgt").bright_green());
                     
                     let fee = 1000u64; // Default fee
                     let total_needed = amount + fee;
                     
                     if balance < total_needed {
-                        return Err(anyhow::anyhow!("Insufficient balance. Need {} DYT, but only have {} DYT", total_needed, balance));
+                        return Err(anyhow::anyhow!("Insufficient balance. Need {}, but only have {}", 
+                            format_amount_with_symbol(total_needed, "udgt"), 
+                            format_amount_with_symbol(balance, "udgt")));
                     }
                 } else {
                     println!("{}", "⚠️  Could not fetch balance".bright_yellow());
@@ -81,8 +84,8 @@ pub async fn send_transaction(to: String, amount: u64, from: Option<String>, con
     
     // Confirm transaction
     let confirmation_msg = format!(
-        "Send {} DYT from {} to {}?",
-        amount.to_string().bright_white(),
+        "Send {} from {} to {}?",
+        format_amount_with_symbol(amount, "udgt").bright_white(),
         &from_address[..16],
         &to[..16]
     );
@@ -152,8 +155,8 @@ pub async fn get_transaction(hash: String, config: &Config) -> Result<()> {
                     println!("  Hash: {}", tx_data.hash.bright_white());
                     println!("  From: {}", tx_data.from.bright_yellow());
                     println!("  To: {}", tx_data.to.bright_cyan());
-                    println!("  Amount: {} DYT", tx_data.amount.to_string().bright_white());
-                    println!("  Fee: {} DYT", tx_data.fee.to_string().bright_blue());
+                    println!("  Amount: {}", format_amount_with_symbol(tx_data.amount, "udgt").bright_white());
+                    println!("  Fee: {}", format_amount_with_symbol(tx_data.fee, "udgt").bright_blue());
                     println!("  Status: {}", format_transaction_status(&tx_data.status));
                     
                     if let Some(block_num) = tx_data.block_number {
@@ -215,7 +218,7 @@ pub async fn list_transactions(account: Option<String>, limit: u64, config: &Con
                         println!("\n{} Transaction {}:", "📄".bright_blue(), (i + 1).to_string().bright_white());
                         println!("  Hash: {}", tx.hash.bright_cyan());
                         println!("  From: {} → To: {}", tx.from.bright_yellow(), tx.to.bright_cyan());
-                        println!("  Amount: {} DYT", tx.amount.to_string().bright_white());
+                        println!("  Amount: {}", format_amount_with_symbol(tx.amount, "udgt").bright_white());
                         println!("  Status: {}", format_transaction_status(&tx.status));
                         
                         if let Some(block_num) = tx.block_number {

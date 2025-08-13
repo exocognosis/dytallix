@@ -2,6 +2,7 @@ use anyhow::Result;
 use colored::*;
 use crate::config::Config;
 use crate::crypto::CryptoManager;
+use crate::tokens::{format_amount_with_symbol, micro_to_display, DGT_TOKEN};
 use dytallix_pqc::{SignatureAlgorithm, KeyExchangeAlgorithm};
 use dialoguer::{Input, Password, Select, Confirm};
 use std::fs;
@@ -157,22 +158,23 @@ pub async fn account_balance(account: String, config: &Config) -> Result<()> {
             Ok(balance_response) => {
                 if balance_response.success {
                     let balance = balance_response.data.unwrap_or(0);
-                    let balance_dyt = balance as f64 / 1_000_000.0; // Convert from micro-DYT
+                    let balance_dgt = micro_to_display(balance, "udgt");
                     
-                    println!("Balance: {:.6} DYT", balance_dyt.to_string().bright_white());
+                    println!("DGT Balance: {}", format_amount_with_symbol(balance, "udgt").bright_white());
                     
                     // Query additional balance info if available
                     if balance > 0 {
-                        println!("Raw Balance: {} micro-DYT", balance.to_string().bright_yellow());
+                        println!("Raw Balance: {} udgt", balance.to_string().bright_yellow());
+                        println!("Token: {}", DGT_TOKEN.display_name.bright_cyan());
                     }
                 } else {
                     println!("{}", "⚠️  Unable to fetch balance from blockchain".bright_yellow());
-                    println!("Balance: {} DYT (offline mode)", "0.0".bright_white());
+                    println!("DGT Balance: {} (offline mode)", "0.000000 DGT".bright_white());
                 }
             }
             Err(_) => {
                 println!("{}", "⚠️  Blockchain connection failed, showing cached data".bright_yellow());
-                println!("Balance: {} DYT (cached)", "0.0".bright_white());
+                println!("DGT Balance: {} (cached)", "0.000000 DGT".bright_white());
             }
         }
         
