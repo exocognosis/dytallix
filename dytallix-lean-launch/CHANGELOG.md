@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1] - 2025-08-12
+### Changed
+- Removed all Hardhat/EVM artifacts and configs from `dytallix-lean-launch`.
+- Migrated faucet and backend to CosmJS; uses LCD/RPC/WS from `.env.staging`.
+- Moved EVM audit log to `docs/evm_migration/MATCHES.md`.
+
 ## [1.1.0] - 2025-08-12
 ### Added
 - Post-quantum cryptography productionization: Dilithium3, Falcon-512, SPHINCS+-128s-simple via PQClean WASM.

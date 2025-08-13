@@ -5,6 +5,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# EVM/Hardhat artifacts (removed in Cosmos migration)
+artifacts/
+cache/
+deployments/
+hardhat.config.*
+tokenomics/
+
 # Build outputs
 dist/
 build/

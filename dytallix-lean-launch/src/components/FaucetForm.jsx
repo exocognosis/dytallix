@@ -3,6 +3,7 @@ import styles from '../styles/FaucetForm.module.css'
 import dgtIcon from '../assets/dgt.svg'
 import drtIcon from '../assets/drt.svg'
 import { requestFaucet } from '../lib/api.js'
+import { loadMeta } from '../lib/keystore.js'
 
 const FaucetForm = () => {
   const [address, setAddress] = useState('')
@@ -51,28 +52,17 @@ const FaucetForm = () => {
 
   useEffect(() => { localStorage.setItem('dytallix-faucet-selected-token', selectedToken) }, [selectedToken])
 
-  // Wallet autofill
+  // Wallet autofill (local PQC wallet)
   useEffect(() => {
-    async function connect() {
-      try {
-        if (window.ethereum?.request) {
-          let accounts = await window.ethereum.request({ method: 'eth_accounts' })
-          if (!accounts || accounts.length === 0) {
-            // try politely to request, wallet may prompt
-            try {
-              accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
-            } catch {}
-          }
-          if (accounts && accounts[0]) {
-            setAddress(accounts[0])
-            setConnected(true)
-            return
-          }
-        }
-      } catch {}
-      setConnected(false)
-    }
-    connect()
+    try {
+      const meta = loadMeta()
+      if (meta?.address) {
+        setAddress(meta.address)
+        setConnected(true)
+        return
+      }
+    } catch {}
+    setConnected(false)
   }, [])
 
   const isOnCooldown = (token) => cooldowns[token] && cooldowns[token] > Date.now()
@@ -82,14 +72,16 @@ const FaucetForm = () => {
     return Math.max(0, Math.ceil(remaining / (1000 * 60)))
   }
 
-  const shortHash = (h) => (h?.startsWith('0x') ? `${h.slice(0, 8)}...${h.slice(-6)}` : h)
+  const shortHash = (h) => (h && h.length > 20 ? `${h.slice(0, 10)}...${h.slice(-8)}` : h)
+
+  const isBech32 = (addr) => typeof addr === 'string' && /^(dyt[a-z0-9]{10,}|dytallix1[a-z0-9]{8,})$/i.test(addr)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setMessage('')
 
-    if (!address.trim()) {
-      setMessage('Please enter a valid wallet address')
+    if (!address.trim() || !isBech32(address.trim())) {
+      setMessage('Please enter a valid Dytallix bech32 address')
       setMessageType('error')
       return
     }
@@ -143,11 +135,11 @@ const FaucetForm = () => {
       </div>
 
       <div className={styles.inputGroup}>
-        <label htmlFor="wallet-address" className={styles.label}>Wallet Address {connected ? '(Connected)' : '(Connect wallet to autofill)'}</label>
-        <input id="wallet-address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="0x..." className={styles.input} disabled={isLoading} />
+        <label htmlFor="wallet-address" className={styles.label}>Wallet Address {connected ? '(Auto-filled)' : '(Paste bech32 address)'}</label>
+        <input id="wallet-address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="dytallix1..." className={styles.input} disabled={isLoading} />
       </div>
 
-      <button type="submit" disabled={isLoading || !connected || !address.trim() || isOnCooldown(selectedToken)} className={`${styles.submitButton} ${isLoading ? styles.loading : ''}`}>
+      <button type="submit" disabled={isLoading || !address.trim() || isOnCooldown(selectedToken)} className={`${styles.submitButton} ${isLoading ? styles.loading : ''}`}>
         {isLoading ? (<><span className={styles.spinner}></span>Sending {selectedToken}...</>) : isOnCooldown(selectedToken) ? (
           `Wait ${getCooldownMinutes(selectedToken)}m for ${selectedToken}`) : (
           `Request ${tokenConfig[selectedToken].amount} ${selectedToken}`)}
