@@ -2,18 +2,25 @@ import { test, expect } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import { getBalances, sendTokens, subscribeTxAndBlocks, waitForTx, getChainId, getLatestHeight } from '../utils/cosmos';
 
-dotenv.config({ path: '.env.staging', override: true });
+dotenv.config({ path: '.env.staging', override: false });
 
 const faucetUrl = process.env.FAUCET_URL || '';
 const testMnemonic = process.env.TEST_MNEMONIC || '';
 const chainIdEnv = process.env.VITE_CHAIN_ID || '';
 
-const isPlaceholder = /REPLACE/i.test(testMnemonic);
-const wordCount = testMnemonic.trim().split(/\s+/).filter(Boolean).length;
-const isValidMnemonic = !isPlaceholder && (wordCount === 12 || wordCount === 24);
-
-if (!isValidMnemonic) {
-  console.warn('TEST_MNEMONIC not provided or invalid; e2e tests will be skipped');
+// New env check (runtime skip only if mnemonic entirely absent)
+const words = testMnemonic.trim().split(/\s+/).filter(Boolean);
+console.log('E2E ENV CHECK',
+  'words=', words.length,
+  'url=', process.env.APP_URL,
+  'lcd=', process.env.VITE_LCD_HTTP_URL,
+  'faucet=', process.env.FAUCET_URL,
+  'hrp=', process.env.BECH32_PREFIX,
+  'chain=', process.env.VITE_CHAIN_ID
+);
+if (words.length === 0) {
+  console.warn('TEST_MNEMONIC missing; e2e skipped');
+  test.skip(true);
 }
 
 // Helper to request faucet
@@ -25,7 +32,7 @@ async function requestFaucet(address: string) {
 }
 
 // Single test covering lifecycle
-(isValidMnemonic ? test : test.skip)('wallet balance -> faucet -> tx lifecycle', async () => {
+test('wallet balance -> faucet -> tx lifecycle', async () => {
   // 1. Initial balance snapshot
   const walletAddr = (await (await import('../utils/cosmos')).buildWallet(testMnemonic)).getAccounts().then(a=>a[0].address);
   const address = await walletAddr;

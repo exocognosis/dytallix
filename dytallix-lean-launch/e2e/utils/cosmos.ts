@@ -45,10 +45,42 @@ export async function getChainId() {
 }
 
 export async function getLatestHeight() {
-  const res = await fetch(`${rpc}/block`);
-  if (!res.ok) throw new Error('Failed to fetch latest block');
-  const data = await res.json();
-  return Number(data.block.header.height);
+  const lcdEnv = process.env.VITE_LCD_HTTP_URL || process.env.LCD_HTTP_URL;
+  const statusBase = process.env.STATUS_BASE || 'http://localhost:8787/api/status';
+  const rpcEnv = process.env.VITE_RPC_HTTP_URL || process.env.RPC_HTTP_URL;
+
+  if (lcdEnv) {
+    try {
+      const res = await fetch(`${lcdEnv}/cosmos/base/tendermint/v1beta1/blocks/latest`);
+      if (res.ok) {
+        const data = await res.json();
+        const h = Number(data?.block?.header?.height);
+        if (Number.isFinite(h) && h > 0) return h;
+      }
+    } catch {}
+  }
+
+  try {
+    const res = await fetch(`${statusBase}/height`);
+    if (res.ok) {
+      const data = await res.json();
+      const h = Number(data?.height);
+      if (Number.isFinite(h) && h > 0) return h;
+    }
+  } catch {}
+
+  if (rpcEnv) {
+    try {
+      const res = await fetch(`${rpcEnv}/status`);
+      if (res.ok) {
+        const data = await res.json();
+        const h = Number(data?.result?.sync_info?.latest_block_height);
+        if (Number.isFinite(h) && h > 0) return h;
+      }
+    } catch {}
+  }
+
+  throw new Error('Failed to determine latest height from LCD, backend, or RPC');
 }
 
 export async function waitForHeight(target: number, timeoutMs = 90_000) {
