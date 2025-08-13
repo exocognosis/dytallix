@@ -8,12 +8,14 @@ on:
       - 'scripts/**'
       - 'public/wasm/pqc/**'
       - '.github/workflows/pqc.yml'
+      - 'e2e/**'
   pull_request:
     paths:
       - 'src/crypto/pqc/**'
       - 'vendor/pqclean/**'
       - 'scripts/**'
       - 'public/wasm/pqc/**'
+      - 'e2e/**'
 
 jobs:
   build-test:
@@ -48,17 +50,32 @@ jobs:
       - name: Install deps
         run: npm ci
       - name: Build PQC WASM (signed if key provided)
-        env:
-          MANIFEST_SIGN_KEY: ${{ secrets.MANIFEST_SIGN_KEY || '' }}
         run: |
           source $EMSDK/emsdk_env.sh
+          if [ -n "${MANIFEST_SIGN_KEY:-}" ]; then export MANIFEST_SIGN_KEY; fi
           bash scripts/build_pqc_wasm.sh
       - name: Verify manifest hashes (script)
         run: bash scripts/verify_manifest.sh
+      - name: Fail if manifest mismatch marker present
+        run: |
+          if [ -f public/wasm/pqc/.manifest_mismatch ]; then echo "Manifest mismatch detected" >&2; exit 1; fi
       - name: Run unit tests (vitest)
         run: npx vitest run --coverage
       - name: Security audit & licenses
         run: bash scripts/security_audit.sh
+      - name: Run E2E staging (skips if no mnemonic)
+        run: |
+          if [ -z "${TEST_MNEMONIC:-}" ]; then echo "No TEST_MNEMONIC set; skipping E2E"; exit 0; fi
+          {
+            echo "VITE_LCD_HTTP_URL=${VITE_LCD_HTTP_URL:-http://localhost:1317}";
+            echo "VITE_RPC_HTTP_URL=${VITE_RPC_HTTP_URL:-http://localhost:26657}";
+            echo "VITE_RPC_WS_URL=${VITE_RPC_WS_URL:-ws://localhost:26657/websocket}";
+            echo "VITE_CHAIN_ID=${VITE_CHAIN_ID:-localchain}";
+            echo "FAUCET_URL=${FAUCET_URL:-http://localhost:8787/api/faucet}";
+            echo "TEST_MNEMONIC=${TEST_MNEMONIC}";
+          } > .env.staging
+          npx playwright install --with-deps chromium
+          npm run e2e:staging || { echo "E2E tests failed" >&2; cat e2e/output/latest-run.txt || true; exit 1; }
       - name: Upload WASM & manifest (artifact)
         uses: actions/upload-artifact@v4
         with:
@@ -68,3 +85,10 @@ jobs:
             public/wasm/pqc/manifest.json
             public/wasm/pqc/build_meta.json
           if-no-files-found: error
+      - name: Upload E2E output artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-output-${{ github.sha }}
+          path: e2e/output/latest-run.txt
+          if-no-files-found: warn

@@ -2,6 +2,24 @@ import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import { SigningStargateClient, StargateClient, calculateFee, coins } from '@cosmjs/stargate';
 import { GasPrice } from '@cosmjs/stargate';
 
+// Polyfill WebSocket for Node CI environments (Playwright test runner) if not provided natively.
+// Node 20 may not yet expose a stable global WebSocket in all builds; ensure availability.
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+if (typeof (globalThis as any).WebSocket === 'undefined') {
+  // Dynamically import to avoid impacting browser bundle tree-shaking.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const WS = require('ws');
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    globalThis.WebSocket = WS;
+  } catch (e) {
+    // If ws not installed, tests depending on websocket will fail explicitly later.
+    console.warn('WebSocket polyfill not installed (ws). Install dev dependency "ws" for E2E WS tests.');
+  }
+}
+
 const lcd = process.env.VITE_LCD_HTTP_URL!; // REST (LCD)
 const rpc = process.env.VITE_RPC_HTTP_URL!; // HTTP RPC
 const rpcWs = process.env.VITE_RPC_WS_URL!; // WS endpoint
@@ -76,7 +94,12 @@ export async function subscribeTxAndBlocks(txHash: string): Promise<{ sawTx: boo
   let sawTx = false; let sawBlock = false;
   return new Promise((resolve, reject) => {
     const open = () => {
-      const ws = new WebSocket(rpcWs);
+      // Defensive: if WebSocket still missing, short-circuit.
+      if (typeof (globalThis as any).WebSocket === 'undefined') {
+        console.error('WebSocket unavailable: cannot subscribe');
+        return resolve({ sawTx, sawBlock });
+      }
+      const ws = new (globalThis as any).WebSocket(rpcWs);
       let keepAlive: any = null;
       ws.onopen = () => {
         attempt = 0;
@@ -85,7 +108,7 @@ export async function subscribeTxAndBlocks(txHash: string): Promise<{ sawTx: boo
         ws.send(JSON.stringify({ jsonrpc: '2.0', id: '1', method: 'subscribe', params: { query: `tm.event='Tx' AND tx.hash='${upper}'` } }));
         ws.send(JSON.stringify({ jsonrpc: '2.0', id: '2', method: 'subscribe', params: { query: `tm.event='NewBlock'` } }));
       };
-      ws.onmessage = (ev) => {
+      ws.onmessage = (ev: any) => {
         try {
           const msg = JSON.parse(ev.data.toString());
           if (msg.result && msg.result.query?.includes('Tx')) sawTx = true;
