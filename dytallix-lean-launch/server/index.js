@@ -72,8 +72,17 @@ app.get('/api/status/node', async (req, res, next) => {
       throw e
     }
     const r = await fetch(`${RPC_HTTP}/status`)
+    if (!r.ok) {
+      const e = new Error(`RPC_STATUS_FAILED_${r.status}`)
+      e.status = 502
+      throw e
+    }
     const j = await r.json().catch(() => ({}))
-    res.json({ ok: true, status: j })
+    const network = j?.result?.node_info?.network || null
+    const heightStr = j?.result?.sync_info?.latest_block_height
+    const height = Number(heightStr || 0)
+    // Include normalized fields and keep raw status for back-compat
+    res.json({ ok: true, network, chain_id: network || null, height, status: j })
   } catch (err) { next(err) }
 })
 

@@ -62,9 +62,23 @@ Set these environment variables (see `.env.example`):
 
 The dev API now exposes minimal Cosmos-backed endpoints used by the dashboard:
 - `GET /api/status/height` — Returns `{ ok, height }` from `${RPC_HTTP_URL}/status`.
-- `GET /api/status/node` — Returns `{ ok, status }` raw Tendermint status JSON.
+- `GET /api/status/node` — Returns `{ ok, network, chain_id, height, status }` where `network/chain_id` are strings and `height` is a number; `status` contains the raw Tendermint status JSON.
 
 These are proxied via Vite in dev (see `vite.config.js`) and can be fronted by nginx in production.
+
+### Local status endpoints
+
+When running locally:
+- Backend base URL: `http://localhost:8787`
+- Frontend dev proxy: requests to `/api/*` are forwarded to the backend
+- Health routes you can curl:
+  - `curl -s http://localhost:8787/api/status/height | jq`  → shows current height
+  - `curl -s http://localhost:8787/api/status/node | jq`    → shows network id and raw status
+
+Ensure the following environment variables are set (strings where applicable):
+- `VITE_CHAIN_ID` — Chain ID string (e.g., "dockerchain"). Do not parse as number.
+- `VITE_LCD_HTTP_URL`, `VITE_RPC_HTTP_URL`, `VITE_RPC_WS_URL` — Reachable endpoints
+- `FAUCET_URL` — Faucet POST endpoint (e.g., `http://localhost:8787/api/faucet`)
 
 ## 🧪 Tests
 
