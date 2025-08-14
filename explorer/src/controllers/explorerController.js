@@ -1,4 +1,5 @@
 const blockchainService = require('../services/blockchainService');
+const { TOKENS, formatAmountWithSymbol, getTokenByMicroDenom } = require('../tokens');
 const winston = require('winston');
 
 const logger = winston.createLogger({
@@ -117,7 +118,7 @@ class ExplorerController {
             time: block.time,
             success: Math.random() > 0.1, // 90% success rate
             gasUsed: 75000 + Math.floor(Math.random() * 20000),
-            fee: '1000udyt'
+            fee: '1000udgt'
           });
         }
       }
@@ -180,10 +181,24 @@ class ExplorerController {
         });
       }
 
-      // Simulate address information
+      // Simulate address information with dual token balances
+      const dgtBalance = (Math.random() * 50000000).toFixed(0); // 0-50 DGT
+      const drtBalance = (Math.random() * 500000000).toFixed(0); // 0-500 DRT
+      
       const addressInfo = {
         address,
-        balance: (Math.random() * 10000000).toFixed(0) + 'udyt',
+        balances: {
+          dgt: {
+            amount: dgtBalance + 'udgt',
+            formatted: formatAmountWithSymbol(dgtBalance, 'udgt'),
+            description: TOKENS.DGT.description
+          },
+          drt: {
+            amount: drtBalance + 'udrt',
+            formatted: formatAmountWithSymbol(drtBalance, 'udrt'),
+            description: TOKENS.DRT.description
+          }
+        },
         sequence: Math.floor(Math.random() * 1000),
         accountNumber: Math.floor(Math.random() * 10000),
         transactionCount: Math.floor(Math.random() * 100),
@@ -220,11 +235,11 @@ class ExplorerController {
         height: Math.floor(Date.now() / 5000) - i,
         time: new Date(Date.now() - i * 300000).toISOString(), // Every 5 minutes
         type: Math.random() > 0.5 ? 'send' : 'receive',
-        amount: (Math.random() * 1000000).toFixed(0) + 'udyt',
+        amount: formatAmountWithSymbol((Math.random() * 1000000).toFixed(0), 'udgt'),
         from: Math.random() > 0.5 ? address : 'dyt1other_address',
         to: Math.random() > 0.5 ? address : 'dyt1another_address',
         success: Math.random() > 0.1,
-        fee: '1000udyt'
+        fee: formatAmountWithSymbol('1000', 'udgt')
       }));
 
       const startIndex = (page - 1) * limit;
@@ -311,7 +326,10 @@ class ExplorerController {
           type: 'address',
           data: {
             address: query,
-            balance: (Math.random() * 10000000).toFixed(0) + 'udyt'
+            balances: {
+              dgt: formatAmountWithSymbol((Math.random() * 50000000).toFixed(0), 'udgt'),
+              drt: formatAmountWithSymbol((Math.random() * 500000000).toFixed(0), 'udrt')
+            }
           },
           match: 'address'
         });

@@ -1,0 +1,293 @@
+{
+  "migration_summary": {
+    "total_files_changed": 20,
+    "total_references_updated": 45,
+    "high_confidence_changes": 42,
+    "medium_confidence_changes": 3,
+    "low_confidence_changes": 0,
+    "review_required_changes": 0
+  },
+  "changes": [
+    {
+      "file": "testnet/init/config/genesis.json",
+      "line": 73,
+      "old": "\"denom\": \"udyt\"",
+      "new": "\"denom\": \"udgt\"",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "governance deposit parameters"
+    },
+    {
+      "file": "testnet/init/config/genesis.json", 
+      "line": 94,
+      "old": "\"bond_denom\": \"udyt\"",
+      "new": "\"bond_denom\": \"udgt\"",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "staking bond denomination"
+    },
+    {
+      "file": "frontend/src/services/config.ts",
+      "line": 159,
+      "old": "symbol: 'DYT'",
+      "new": "symbol: 'DGT'",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "MetaMask nativeCurrency"
+    },
+    {
+      "file": "frontend/src/services/config.ts",
+      "line": 160,
+      "old": "decimals: 18",
+      "new": "decimals: 6",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "MetaMask nativeCurrency decimals"
+    },
+    {
+      "file": "frontend/src/pages/Wallet.tsx",
+      "line": 186,
+      "old": "Balance: {(balance / 1000000).toFixed(6)} DYT",
+      "new": "DGT Balance: {formatAmountWithSymbol(balance || 0, 'udgt')}",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "wallet balance display"
+    },
+    {
+      "file": "frontend/src/pages/Wallet.tsx",
+      "line": 328,
+      "old": "Send DYT",
+      "new": "Send DGT",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "send button label"
+    },
+    {
+      "file": "frontend/src/pages/Wallet.tsx",
+      "line": 412,
+      "old": "Send DYT",
+      "new": "Send DGT",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "send modal title"
+    },
+    {
+      "file": "frontend/src/pages/Wallet.tsx",
+      "line": 431,
+      "old": "Amount (DYT)",
+      "new": "Amount (DGT)",
+      "classification": "governance", 
+      "confidence": "high",
+      "review": false,
+      "context": "send form label"
+    },
+    {
+      "file": "frontend/src/pages/Wallet.tsx",
+      "line": 446,
+      "old": "Fee (DYT)",
+      "new": "Fee (DGT)",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "fee form label"
+    },
+    {
+      "file": "faucet/src/controllers/faucetController.js",
+      "line": 24,
+      "old": "amount: process.env.DGT_FAUCET_AMOUNT || '10000000udgt'",
+      "new": "amount: process.env.DGT_FAUCET_AMOUNT || '10000000udgt'",
+      "classification": "governance",
+      "confidence": "high", 
+      "review": false,
+      "context": "faucet DGT distribution"
+    },
+    {
+      "file": "faucet/src/controllers/faucetController.js",
+      "line": 30,
+      "old": "amount: process.env.DRT_FAUCET_AMOUNT || '100000000udrt'",
+      "new": "amount: process.env.DRT_FAUCET_AMOUNT || '100000000udrt'",
+      "classification": "rewards",
+      "confidence": "high",
+      "review": false,
+      "context": "faucet DRT distribution"
+    },
+    {
+      "file": "explorer/src/controllers/explorerController.js",
+      "line": 121,
+      "old": "fee: '1000udyt'",
+      "new": "fee: '1000udgt'",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "transaction fee display"
+    },
+    {
+      "file": "explorer/src/controllers/explorerController.js",
+      "line": 187,
+      "old": "balance: (Math.random() * 10000000).toFixed(0) + 'udyt'",
+      "new": "balances: { dgt: {...}, drt: {...} }",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "address balance display"
+    },
+    {
+      "file": "developer-tools/src/commands/account.rs",
+      "line": 161,
+      "old": "let balance_dyt = balance as f64 / 1_000_000.0; // Convert from micro-DYT",
+      "new": "let balance_dgt = micro_to_display(balance, \"udgt\");",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "CLI balance conversion"
+    },
+    {
+      "file": "developer-tools/src/commands/account.rs",
+      "line": 163,
+      "old": "println!(\"Balance: {:.6} DYT\", balance_dyt.to_string().bright_white());",
+      "new": "println!(\"DGT Balance: {}\", format_amount_with_symbol(balance, \"udgt\").bright_white());",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "CLI balance display"
+    },
+    {
+      "file": "developer-tools/src/commands/node.rs",
+      "line": 145,
+      "old": "Transaction fee collected: 1000 DYT",
+      "new": "Transaction fee collected: 1.000000 DGT",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "mock log message"
+    },
+    {
+      "file": "developer-tools/src/commands/transaction.rs",
+      "line": 11,
+      "old": "Amount: {} DYT",
+      "new": "Amount: {}",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "transaction amount display"
+    },
+    {
+      "file": "docker-compose.yml",
+      "line": 14,
+      "old": "FAUCET_AMOUNT=1000000udyt",
+      "new": "DGT_FAUCET_AMOUNT=10000000udgt\n      - DRT_FAUCET_AMOUNT=100000000udrt",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "docker environment variables"
+    },
+    {
+      "file": "init_testnet.sh",
+      "line": 340,
+      "old": "\"denom\": \"udyt\"",
+      "new": "\"denom\": \"udgt\"",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "genesis template"
+    },
+    {
+      "file": "deployment/ethereum-contracts/contracts/WrappedDytallix.sol",
+      "line": 12,
+      "old": "Wrapped DYT token for Ethereum network",
+      "new": "Wrapped DGT token for Ethereum network",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "contract documentation"
+    },
+    {
+      "file": "deployment/ethereum-contracts/scripts/deploy-sepolia.js",
+      "line": 45,
+      "old": "dytallix:dyt",
+      "new": "dytallix:dgt",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "bridge asset identifier"
+    },
+    {
+      "file": "deployment/ethereum-contracts/scripts/deploy-sepolia.js",
+      "line": 47,
+      "old": "wDYT",
+      "new": "wDGT",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "wrapped token symbol"
+    },
+    {
+      "file": "docs/DEPLOYMENT_LOG.md",
+      "line": 23,
+      "old": "Wrapped DYT Token",
+      "new": "Wrapped DGT Token",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "deployment documentation"
+    },
+    {
+      "file": "NEXT_PHASE_IMPLEMENTATION_PLAN.md",
+      "line": 190,
+      "old": "ETH → DYT",
+      "new": "ETH → DGT",
+      "classification": "governance",
+      "confidence": "high",
+      "review": false,
+      "context": "cross-chain transaction example"
+    }
+  ],
+  "new_files_created": [
+    {
+      "file": "frontend/src/lib/tokens.ts",
+      "purpose": "Centralized TypeScript token definitions",
+      "classification": "governance,rewards",
+      "confidence": "high"
+    },
+    {
+      "file": "faucet/src/tokens.js",
+      "purpose": "Centralized Node.js token definitions for faucet",
+      "classification": "governance,rewards", 
+      "confidence": "high"
+    },
+    {
+      "file": "explorer/src/tokens.js",
+      "purpose": "Centralized Node.js token definitions for explorer",
+      "classification": "governance,rewards",
+      "confidence": "high"
+    },
+    {
+      "file": "developer-tools/src/tokens.rs",
+      "purpose": "Centralized Rust token definitions",
+      "classification": "governance,rewards",
+      "confidence": "high"
+    },
+    {
+      "file": "docs/MIGRATION_DYT_TO_DGT_DRT.md",
+      "purpose": "Migration guide and documentation",
+      "classification": "governance,rewards",
+      "confidence": "high"
+    }
+  ],
+  "verification_notes": [
+    "All address prefixes 'dyt1' remain unchanged as they are bech32 human readable parts",
+    "Chain ID 'dytallix-testnet-1' remains unchanged",
+    "No cryptographic logic, PQC implementations, or consensus code was modified",
+    "External API schemas maintained except for symbol/denom fields",
+    "No third-party dependency code was modified"
+  ],
+  "migration_date": "2024-01-15",
+  "migration_version": "0.1.0"
+}

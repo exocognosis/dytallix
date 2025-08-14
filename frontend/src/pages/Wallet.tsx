@@ -19,6 +19,7 @@ import { useWalletStore } from '../store/wallet'
 import { useBalance, useGenerateKeyPair, useSubmitTransaction } from '../hooks/useAPI'
 import { useTokenBalance } from '../hooks/useTokenomics'
 import { WalletAccount, TransactionRequest } from '../types'
+import { TOKENS, formatAmountWithSymbol } from '../lib/tokens'
 import toast from 'react-hot-toast'
 
 interface SendFormData {
@@ -183,7 +184,7 @@ export function Wallet() {
                           </div>
                           <div className="flex items-center space-x-2 mt-1">
                             <span className="text-sm text-gray-400">
-                              Balance: {(balance / 1000000).toFixed(6)} DYT
+                              DGT Balance: {formatAmountWithSymbol(balance || 0, 'udgt')}
                             </span>
                             {account.key_pair && (
                               <span className="text-xs bg-green-900/50 text-green-400 px-2 py-1 rounded">
@@ -241,10 +242,13 @@ export function Wallet() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-1">
-                      Native Balance
+                      Governance Token (DGT)
                     </label>
                     <div className="text-2xl font-bold text-white">
-                      {(balance / 1000000).toFixed(6)} DYT
+                      {formatAmountWithSymbol(balance || 0, 'udgt')}
+                    </div>
+                    <div className="text-sm text-gray-400 mt-1">
+                      {TOKENS.DGT.description}
                     </div>
                   </div>
 
@@ -325,7 +329,7 @@ export function Wallet() {
                     className="w-full flex items-center justify-center py-3 rounded-lg"
                   >
                     <ArrowUpIcon className="w-4 h-4 mr-2" />
-                    Send DYT
+                    Send DGT
                   </Button>
                   
                   <Button
@@ -334,7 +338,7 @@ export function Wallet() {
                     className="w-full flex items-center justify-center py-3 rounded-lg"
                   >
                     <ArrowDownIcon className="w-4 h-4 mr-2" />
-                    Receive DYT
+                    Receive DGT
                   </Button>
                 </CardContent>
               </Card>
@@ -409,7 +413,7 @@ export function Wallet() {
             transition={{ duration: 0.3 }}
             className="bg-gray-800 rounded-lg border border-gray-700 p-6 w-full max-w-md"
           >
-            <h3 className="text-lg font-semibold text-white mb-4">Send DYT</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Send DGT</h3>
             
             <form onSubmit={handleSendTransaction} className="space-y-4">
               <div>
@@ -428,7 +432,7 @@ export function Wallet() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Amount (DYT)
+                  Amount (DGT)
                 </label>
                 <input
                   type="number"
@@ -443,7 +447,7 @@ export function Wallet() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Fee (DYT)
+                  Fee (DGT)
                 </label>
                 <input
                   type="number"

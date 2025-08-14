@@ -155,9 +155,9 @@ class ConfigService {
       chainId: `0x${this.config.chainId.toString(16)}`,
       chainName: this.config.networkName,
       nativeCurrency: {
-        name: 'Dytallix',
-        symbol: 'DYT',
-        decimals: 18,
+        name: 'Dytallix Governance Token',
+        symbol: 'DGT',
+        decimals: 6,
       },
       rpcUrls: [this.config.blockchainApiUrl],
       blockExplorerUrls: [`${this.config.blockchainApiUrl}/explorer`],

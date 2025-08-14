@@ -11,7 +11,8 @@ services:
       - PORT=3001
       - CHAIN_ID=dytallix-testnet-1
       - RPC_ENDPOINT=http://dytallix-node:26657
-      - FAUCET_AMOUNT=1000000udyt
+      - DGT_FAUCET_AMOUNT=10000000udgt
+      - DRT_FAUCET_AMOUNT=100000000udrt
       - RATE_LIMIT_WINDOW_MS=3600000
       - RATE_LIMIT_MAX_REQUESTS=5
       - IP_COOLDOWN_MS=1800000
