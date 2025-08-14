@@ -8,6 +8,11 @@ interface Manifest { [name: string]: string }
 
 let manifestPromise: Promise<Manifest> | null = null
 
+// Quick check helper used by UI to gate PQC actions
+export async function checkIntegrity(): Promise<{ ok: boolean; error?: string }> {
+  try { await loadManifest(); return { ok: true } } catch (e:any) { return { ok: false, error: e?.message || 'Integrity load failed' } }
+}
+
 // Primary manifest path now served from public/wasm/pqc
 const MANIFEST_PATHS = ['/wasm/pqc/manifest.json', '/crypto/pqc/manifest.json'] // fallback to old path if still present
 

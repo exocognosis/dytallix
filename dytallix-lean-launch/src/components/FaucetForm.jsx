@@ -3,7 +3,7 @@ import styles from '../styles/FaucetForm.module.css'
 import dgtIcon from '../assets/dgt.svg'
 import drtIcon from '../assets/drt.svg'
 import { requestFaucet } from '../lib/api.js'
-import { loadMeta } from '../lib/keystore.js'
+import { loadMeta } from '../wallet/Keystore'
 
 const FaucetForm = () => {
   const [address, setAddress] = useState('')

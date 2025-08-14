@@ -26,6 +26,11 @@ Key variables (strings unless noted):
 - `CHAIN_PREFIX` – Bech32 prefix (default `dytallix`).
 - `FAUCET_URL` – POST endpoint for faucet (`/api/faucet`).
 - `FAUCET_MNEMONIC` – (Server side only) funded mnemonic for faucet signer (never commit).
+- `FAUCET_MAX_PER_REQUEST_DGT` / `FAUCET_MAX_PER_REQUEST_DRT` – Faucet dispense amounts (display units for DGT / DRT).
+- `FAUCET_COOLDOWN_MINUTES` – Global cooldown (IP+address+token).
+- `TEST_DENOM_BASE` – Base denom used in E2E tests (default `uDGT`).
+- `ALT_TEST_DENOM_BASE` – Optional second denom for extended E2E (default `uDRT`).
+- `RUN_DRT_TEST=1` – Enable secondary rewards token E2E lifecycle test.
 
 Never commit `.env*` or mnemonics.
 
@@ -183,6 +188,8 @@ Roll Back:
 
 ## 🧹 Migration Notes
 Originally migrated from an EVM/Hardhat prototype → Cosmos SDK. Removed Hardhat artifacts, replaced faucet logic with CosmJS. See `docs/evm_migration/MATCHES.md` for audit trail.
+
+Legacy single-token references (DYT / uDYT) have been superseded by dual-tokenomics (DGT governance, DRT rewards). Any remaining mentions in historical docs are retained for provenance (legacy; superseded by DGT/DRT).
 
 ## 🧪 Tests
 Vitest for unit/component tests. (Any previous EVM tests removed.)

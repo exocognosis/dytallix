@@ -1,5 +1,5 @@
 // Cosmos faucet helper
-// POST to FAUCET_URL with { address: "<bech32>" }
+// POST to FAUCET_URL with { address: "<bech32>", token: 'DGT'|'DRT' }
 
 export interface FaucetResponse {
   ok: boolean;
@@ -17,16 +17,17 @@ function withTimeout(p: Promise<Response>, ms = 15000) {
   })
 }
 
-export async function requestCosmosFaucet(address: string): Promise<FaucetResponse> {
+export async function requestCosmosFaucet(address: string, token: 'DGT' | 'DRT' = 'DRT'): Promise<FaucetResponse> {
   // Prefer Vite client env in browser
   const viteUrl = (import.meta as any)?.env?.VITE_FAUCET_URL
   const nodeUrl = (globalThis as any)?.process?.env?.FAUCET_URL
   const url = viteUrl || nodeUrl || '/api/faucet'
   if (!url) throw new Error('Missing FAUCET_URL')
+  const body = JSON.stringify({ address, token })
   const res = await withTimeout(fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ address })
+    body
   }))
   let data: FaucetResponse | null = null
   try { data = await res.json() } catch { data = null }
@@ -39,5 +40,6 @@ export async function requestCosmosFaucet(address: string): Promise<FaucetRespon
   // normalize fields
   if (data && (data as any).hash && !data.txHash) (data as any).txHash = (data as any).hash
   if (data && typeof (data as any).amount === 'number') (data as any).amount = String((data as any).amount)
-  return (data as FaucetResponse) || { ok: true }
+  if (data && !(data as any).token) (data as any).token = token
+  return (data as FaucetResponse) || { ok: true, token }
 }

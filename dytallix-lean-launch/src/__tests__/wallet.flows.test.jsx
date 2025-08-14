@@ -16,16 +16,12 @@ vi.mock('../lib/crypto/pqc.js', () => ({
 vi.mock('../lib/crypto/address.js', () => ({
   deriveAddress: vi.fn(async () => 'dytallix1demoaddress0000000000000000')
 }))
-vi.mock('../lib/keystore.js', () => ({
-  encryptKeystore: vi.fn(async (secretKeyB64, algo, address, publicKey) => ({
-    version: 1, algo, address, publicKey,
-    cipher: 'AES-GCM', kdf: 'argon2id', kdfParams: { saltB64: 'salt', iterations: 1, memory: 1, parallelism: 1 },
-    ivB64: 'iv', ciphertextB64: 'cipher', createdAt: new Date().toISOString()
-  })),
-  decryptKeystore: vi.fn(async () => 'SEC_BASE64_DEMO'),
-  saveKeystore: vi.fn((ks) => { memKs = ks; localStorage.setItem('wallet_keystore_v1', JSON.stringify(ks)) }),
-  loadKeystore: vi.fn(() => memKs || JSON.parse(localStorage.getItem('wallet_keystore_v1') || 'null')),
-  clearKeystore: vi.fn(() => { memKs = null; localStorage.removeItem('wallet_keystore_v1') }),
+vi.mock('../wallet/Keystore', () => ({
+  createKeystoreFromSecret: vi.fn(async (secretKeyB64, meta) => ({ v: 1, encVault: { v: 1, kdf: 'argon2id', cipher: 'AES-GCM', kdfParams: { memLimit: 1, opsLimit: 1, parallelism: 1, saltB64: 'salt' }, nonceB64: 'iv', ctB64: 'ct' }, meta: { createdAt: new Date().toISOString(), ...meta } })),
+  decryptKeystoreToSecret: vi.fn(async () => 'SEC_BASE64_DEMO'),
+  saveKeystore: vi.fn((ks) => { memKs = ks; localStorage.setItem('keystore_v1', JSON.stringify(ks)) }),
+  loadKeystore: vi.fn(() => memKs || JSON.parse(localStorage.getItem('keystore_v1') || 'null')),
+  clearKeystore: vi.fn(() => { memKs = null; localStorage.removeItem('keystore_v1') }),
   saveMeta: vi.fn((m) => { memMeta = m; localStorage.setItem('wallet_meta_v1', JSON.stringify(m)) }),
   loadMeta: vi.fn(() => memMeta || JSON.parse(localStorage.getItem('wallet_meta_v1') || 'null')),
   clearMeta: vi.fn(() => { memMeta = null; localStorage.removeItem('wallet_meta_v1') })
@@ -47,9 +43,13 @@ vi.mock('../lib/api.js', () => ({
     if (String(path).startsWith('/api/tx/')) {
       return { status: 'pending' }
     }
+    // Provide getBlockHeight used by SendTx/ActivityFeed
     return {}
   }),
-  requestFaucet: vi.fn(async () => ({ ok: true }))
+}))
+// New faucet helper mock
+vi.mock('../utils/faucet', () => ({
+  requestCosmosFaucet: vi.fn(async () => ({ ok: true, token: 'DRT', amount: '1000000', txHash: '0xfeed' }))
 }))
 vi.mock('../lib/ws.js', () => ({ connectWS: () => null }))
 
@@ -68,7 +68,7 @@ describe('Wallet flows (acceptance)', () => {
     global.URL.revokeObjectURL = vi.fn()
   })
 
-  it('can create wallet, estimate and send a tx, export and forget', async () => {
+  it('can create wallet, request faucet, estimate and send a tx, export and forget', async () => {
     render(<Wallet />)
 
     // Create wallet
@@ -80,6 +80,13 @@ describe('Wallet flows (acceptance)', () => {
     const addrEls = await screen.findAllByText(/dytallix1demoaddress/i)
     expect(addrEls.length).toBeGreaterThan(0)
 
+    // Faucet funding
+    const faucetBtn = screen.getByRole('button', { name: /Fund via Faucet/i })
+    fireEvent.click(faucetBtn)
+    // Message may appear both in status card body and as badge; accept any
+    const faucetMsgs = await screen.findAllByText(/Faucet:/i)
+    expect(faucetMsgs.length).toBeGreaterThan(0)
+
     // Estimate
     const toInput = screen.getByLabelText(/To Address/i)
     fireEvent.change(toInput, { target: { value: 'dytallix1destination000000000000000000' } })
@@ -88,14 +95,16 @@ describe('Wallet flows (acceptance)', () => {
 
     const estimateBtn = screen.getByText('Estimate')
     fireEvent.click(estimateBtn)
-    expect(await screen.findByText(/Estimated Fee:/i)).toBeTruthy()
+    const feeEls = await screen.findAllByText(/Estimated Fee:/i)
+    expect(feeEls.length).toBeGreaterThan(0)
 
     // Send (will unlock using prompt) - scope within Send form card
     const sendSection = screen.getByRole('heading', { level: 3, name: /^Send$/ })
     const sendCard = sendSection.closest('.card')
     const sendBtn = within(sendCard).getByRole('button', { name: /^Send$/i })
     fireEvent.click(sendBtn)
-    expect(await screen.findByText(/Submitted: 0xabc123/i)).toBeTruthy()
+    // New UI shows a result panel, assert by heading text
+    expect(await screen.findByText(/Transaction Submitted/i)).toBeTruthy()
 
     // Export from Settings (scope by Settings heading to disambiguate)
     const settingsHeading = screen.getByRole('heading', { level: 3, name: /^Settings$/ })

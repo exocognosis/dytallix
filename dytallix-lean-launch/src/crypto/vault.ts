@@ -25,7 +25,7 @@ function ub64(s: string) {
 function zeroize(buf?: Uint8Array) { try { if (buf) buf.fill(0) } catch {} }
 
 export async function encryptVault(plaintext: Uint8Array, pass: string, kdfOverrides?: Partial<Omit<KdfParams, 'algo' | 'salt'>>): Promise<EncryptedVault> {
-  const dk: DerivedKey = await deriveKey(pass)
+  const dk: DerivedKey = await deriveKey(pass, undefined, kdfOverrides)
   const nonce = crypto.getRandomValues(new Uint8Array(12))
   const aesKey = await crypto.subtle.importKey('raw', dk.key, { name: 'AES-GCM' }, false, ['encrypt'])
   try {

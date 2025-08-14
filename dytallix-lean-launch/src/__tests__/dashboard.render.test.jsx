@@ -8,6 +8,6 @@ describe('Dashboard render', () => {
     render(<Dashboard />)
     expect(await screen.findByText(/Network Dashboard/i)).toBeTruthy()
     expect(await screen.findByText(/PQC Status/i)).toBeTruthy()
-    expect(await screen.findByText(/Block Height/i)).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /Block Height/i })).toBeTruthy()
   })
 })

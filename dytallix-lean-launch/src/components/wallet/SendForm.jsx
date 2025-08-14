@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { TOKENS as TOKENOMICS } from '../../tokenomics'
 
 export default function SendForm({ wallet, balances, onEstimate, onSignAndSubmit }) {
   const [token, setToken] = useState('native')
@@ -8,6 +9,8 @@ export default function SendForm({ wallet, balances, onEstimate, onSignAndSubmit
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const decimalsFor = (t) => (t === 'native' ? 6 : (TOKENOMICS[t]?.decimals || 6))
+  const factor = (t) => 10 ** decimalsFor(t)
   const max = useMemo(() => BigInt(balances?.[token] || '0'), [balances, token])
 
   useEffect(() => { setEst(null) }, [token, to, amount])
@@ -15,15 +18,17 @@ export default function SendForm({ wallet, balances, onEstimate, onSignAndSubmit
   const validate = () => {
     if (!to.startsWith('dytallix1') || to.length < 12) return 'Invalid address'
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return 'Invalid amount'
-    if (BigInt(Math.floor(Number(amount) * 1_000_000)) > max) return 'Insufficient funds'
+    if (BigInt(Math.floor(Number(amount) * factor(token))) > max) return 'Insufficient funds'
     return ''
   }
+
+  const buildAmountMicro = () => String(Math.floor(Number(amount) * factor(token)))
 
   const handleEstimate = async () => {
     const v = validate()
     if (v) { setError(v); return }
     setError('')
-    const payload = { type: 'transfer', token, to, amount: String(Math.floor(Number(amount) * 1_000_000)), from: wallet.address }
+    const payload = { type: 'transfer', token, to, amount: buildAmountMicro(), from: wallet.address }
     try {
       const e = await onEstimate(payload)
       setEst(e)
@@ -35,7 +40,7 @@ export default function SendForm({ wallet, balances, onEstimate, onSignAndSubmit
   const handleSubmit = async () => {
     const v = validate(); if (v) { setError(v); return }
     setSubmitting(true); setError('')
-    const payload = { type: 'transfer', token, to, amount: String(Math.floor(Number(amount) * 1_000_000)), from: wallet.address }
+    const payload = { type: 'transfer', token, to, amount: buildAmountMicro(), from: wallet.address }
     try {
       const { txHash } = await onSignAndSubmit(payload)
       setEst(null); setAmount(''); setTo('')
@@ -53,7 +58,7 @@ export default function SendForm({ wallet, balances, onEstimate, onSignAndSubmit
         <option value="DGT">DGT</option>
         <option value="DRT">DRT</option>
       </select>
-      <div className="muted">Available: {Number(max)/1_000_000}</div>
+      <div className="muted">Available: {Number(max)/factor(token)}</div>
       <label className="muted" htmlFor="to">To Address</label>
       <input id="to" value={to} onChange={(e) => setTo(e.target.value)} placeholder="dytallix1..." style={{ padding: 8, borderRadius: 8, border: '1px solid rgba(148,163,184,0.35)' }} />
       <label className="muted" htmlFor="amt">Amount</label>

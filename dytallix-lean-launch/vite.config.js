@@ -17,8 +17,9 @@ export default defineConfig({
     open: false,
     host: true,
     headers: {
-      // Relaxed for dev/HMR; use strict CSP in production via proxy/server
-      'Content-Security-Policy': "default-src 'self' http: https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+      // Development CSP (relaxed only where HMR requires). Production CSP applied by backend/proxy.
+      // default-src restricted to self; connect-src allows backend + websocket for HMR and Tendermint.
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http://localhost:8787; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
     },
     proxy: {
       '/api': {

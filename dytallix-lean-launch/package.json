@@ -5,20 +5,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --strictPort --port 5173",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest",
-    "test:ui": "vitest",
+    "test:ui": "playwright test --config=e2e/playwright.config.ts",
     "server": "node server/index.js",
     "start": "node server/index.js",
     "dev:full": "concurrently \"npm run server\" \"npm run dev\"",
+    "dev:test": "concurrently -k -s first \"npm:server\" \"npm:dev\" \"node e2e/run-after-delay.cjs\"",
     "e2e:staging": "playwright test --config=e2e/playwright.config.ts",
     "security:audit": "bash scripts/security_audit.sh",
-    "cosmos:demo": "node scripts/cosmos-demo.js"
+    "cosmos:demo": "node scripts/cosmos-demo.js",
+    "faucet:fund": "node scripts/fund-from-faucet.cjs"
   },
   "dependencies": {
+    "@cosmjs/crypto": "^0.35.0",
     "@cosmjs/encoding": "^0.32.4",
     "@cosmjs/proto-signing": "^0.32.4",
     "@cosmjs/stargate": "^0.32.4",
@@ -29,6 +32,7 @@
     "hash-wasm": "^4.11.0",
     "libsodium-wrappers": "^0.7.13",
     "morgan": "^1.10.0",
+    "node-fetch": "^3.3.2",
     "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -36,7 +40,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@playwright/test": "^1.46.0",
+    "@playwright/test": "^1.54.2",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.5.2",
     "@types/node": "^20.14.5",

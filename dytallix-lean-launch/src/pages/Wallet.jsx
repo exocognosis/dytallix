@@ -3,13 +3,29 @@ import '../styles/global.css'
 import { useWallet } from '../hooks/useWallet.js'
 import { useBalances } from '../hooks/useBalances.js'
 import { useTx } from '../hooks/useTx.js'
-import SendForm from '../components/wallet/SendForm.jsx'
+// import SendForm from '../components/wallet/SendForm.jsx'
+import SendTx from '../components/SendTx.jsx'
 import ReceiveModal from '../components/wallet/ReceiveModal.jsx'
-import HistoryList from '../components/wallet/HistoryList.jsx'
+// import HistoryList from '../components/wallet/HistoryList.jsx'
+import ActivityFeed from '../components/ActivityFeed.jsx'
 import SettingsCard from '../components/wallet/SettingsCard.jsx'
+import Unlock from '../components/Auth/Unlock.jsx'
+import { TOKENS as TOKENOMICS } from '../tokenomics'
 
 // Helper: sleep
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms))
+
+// Simple toast helper (UI-local)
+function useToast() {
+  const [toast, setToast] = useState(null)
+  const show = (msg, timeout = 3000) => { setToast(msg); if (timeout) setTimeout(() => setToast(null), timeout) }
+  const node = toast ? (
+    <div style={{ position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 70 }}>
+      <div className="badge badge-success" style={{ padding: '10px 12px', fontWeight: 800 }}>{toast}</div>
+    </div>
+  ) : null
+  return { show, node }
+}
 
 // UI helpers
 const formatAddr = (a) => (a?.length > 14 ? `${a.slice(0, 10)}…${a.slice(-6)}` : a || '')
@@ -47,6 +63,7 @@ const hexToBase64 = (hex) => {
 import { requestCosmosFaucet } from '../utils/faucet'
 // PQC integrity: preload and block actions if verification fails
 import { preloadAll as preloadPqcIntegrity } from '../crypto/pqc/integrity'
+import { PQC_ENABLED } from '../config/flags'
 
 const Wallet = () => {
   const [algorithm, setAlgorithm] = useState('dilithium')
@@ -55,12 +72,16 @@ const Wallet = () => {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [showReceive, setShowReceive] = useState(false)
+  const [showUnlock, setShowUnlock] = useState(false)
   // PQC integrity state
   const [pqcOk, setPqcOk] = useState(null)
   const [pqcErr, setPqcErr] = useState('')
+  // toast
+  const { show: showToast, node: toastNode } = useToast()
 
   useEffect(() => {
     let mounted = true
+    if (!PQC_ENABLED) { setPqcOk(false); setPqcErr('PQC disabled by environment flag'); return () => { mounted = false } }
     ;(async () => {
       try {
         await preloadPqcIntegrity()
@@ -84,9 +105,10 @@ const Wallet = () => {
     setError(''); setMessage('')
     try {
       if (pqcOk === false) throw new Error('PQC disabled due to integrity failure')
-      const password = prompt('Create password for keystore (min 8 chars with upper/lower/digit):')
-      if (!password) return
-      const { address } = await createWallet(algorithm, password)
+      // Inline create flow using prompt to satisfy tests and quick-create UX
+      const pwd = prompt('Set password to encrypt this key:')
+      if (!pwd) return
+      const { address } = await createWallet(algorithm, pwd)
       setMessage(`Wallet created: ${address}`)
     } catch (e) { setError(e.message || 'Failed to create wallet') }
   }
@@ -119,14 +141,31 @@ const Wallet = () => {
 
   const onEstimate = async (payload) => tx.estimate(payload)
   const onSignAndSubmit = async (payload) => {
-    if (status !== 'unlocked') {
-      const pwd = prompt('Enter password to unlock:')
-      if (!pwd) throw new Error('Unlock cancelled')
-      await unlock(pwd)
+    try {
+      const signed = await tx.sign(payload)
+      const res = await tx.submit(signed)
+      return res
+    } catch (e) {
+      const msg = String(e?.message || '').toLowerCase()
+      // If locked, prompt for password (test harness mocks prompt) and retry
+      if (msg.includes('locked') || status !== 'unlocked') {
+        try {
+          const pwd = prompt('Password to unlock wallet:')
+          if (!pwd) { setShowUnlock(true); throw new Error('Please unlock to sign') }
+          await unlock(pwd)
+          const signed = await tx.sign(payload)
+          const res = await tx.submit(signed)
+          return res
+        } catch (inner) {
+          // if still failing due to lock, surface unlock modal
+          if (String(inner?.message || '').toLowerCase().includes('lock')) setShowUnlock(true)
+          throw inner
+        }
+      }
+      // For other errors, surface unlock modal only if relevant
+      if (msg.includes('unlock')) setShowUnlock(true)
+      throw e
     }
-    const signed = await tx.sign(payload)
-    const res = await tx.submit(signed)
-    return res
   }
 
   // Cosmos Faucet funding helper
@@ -136,13 +175,25 @@ const Wallet = () => {
       if (!hasWallet) throw new Error('No wallet')
       const addr = wallet.address
       if (!/^dyt[a-z0-9]{10,}$/i.test(addr)) throw new Error('Address must be bech32 (dyt...)')
-      const res = await requestCosmosFaucet(addr)
-      setMessage(`Faucet requested: ${(res.amount ?? '')} ${(res.token ?? '')} ${res.txHash ? `tx ${String(res.txHash).slice(0,8)}…` : ''}`.trim())
+      const res = await requestCosmosFaucet(addr, 'DRT')
+      const text = `Faucet: +${res.amount ?? ''} ${res.token ?? ''} ${res.txHash ? `tx ${String(res.txHash).slice(0,8)}…` : ''}`.trim()
+      setMessage(text)
+      showToast(text, 3000)
       // give network a couple seconds then refresh balances
       setTimeout(() => { try { refreshBalances() } catch {} }, 2500)
     } catch (e) {
       setError(e?.message || 'Faucet request failed')
     }
+  }
+
+  const formatDisplay = (symbol, raw) => {
+    if (symbol === 'DYL') {
+      const nativeFactor = 10 ** 6
+      return (Number(raw)/nativeFactor).toString()
+    }
+    const meta = TOKENOMICS[symbol]
+    const denomFactor = 10 ** (meta?.decimals || 6)
+    return (Number(raw)/denomFactor).toString()
   }
 
   const overviewCards = (
@@ -153,8 +204,8 @@ const Wallet = () => {
       {/* PQC warning banner if integrity failed */}
       {pqcOk === false && (
         <div className="card" style={{ gridColumn: '1 / -1', borderColor: 'rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)' }}>
-          <div style={{ fontWeight: 700, color: '#ef4444' }}>PQC Integrity Check Failed</div>
-          <div className="muted">{pqcErr || 'One or more WASM modules failed verification. PQC actions are disabled.'}</div>
+          <div style={{ fontWeight: 700, color: '#ef4444' }}>PQC {PQC_ENABLED ? 'Integrity Check Failed' : 'Disabled'}</div>
+          <div className="muted">{pqcErr || (PQC_ENABLED ? 'One or more WASM modules failed verification. PQC actions are disabled.' : 'Environment flag disabled PQC features.')}</div>
         </div>
       )}
 
@@ -196,21 +247,39 @@ const Wallet = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
           <div className="card" style={{ borderColor: 'rgba(59,130,246,0.25)' }}>
             <div className="muted">DYL (Native)</div>
-            <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{Number(balances.native)/1_000_000}</div>
+            <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{formatDisplay('DYL', balances.native)}</div>
           </div>
           <div className="card" style={{ borderColor: 'rgba(59,130,246,0.25)' }}>
             <div className="muted">DGT (Governance)</div>
-            <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{Number(balances.DGT)/1_000_000}</div>
+            <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{formatDisplay('DGT', balances.DGT)}</div>
           </div>
           <div className="card" style={{ borderColor: 'rgba(16,185,129,0.28)' }}>
             <div className="muted">DRT (Rewards)</div>
-            <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{Number(balances.DRT)/1_000_000}</div>
+            <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{formatDisplay('DRT', balances.DRT)}</div>
           </div>
         </div>
         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
           <button className="btn" onClick={() => hasWallet && refreshBalances()} disabled={!hasWallet}>Refresh</button>
           <button className="btn" onClick={() => setShowReceive(true)} disabled={!hasWallet}>Receive</button>
-          <a className="btn" href="/faucet">Faucet</a>
+          {/* Replace Link with a router-agnostic navigation button to avoid Router context issues in tests */}
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              try {
+                if (typeof window !== 'undefined') {
+                  if (window.history && typeof window.history.pushState === 'function') {
+                    window.history.pushState({}, '', '/faucet')
+                    window.dispatchEvent(new PopStateEvent('popstate'))
+                  } else {
+                    window.location.hash = '#/faucet'
+                  }
+                }
+              } catch {}
+            }}
+          >
+            Faucet
+          </button>
           {/* New Cosmos faucet trigger */}
           <button className="btn" onClick={handleCosmosFaucet} disabled={!hasWallet}>Fund via Faucet</button>
         </div>
@@ -277,7 +346,7 @@ const Wallet = () => {
             {status === 'unlocked' ? (
               <button className="btn" onClick={lock}>Lock</button>
             ) : (
-              <button className="btn" onClick={async () => { const p = prompt('Password'); if (!p) return; try { await unlock(p) } catch (e) { setError(e.message) } }}>Unlock</button>
+              <button className="btn" onClick={() => setShowUnlock(true)}>Unlock</button>
             )}
             <button className="btn" onClick={() => setConfirmDelete(true)} style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#ef4444' }}>
               Delete Wallet
@@ -318,12 +387,12 @@ const Wallet = () => {
         {/* Send Form */}
         <div style={{ height: 16 }} />
         {hasWallet && (
-          <SendForm wallet={wallet} balances={balances} onEstimate={onEstimate} onSignAndSubmit={onSignAndSubmit} />
+          <SendTx wallet={wallet} balances={balances} onEstimate={onEstimate} onSignAndSubmit={onSignAndSubmit} />
         )}
 
-        {/* Transaction History */}
+        {/* Activity Feed with Live Height */}
         <div style={{ height: 16 }} />
-        {hasWallet && <HistoryList address={wallet.address} />}
+        {hasWallet && <ActivityFeed address={wallet.address} onNewBlock={() => { try { refreshBalances() } catch {} }} />}
 
         <div style={{ height: 16 }} />
         <SettingsCard onExport={exportKeystore} onChangePassword={changePassword} onForget={() => setConfirmDelete(true)} />
@@ -341,6 +410,20 @@ const Wallet = () => {
               <button className="btn" onClick={() => setShowExport(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleExport}>Download</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unlock Modal */}
+      {showUnlock && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 60 }}>
+          <div className="card" style={{ maxWidth: 520, width: '100%' }}>
+            <Unlock
+              isLocked={status !== 'unlocked'}
+              onUnlock={async (pwd) => { await unlock(pwd); setShowUnlock(false) }}
+              onCreate={async (pwd) => { const { address } = await createWallet(algorithm, pwd); setShowUnlock(false); setMessage(`Wallet created: ${address}`) }}
+              onLock={() => { lock(); setShowUnlock(false) }}
+            />
           </div>
         </div>
       )}
@@ -363,6 +446,8 @@ const Wallet = () => {
           </div>
         </div>
       )}
+
+      {toastNode}
     </div>
   )
 }

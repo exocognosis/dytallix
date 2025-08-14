@@ -7,63 +7,57 @@ dotenv.config({ path: '.env.staging', override: false });
 const faucetUrl = process.env.FAUCET_URL || '';
 const testMnemonic = process.env.TEST_MNEMONIC || '';
 const chainIdEnv = process.env.VITE_CHAIN_ID || '';
+const TEST_DENOM_BASE = process.env.TEST_DENOM_BASE || 'uDGT'; // default governance token
+const ALT_TEST_DENOM_BASE = process.env.ALT_TEST_DENOM_BASE || 'uDRT';
 
-// New env check (runtime skip only if mnemonic entirely absent)
-const words = testMnemonic.trim().split(/\s+/).filter(Boolean);
-console.log('E2E ENV CHECK',
-  'words=', words.length,
-  'url=', process.env.APP_URL,
-  'lcd=', process.env.VITE_LCD_HTTP_URL,
-  'faucet=', process.env.FAUCET_URL,
-  'hrp=', process.env.BECH32_PREFIX,
-  'chain=', process.env.VITE_CHAIN_ID
-);
-if (words.length === 0) {
-  console.warn('TEST_MNEMONIC missing; e2e skipped');
-  test.skip(true);
+const isPlaceholder = /REPLACE/i.test(testMnemonic);
+const wordCount = testMnemonic.trim().split(/\s+/).filter(Boolean).length;
+const isValidMnemonic = !isPlaceholder && (wordCount === 12 || wordCount === 24);
+
+if (!isValidMnemonic) {
+  console.warn('TEST_MNEMONIC not provided or invalid; e2e tests will be skipped');
 }
 
-// Helper to request faucet
-async function requestFaucet(address: string) {
+// Helper to request faucet for a specific token symbol inferred from denom
+async function requestFaucet(address: string, baseDenom: string) {
   if (!faucetUrl) throw new Error('FAUCET_URL not set');
-  const res = await fetch(faucetUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address }) });
+  const token = baseDenom === 'uDGT' ? 'DGT' : baseDenom === 'uDRT' ? 'DRT' : '';
+  if (!token) throw new Error('Unsupported test denom');
+  const res = await fetch(faucetUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address, token }) });
   if (!res.ok) throw new Error('Faucet request failed');
   return res.json();
 }
 
-// Single test covering lifecycle
-test('wallet balance -> faucet -> tx lifecycle', async () => {
-  // 1. Initial balance snapshot
+async function getAmountFor(addr: string, denom: string) {
+  const bals = await getBalances(addr);
+  return BigInt(bals.find(b => b.denom === denom)?.amount || '0');
+}
+
+async function runLifecycle(baseDenom: string) {
   const walletAddr = (await (await import('../utils/cosmos')).buildWallet(testMnemonic)).getAccounts().then(a=>a[0].address);
   const address = await walletAddr;
-  const initial = await getBalances(address);
-  console.log('Initial balances', initial);
+  const initialAmt = await getAmountFor(address, baseDenom);
 
-  // Validate chain id
+  // Chain id consistency
   const onChainId = await getChainId();
   expect(onChainId).toBe(chainIdEnv);
-
   const h0 = await getLatestHeight();
 
-  // 2. Faucet request
-  await requestFaucet(address);
-  // Wait for balance increase
-  let afterFaucet;
-  for (let i=0;i<20;i++) {
-    afterFaucet = await getBalances(address);
-    const initAmt = initial.find(b=>b.denom==='udrt')?.amount || '0';
-    const aftAmt = afterFaucet.find(b=>b.denom==='udrt')?.amount || '0';
-    if (BigInt(aftAmt) > BigInt(initAmt)) break;
+  // Faucet fund
+  await requestFaucet(address, baseDenom);
+  let fundedAmt = initialAmt;
+  for (let i=0;i<25;i++) {
+    fundedAmt = await getAmountFor(address, baseDenom);
+    if (fundedAmt > initialAmt) break;
     await new Promise(r=>setTimeout(r, 2000));
   }
-  expect(BigInt(afterFaucet!.find(b=>b.denom==='udrt')?.amount || '0')).toBeGreaterThan(BigInt(initial.find(b=>b.denom==='udrt')?.amount || '0'));
+  expect(fundedAmt).toBeGreaterThan(initialAmt);
 
-  // 3. Send a tx to self
+  // Self transfer 1 micro-unit for simplicity (use DRT denom for fee if needed inside sendTokens util)
   const sendRes = await sendTokens(testMnemonic, address, '1');
   const txHash = sendRes.transactionHash;
   expect(txHash).toBeTruthy();
 
-  // 4. Subscribe WS for tx + new block while polling LCD
   const subPromise = subscribeTxAndBlocks(txHash);
   const txResult = await waitForTx(txHash);
   const wsRes = await subPromise;
@@ -74,9 +68,18 @@ test('wallet balance -> faucet -> tx lifecycle', async () => {
   const h1 = await getLatestHeight();
   expect(h1).toBeGreaterThanOrEqual(h0);
 
-  // 5. Final balance delta
-  const finalBalances = await getBalances(address);
-  const initialAmt = BigInt(initial.find(b=>b.denom==='udrt')?.amount || '0');
-  const finalAmt = BigInt(finalBalances.find(b=>b.denom==='udrt')?.amount || '0');
-  expect(finalAmt).toBeLessThan(BigInt(afterFaucet!.find(b=>b.denom==='udrt')?.amount || '0')); // spent fees+1
+  const finalAmt = await getAmountFor(address, baseDenom);
+  expect(finalAmt).toBeLessThan(fundedAmt); // fee spent
+}
+
+// Primary test (governance token)
+(isValidMnemonic ? test : test.skip)(`wallet lifecycle faucet -> tx (${TEST_DENOM_BASE})`, async () => {
+  await runLifecycle(TEST_DENOM_BASE);
 });
+
+// Optional secondary test (rewards token) if env flag provided
+if (process.env.RUN_DRT_TEST === '1') {
+  (isValidMnemonic ? test : test.skip)(`wallet lifecycle faucet -> tx (${ALT_TEST_DENOM_BASE})`, async () => {
+    await runLifecycle(ALT_TEST_DENOM_BASE);
+  });
+}

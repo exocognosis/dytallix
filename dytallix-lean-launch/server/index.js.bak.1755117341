@@ -30,10 +30,8 @@ const ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:5173'
 const COOLDOWN_MIN = parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10)
 const ENABLE_SEC_HEADERS = process.env.ENABLE_SEC_HEADERS === '1'
 const ENABLE_CSP = process.env.ENABLE_CSP === '1' || ENABLE_SEC_HEADERS
-const BECH32_PREFIX = process.env.CHAIN_PREFIX || process.env.BECH32_PREFIX || 'dytallix'
-// Load tokenomics metadata (non-fatal if missing)
-let tokenomicsMeta = null
-try { tokenomicsMeta = JSON.parse(await import('fs').then(m=>m.readFileSync(new URL('./tokenomics.json', import.meta.url), 'utf8')) ) } catch { tokenomicsMeta = null }
+const BECH32_PREFIX = process.env.CHAIN_PREFIX || 'dytallix'
+const RPC_HTTP = (process.env.RPC_HTTP_URL || process.env.RPC_URL || process.env.VITE_RPC_HTTP_URL || '').replace(/\/$/, '')
 
 // Collect external connectivity exceptions for CSP connect-src
 function collectConnectSrc() {
@@ -211,13 +209,6 @@ app.post('/api/faucet', async (req, res, next) => {
       throw err
     }
 
-    // Optional: reject if prefix mismatch vs loaded tokenomics file requirement
-    if (process.env.ENFORCE_PREFIX === '1' && !cleanAddress.startsWith(`${BECH32_PREFIX}1`)) {
-      const err = new Error('PREFIX_MISMATCH')
-      err.status = 400
-      throw err
-    }
-
     assertNotLimited(ip, cleanAddress, cleanToken, COOLDOWN_MIN)
 
     const { hash } = await transfer({ token: cleanToken, to: cleanAddress })
@@ -246,7 +237,7 @@ function rateCheck(ip, key) {
   }
   b.count++
   aiRate.store.set(bucketKey, b)
-  if (b.count > b.max) {
+  if (b.count > aiRate.MAX_PER_WINDOW) {
     const e = new Error('RATE_LIMITED')
     e.status = 429
     e.retryAfter = Math.ceil((b.reset - now)/1000)
