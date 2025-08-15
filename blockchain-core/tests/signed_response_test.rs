@@ -2,7 +2,7 @@ use anyhow::Result;
 use dytallix_node::consensus::{
     SignedAIOracleResponse, AIResponseSignature, OracleIdentity, OracleCertificate,
     AIResponsePayload, AIServiceType, SignatureMetadata, VerificationData,
-    TimestampProof
+    TimestampProof, ResponseStatus
 };
 use dytallix_pqc::SignatureAlgorithm;
 use std::time::Duration;
