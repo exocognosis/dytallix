@@ -1,0 +1,57 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+
+# Coverage
+coverage
+
+# Git
+.git
+.gitignore
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs
+
+# OS files
+.DS_Store
+
+# Vite cache
+.vite
+
+# Development certificates
+*.pem
+
+# Temporary folders
+tmp
+temp
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Cache directories
+.cache
+.parcel-cache
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock

@@ -1,216 +1,138 @@
-# Dytallix Lean Launch Frontend
+# Dytallix Lean Launch - MV Testnet Environment
 
-A React-based frontend application for the Dytallix post-quantum blockchain lean launch. This developer-focused website showcases the platform's capabilities, provides access to testnet resources, and demonstrates AI-enhanced security features.
+This repository contains the "lean launch" environment for the Dytallix mv-testnet workstream. It provides a standardized monorepo structure for developing, testing, and deploying the React-based frontend application and supporting API services for the Dytallix blockchain platform.
 
-## 🚀 Quick Start
+## Project Purpose
 
-### Prerequisites
+The dytallix-lean-launch environment serves as the development and testing hub for the mv-testnet branch, featuring:
+- Post-quantum secure blockchain frontend development
+- Testnet faucet and explorer interfaces  
+- AI-powered transaction analysis demos
+- Streamlined deployment workflows
 
-- Node.js (v16 or higher)
-- npm or yarn package manager
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/HisMadRealm/dytallix.git
-cd dytallix/dytallix-lean-launch
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the development server:
-```bash
-npm run dev
-```
-
-4. Open your browser to `http://localhost:3000`
-
-## 📦 Available Scripts
-
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint to check code quality
-
-## 🏗️ Project Structure
+## Directory Structure
 
 ```
 dytallix-lean-launch/
-├── public/
-│   ├── index.html          # Main HTML template
-│   └── favicon.ico         # Site favicon
-├── src/
-│   ├── pages/              # Main application pages
-│   │   ├── Home.jsx        # Landing page
-│   │   ├── Faucet.jsx      # Testnet faucet
-│   │   ├── TechSpecs.jsx   # Technical specifications
-│   │   ├── Modules.jsx     # AI module demos
-│   │   ├── Roadmap.jsx     # Development roadmap
-│   │   └── DevResources.jsx # Developer resources
-│   ├── components/         # Reusable UI components
-│   │   ├── Navbar.jsx      # Navigation bar
-│   │   ├── Footer.jsx      # Page footer
-│   │   ├── FaucetForm.jsx  # Token request form
-│   │   ├── AnomalyDemo.jsx # Transaction anomaly detection demo
-│   │   └── ContractScannerDemo.jsx # Smart contract security scanner
-│   ├── styles/             # CSS modules for styling
-│   │   ├── global.css      # Global styles and utilities
-│   │   ├── Home.module.css # Home page specific styles
-│   │   ├── Navbar.module.css # Navigation styles
-│   │   ├── Footer.module.css # Footer styles
-│   │   └── FaucetForm.module.css # Faucet form styles
-│   ├── lib/                # Utility libraries
-│   │   └── api.js          # API helper functions
-│   ├── data/               # Mock data and examples
-│   │   ├── mockTxLogs.json # Sample transaction logs
-│   │   └── exampleContract.sol # Example smart contract
-│   ├── assets/             # Static assets
-│   │   └── logo.png        # Platform logo
-│   ├── App.jsx             # Main application component
-│   └── main.jsx            # React application entry point
+├── node/                   # Blockchain node configuration and scripts
+├── faucet/                 # Testnet faucet service and interfaces
+├── explorer/               # Blockchain explorer components
+├── web/                    # Web application assets and configurations
+├── src/                    # React frontend source code (preserved)
+├── server/                 # API server implementations (preserved)
+├── ops/                    # Operations and deployment scripts
+├── scripts/                # Utility and automation scripts
+├── docs/                   # Project documentation and guides
+├── reports/                # Testing and analysis reports
+├── artifacts/              # Build artifacts and generated outputs
 ├── package.json            # Project dependencies and scripts
-├── vite.config.js          # Vite build configuration
+├── .env.example            # Environment configuration template
 └── README.md              # This file
 ```
 
-## 🎯 Features
+## Quick Start
 
-### Pages & Functionality
+### Devnet Development
 
-- **Home Page**: Platform overview with key features and statistics
-- **Faucet**: Request testnet DYTX tokens for development
-- **Tech Specs**: Detailed technical specifications and architecture
-- **AI Modules**: Interactive demos of AI-powered security features
-- **Roadmap**: Development timeline and future plans
-- **Developer Resources**: Links to tools, documentation, and community
+1. **Clone and Setup**
+   ```bash
+   git clone https://github.com/HisMadRealm/dytallix.git
+   cd dytallix/dytallix-lean-launch
+   ```
 
-### AI Demonstrations
+2. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
-- **Transaction Anomaly Detection**: Analyze transactions for suspicious patterns
-- **Smart Contract Scanner**: Automated security vulnerability scanning
-- **Real-time Analysis**: Interactive demos with mock AI processing
+3. **Environment Configuration**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your local configuration
+   ```
 
-### Technical Features
+4. **Start Local Services**
+   ```bash
+   # Start development server
+   npm run dev
+   
+   # In separate terminals, start supporting services:
+   # - Blockchain node (if running locally)
+   # - API server (if applicable)
+   ```
 
-- **React + JavaScript**: Modern React application without TypeScript
-- **CSS Modules**: Scoped styling for maintainable CSS
-- **React Router**: Client-side routing for single-page application
-- **Vite**: Fast development server and optimized builds
-- **Responsive Design**: Mobile-friendly responsive layout
-- **Mock APIs**: Simulated backend responses for development
+5. **Access Applications**
+   - **Frontend Dashboard**: http://localhost:3000
+   - **API Services**: http://localhost:3030 (if configured)
 
-## 🔧 Configuration
+### Testnet (mv-testnet branch) Usage
 
-### Environment Variables
+1. **Switch to mv-testnet branch**
+   ```bash
+   git checkout mv-testnet
+   ```
 
-Create a `.env` file in the root directory for custom configuration:
+2. **Deploy or Connect to Remote Testnet**
+   ```bash
+   # Configure .env for testnet endpoints
+   REACT_APP_API_BASE_URL=https://api.testnet.dytallix.com
+   REACT_APP_NODE_URL=https://node.testnet.dytallix.com
+   ```
 
-```env
-# API Base URL (optional, defaults to testnet)
-REACT_APP_API_BASE_URL=https://api.testnet.dytallix.com
+3. **Build for Testnet**
+   ```bash
+   npm run build
+   ```
 
-# Enable development features
-REACT_APP_DEV_MODE=true
-```
+## Branching Model
 
-### Build Configuration
+- **Long-lived mv-testnet branch**: Primary development branch for testnet features
+- **Feature branches**: Created from mv-testnet for specific features (`feature/feature-name`)
+- **Pull Requests**: Target mv-testnet for feature integration
+- **Periodic Merges**: Stable mv-testnet changes merged to main when ready
 
-The Vite configuration includes:
-- CSS Modules with automatic class name generation
-- Development server on port 3000
-- Production build optimization
-- Source maps for debugging
-
-## 🎨 Styling
-
-This project uses CSS Modules for component-specific styling and a global stylesheet for shared utilities. The design system includes:
-
-- **Color Palette**: Blue (#3b82f6) and purple (#8b5cf6) gradients
-- **Typography**: System font stack with proper sizing scales
-- **Layout**: Flexbox and CSS Grid for responsive layouts
-- **Components**: Card-based design with hover effects and shadows
-
-### CSS Module Usage
-
-```jsx
-import styles from './Component.module.css'
-
-function Component() {
-  return <div className={styles.container}>Content</div>
-}
-```
-
-## 🔌 API Integration
-
-The application includes a mock API layer (`src/lib/api.js`) that simulates:
-
-- Faucet token requests
-- Transaction analysis
-- Smart contract scanning
-- Network statistics
-
-Replace mock implementations with actual API calls when backend services are available.
-
-## 🚀 Deployment
-
-### Production Build
-
+### Branch Workflow
 ```bash
-npm run build
+# Create feature branch from mv-testnet
+git checkout mv-testnet
+git pull origin mv-testnet
+git checkout -b feature/new-feature
+
+# Development and testing
+# ...
+
+# Create PR targeting mv-testnet
+git push origin feature/new-feature
+# Open PR: feature/new-feature → mv-testnet
 ```
 
-The build output will be in the `dist/` directory, ready for deployment to any static hosting service.
+## CHANGELOG Policy
 
-### Deployment Options
+This repository maintains a **mv-testnet scoped CHANGELOG** in `CHANGELOG.md`. All notable changes for the mv-testnet workstream are documented following the [Keep a Changelog](https://keepachangelog.com/) format.
 
-- **Vercel**: Zero-config deployment with Git integration
-- **Netlify**: Drag-and-drop deployment with continuous deployment
-- **GitHub Pages**: Free hosting for open-source projects
-- **AWS S3**: Scalable static website hosting
+### Adding Entries
+- Add new entries under `## [Unreleased]` section
+- Use semantic versioning for releases
+- Include date in YYYY-MM-DD format
+- Categorize changes: Added, Changed, Deprecated, Removed, Fixed, Security
 
-## 🤝 Contributing
+## Security & Integrity
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/new-feature`
-3. Make your changes and commit: `git commit -m "Add new feature"`
-4. Push to the branch: `git push origin feature/new-feature`
-5. Submit a pull request
+**⚠️ Important Security Notice**
+- **Never commit secrets**: Keep `.env` files local only
+- **Use .env.example**: Template for environment configuration
+- **No private keys**: Avoid committing mnemonics, private keys, or sensitive data
+- **Review commits**: Always review changes before pushing
 
-## 📝 Development Guidelines
+## Available Scripts
 
-- Use functional components with React hooks
-- Follow CSS Modules naming conventions
-- Keep components small and focused
-- Add proper error handling for user interactions
-- Ensure responsive design across device sizes
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build for production deployment
+- `npm run preview` - Preview production build locally
+- `npm run lint` - Run ESLint to check code quality
 
-## 🐛 Troubleshooting
+## Documentation
 
-### Common Issues
-
-1. **Port already in use**: Change the port in `vite.config.js`
-2. **Build failures**: Ensure all dependencies are installed
-3. **Styling issues**: Check CSS Module import paths
-4. **API errors**: Verify mock API implementations
-
-### Getting Help
-
-- Check the [GitHub Issues](https://github.com/HisMadRealm/dytallix/issues)
-- Join our [Discord community](https://discord.gg/dytallix)
-- Read the [documentation](https://docs.dytallix.com)
-
-## 📄 License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
-
-## 🔗 Links
-
-- [Dytallix Website](https://dytallix.com)
-- [Documentation](https://docs.dytallix.com)
-- [GitHub Repository](https://github.com/HisMadRealm/dytallix)
-- [Discord Community](https://discord.gg/dytallix)
-- [Testnet Explorer](https://testnet.dytallix.com)
+Extended frontend-specific documentation and legacy content has been migrated to the `docs/` directory. For historical README versions and detailed component documentation, see:
+- `docs/legacy-frontend-readme.md` - Previous README content
+- `docs/` - Additional project documentation
