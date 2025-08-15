@@ -389,14 +389,14 @@ mod tests {
 
         assert_eq!(identity.reputation_score, 0.5);
 
-        identity.update_reputation(0.9);
+        identity.update_reputation_mut(0.9);
         assert_eq!(identity.reputation_score, 0.9);
 
         // Test clamping
-        identity.update_reputation(1.5);
+        identity.update_reputation_mut(1.5);
         assert_eq!(identity.reputation_score, 1.0);
 
-        identity.update_reputation(-0.1);
+        identity.update_reputation_mut(-0.1);
         assert_eq!(identity.reputation_score, 0.0);
     }
 

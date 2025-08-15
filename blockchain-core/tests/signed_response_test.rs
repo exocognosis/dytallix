@@ -262,11 +262,13 @@ async fn test_signed_response_summary() -> Result<()> {
         vec![1, 2, 3],
     );
 
+    // Use a far future time to ensure the response is always fresh
+    let future_time = chrono::Utc::now().timestamp() as u64 + 3600; // 1 hour from now
     let signed_response = SignedAIOracleResponse::new(
         ai_response,
         signature,
         555444333,
-        chrono::Utc::now().timestamp() as u64 + 1200,
+        future_time,
         oracle,
     );
 

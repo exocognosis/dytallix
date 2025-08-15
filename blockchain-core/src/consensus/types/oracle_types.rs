@@ -321,8 +321,14 @@ impl OracleIdentity {
         self.reputation_score
     }
 
-    /// Update reputation score in-place (backward compatibility)
-    pub fn update_reputation(&mut self, score: f64) {
+    /// Update reputation score (backward compatibility - returns updated instance)
+    pub fn update_reputation(mut self, score: f64) -> Self {
+        self.reputation_score = score.clamp(0.0, 1.0);
+        self
+    }
+
+    /// Update reputation score in-place (for mutable references)
+    pub fn update_reputation_mut(&mut self, score: f64) {
         self.reputation_score = score.clamp(0.0, 1.0);
     }
 
@@ -429,6 +435,13 @@ impl SignedAIOracleResponse {
     /// Check if the response is fresh (not expired)
     pub fn is_fresh(&self) -> bool {
         !self.is_expired()
+    }
+
+    /// Check if the signature is verified (placeholder - actual verification would be complex)
+    pub fn is_verified(&self) -> bool {
+        // In a real implementation, this would verify the signature cryptographically
+        // For now, return false as a placeholder
+        false
     }
 
     /// Get seconds until expiration
