@@ -169,16 +169,28 @@ mod tests {
     fn test_oracle_identity_creation() {
         let identity = OracleIdentity::new(
             "oracle_1".to_string(),
-            vec![1, 2, 3, 4],
             "Test Oracle".to_string(),
-            "http://oracle.example.com".to_string(),
-            vec![AIServiceType::FraudDetection, AIServiceType::RiskScoring]
+            vec![1, 2, 3, 4],
+            SignatureAlgorithm::Dilithium5,
         );
 
-        assert_eq!(identity.id, "oracle_1");
+        assert_eq!(identity.oracle_id, "oracle_1");
         assert_eq!(identity.name, "Test Oracle");
-        assert!(identity.supports_service(&AIServiceType::FraudDetection));
-        assert!(!identity.supports_service(&AIServiceType::KYC));
+        // Note: supports_service requires setting supported_services field
+        // For this test, we'll create a new oracle with services
+        let identity_with_services = OracleIdentity::new(
+            "oracle_1".to_string(),
+            "Test Oracle".to_string(),
+            vec![1, 2, 3, 4],
+            SignatureAlgorithm::Dilithium5,
+        );
+        
+        // Create an oracle with services for testing
+        let mut oracle_with_services = identity_with_services;
+        oracle_with_services.supported_services = Some(vec![AIServiceType::FraudDetection, AIServiceType::RiskScoring]);
+        
+        assert!(oracle_with_services.supports_service(&AIServiceType::FraudDetection));
+        assert!(!oracle_with_services.supports_service(&AIServiceType::KYC));
     }
 
     #[test]
@@ -248,17 +260,16 @@ mod tests {
         );
 
         let signature = AIResponseSignature::new(
+            SignatureAlgorithm::Dilithium5,
             vec![1, 2, 3, 4],
-            dytallix_pqc::SignatureAlgorithm::Dilithium5,
             vec![5, 6, 7, 8]
         );
 
         let oracle_identity = OracleIdentity::new(
             "oracle_1".to_string(),
-            vec![5, 6, 7, 8],
             "Test Oracle".to_string(),
-            "http://oracle.example.com".to_string(),
-            vec![AIServiceType::RiskScoring]
+            vec![5, 6, 7, 8],
+            SignatureAlgorithm::Dilithium5,
         );
 
         let signed_response = SignedAIOracleResponse::new(
@@ -268,7 +279,7 @@ mod tests {
         );
 
         assert!(!signed_response.is_verified());
-        assert_eq!(signed_response.oracle_identity.id, "oracle_1");
+        assert_eq!(signed_response.oracle_identity.oracle_id, "oracle_1");
     }
 
     #[test]
@@ -352,14 +363,13 @@ mod tests {
     fn test_oracle_identity_activity_tracking() {
         let mut identity = OracleIdentity::new(
             "oracle_1".to_string(),
-            vec![1, 2, 3, 4],
             "Test Oracle".to_string(),
-            "http://oracle.example.com".to_string(),
-            vec![AIServiceType::FraudDetection]
+            vec![1, 2, 3, 4],
+            SignatureAlgorithm::Dilithium5,
         );
 
         // Set last activity to 2 hours ago
-        identity.last_activity = (chrono::Utc::now().timestamp() - 7200) as u64;
+        identity.last_activity = Some((chrono::Utc::now().timestamp() - 7200) as u64);
 
         assert!(identity.inactive_seconds() >= 7200);
         assert!(identity.is_inactive());
@@ -372,35 +382,34 @@ mod tests {
     fn test_oracle_reputation_updates() {
         let mut identity = OracleIdentity::new(
             "oracle_1".to_string(),
-            vec![1, 2, 3, 4],
             "Test Oracle".to_string(),
-            "http://oracle.example.com".to_string(),
-            vec![AIServiceType::FraudDetection]
+            vec![1, 2, 3, 4],
+            SignatureAlgorithm::Dilithium5,
         );
 
-        assert_eq!(identity.reputation, 0.5);
+        assert_eq!(identity.reputation_score, 0.5);
 
         identity.update_reputation(0.9);
-        assert_eq!(identity.reputation, 0.9);
+        assert_eq!(identity.reputation_score, 0.9);
 
         // Test clamping
         identity.update_reputation(1.5);
-        assert_eq!(identity.reputation, 1.0);
+        assert_eq!(identity.reputation_score, 1.0);
 
         identity.update_reputation(-0.1);
-        assert_eq!(identity.reputation, 0.0);
+        assert_eq!(identity.reputation_score, 0.0);
     }
 
     #[test]
     fn test_signature_age_calculation() {
         let mut signature = AIResponseSignature::new(
+            SignatureAlgorithm::Dilithium5,
             vec![1, 2, 3, 4],
-            dytallix_pqc::SignatureAlgorithm::Dilithium5,
             vec![5, 6, 7, 8]
         );
 
         // Set timestamp to 10 minutes ago
-        signature.timestamp = (chrono::Utc::now().timestamp() - 600) as u64;
+        signature.signature_timestamp = (chrono::Utc::now().timestamp() - 600) as u64;
 
         assert_eq!(signature.age_seconds(), 600);
         assert!(!signature.is_fresh());
