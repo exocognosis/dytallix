@@ -55,20 +55,23 @@ impl TestSignatureVerifier {
             nonce_cache: Arc::new(RwLock::new(HashMap::new())),
         }
     }
-    
+
     pub async fn register_oracle(&self, oracle: TestOracleRegistryEntry) -> Result<()> {
         let mut registry = self.oracle_registry.write().await;
         registry.insert(oracle.oracle_id.clone(), oracle);
         Ok(())
     }
-    
-    pub async fn verify_signed_response(&self, response: &TestSignedAIOracleResponse) -> Result<bool> {
+
+    pub async fn verify_signed_response(
+        &self,
+        response: &TestSignedAIOracleResponse,
+    ) -> Result<bool> {
         // Check if oracle is registered
         let registry = self.oracle_registry.read().await;
         if !registry.contains_key(&response.oracle_id) {
             return Ok(false);
         }
-        
+
         // Check nonce for replay protection
         let mut nonce_cache = self.nonce_cache.write().await;
         let cache_key = format!("{}:{}", response.oracle_id, response.nonce);
@@ -76,12 +79,12 @@ impl TestSignatureVerifier {
             return Ok(false); // Nonce already used
         }
         nonce_cache.insert(cache_key, response.nonce);
-        
+
         // In a real implementation, this would verify the PQC signature
         // For the test, we'll just return true to test the flow
         Ok(true)
     }
-    
+
     pub async fn get_oracle_count(&self) -> usize {
         let registry = self.oracle_registry.read().await;
         registry.len()
@@ -101,15 +104,17 @@ impl TestAIIntegrationManager {
             require_ai_verification,
         }
     }
-    
+
     pub async fn register_oracle(&self, oracle: TestOracleRegistryEntry) -> Result<()> {
         self.signature_verifier.register_oracle(oracle).await
     }
-    
+
     pub async fn verify_ai_response(&self, response: &TestSignedAIOracleResponse) -> Result<bool> {
-        self.signature_verifier.verify_signed_response(response).await
+        self.signature_verifier
+            .verify_signed_response(response)
+            .await
     }
-    
+
     pub async fn get_oracle_count(&self) -> usize {
         self.signature_verifier.get_oracle_count().await
     }
@@ -119,9 +124,9 @@ impl TestAIIntegrationManager {
 #[tokio::test]
 async fn test_signature_verification_basic_flow() -> Result<()> {
     println!("Testing basic signature verification flow...");
-    
+
     let verifier = TestSignatureVerifier::new();
-    
+
     // Register a test oracle
     let oracle = TestOracleRegistryEntry {
         oracle_id: "test-oracle-1".to_string(),
@@ -133,10 +138,10 @@ async fn test_signature_verification_basic_flow() -> Result<()> {
         failed_requests: 1,
         is_active: true,
     };
-    
+
     verifier.register_oracle(oracle).await?;
     assert_eq!(verifier.get_oracle_count().await, 1);
-    
+
     // Create a test signed response
     let response = TestSignedAIOracleResponse {
         response: TestAIResponsePayload {
@@ -158,15 +163,15 @@ async fn test_signature_verification_basic_flow() -> Result<()> {
         oracle_id: "test-oracle-1".to_string(),
         nonce: 12345,
     };
-    
+
     // Verify the response
     let is_valid = verifier.verify_signed_response(&response).await?;
     assert!(is_valid, "Response should be valid");
-    
+
     // Test replay protection
     let is_valid_replay = verifier.verify_signed_response(&response).await?;
     assert!(!is_valid_replay, "Replay should be rejected");
-    
+
     println!("✓ Basic signature verification test passed");
     Ok(())
 }
@@ -174,9 +179,9 @@ async fn test_signature_verification_basic_flow() -> Result<()> {
 #[tokio::test]
 async fn test_ai_integration_manager() -> Result<()> {
     println!("Testing AI integration manager...");
-    
+
     let manager = TestAIIntegrationManager::new(true);
-    
+
     // Register oracle
     let oracle = TestOracleRegistryEntry {
         oracle_id: "test-oracle-2".to_string(),
@@ -188,10 +193,10 @@ async fn test_ai_integration_manager() -> Result<()> {
         failed_requests: 5,
         is_active: true,
     };
-    
+
     manager.register_oracle(oracle).await?;
     assert_eq!(manager.get_oracle_count().await, 1);
-    
+
     // Create signed response
     let response = TestSignedAIOracleResponse {
         response: TestAIResponsePayload {
@@ -214,11 +219,11 @@ async fn test_ai_integration_manager() -> Result<()> {
         oracle_id: "test-oracle-2".to_string(),
         nonce: 67890,
     };
-    
+
     // Verify response
     let is_valid = manager.verify_ai_response(&response).await?;
     assert!(is_valid, "Response should be valid");
-    
+
     println!("✓ AI integration manager test passed");
     Ok(())
 }
@@ -226,9 +231,9 @@ async fn test_ai_integration_manager() -> Result<()> {
 #[tokio::test]
 async fn test_unregistered_oracle_rejection() -> Result<()> {
     println!("Testing unregistered oracle rejection...");
-    
+
     let verifier = TestSignatureVerifier::new();
-    
+
     // Try to verify response from unregistered oracle
     let response = TestSignedAIOracleResponse {
         response: TestAIResponsePayload {
@@ -247,10 +252,10 @@ async fn test_unregistered_oracle_rejection() -> Result<()> {
         oracle_id: "unregistered-oracle".to_string(),
         nonce: 11111,
     };
-    
+
     let is_valid = verifier.verify_signed_response(&response).await?;
     assert!(!is_valid, "Unregistered oracle should be rejected");
-    
+
     println!("✓ Unregistered oracle rejection test passed");
     Ok(())
 }
@@ -258,9 +263,9 @@ async fn test_unregistered_oracle_rejection() -> Result<()> {
 #[tokio::test]
 async fn test_nonce_replay_protection() -> Result<()> {
     println!("Testing nonce replay protection...");
-    
+
     let verifier = TestSignatureVerifier::new();
-    
+
     // Register oracle
     let oracle = TestOracleRegistryEntry {
         oracle_id: "test-oracle-nonce".to_string(),
@@ -272,9 +277,9 @@ async fn test_nonce_replay_protection() -> Result<()> {
         failed_requests: 10,
         is_active: true,
     };
-    
+
     verifier.register_oracle(oracle).await?;
-    
+
     // Create response with specific nonce
     let response = TestSignedAIOracleResponse {
         response: TestAIResponsePayload {
@@ -293,15 +298,18 @@ async fn test_nonce_replay_protection() -> Result<()> {
         oracle_id: "test-oracle-nonce".to_string(),
         nonce: 99999,
     };
-    
+
     // First verification should succeed
     let is_valid_first = verifier.verify_signed_response(&response).await?;
     assert!(is_valid_first, "First verification should succeed");
-    
+
     // Second verification with same nonce should fail
     let is_valid_second = verifier.verify_signed_response(&response).await?;
-    assert!(!is_valid_second, "Second verification should fail due to nonce reuse");
-    
+    assert!(
+        !is_valid_second,
+        "Second verification should fail due to nonce reuse"
+    );
+
     println!("✓ Nonce replay protection test passed");
     Ok(())
 }
@@ -309,9 +317,9 @@ async fn test_nonce_replay_protection() -> Result<()> {
 #[tokio::test]
 async fn test_multiple_oracles() -> Result<()> {
     println!("Testing multiple oracle management...");
-    
+
     let manager = TestAIIntegrationManager::new(true);
-    
+
     // Register multiple oracles
     for i in 1..=5 {
         let oracle = TestOracleRegistryEntry {
@@ -324,12 +332,12 @@ async fn test_multiple_oracles() -> Result<()> {
             failed_requests: i * 1,
             is_active: true,
         };
-        
+
         manager.register_oracle(oracle).await?;
     }
-    
+
     assert_eq!(manager.get_oracle_count().await, 5);
-    
+
     // Test responses from different oracles
     for i in 1..=3 {
         let response = TestSignedAIOracleResponse {
@@ -349,11 +357,11 @@ async fn test_multiple_oracles() -> Result<()> {
             oracle_id: format!("oracle-{}", i),
             nonce: 10000 + i,
         };
-        
+
         let is_valid = manager.verify_ai_response(&response).await?;
         assert!(is_valid, "Response from oracle-{} should be valid", i);
     }
-    
+
     println!("✓ Multiple oracle management test passed");
     Ok(())
 }
@@ -361,9 +369,9 @@ async fn test_multiple_oracles() -> Result<()> {
 #[tokio::test]
 async fn test_integration_comprehensive() -> Result<()> {
     println!("Running comprehensive integration test...");
-    
+
     let manager = TestAIIntegrationManager::new(true);
-    
+
     // Test scenario: complete oracle lifecycle
     let oracle = TestOracleRegistryEntry {
         oracle_id: "comprehensive-oracle".to_string(),
@@ -375,9 +383,9 @@ async fn test_integration_comprehensive() -> Result<()> {
         failed_requests: 100,
         is_active: true,
     };
-    
+
     manager.register_oracle(oracle).await?;
-    
+
     // Process multiple requests
     for i in 1..=10 {
         let response = TestSignedAIOracleResponse {
@@ -401,11 +409,11 @@ async fn test_integration_comprehensive() -> Result<()> {
             oracle_id: "comprehensive-oracle".to_string(),
             nonce: 50000 + i,
         };
-        
+
         let is_valid = manager.verify_ai_response(&response).await?;
         assert!(is_valid, "Response {} should be valid", i);
     }
-    
+
     // Test replay protection works across multiple requests
     let duplicate_response = TestSignedAIOracleResponse {
         response: TestAIResponsePayload {
@@ -424,10 +432,10 @@ async fn test_integration_comprehensive() -> Result<()> {
         oracle_id: "comprehensive-oracle".to_string(),
         nonce: 50005, // Reuse nonce from request 5
     };
-    
+
     let is_valid_duplicate = manager.verify_ai_response(&duplicate_response).await?;
     assert!(!is_valid_duplicate, "Duplicate nonce should be rejected");
-    
+
     println!("✓ Comprehensive integration test passed");
     Ok(())
 }
@@ -435,14 +443,14 @@ async fn test_integration_comprehensive() -> Result<()> {
 // Helper function to run all tests
 pub async fn run_all_tests() -> Result<()> {
     println!("=== Running Signature Verification Integration Tests ===");
-    
+
     test_signature_verification_basic_flow().await?;
     test_ai_integration_manager().await?;
     test_unregistered_oracle_rejection().await?;
     test_nonce_replay_protection().await?;
     test_multiple_oracles().await?;
     test_integration_comprehensive().await?;
-    
+
     println!("=== All tests passed! ===");
     Ok(())
 }

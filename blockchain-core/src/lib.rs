@@ -1,10 +1,10 @@
-pub mod consensus;
-pub mod types;
 pub mod api;
+pub mod consensus;
+pub mod contracts;
 pub mod crypto;
+pub mod genesis;
+pub mod genesis_integration;
 pub mod networking;
 pub mod runtime;
 pub mod storage;
-pub mod contracts;
-pub mod genesis;
-pub mod genesis_integration;
+pub mod types;

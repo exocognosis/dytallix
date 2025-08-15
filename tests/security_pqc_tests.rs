@@ -108,6 +108,8 @@ mod security_tests {
             payload_hash: vec![0u8; 32],
             timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
             validator_id: "high_security_validator".to_string(), // Claiming high security validator
+            nonce: 0,
+            sequence: 0,
         };
         
         // SECURITY CHECK: Should reject signature due to algorithm mismatch/downgrade
@@ -308,6 +310,8 @@ mod security_tests {
                 payload_hash: vec![0u8; 32],
                 timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
                 validator_id: format!("validator{}", i),
+                nonce: i as u64,
+                sequence: i as u64,
             });
         }
         
@@ -322,6 +326,8 @@ mod security_tests {
                 payload_hash: vec![255u8; 32], // Wrong hash
                 timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
                 validator_id: format!("validator{}", i),
+                nonce: i as u64,
+                sequence: i as u64,
             });
         }
         

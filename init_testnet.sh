@@ -337,7 +337,7 @@ generate_genesis_config() {
       "deposit_params": {
         "min_deposit": [
           {
-            "denom": "udyt",
+            "denom": "udgt",
             "amount": "10000000"
           }
         ],
@@ -358,7 +358,7 @@ generate_genesis_config() {
         "max_validators": 100,
         "max_entries": 7,
         "historical_entries": 10000,
-        "bond_denom": "udyt"
+        "bond_denom": "udgt"
       },
       "last_total_power": "0",
       "last_validator_powers": [],
@@ -592,14 +592,14 @@ func VerifyPQCSignature(pubKey crypto.PubKey, sigBytes []byte, msg []byte) error
 dytallix init testnet-node --chain-id=dytallix-testnet-1
 
 # Add PQC validators 
-dytallix add-genesis-account validator1 1000000000udyt
-dytallix gentx validator1 100000000udyt --keyring-backend=test
+dytallix add-genesis-account validator1 1000000000udgt
+dytallix gentx validator1 100000000udgt --keyring-backend=test
 
 # Collect genesis transactions with PQC signatures
 dytallix collect-gentxs
 
 # Start the blockchain with PQC consensus
-dytallix start --minimum-gas-prices=0.001udyt
+dytallix start --minimum-gas-prices=0.001udgt
 ```
 
 ## File Structure Mapping
@@ -634,7 +634,7 @@ EOF
 # This file will be used by the future Cosmos SDK implementation
 
 [base]
-minimum_gas_prices = "0.001udyt"
+minimum_gas_prices = "0.001udgt"
 pruning = "default"
 pruning_keep_recent = "100"
 pruning_keep_every = "0"

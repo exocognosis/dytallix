@@ -3,15 +3,15 @@
 //! This module provides REST API endpoints for compliance reporting,
 //! audit trail queries, and regulatory data export functionality.
 
-use std::sync::Arc;
-use serde::{Serialize, Deserialize};
 use anyhow::Result;
-use log::{info, error};
 use chrono::{DateTime, Utc};
+use log::{error, info};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 use crate::consensus::audit_trail::{
-    AuditTrailManager, ComplianceQuery, ComplianceReportSummary, 
-    AuditEntry, ExportFormat, ComplianceStatus, AuditStatistics
+    AuditEntry, AuditStatistics, AuditTrailManager, ComplianceQuery, ComplianceReportSummary,
+    ComplianceStatus, ExportFormat,
 };
 use crate::consensus::notification_types::ReviewPriority;
 
@@ -155,7 +155,7 @@ impl ComplianceAPI {
     ) -> Result<ComplianceReportResponse> {
         let start_time = std::time::Instant::now();
         let report_id = uuid::Uuid::new_v4().to_string();
-        
+
         info!("Generating compliance report with ID: {}", report_id);
 
         // Convert API request to internal query format
@@ -231,10 +231,7 @@ impl ComplianceAPI {
     }
 
     /// Export compliance data in the requested format
-    pub async fn export_compliance_data(
-        &self,
-        request: ExportRequest,
-    ) -> Result<ExportResponse> {
+    pub async fn export_compliance_data(&self, request: ExportRequest) -> Result<ExportResponse> {
         let start_time = std::time::Instant::now();
         let report_id = uuid::Uuid::new_v4().to_string();
 
@@ -266,7 +263,11 @@ impl ComplianceAPI {
         let query = self.convert_request_to_query(request.filters)?;
 
         // Export the data
-        let export_data = match self.audit_manager.export_compliance_data(query, format).await {
+        let export_data = match self
+            .audit_manager
+            .export_compliance_data(query, format)
+            .await
+        {
             Ok(data) => data,
             Err(e) => {
                 error!("Failed to export compliance data: {}", e);
@@ -309,9 +310,7 @@ impl ComplianceAPI {
 
         info!(
             "Exported compliance data {} ({} bytes) in {}ms",
-            metadata.report_id,
-            file_size,
-            metadata.generation_time_ms
+            metadata.report_id, file_size, metadata.generation_time_ms
         );
 
         Ok(ExportResponse {
@@ -329,7 +328,10 @@ impl ComplianceAPI {
         &self,
         request: UpdateComplianceStatusRequest,
     ) -> Result<serde_json::Value> {
-        info!("Updating compliance status for audit ID: {}", request.audit_id);
+        info!(
+            "Updating compliance status for audit ID: {}",
+            request.audit_id
+        );
 
         // Parse audit ID
         let audit_id = uuid::Uuid::parse_str(&request.audit_id)
@@ -339,13 +341,17 @@ impl ComplianceAPI {
         let new_status = self.parse_compliance_status(&request.status, &request)?;
 
         // Update the status
-        match self.audit_manager.update_compliance_status(audit_id, new_status).await {
+        match self
+            .audit_manager
+            .update_compliance_status(audit_id, new_status)
+            .await
+        {
             Ok(_) => {
                 info!(
                     "Successfully updated compliance status for {} by officer {}",
                     request.audit_id, request.officer_id
                 );
-                
+
                 Ok(serde_json::json!({
                     "success": true,
                     "message": "Compliance status updated successfully",
@@ -372,7 +378,10 @@ impl ComplianceAPI {
     ) -> Result<serde_json::Value> {
         info!("Getting audit trail for transaction: {}", transaction_hash);
 
-        let entries = self.audit_manager.get_transaction_audit_trail(&transaction_hash.to_string()).await;
+        let entries = self
+            .audit_manager
+            .get_transaction_audit_trail(&transaction_hash.to_string())
+            .await;
 
         Ok(serde_json::json!({
             "success": true,
@@ -414,7 +423,10 @@ impl ComplianceAPI {
 
     // Helper methods
 
-    fn convert_request_to_query(&self, request: ComplianceReportRequest) -> Result<ComplianceQuery> {
+    fn convert_request_to_query(
+        &self,
+        request: ComplianceReportRequest,
+    ) -> Result<ComplianceQuery> {
         // Parse date range
         let date_range = if let (Some(start), Some(end)) = (request.start_date, request.end_date) {
             let start_date = DateTime::parse_from_rfc3339(&start)?.with_timezone(&Utc);
@@ -480,10 +492,16 @@ impl ComplianceAPI {
                 notes: request.notes.clone().unwrap_or_default(),
             }),
             "failed" => Ok(ComplianceStatus::Failed {
-                reason: request.reason.clone().unwrap_or("No reason provided".to_string()),
+                reason: request
+                    .reason
+                    .clone()
+                    .unwrap_or("No reason provided".to_string()),
             }),
             "flagged" => Ok(ComplianceStatus::Flagged {
-                reason: request.reason.clone().unwrap_or("No reason provided".to_string()),
+                reason: request
+                    .reason
+                    .clone()
+                    .unwrap_or("No reason provided".to_string()),
                 investigator: Some(request.officer_id.clone()),
             }),
             _ => Err(anyhow::anyhow!("Invalid compliance status: {}", status_str)),
@@ -541,10 +559,7 @@ impl ComplianceHttpHandlers {
     }
 
     /// POST /api/compliance/export
-    pub async fn handle_export_data(
-        &self,
-        request: ExportRequest,
-    ) -> Result<ExportResponse> {
+    pub async fn handle_export_data(&self, request: ExportRequest) -> Result<ExportResponse> {
         self.api.export_compliance_data(request).await
     }
 
@@ -561,7 +576,9 @@ impl ComplianceHttpHandlers {
         &self,
         transaction_hash: String,
     ) -> Result<serde_json::Value> {
-        self.api.get_transaction_audit_trail(&transaction_hash).await
+        self.api
+            .get_transaction_audit_trail(&transaction_hash)
+            .await
     }
 
     /// GET /api/compliance/statistics
@@ -662,6 +679,9 @@ mod tests {
         let response = api.export_compliance_data(request).await.unwrap();
         assert!(!response.success);
         assert!(response.error.is_some());
-        assert!(response.error.unwrap().contains("Unsupported export format"));
+        assert!(response
+            .error
+            .unwrap()
+            .contains("Unsupported export format"));
     }
 }

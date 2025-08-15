@@ -437,6 +437,7 @@ mod tests {
             original_chain: "polkadot".to_string(),
             wrapped_contract: "0x0000000000000000000000000000000000000000".to_string(),
             amount: 1000000000000, // 1 DOT
+            wrapping_timestamp: 0,
         };
         
         let result = connector.mint_wrapped_asset(&wrapped_asset, "0x1234567890123456789012345678901234567890").await;

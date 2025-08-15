@@ -233,7 +233,7 @@ mod tests {
     #[tokio::test]
     async fn test_cosmos_connector_creation() {
         let config = CosmosConfig::default();
-        let connector = CosmosConnector::new(config).unwrap();
+        let connector = CosmosConnector::new(config).await.unwrap();
         
         assert_eq!(connector.config.chain_id, "cosmoshub-4");
         assert_eq!(connector.config.prefix, "cosmos");
@@ -242,7 +242,7 @@ mod tests {
     #[tokio::test]
     async fn test_cosmos_ibc_transfer() {
         let config = CosmosConfig::default();
-        let mut connector = CosmosConnector::new(config).unwrap();
+        let mut connector = CosmosConnector::new(config).await.unwrap();
         
         let asset = Asset {
             id: "ATOM".to_string(),
@@ -279,7 +279,7 @@ mod tests {
     #[tokio::test]
     async fn test_cosmos_current_block() {
         let config = CosmosConfig::default();
-        let mut connector = CosmosConnector::new(config).unwrap();
+        let mut connector = CosmosConnector::new(config).await.unwrap();
         
         let block = connector.get_current_block().await.unwrap();
         assert!(block.height > 0);

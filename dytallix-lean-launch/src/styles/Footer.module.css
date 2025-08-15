@@ -1,8 +1,10 @@
 .footer {
-  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-  color: white;
+  background: rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(14px);
+  color: var(--text-primary);
   padding: 60px 0 20px;
   margin-top: auto;
+  border-top: 1px solid var(--surface-border);
 }
 
 .footerContent {
@@ -19,9 +21,9 @@
 
 .footerTitle {
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 800;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, var(--primary-400), var(--accent-500));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -29,15 +31,15 @@
 
 .footerSubtitle {
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 16px;
-  color: #f9fafb;
+  color: var(--text-primary);
 }
 
 .footerDescription {
-  color: #d1d5db;
+  color: var(--text-muted);
   line-height: 1.6;
-  max-width: 300px;
+  max-width: 320px;
 }
 
 .footerLinks {
@@ -51,28 +53,29 @@
 }
 
 .footerLink {
-  color: #d1d5db;
+  color: var(--text-muted);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, opacity 0.2s ease;
   font-size: 0.95rem;
 }
 
 .footerLink:hover {
-  color: #3b82f6;
+  color: var(--text-primary);
+  opacity: 0.95;
 }
 
 .footerBottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 40px;
-  border-top: 1px solid #374151;
+  padding-top: 32px;
+  border-top: 1px solid var(--surface-border);
   flex-wrap: wrap;
   gap: 20px;
 }
 
 .copyright {
-  color: #9ca3af;
+  color: var(--text-muted);
   font-size: 0.875rem;
   margin: 0;
 }
@@ -83,14 +86,15 @@
 }
 
 .footerBottomLink {
-  color: #9ca3af;
+  color: var(--text-muted);
   text-decoration: none;
   font-size: 0.875rem;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .footerBottomLink:hover {
-  color: #d1d5db;
+  color: var(--text-primary);
+  opacity: 0.95;
 }
 
 /* Mobile responsiveness */
