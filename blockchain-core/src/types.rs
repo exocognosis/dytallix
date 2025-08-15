@@ -8,11 +8,6 @@ use dytallix_pqc::{Signature, SignatureAlgorithm};
 use sha3::{Sha3_256, Digest};
 use std::fmt;
 
-// Import AI integration types for verification
-// TODO: Fix import paths for binary compilation
-// use crate::consensus::ai_integration::{AIIntegrationManager, AIVerificationResult};
-// use crate::consensus::SignedAIOracleResponse;
-
 /// Dytallix address format (dyt1...)
 pub type Address = String;
 
@@ -26,10 +21,23 @@ pub type TxHash = String;
 pub type BlockNumber = u64;
 
 /// Amount in smallest unit (like satoshis)
-pub type Amount = u64;
+pub type Amount = u64; // Using u64 for current compatibility; serialized as string for JSON
 
-/// Timestamp (Unix timestamp in seconds)
+/// Unix timestamp (seconds since epoch)
 pub type Timestamp = u64;
+
+// Serde helpers for u128 <-> string JSON (avoids JS precision loss)
+pub mod serde_u128_string {
+    use serde::{Serializer, Deserializer, Deserialize};
+    use serde::de::Error as DeError;
+    pub fn serialize<S: Serializer>(v: &u64, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&v.to_string())
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u64, D::Error> {
+        let s = String::deserialize(d)?;
+        s.parse::<u64>().map_err(D::Error::custom)
+    }
+}
 
 /// Dytallix Block Structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,9 +116,11 @@ pub struct TransferTransaction {
     pub to: Address,
     
     /// Amount to transfer
+    #[serde(with = "serde_u128_string")]
     pub amount: Amount,
     
     /// Transaction fee
+    #[serde(with = "serde_u128_string")]
     pub fee: Amount,
     
     /// Transaction nonce (to prevent replay attacks)
@@ -135,6 +145,7 @@ pub struct DeployTransaction {
     pub constructor_args: Vec<u8>,
     pub gas_limit: u64,
     pub gas_price: u64,
+    #[serde(with = "serde_u128_string")]
     pub fee: Amount,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -173,9 +184,11 @@ pub struct CallTransaction {
     pub to: Address, // Contract address
     pub method: String,
     pub args: Vec<u8>,
+    #[serde(with = "serde_u128_string")]
     pub value: Amount,
     pub gas_limit: u64,
     pub gas_price: u64,
+    #[serde(with = "serde_u128_string")]
     pub fee: Amount,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -213,8 +226,10 @@ impl CallTransaction {
 pub struct StakeTransaction {
     pub hash: TxHash,
     pub validator: Address,
+    #[serde(with = "serde_u128_string")]
     pub amount: Amount,
     pub action: StakeAction,
+    #[serde(with = "serde_u128_string")]
     pub fee: Amount,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -262,6 +277,7 @@ pub struct AIRequestTransaction {
     pub payload: serde_json::Value,  // Added for compatibility
     pub ai_risk_score: Option<f64>,  // Added for risk scoring
     pub ai_response: Option<serde_json::Value>,  // Added for AI response storage
+    #[serde(with = "serde_u128_string")]
     pub fee: Amount,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -379,6 +395,7 @@ pub struct PQCTransactionSignature {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AccountState {
     /// Account balance
+    #[serde(with = "serde_u128_string")]
     pub balance: Amount,
     
     /// Transaction nonce
@@ -404,6 +421,7 @@ pub struct ValidatorInfo {
     pub address: Address,
     
     /// Staked amount
+    #[serde(with = "serde_u128_string")]
     pub stake: Amount,
     
     /// Public key for block signing
@@ -417,6 +435,38 @@ pub struct ValidatorInfo {
     
     /// Commission rate (basis points)
     pub commission: u16,
+}
+
+/// Transaction execution status
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum TxStatus {
+    Pending,
+    Success,
+    Failed,
+}
+
+/// Transaction receipt (persisted once included in a block)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TxReceipt {
+    /// Hash of the transaction this receipt corresponds to
+    pub tx_hash: TxHash,
+    /// Block number that included the transaction
+    pub block_number: BlockNumber,
+    /// Execution status
+    pub status: TxStatus,
+    /// Gas actually used (placeholder for now)
+    #[serde(with = "serde_u128_string")]
+    pub gas_used: Amount,
+    /// Fee actually paid (can differ from quoted fee in future)
+    #[serde(with = "serde_u128_string")]
+    pub fee_paid: Amount,
+    /// Inclusion timestamp (block timestamp)
+    pub timestamp: Timestamp,
+    /// Transaction index within block
+    pub index: u32,
+    /// Optional execution error (present if status == failed)
+    pub error: Option<String>,
 }
 
 /// Transaction Pool for managing pending transactions
@@ -897,10 +947,10 @@ impl StakeTransaction {
             StakeAction::Undelegate => "Undelegate".to_string(),
         };
         format!(
-            "stake:{}:{}:{}:{}:{}:{}",
-            self.validator, self.amount, action_str, self.fee, self.nonce, self.timestamp
-        )
-        .into_bytes()
+             "stake:{}:{}:{}:{}:{}:{}",
+             self.validator, self.amount, action_str, self.fee, self.nonce, self.timestamp
+         )
+         .into_bytes()
     }
 }
 
@@ -961,3 +1011,27 @@ impl Transaction {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_amount_serde_roundtrip() {
+        #[derive(Serialize, Deserialize, Debug, PartialEq)]
+        struct Wrapper { #[serde(with = "crate::types::serde_u128_string")] amount: Amount }
+        let w = Wrapper { amount: 12_345_678_901_234_567u64 }; // fits in u64
+        let json = serde_json::to_string(&w).unwrap();
+        assert!(json.contains("12345678901234567"));
+        let de: Wrapper = serde_json::from_str(&json).unwrap();
+        assert_eq!(de, w);
+    }
+    
+    #[test]
+    fn test_receipt_serde_roundtrip() {
+        let r = TxReceipt { tx_hash: "0xabc".into(), block_number: 5, status: TxStatus::Success, gas_used: 0, fee_paid: 10, timestamp: 111, index: 0, error: None };
+        let json = serde_json::to_string(&r).unwrap();
+        let back: TxReceipt = serde_json::from_str(&json).unwrap();
+        assert_eq!(r, back);
+    }
+ }

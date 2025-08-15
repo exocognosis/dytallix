@@ -18,7 +18,7 @@ use crate::query_analysis::{QueryAnalyzer, PerformanceAnalysisReport};
 use crate::cache::{BridgeCache, CacheConfig, CachePriority};
 
 /// Bridge storage manager using PostgreSQL with Redis caching
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct BridgeStorage {
     pool: PgPool,
     query_analyzer: Option<QueryAnalyzer>,

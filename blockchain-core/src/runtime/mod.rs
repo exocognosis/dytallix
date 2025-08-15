@@ -3,9 +3,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use serde::{Serialize, Deserialize};
 use log::{info, debug};
-// Temporarily disabled due to smart contracts compilation issues
-// use dytallix_contracts::runtime::{ContractRuntime, ContractDeployment, ContractCall, ExecutionResult};
-use crate::contracts::{ContractRuntime, ContractDeployment, ContractCall, ExecutionResult};
+// Enable smart contracts integration now that the crate compiles
+use dytallix_contracts::runtime::{ContractRuntime, ContractDeployment, ContractCall, ExecutionResult};
 use crate::storage::StorageManager;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -112,7 +111,6 @@ impl DytallixRuntime {
                 .unwrap_or_default()
                 .as_secs(),
             ai_audit_score: None,
-            metadata: serde_json::json!({}),
         };
         
         // Deploy to contract runtime
@@ -147,9 +145,6 @@ impl DytallixRuntime {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs(),
-            contract_id: address.to_string(),
-            function: "execute".to_string(),
-            args: serde_json::json!({}),
         };
         
         // Execute contract call
@@ -164,7 +159,7 @@ impl DytallixRuntime {
                 info!("Contract event: {:?}", event);
             }
             
-            Ok(execution_result.return_value)
+            Ok(execution_result.return_data)
         } else {
             Err(format!("Contract execution failed, gas used: {}", execution_result.gas_used).into())
         }
@@ -193,9 +188,6 @@ impl DytallixRuntime {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs(),
-            contract_id: address.to_string(),
-            function: method.to_string(),
-            args: serde_json::json!({}),
         };
         
         let execution_result = self.contract_runtime.call_contract(contract_call).await
@@ -231,7 +223,6 @@ impl DytallixRuntime {
                 .unwrap_or_default()
                 .as_secs(),
             ai_audit_score: None,
-            metadata: serde_json::json!({}),
         };
         
         let deployed_address = self.contract_runtime.deploy_contract(deployment).await

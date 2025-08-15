@@ -1,7 +1,7 @@
 use anyhow::Result;
 use dytallix_node::consensus::{
     SignedAIOracleResponse, AIResponseSignature, OracleIdentity, OracleCertificate,
-    AIResponsePayload, AIServiceType, ResponseStatus, SignatureMetadata, VerificationData,
+    AIResponsePayload, AIServiceType, SignatureMetadata, VerificationData,
     TimestampProof
 };
 use dytallix_pqc::SignatureAlgorithm;
@@ -149,7 +149,7 @@ async fn test_certificate_expiration() -> Result<()> {
 #[tokio::test]
 async fn test_signed_response_creation() -> Result<()> {
     // Create a mock AI response
-    let mut ai_response = AIResponsePayload::new(
+    let mut ai_response = AIResponsePayload::success(
         "request_123".to_string(),
         AIServiceType::FraudDetection,
         serde_json::json!({
@@ -157,7 +157,6 @@ async fn test_signed_response_creation() -> Result<()> {
             "confidence": 0.95,
             "factors": ["amount_normal", "location_known"]
         }),
-        ResponseStatus::Success,
     );
     ai_response.processing_time_ms = 150;
 
@@ -203,11 +202,10 @@ async fn test_signed_response_creation() -> Result<()> {
 #[tokio::test]
 async fn test_signable_data_generation() -> Result<()> {
     // Create a simple signed response
-    let ai_response = AIResponsePayload::new(
+    let ai_response = AIResponsePayload::success(
         "test_request".to_string(),
         AIServiceType::RiskScoring,
         serde_json::json!({"score": 0.5}),
-        ResponseStatus::Success,
     );
 
     let oracle = OracleIdentity::new(
@@ -245,11 +243,10 @@ async fn test_signable_data_generation() -> Result<()> {
 
 #[tokio::test]
 async fn test_signed_response_summary() -> Result<()> {
-    let ai_response = AIResponsePayload::new(
+    let ai_response = AIResponsePayload::success(
         "summary_test".to_string(),
         AIServiceType::ContractAnalysis,
         serde_json::json!({"analysis": "safe"}),
-        ResponseStatus::Success,
     );
 
     let oracle = OracleIdentity::new(
@@ -316,11 +313,10 @@ async fn test_verification_data_structures() -> Result<()> {
     };
 
     // Add verification data to a signed response
-    let ai_response = AIResponsePayload::new(
+    let ai_response = AIResponsePayload::success(
         "verification_test".to_string(),
         AIServiceType::ThreatDetection,
         serde_json::json!({"threat_level": "low"}),
-        ResponseStatus::Success,
     );
 
     let oracle = OracleIdentity::new(
@@ -372,11 +368,10 @@ async fn test_signature_age_and_freshness() -> Result<()> {
     assert!(signature.is_recent(10));  // Within 10 seconds
 
     // Test response expiration
-    let ai_response = AIResponsePayload::new(
+    let ai_response = AIResponsePayload::success(
         "freshness_test".to_string(),
         AIServiceType::KYC,
         serde_json::json!({"kyc_status": "verified"}),
-        ResponseStatus::Success,
     );
 
     let oracle = OracleIdentity::new(
