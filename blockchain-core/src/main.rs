@@ -1,20 +1,20 @@
-use std::sync::Arc;
-use std::process;
+use log::{error, info, warn};
 use std::path::Path;
+use std::process;
+use std::sync::Arc;
 use tokio;
-use log::{info, error, warn};
 
+mod api;
+mod crypto;
 mod runtime;
 mod storage;
-mod crypto; 
 mod types;
-mod api;
 // mod consensus;  // Temporarily disabled
 // mod networking;  // Temporarily disabled
 
 // use crate::runtime::DytallixRuntime;  // Temporarily disabled
 use crate::crypto::PQCManager;
-use crate::types::{TransactionPool, Transaction, Block, NodeStatus};
+use crate::types::{Block, NodeStatus, Transaction, TransactionPool};
 
 pub struct DummyNode {
     // runtime: Arc<Result<DytallixRuntime, Box<dyn std::error::Error>>>,  // Temporarily disabled
@@ -39,25 +39,28 @@ impl DummyNode {
         info!("Dytallix Node started successfully");
         Ok(())
     }
-    
+
     pub async fn stop(&self) -> Result<(), String> {
         info!("Stopping Dytallix Node...");
         info!("Dytallix Node stopped");
         Ok(())
     }
-    
+
     pub async fn submit_transaction(&self, tx: Transaction) -> Result<(), String> {
-        let tx_hash = self.transaction_pool.add_transaction(tx).await
+        let tx_hash = self
+            .transaction_pool
+            .add_transaction(tx)
+            .await
             .map_err(|e| format!("Failed to add transaction: {}", e))?;
-        
+
         info!("Transaction {} submitted successfully", tx_hash);
         Ok(())
     }
-    
+
     pub fn get_block(&self, _hash: &str) -> Option<Block> {
         None
     }
-    
+
     pub fn get_status(&self) -> NodeStatus {
         NodeStatus::Running
     }
@@ -72,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging as early as possible
     env_logger::init();
     info!("Starting Dytallix Node - Debug Mode");
-    
+
     // Check for required files
     info!("Checking for required configuration files...");
     if !Path::new("pqc_keys.json").exists() {
@@ -80,22 +83,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         info!("Found pqc_keys.json");
     }
-    
+
     // Initialize node
     info!("Initializing DummyNode...");
     let node = match DummyNode::new() {
         Ok(n) => {
             info!("DummyNode initialized successfully");
             Arc::new(n)
-        },
+        }
         Err(e) => {
             error!("Failed to initialize DummyNode: {}", e);
             process::exit(1);
         }
     };
-    
+
     let node_clone = Arc::clone(&node);
-    
+
     // Start node
     info!("Starting node services...");
     if let Err(e) = node_clone.start().await {
@@ -103,9 +106,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         process::exit(1);
     }
     info!("Node services started successfully");
-    
+
     info!("Dytallix blockchain core is running!");
-    
+
     // Start API server
     info!("Starting API server on port 3030...");
     tokio::spawn(async move {
@@ -114,13 +117,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             process::exit(1);
         }
     });
-    
+
     info!("API server spawn initiated - waiting for startup...");
-    
+
     // Give API server time to start
     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
     info!("Main loop starting - node should be fully operational");
-    
+
     // Keep the main thread alive
     loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
