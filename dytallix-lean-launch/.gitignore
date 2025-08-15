@@ -82,3 +82,18 @@ temp/
 /tmp_pqc_build/
 vendor/pqclean/.git/
 vendor/pqclean/.github/
+
+# Added standardized repo folders for lean-launch MV(T)
+node/
+faucet/
+explorer/
+web/
+ops/
+reports/
+# Ensure no secrets or local override envs
+ops/*.env
+scripts/*.env
+reports/*.tmp
+# Removed reports/ from ignore (track changelog)
+!reports/
+!reports/CHANGELOG.md
