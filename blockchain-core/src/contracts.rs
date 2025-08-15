@@ -10,10 +10,7 @@ pub struct ContractRuntime {
 }
 
 impl ContractRuntime {
-    pub fn new(
-        _gas_limit: u64,
-        _memory_pages: u64,
-    ) -> Result<Self, String> {
+    pub fn new(_gas_limit: u64, _memory_pages: u64) -> Result<Self, String> {
         Ok(Self {})
     }
 

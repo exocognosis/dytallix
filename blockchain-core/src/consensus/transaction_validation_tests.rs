@@ -4,30 +4,38 @@
 //! with AI integration for Phase 3, Task 3.1
 
 use anyhow::Result;
-use tokio;
 use std::sync::Arc;
+use tokio;
 
+use crate::consensus::ai_integration::{AIIntegrationConfig, AIIntegrationManager};
 use crate::consensus::ConsensusEngine;
-use crate::consensus::ai_integration::{AIIntegrationManager, AIIntegrationConfig};
+use crate::crypto::PQCManager;
 use crate::runtime::DytallixRuntime;
 use crate::storage::StorageManager;
-use crate::crypto::PQCManager;
-use crate::types::{Transaction, TransferTransaction, AIRequestTransaction, AIServiceType};
+use crate::types::{AIRequestTransaction, AIServiceType, Transaction, TransferTransaction};
 
 /// Create a test consensus engine with AI integration
 async fn create_test_consensus_engine() -> Result<ConsensusEngine> {
     // Initialize storage
-    let storage = Arc::new(StorageManager::new().await.map_err(|e| anyhow::anyhow!("Storage error: {}", e))?);
-    
+    let storage = Arc::new(
+        StorageManager::new()
+            .await
+            .map_err(|e| anyhow::anyhow!("Storage error: {}", e))?,
+    );
+
     // Initialize runtime
-    let runtime = Arc::new(DytallixRuntime::new(storage).map_err(|e| anyhow::anyhow!("Runtime error: {}", e))?);
-    
+    let runtime = Arc::new(
+        DytallixRuntime::new(storage).map_err(|e| anyhow::anyhow!("Runtime error: {}", e))?,
+    );
+
     // Initialize PQC manager
-    let pqc_manager = Arc::new(PQCManager::new().map_err(|e| anyhow::anyhow!("PQC manager error: {}", e))?);
-    
+    let pqc_manager =
+        Arc::new(PQCManager::new().map_err(|e| anyhow::anyhow!("PQC manager error: {}", e))?);
+
     // Create consensus engine (it will initialize AI integration internally)
-    let consensus = ConsensusEngine::new(runtime, pqc_manager).map_err(|e| anyhow::anyhow!("Consensus engine error: {}", e))?;
-    
+    let consensus = ConsensusEngine::new(runtime, pqc_manager)
+        .map_err(|e| anyhow::anyhow!("Consensus engine error: {}", e))?;
+
     Ok(consensus)
 }
 
@@ -50,10 +58,10 @@ fn create_test_transfer_transaction(amount: u64, from: &str, to: &str) -> Transa
         },
         ai_risk_score: None,
     };
-    
+
     // Calculate hash
     transfer_tx.hash = transfer_tx.calculate_hash();
-    
+
     Transaction::Transfer(transfer_tx)
 }
 
@@ -83,34 +91,37 @@ fn create_test_ai_request_transaction() -> Transaction {
             public_key: Vec::new(),
         },
     };
-    
+
     // Calculate hash
     ai_request_tx.hash = ai_request_tx.calculate_hash();
-    
+
     Transaction::AIRequest(ai_request_tx)
 }
 
 #[tokio::test]
 async fn test_consensus_initialization_integration() -> Result<()> {
     println!("=== Testing Consensus Engine AI Integration ===");
-    
+
     let consensus = create_test_consensus_engine().await?;
-    
+
     // Check AI integration availability
     let has_ai = consensus.has_ai_integration();
-    println!("✓ Consensus engine created, AI integration available: {}", has_ai);
-    
+    println!(
+        "✓ Consensus engine created, AI integration available: {}",
+        has_ai
+    );
+
     // Get AI stats if available
     if let Some(stats) = consensus.get_ai_integration_stats().await {
         println!("✓ AI integration stats: {}", stats);
         assert!(stats.get("total_requests").is_some());
         assert!(stats.get("ai_verification_required").is_some());
     }
-    
+
     // Test basic transaction validation with AI
     let transfer = create_test_transfer_transaction(100, "dyt1genesis", "dyt1user1");
     let result = consensus.validate_transaction_with_ai(&transfer).await;
-    
+
     match result {
         Ok(valid) => {
             println!("✓ Transfer validation result: {}", valid);
@@ -119,7 +130,7 @@ async fn test_consensus_initialization_integration() -> Result<()> {
             println!("✓ Transfer validation error (expected for mock AI): {}", e);
         }
     }
-    
+
     println!("=== Consensus Engine AI Integration Test Completed ===");
     Ok(())
 }
@@ -127,60 +138,73 @@ async fn test_consensus_initialization_integration() -> Result<()> {
 #[tokio::test]
 async fn test_basic_transaction_validation_with_ai() -> Result<()> {
     let consensus = create_test_consensus_engine().await?;
-    
+
     // Test 1: Valid small transfer (should pass AI analysis)
     let small_transfer = create_test_transfer_transaction(100, "dyt1genesis", "dyt1user1");
-    let result = consensus.validate_transaction_with_ai(&small_transfer).await;
-    
+    let result = consensus
+        .validate_transaction_with_ai(&small_transfer)
+        .await;
+
     match result {
         Ok(valid) => {
             println!("✓ Small transfer validation result: {}", valid);
         }
         Err(e) => {
-            println!("✓ Small transfer validation error (expected for mock AI): {}", e);
+            println!(
+                "✓ Small transfer validation error (expected for mock AI): {}",
+                e
+            );
         }
     }
-    
+
     // Test 2: Large transfer (might trigger higher AI scrutiny)
     let large_transfer = create_test_transfer_transaction(1000000, "dyt1genesis", "dyt1user2");
-    let result = consensus.validate_transaction_with_ai(&large_transfer).await;
-    
+    let result = consensus
+        .validate_transaction_with_ai(&large_transfer)
+        .await;
+
     match result {
         Ok(valid) => {
             println!("✓ Large transfer validation result: {}", valid);
         }
         Err(e) => {
-            println!("✓ Large transfer validation error (expected for mock AI): {}", e);
+            println!(
+                "✓ Large transfer validation error (expected for mock AI): {}",
+                e
+            );
         }
     }
-    
+
     // Test 3: AI request transaction
     let ai_request = create_test_ai_request_transaction();
     let result = consensus.validate_transaction_with_ai(&ai_request).await;
-    
+
     match result {
         Ok(valid) => {
             println!("✓ AI request validation result: {}", valid);
         }
         Err(e) => {
-            println!("✓ AI request validation error (expected for mock AI): {}", e);
+            println!(
+                "✓ AI request validation error (expected for mock AI): {}",
+                e
+            );
         }
     }
-    
+
     Ok(())
 }
 
 #[tokio::test]
 async fn test_transaction_to_ai_data_conversion() -> Result<()> {
     let consensus = create_test_consensus_engine().await?;
-    
+
     // Test conversion of different transaction types
     let transfer = create_test_transfer_transaction(500, "dyt1alice", "dyt1bob");
-    
+
     // This is testing the internal conversion logic
     // In a real implementation, we would expose this method or test it indirectly
     println!("✓ Transaction created for AI data conversion test");
-    
+
     // Verify that the transaction contains the expected fields
     match &transfer {
         Transaction::Transfer(tx) => {
@@ -191,66 +215,76 @@ async fn test_transaction_to_ai_data_conversion() -> Result<()> {
         }
         _ => panic!("Expected transfer transaction"),
     }
-    
+
     Ok(())
 }
 
 #[tokio::test]
 async fn test_ai_integration_error_handling() -> Result<()> {
     let consensus = create_test_consensus_engine().await?;
-    
+
     // Test validation when AI service might be unavailable
     let transfer = create_test_transfer_transaction(1000, "dyt1sender", "dyt1receiver");
-    
+
     // The validation should handle AI unavailability gracefully
     let result = consensus.validate_transaction_with_ai(&transfer).await;
-    
+
     // We expect either success (fallback allowed) or a graceful error
     match result {
         Ok(valid) => {
-            println!("✓ Transaction validation with AI unavailable: passed ({})", valid);
+            println!(
+                "✓ Transaction validation with AI unavailable: passed ({})",
+                valid
+            );
         }
         Err(e) => {
-            println!("✓ Transaction validation with AI unavailable: error handled gracefully ({})", e);
+            println!(
+                "✓ Transaction validation with AI unavailable: error handled gracefully ({})",
+                e
+            );
             // This is expected behavior when AI is not available
         }
     }
-    
+
     Ok(())
 }
 
 #[tokio::test]
 async fn test_validation_pipeline_performance() -> Result<()> {
     let consensus = create_test_consensus_engine().await?;
-    
+
     let start_time = std::time::Instant::now();
-    
+
     // Validate multiple transactions to test performance
     for i in 0..10 {
         let transfer = create_test_transfer_transaction(
-            100 + i * 10, 
-            "dyt1genesis", 
-            &format!("dyt1user{}", i)
+            100 + i * 10,
+            "dyt1genesis",
+            &format!("dyt1user{}", i),
         );
-        
+
         let _result = consensus.validate_transaction_with_ai(&transfer).await;
     }
-    
+
     let duration = start_time.elapsed();
     println!("✓ Validated 10 transactions in {:?}", duration);
-    
+
     // Performance should be reasonable (even with AI calls)
-    assert!(duration.as_secs() < 30, "Validation took too long: {:?}", duration);
-    
+    assert!(
+        duration.as_secs() < 30,
+        "Validation took too long: {:?}",
+        duration
+    );
+
     Ok(())
 }
 
 #[tokio::test]
 async fn test_ai_enhanced_vs_basic_validation() -> Result<()> {
     let consensus = create_test_consensus_engine().await?;
-    
+
     let transfer = create_test_transfer_transaction(1000, "dyt1genesis", "dyt1test");
-    
+
     // Test basic validation (without AI)
     let basic_start = std::time::Instant::now();
     let basic_result = match &transfer {
@@ -262,17 +296,23 @@ async fn test_ai_enhanced_vs_basic_validation() -> Result<()> {
         _ => false,
     };
     let basic_duration = basic_start.elapsed();
-    
+
     // Test AI-enhanced validation
     let ai_start = std::time::Instant::now();
     let ai_result = consensus.validate_transaction_with_ai(&transfer).await;
     let ai_duration = ai_start.elapsed();
-    
-    println!("✓ Basic validation result: {} (took {:?})", basic_result, basic_duration);
-    println!("✓ AI-enhanced validation result: {:?} (took {:?})", ai_result, ai_duration);
-    
+
+    println!(
+        "✓ Basic validation result: {} (took {:?})",
+        basic_result, basic_duration
+    );
+    println!(
+        "✓ AI-enhanced validation result: {:?} (took {:?})",
+        ai_result, ai_duration
+    );
+
     // AI validation should not be orders of magnitude slower than basic validation
     // (though it may take longer due to network calls)
-    
+
     Ok(())
 }

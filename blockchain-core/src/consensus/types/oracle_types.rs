@@ -3,9 +3,9 @@
 //! This module contains all type definitions related to AI oracles, signatures,
 //! certificates, and cryptographic verification.
 
-use serde::{Deserialize, Serialize};
-use dytallix_pqc::SignatureAlgorithm;
 use super::ai_types::{AIResponsePayload, AIServiceType};
+use dytallix_pqc::SignatureAlgorithm;
+use serde::{Deserialize, Serialize};
 
 /// Post-Quantum Cryptographic signature for AI oracle responses
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -161,11 +161,7 @@ pub struct AIServiceInfo {
 // Implementation methods for AIResponseSignature
 impl AIResponseSignature {
     /// Create a new signature
-    pub fn new(
-        algorithm: SignatureAlgorithm,
-        signature: Vec<u8>,
-        public_key: Vec<u8>,
-    ) -> Self {
+    pub fn new(algorithm: SignatureAlgorithm, signature: Vec<u8>, public_key: Vec<u8>) -> Self {
         Self {
             algorithm,
             signature,
@@ -353,20 +349,20 @@ impl SignedAIOracleResponse {
     /// This creates a deterministic byte representation of the response for signing/verification
     pub fn get_signable_data(&self) -> anyhow::Result<Vec<u8>> {
         let mut data = Vec::new();
-        
+
         // Serialize response payload
         let response_bytes = serde_json::to_vec(&self.response)?;
         data.extend_from_slice(&response_bytes);
-        
+
         // Add nonce
         data.extend_from_slice(&self.nonce.to_be_bytes());
-        
+
         // Add expiration
         data.extend_from_slice(&self.expires_at.to_be_bytes());
-        
+
         // Add oracle ID
         data.extend_from_slice(self.oracle_identity.oracle_id.as_bytes());
-        
+
         Ok(data)
     }
 

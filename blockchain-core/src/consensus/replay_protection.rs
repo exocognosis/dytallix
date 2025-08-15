@@ -4,14 +4,14 @@
 //! and a sophisticated caching system to avoid duplicate requests and improve performance.
 
 use anyhow::Result;
-use chrono::{DateTime, Utc, Duration as ChronoDuration};
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, BTreeMap};
+use sha3::{Digest, Sha3_256};
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, RwLock};
-use sha3::{Sha3_256, Digest};
-use log::{info, warn, debug};
 
-use crate::consensus::{SignedAIOracleResponse, AIRequestPayload};
+use crate::consensus::{AIRequestPayload, SignedAIOracleResponse};
 
 /// Configuration for replay protection and caching
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,12 +37,12 @@ pub struct ReplayProtectionConfig {
 impl Default for ReplayProtectionConfig {
     fn default() -> Self {
         Self {
-            max_response_age_seconds: 300,      // 5 minutes
-            nonce_retention_seconds: 600,       // 10 minutes
-            max_nonce_cache_size: 100_000,      // 100k nonces
-            response_cache_ttl_seconds: 300,    // 5 minutes
-            max_response_cache_size: 10_000,    // 10k responses
-            timestamp_tolerance_seconds: 30,    // 30 seconds for clock skew
+            max_response_age_seconds: 300,   // 5 minutes
+            nonce_retention_seconds: 600,    // 10 minutes
+            max_nonce_cache_size: 100_000,   // 100k nonces
+            response_cache_ttl_seconds: 300, // 5 minutes
+            max_response_cache_size: 10_000, // 10k responses
+            timestamp_tolerance_seconds: 30, // 30 seconds for clock skew
             enable_cache_stats: true,
             cache_cleanup_interval_seconds: 60, // 1 minute cleanup interval
         }
@@ -174,27 +174,53 @@ pub enum ReplayProtectionError {
         error: String,
     },
     /// Hash computation failed
-    HashError {
-        error: String,
-    },
+    HashError { error: String },
 }
 
 impl std::fmt::Display for ReplayProtectionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ReplayProtectionError::NonceReused { nonce, oracle_id, first_used } => {
-                write!(f, "Nonce {} from oracle {} was already used at {}", nonce, oracle_id, first_used)
+            ReplayProtectionError::NonceReused {
+                nonce,
+                oracle_id,
+                first_used,
+            } => {
+                write!(
+                    f,
+                    "Nonce {} from oracle {} was already used at {}",
+                    nonce, oracle_id, first_used
+                )
             }
-            ReplayProtectionError::ResponseTooOld { timestamp, max_age_seconds } => {
-                write!(f, "Response timestamp {} is older than {} seconds", timestamp, max_age_seconds)
+            ReplayProtectionError::ResponseTooOld {
+                timestamp,
+                max_age_seconds,
+            } => {
+                write!(
+                    f,
+                    "Response timestamp {} is older than {} seconds",
+                    timestamp, max_age_seconds
+                )
             }
-            ReplayProtectionError::ResponseTooFuture { timestamp, tolerance_seconds } => {
-                write!(f, "Response timestamp {} is more than {} seconds in the future", timestamp, tolerance_seconds)
+            ReplayProtectionError::ResponseTooFuture {
+                timestamp,
+                tolerance_seconds,
+            } => {
+                write!(
+                    f,
+                    "Response timestamp {} is more than {} seconds in the future",
+                    timestamp, tolerance_seconds
+                )
             }
-            ReplayProtectionError::CacheFull { current_size, max_size } => {
+            ReplayProtectionError::CacheFull {
+                current_size,
+                max_size,
+            } => {
                 write!(f, "Cache is full ({}/{})", current_size, max_size)
             }
-            ReplayProtectionError::InvalidTimestamp { timestamp_str, error } => {
+            ReplayProtectionError::InvalidTimestamp {
+                timestamp_str,
+                error,
+            } => {
                 write!(f, "Invalid timestamp '{}': {}", timestamp_str, error)
             }
             ReplayProtectionError::HashError { error } => {
@@ -226,8 +252,11 @@ pub struct ReplayProtectionManager {
 impl ReplayProtectionManager {
     /// Create a new replay protection manager
     pub fn new(config: ReplayProtectionConfig) -> Self {
-        info!("Initializing replay protection manager with config: {:?}", config);
-        
+        info!(
+            "Initializing replay protection manager with config: {:?}",
+            config
+        );
+
         Self {
             config,
             nonce_cache: Arc::new(RwLock::new(HashMap::new())),
@@ -246,28 +275,30 @@ impl ReplayProtectionManager {
         request_hash: &str,
     ) -> Result<(), ReplayProtectionError> {
         let mut nonce_cache = self.nonce_cache.write().unwrap();
-        
+
         // Check if nonce already exists
         if let Some(existing_entry) = nonce_cache.get_mut(&nonce) {
             // Increment usage count
             existing_entry.usage_count += 1;
-            
+
             // Update statistics
             if self.config.enable_cache_stats {
                 let mut stats = self.stats.write().unwrap();
                 stats.total_nonces_blocked += 1;
             }
-            
-            warn!("Replay attack detected: nonce {} already used by oracle {} at {}", 
-                  nonce, existing_entry.oracle_id, existing_entry.first_seen);
-            
+
+            warn!(
+                "Replay attack detected: nonce {} already used by oracle {} at {}",
+                nonce, existing_entry.oracle_id, existing_entry.first_seen
+            );
+
             return Err(ReplayProtectionError::NonceReused {
                 nonce,
                 oracle_id: existing_entry.oracle_id.clone(),
                 first_used: existing_entry.first_seen,
             });
         }
-        
+
         // Add new nonce entry
         let entry = NonceEntry {
             nonce,
@@ -276,15 +307,15 @@ impl ReplayProtectionManager {
             request_hash: request_hash.to_string(),
             usage_count: 1,
         };
-        
+
         nonce_cache.insert(nonce, entry);
-        
+
         // Update statistics
         if self.config.enable_cache_stats {
             let mut stats = self.stats.write().unwrap();
             stats.current_nonce_cache_size = nonce_cache.len();
         }
-        
+
         debug!("Nonce {} validated for oracle {}", nonce, oracle_id);
         Ok(())
     }
@@ -299,35 +330,41 @@ impl ReplayProtectionManager {
         let now = Utc::now();
         let max_age = ChronoDuration::seconds(self.config.max_response_age_seconds as i64);
         let tolerance = ChronoDuration::seconds(self.config.timestamp_tolerance_seconds as i64);
-        
+
         // Check if response is too old
         if now.signed_duration_since(timestamp) > max_age {
             if self.config.enable_cache_stats {
                 let mut stats = self.stats.write().unwrap();
                 stats.total_timestamp_violations += 1;
             }
-            
-            warn!("Response timestamp too old: {} from oracle {}", timestamp, oracle_id);
+
+            warn!(
+                "Response timestamp too old: {} from oracle {}",
+                timestamp, oracle_id
+            );
             return Err(ReplayProtectionError::ResponseTooOld {
                 timestamp,
                 max_age_seconds: self.config.max_response_age_seconds,
             });
         }
-        
+
         // Check if response is too far in the future (accounting for clock skew)
         if timestamp.signed_duration_since(now) > tolerance {
             if self.config.enable_cache_stats {
                 let mut stats = self.stats.write().unwrap();
                 stats.total_timestamp_violations += 1;
             }
-            
-            warn!("Response timestamp too far in future: {} from oracle {}", timestamp, oracle_id);
+
+            warn!(
+                "Response timestamp too far in future: {} from oracle {}",
+                timestamp, oracle_id
+            );
             return Err(ReplayProtectionError::ResponseTooFuture {
                 timestamp,
                 tolerance_seconds: self.config.timestamp_tolerance_seconds,
             });
         }
-        
+
         // Add to timestamp cache for tracking
         let mut timestamp_cache = self.timestamp_cache.write().unwrap();
         let entry = TimestampEntry {
@@ -336,72 +373,76 @@ impl ReplayProtectionManager {
             oracle_id: oracle_id.to_string(),
             request_id: request_id.to_string(),
         };
-        
+
         timestamp_cache.insert(timestamp, entry);
-        
+
         debug!("Timestamp {} validated for oracle {}", timestamp, oracle_id);
         Ok(())
     }
 
     /// Compute request hash for caching
-    pub fn compute_request_hash(request: &AIRequestPayload) -> Result<String, ReplayProtectionError> {
-        let serialized = serde_json::to_string(request)
-            .map_err(|e| ReplayProtectionError::HashError {
+    pub fn compute_request_hash(
+        request: &AIRequestPayload,
+    ) -> Result<String, ReplayProtectionError> {
+        let serialized =
+            serde_json::to_string(request).map_err(|e| ReplayProtectionError::HashError {
                 error: format!("Failed to serialize request: {}", e),
             })?;
-        
+
         let mut hasher = Sha3_256::new();
         hasher.update(serialized.as_bytes());
         let result = hasher.finalize();
-        
+
         Ok(hex::encode(result))
     }
 
     /// Check if response is cached
     pub fn get_cached_response(&self, request_hash: &str) -> Option<SignedAIOracleResponse> {
         let mut response_cache = self.response_cache.write().unwrap();
-        
+
         if let Some(entry) = response_cache.get_mut(request_hash) {
             let now = Utc::now();
             let cache_age = now.signed_duration_since(entry.cached_at);
             let max_age = ChronoDuration::seconds(self.config.response_cache_ttl_seconds as i64);
-            
+
             // Check if cached response is still valid
             if cache_age <= max_age {
                 // Update access statistics
                 entry.hit_count += 1;
                 entry.last_accessed = now;
-                
+
                 // Update global statistics
                 if self.config.enable_cache_stats {
                     let mut stats = self.stats.write().unwrap();
                     stats.total_hits += 1;
-                    stats.hit_ratio = stats.total_hits as f64 / (stats.total_hits + stats.total_misses) as f64;
+                    stats.hit_ratio =
+                        stats.total_hits as f64 / (stats.total_hits + stats.total_misses) as f64;
                 }
-                
+
                 debug!("Cache hit for request hash: {}", request_hash);
                 return Some(entry.response.clone());
             } else {
                 // Cache entry expired, remove it
                 response_cache.remove(request_hash);
-                
+
                 if self.config.enable_cache_stats {
                     let mut stats = self.stats.write().unwrap();
                     stats.total_entries_evicted += 1;
                     stats.current_cache_size = response_cache.len();
                 }
-                
+
                 debug!("Cache entry expired for request hash: {}", request_hash);
             }
         }
-        
+
         // Cache miss
         if self.config.enable_cache_stats {
             let mut stats = self.stats.write().unwrap();
             stats.total_misses += 1;
-            stats.hit_ratio = stats.total_hits as f64 / (stats.total_hits + stats.total_misses) as f64;
+            stats.hit_ratio =
+                stats.total_hits as f64 / (stats.total_hits + stats.total_misses) as f64;
         }
-        
+
         debug!("Cache miss for request hash: {}", request_hash);
         None
     }
@@ -414,18 +455,18 @@ impl ReplayProtectionManager {
         oracle_id: &str,
     ) -> Result<(), ReplayProtectionError> {
         let mut response_cache = self.response_cache.write().unwrap();
-        
+
         // Check cache size limits
         if response_cache.len() >= self.config.max_response_cache_size {
             // Evict oldest entries (LRU-style)
             self.evict_oldest_entries(&mut response_cache)?;
         }
-        
+
         // Calculate response size estimate
         let response_size = serde_json::to_string(&response)
             .map(|s| s.len())
             .unwrap_or(0);
-        
+
         let entry = CachedResponseEntry {
             request_hash: request_hash.clone(),
             response,
@@ -435,24 +476,28 @@ impl ReplayProtectionManager {
             oracle_id: oracle_id.to_string(),
             response_size,
         };
-        
+
         response_cache.insert(request_hash.clone(), entry);
-        
+
         // Update statistics
         if self.config.enable_cache_stats {
             let mut stats = self.stats.write().unwrap();
             stats.total_entries_added += 1;
             stats.current_cache_size = response_cache.len();
-            
+
             // Update average response size
             let total_size: usize = response_cache.values().map(|e| e.response_size).sum();
             stats.avg_response_size = total_size as f64 / response_cache.len() as f64;
-            
+
             // Update memory usage estimate
-            stats.estimated_memory_usage = total_size + (response_cache.len() * 200); // Approximate overhead
+            stats.estimated_memory_usage = total_size + (response_cache.len() * 200);
+            // Approximate overhead
         }
-        
-        debug!("Cached response for request hash: {} from oracle: {}", request_hash, oracle_id);
+
+        debug!(
+            "Cached response for request hash: {} from oracle: {}",
+            request_hash, oracle_id
+        );
         Ok(())
     }
 
@@ -462,25 +507,29 @@ impl ReplayProtectionManager {
         response_cache: &mut HashMap<String, CachedResponseEntry>,
     ) -> Result<(), ReplayProtectionError> {
         let entries_to_remove = response_cache.len() / 10; // Remove 10% of entries
-        
+
         // Find oldest entries by last_accessed time
         let mut entries: Vec<_> = response_cache.iter().collect();
         entries.sort_by_key(|(_, entry)| entry.last_accessed);
-        
+
         // Collect keys to remove to avoid borrow checker issues
-        let keys_to_remove: Vec<_> = entries.iter().take(entries_to_remove).map(|(k, _)| k.to_string()).collect();
-        
+        let keys_to_remove: Vec<_> = entries
+            .iter()
+            .take(entries_to_remove)
+            .map(|(k, _)| k.to_string())
+            .collect();
+
         for hash in keys_to_remove {
             response_cache.remove(&hash);
         }
-        
+
         // Update statistics
         if self.config.enable_cache_stats {
             let mut stats = self.stats.write().unwrap();
             stats.total_entries_evicted += entries_to_remove as u64;
             stats.current_cache_size = response_cache.len();
         }
-        
+
         debug!("Evicted {} oldest cache entries", entries_to_remove);
         Ok(())
     }
@@ -489,19 +538,22 @@ impl ReplayProtectionManager {
     pub fn invalidate_oracle_cache(&self, oracle_id: &str) -> usize {
         let mut response_cache = self.response_cache.write().unwrap();
         let initial_size = response_cache.len();
-        
+
         response_cache.retain(|_, entry| entry.oracle_id != oracle_id);
-        
+
         let removed_count = initial_size - response_cache.len();
-        
+
         // Update statistics
         if self.config.enable_cache_stats {
             let mut stats = self.stats.write().unwrap();
             stats.total_entries_evicted += removed_count as u64;
             stats.current_cache_size = response_cache.len();
         }
-        
-        info!("Invalidated {} cache entries for oracle: {}", removed_count, oracle_id);
+
+        info!(
+            "Invalidated {} cache entries for oracle: {}",
+            removed_count, oracle_id
+        );
         removed_count
     }
 
@@ -509,16 +561,16 @@ impl ReplayProtectionManager {
     pub fn invalidate_all_cache(&self) -> usize {
         let mut response_cache = self.response_cache.write().unwrap();
         let removed_count = response_cache.len();
-        
+
         response_cache.clear();
-        
+
         // Update statistics
         if self.config.enable_cache_stats {
             let mut stats = self.stats.write().unwrap();
             stats.total_entries_evicted += removed_count as u64;
             stats.current_cache_size = 0;
         }
-        
+
         info!("Invalidated all {} cache entries", removed_count);
         removed_count
     }
@@ -527,74 +579,77 @@ impl ReplayProtectionManager {
     pub fn cleanup_expired_entries(&self) -> Result<usize> {
         let now = Utc::now();
         let mut total_removed = 0;
-        
+
         // Clean up expired nonces
         {
             let mut nonce_cache = self.nonce_cache.write().unwrap();
-            let nonce_retention = ChronoDuration::seconds(self.config.nonce_retention_seconds as i64);
+            let nonce_retention =
+                ChronoDuration::seconds(self.config.nonce_retention_seconds as i64);
             let initial_size = nonce_cache.len();
-            
-            nonce_cache.retain(|_, entry| {
-                now.signed_duration_since(entry.first_seen) <= nonce_retention
-            });
-            
+
+            nonce_cache
+                .retain(|_, entry| now.signed_duration_since(entry.first_seen) <= nonce_retention);
+
             let nonces_removed = initial_size - nonce_cache.len();
             total_removed += nonces_removed;
-            
+
             debug!("Cleaned up {} expired nonces", nonces_removed);
         }
-        
+
         // Clean up expired responses
         {
             let mut response_cache = self.response_cache.write().unwrap();
             let cache_ttl = ChronoDuration::seconds(self.config.response_cache_ttl_seconds as i64);
             let initial_size = response_cache.len();
-            
-            response_cache.retain(|_, entry| {
-                now.signed_duration_since(entry.cached_at) <= cache_ttl
-            });
-            
+
+            response_cache
+                .retain(|_, entry| now.signed_duration_since(entry.cached_at) <= cache_ttl);
+
             let responses_removed = initial_size - response_cache.len();
             total_removed += responses_removed;
-            
+
             debug!("Cleaned up {} expired cached responses", responses_removed);
         }
-        
+
         // Clean up old timestamps
         {
             let mut timestamp_cache = self.timestamp_cache.write().unwrap();
-            let timestamp_retention = ChronoDuration::seconds(self.config.max_response_age_seconds as i64 * 2);
+            let timestamp_retention =
+                ChronoDuration::seconds(self.config.max_response_age_seconds as i64 * 2);
             let cutoff_time = now - timestamp_retention;
-            
+
             let initial_size = timestamp_cache.len();
             timestamp_cache.retain(|timestamp, _| *timestamp >= cutoff_time);
-            
+
             let timestamps_removed = initial_size - timestamp_cache.len();
             total_removed += timestamps_removed;
-            
+
             debug!("Cleaned up {} old timestamps", timestamps_removed);
         }
-        
+
         // Update last cleanup time and statistics
         {
             let mut last_cleanup = self.last_cleanup.write().unwrap();
             *last_cleanup = now;
-            
+
             if self.config.enable_cache_stats {
                 let mut stats = self.stats.write().unwrap();
                 stats.last_cleanup = now;
                 stats.total_entries_evicted += total_removed as u64;
-                
+
                 // Update current sizes
                 stats.current_cache_size = self.response_cache.read().unwrap().len();
                 stats.current_nonce_cache_size = self.nonce_cache.read().unwrap().len();
             }
         }
-        
+
         if total_removed > 0 {
-            info!("Cleanup completed: removed {} total expired entries", total_removed);
+            info!(
+                "Cleanup completed: removed {} total expired entries",
+                total_removed
+            );
         }
-        
+
         Ok(total_removed)
     }
 
@@ -613,8 +668,9 @@ impl ReplayProtectionManager {
     /// Check if automatic cleanup should be performed
     pub fn should_cleanup(&self) -> bool {
         let last_cleanup = *self.last_cleanup.read().unwrap();
-        let cleanup_interval = ChronoDuration::seconds(self.config.cache_cleanup_interval_seconds as i64);
-        
+        let cleanup_interval =
+            ChronoDuration::seconds(self.config.cache_cleanup_interval_seconds as i64);
+
         Utc::now().signed_duration_since(last_cleanup) >= cleanup_interval
     }
 
@@ -623,14 +679,16 @@ impl ReplayProtectionManager {
         let stats = self.get_statistics();
         let response_cache_size = self.response_cache.read().unwrap().len();
         let nonce_cache_size = self.nonce_cache.read().unwrap().len();
-        
+
         CacheHealthMetrics {
             hit_ratio: stats.hit_ratio,
-            cache_utilization: response_cache_size as f64 / self.config.max_response_cache_size as f64,
+            cache_utilization: response_cache_size as f64
+                / self.config.max_response_cache_size as f64,
             nonce_utilization: nonce_cache_size as f64 / self.config.max_nonce_cache_size as f64,
             avg_response_size: stats.avg_response_size,
             memory_usage_mb: stats.estimated_memory_usage as f64 / (1024.0 * 1024.0),
-            is_healthy: stats.hit_ratio > 0.1 && response_cache_size < self.config.max_response_cache_size,
+            is_healthy: stats.hit_ratio > 0.1
+                && response_cache_size < self.config.max_response_cache_size,
         }
     }
 }

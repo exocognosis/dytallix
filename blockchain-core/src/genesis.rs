@@ -3,11 +3,11 @@ Genesis Block Configuration for Dytallix Mainnet
 Implements the mainnet genesis configuration with dual-token system
 */
 
-use serde::{Serialize, Deserialize};
+use crate::types::serde_u128_string;
+use crate::types::{Address, Amount, BlockNumber, Hash, Timestamp, ValidatorInfo};
 use chrono::{DateTime, Utc};
-use std::collections::HashMap;
-use crate::types::{Address, Amount, BlockNumber, Timestamp, ValidatorInfo, Hash};
-use crate::types::serde_u128_string; // Use string-based serde for all Amount fields to avoid JSON precision loss
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap; // Use string-based serde for all Amount fields to avoid JSON precision loss
 
 /// Vesting schedule for token allocations
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,18 +28,18 @@ impl VestingSchedule {
         if current_time < self.start_time + self.cliff_duration {
             return 0; // Still in cliff period
         }
-        
+
         if current_time >= self.start_time + self.vesting_duration {
             return self.total_amount; // Fully vested
         }
-        
+
         // Linear vesting after cliff
         let elapsed_since_cliff = current_time - (self.start_time + self.cliff_duration);
         let vesting_period_after_cliff = self.vesting_duration - self.cliff_duration;
-        
+
         (self.total_amount * elapsed_since_cliff) / vesting_period_after_cliff
     }
-    
+
     /// Calculate unvested (locked) amount at given timestamp
     pub fn locked_amount(&self, current_time: Timestamp) -> Amount {
         self.total_amount - self.vested_amount(current_time)
@@ -84,7 +84,11 @@ pub struct EmissionBreakdown {
 impl EmissionBreakdown {
     /// Validate that percentages sum to 100
     pub fn is_valid(&self) -> bool {
-        self.block_rewards + self.staking_rewards + self.ai_module_incentives + self.bridge_operations == 100
+        self.block_rewards
+            + self.staking_rewards
+            + self.ai_module_incentives
+            + self.bridge_operations
+            == 100
     }
 }
 
@@ -165,7 +169,7 @@ impl GenesisConfig {
         let genesis_time = DateTime::parse_from_rfc3339("2025-08-03T19:00:26.000000000Z")
             .unwrap()
             .with_timezone(&Utc);
-        
+
         // DGT allocations with vesting schedules
         let dgt_allocations = vec![
             // Community Treasury - 400M DGT, unlocked
@@ -223,7 +227,7 @@ impl GenesisConfig {
         // DRT emission configuration (~5% annual inflation)
         let drt_emission = DRTEmissionConfig {
             annual_inflation_rate: 500, // 5% in basis points
-            initial_supply: 0, // DRT starts with 0 supply
+            initial_supply: 0,          // DRT starts with 0 supply
             emission_breakdown: EmissionBreakdown {
                 block_rewards: 60,
                 staking_rewards: 25,
@@ -245,7 +249,7 @@ impl GenesisConfig {
                 address: "dyt1validator1000000000000000000000000000".to_string(),
                 // Using 32 DGT with 6 decimals instead of 18 to fit into u64 (example adjustment)
                 stake: 32_000_000_000_000u64, // 32 * 10^12 (represents 32 DGT if 12 decimals)
-                public_key: vec![0u8; 32], // Placeholder - would be real keys in production
+                public_key: vec![0u8; 32],    // Placeholder - would be real keys in production
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
                 commission: 500, // 5% commission
@@ -271,18 +275,18 @@ impl GenesisConfig {
         // Governance configuration
         let governance = GovernanceConfig {
             proposal_threshold: 1_000_000_000_000_000_000, // 1M DGT to create proposal
-            voting_period: 50400, // ~7 days assuming 12s block time
-            quorum_threshold: 3333, // 33.33% quorum required
-            pass_threshold: 5000,   // 50% majority required
+            voting_period: 50400,                          // ~7 days assuming 12s block time
+            quorum_threshold: 3333,                        // 33.33% quorum required
+            pass_threshold: 5000,                          // 50% majority required
         };
 
         // Staking configuration
         let staking = StakingConfig {
             minimum_validator_stake: 32_000_000_000_000u64,
             max_validators: 100,
-            double_sign_slash_rate: 500,  // 5% slash for double signing
-            downtime_slash_rate: 100,     // 1% slash for downtime
-            offline_threshold: 300,       // 300 blocks (~1 hour) to be considered offline
+            double_sign_slash_rate: 500, // 5% slash for double signing
+            downtime_slash_rate: 100,    // 1% slash for downtime
+            offline_threshold: 300,      // 300 blocks (~1 hour) to be considered offline
         };
 
         Self {
@@ -306,7 +310,10 @@ impl GenesisConfig {
         // Validate DGT total supply is 1 billion
         let total_dgt: Amount = self.dgt_allocations.iter().map(|a| a.amount).sum();
         if total_dgt != 1_000_000_000_000_000_000 {
-            return Err(format!("DGT total supply must be 1 billion, got {}", total_dgt));
+            return Err(format!(
+                "DGT total supply must be 1 billion, got {}",
+                total_dgt
+            ));
         }
 
         // Validate emission breakdown
@@ -315,15 +322,18 @@ impl GenesisConfig {
         }
 
         // Validate burn rates are <= 100%
-        if self.burn_rules.transaction_fee_burn_rate > 100 ||
-           self.burn_rules.ai_service_fee_burn_rate > 100 ||
-           self.burn_rules.bridge_fee_burn_rate > 100 {
+        if self.burn_rules.transaction_fee_burn_rate > 100
+            || self.burn_rules.ai_service_fee_burn_rate > 100
+            || self.burn_rules.bridge_fee_burn_rate > 100
+        {
             return Err("Burn rates cannot exceed 100%".to_string());
         }
 
         // Validate governance parameters
         if self.governance.quorum_threshold > 10000 || self.governance.pass_threshold > 10000 {
-            return Err("Governance thresholds cannot exceed 100% (10000 basis points)".to_string());
+            return Err(
+                "Governance thresholds cannot exceed 100% (10000 basis points)".to_string(),
+            );
         }
 
         // Validate staking parameters
@@ -334,7 +344,10 @@ impl GenesisConfig {
         // Validate validators have minimum stake
         for validator in &self.validators {
             if validator.stake < self.staking.minimum_validator_stake {
-                return Err(format!("Validator {} has insufficient stake", validator.address));
+                return Err(format!(
+                    "Validator {} has insufficient stake",
+                    validator.address
+                ));
             }
         }
 
@@ -345,7 +358,7 @@ impl GenesisConfig {
     pub fn total_dgt_supply(&self) -> Amount {
         self.dgt_allocations.iter().map(|a| a.amount).sum()
     }
-    
+
     #[cfg(test)]
     #[test]
     fn test_genesis_amounts_serialize_as_strings() {
@@ -434,7 +447,7 @@ mod tests {
         let start_time = 1722715226; // Genesis timestamp
         let vesting = VestingSchedule {
             total_amount: 1000,
-            cliff_duration: 365 * 24 * 60 * 60, // 1 year
+            cliff_duration: 365 * 24 * 60 * 60,       // 1 year
             vesting_duration: 4 * 365 * 24 * 60 * 60, // 4 years total
             start_time,
         };
@@ -458,35 +471,47 @@ mod tests {
         let genesis = GenesisConfig::mainnet();
         let json = genesis.to_json().unwrap();
         let deserialized = GenesisConfig::from_json(&json).unwrap();
-        
+
         assert_eq!(genesis.network.name, deserialized.network.name);
-        assert_eq!(genesis.dgt_allocations.len(), deserialized.dgt_allocations.len());
+        assert_eq!(
+            genesis.dgt_allocations.len(),
+            deserialized.dgt_allocations.len()
+        );
     }
 
     #[test]
     fn generate_genesis_json() {
         let genesis = GenesisConfig::mainnet();
-        
+
         // Validate the configuration
         genesis.validate().unwrap();
-        
+
         // Convert to JSON
         let json = genesis.to_json().unwrap();
-        
+
         // Write to genesisBlock.json in the project root
         let output_path = "../../genesisBlock.json";
         std::fs::write(output_path, &json).unwrap();
-        
+
         println!("✅ Genesis configuration written to {}", output_path);
         println!("📊 Configuration summary:");
         println!("   Network: {}", genesis.network.name);
         println!("   Chain ID: {}", genesis.network.chain_id);
         println!("   Genesis Time: {}", genesis.network.genesis_time);
-        println!("   Total DGT Supply: {:.0} tokens", genesis.total_dgt_supply() as f64 / 1e18);
-        println!("   DGT Allocations: {} recipients", genesis.dgt_allocations.len());
+        println!(
+            "   Total DGT Supply: {:.0} tokens",
+            genesis.total_dgt_supply() as f64 / 1e18
+        );
+        println!(
+            "   DGT Allocations: {} recipients",
+            genesis.dgt_allocations.len()
+        );
         println!("   Initial Validators: {}", genesis.validators.len());
-        println!("   DRT Annual Inflation: {}%", genesis.drt_emission.annual_inflation_rate as f64 / 100.0);
-        
+        println!(
+            "   DRT Annual Inflation: {}%",
+            genesis.drt_emission.annual_inflation_rate as f64 / 100.0
+        );
+
         // Print allocation breakdown
         println!("\n💰 DGT Token Allocations:");
         for allocation in &genesis.dgt_allocations {
@@ -494,7 +519,8 @@ mod tests {
             match &allocation.vesting {
                 Some(vesting) => {
                     let cliff_years = vesting.cliff_duration as f64 / (365.25 * 24.0 * 60.0 * 60.0);
-                    let total_years = vesting.vesting_duration as f64 / (365.25 * 24.0 * 60.0 * 60.0);
+                    let total_years =
+                        vesting.vesting_duration as f64 / (365.25 * 24.0 * 60.0 * 60.0);
                     println!("   {} - {:.0}M DGT ({:.1}% of supply) - {:.1}y cliff, {:.1}y total vesting", 
                         allocation.address,
                         amount_readable / 1e6,
@@ -502,9 +528,10 @@ mod tests {
                         cliff_years,
                         total_years
                     );
-                },
+                }
                 None => {
-                    println!("   {} - {:.0}M DGT ({:.1}% of supply) - Unlocked", 
+                    println!(
+                        "   {} - {:.0}M DGT ({:.1}% of supply) - Unlocked",
                         allocation.address,
                         amount_readable / 1e6,
                         (allocation.amount as f64 / genesis.total_dgt_supply() as f64) * 100.0
@@ -512,28 +539,70 @@ mod tests {
                 }
             }
         }
-        
+
         println!("\n🔥 Burn Rules:");
-        println!("   Transaction fees: {}% burned", genesis.burn_rules.transaction_fee_burn_rate);
-        println!("   AI service fees: {}% burned", genesis.burn_rules.ai_service_fee_burn_rate);
-        println!("   Bridge fees: {}% burned", genesis.burn_rules.bridge_fee_burn_rate);
-        
+        println!(
+            "   Transaction fees: {}% burned",
+            genesis.burn_rules.transaction_fee_burn_rate
+        );
+        println!(
+            "   AI service fees: {}% burned",
+            genesis.burn_rules.ai_service_fee_burn_rate
+        );
+        println!(
+            "   Bridge fees: {}% burned",
+            genesis.burn_rules.bridge_fee_burn_rate
+        );
+
         println!("\n⚡ DRT Emission Breakdown:");
-        println!("   Block rewards: {}%", genesis.drt_emission.emission_breakdown.block_rewards);
-        println!("   Staking rewards: {}%", genesis.drt_emission.emission_breakdown.staking_rewards);
-        println!("   AI module incentives: {}%", genesis.drt_emission.emission_breakdown.ai_module_incentives);
-        println!("   Bridge operations: {}%", genesis.drt_emission.emission_breakdown.bridge_operations);
-        
+        println!(
+            "   Block rewards: {}%",
+            genesis.drt_emission.emission_breakdown.block_rewards
+        );
+        println!(
+            "   Staking rewards: {}%",
+            genesis.drt_emission.emission_breakdown.staking_rewards
+        );
+        println!(
+            "   AI module incentives: {}%",
+            genesis.drt_emission.emission_breakdown.ai_module_incentives
+        );
+        println!(
+            "   Bridge operations: {}%",
+            genesis.drt_emission.emission_breakdown.bridge_operations
+        );
+
         println!("\n🏛️ Governance Parameters:");
-        println!("   Proposal threshold: {:.0}M DGT", genesis.governance.proposal_threshold as f64 / 1e24);
-        println!("   Voting period: {} blocks", genesis.governance.voting_period);
-        println!("   Quorum threshold: {:.1}%", genesis.governance.quorum_threshold as f64 / 100.0);
-        println!("   Pass threshold: {:.1}%", genesis.governance.pass_threshold as f64 / 100.0);
-        
+        println!(
+            "   Proposal threshold: {:.0}M DGT",
+            genesis.governance.proposal_threshold as f64 / 1e24
+        );
+        println!(
+            "   Voting period: {} blocks",
+            genesis.governance.voting_period
+        );
+        println!(
+            "   Quorum threshold: {:.1}%",
+            genesis.governance.quorum_threshold as f64 / 100.0
+        );
+        println!(
+            "   Pass threshold: {:.1}%",
+            genesis.governance.pass_threshold as f64 / 100.0
+        );
+
         println!("\n🔒 Staking Parameters:");
-        println!("   Minimum validator stake: {:.0}M DGT", genesis.staking.minimum_validator_stake as f64 / 1e24);
+        println!(
+            "   Minimum validator stake: {:.0}M DGT",
+            genesis.staking.minimum_validator_stake as f64 / 1e24
+        );
         println!("   Maximum validators: {}", genesis.staking.max_validators);
-        println!("   Double sign slash: {:.1}%", genesis.staking.double_sign_slash_rate as f64 / 100.0);
-        println!("   Downtime slash: {:.1}%", genesis.staking.downtime_slash_rate as f64 / 100.0);
+        println!(
+            "   Double sign slash: {:.1}%",
+            genesis.staking.double_sign_slash_rate as f64 / 100.0
+        );
+        println!(
+            "   Downtime slash: {:.1}%",
+            genesis.staking.downtime_slash_rate as f64 / 100.0
+        );
     }
 }

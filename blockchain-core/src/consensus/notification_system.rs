@@ -2,18 +2,20 @@
 //!
 //! This module implements a notification system to alert compliance officers
 //! about high-risk transactions that require manual review. It supports
-//! multiple notification channels and can be extended with email, SMS, 
+//! multiple notification channels and can be extended with email, SMS,
 //! or webhook integrations.
 
+use anyhow::Result;
+use chrono::{DateTime, Utc};
+use log::{error, info, warn};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
-use anyhow::Result;
-use log::{info, warn, error};
 
-use crate::consensus::notification_types::{NotificationType, ReviewPriority, NotificationChannel as TypesNotificationChannel};
+use crate::consensus::notification_types::{
+    NotificationChannel as TypesNotificationChannel, NotificationType, ReviewPriority,
+};
 
 /// Configuration alias for backward compatibility
 pub type NotificationSystemConfig = NotificationConfig;
@@ -161,24 +163,34 @@ impl NotificationSystem {
     }
 
     /// Acknowledge a notification
-    pub async fn acknowledge_notification(&self, notification_id: Uuid, officer_id: String) -> Result<()> {
+    pub async fn acknowledge_notification(
+        &self,
+        notification_id: Uuid,
+        officer_id: String,
+    ) -> Result<()> {
         let mut notifications = self.notifications.lock().await;
-        
+
         if let Some(notification) = notifications.iter_mut().find(|n| n.id == notification_id) {
             notification.acknowledged_at = Some(Utc::now());
             notification.acknowledged_by = Some(officer_id.clone());
-            
-            info!("Notification {} acknowledged by {}", notification_id, officer_id);
+
+            info!(
+                "Notification {} acknowledged by {}",
+                notification_id, officer_id
+            );
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Notification not found: {}", notification_id))
+            Err(anyhow::anyhow!(
+                "Notification not found: {}",
+                notification_id
+            ))
         }
     }
 
     /// Get notification statistics
     pub async fn get_statistics(&self) -> NotificationStats {
         let notifications = self.notifications.lock().await;
-        
+
         let mut stats = NotificationStats {
             total_sent: notifications.len(),
             total_delivered: 0,
@@ -200,15 +212,19 @@ impl NotificationSystem {
             // Count delivered
             if notification.delivered_at.is_some() {
                 stats.total_delivered += 1;
-                
+
                 if let Some(delivered_at) = notification.delivered_at {
-                    let delivery_time = (delivered_at - notification.created_at).num_seconds() as f64;
+                    let delivery_time =
+                        (delivered_at - notification.created_at).num_seconds() as f64;
                     delivery_times.push(delivery_time);
                 }
             }
 
             // Count by priority
-            *stats.by_priority.entry(notification.priority.clone()).or_insert(0) += 1;
+            *stats
+                .by_priority
+                .entry(notification.priority.clone())
+                .or_insert(0) += 1;
 
             // Count by channels
             for channel in &notification.channels_sent {
@@ -218,7 +234,8 @@ impl NotificationSystem {
 
         // Calculate average delivery time
         if !delivery_times.is_empty() {
-            stats.average_delivery_time_seconds = delivery_times.iter().sum::<f64>() / delivery_times.len() as f64;
+            stats.average_delivery_time_seconds =
+                delivery_times.iter().sum::<f64>() / delivery_times.len() as f64;
         }
 
         stats.total_failed = stats.total_sent - stats.total_delivered;
@@ -230,7 +247,7 @@ impl NotificationSystem {
     pub async fn cleanup_old_notifications(&self) -> Result<usize> {
         let cutoff_time = Utc::now() - chrono::Duration::hours(self.config.retention_hours as i64);
         let mut notifications = self.notifications.lock().await;
-        
+
         let initial_count = notifications.len();
         notifications.retain(|n| n.created_at > cutoff_time);
         let removed_count = initial_count - notifications.len();
@@ -245,7 +262,12 @@ impl NotificationSystem {
     /// Create a notification from a notification type
     async fn create_notification(&self, notification_type: NotificationType) -> Notification {
         let (title, message, priority) = match &notification_type {
-            NotificationType::NewHighRiskTransaction { queue_id, transaction_hash, risk_score, priority: tx_priority } => {
+            NotificationType::NewHighRiskTransaction {
+                queue_id,
+                transaction_hash,
+                risk_score,
+                priority: tx_priority,
+            } => {
                 let title = format!("🚨 New {:?} Priority Transaction", tx_priority);
                 let message = format!(
                     "A new {:?} priority transaction has been queued for manual review. Queue ID: {}, Transaction: {}, Risk Score: {:.2}",
@@ -259,7 +281,11 @@ impl NotificationSystem {
                 };
                 (title, message, notification_priority)
             }
-            NotificationType::TransactionExpired { queue_id, transaction_hash, expiry_time: _ } => {
+            NotificationType::TransactionExpired {
+                queue_id,
+                transaction_hash,
+                expiry_time: _,
+            } => {
                 let title = "⏰ Transaction Expired".to_string();
                 let message = format!(
                     "Transaction {} (Queue ID: {}) has expired in the review queue without being processed.",
@@ -267,7 +293,11 @@ impl NotificationSystem {
                 );
                 (title, message, NotificationPriority::Medium)
             }
-            NotificationType::ReviewTimeout { queue_id, officer_id, assigned_time: _ } => {
+            NotificationType::ReviewTimeout {
+                queue_id,
+                officer_id,
+                assigned_time: _,
+            } => {
                 let title = "⏰ Review Timeout".to_string();
                 let message = format!(
                     "Transaction {} has exceeded the maximum review time. Officer: {}",
@@ -275,7 +305,11 @@ impl NotificationSystem {
                 );
                 (title, message, NotificationPriority::High)
             }
-            NotificationType::QueueCapacityWarning { current_size, max_size, warning_level: _ } => {
+            NotificationType::QueueCapacityWarning {
+                current_size,
+                max_size,
+                warning_level: _,
+            } => {
                 let title = "⚠️ Queue Capacity Warning".to_string();
                 let message = format!(
                     "The high-risk transaction queue is approaching capacity: {}/{} transactions",
@@ -283,7 +317,11 @@ impl NotificationSystem {
                 );
                 (title, message, NotificationPriority::High)
             }
-            NotificationType::TransactionApproved { queue_id, transaction_hash, officer_id } => {
+            NotificationType::TransactionApproved {
+                queue_id,
+                transaction_hash,
+                officer_id,
+            } => {
                 let title = "✅ Transaction Approved".to_string();
                 let message = format!(
                     "Transaction {} (Queue ID: {}) has been approved by officer {}",
@@ -291,7 +329,12 @@ impl NotificationSystem {
                 );
                 (title, message, NotificationPriority::Low)
             }
-            NotificationType::TransactionRejected { queue_id, transaction_hash, officer_id, reason } => {
+            NotificationType::TransactionRejected {
+                queue_id,
+                transaction_hash,
+                officer_id,
+                reason,
+            } => {
                 let title = "❌ Transaction Rejected".to_string();
                 let message = format!(
                     "Transaction {} (Queue ID: {}) has been rejected by officer {}. Reason: {}",
@@ -299,7 +342,11 @@ impl NotificationSystem {
                 );
                 (title, message, NotificationPriority::Low)
             }
-            NotificationType::ManualReviewAssigned { queue_id, officer_id, transaction_hash } => {
+            NotificationType::ManualReviewAssigned {
+                queue_id,
+                officer_id,
+                transaction_hash,
+            } => {
                 let title = "👨‍💼 Manual Review Assigned".to_string();
                 let message = format!(
                     "Transaction {} (Queue ID: {}) has been assigned to officer {} for manual review",
@@ -310,10 +357,18 @@ impl NotificationSystem {
             NotificationType::SystemAlert { message, severity } => {
                 let title = format!("🚨 System Alert ({:?})", severity);
                 let priority = match severity {
-                    crate::consensus::notification_types::AlertSeverity::Critical => NotificationPriority::Critical,
-                    crate::consensus::notification_types::AlertSeverity::High => NotificationPriority::High,
-                    crate::consensus::notification_types::AlertSeverity::Medium => NotificationPriority::Medium,
-                    crate::consensus::notification_types::AlertSeverity::Low => NotificationPriority::Low,
+                    crate::consensus::notification_types::AlertSeverity::Critical => {
+                        NotificationPriority::Critical
+                    }
+                    crate::consensus::notification_types::AlertSeverity::High => {
+                        NotificationPriority::High
+                    }
+                    crate::consensus::notification_types::AlertSeverity::Medium => {
+                        NotificationPriority::Medium
+                    }
+                    crate::consensus::notification_types::AlertSeverity::Low => {
+                        NotificationPriority::Low
+                    }
                 };
                 (title, message.clone(), priority)
             }
@@ -341,7 +396,9 @@ impl NotificationSystem {
         // In-app notifications (always enabled for now)
         if self.config.enable_in_app {
             info!("📱 {}: {}", notification.title, notification.message);
-            notification.channels_sent.push(TypesNotificationChannel::InApp);
+            notification
+                .channels_sent
+                .push(TypesNotificationChannel::InApp);
             delivered = true;
         }
 
@@ -350,7 +407,9 @@ impl NotificationSystem {
             match self.send_email_notification(&notification).await {
                 Ok(_) => {
                     info!("📧 Email notification sent for: {}", notification.title);
-                    notification.channels_sent.push(TypesNotificationChannel::Email);
+                    notification
+                        .channels_sent
+                        .push(TypesNotificationChannel::Email);
                     delivered = true;
                 }
                 Err(e) => {
@@ -364,7 +423,9 @@ impl NotificationSystem {
             match self.send_webhook_notification(&notification).await {
                 Ok(_) => {
                     info!("🔗 Webhook notification sent for: {}", notification.title);
-                    notification.channels_sent.push(TypesNotificationChannel::Webhook);
+                    notification
+                        .channels_sent
+                        .push(TypesNotificationChannel::Webhook);
                     delivered = true;
                 }
                 Err(e) => {
@@ -376,7 +437,9 @@ impl NotificationSystem {
         if delivered {
             // Update the stored notification with delivery status
             let mut notifications = self.notifications.lock().await;
-            if let Some(stored_notification) = notifications.iter_mut().find(|n| n.id == notification.id) {
+            if let Some(stored_notification) =
+                notifications.iter_mut().find(|n| n.id == notification.id)
+            {
                 stored_notification.delivered_at = Some(Utc::now());
                 stored_notification.channels_sent = notification.channels_sent;
             }
@@ -389,14 +452,17 @@ impl NotificationSystem {
     async fn send_email_notification(&self, notification: &Notification) -> Result<()> {
         // In a real implementation, this would use an email client library
         // like lettre or sendgrid to send actual emails
-        
-        info!("📧 [EMAIL PLACEHOLDER] To: {:?}", self.config.officer_emails);
+
+        info!(
+            "📧 [EMAIL PLACEHOLDER] To: {:?}",
+            self.config.officer_emails
+        );
         info!("📧 [EMAIL PLACEHOLDER] Subject: {}", notification.title);
         info!("📧 [EMAIL PLACEHOLDER] Body: {}", notification.message);
-        
+
         // Simulate email sending delay
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        
+
         Ok(())
     }
 
@@ -404,15 +470,18 @@ impl NotificationSystem {
     async fn send_webhook_notification(&self, notification: &Notification) -> Result<()> {
         // In a real implementation, this would make an HTTP POST request
         // to the configured webhook URL with the notification data
-        
+
         if let Some(webhook_url) = &self.config.webhook_url {
             info!("🔗 [WEBHOOK PLACEHOLDER] URL: {}", webhook_url);
-            info!("🔗 [WEBHOOK PLACEHOLDER] Payload: {}", serde_json::to_string(notification)?);
-            
+            info!(
+                "🔗 [WEBHOOK PLACEHOLDER] Payload: {}",
+                serde_json::to_string(notification)?
+            );
+
             // Simulate webhook sending delay
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         }
-        
+
         Ok(())
     }
 }
@@ -436,9 +505,16 @@ impl QueueNotificationIntegration {
     }
 
     /// Process notifications from the queue
-    pub async fn process_queue_notifications(&self, notifications: Vec<NotificationType>) -> Result<()> {
+    pub async fn process_queue_notifications(
+        &self,
+        notifications: Vec<NotificationType>,
+    ) -> Result<()> {
         for notification_type in notifications {
-            if let Err(e) = self.notification_system.send_notification(notification_type).await {
+            if let Err(e) = self
+                .notification_system
+                .send_notification(notification_type)
+                .await
+            {
                 error!("Failed to send notification: {}", e);
             }
         }
@@ -462,7 +538,7 @@ mod tests {
         };
 
         let notification_id = system.send_notification(notification_type).await.unwrap();
-        
+
         let notifications = system.get_notifications(None).await;
         assert_eq!(notifications.len(), 1);
         assert_eq!(notifications[0].id, notification_id);
@@ -480,13 +556,19 @@ mod tests {
         };
 
         let notification_id = system.send_notification(notification_type).await.unwrap();
-        
+
         // Acknowledge the notification
-        system.acknowledge_notification(notification_id, "officer1".to_string()).await.unwrap();
-        
+        system
+            .acknowledge_notification(notification_id, "officer1".to_string())
+            .await
+            .unwrap();
+
         let notifications = system.get_notifications(None).await;
         assert!(notifications[0].acknowledged_at.is_some());
-        assert_eq!(notifications[0].acknowledged_by, Some("officer1".to_string()));
+        assert_eq!(
+            notifications[0].acknowledged_by,
+            Some("officer1".to_string())
+        );
     }
 
     #[tokio::test]
@@ -498,7 +580,11 @@ mod tests {
         for i in 0..3 {
             let notification_type = NotificationType::NewHighRiskTransaction {
                 queue_id: Uuid::new_v4(),
-                priority: if i == 0 { ReviewPriority::Critical } else { ReviewPriority::High },
+                priority: if i == 0 {
+                    ReviewPriority::Critical
+                } else {
+                    ReviewPriority::High
+                },
             };
             system.send_notification(notification_type).await.unwrap();
         }
@@ -506,7 +592,9 @@ mod tests {
         let stats = system.get_statistics().await;
         assert_eq!(stats.total_sent, 3);
         assert_eq!(stats.total_delivered, 3); // All should be delivered via in-app
-        assert!(stats.by_priority.contains_key(&NotificationPriority::Critical));
+        assert!(stats
+            .by_priority
+            .contains_key(&NotificationPriority::Critical));
         assert!(stats.by_priority.contains_key(&NotificationPriority::High));
     }
 }
