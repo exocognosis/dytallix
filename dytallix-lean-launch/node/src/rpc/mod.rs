@@ -15,6 +15,9 @@ use serde_json::json;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::storage::oracle::OracleStore;
+use crate::runtime::bridge;
+use crate::EmissionEngine; // updated import for emission engine via re-export
+use crate::util::hash::blake3_tx_hash;
 
 #[derive(Clone)]
 pub struct RpcContext {
@@ -23,6 +26,7 @@ pub struct RpcContext {
     pub state: Arc<Mutex<State>>,
     pub ws: WsHub,
     pub tps: Arc<Mutex<TpsWindow>>,
+    pub emission: Arc<EmissionEngine>,
 }
 
 #[derive(Deserialize)]
@@ -33,16 +37,6 @@ pub struct SubmitTx {
     pub fee: u128,
     pub nonce: Option<u64>,
     pub signature: Option<String>,
-}
-
-fn blake3_hex(input: &str) -> String {
-    let h = blake3::hash(input.as_bytes());
-    let mut out = String::with_capacity(66);
-    out.push_str("0x");
-    for b in h.as_bytes() {
-        out.push_str(&format!("{:02x}", b));
-    }
-    out
 }
 
 #[axum::debug_handler]
@@ -58,10 +52,13 @@ pub async fn submit(
             got: nonce,
         });
     }
-    let tx_hash = blake3_hex(&format!(
-        "{}:{}:{}:{}:{}",
-        body.from, body.to, body.amount, body.fee, nonce
-    ));
+    let tx_hash = blake3_tx_hash(
+        format!(
+            "{}:{}:{}:{}:{}",
+            body.from, body.to, body.amount, body.fee, nonce
+        )
+        .as_bytes(),
+    );
     let tx = Transaction::new(
         tx_hash.clone(),
         body.from.clone(),
@@ -168,15 +165,21 @@ pub async fn get_tx(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     if let Some(r) = ctx.storage.get_receipt(&hash) {
         let mut v = serde_json::to_value(r).unwrap();
-        let store = OracleStore { db: &ctx.storage.db };
+        let store = OracleStore {
+            db: &ctx.storage.db,
+        };
         if let Some(ai) = store.get_ai_risk(&hash) {
             v["ai_risk_score"] = serde_json::json!(ai.score);
         }
         Ok(Json(v))
     } else if ctx.mempool.lock().unwrap().contains(&hash) {
-        let store = OracleStore { db: &ctx.storage.db };
+        let store = OracleStore {
+            db: &ctx.storage.db,
+        };
         let mut base = serde_json::json!({"status":"pending","hash": hash });
-        if let Some(ai) = store.get_ai_risk(&hash) { base["ai_risk_score"] = serde_json::json!(ai.score); }
+        if let Some(ai) = store.get_ai_risk(&hash) {
+            base["ai_risk_score"] = serde_json::json!(ai.score);
+        }
         Ok(Json(base))
     } else {
         Err(ApiError::NotFound)
@@ -190,13 +193,57 @@ pub async fn stats(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value> 
         .as_secs();
     let rolling_tps = { ctx.tps.lock().unwrap().rolling_tps(now) };
     let chain_id = ctx.storage.get_chain_id();
+    let em_snap = ctx.emission.snapshot();
     Json(
-        json!({"height": ctx.storage.height(), "mempool_size": ctx.mempool.lock().unwrap().len(), "rolling_tps": rolling_tps, "chain_id": chain_id }),
+        json!({"height": ctx.storage.height(), "mempool_size": ctx.mempool.lock().unwrap().len(), "rolling_tps": rolling_tps, "chain_id": chain_id, "emission_pools": em_snap.pools }),
     )
 }
 
 pub async fn peers() -> Json<serde_json::Value> {
     Json(json!([]))
+}
+
+// Bridge endpoints
+pub async fn bridge_ingest(
+    Extension(ctx): Extension<RpcContext>,
+    Json(body): Json<bridge::IngestBridgeMessage>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    bridge::ingest(Extension(ctx), Json(body)).await
+}
+pub async fn bridge_halt(
+    Extension(ctx): Extension<RpcContext>,
+    Json(body): Json<bridge::BridgeHaltToggle>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    bridge::halt_toggle(Extension(ctx), Json(body)).await
+}
+pub async fn bridge_state(
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    bridge::bridge_state(Extension(ctx)).await
+}
+
+pub async fn emission_claim(
+    Extension(ctx): Extension<RpcContext>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let pool = body
+        .get("pool")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::Internal)?;
+    let amount = body
+        .get("amount")
+        .and_then(|v| v.as_u64())
+        .ok_or(ApiError::Internal)? as u128;
+    let to = body
+        .get("to")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::Internal)?;
+    match ctx.emission.claim(pool, amount, to) {
+        Ok(remaining) => Ok(Json(
+            json!({"pool": pool, "remaining": remaining.to_string()}),
+        )),
+        Err(_) => Err(ApiError::Internal),
+    }
 }
 
 pub mod errors;

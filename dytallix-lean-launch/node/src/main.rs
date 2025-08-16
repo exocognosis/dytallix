@@ -14,10 +14,16 @@ use tokio::time::interval;
 
 mod mempool;
 mod rpc;
-mod runtime { pub mod oracle; }
+mod runtime {
+    pub mod bridge;
+    pub mod emission;
+    pub mod oracle;
+} // added emission module
 mod state;
 mod storage;
 mod ws;
+mod util; // added util module declaration
+use crate::runtime::emission::EmissionEngine;
 use mempool::Mempool;
 use rpc::RpcContext;
 use state::State;
@@ -81,7 +87,11 @@ async fn main() -> anyhow::Result<()> {
         state: state.clone(),
         ws: ws_hub.clone(),
         tps: tps_window.clone(),
+        emission: Arc::new(EmissionEngine::new(storage.clone(), state.clone())),
     };
+
+    // Initialize bridge validators if provided
+    runtime::bridge::ensure_bridge_validators(&storage.db).ok();
 
     // Block producer task
     let producer_ctx = ctx.clone();
@@ -89,6 +99,9 @@ async fn main() -> anyhow::Result<()> {
         let mut ticker = interval(Duration::from_millis(block_interval_ms));
         loop {
             ticker.tick().await;
+            // advance emission pools to new height (height+1)
+            let next_height = producer_ctx.storage.height() + 1;
+            producer_ctx.emission.apply_until(next_height);
             let snapshot = { producer_ctx.mempool.lock().unwrap().take_snapshot(max_txs) };
             if snapshot.is_empty() && !empty_blocks {
                 continue;
@@ -211,6 +224,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/stats", get(rpc::stats))
         .route("/peers", get(rpc::peers))
         .route("/oracle/ai_risk", post(runtime::oracle::post_ai_risk))
+        .route("/bridge/ingest", post(rpc::bridge_ingest))
+        .route("/bridge/halt", post(rpc::bridge_halt))
+        .route("/bridge/state", get(rpc::bridge_state))
+        .route("/emission/claim", post(rpc::emission_claim))
         .layer(Extension(ctx));
     if ws_enabled {
         app = app.route("/ws", get(ws_handler).layer(Extension(ws_hub)));

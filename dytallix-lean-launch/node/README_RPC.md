@@ -188,3 +188,83 @@ Workflow:
 ## Keys Added
 - `oracle:ai:{tx_hash}` -> JSON { tx_hash, score, signature?, oracle_pubkey? }
 
+## Bridge (New)
+
+Environment:
+- BRIDGE_VALIDATORS – JSON array `[{"id":"val1","pubkey":"BASE64_ED25519"}, ...]` loaded once (if no validators stored).
+
+Persistence Keys:
+- bridge:halted -> 0|1
+- bridge:validators -> JSON array
+- bridge:custody:{asset} -> bincode(u128) total locked amount for that asset
+- bridge:pending:{id} -> JSON BridgeMessage (before finalize)
+- bridge:applied:{id} -> JSON BridgeMessage (after acceptance)
+
+Quorum:
+- A bridge message requires >= 2/3 of configured validators (unique) signing the canonical payload:
+  `"{id}:{source_chain}:{dest_chain}:{asset}:{amount}:{recipient}"`
+- Signatures: ed25519 over ASCII payload, base64 encoded. Order not important; duplicates ignored.
+
+Endpoints:
+1. POST /bridge/ingest
+```
+{
+  "id":"0xhash",
+  "source_chain":"chainA",
+  "dest_chain":"chainB",
+  "asset":"dyt",
+  "amount":"1000",
+  "recipient":"dyt1dest...",
+  "signatures":["BASE64_SIG1",...],
+  "signers":["val1", ...]
+}
+```
+Responses:
+- {"status":"accepted","id":id}
+- {"status":"duplicate"} (already processed)
+- 500 with error:Internal for quorum failure currently (future: explicit code)
+
+2. POST /bridge/halt
+```
+{ "action":"halt" }
+```
+3. POST /bridge/halt (resume)
+```
+{ "action":"resume" }
+```
+4. GET /bridge/state – debug snapshot
+```
+{
+  "halted":false,
+  "validators":[{"id":"val1","pubkey":"..."}],
+  "custody":{"dyt":"1234"},
+  "pending":["id1"],
+  "applied":["id2"]
+}
+```
+
+Behavior:
+- If halted, /bridge/ingest rejects with error Internal (future: dedicated code).
+- Accepted message immediately increments custody balance and moves to applied set.
+- Duplicate submissions return status duplicate (idempotent).
+- All activity survives restart.
+
+Logging:
+- Rejected ingest prints `bridge_ingest_reject id=... reason=...` to stderr.
+
+Testing Outline:
+Unit:
+- verify_bridge_message quorum math (1/3, 2/3 thresholds)
+- signature validation positive/negative
+- halted path returns error
+Integration:
+1. POST /bridge/ingest with insufficient signatures -> 500 + log reason
+2. Sufficient quorum -> accepted, custody increases
+3. Halt -> ingest rejected; resume -> ingest works again
+
+Future Enhancements:
+- Dedicated error codes (InsufficientQuorum, BridgeHalted)
+- Replay protection / nonce per channel
+- Outbound mint / burn events
+- Rate limiting & fee model for bridge operations
+

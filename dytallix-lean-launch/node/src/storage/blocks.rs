@@ -26,6 +26,7 @@ impl Block {
         for tx in txs {
             hasher.update(tx.hash.as_bytes());
         }
+        // normalized 0x + lowercase hex
         format!("0x{:x}", hasher.finalize())
     }
     pub fn new(height: u64, parent: String, timestamp: u64, txs: Vec<Transaction>) -> Self {

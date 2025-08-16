@@ -14,16 +14,21 @@ pub struct OracleStore<'a> {
 }
 
 impl<'a> OracleStore<'a> {
-    pub fn new(db: &'a DB) -> Self { Self { db } }
-
-    fn key(tx_hash: &str) -> String { format!("oracle:ai:{}", tx_hash) }
+    fn key(tx_hash: &str) -> String {
+        format!("oracle:ai:{}", tx_hash)
+    }
 
     pub fn put_ai_risk(&self, rec: &AiRiskRecord) -> anyhow::Result<()> {
-        self.db.put(Self::key(&rec.tx_hash), serde_json::to_vec(rec)?)?;
+        self.db
+            .put(Self::key(&rec.tx_hash), serde_json::to_vec(rec)?)?;
         Ok(())
     }
 
     pub fn get_ai_risk(&self, tx_hash: &str) -> Option<AiRiskRecord> {
-        self.db.get(Self::key(tx_hash)).ok().flatten().and_then(|v| serde_json::from_slice(&v).ok())
+        self.db
+            .get(Self::key(tx_hash))
+            .ok()
+            .flatten()
+            .and_then(|v| serde_json::from_slice(&v).ok())
     }
 }
