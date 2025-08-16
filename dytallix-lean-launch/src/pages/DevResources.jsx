@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { getCosmosConfig } from '../config/cosmos.js'
 
 const DevResources = () => {
   const resources = [
@@ -134,6 +135,93 @@ const DevResources = () => {
             ))}
           </div>
         </div>
+
+        {/* Network Configuration Section */}
+        <div className="card" style={{ marginTop: '60px' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '24px', color: '#1f2937', textAlign: 'center' }}>
+            Network Configuration
+          </h2>
+          
+          <p style={{ 
+            fontSize: '1.125rem', 
+            color: '#6b7280', 
+            marginBottom: '32px',
+            textAlign: 'center',
+            lineHeight: '1.6'
+          }}>
+            Current Cosmos SDK endpoints and network settings for this instance.
+          </p>
+          
+          <NetworkConfig />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Network Configuration Component
+const NetworkConfig = () => {
+  const config = getCosmosConfig()
+  
+  const configItems = [
+    { label: 'Chain ID', value: config.chainId, description: 'Unique identifier for the blockchain network' },
+    { label: 'LCD REST API', value: config.lcdUrl, description: 'Light Client Daemon REST endpoint for queries' },
+    { label: 'RPC Endpoint', value: config.rpcUrl, description: 'Tendermint RPC endpoint for direct node communication' },
+    { label: 'WebSocket', value: config.wsUrl, description: 'Real-time updates and event subscriptions' },
+    { label: 'Faucet Service', value: config.faucetUrl, description: 'Test token distribution endpoint' }
+  ]
+
+  return (
+    <div style={{ 
+      display: 'grid', 
+      gap: '16px',
+      maxWidth: '800px',
+      margin: '0 auto'
+    }}>
+      {configItems.map((item, index) => (
+        <div key={index} style={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          padding: '16px',
+          backgroundColor: '#f8fafc',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, color: '#1f2937', fontSize: '1rem', fontWeight: '600' }}>
+              {item.label}
+            </h3>
+            <code style={{ 
+              backgroundColor: '#e2e8f0', 
+              padding: '4px 8px', 
+              borderRadius: '4px',
+              fontSize: '0.875rem',
+              color: '#374151',
+              wordBreak: 'break-all'
+            }}>
+              {item.value}
+            </code>
+          </div>
+          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem', lineHeight: '1.4' }}>
+            {item.description}
+          </p>
+        </div>
+      ))}
+      
+      <div style={{ 
+        marginTop: '16px',
+        padding: '12px',
+        backgroundColor: '#fef3c7',
+        borderRadius: '8px',
+        border: '1px solid #fcd34d'
+      }}>
+        <p style={{ margin: 0, color: '#92400e', fontSize: '0.875rem' }}>
+          <strong>Note:</strong> These endpoints are configured via environment variables. 
+          See <code style={{ backgroundColor: 'rgba(255,255,255,0.5)', padding: '2px 4px', borderRadius: '3px' }}>
+            .env.staging.example
+          </code> for the template.
+        </p>
       </div>
     </div>
   )

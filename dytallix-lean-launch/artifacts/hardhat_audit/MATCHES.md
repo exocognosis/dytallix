@@ -1,67 +1,82 @@
-# Hardhat/EVM Audit Results
+# Hardhat/EVM Audit Report for dytallix-lean-launch
 
-This document contains the results of searching for Hardhat/EVM-specific code, configurations, and dependencies in the `/dytallix-lean-launch` directory.
+## Executive Summary
+**Status**: ✅ **CLEAN** - No Hardhat/EVM remnants found in `dytallix-lean-launch`.
 
-## Search Targets and Results
+The directory is free of Hardhat/EVM scaffolding. This indicates either an originally clean Cosmos-focused setup or prior successful removal of any EVM framework traces.
 
-| Category | Target | Path/Dependency | Status | Reason | Action |
-|----------|--------|-----------------|--------|--------|--------|
-| **Files/Folders** | hardhat.config.* | Not found | ✅ CLEAN | No hardhat config files present | NONE |
-| **Files/Folders** | contracts/ | Not found | ✅ CLEAN | No Solidity contracts directory | NONE |
-| **Files/Folders** | scripts/deploy*.ts\|js | Not found | ✅ CLEAN | No EVM deployment scripts | NONE |
-| **Files/Folders** | artifacts/ | ./artifacts (created for audit) | ✅ CLEAN | Only contains audit directory | NONE |
-| **Files/Folders** | cache/ | Not found | ✅ CLEAN | No hardhat cache directory | NONE |
-| **Files/Folders** | deployments/ | Not found | ✅ CLEAN | No hardhat deployments directory | NONE |
-| **Files/Folders** | .solhint* | Not found | ✅ CLEAN | No Solidity linting config | NONE |
-| **Packages** | hardhat | Not found in package.json | ✅ CLEAN | No hardhat dependency | NONE |
-| **Packages** | ethers | Not found in package.json | ✅ CLEAN | No ethers dependency | NONE |
-| **Packages** | @nomicfoundation/* | Not found in package.json | ✅ CLEAN | No Nomicfoundation packages | NONE |
-| **Packages** | @nomiclabs/* | Not found in package.json | ✅ CLEAN | No Nomiclabs packages | NONE |
-| **Packages** | solc | Not found in package.json | ✅ CLEAN | No Solidity compiler | NONE |
-| **Packages** | openzeppelin/* | Not found in package.json | ✅ CLEAN | No OpenZeppelin packages | NONE |
-| **Env Keys** | HARDHAT_* | Not found | ✅ CLEAN | No hardhat environment variables | NONE |
-| **Env Keys** | LOCAL_RPC | Not found | ✅ CLEAN | No local RPC env vars | NONE |
-| **Env Keys** | ANVIL_* | Not found | ✅ CLEAN | No Anvil environment variables | NONE |
-| **Code References** | "npx hardhat" | Not found | ✅ CLEAN | No hardhat CLI usage | NONE |
-| **Code References** | "hardhat node" | Not found | ✅ CLEAN | No hardhat node references | NONE |
-| **Code References** | "localhost:8545" | Not found | ✅ CLEAN | No EVM localhost references | NONE |
-| **Code References** | "eth_requestAccounts" | Not found | ✅ CLEAN | No Ethereum account requests | NONE |
-| **Code References** | "ethereum.request" | Not found | ✅ CLEAN | No Ethereum JSON-RPC calls | NONE |
-| **Code References** | "window.ethereum" | Not found | ✅ CLEAN | No MetaMask/web3 wallet integration | NONE |
+## Search Methodology & Targets
+Repository-wide search covered filenames, dependency manifests, source text, and environment samples for EVM / Hardhat indicators:
+- Config & build: `hardhat.config.*`, `foundry.toml`, `anvil` references, `artifacts/`, `cache/`, `deployments/`
+- Solidity sources: `contracts/`, `.sol`, `.solhint*`
+- Scripts: `scripts/deploy*.(js|ts)`, `npx hardhat`, `hardhat node`
+- Packages: `hardhat`, `ethers`, `viem`, `solc`, `@nomicfoundation/*`, `@nomiclabs/*`, `openzeppelin/*`
+- Runtime code: `window.ethereum`, `ethereum.request`, `eth_requestAccounts`, `localhost:8545`
+- Environment keys: `HARDHAT_*`, `ANVIL_*`, `LOCAL_RPC`
 
-## Summary
+## Detailed Findings
+| Category | Item | Status | Action | Reason |
+|----------|------|--------|--------|---------|
+| **Files/Folders** | `hardhat.config.*` | ❌ Not Found | None | No Hardhat config files present |
+| | `contracts/` | ❌ Not Found | None | No Solidity contracts directory |
+| | `scripts/deploy*.*` | ❌ Not Found | None | No EVM deployment scripts |
+| | `artifacts/` | ✅ Present (audit docs only) | None | Contains only audit documentation, not Hardhat build outputs |
+| | `cache/` | ❌ Not Found | None | No Hardhat cache directory |
+| | `deployments/` | ❌ Not Found | None | No Hardhat deployments directory |
+| | `.solhint*` | ❌ Not Found | None | No Solidity linting config |
+| **Packages** | `hardhat` | ❌ Not Found | None | Not in package.json |
+| | `@nomicfoundation/*` | ❌ Not Found | None | Not in package.json |
+| | `@nomiclabs/*` | ❌ Not Found | None | Not in package.json |
+| | `solc` | ❌ Not Found | None | Not in package.json |
+| | `openzeppelin/*` | ❌ Not Found | None | Not in package.json |
+| | `ethers` | ❌ Not Found | None | Not in package.json |
+| | `viem` | ❌ Not Found | None | Not in package.json |
+| **Scripts** | Hardhat scripts | ❌ Not Found | None | No Hardhat-related npm scripts |
+| | `node:evm` | ❌ Not Found | None | No EVM node scripts |
+| | `deploy:evm` | ❌ Not Found | None | No EVM deployment scripts |
+| | `test:evm` | ❌ Not Found | None | No EVM test scripts |
+| **Code References** | `npx hardhat` | ❌ Not Found | None | No CLI usage |
+| | `hardhat node` | ❌ Not Found | None | No node references |
+| | `localhost:8545` | ❌ Not Found | None | No local EVM RPC references |
+| | `window.ethereum` | ❌ Not Found | None | No MetaMask/web3 integration |
+| | `ethereum.request({ method: 'eth_*' })` | ❌ Not Found | None | No Ethereum JSON-RPC calls |
+| | `ethers` | ❌ Not Found | None | No ethers.js usage |
+| | `viem` | ❌ Not Found | None | No viem usage |
+| **Environment Keys** | `HARDHAT_*` | ❌ Not Found | None | No Hardhat env vars |
+| | `LOCAL_RPC` | ❌ Not Found | None | No local RPC config |
+| | `ANVIL_*` | ❌ Not Found | None | No Anvil env vars |
 
-The `/dytallix-lean-launch` directory is **already clean** of Hardhat/EVM dependencies. The codebase contains:
+## Current Dependencies
+Clean React/Vite stack (frontend only) with no EVM libraries.
 
+## Summary of Codebase State
 - ✅ Pure React frontend with Vite build system
-- ✅ Mock faucet implementation (no actual blockchain calls)
-- ✅ Cosmos-style addresses in mock data (`dytallix1...`)
+- ✅ Cosmos-style bech32 address usage (`dytallix1...`)
 - ✅ No EVM-specific packages or configurations
-- ✅ No hardhat artifacts or build outputs
+- ✅ No Hardhat build outputs or cache
+- ✅ Faucet UI present (backend integration pending)
 
-## Required Actions
+## Environment Variables for Cosmos
+Recommended additions (if not already defined):
+- `VITE_LCD_HTTP_URL` – Cosmos LCD endpoint
+- `VITE_RPC_HTTP_URL` – Cosmos RPC endpoint
+- `VITE_RPC_WS_URL` – Cosmos WebSocket RPC endpoint
+- `VITE_CHAIN_ID` – Chain ID (e.g. `dytallix-testnet-1`)
+- `VITE_FAUCET_API_URL` – Faucet backend endpoint (optional hardening)
 
-Since the codebase is already clean, the primary actions needed are:
+## Recommended Next Steps
+1. Integrate CosmJS (or gRPC-Web) for on-chain queries & tx signing
+2. Implement real faucet backend endpoint; wire UI to it
+3. Document required environment vars in README and sample env files
+4. Add `.env.staging` and `.env.production` templates (exclude secrets)
+5. Update CHANGELOG noting audit completion & clean EVM state
+6. Extend `.gitignore` to keep ignoring accidental EVM scaffolding (`artifacts/`, `cache/`, `deployments/`) while whitelisting documentation subfolder
+7. Add simple backend health/status check surfaced in the UI
+8. Consider security linting (ESLint rules + supply-chain scanning) for future additions
 
-1. **MIGRATE**: Update faucet to use actual Cosmos endpoints instead of mock implementation
-2. **MIGRATE**: Add environment variable usage for Cosmos LCD/RPC endpoints
-3. **MIGRATE**: Replace mock API calls with actual CosmJS integration
-4. **KEEP**: All existing UI components and styling (already Cosmos-focused)
-5. **KEEP**: All existing mock data and demos (already use Cosmos addresses)
+## Notes
+- `artifacts/hardhat_audit/` is documentation-only and safe to retain
+- No action required for EVM cleanup—focus shifts to Cosmos functionality, security, and observability
 
-## Environment Variables Needed
-
-The following environment variables should be added to support Cosmos integration:
-
-- `VITE_LCD_HTTP_URL` - Cosmos LCD endpoint
-- `VITE_RPC_HTTP_URL` - Cosmos RPC endpoint  
-- `VITE_RPC_WS_URL` - Cosmos WebSocket RPC endpoint
-- `VITE_CHAIN_ID` - Cosmos chain ID (string)
-
-## Next Steps
-
-1. Create `.env.staging` file with Cosmos endpoints
-2. Update faucet component to use real Cosmos API calls
-3. Add CosmJS dependency for Cosmos blockchain interaction
-4. Update README to document Cosmos-only setup
-5. Add CHANGELOG entry documenting the clean state
+## Audit Conclusion
+Repository confirmed EVM/Hardhat-free. Safe to proceed with Cosmos-centric roadmap without legacy EVM debt.

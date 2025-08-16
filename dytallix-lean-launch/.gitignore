@@ -86,22 +86,32 @@ temp/
 # Mock data backups (if any)
 *.backup
 
+# Additional EVM/Hardhat explicit prevention while retaining audit folder
+artifacts/*
+!artifacts/hardhat_audit/
+cache/
+deployments/
+hardhat.config.js
+hardhat.config.ts
+
 # PQC build artifacts / vendor support
 /tmp_pqc_build/
 vendor/pqclean/.git/
 vendor/pqclean/.github/
 
-# Added standardized repo folders for lean-launch MV(T)
+# Standardized repo folders (tracked, listed for clarity)
 node/
 faucet/
 explorer/
 web/
 ops/
 reports/
+
 # Ensure no secrets or local override envs
 ops/*.env
 scripts/*.env
 reports/*.tmp
-# Removed reports/ from ignore (track changelog)
+
+# Track reports and changelog
 !reports/
 !reports/CHANGELOG.md
