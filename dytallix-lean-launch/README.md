@@ -47,7 +47,77 @@ See `reports/CHANGELOG.md` for mv-testnet scoped changes.
 - PQC WASM integrity manifest validated on load (see `src/crypto/pqc`).
 - Security headers opt-in via env flags. See `server/` README (future) for details.
 
+## Scripts
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build locally
+- `npm run lint` - Run ESLint to check code quality
+
+## 🏗️ Project Structure (Frontend App)
+```
+dytallix-lean-launch/
+├── public/
+│   ├── index.html
+│   └── favicon.ico
+├── src/
+│   ├── pages/
+│   ├── components/
+│   ├── styles/
+│   ├── lib/
+│   ├── data/
+│   ├── assets/
+│   ├── App.jsx
+│   └── main.jsx
+├── package.json
+├── vite.config.js
+└── README.md
+```
+(See inline codebase for full component list.)
+
+## 🎯 Features
+- Home, Faucet, Tech Specs, AI Modules, Roadmap, Developer Resources pages
+- AI demos: anomaly detection placeholder, smart contract scanner placeholder
+- Cosmos integration via CosmJS (LCD/RPC/WebSocket)
+- Dual-token faucet (DGT governance, DRT reward)
+- Environment-driven configuration
+- Responsive design with CSS Modules
+
+## 🔧 Configuration
+Environment variables (see `.env.staging`):
+- `VITE_LCD_HTTP_URL`, `VITE_RPC_HTTP_URL`, `VITE_RPC_WS_URL`, `VITE_CHAIN_ID`
+- `VITE_FAUCET_API_URL` for faucet backend
+- `VITE_DEV_MODE` enables mock fallback logic
+
+## 🔌 Cosmos Integration
+- Bech32 address validation (`dytallix1...`)
+- Real-time websocket capable configuration (future events streaming)
+
+## 🚀 Deployment
+`npm run build` → `dist/` static assets deployable to any CDN / static host.
+
+## 🤝 Contributing
+1. Fork
+2. Branch (`feat/`, `fix/`)
+3. PR to integration branch
+
+## 📝 Development Guidelines
+- Functional React components w/ hooks
+- Keep components focused & composable
+- Strict linting & type hints (where TS adopted)
+
+## 🐛 Troubleshooting
+- Port conflicts: adjust in `vite.config.js`
+- API errors: verify backend running (`npm run server`)
+
+## 📄 License
+MIT (see LICENSE)
+
+## 🔗 Links
+- Website: https://dytallix.com
+- Docs: https://docs.dytallix.com
+- Explorer (testnet placeholder): https://testnet.dytallix.com
+
 ## Next Steps
-- Gradually relocate `server/` → `faucet/` + `node/` split.
-- Migrate `src/` dashboard into `web/` package with isolated build if multi-app emerges.
-- Add explorer implementation under `explorer/` or integrate external indexer.
+- Relocate `server/` → `faucet/` + `node/` separation
+- Migrate dashboard `src/` → `web/`
+- Implement explorer service or external indexer integration
