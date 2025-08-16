@@ -2,7 +2,7 @@
 
 use dytallix_interoperability::{
     Asset, AssetMetadata, BridgeTxId, DytallixBridge, DytallixIBC, PQCBridge, IBCModule,
-    IBCPacket, BridgeValidator, BridgeStatus, BridgeError, ChannelState
+    IBCPacket, BridgeValidator, BridgeStatus, BridgeError, ChannelState, WrappedAsset
 };
 
 #[tokio::test]
@@ -49,8 +49,8 @@ async fn test_bridge_wrapped_asset_minting() {
     
     assert!(result.is_ok());
     let wrapped_asset = result.unwrap();
-    assert_eq!(wrapped_asset.original_asset.id, "ETH");
-    assert_eq!(wrapped_asset.origin_chain, "ethereum");
+    assert_eq!(wrapped_asset.original_asset_id, "ETH");
+    assert_eq!(wrapped_asset.original_chain, "ethereum");
     assert!(wrapped_asset.wrapped_contract.contains("ethereum"));
 }
 
@@ -289,17 +289,17 @@ async fn test_wrapped_asset_properties() {
         },
     };
     
-    let wrapped_asset = dytallix_interoperability::WrappedAsset {
-        original_asset: original_asset.clone(),
-        origin_chain: "ethereum".to_string(),
-        wrapped_contract: "dyt1wrapped_usdc_contract123".to_string(),
-        wrapping_timestamp: 1641000000,
+    let wrapped_asset = WrappedAsset {
+        original_asset_id: original_asset.id.clone(),
+        original_chain: "ethereum".to_string(),
+        wrapped_contract: "0x0000000000000000000000000000000000000000".to_string(),
+        amount: original_asset.amount,
+        wrapping_timestamp: 0,
     };
     
-    assert_eq!(wrapped_asset.original_asset.id, "USDC");
-    assert_eq!(wrapped_asset.original_asset.amount, 1000000);
-    assert_eq!(wrapped_asset.original_asset.decimals, 6);
-    assert_eq!(wrapped_asset.origin_chain, "ethereum");
+    assert_eq!(wrapped_asset.original_asset_id, "USDC");
+    assert_eq!(wrapped_asset.amount, 1000000);
+    assert_eq!(wrapped_asset.original_chain, "ethereum");
     assert!(wrapped_asset.wrapped_contract.contains("usdc"));
     assert_eq!(wrapped_asset.wrapping_timestamp, 1641000000);
 }
@@ -409,7 +409,7 @@ async fn test_bridge_status_enum_serialization() {
         BridgeStatus::Locked,
         BridgeStatus::Minted,
         BridgeStatus::Completed,
-        BridgeStatus::Failed("Test error".to_string()),
+        BridgeStatus::Failed,
         BridgeStatus::Reversed,
     ];
     
@@ -423,7 +423,7 @@ async fn test_bridge_status_enum_serialization() {
             (BridgeStatus::Locked, BridgeStatus::Locked) => {},
             (BridgeStatus::Minted, BridgeStatus::Minted) => {},
             (BridgeStatus::Completed, BridgeStatus::Completed) => {},
-            (BridgeStatus::Failed(a), BridgeStatus::Failed(b)) => assert_eq!(a, b),
+            (BridgeStatus::Failed, BridgeStatus::Failed) => {},
             (BridgeStatus::Reversed, BridgeStatus::Reversed) => {},
             _ => panic!("Serialization/deserialization mismatch"),
         }

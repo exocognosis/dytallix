@@ -1,138 +1,126 @@
-# Dytallix Lean Launch - MV Testnet Environment
+# Dytallix Lean Launch MV(T) Monorepo
 
-This repository contains the "lean launch" environment for the Dytallix mv-testnet workstream. It provides a standardized monorepo structure for developing, testing, and deploying the React-based frontend application and supporting API services for the Dytallix blockchain platform.
+This directory hosts the standardized minimum viable public testnet (MV(T)) environment: frontend dashboard, faucet/backend, explorer placeholder, node configs, scripts, docs, and security/audit artifacts.
 
-## Project Purpose
+## Purpose
+- Cosmos-focused testnet frontend & services (no EVM / Hardhat remnants)
+- Dual-token (DGT governance / DRT reward) faucet integration
+- PQC (post-quantum cryptography) groundwork & integrity validation
+- Foundation for AI modules, explorer expansion, and deployment automation
 
-The dytallix-lean-launch environment serves as the development and testing hub for the mv-testnet branch, featuring:
-- Post-quantum secure blockchain frontend development
-- Testnet faucet and explorer interfaces  
-- AI-powered transaction analysis demos
-- Streamlined deployment workflows
-
-## Directory Structure
-
+## Directory Overview
 ```
 dytallix-lean-launch/
-├── node/                   # Blockchain node configuration and scripts
-├── faucet/                 # Testnet faucet service and interfaces
-├── explorer/               # Blockchain explorer components
-├── web/                    # Web application assets and configurations
-├── src/                    # React frontend source code (preserved)
-├── server/                 # API server implementations (preserved)
-├── ops/                    # Operations and deployment scripts
-├── scripts/                # Utility and automation scripts
-├── docs/                   # Project documentation and guides
-├── reports/                # Testing and analysis reports
-├── artifacts/              # Build artifacts and generated outputs
-├── package.json            # Project dependencies and scripts
-├── .env.example            # Environment configuration template
-└── README.md              # This file
+├── node/        # Chain node configuration, genesis, local devnet scripts
+├── faucet/      # Faucet service (backend signer, rate limiting)
+├── explorer/    # (Placeholder) Block & tx explorer UI/service
+├── web/         # Future relocated end-user web dApp / marketing site
+├── src/         # Current React dashboard source (to be migrated into web/)
+├── server/      # API + faucet (will converge with faucet/ structure)
+├── ops/         # Operational runbooks, infra manifests, security hardening
+├── scripts/     # Automation: build, deploy, integrity, audits, PQC build
+├── docs/        # Protocol & product documentation (tokenomics, bridge, PQC)
+├── reports/     # Generated reports, changelog summaries
+├── artifacts/   # Integrity manifests, audit logs, reproducible build outputs
+├── package.json
+├── .env.example
+└── README.md
 ```
 
-## Quick Start
+## Branching Strategy
+- `mv-testnet` (long-lived integration branch for MV(T) readiness)
+- Feature branches: `feat/<scope>-<desc>` from `mv-testnet`
+- Refactor / chores: `chore/<scope>-<desc>`; Hotfix: `fix/<issue>`
+- PRs target `mv-testnet`; periodically merged into `main` at milestones
 
-### Devnet Development
-
-1. **Clone and Setup**
-   ```bash
-   git clone https://github.com/HisMadRealm/dytallix.git
-   cd dytallix/dytallix-lean-launch
-   ```
-
-2. **Install Dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Environment Configuration**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your local configuration
-   ```
-
-4. **Start Local Services**
-   ```bash
-   # Start development server
-   npm run dev
-   
-   # In separate terminals, start supporting services:
-   # - Blockchain node (if running locally)
-   # - API server (if applicable)
-   ```
-
-5. **Access Applications**
-   - **Frontend Dashboard**: http://localhost:3000
-   - **API Services**: http://localhost:3030 (if configured)
-
-### Testnet (mv-testnet branch) Usage
-
-1. **Switch to mv-testnet branch**
-   ```bash
-   git checkout mv-testnet
-   ```
-
-2. **Deploy or Connect to Remote Testnet**
-   ```bash
-   # Configure .env for testnet endpoints
-   REACT_APP_API_BASE_URL=https://api.testnet.dytallix.com
-   REACT_APP_NODE_URL=https://node.testnet.dytallix.com
-   ```
-
-3. **Build for Testnet**
-   ```bash
-   npm run build
-   ```
-
-## Branching Model
-
-- **Long-lived mv-testnet branch**: Primary development branch for testnet features
-- **Feature branches**: Created from mv-testnet for specific features (`feature/feature-name`)
-- **Pull Requests**: Target mv-testnet for feature integration
-- **Periodic Merges**: Stable mv-testnet changes merged to main when ready
-
-### Branch Workflow
+## Quick Start (Local Devnet)
 ```bash
-# Create feature branch from mv-testnet
-git checkout mv-testnet
-git pull origin mv-testnet
-git checkout -b feature/new-feature
+# Clone
+git clone https://github.com/HisMadRealm/dytallix.git
+cd dytallix/dytallix-lean-launch
 
-# Development and testing
-# ...
+# Setup environment
+cp .env.example .env
+# Edit .env values as needed
 
-# Create PR targeting mv-testnet
-git push origin feature/new-feature
-# Open PR: feature/new-feature → mv-testnet
+# Install deps
+npm install
+
+# Start backend (faucet/API)
+npm run server &   # expected PORT=8787
+
+# Start frontend (Vite dev server)
+npm run dev        # default 5173
 ```
+Access:
+- Frontend Dashboard: http://localhost:5173
+- Backend / Faucet API: http://localhost:8787
 
-## CHANGELOG Policy
+## Environment Configuration
+Key variables (see `.env.example`):
+- Cosmos: `VITE_LCD_HTTP_URL`, `VITE_RPC_HTTP_URL`, `VITE_RPC_WS_URL`, `VITE_CHAIN_ID`, `CHAIN_PREFIX`
+- Faucet: `FAUCET_MNEMONIC` (dev only), `FAUCET_MAX_PER_REQUEST_DGT`, `FAUCET_MAX_PER_REQUEST_DRT`, `FAUCET_COOLDOWN_MINUTES`, `FAUCET_GAS_PRICE`
+- Security: `ENABLE_SEC_HEADERS`, `ENABLE_CSP`
+- Legacy React compatibility vars: `REACT_APP_*` (phase-out; prefer `VITE_` prefix)
 
-This repository maintains a **mv-testnet scoped CHANGELOG** in `CHANGELOG.md`. All notable changes for the mv-testnet workstream are documented following the [Keep a Changelog](https://keepachangelog.com/) format.
+Never commit real mnemonics or secrets. `.env`, `.env.staging`, production secrets remain untracked.
 
-### Adding Entries
-- Add new entries under `## [Unreleased]` section
-- Use semantic versioning for releases
-- Include date in YYYY-MM-DD format
-- Categorize changes: Added, Changed, Deprecated, Removed, Fixed, Security
+## Features
+- Multi-page dashboard (Home, Faucet, Tech Specs, AI Modules, Roadmap, Developer Resources)
+- Dual-token faucet with bech32 address validation (`dytallix1...`)
+- Cosmos integration via CosmJS (LCD / RPC / WebSocket placeholders)
+- PQC WASM integrity manifest & facade (`src/crypto/pqc`)
+- Responsive UI with modular component structure
+
+## Scripts
+- `npm run dev` – Frontend development server
+- `npm run server` – Backend / faucet server
+- `npm run build` – Production build (outputs `dist/`)
+- `npm run preview` – Preview built assets locally
+- `npm run lint` – ESLint
+
+## Deployment (High Level)
+1. Prepare `node/` genesis & configuration (align with authoritative chain params).
+2. Build: `npm ci && npm run build` → `dist/` static assets.
+3. Containerize / publish images (CI) excluding secrets.
+4. Provision infra (Terraform/Ansible in `ops/`).
+5. Configure reverse proxy / CDN pointing to frontend + API.
 
 ## Security & Integrity
+- PQC modules loaded with integrity checks; unsigned / mismatched hashes rejected.
+- Strict ignore rules to prevent secret leakage (.env*, build caches, artifacts tmp).
+- Rate-limited faucet with configurable per-request caps & cooldown.
 
-**⚠️ Important Security Notice**
-- **Never commit secrets**: Keep `.env` files local only
-- **Use .env.example**: Template for environment configuration
-- **No private keys**: Avoid committing mnemonics, private keys, or sensitive data
-- **Review commits**: Always review changes before pushing
+## Contribution Workflow
+```bash
+# From mv-testnet
+git checkout mv-testnet && git pull origin mv-testnet
+# Create feature branch
+git checkout -b feat/<scope>-<short>
+# Commit & push
+git push -u origin feat/<scope>-<short>
+# Open PR: feat/<scope>-<short> -> mv-testnet
+```
 
-## Available Scripts
+## Development Guidelines
+- Functional React components with hooks
+- Keep components focused & composable
+- Enforce linting before PR merge
+- Gradual migration of legacy `REACT_APP_` env vars → `VITE_` naming
 
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production deployment
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint to check code quality
+## Troubleshooting
+- Port conflicts: adjust PORT / Vite port via env or config
+- Faucet errors: ensure mnemonic funded on local devnet; check cooldown values
+- Cosmos RPC issues: verify node running (26657 / 1317 endpoints)
 
-## Documentation
+## License
+MIT (see `LICENSE`).
 
-Extended frontend-specific documentation and legacy content has been migrated to the `docs/` directory. For historical README versions and detailed component documentation, see:
-- `docs/legacy-frontend-readme.md` - Previous README content
-- `docs/` - Additional project documentation
+## Next Steps
+- Migrate `src/` dashboard into `web/` directory
+- Converge faucet logic into dedicated `faucet/` service (deprecate legacy server/ duplication)
+- Implement explorer indexing & UI expansion
+- Extend AI module integrations (anomaly detection, transaction classification)
+
+## Changelog
+See `CHANGELOG.md` for unified history (mv-testnet + releases).

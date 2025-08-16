@@ -6,7 +6,7 @@
 use std::collections::{HashMap, BTreeMap};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use cosmwasm_std::{Storage, StdResult, StdError, Addr, Uint128};
-use cw_storage_plus::{Item, Map, Bound};
+use cw_storage_plus::{Item, Map, Bound, PrimaryKey};
 
 /// Storage access pattern metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -450,6 +450,7 @@ pub struct OptimizedMap<'a, K, T> {
 
 impl<'a, K, T> OptimizedMap<'a, K, T>
 where
+    K: PrimaryKey<'a>,
     T: Serialize + DeserializeOwned,
 {
     pub fn new(namespace: &'a str) -> Self {

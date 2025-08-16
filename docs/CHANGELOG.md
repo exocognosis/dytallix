@@ -1,5 +1,38 @@
 # Dytallix Changelog
 
+## [0.18.1] - 2025-08-09 - LANDING + FAUCET UX/BRANDING POLISH 🎨
+
+### ✨ UI & Branding Updates
+- Home hero and section taglines refined to precise two-line, centered, no-wrap layout for clarity and consistency.
+- Navbar logo image replaced with a prominent white “D” in a purple gradient box using theme variables.
+  - Increased size (36x36), 1.2rem glyph, stronger shadow, and rounder corners for visual prominence.
+
+### 🚰 Faucet Page Restructure & UX
+- Converted Faucet page to a responsive two-column layout:
+  - Left: Request form card.
+  - Right: “Understanding the Dytallix Dual Token System” educational card.
+- Ensured both main cards are equal height with centered content (vertical + horizontal) across breakpoints.
+- Moved “Faucet Information” into the left request card directly below the request button (inside the form component) for better context.
+- Removed the redundant bottom Faucet Information card; single source of truth inside the left card.
+- Typography alignment fixes: “DGT Amount / DRT Amount / Network ID” left-justified to match spec.
+- New embedded “cell” styling for the Faucet Information list with subtle gradients, borders, and hover micro-interactions.
+- Updated the testnet Note panel to an outlined info panel matching the card’s embedded style.
+
+### ♿ Accessibility
+- Added/updated aria-labels in Navbar; preserved contrast in new panels; respectful focus states within the form.
+
+### 🔧 Code Changes
+- `src/pages/Home.jsx`: Hero + section subtitles split into two explicit centered lines with no-wrap.
+- `src/components/Navbar.jsx`: Replaced <img> logo with styled “D” badge; accessibility labels updated.
+- `src/styles/Navbar.module.css`: New `.logoBadge` sizing, shadow, radius, and font weight.
+- `src/styles/global.css`: Theme gradient and color variable usage for badge.
+- `src/pages/Faucet.jsx`: Two-column layout, equal-height cards, removed bottom info card.
+- `src/components/FaucetForm.jsx`: Inserted Faucet Information block above the Note; alignment fixes; hooked up new styles.
+- `src/styles/FaucetForm.module.css`: Added `.faucetInfo*` classes for embedded cell panel, responsive tweaks, and updated Note styling.
+
+### ✅ Result
+- Cleaner, on-brand landing and faucet experience with consistent gradients, spacing, and responsive behavior.
+
 ## [0.18.0] - 2025-08-03 - HETZNER PRODUCTION DEPLOYMENT & TESTNET FAUCET INTEGRATION 🌐
 
 ### 🌐 **MILESTONE: COMPLETE HETZNER DEPLOYMENT WITH LIVE TESTNET FAUCET**
@@ -1478,13 +1511,6 @@ cd deployment/cosmos-contracts && npm run deploy:osmo-testnet
 - Significant performance improvement for high-volume transaction processing
 
 ##### Intelligent Caching System
-- **NEW**: Implemented intelligent AI request batching for multiple transactions
-- Configurable batch size (default: 10 transactions) and timeout (default: 1000ms)
-- Automatic batch processing when size or timeout thresholds are met
-- Efficient handling of multiple transactions in single AI service calls
-- Significant performance improvement for high-volume transaction processing
-
-#### Intelligent Caching System
 - **NEW**: LRU-based caching system for AI verification results
 - Pattern-based cache optimization for similar transaction types
 - Configurable cache size (default: 1000 entries) and TTL (default: 300 seconds)
@@ -1544,10 +1570,10 @@ cd deployment/cosmos-contracts && npm run deploy:osmo-testnet
 
 #### Configuration Management
 - **NEW**: Comprehensive configuration system for performance optimization
-- Environment-based configuration with sensible defaults
-- Runtime configuration updates for dynamic tuning
-- Validation of configuration parameters
-- Documentation for all configuration options
+  - Environment-based configuration with sensible defaults
+  - Runtime configuration updates for dynamic tuning
+  - Validation of configuration parameters
+  - Documentation for all configuration options
 
 ### 📈 Performance Metrics
 
@@ -2030,7 +2056,7 @@ pub async fn cleanup(&self) // Now includes replay protection cleanup
 - Production-ready code standards
 - Extensive documentation and comments
 
-### 🎯 Next Development Sprint
+### 🎯 Next Steps
 
 #### Immediate Priorities (Phase 1 - AI Integration)
 1. **Task 1.1**: Create Basic HTTP Client for AI Oracle in blockchain-core
@@ -2044,180 +2070,6 @@ pub async fn cleanup(&self) // Now includes replay protection cleanup
 - **Phase 3**: Production deployment with monitoring and optimization
 - **Integration Testing**: End-to-end validation of all components
 - **Performance Optimization**: Benchmarking and tuning
-
-### 🔧 Technical Debt & Future Improvements
-- Further optimization of WASM execution performance
-- Enhanced AI model accuracy through additional training data
-- Expanded oracle bridge functionality
-- Additional post-quantum algorithm implementations
-
----
-
-## Previous Versions
-
-### [0.3.1] - 2025-06-17 - Core Refactoring & Documentation
-
-### 🔧 Refactoring & Code Enhancements
-- Implemented detailed blockchain types and enhanced PoS consensus (`blockchain-core`)
-- Added transaction pool management and REST API endpoints
-- Introduced CLI account management with Dilithium5 and Kyber support
-- Improved PQC library with crypto-agility updates
-
-### 📚 Documentation Updates
-- Published technical whitepaper (`docs/whitepaper.md`)
-- Preserved original whitepaper in `documents/whitepaper.md`
-- Added BlueSky vision document (`Dytallix BlueSky Document.md`)
-
-### [0.3.0] - 2025-06-11 - Major Infrastructure Enhancement
-
-## [0.3.0] - 2025-06-11 - Major Infrastructure Enhancement 
->>>>>>> origin/codex/update-changelog-for-refactoring
-
-### 🚀 Major Features Added
-
-#### AI-Blockchain Oracle Bridge
-- **NEW**: Created comprehensive AI-Blockchain Oracle Bridge (`ai-services/src/blockchain_oracle.py`)
-- Real-time AI analysis integration with blockchain
-- Support for multiple request types: fraud analysis, risk scoring, contract audits, address reputation
-- Post-quantum secure communication protocols
-- Performance monitoring and health checks
-- Asynchronous request processing with gas metering
-- Cryptographic response signing for integrity verification
-
-#### Advanced PyTorch Fraud Detection
-- **NEW**: Implemented sophisticated PyTorch-based fraud detection model (`ai-services/src/models/fraud_model.py`)
-- 50+ feature extraction capabilities including:
-  - Transaction pattern analysis
-  - Temporal behavior modeling
-  - Network graph analysis
-  - Amount distribution patterns
-- Interpretable AI results with confidence scoring
-- Real-time inference optimization
-- Model versioning and performance tracking
-
-#### WASM Smart Contract Runtime
-- **NEW**: Built production-ready WASM execution engine (`smart-contracts/src/runtime.rs`)
-- Sandboxed contract execution with security isolation
-- Gas metering and resource management
-- AI security analysis integration hooks
-- Memory management and performance optimization
-- Contract state management and persistence
-- Error handling and debugging capabilities
-
-#### Post-Quantum Cryptography Enhancements
-- **ENHANCED**: Extended PQC implementation (`pqc-crypto/src/lib.rs`)
-- Added Falcon1024 signature algorithm implementation
-- Integrated SPHINCS+ signature support
-- Crypto-agility framework for seamless algorithm migrations
-- Performance optimizations for production use
-- Comprehensive key management system
-
-### 🔧 Technical Improvements
-
-#### Enhanced AI Services Integration
-- **UPDATED**: Fraud detection service (`ai-services/src/fraud_detection.py`)
-  - Integrated PyTorch model loading and inference
-  - Enhanced feature extraction pipeline
-  - Improved error handling and logging
-  - Performance optimizations
-
-- **UPDATED**: Main AI service (`ai-services/src/main.py`)
-  - Added oracle bridge integration
-  - Enhanced REST API endpoints
-  - Improved service coordination
-  - Better health monitoring
-
-#### Smart Contract Infrastructure
-- **UPDATED**: Smart contract dependencies (`smart-contracts/Cargo.toml`)
-  - Added wasmi for WASM execution
-  - Integrated tokio for async runtime
-  - Enhanced serde support for serialization
-  - Added logging and error handling crates
-
-#### Development Dependencies
-- **UPDATED**: AI services requirements (`ai-services/requirements.txt`)
-  - Added PyTorch and related ML libraries
-  - Enhanced async HTTP client support
-  - Improved data processing capabilities
-  - Added cryptographic libraries
-
-### 📈 Performance & Security
-
-#### Oracle Bridge Performance
-- Asynchronous request processing with sub-second response times
-- Gas-efficient execution with accurate metering
-- Scalable architecture supporting concurrent requests
-- Comprehensive error handling and recovery
-
-#### AI Model Performance
-- Real-time fraud detection with <100ms inference time
-- High-accuracy risk scoring with interpretable results
-- Efficient feature extraction pipeline
-- Memory-optimized model loading
-
-#### Security Enhancements
-- Post-quantum cryptographic signatures
-- Sandboxed smart contract execution
-- Secure AI-blockchain communication
-- Comprehensive input validation and sanitization
-
-### 🔄 Integration & Architecture
-
-#### Cross-Component Integration
-- Seamless communication between AI services and blockchain
-- Unified error handling across all components
-- Consistent logging and monitoring
-- Standardized API interfaces
-
-#### Production Readiness
-- Comprehensive error handling and recovery
-- Performance monitoring and metrics
-- Health checks and service discovery
-- Scalable architecture design
-
-### 📊 Project Status
-
-#### Completion Metrics
-- **Overall Project**: ~70% foundation complete
-- **Core Infrastructure**: Fully implemented
-- **AI Services**: Production-ready
-- **Smart Contracts**: WASM runtime complete
-- **PQC Integration**: Enhanced and optimized
-- **Oracle Bridge**: Fully functional
-
-#### Files Changed
-- 7 files modified/created
-- 1,914 lines added
-- 504 lines removed
-- Major architectural improvements across all components
-
-### 🏗️ Development Infrastructure
-
-#### Git Operations
-- Successfully committed major infrastructure enhancements
-- Pushed commit `dea7985` to GitHub repository
-- Comprehensive commit documentation
-- 66.43 KiB total changes pushed
-
-#### Code Quality
-- Enhanced error handling across all components
-- Comprehensive logging and monitoring
-- Production-ready code standards
-- Extensive documentation and comments
-
-### 🎯 Next Steps
-
-#### Immediate Priorities
-1. **Integration Testing**: Validate end-to-end functionality of all new components
-2. **Performance Optimization**: Benchmark and optimize the integrated stack
-3. **Build Validation**: Run comprehensive build and test suite
-4. **Documentation**: Complete API documentation and usage guides
-
-#### Upcoming Features
-1. **Advanced AI Models**: Enhanced machine learning capabilities
-2. **Scalability Improvements**: Horizontal scaling architecture
-3. **Enhanced Security**: Additional post-quantum algorithms
-4. **User Interface**: Frontend integration and user experience
 
 ### 🔧 Technical Debt & Improvements
 - Further optimization of WASM execution performance

@@ -9,8 +9,8 @@ description = "Post-quantum AI-enhanced cryptocurrency node"
 # Our proven PQC implementation
 dytallix-pqc = { path = "../pqc-crypto" }
 
-# Smart contracts integration (temporarily disabled due to compilation errors)
-# dytallix-contracts = { path = "../smart-contracts" }
+# Smart contracts integration now enabled
+dytallix-contracts = { path = "../smart-contracts" }
 
 # Core blockchain dependencies
 blake3 = "1.5"
@@ -43,6 +43,10 @@ thiserror = "1.0"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.8"
+regex = "1.10"
+once_cell = "1.19"
+bytes = "1.6"
+url = "2.5"
 
 # AI service integration
 reqwest = { version = "0.11", features = ["json"] }

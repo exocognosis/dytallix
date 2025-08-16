@@ -18,10 +18,10 @@
 //!
 //! ```rust
 //! use dytallix_blockchain_core::consensus::{ConsensusEngine, AIServiceType};
-//! 
+//!
 //! // Create a new consensus engine
 //! let engine = ConsensusEngine::new(config).await?;
-//! 
+//!
 //! // Process transactions
 //! let result = engine.process_transactions(transactions).await?;
 //! ```
@@ -31,32 +31,32 @@ pub mod types;
 
 // Core business logic modules
 pub mod ai_oracle_client;
-pub mod consensus_engine;
-pub mod transaction_validation;
 pub mod block_processing;
+pub mod consensus_engine;
 pub mod key_management;
+pub mod transaction_validation;
 
 // Additional AI integration modules
-pub mod signature_verification;
 pub mod ai_integration;
-pub mod oracle_registry;
-pub mod enhanced_ai_integration;
-pub mod replay_protection;
-pub mod high_risk_queue;
-pub mod review_api;
-pub mod notification_system;
-pub mod notification_types;
 pub mod audit_trail;
 pub mod compliance_api;
+pub mod enhanced_ai_integration;
+pub mod high_risk_queue;
+pub mod notification_system;
+pub mod notification_types;
+pub mod oracle_registry;
 pub mod performance_optimizer;
+pub mod replay_protection;
+pub mod review_api;
+pub mod signature_verification;
 
 // Legacy module - to be fully refactored
 pub mod mod_clean;
 
 // Re-export main types and components for convenience
-pub use types::*;
-pub use consensus_engine::ConsensusEngine;
 pub use ai_oracle_client::{AIOracleClient, AIServiceConfig};
+pub use consensus_engine::ConsensusEngine;
+pub use types::*;
 
 // Test modules
 #[cfg(test)]
@@ -77,8 +77,8 @@ pub struct DytallixConsensus;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
     use serde_json::json;
+    use std::time::Duration;
 
     #[test]
     fn test_ai_oracle_client_creation() {
@@ -99,7 +99,7 @@ mod tests {
         let payload = AIResponsePayload::success(
             "req_123".to_string(),
             AIServiceType::FraudDetection,
-            json!({"result": "clean"})
+            json!({"result": "clean"}),
         );
 
         assert_eq!(payload.request_id, "req_123");
@@ -113,7 +113,7 @@ mod tests {
         let payload = AIResponsePayload::success(
             "req_123".to_string(),
             AIServiceType::RiskScoring,
-            json!({"risk_score": 0.1})
+            json!({"risk_score": 0.1}),
         );
 
         assert!(payload.validate().is_ok());
@@ -132,7 +132,7 @@ mod tests {
         let payload = AIResponsePayload::failure(
             "req_123".to_string(),
             AIServiceType::TransactionValidation,
-            error
+            error,
         );
 
         assert!(!payload.is_successful());
@@ -142,10 +142,8 @@ mod tests {
 
     #[test]
     fn test_ai_response_payload_timeout() {
-        let payload = AIResponsePayload::timeout(
-            "req_123".to_string(),
-            AIServiceType::PatternAnalysis
-        );
+        let payload =
+            AIResponsePayload::timeout("req_123".to_string(), AIServiceType::PatternAnalysis);
 
         assert!(payload.is_timeout());
         assert!(payload.is_retryable());
@@ -172,7 +170,7 @@ mod tests {
             vec![1, 2, 3, 4],
             "Test Oracle".to_string(),
             "http://oracle.example.com".to_string(),
-            vec![AIServiceType::FraudDetection, AIServiceType::RiskScoring]
+            vec![AIServiceType::FraudDetection, AIServiceType::RiskScoring],
         );
 
         assert_eq!(identity.id, "oracle_1");
@@ -205,21 +203,21 @@ mod tests {
     #[test]
     fn test_circuit_breaker_functionality() {
         let mut circuit = CircuitBreakerContext::new(3, 60000);
-        
+
         // Initially closed
         assert!(circuit.is_closed());
         assert!(circuit.should_allow_request());
-        
+
         // Record failures
         circuit.record_failure();
         circuit.record_failure();
         assert!(circuit.is_closed());
-        
+
         // Third failure should open circuit
         circuit.record_failure();
         assert!(circuit.is_open());
         assert!(!circuit.should_allow_request());
-        
+
         // Success should close circuit when half-open
         circuit.state = CircuitBreakerState::HalfOpen;
         circuit.record_success(100);
@@ -229,10 +227,7 @@ mod tests {
     #[test]
     fn test_ai_health_check_response() {
         let load = AIServiceLoad::default();
-        let health = AIHealthCheckResponse::healthy(
-            AIServiceType::FraudDetection,
-            load
-        );
+        let health = AIHealthCheckResponse::healthy(AIServiceType::FraudDetection, load);
 
         assert!(health.is_healthy());
         assert!(health.is_available());
@@ -244,13 +239,13 @@ mod tests {
         let payload = AIResponsePayload::success(
             "req_123".to_string(),
             AIServiceType::RiskScoring,
-            json!({"risk_score": 0.2})
+            json!({"risk_score": 0.2}),
         );
 
         let signature = AIResponseSignature::new(
             vec![1, 2, 3, 4],
             dytallix_pqc::SignatureAlgorithm::Dilithium5,
-            vec![5, 6, 7, 8]
+            vec![5, 6, 7, 8],
         );
 
         let oracle_identity = OracleIdentity::new(
@@ -258,14 +253,10 @@ mod tests {
             vec![5, 6, 7, 8],
             "Test Oracle".to_string(),
             "http://oracle.example.com".to_string(),
-            vec![AIServiceType::RiskScoring]
+            vec![AIServiceType::RiskScoring],
         );
 
-        let signed_response = SignedAIOracleResponse::new(
-            payload,
-            signature,
-            oracle_identity
-        );
+        let signed_response = SignedAIOracleResponse::new(payload, signature, oracle_identity);
 
         assert!(!signed_response.is_verified());
         assert_eq!(signed_response.oracle_identity.id, "oracle_1");
@@ -276,7 +267,7 @@ mod tests {
         let payload = AIResponsePayload::success(
             "req_123".to_string(),
             AIServiceType::ContractAnalysis,
-            json!({"analysis": "safe"})
+            json!({"analysis": "safe"}),
         );
 
         let json_str = payload.to_json().unwrap();
@@ -301,7 +292,7 @@ mod tests {
         let mut payload = AIResponsePayload::success(
             "req_123".to_string(),
             AIServiceType::AddressReputation,
-            json!({"reputation": "good"})
+            json!({"reputation": "good"}),
         );
 
         payload = payload.with_metadata(metadata);
@@ -327,9 +318,15 @@ mod tests {
 
     #[test]
     fn test_error_category_display() {
-        assert_eq!(ErrorCategory::ValidationError.to_string(), "ValidationError");
+        assert_eq!(
+            ErrorCategory::ValidationError.to_string(),
+            "ValidationError"
+        );
         assert_eq!(ErrorCategory::NetworkError.to_string(), "NetworkError");
-        assert_eq!(ErrorCategory::AuthenticationError.to_string(), "AuthenticationError");
+        assert_eq!(
+            ErrorCategory::AuthenticationError.to_string(),
+            "AuthenticationError"
+        );
     }
 
     #[test]
@@ -337,7 +334,7 @@ mod tests {
         let mut payload = AIResponsePayload::success(
             "req_123".to_string(),
             AIServiceType::ThreatDetection,
-            json!({"threat_level": "low"})
+            json!({"threat_level": "low"}),
         );
 
         // Set timestamp to 1 hour ago
@@ -355,7 +352,7 @@ mod tests {
             vec![1, 2, 3, 4],
             "Test Oracle".to_string(),
             "http://oracle.example.com".to_string(),
-            vec![AIServiceType::FraudDetection]
+            vec![AIServiceType::FraudDetection],
         );
 
         // Set last activity to 2 hours ago
@@ -375,7 +372,7 @@ mod tests {
             vec![1, 2, 3, 4],
             "Test Oracle".to_string(),
             "http://oracle.example.com".to_string(),
-            vec![AIServiceType::FraudDetection]
+            vec![AIServiceType::FraudDetection],
         );
 
         assert_eq!(identity.reputation, 0.5);
@@ -396,7 +393,7 @@ mod tests {
         let mut signature = AIResponseSignature::new(
             vec![1, 2, 3, 4],
             dytallix_pqc::SignatureAlgorithm::Dilithium5,
-            vec![5, 6, 7, 8]
+            vec![5, 6, 7, 8],
         );
 
         // Set timestamp to 10 minutes ago
@@ -424,14 +421,14 @@ mod tests {
     #[test]
     fn test_circuit_breaker_failure_rate() {
         let mut circuit = CircuitBreakerContext::default();
-        
+
         // Record some successes and failures
         circuit.record_success(100);
         circuit.record_success(150);
         circuit.record_failure();
         circuit.record_success(120);
         circuit.record_failure();
-        
+
         // Should be 2 failures out of 5 total = 40% failure rate
         assert_eq!(circuit.failure_rate(), 0.4);
         assert_eq!(circuit.stats().total_requests, 5);
@@ -442,11 +439,11 @@ mod tests {
     #[test]
     fn test_ai_service_load_resource_updates() {
         let mut load = AIServiceLoad::default();
-        
+
         load.update_resources(85.5, 67.2);
         assert_eq!(load.cpu_usage, 85.5);
         assert_eq!(load.memory_usage, 67.2);
-        
+
         // Test clamping
         load.update_resources(150.0, -10.0);
         assert_eq!(load.cpu_usage, 100.0);
@@ -456,10 +453,7 @@ mod tests {
     #[test]
     fn test_health_check_response_timing() {
         let load = AIServiceLoad::default();
-        let mut health = AIHealthCheckResponse::healthy(
-            AIServiceType::CreditAssessment,
-            load
-        );
+        let mut health = AIHealthCheckResponse::healthy(AIServiceType::CreditAssessment, load);
 
         health.mark_success();
         assert!(health.time_since_last_success().unwrap() < 5); // Should be very recent

@@ -17,6 +17,14 @@ use dytallix_contracts::tokenomics::{
 use chrono::Utc;
 use std::path::PathBuf;
 
+fn main() {
+    // Minimal entry point to exercise scenario setup
+    let data_dir = std::env::temp_dir().join("dyt_governance_example");
+    if let Ok(mut example) = TokenomicsGovernanceExample::new(data_dir) {
+        let _ = example.scenario_increase_emission_rate();
+    }
+}
+
 pub struct TokenomicsGovernanceExample {
     governance: FileBasedGovernance,
     dgt_token: DGTToken,

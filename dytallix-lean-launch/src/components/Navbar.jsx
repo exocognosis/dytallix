@@ -8,11 +8,15 @@ const Navbar = () => {
 
   const navItems = [
     { path: '/', label: 'Home' },
+    { path: '/wallet', label: 'Wallet' },
     { path: '/faucet', label: 'Faucet' },
-    { path: '/tech-specs', label: 'Tech Specs' },
-    { path: '/modules', label: 'AI Modules' },
+    { path: '/tech-stack', label: 'Tech Stack' },
     { path: '/roadmap', label: 'Roadmap' },
-    { path: '/dev-resources', label: 'Developer Resources' }
+    { path: '/deploy', label: 'Deploy' },
+    { path: '/explorer', label: 'Explorer' },
+    { path: '/dashboard', label: 'Dashboard' },
+    { path: '/modules', label: 'AI Modules' },
+    { path: '/dev-resources', label: 'Docs' }
   ]
 
   const toggleMenu = () => {
@@ -23,24 +27,26 @@ const Navbar = () => {
     <nav className={styles.navbar}>
       <div className="container">
         <div className={styles.navContent}>
-          <Link to="/" className={styles.logo}>
-            <img src="/src/assets/logo.png" alt="Dytallix" className={styles.logoImg} />
+          <Link to="/" className={styles.logo} aria-label="Dytallix Home">
+            <div className={styles.logoBadge} aria-hidden="true">D</div>
             <span className={styles.logoText}>Dytallix</span>
           </Link>
 
           <div className={`${styles.navLinks} ${isMenuOpen ? styles.navLinksOpen : ''}`}>
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`${styles.navLink} ${
-                  location.pathname === item.path ? styles.navLinkActive : ''
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
           </div>
 
           <button

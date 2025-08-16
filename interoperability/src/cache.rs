@@ -4,9 +4,12 @@
 //! and frequently accessed data to achieve 1000+ ops/sec performance targets.
 
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
-use deadpool_redis::{Config, Pool, Runtime, Connection};
-use redis::{AsyncCommands, RedisResult, FromRedisValue, ToRedisArgs};
+// remove unused Duration import
+// use std::time::Duration;
+use std::sync::Arc;
+use std::fmt;
+use deadpool_redis::{Config, Pool, Runtime};
+use redis::{AsyncCommands};
 use tracing::{info, warn, error, debug};
 use crate::{BridgeTx, BridgeTxId, BridgeStatus, PQCSignature, AssetMetadata};
 
@@ -114,46 +117,52 @@ impl CachePriority {
     }
 }
 
+#[derive(Clone)]
 pub struct BridgeCache {
     pool: Pool,
     config: CacheConfig,
-    metrics: tokio::sync::RwLock<CacheMetrics>,
+    metrics: Arc<tokio::sync::RwLock<CacheMetrics>>,
+}
+
+impl fmt::Debug for BridgeCache {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BridgeCache")
+            .field("config", &self.config)
+            .finish()
+    }
 }
 
 impl BridgeCache {
     pub async fn new(config: CacheConfig) -> Result<Self, redis::RedisError> {
         info!("Initializing Redis cache with URL: {}", config.redis_url);
-        
         let pool_config = Config::from_url(&config.redis_url);
-        let pool = pool_config.create_pool(Some(Runtime::Tokio1))?;
-        
-        // Test connection
+        let pool = pool_config.create_pool(Some(Runtime::Tokio1)).map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool creation failed", e.to_string()))
+        })?;
         {
-            let mut conn = pool.get().await?;
-            let _: String = conn.ping().await?;
+            let mut conn = pool.get().await.map_err(|e| {
+                redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+            })?;
+            // Use explicit command invocation for PING
+            let _: () = redis::cmd("PING").query_async(&mut *conn).await.map_err(|e| {
+                redis::RedisError::from((redis::ErrorKind::IoError, "PING failed", e.to_string()))
+            })?;
             info!("Redis connection established successfully");
         }
-        
-        let cache = Self {
-            pool,
-            config,
-            metrics: tokio::sync::RwLock::new(CacheMetrics::default()),
-        };
-        
-        // Initialize cache monitoring
+        let cache = Self { pool, config, metrics: Arc::new(tokio::sync::RwLock::new(CacheMetrics::default())) };
         cache.setup_cache_monitoring().await?;
-        
         Ok(cache)
     }
 
-    /// Set up cache monitoring and maintenance
     async fn setup_cache_monitoring(&self) -> Result<(), redis::RedisError> {
-        let mut conn = self.pool.get().await?;
-        
-        // Set cache configuration
-        let _: () = conn.config_set("maxmemory-policy", "allkeys-lru").await?;
-        let _: () = conn.config_set("timeout", "300").await?;
-        
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
+        // CONFIG SET via explicit command (not available as method on connection wrapper)
+        let _: () = redis::cmd("CONFIG").arg("SET").arg("maxmemory-policy").arg("allkeys-lru")
+            .query_async(&mut *conn).await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "CONFIG SET maxmemory-policy failed", e.to_string())))?;
+        let _: () = redis::cmd("CONFIG").arg("SET").arg("timeout").arg("300")
+            .query_async(&mut *conn).await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "CONFIG SET timeout failed", e.to_string())))?;
         info!("Cache monitoring and configuration initialized");
         Ok(())
     }
@@ -185,8 +194,8 @@ impl BridgeCache {
         
         let ttl = priority.ttl_seconds(&self.config);
         
-        let mut conn = self.pool.get().await?;
-        let _: () = conn.setex(&key, ttl as usize, serialized).await?;
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+        let _: () = conn.set_ex(&key, serialized, ttl as usize).await?;
         
         // Update metrics
         {
@@ -207,11 +216,9 @@ impl BridgeCache {
     /// Retrieve cached bridge transaction
     pub async fn get_bridge_transaction(&self, tx_id: &BridgeTxId) -> Result<Option<BridgeTx>, redis::RedisError> {
         let start_time = std::time::Instant::now();
-        
         let key = CacheKey::BridgeTransaction(tx_id.0.clone())
             .to_string(&self.config.cache_key_prefix);
-        
-        let mut conn = self.pool.get().await?;
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
         let cached_data: Option<Vec<u8>> = conn.get(&key).await?;
         
         let result = if let Some(data) = cached_data {
@@ -273,8 +280,8 @@ impl BridgeCache {
         let serialized = serde_json::to_vec(signatures)
             .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Serialization failed", e.to_string())))?;
         
-        let mut conn = self.pool.get().await?;
-        let _: () = conn.setex(&key, self.config.default_ttl_seconds as usize, serialized).await?;
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+        let _: () = conn.set_ex(&key, serialized, self.config.default_ttl_seconds as usize).await?;
         
         debug!("Cached {} validator signatures for transaction {}", signatures.len(), tx_id.0);
         Ok(())
@@ -284,8 +291,7 @@ impl BridgeCache {
     pub async fn get_validator_signatures(&self, tx_id: &BridgeTxId) -> Result<Option<Vec<PQCSignature>>, redis::RedisError> {
         let key = CacheKey::ValidatorSignatures(tx_id.0.clone())
             .to_string(&self.config.cache_key_prefix);
-        
-        let mut conn = self.pool.get().await?;
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
         let cached_data: Option<Vec<u8>> = conn.get(&key).await?;
         
         if let Some(data) = cached_data {
@@ -314,10 +320,8 @@ impl BridgeCache {
         
         let ttl = ttl_seconds.unwrap_or(self.config.default_ttl_seconds);
         
-        let mut conn = self.pool.get().await?;
-        let _: () = conn.setex(&key, ttl as usize, serialized).await?;
-        
-        debug!("Cached query result with hash {} for {}s", query_hash, ttl);
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+        let _: () = conn.set_ex(&key, serialized, ttl as usize).await?;
         Ok(())
     }
 
@@ -328,8 +332,7 @@ impl BridgeCache {
     ) -> Result<Option<T>, redis::RedisError> {
         let key = CacheKey::QueryResult(query_hash.to_string())
             .to_string(&self.config.cache_key_prefix);
-        
-        let mut conn = self.pool.get().await?;
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
         let cached_data: Option<Vec<u8>> = conn.get(&key).await?;
         
         if let Some(data) = cached_data {
@@ -354,10 +357,8 @@ impl BridgeCache {
         let serialized = serde_json::to_vec(metadata)
             .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Serialization failed", e.to_string())))?;
         
-        let mut conn = self.pool.get().await?;
-        let _: () = conn.setex(&key, self.config.default_ttl_seconds as usize * 2, serialized).await?;
-        
-        debug!("Cached asset metadata for {}", asset_id);
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+        let _: () = conn.set_ex(&key, serialized, self.config.default_ttl_seconds as usize * 2).await?;
         Ok(())
     }
 
@@ -365,8 +366,7 @@ impl BridgeCache {
     pub async fn get_asset_metadata(&self, asset_id: &str) -> Result<Option<AssetMetadata>, redis::RedisError> {
         let key = CacheKey::AssetMetadata(asset_id.to_string())
             .to_string(&self.config.cache_key_prefix);
-        
-        let mut conn = self.pool.get().await?;
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
         let cached_data: Option<Vec<u8>> = conn.get(&key).await?;
         
         if let Some(data) = cached_data {
@@ -385,8 +385,7 @@ impl BridgeCache {
             .to_string(&self.config.cache_key_prefix);
         let sig_key = CacheKey::ValidatorSignatures(tx_id.0.clone())
             .to_string(&self.config.cache_key_prefix);
-        
-        let mut conn = self.pool.get().await?;
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
         let deleted: u32 = conn.del(&[&tx_key, &sig_key]).await?;
         
         // Update metrics
@@ -402,10 +401,8 @@ impl BridgeCache {
     /// Invalidate all caches (use carefully)
     pub async fn invalidate_all(&self) -> Result<(), redis::RedisError> {
         let pattern = format!("{}:*", self.config.cache_key_prefix);
-        
-        let mut conn = self.pool.get().await?;
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
         let keys: Vec<String> = conn.keys(&pattern).await?;
-        
         if !keys.is_empty() {
             let deleted: u32 = conn.del(&keys).await?;
             
@@ -417,7 +414,6 @@ impl BridgeCache {
             
             info!("Invalidated {} cache entries", deleted);
         }
-        
         Ok(())
     }
 
@@ -435,19 +431,15 @@ impl BridgeCache {
 
     /// Health check for cache system
     pub async fn health_check(&self) -> Result<bool, redis::RedisError> {
-        let mut conn = self.pool.get().await?;
-        let _: String = conn.ping().await?;
-        
-        // Update health check cache
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+        let _: () = redis::cmd("PING").query_async(&mut *conn).await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "PING failed", e.to_string())))?;
         let key = CacheKey::HealthCheck.to_string(&self.config.cache_key_prefix);
         let health_data = serde_json::json!({
             "status": "healthy",
             "timestamp": chrono::Utc::now().timestamp(),
             "version": env!("CARGO_PKG_VERSION")
         });
-        
-        let _: () = conn.setex(&key, 60, health_data.to_string()).await?;
-        
+        let _: () = conn.set_ex(&key, health_data.to_string(), 60).await?;
         Ok(true)
     }
 
@@ -485,7 +477,7 @@ impl BridgeCache {
     /// Helper methods
     async fn increment_access_count(&self, key: &str) -> Result<(), redis::RedisError> {
         let access_key = format!("{}:access", key);
-        let mut conn = self.pool.get().await?;
+        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
         let _: () = conn.incr(&access_key, 1).await?;
         let _: () = conn.expire(&access_key, self.config.default_ttl_seconds as usize).await?;
         Ok(())

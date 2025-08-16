@@ -145,75 +145,56 @@ impl AIResponseError {
 #[derive(Debug, thiserror::Error)]
 pub enum AIOracleError {
     #[error("Network error: {message}")]
-    Network { 
-        message: String, 
+    Network {
+        message: String,
         source: Option<Box<dyn std::error::Error + Send + Sync>>,
     },
-    
+
     #[error("Request timeout after {timeout_ms}ms")]
-    Timeout { 
-        timeout_ms: u64,
-    },
-    
+    Timeout { timeout_ms: u64 },
+
     #[error("HTTP error: {status} - {message}")]
-    Http { 
-        status: u16, 
-        message: String,
-    },
-    
+    Http { status: u16, message: String },
+
     #[error("Serialization error: {message}")]
-    Serialization { 
-        message: String,
-    },
-    
+    Serialization { message: String },
+
     #[error("Authentication error: {message}")]
-    Authentication { 
-        message: String,
-    },
-    
+    Authentication { message: String },
+
     #[error("Rate limit exceeded: {message}")]
-    RateLimit { 
-        message: String, 
+    RateLimit {
+        message: String,
         retry_after: Option<Duration>,
     },
-    
+
     #[error("Service unavailable: {message}")]
-    ServiceUnavailable { 
-        message: String,
-    },
-    
+    ServiceUnavailable { message: String },
+
     #[error("Configuration error: {message}")]
-    Configuration { 
-        message: String,
-    },
-    
+    Configuration { message: String },
+
     #[error("Validation error: {message}")]
-    Validation { 
-        message: String,
-    },
-    
+    Validation { message: String },
+
     #[error("Circuit breaker open: {message}")]
-    CircuitBreaker { 
-        message: String,
-    },
-    
+    CircuitBreaker { message: String },
+
     #[error("Max retries exceeded: {attempts} attempts failed")]
-    MaxRetriesExceeded { 
-        attempts: u32, 
+    MaxRetriesExceeded {
+        attempts: u32,
         last_error: Box<AIOracleError>,
     },
-    
+
     #[error("Service error: {code} - {message}")]
-    Service { 
-        code: String, 
-        message: String, 
+    Service {
+        code: String,
+        message: String,
         details: Option<String>,
     },
-    
+
     #[error("Unknown error: {message}")]
-    Unknown { 
-        message: String,
-    },
+    Unknown { message: String },
 }
 
 impl AIOracleError {
@@ -224,8 +205,13 @@ impl AIOracleError {
             AIOracleError::Timeout { .. } => true,
             AIOracleError::Http { status, .. } => {
                 // Retry on server errors (5xx) and some client errors
-                *status >= 500 || *status == 408 || *status == 429 || *status == 502 || *status == 503 || *status == 504
-            },
+                *status >= 500
+                    || *status == 408
+                    || *status == 429
+                    || *status == 502
+                    || *status == 503
+                    || *status == 504
+            }
             AIOracleError::RateLimit { .. } => true,
             AIOracleError::ServiceUnavailable { .. } => true,
             AIOracleError::Service { .. } => false, // Service logic errors are usually not retryable
@@ -260,12 +246,21 @@ impl AIOracleError {
 
     /// Create a network error
     pub fn network(message: String) -> Self {
-        AIOracleError::Network { message, source: None }
+        AIOracleError::Network {
+            message,
+            source: None,
+        }
     }
 
     /// Create a network error with source
-    pub fn network_with_source(message: String, source: Box<dyn std::error::Error + Send + Sync>) -> Self {
-        AIOracleError::Network { message, source: Some(source) }
+    pub fn network_with_source(
+        message: String,
+        source: Box<dyn std::error::Error + Send + Sync>,
+    ) -> Self {
+        AIOracleError::Network {
+            message,
+            source: Some(source),
+        }
     }
 
     /// Create a timeout error
@@ -290,7 +285,10 @@ impl AIOracleError {
 
     /// Create a rate limit error
     pub fn rate_limit(message: String, retry_after: Option<Duration>) -> Self {
-        AIOracleError::RateLimit { message, retry_after }
+        AIOracleError::RateLimit {
+            message,
+            retry_after,
+        }
     }
 
     /// Create a service unavailable error
@@ -315,15 +313,19 @@ impl AIOracleError {
 
     /// Create a max retries exceeded error
     pub fn max_retries_exceeded(attempts: u32, last_error: AIOracleError) -> Self {
-        AIOracleError::MaxRetriesExceeded { 
-            attempts, 
+        AIOracleError::MaxRetriesExceeded {
+            attempts,
             last_error: Box::new(last_error),
         }
     }
 
     /// Create a service error
     pub fn service(code: String, message: String, details: Option<String>) -> Self {
-        AIOracleError::Service { code, message, details }
+        AIOracleError::Service {
+            code,
+            message,
+            details,
+        }
     }
 
     /// Create an unknown error
@@ -341,7 +343,9 @@ impl From<AIResponseError> for AIOracleError {
             ErrorCategory::NetworkError => AIOracleError::network(error.message),
             ErrorCategory::AuthenticationError => AIOracleError::authentication(error.message),
             ErrorCategory::RateLimitError => AIOracleError::rate_limit(error.message, None),
-            ErrorCategory::ServiceError => AIOracleError::service(error.code, error.message, error.details),
+            ErrorCategory::ServiceError => {
+                AIOracleError::service(error.code, error.message, error.details)
+            }
             ErrorCategory::UnknownError => AIOracleError::unknown(error.message),
         }
     }
@@ -352,61 +356,62 @@ impl From<AIOracleError> for AIResponseError {
     fn from(error: AIOracleError) -> Self {
         let category = error.category();
         let retryable = error.is_retryable();
-        
+
         match error {
             AIOracleError::Network { message, .. } => {
                 AIResponseError::new("NETWORK_ERROR".to_string(), message, category, retryable)
             }
-            AIOracleError::Timeout { timeout_ms } => {
-                AIResponseError::new(
-                    "TIMEOUT".to_string(),
-                    format!("Request timeout after {}ms", timeout_ms),
-                    category,
-                    retryable,
-                )
-            }
+            AIOracleError::Timeout { timeout_ms } => AIResponseError::new(
+                "TIMEOUT".to_string(),
+                format!("Request timeout after {}ms", timeout_ms),
+                category,
+                retryable,
+            ),
             AIOracleError::Http { status, message } => {
-                AIResponseError::new(
-                    format!("HTTP_{}", status),
-                    message,
-                    category,
-                    retryable,
-                )
+                AIResponseError::new(format!("HTTP_{}", status), message, category, retryable)
             }
-            AIOracleError::Serialization { message } => {
-                AIResponseError::new("SERIALIZATION_ERROR".to_string(), message, category, retryable)
-            }
+            AIOracleError::Serialization { message } => AIResponseError::new(
+                "SERIALIZATION_ERROR".to_string(),
+                message,
+                category,
+                retryable,
+            ),
             AIOracleError::Authentication { message } => {
                 AIResponseError::new("AUTH_ERROR".to_string(), message, category, retryable)
             }
             AIOracleError::RateLimit { message, .. } => {
                 AIResponseError::new("RATE_LIMIT_ERROR".to_string(), message, category, retryable)
             }
-            AIOracleError::ServiceUnavailable { message } => {
-                AIResponseError::new("SERVICE_UNAVAILABLE".to_string(), message, category, retryable)
-            }
+            AIOracleError::ServiceUnavailable { message } => AIResponseError::new(
+                "SERVICE_UNAVAILABLE".to_string(),
+                message,
+                category,
+                retryable,
+            ),
             AIOracleError::Configuration { message } => {
                 AIResponseError::new("CONFIG_ERROR".to_string(), message, category, retryable)
             }
             AIOracleError::Validation { message } => {
                 AIResponseError::new("VALIDATION_ERROR".to_string(), message, category, retryable)
             }
-            AIOracleError::CircuitBreaker { message } => {
-                AIResponseError::new("CIRCUIT_BREAKER_OPEN".to_string(), message, category, retryable)
-            }
-            AIOracleError::MaxRetriesExceeded { attempts, .. } => {
-                AIResponseError::new(
-                    "MAX_RETRIES_EXCEEDED".to_string(),
-                    format!("Max retries exceeded: {} attempts failed", attempts),
-                    category,
-                    retryable,
-                )
-            }
-            AIOracleError::Service { code, message, details } => {
-                AIResponseError::new(code, message, category, retryable).with_details(
-                    details.unwrap_or_default(),
-                )
-            }
+            AIOracleError::CircuitBreaker { message } => AIResponseError::new(
+                "CIRCUIT_BREAKER_OPEN".to_string(),
+                message,
+                category,
+                retryable,
+            ),
+            AIOracleError::MaxRetriesExceeded { attempts, .. } => AIResponseError::new(
+                "MAX_RETRIES_EXCEEDED".to_string(),
+                format!("Max retries exceeded: {} attempts failed", attempts),
+                category,
+                retryable,
+            ),
+            AIOracleError::Service {
+                code,
+                message,
+                details,
+            } => AIResponseError::new(code, message, category, retryable)
+                .with_details(details.unwrap_or_default()),
             AIOracleError::Unknown { message } => {
                 AIResponseError::new("UNKNOWN_ERROR".to_string(), message, category, retryable)
             }
