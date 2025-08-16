@@ -1,77 +1,80 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Updated devnet script validating automatic block production & persistence
-# Steps:
-# 1. Unique fresh data dir
-# 2. Start node
-# 3. Wait health & at least 1 block height progress
-# 4. Fund / select faucet & test addresses
-# 5. Submit transfer
-# 6. Poll receipt until success
-# 7. Verify balances & nonce
-# 8. Restart node and re-verify receipt & balances persist
+# Devnet script for Rust node proving end-to-end flow: block production, tx inclusion, persistence.
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DATA_DIR="${DYT_DATA_DIR:-/tmp/dyt-devnet-$$}"
-CHAIN_ID="${DYT_CHAIN_ID:-dyt-devnet-1}"
-GENESIS="${DYT_GENESIS_FILE:-$ROOT_DIR/../genesisBlock.json}"
+DATA_DIR="$(mktemp -d /tmp/dyt-node-XXXX)"
+CHAIN_ID="${DYT_CHAIN_ID:-dytallix-testnet-1}"
+export DYT_DATA_DIR="$DATA_DIR"
+export DYT_BLOCK_INTERVAL_MS="${DYT_BLOCK_INTERVAL_MS:-2000}"
+export DYT_EMPTY_BLOCKS="${DYT_EMPTY_BLOCKS:-true}"
+export BLOCK_MAX_TX="${BLOCK_MAX_TX:-100}"
+export DYT_WS_ENABLED="${DYT_WS_ENABLED:-true}"
 RPC="http://localhost:3030"
 ART_DIR="$ROOT_DIR/artifacts"
 LOG="$ART_DIR/devnet_log.txt"
-mkdir -p "$DATA_DIR" "$ART_DIR"
-rm -rf "$DATA_DIR" || true
-mkdir -p "$DATA_DIR"
-
+mkdir -p "$ART_DIR"
+: > "$LOG"
 log() { echo "[$(date -u +%H:%M:%S)] $*" | tee -a "$LOG"; }
 
-log "Starting devnet with DATA_DIR=$DATA_DIR CHAIN_ID=$CHAIN_ID"
+log "Launching node (data dir $DATA_DIR)"
+(
+  cd "$ROOT_DIR/node"
+  cargo run --quiet &
+  NODE_PID=$!
+  trap 'kill $NODE_PID || true' EXIT
 
-pushd "$ROOT_DIR/../blockchain-core" >/dev/null
-DYT_DATA_DIR="$DATA_DIR" DYT_CHAIN_ID="$CHAIN_ID" cargo run --quiet &
-NODE_PID=$!
-log "Node PID $NODE_PID"
-trap 'log "Stopping node"; kill $NODE_PID || true' EXIT
+  for i in {1..30}; do if curl -fsS "$RPC/stats" >/dev/null 2>&1; then break; fi; sleep 1; done
+  [ "$i" = 30 ] && log "Node not responding" && exit 1
 
-# Wait for health
-for i in {1..30}; do if curl -fsS "$RPC/health" >/dev/null; then log "Health OK"; break; fi; sleep 1; if [ "$i" = 30 ]; then log "Health check failed"; exit 1; fi; done
+  TARGET=2
+  for i in {1..40}; do H=$(curl -fsS "$RPC/stats" | jq -r '.height // 0'); [ "$H" -ge "$TARGET" ] && break; sleep 1; done
+  [ "$H" -lt "$TARGET" ] && log "Block production stalled" && exit 1
+  log "Reached height $H"
 
-# Wait for at least 2 blocks (auto producer) or timeout
-TARGET=2
-for i in {1..40}; do H=$(curl -fsS "$RPC/stats" | jq -r '.data.height // 0' || echo 0); if [ "$H" -ge "$TARGET" ]; then log "Reached height $H"; break; fi; sleep 1; if [ "$i" = 40 ]; then log "Block production not progressing"; exit 1; fi; done
+  ADDR_A="dyt1senderdev000000" # faucet (from)
+  ADDR_B="dyt1receiverdev000"  # receiver
+  BAL_A0=$(curl -fsS "$RPC/balance/$ADDR_A" | jq -r '.balance')
+  BAL_B0=$(curl -fsS "$RPC/balance/$ADDR_B" | jq -r '.balance')
+  NONCE_B0=$(curl -fsS "$RPC/tx/doesnotexist" || true) # placeholder (no nonce endpoint yet) -> assume 0
+  log "Initial balances A=$BAL_A0 B=$BAL_B0"
 
-ADDR_A="dyt1senderdev000000"
-ADDR_B="dyt1receiverdev000"
+  AMT=10
+  FEE=1
+  TX=$(jq -n --arg from "$ADDR_A" --arg to "$ADDR_B" --argjson amount $AMT --argjson fee $FEE '{from:$from,to:$to,amount:$amount,fee:$fee}')
+  SUB=$(curl -fsS -X POST "$RPC/submit" -H 'Content-Type: application/json' -d "$TX") || { log "Submit failed"; exit 1; }
+  HASH=$(echo "$SUB" | jq -r '.hash')
+  [ -z "$HASH" ] && log "Submit failed: $SUB" && exit 1
+  log "Submitted tx $HASH"
 
-BAL_A_BEFORE=$(curl -fsS "$RPC/balance/$ADDR_A" | jq -r '.data // 0' || echo 0)
-BAL_B_BEFORE=$(curl -fsS "$RPC/balance/$ADDR_B" | jq -r '.data // 0' || echo 0)
-log "Balances before A=$BAL_A_BEFORE B=$BAL_B_BEFORE"
+  for i in {1..60}; do R=$(curl -fsS "$RPC/tx/$HASH" || true); ST=$(echo "$R" | jq -r '.status // empty'); if [ "$ST" = Success ] || [ "$ST" = success ]; then BH=$(echo "$R" | jq -r '.block_height'); log "Inclusion at block $BH"; BLOCK_JSON=$(curl -fsS "$RPC/block/$BH"); echo "$BLOCK_JSON" | jq '.' >/dev/null || { log "Block fetch failed"; exit 1; }; break; fi; sleep 1; done
+  [ "$ST" != Success ] && [ "$ST" != success ] && log "Tx not included" && exit 1
 
-NONCE=$(curl -fsS "$RPC/tx/doesnotexist" >/dev/null 2>&1; echo 0) # placeholder nonce fetch (would call nonce endpoint if exists)
-AMOUNT=10
-FEE=1
-TX_JSON=$(jq -n --arg from "$ADDR_A" --arg to "$ADDR_B" --argjson amount $AMOUNT --argjson fee $FEE '{type:"transfer",from:$from,to:$to,amount:$amount,fee:$fee}')
-TX_RESP=$(curl -fsS -X POST "$RPC/submit" -H 'Content-Type: application/json' -d "$TX_JSON" || true)
-HASH=$(echo "$TX_RESP" | jq -r '.data.hash // empty')
-log "Submit response: $TX_RESP"
-if [ -z "$HASH" ]; then log "Failed to submit tx"; exit 1; fi
+  BAL_A1=$(curl -fsS "$RPC/balance/$ADDR_A" | jq -r '.balance')
+  BAL_B1=$(curl -fsS "$RPC/balance/$ADDR_B" | jq -r '.balance')
+  log "Post-transfer balances A=$BAL_A1 B=$BAL_B1"
+  EXPECT_A1=$((BAL_A0 - AMT - FEE))
+  EXPECT_B1=$((BAL_B0 + AMT))
+  [ "$BAL_A1" -eq "$EXPECT_A1" ] || { log "Unexpected sender balance after transfer: got $BAL_A1 expected $EXPECT_A1"; exit 1; }
+  [ "$BAL_B1" -eq "$EXPECT_B1" ] || { log "Unexpected receiver balance after transfer: got $BAL_B1 expected $EXPECT_B1"; exit 1; }
 
-# Poll for success receipt
-for i in {1..60}; do R=$(curl -fsS "$RPC/tx/$HASH" || true); ST=$(echo "$R" | jq -r '.data.status // empty'); if [ "$ST" = success ]; then log "Tx included at height $(echo "$R" | jq -r '.data.block_height')"; break; fi; sleep 1; if [ "$i" = 60 ]; then log "Tx not included"; exit 1; fi; done
+  kill $NODE_PID || true
+  sleep 2
+  cargo run --quiet &
+  NODE_PID=$!
+  for i in {1..30}; do if curl -fsS "$RPC/tx/$HASH" >/dev/null 2>&1; then break; fi; sleep 1; done
+  R2=$(curl -fsS "$RPC/tx/$HASH")
+  ST2=$(echo "$R2" | jq -r '.status // empty')
+  [ "$ST2" != Success ] && [ "$ST2" != success ] && log "Receipt missing after restart" && exit 1
+  BAL_A2=$(curl -fsS "$RPC/balance/$ADDR_A" | jq -r '.balance')
+  BAL_B2=$(curl -fsS "$RPC/balance/$ADDR_B" | jq -r '.balance')
+  [ "$BAL_A2" -eq "$EXPECT_A1" ] || { log "Sender balance not persisted: $BAL_A2 vs $EXPECT_A1"; exit 1; }
+  [ "$BAL_B2" -eq "$EXPECT_B1" ] || { log "Receiver balance not persisted: $BAL_B2 vs $EXPECT_B1"; exit 1; }
+  BH2=$(echo "$R2" | jq -r '.block_height')
+  BLOCK_JSON2=$(curl -fsS "$RPC/block/$BH2")
+  echo "$BLOCK_JSON2" | jq '.' >/dev/null || { log "Block fetch after restart failed"; exit 1; }
+  log "Persistence verified"
+) || { log "Devnet failed"; exit 1; }
 
-BAL_A_AFTER=$(curl -fsS "$RPC/balance/$ADDR_A" | jq -r '.data // 0' || echo 0)
-BAL_B_AFTER=$(curl -fsS "$RPC/balance/$ADDR_B" | jq -r '.data // 0' || echo 0)
-log "Balances after A=$BAL_A_AFTER B=$BAL_B_AFTER"
-
-log "Restarting node to verify persistence"
-kill $NODE_PID || true
-sleep 2
-DYT_DATA_DIR="$DATA_DIR" DYT_CHAIN_ID="$CHAIN_ID" cargo run --quiet &
-NODE_PID=$!
-for i in {1..30}; do if curl -fsS "$RPC/health" >/dev/null; then break; fi; sleep 1; done
-R2=$(curl -fsS "$RPC/tx/$HASH" || true)
-ST2=$(echo "$R2" | jq -r '.data.status // empty')
-if [ "$ST2" != success ]; then log "Receipt missing after restart"; exit 1; fi
-log "Persistence verified"
-
-log "Devnet script completed successfully"
+log "Devnet success. Log at $LOG"
