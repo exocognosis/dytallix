@@ -101,8 +101,9 @@ hardhat.config.ts
 vendor/pqclean/.git/
 vendor/pqclean/.github/
 
-# Standardized repo folders (tracked, listed for clarity)
-node/
+# Standardized repo folders (tracked, listed for clarity). Remove previous blanket ignores so these can be versioned.
+# (Keeping typical Node.js artifacts ignored separately.)
+node_modules/
 faucet/
 explorer/
 web/

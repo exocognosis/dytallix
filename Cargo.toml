@@ -5,7 +5,8 @@ members = [
     "pqc-crypto",
     "smart-contracts",
     "governance",
-    "interoperability"
+    "interoperability",
+    "dytallix-lean-launch/node"
 ]
 
 resolver = "2"
