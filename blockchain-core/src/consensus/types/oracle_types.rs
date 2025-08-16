@@ -317,12 +317,6 @@ impl OracleIdentity {
         self.reputation_score
     }
 
-    /// Update reputation score (backward compatibility - returns updated instance)
-    pub fn update_reputation(mut self, score: f64) -> Self {
-        self.reputation_score = score.clamp(0.0, 1.0);
-        self
-    }
-
     /// Update reputation score in-place (for mutable references)
     pub fn update_reputation_mut(&mut self, score: f64) {
         self.reputation_score = score.clamp(0.0, 1.0);

@@ -1,0 +1,36 @@
+use anyhow::{Result, anyhow};
+use reqwest::StatusCode;
+use serde::{Serialize, Deserialize};
+use crate::tx::SignedTx;
+
+#[derive(Clone)]
+pub struct RpcClient { pub base: String, client: reqwest::Client }
+
+impl RpcClient {
+    pub fn new(base: &str) -> Self { Self { base: base.trim_end_matches('/').into(), client: reqwest::Client::new() } }
+
+    pub async fn get_nonce(&self, address: &str) -> Result<Option<u64>> {
+        let url = format!("{}/account/nonce/{}", self.base, address);
+        let res = self.client.get(&url).send().await?;
+        if res.status() == StatusCode::NOT_FOUND { return Ok(None) }
+        if !res.status().is_success() { return Err(anyhow!(format!("nonce fetch error {}", res.status()))) }
+        let v: serde_json::Value = res.json().await?;
+        if let Some(n) = v["nonce"].as_u64() { Ok(Some(n)) } else { Err(anyhow!("malformed nonce response")) }
+    }
+
+    pub async fn submit(&self, stx: &SignedTx) -> Result<BroadcastResponse> {
+        // Try /submit then fallback /tx/broadcast
+        let body = serde_json::json!({"signed_tx": stx});
+        for path in ["/submit", "/tx/broadcast"] {
+            let url = format!("{}{}", self.base, path);
+            let resp = self.client.post(&url).json(&body).send().await?;
+            if resp.status() == StatusCode::NOT_FOUND { continue; }
+            if !resp.status().is_success() { return Err(anyhow!(format!("broadcast failed {}: {}", resp.status(), resp.text().await.unwrap_or_default()))) }
+            let br: BroadcastResponse = resp.json().await?; return Ok(br);
+        }
+        Err(anyhow!("no broadcast endpoint available"))
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BroadcastResponse { pub hash: String, pub status: String }

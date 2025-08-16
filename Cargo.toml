@@ -6,7 +6,8 @@ members = [
     "smart-contracts",
     "governance",
     "interoperability",
-    "dytallix-lean-launch/node"
+    "dytallix-lean-launch/node",
+    "cli"
 ]
 
 resolver = "2"

@@ -1,0 +1,51 @@
+name: CLI CI
+
+on:
+  push:
+    paths:
+      - 'cli/**'
+      - '.github/workflows/cli-ci.yml'
+  pull_request:
+    paths:
+      - 'cli/**'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - features: ''
+            name: default
+          - features: '--no-default-features --features pqc-mock'
+            name: pqc-mock
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: clippy, rustfmt
+      - name: Cargo fmt check
+        run: |
+          cd cli
+          cargo fmt -- --check
+      - name: Cargo build
+        run: |
+          cd cli
+          cargo build --locked ${{ matrix.features }}
+      - name: Cargo clippy
+        run: |
+          cd cli
+          cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
+      - name: Cargo test
+        run: |
+          cd cli
+          cargo test -q --package dyt ${{ matrix.features }} -- --nocapture
+  integration-placeholder:
+    if: false  # enable later when node integration available
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Integration tests disabled"
