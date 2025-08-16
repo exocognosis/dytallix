@@ -5,6 +5,7 @@ use crate::{
     storage::blocks::TpsWindow,
     storage::{receipts::TxReceipt, state::Storage, tx::Transaction},
     ws::server::WsHub,
+    crypto::{canonical_json, sha3_256, ActivePQC},
 };
 use axum::{
     extract::{Path, Query},
@@ -18,6 +19,7 @@ use crate::storage::oracle::OracleStore;
 use crate::runtime::bridge;
 use crate::EmissionEngine; // updated import for emission engine via re-export
 use crate::util::hash::blake3_tx_hash;
+use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 #[derive(Clone)]
 pub struct RpcContext {
@@ -31,12 +33,33 @@ pub struct RpcContext {
 
 #[derive(Deserialize)]
 pub struct SubmitTx {
-    pub from: String,
-    pub to: String,
-    pub amount: u128,
-    pub fee: u128,
-    pub nonce: Option<u64>,
-    pub signature: Option<String>,
+    pub signed_tx: SignedTx,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct Tx {
+    pub chain_id: String,
+    pub nonce: u64,
+    pub msgs: Vec<serde_json::Value>,
+    #[serde(deserialize_with = "de_u128_string")] pub fee: u128,
+    pub memo: String,
+}
+
+fn de_u128_string<'de, D: serde::Deserializer<'de>>(d: D) -> Result<u128, D::Error> { let s = String::deserialize(d)?; s.parse().map_err(serde::de::Error::custom) }
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct SignedTx {
+    pub tx: Tx,
+    pub public_key: String,
+    pub signature: String,
+    pub algorithm: String,
+    pub version: u32,
+}
+
+fn verify_envelope(env: &SignedTx) -> bool {
+    if env.algorithm != ActivePQC::ALG || env.version != 1 { return false; }
+    if let Ok(bytes) = canonical_json(&env.tx) { let hash = sha3_256(&bytes); if let (Ok(pk), Ok(sig)) = (B64.decode(&env.public_key), B64.decode(&env.signature)) { return ActivePQC::verify(&pk, &hash, &sig); } }
+    false
 }
 
 #[axum::debug_handler]
@@ -44,64 +67,37 @@ pub async fn submit(
     ctx: Extension<RpcContext>,
     Json(body): Json<SubmitTx>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let current_nonce = ctx.state.lock().unwrap().nonce_of(&body.from);
-    let nonce = body.nonce.unwrap_or(current_nonce);
-    if nonce != current_nonce {
-        return Err(ApiError::InvalidNonce {
-            expected: current_nonce,
-            got: nonce,
-        });
-    }
-    let tx_hash = blake3_tx_hash(
-        format!(
-            "{}:{}:{}:{}:{}",
-            body.from, body.to, body.amount, body.fee, nonce
-        )
-        .as_bytes(),
-    );
+    let env = body.signed_tx;
+    if !verify_envelope(&env) { return Err(ApiError::InvalidSignature); }
+    let from = env.msgs_first_from().unwrap_or_default();
+    let current_nonce = ctx.state.lock().unwrap().nonce_of(&from);
+    if env.tx.nonce != current_nonce { return Err(ApiError::InvalidNonce { expected: current_nonce, got: env.tx.nonce }); }
+    // Build legacy Transaction wrapper (single send assumption for now)
+    let tx_hash = format!("0x{}", hex::encode(sha3_256(&canonical_json(&env.tx).unwrap())));
     let tx = Transaction::new(
         tx_hash.clone(),
-        body.from.clone(),
-        body.to.clone(),
-        body.amount,
-        body.fee,
-        nonce,
-        body.signature.clone(),
+        from.clone(),
+        from.clone(),
+        0,
+        env.tx.fee,
+        env.tx.nonce,
+        Some(env.signature.clone()),
     );
     {
         let mut mp = ctx.mempool.lock().unwrap();
-        if mp.contains(&tx_hash) {
-            return Err(ApiError::DuplicateTx);
-        }
-        if mp.is_full() {
-            return Err(ApiError::MempoolFull);
-        }
-        if let Err(e) = basic_validate(&ctx.state.lock().unwrap(), &tx) {
-            if e.starts_with("InvalidNonce") {
-                return Err(ApiError::InvalidNonce {
-                    expected: current_nonce,
-                    got: nonce,
-                });
-            }
-            if e.contains("InsufficientBalance") {
-                return Err(ApiError::InsufficientFunds);
-            }
-            return Err(ApiError::Internal);
-        }
-        mp.push(tx.clone()).map_err(|e| match e {
-            MempoolError::Duplicate => ApiError::DuplicateTx,
-            MempoolError::Full => ApiError::MempoolFull,
-        })?;
+        if mp.contains(&tx_hash) { return Err(ApiError::DuplicateTx); }
+        if mp.is_full() { return Err(ApiError::MempoolFull); }
+        if let Err(e) = basic_validate(&ctx.state.lock().unwrap(), &tx) { if e.starts_with("InvalidNonce") { return Err(ApiError::InvalidNonce { expected: current_nonce, got: env.tx.nonce }); } if e.contains("InsufficientBalance") { return Err(ApiError::InsufficientFunds); } return Err(ApiError::Internal); }
+        mp.push(tx.clone()).map_err(|e| match e { MempoolError::Duplicate => ApiError::DuplicateTx, MempoolError::Full => ApiError::MempoolFull })?;
     }
     ctx.storage.put_tx(&tx).map_err(|_| ApiError::Internal)?;
     let pending = TxReceipt::pending(&tx);
-    ctx.storage
-        .put_pending_receipt(&pending)
-        .map_err(|_| ApiError::Internal)?;
-    ctx.ws
-        .broadcast_json(&json!({"type":"new_transaction","hash": tx_hash }));
+    ctx.storage.put_pending_receipt(&pending).map_err(|_| ApiError::Internal)?;
+    ctx.ws.broadcast_json(&json!({"type":"new_transaction","hash": tx_hash }));
     Ok(Json(json!({"hash": tx_hash, "status":"pending"})))
 }
+
+impl SignedTx { fn msgs_first_from(&self) -> Option<String> { self.tx.msgs.get(0).and_then(|v| v.get("from")).and_then(|f| f.as_str()).map(|s| s.to_string()) } }
 
 #[derive(Deserialize)]
 pub struct BlocksQuery {

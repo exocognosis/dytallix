@@ -11,6 +11,7 @@ const SIG_LEN: usize = 32; // mock: blake3(sk || msg)
 static REGISTRY: Lazy<RwLock<Vec<(Vec<u8>, Vec<u8>)>>> = Lazy::new(|| RwLock::new(Vec::new()));
 
 impl PQC for MockPQC {
+    const ALG: &'static str = "mock-blake3";
     fn keypair() -> (Vec<u8>, Vec<u8>) {
         // Deterministic but unique-ish: derive from a counter stored in thread local
         thread_local! { static COUNTER: std::cell::RefCell<u64> = std::cell::RefCell::new(0); }

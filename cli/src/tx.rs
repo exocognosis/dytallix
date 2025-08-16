@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize, Deserializer};
 use sha3::{Digest, Sha3_256};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use anyhow::{Result, anyhow};
-use crate::crypto::{ActivePQC, PQC};
+use crate::crypto::{ActivePQC, PQC, canonical_json, sha3_256};
 
 // Helper module to (de)serialize u128 as string for canonical on-wire format.
 mod as_str_u128 {
@@ -70,20 +70,23 @@ impl Tx {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SignedTx {
     pub tx: Tx,
-    pub signature: String,      // base64
-    pub public_key: String,     // base64
-    pub hash: String,           // 0x hex of sha3-256(tx_json)
+    pub public_key: String,           // base64
+    pub signature: String,            // base64
+    pub algorithm: String,            // ActivePQC::ALG
+    pub version: u32,                 // 1
 }
 
 impl SignedTx {
     pub fn sign(tx: Tx, sk: &[u8], pk: &[u8]) -> Result<Self> {
-        let hash = tx.hash()?; let sig = ActivePQC::sign(sk, &hash);
-        Ok(Self { tx, signature: B64.encode(sig), public_key: B64.encode(pk), hash: format!("0x{}", hex::encode(hash)) })
+        let bytes = canonical_json(&tx)?; let hash = sha3_256(&bytes); let sig = ActivePQC::sign(sk, &hash);
+        Ok(Self { tx, public_key: B64.encode(pk), signature: B64.encode(sig), algorithm: ActivePQC::ALG.to_string(), version: 1 })
     }
     pub fn verify(&self) -> Result<()> {
-        let hash_bytes = self.tx.hash()?;
+        if self.algorithm != ActivePQC::ALG { return Err(anyhow!("algorithm mismatch")); }
+        if self.version != 1 { return Err(anyhow!("unsupported version")); }
+        let bytes = canonical_json(&self.tx)?; let hash = sha3_256(&bytes);
         let sig = B64.decode(&self.signature)?; let pk = B64.decode(&self.public_key)?;
-        if !ActivePQC::verify(&pk, &hash_bytes, &sig) { return Err(anyhow!("signature verify failed")); }
+        if !ActivePQC::verify(&pk, &hash, &sig) { return Err(anyhow!("signature verify failed")); }
         Ok(())
     }
 }
@@ -98,9 +101,11 @@ mod tests {
         let tx = Tx::new("chain", 1, vec![msg], 1, "").unwrap();
         let stx = SignedTx::sign(tx.clone(), &sk, &pk).unwrap();
         stx.verify().unwrap();
-        assert!(stx.hash.starts_with("0x"));
-        // Deterministic hash for same content
+        assert_eq!(stx.algorithm, ActivePQC::ALG);
+        assert_eq!(stx.version, 1);
         let tx2 = Tx::new("chain", 1, vec![Msg::Send { from: "a".into(), to: "b".into(), denom: "DGT".into(), amount: 10 }], 1, "").unwrap();
-        assert_eq!(hex::encode(tx.hash().unwrap()), hex::encode(tx2.hash().unwrap()));
+        let bytes1 = canonical_json(&tx).unwrap();
+        let bytes2 = canonical_json(&tx2).unwrap();
+        assert_eq!(sha3_256(&bytes1), sha3_256(&bytes2));
     }
 }
