@@ -1,17 +1,17 @@
-use warp::Filter;
-use warp::reply::Reply;
+use crate::crypto::PQCManager;
 use bytes; // add bytes crate usage
-use serde::{Deserialize, Serialize};
-use log::{info, error, warn};
-use serde_json;
-use rand;
 use futures_util::{SinkExt, StreamExt};
-use tokio_tungstenite::{accept_async, tungstenite::Message};
+use log::{error, info, warn};
+use once_cell::sync::Lazy;
+use rand;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use serde_json;
 use std::sync::Arc;
 use tokio::sync::broadcast;
-use once_cell::sync::Lazy;
-use regex::Regex;
-use crate::crypto::PQCManager; // ensure accessible
+use tokio_tungstenite::{accept_async, tungstenite::Message};
+use warp::reply::Reply;
+use warp::Filter; // ensure accessible
 
 #[derive(Debug, Deserialize)]
 struct TransferRequest {
@@ -93,7 +93,7 @@ impl WebSocketMessage {
             data: serde_json::to_value(block).unwrap_or_default(),
         }
     }
-    
+
     fn new_transaction(tx: &TransactionDetails) -> Self {
         Self {
             message_type: "new_transaction".to_string(),
@@ -101,7 +101,7 @@ impl WebSocketMessage {
             data: serde_json::to_value(tx).unwrap_or_default(),
         }
     }
-    
+
     fn status_update(status: &SystemStatus) -> Self {
         Self {
             message_type: "status_update".to_string(),
@@ -133,7 +133,10 @@ struct TransactionDetails {
 }
 
 #[derive(Debug, Serialize)]
-struct ErrorResponse { error: String, message: String }
+struct ErrorResponse {
+    error: String,
+    message: String,
+}
 
 impl<T> ApiResponse<T> {
     fn success(data: T) -> Self {
@@ -143,7 +146,7 @@ impl<T> ApiResponse<T> {
             error: None,
         }
     }
-    
+
     fn error(message: String) -> Self {
         Self {
             success: false,
@@ -158,7 +161,11 @@ static ADDRESS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^dyt1[0-9a-z]{10,}$")
 const MIN_FEE: u64 = 1;
 const MAX_TX_BODY: usize = 8192;
 
-fn runtime_mocks() -> bool { std::env::var("RUNTIME_MOCKS").map(|v| v == "true" || v == "1").unwrap_or(false) }
+fn runtime_mocks() -> bool {
+    std::env::var("RUNTIME_MOCKS")
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(false)
+}
 
 // Temporarily implementing basic API server for testing
 pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
@@ -200,20 +207,34 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
     let websocket = warp::path("ws")
         .and(warp::ws())
         .and(warp::any().map(move || ws_tx_root.clone()))
-        .map(|ws: warp::ws::Ws, ws_tx: Arc<broadcast::Sender<WebSocketMessage>>| {
-            ws.on_upgrade(move |websocket| handle_websocket(websocket, ws_tx))
-        });
+        .map(
+            |ws: warp::ws::Ws, ws_tx: Arc<broadcast::Sender<WebSocketMessage>>| {
+                ws.on_upgrade(move |websocket| handle_websocket(websocket, ws_tx))
+            },
+        );
 
     // Peers route (returns empty list until networking integrated)
     let peers = warp::path("peers")
         .and(warp::get())
-        .map(|| warp::reply::with_status(warp::reply::json(&ApiResponse::success(Vec::<String>::new())), warp::http::StatusCode::OK).into_response())
+        .map(|| {
+            warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(Vec::<String>::new())),
+                warp::http::StatusCode::OK,
+            )
+            .into_response()
+        })
         .boxed();
 
     // Health
     let health = warp::path("health")
         .and(warp::get())
-        .map(|| warp::reply::with_status(warp::reply::json(&serde_json::json!({"status":"ok","service":"dytallix-node"})), warp::http::StatusCode::OK).into_response())
+        .map(|| {
+            warp::reply::with_status(
+                warp::reply::json(&serde_json::json!({"status":"ok","service":"dytallix-node"})),
+                warp::http::StatusCode::OK,
+            )
+            .into_response()
+        })
         .boxed();
 
     // Balance (state-backed)
@@ -222,24 +243,42 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(warp::get())
         .and(warp::any().map(move || storage_balance.clone()))
-        .and_then(|address: String, storage: Arc<crate::storage::StorageManager>| async move {
-            if !ADDRESS_RE.is_match(&address) {
-                return Ok::<_, warp::Rejection>(warp::reply::with_status(
-                    warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("invalid_address".into()) }),
-                    warp::http::StatusCode::BAD_REQUEST,
-                ).into_response());
-            }
-            match storage.get_address_balance(&address).await {
-                Ok(bal) => Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::success(bal)), warp::http::StatusCode::OK).into_response()),
-                Err(e) => {
-                    error!("balance error: {}", e);
-                    Ok(warp::reply::with_status(
-                        warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("internal_error".into()) }),
-                        warp::http::StatusCode::INTERNAL_SERVER_ERROR,
-                    ).into_response())
+        .and_then(
+            |address: String, storage: Arc<crate::storage::StorageManager>| async move {
+                if !ADDRESS_RE.is_match(&address) {
+                    return Ok::<_, warp::Rejection>(
+                        warp::reply::with_status(
+                            warp::reply::json(&ApiResponse::<()> {
+                                success: false,
+                                data: None,
+                                error: Some("invalid_address".into()),
+                            }),
+                            warp::http::StatusCode::BAD_REQUEST,
+                        )
+                        .into_response(),
+                    );
                 }
-            }
-        })
+                match storage.get_address_balance(&address).await {
+                    Ok(bal) => Ok(warp::reply::with_status(
+                        warp::reply::json(&ApiResponse::success(bal)),
+                        warp::http::StatusCode::OK,
+                    )
+                    .into_response()),
+                    Err(e) => {
+                        error!("balance error: {}", e);
+                        Ok(warp::reply::with_status(
+                            warp::reply::json(&ApiResponse::<()> {
+                                success: false,
+                                data: None,
+                                error: Some("internal_error".into()),
+                            }),
+                            warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        )
+                        .into_response())
+                    }
+                }
+            },
+        )
         .boxed();
 
     // Submit TX (transfer only for MV(T))
@@ -250,92 +289,258 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::post())
         .and(warp::header::optional::<String>("content-length"))
         .and(warp::body::bytes())
-        .and(warp::any().map(move || (storage_submit.clone(), tx_pool_submit.clone(), ws_tx_submit.clone())))
-        .and_then(|content_length: Option<String>, body: bytes::Bytes, ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>, Arc<broadcast::Sender<WebSocketMessage>>)| async move {
-            if let Some(len_str) = content_length {
-                if let Ok(len) = len_str.parse::<usize>() {
-                    if len > MAX_TX_BODY {
-                        return Ok::<_, warp::Rejection>(warp::reply::with_status(
-                            warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("invalid_body".into()) }),
-                            warp::http::StatusCode::PAYLOAD_TOO_LARGE,
-                        ).into_response());
+        .and(warp::any().map(move || {
+            (
+                storage_submit.clone(),
+                tx_pool_submit.clone(),
+                ws_tx_submit.clone(),
+            )
+        }))
+        .and_then(
+            |content_length: Option<String>,
+             body: bytes::Bytes,
+             ctx: (
+                Arc<crate::storage::StorageManager>,
+                Arc<crate::types::TransactionPool>,
+                Arc<broadcast::Sender<WebSocketMessage>>,
+            )| async move {
+                if let Some(len_str) = content_length {
+                    if let Ok(len) = len_str.parse::<usize>() {
+                        if len > MAX_TX_BODY {
+                            return Ok::<_, warp::Rejection>(
+                                warp::reply::with_status(
+                                    warp::reply::json(&ApiResponse::<()> {
+                                        success: false,
+                                        data: None,
+                                        error: Some("invalid_body".into()),
+                                    }),
+                                    warp::http::StatusCode::PAYLOAD_TOO_LARGE,
+                                )
+                                .into_response(),
+                            );
+                        }
                     }
                 }
-            }
-            if body.len() > MAX_TX_BODY {
-                return Ok(warp::reply::with_status(
-                    warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("invalid_body".into()) }),
-                    warp::http::StatusCode::PAYLOAD_TOO_LARGE,
-                ).into_response());
-            }
-            let parsed: serde_json::Value = match serde_json::from_slice(&body) {
-                Ok(v) => v,
-                Err(_) => return Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("invalid_body".into()) }), warp::http::StatusCode::BAD_REQUEST).into_response()),
-            };
-            if parsed.get("type").and_then(|v| v.as_str()) != Some("transfer") {
-                return Ok(warp::reply::with_status(
-                    warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("invalid_body".into()) }),
-                    warp::http::StatusCode::BAD_REQUEST,
-                ).into_response());
-            }
-            let req: TransferRequest = match serde_json::from_value(parsed.clone()) {
-                Ok(r) => r,
-                Err(_) => return Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("invalid_body".into()) }), warp::http::StatusCode::BAD_REQUEST).into_response()),
-            };
-            if !ADDRESS_RE.is_match(&req.from) || !ADDRESS_RE.is_match(&req.to) {
-                return Ok(warp::reply::with_status(
-                    warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("invalid_address".into()) }),
-                    warp::http::StatusCode::BAD_REQUEST,
-                ).into_response());
-            }
-            if req.amount == 0 || req.fee.unwrap_or(0) < MIN_FEE {
-                return Ok(warp::reply::with_status(
-                    warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("invalid_body".into()) }),
-                    warp::http::StatusCode::BAD_REQUEST,
-                ).into_response());
-            }
-            // Balance & nonce check via storage
-            let (storage, pool, ws_tx) = ctx;
-            let sender_balance = storage.get_address_balance(&req.from).await.unwrap_or(0);
-            let sender_nonce = storage.get_address_nonce(&req.from).await.unwrap_or(0);
-            // Nonce rule
-            let effective_nonce = match req.nonce {
-                None => sender_nonce,
-                Some(n) => {
-                    if n != sender_nonce { return Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some(format!("invalid_nonce:expected:{}:got:{}", sender_nonce, n)) }), warp::http::StatusCode::UNPROCESSABLE_ENTITY).into_response()); }
-                    n
+                if body.len() > MAX_TX_BODY {
+                    return Ok(warp::reply::with_status(
+                        warp::reply::json(&ApiResponse::<()> {
+                            success: false,
+                            data: None,
+                            error: Some("invalid_body".into()),
+                        }),
+                        warp::http::StatusCode::PAYLOAD_TOO_LARGE,
+                    )
+                    .into_response());
                 }
-            };
-            if sender_balance < req.amount + req.fee.unwrap_or(MIN_FEE) { return Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("insufficient_balance".into()) }), warp::http::StatusCode::BAD_REQUEST).into_response()); }
-            // Build transaction
-            let mut tx = crate::types::TransferTransaction::new(req.from.clone(), req.to.clone(), req.amount, req.fee.unwrap_or(MIN_FEE), effective_nonce);
-            // Signature verification skipped if mocks enabled OR signature absent (dev only)
-            if let Some(sig) = req.signature {
-                if !runtime_mocks() {
-                    let sig_bytes = match hex::decode(sig.data) {
-                        Ok(b) => b,
-                        Err(_) => return Ok::<_, warp::Rejection>(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("signature_invalid".into()) }), warp::http::StatusCode::BAD_REQUEST).into_response()),
-                    };
-                    let pk_bytes = match hex::decode(sig.public_key) {
-                        Ok(b) => b,
-                        Err(_) => return Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("signature_invalid".into()) }), warp::http::StatusCode::BAD_REQUEST).into_response()),
-                    };
-                    let pqc = crate::crypto::PQCManager::new().map_err(|_|()).unwrap();
-                    let sig_wrapper = crate::crypto::PQCSignature { signature: sig_bytes.clone(), algorithm: sig.algorithm.clone(), nonce: 0, timestamp: 0 };
-                    match pqc.verify_signature(tx.signing_message().as_slice(), &sig_wrapper, &pk_bytes) {
-                        Ok(valid) if valid => {},
-                        _ => { return Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("signature_invalid".into()) }), warp::http::StatusCode::BAD_REQUEST).into_response()); }
+                let parsed: serde_json::Value = match serde_json::from_slice(&body) {
+                    Ok(v) => v,
+                    Err(_) => {
+                        return Ok(warp::reply::with_status(
+                            warp::reply::json(&ApiResponse::<()> {
+                                success: false,
+                                data: None,
+                                error: Some("invalid_body".into()),
+                            }),
+                            warp::http::StatusCode::BAD_REQUEST,
+                        )
+                        .into_response())
+                    }
+                };
+                if parsed.get("type").and_then(|v| v.as_str()) != Some("transfer") {
+                    return Ok(warp::reply::with_status(
+                        warp::reply::json(&ApiResponse::<()> {
+                            success: false,
+                            data: None,
+                            error: Some("invalid_body".into()),
+                        }),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    )
+                    .into_response());
+                }
+                let req: TransferRequest = match serde_json::from_value(parsed.clone()) {
+                    Ok(r) => r,
+                    Err(_) => {
+                        return Ok(warp::reply::with_status(
+                            warp::reply::json(&ApiResponse::<()> {
+                                success: false,
+                                data: None,
+                                error: Some("invalid_body".into()),
+                            }),
+                            warp::http::StatusCode::BAD_REQUEST,
+                        )
+                        .into_response())
+                    }
+                };
+                if !ADDRESS_RE.is_match(&req.from) || !ADDRESS_RE.is_match(&req.to) {
+                    return Ok(warp::reply::with_status(
+                        warp::reply::json(&ApiResponse::<()> {
+                            success: false,
+                            data: None,
+                            error: Some("invalid_address".into()),
+                        }),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    )
+                    .into_response());
+                }
+                if req.amount == 0 || req.fee.unwrap_or(0) < MIN_FEE {
+                    return Ok(warp::reply::with_status(
+                        warp::reply::json(&ApiResponse::<()> {
+                            success: false,
+                            data: None,
+                            error: Some("invalid_body".into()),
+                        }),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    )
+                    .into_response());
+                }
+                // Balance & nonce check via storage
+                let (storage, pool, ws_tx) = ctx;
+                let sender_balance = storage.get_address_balance(&req.from).await.unwrap_or(0);
+                let sender_nonce = storage.get_address_nonce(&req.from).await.unwrap_or(0);
+                // Nonce rule
+                let effective_nonce = match req.nonce {
+                    None => sender_nonce,
+                    Some(n) => {
+                        if n != sender_nonce {
+                            return Ok(warp::reply::with_status(
+                                warp::reply::json(&ApiResponse::<()> {
+                                    success: false,
+                                    data: None,
+                                    error: Some(format!(
+                                        "invalid_nonce:expected:{}:got:{}",
+                                        sender_nonce, n
+                                    )),
+                                }),
+                                warp::http::StatusCode::UNPROCESSABLE_ENTITY,
+                            )
+                            .into_response());
+                        }
+                        n
+                    }
+                };
+                if sender_balance < req.amount + req.fee.unwrap_or(MIN_FEE) {
+                    return Ok(warp::reply::with_status(
+                        warp::reply::json(&ApiResponse::<()> {
+                            success: false,
+                            data: None,
+                            error: Some("insufficient_balance".into()),
+                        }),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    )
+                    .into_response());
+                }
+                // Build transaction
+                let mut tx = crate::types::TransferTransaction::new(
+                    req.from.clone(),
+                    req.to.clone(),
+                    req.amount,
+                    req.fee.unwrap_or(MIN_FEE),
+                    effective_nonce,
+                );
+                // Signature verification skipped if mocks enabled OR signature absent (dev only)
+                if let Some(sig) = req.signature {
+                    if !runtime_mocks() {
+                        let sig_bytes = match hex::decode(sig.data) {
+                            Ok(b) => b,
+                            Err(_) => {
+                                return Ok::<_, warp::Rejection>(
+                                    warp::reply::with_status(
+                                        warp::reply::json(&ApiResponse::<()> {
+                                            success: false,
+                                            data: None,
+                                            error: Some("signature_invalid".into()),
+                                        }),
+                                        warp::http::StatusCode::BAD_REQUEST,
+                                    )
+                                    .into_response(),
+                                )
+                            }
+                        };
+                        let pk_bytes = match hex::decode(sig.public_key) {
+                            Ok(b) => b,
+                            Err(_) => {
+                                return Ok(warp::reply::with_status(
+                                    warp::reply::json(&ApiResponse::<()> {
+                                        success: false,
+                                        data: None,
+                                        error: Some("signature_invalid".into()),
+                                    }),
+                                    warp::http::StatusCode::BAD_REQUEST,
+                                )
+                                .into_response())
+                            }
+                        };
+                        let pqc = crate::crypto::PQCManager::new().map_err(|_| ()).unwrap();
+                        let sig_wrapper = crate::crypto::PQCSignature {
+                            signature: sig_bytes.clone(),
+                            algorithm: sig.algorithm.clone(),
+                            nonce: 0,
+                            timestamp: 0,
+                        };
+                        match pqc.verify_signature(
+                            tx.signing_message().as_slice(),
+                            &sig_wrapper,
+                            &pk_bytes,
+                        ) {
+                            Ok(valid) if valid => {}
+                            _ => {
+                                return Ok(warp::reply::with_status(
+                                    warp::reply::json(&ApiResponse::<()> {
+                                        success: false,
+                                        data: None,
+                                        error: Some("signature_invalid".into()),
+                                    }),
+                                    warp::http::StatusCode::BAD_REQUEST,
+                                )
+                                .into_response());
+                            }
+                        }
                     }
                 }
-            }
-            let hash = tx.hash.clone();
-            // Add to mempool
-            if let Err(e) = pool.add_transaction(crate::types::Transaction::Transfer(tx.clone())).await { return Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some(match e.as_str() { "Transaction already in pool" => "duplicate_tx".into(), _ => "mempool_error".into() }) }), warp::http::StatusCode::CONFLICT).into_response()); }
-            if ws_tx.receiver_count() > 0 { let _ = ws_tx.send(WebSocketMessage { message_type: "new_transaction".into(), timestamp: chrono::Utc::now().timestamp() as u64, data: serde_json::json!({"hash": hash}) }); }
-            // Persist pending transaction (optional to allow /tx lookup before inclusion)
-            if let Err(e) = storage.store_transaction(&crate::types::Transaction::Transfer(tx.clone())).await { error!("store tx err: {}", e); }
-            Ok::<_, warp::Rejection>(warp::reply::with_status(warp::reply::json(&ApiResponse::success(serde_json::json!({"hash": hash, "status":"pending"}))), warp::http::StatusCode::OK).into_response())
-        })
+                let hash = tx.hash.clone();
+                // Add to mempool
+                if let Err(e) = pool
+                    .add_transaction(crate::types::Transaction::Transfer(tx.clone()))
+                    .await
+                {
+                    return Ok(warp::reply::with_status(
+                        warp::reply::json(&ApiResponse::<()> {
+                            success: false,
+                            data: None,
+                            error: Some(match e.as_str() {
+                                "Transaction already in pool" => "duplicate_tx".into(),
+                                _ => "mempool_error".into(),
+                            }),
+                        }),
+                        warp::http::StatusCode::CONFLICT,
+                    )
+                    .into_response());
+                }
+                if ws_tx.receiver_count() > 0 {
+                    let _ = ws_tx.send(WebSocketMessage {
+                        message_type: "new_transaction".into(),
+                        timestamp: chrono::Utc::now().timestamp() as u64,
+                        data: serde_json::json!({"hash": hash}),
+                    });
+                }
+                // Persist pending transaction (optional to allow /tx lookup before inclusion)
+                if let Err(e) = storage
+                    .store_transaction(&crate::types::Transaction::Transfer(tx.clone()))
+                    .await
+                {
+                    error!("store tx err: {}", e);
+                }
+                Ok::<_, warp::Rejection>(
+                    warp::reply::with_status(
+                        warp::reply::json(&ApiResponse::success(
+                            serde_json::json!({"hash": hash, "status":"pending"}),
+                        )),
+                        warp::http::StatusCode::OK,
+                    )
+                    .into_response(),
+                )
+            },
+        )
         .boxed();
 
     // Blocks list (persistent)
@@ -343,7 +548,12 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
     let blocks = {
         let base = warp::path("blocks").and(warp::get());
         // Accept optional raw query string; if absent supply empty string
-        let with_query = base.and(warp::query::raw().map(Some).or(warp::any().map(|| None)).unify());
+        let with_query = base.and(
+            warp::query::raw()
+                .map(Some)
+                .or(warp::any().map(|| None))
+                .unify(),
+        );
         with_query
             .and(warp::any().map(move || storage_blocks.clone()))
             .and_then(|query_opt: Option<String>, storage: Arc<crate::storage::StorageManager>| async move {
@@ -411,8 +621,14 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
     // CORS
     let cors = {
         let origin = std::env::var("FRONTEND_ORIGIN").ok();
-        let mut c = warp::cors().allow_headers(vec!["content-type"]).allow_methods(vec!["GET","POST","OPTIONS"]);
-        if let Some(o) = origin { c = c.allow_origin(o.as_str()); } else { c = c.allow_any_origin(); }
+        let mut c = warp::cors()
+            .allow_headers(vec!["content-type"])
+            .allow_methods(vec!["GET", "POST", "OPTIONS"]);
+        if let Some(o) = origin {
+            c = c.allow_origin(o.as_str());
+        } else {
+            c = c.allow_any_origin();
+        }
         c
     };
 
@@ -429,8 +645,11 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
 
     let routes = json_routes.or(websocket);
 
-    info!("API server listening on 0.0.0.0:3030 (mocks: {})", runtime_mocks());
-    warp::serve(routes).run(([0,0,0,0], 3030)).await;    
+    info!(
+        "API server listening on 0.0.0.0:3030 (mocks: {})",
+        runtime_mocks()
+    );
+    warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
     Ok(())
 }
 
@@ -439,10 +658,10 @@ async fn handle_websocket(
     ws_tx: Arc<broadcast::Sender<WebSocketMessage>>,
 ) {
     info!("New WebSocket connection established");
-    
+
     let (mut ws_sink, mut ws_stream) = websocket.split();
     let mut ws_rx = ws_tx.subscribe();
-    
+
     // Handle incoming messages from client
     let ws_tx_clone = ws_tx.clone();
     let incoming_task = tokio::spawn(async move {
@@ -452,7 +671,7 @@ async fn handle_websocket(
                     if msg.is_text() {
                         if let Ok(text) = msg.to_str() {
                             info!("Received WebSocket message: {}", text);
-                            
+
                             // Handle subscription requests
                             if text.contains("subscribe") {
                                 let response = WebSocketMessage {
@@ -475,7 +694,7 @@ async fn handle_websocket(
             }
         }
     });
-    
+
     // Handle outgoing messages to client
     let outgoing_task = tokio::spawn(async move {
         while let Ok(message) = ws_rx.recv().await {
@@ -486,12 +705,12 @@ async fn handle_websocket(
             }
         }
     });
-    
+
     // Wait for either task to complete
     tokio::select! {
         _ = incoming_task => info!("WebSocket incoming task completed"),
         _ = outgoing_task => info!("WebSocket outgoing task completed"),
     }
-    
+
     info!("WebSocket connection closed");
 }

@@ -1,8 +1,7 @@
 use anyhow::Result;
 use dytallix_node::consensus::{
-    SignedAIOracleResponse, AIResponseSignature, OracleIdentity, OracleCertificate,
-    AIResponsePayload, AIServiceType, SignatureMetadata, VerificationData,
-    TimestampProof
+    AIResponsePayload, AIResponseSignature, AIServiceType, OracleCertificate, OracleIdentity,
+    SignatureMetadata, SignedAIOracleResponse, TimestampProof, VerificationData,
 };
 use dytallix_pqc::SignatureAlgorithm;
 use std::time::Duration;
@@ -12,7 +11,7 @@ async fn test_ai_response_signature_creation() -> Result<()> {
     // Test creating a new AIResponseSignature
     let signature = AIResponseSignature::new(
         SignatureAlgorithm::Dilithium5,
-        vec![1, 2, 3, 4, 5], // Mock signature bytes
+        vec![1, 2, 3, 4, 5],  // Mock signature bytes
         vec![6, 7, 8, 9, 10], // Mock public key
     );
 
@@ -39,12 +38,16 @@ async fn test_signature_with_metadata() -> Result<()> {
         SignatureAlgorithm::Falcon1024,
         vec![10, 20, 30],
         vec![40, 50, 60],
-    ).with_metadata(metadata);
+    )
+    .with_metadata(metadata);
 
     assert!(signature.metadata.is_some());
     let meta = signature.metadata.unwrap();
     assert_eq!(meta.key_id, Some("oracle_key_123".to_string()));
-    assert_eq!(meta.cert_chain, Some(vec!["cert1".to_string(), "cert2".to_string()]));
+    assert_eq!(
+        meta.cert_chain,
+        Some(vec!["cert1".to_string(), "cert2".to_string()])
+    );
 
     println!("✓ Signature metadata functionality working");
     Ok(())
@@ -166,34 +169,37 @@ async fn test_signed_response_creation() -> Result<()> {
         "Primary Fraud Detection Oracle".to_string(),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         SignatureAlgorithm::Dilithium5,
-    ).update_reputation(0.92);
+    )
+    .update_reputation(0.92);
 
     // Create signature
     let signature = AIResponseSignature::new(
         SignatureAlgorithm::Dilithium5,
-        vec![100, 101, 102, 103, 104, 105], // Mock signature
+        vec![100, 101, 102, 103, 104, 105],  // Mock signature
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Same as oracle's key
-    ).with_key_id("fraud_oracle_001_key_v1".to_string());
+    )
+    .with_key_id("fraud_oracle_001_key_v1".to_string());
 
     // Create signed response
     let nonce = 12345678;
     let expires_at = chrono::Utc::now().timestamp() as u64 + 300; // 5 minutes from now
 
-    let signed_response = SignedAIOracleResponse::new(
-        ai_response,
-        signature,
-        nonce,
-        expires_at,
-        oracle,
-    );
+    let signed_response =
+        SignedAIOracleResponse::new(ai_response, signature, nonce, expires_at, oracle);
 
     // Verify the signed response
-    assert_eq!(signed_response.response.service_type, AIServiceType::FraudDetection);
+    assert_eq!(
+        signed_response.response.service_type,
+        AIServiceType::FraudDetection
+    );
     assert_eq!(signed_response.nonce, nonce);
     assert!(!signed_response.is_expired());
     assert!(signed_response.is_fresh());
     assert!(signed_response.seconds_until_expiration() > 250);
-    assert_eq!(signed_response.oracle_identity.oracle_id, "fraud_oracle_001");
+    assert_eq!(
+        signed_response.oracle_identity.oracle_id,
+        "fraud_oracle_001"
+    );
 
     println!("✓ SignedAIOracleResponse creation working");
     Ok(())
@@ -215,11 +221,8 @@ async fn test_signable_data_generation() -> Result<()> {
         SignatureAlgorithm::Dilithium5,
     );
 
-    let signature = AIResponseSignature::new(
-        SignatureAlgorithm::Dilithium5,
-        vec![4, 5, 6],
-        vec![1, 2, 3],
-    );
+    let signature =
+        AIResponseSignature::new(SignatureAlgorithm::Dilithium5, vec![4, 5, 6], vec![1, 2, 3]);
 
     let signed_response = SignedAIOracleResponse::new(
         ai_response,
@@ -232,7 +235,7 @@ async fn test_signable_data_generation() -> Result<()> {
     // Test signable data generation
     let signable_data = signed_response.get_signable_data()?;
     assert!(!signable_data.is_empty());
-    
+
     // Should be deterministic - generate again and compare
     let signable_data2 = signed_response.get_signable_data()?;
     assert_eq!(signable_data, signable_data2);
@@ -254,13 +257,11 @@ async fn test_signed_response_summary() -> Result<()> {
         "Summary Test Oracle".to_string(),
         vec![1, 2, 3],
         SignatureAlgorithm::Falcon1024,
-    ).update_reputation(0.88);
+    )
+    .update_reputation(0.88);
 
-    let signature = AIResponseSignature::new(
-        SignatureAlgorithm::Falcon1024,
-        vec![7, 8, 9],
-        vec![1, 2, 3],
-    );
+    let signature =
+        AIResponseSignature::new(SignatureAlgorithm::Falcon1024, vec![7, 8, 9], vec![1, 2, 3]);
 
     let signed_response = SignedAIOracleResponse::new(
         ai_response,
@@ -272,7 +273,7 @@ async fn test_signed_response_summary() -> Result<()> {
 
     // Test summary generation
     let summary = signed_response.get_summary();
-    
+
     assert_eq!(summary["oracle_id"], "summary_oracle");
     assert_eq!(summary["service_type"], "ContractAnalysis");
     assert_eq!(summary["status"], "Success");
@@ -338,7 +339,8 @@ async fn test_verification_data_structures() -> Result<()> {
         123456789,
         chrono::Utc::now().timestamp() as u64 + 900,
         oracle,
-    ).with_verification_data(verification_data);
+    )
+    .with_verification_data(verification_data);
 
     // Verify verification data is present
     assert!(signed_response.verification_data.is_some());
@@ -355,17 +357,14 @@ async fn test_verification_data_structures() -> Result<()> {
 #[tokio::test]
 async fn test_signature_age_and_freshness() -> Result<()> {
     // Test signature age calculation
-    let signature = AIResponseSignature::new(
-        SignatureAlgorithm::Dilithium5,
-        vec![1, 2, 3],
-        vec![4, 5, 6],
-    );
+    let signature =
+        AIResponseSignature::new(SignatureAlgorithm::Dilithium5, vec![1, 2, 3], vec![4, 5, 6]);
 
     // Should be very recent
     assert!(signature.age_seconds() <= 1);
     assert!(signature.is_recent(300)); // Within 5 minutes
-    assert!(signature.is_recent(60));  // Within 1 minute
-    assert!(signature.is_recent(10));  // Within 10 seconds
+    assert!(signature.is_recent(60)); // Within 1 minute
+    assert!(signature.is_recent(10)); // Within 10 seconds
 
     // Test response expiration
     let ai_response = AIResponsePayload::success(
@@ -383,13 +382,8 @@ async fn test_signature_age_and_freshness() -> Result<()> {
 
     // Create response that expires in 1 second
     let expires_soon = chrono::Utc::now().timestamp() as u64 + 1;
-    let signed_response = SignedAIOracleResponse::new(
-        ai_response,
-        signature,
-        987654321,
-        expires_soon,
-        oracle,
-    );
+    let signed_response =
+        SignedAIOracleResponse::new(ai_response, signature, 987654321, expires_soon, oracle);
 
     // Should be fresh initially
     assert!(signed_response.is_fresh());
@@ -412,13 +406,13 @@ async fn test_signature_age_and_freshness() -> Result<()> {
 async fn test_certificate_chain_management() -> Result<()> {
     // Create a certificate chain
     let now = chrono::Utc::now().timestamp() as u64;
-    
+
     // Root certificate (self-signed)
     let root_cert = OracleCertificate::new(
         "root_authority".to_string(),
         "root_authority".to_string(), // Self-signed
         now,
-        now + 86400 * 365, // 1 year validity
+        now + 86400 * 365,   // 1 year validity
         vec![100, 101, 102], // Root public key
         SignatureAlgorithm::Dilithium5,
         vec![200, 201, 202], // Self-signature
@@ -429,7 +423,7 @@ async fn test_certificate_chain_management() -> Result<()> {
         "intermediate_authority".to_string(),
         "root_authority".to_string(),
         now,
-        now + 86400 * 180, // 6 months validity
+        now + 86400 * 180,   // 6 months validity
         vec![110, 111, 112], // Intermediate public key
         SignatureAlgorithm::Dilithium5,
         vec![210, 211, 212], // Signed by root
@@ -440,7 +434,7 @@ async fn test_certificate_chain_management() -> Result<()> {
         "chain_test_oracle".to_string(),
         "intermediate_authority".to_string(),
         now,
-        now + 86400 * 90, // 3 months validity
+        now + 86400 * 90,    // 3 months validity
         vec![120, 121, 122], // Oracle public key
         SignatureAlgorithm::Dilithium5,
         vec![220, 221, 222], // Signed by intermediate
@@ -460,7 +454,7 @@ async fn test_certificate_chain_management() -> Result<()> {
     // Verify certificate chain
     assert_eq!(oracle.certificate_chain.len(), 3);
     assert!(oracle.certificate_chain.iter().all(|cert| cert.is_valid()));
-    
+
     // Check certificate subjects and issuers
     let oracle_cert = &oracle.certificate_chain[0];
     let intermediate_cert = &oracle.certificate_chain[1];
@@ -468,10 +462,13 @@ async fn test_certificate_chain_management() -> Result<()> {
 
     assert_eq!(oracle_cert.subject_oracle_id, "chain_test_oracle");
     assert_eq!(oracle_cert.issuer_oracle_id, "intermediate_authority");
-    
-    assert_eq!(intermediate_cert.subject_oracle_id, "intermediate_authority");
+
+    assert_eq!(
+        intermediate_cert.subject_oracle_id,
+        "intermediate_authority"
+    );
     assert_eq!(intermediate_cert.issuer_oracle_id, "root_authority");
-    
+
     assert_eq!(root_cert.subject_oracle_id, "root_authority");
     assert_eq!(root_cert.issuer_oracle_id, "root_authority"); // Self-signed
 

@@ -4,30 +4,30 @@
 //! all consensus-related operations including block processing, transaction
 //! validation, and AI integration.
 
-use std::sync::Arc;
-use std::path::Path;
 use anyhow::Result;
-use log::{info, debug, warn, error};
-use tokio::sync::RwLock;
+use log::{debug, error, info, warn};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::path::Path;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
-use crate::runtime::DytallixRuntime;
-use crate::crypto::PQCManager;
-use crate::types::{Transaction, Block, DeployTransaction, CallTransaction};
-use crate::storage::{StorageManager, ContractState};
-use crate::consensus::types::AIServiceType;
 use crate::consensus::ai_oracle_client::{AIOracleClient, AIServiceConfig};
+use crate::consensus::types::AIServiceType;
+use crate::crypto::PQCManager;
+use crate::runtime::DytallixRuntime;
+use crate::storage::{ContractState, StorageManager};
+use crate::types::{Block, CallTransaction, DeployTransaction, Transaction};
 // Temporarily disabled due to smart contracts compilation issues
 // use dytallix_contracts::runtime::{ContractRuntime, ContractDeployment, ContractCall};
-use crate::contracts::{ContractRuntime, ContractDeployment, ContractCall};
-use crate::consensus::ai_integration::{AIIntegrationManager, AIIntegrationConfig};
-use crate::consensus::transaction_validation::TransactionValidator;
+use crate::consensus::ai_integration::{AIIntegrationConfig, AIIntegrationManager};
+use crate::consensus::audit_trail::{AuditConfig, AuditTrailManager};
 use crate::consensus::block_processing::BlockProcessor;
-use crate::consensus::key_management::{KeyManager, NodeKeyStore};
 use crate::consensus::high_risk_queue::{HighRiskQueue, HighRiskQueueConfig};
-use crate::consensus::audit_trail::{AuditTrailManager, AuditConfig};
-use crate::consensus::performance_optimizer::{PerformanceOptimizer, PerformanceConfig};
+use crate::consensus::key_management::{KeyManager, NodeKeyStore};
+use crate::consensus::performance_optimizer::{PerformanceConfig, PerformanceOptimizer};
+use crate::consensus::transaction_validation::TransactionValidator;
+use crate::contracts::{ContractCall, ContractDeployment, ContractRuntime};
 
 /// Contract execution result
 #[derive(Debug, Clone)]
@@ -79,19 +79,19 @@ pub struct ConsensusEngine {
     current_block: Arc<RwLock<Option<Block>>>,
     validators: Arc<RwLock<Vec<String>>>,
     is_validator: bool,
-    
+
     // Core components
     ai_client: Arc<AIOracleClient>,
     ai_integration: Option<Arc<AIIntegrationManager>>,
     transaction_validator: Arc<TransactionValidator>,
     block_processor: Arc<BlockProcessor>,
     key_manager: Arc<RwLock<KeyManager>>,
-    
+
     // Supporting services
     high_risk_queue: Arc<HighRiskQueue>,
     audit_trail: Arc<AuditTrailManager>,
     performance_optimizer: Arc<PerformanceOptimizer>,
-    
+
     // WASM contract runtime
     wasm_runtime: Arc<ContractRuntime>,
 }
@@ -104,28 +104,27 @@ impl ConsensusEngine {
     ) -> Result<Self, Box<dyn std::error::Error>> {
         // Initialize key management
         let key_file = Path::new("./data/pqc_keys.json");
-        let mut key_manager = KeyManager::new(
-            key_file.to_string_lossy().to_string(),
-            pqc_manager.clone()
-        );
-        
+        let mut key_manager =
+            KeyManager::new(key_file.to_string_lossy().to_string(), pqc_manager.clone());
+
         // Initialize keys
         if let Err(e) = key_manager.initialize() {
             error!("Failed to initialize key management: {}", e);
             return Err(e.into());
         }
-        
+
         let key_manager = Arc::new(RwLock::new(key_manager));
-        
+
         // Initialize AI client
         let ai_config = AIServiceConfig::default();
         let ai_client = Arc::new(AIOracleClient::new(ai_config));
-        
+
         // Initialize supporting services
         let high_risk_queue = Arc::new(HighRiskQueue::new(HighRiskQueueConfig::default()));
         let audit_trail = Arc::new(AuditTrailManager::new(AuditConfig::default()));
-        let performance_optimizer = Arc::new(PerformanceOptimizer::new(PerformanceConfig::default()));
-        
+        let performance_optimizer =
+            Arc::new(PerformanceOptimizer::new(PerformanceConfig::default()));
+
         // Initialize AI integration (optional)
         let ai_integration = match AIIntegrationManager::new(AIIntegrationConfig::default()).await {
             Ok(manager) => Some(Arc::new(manager)),
@@ -134,7 +133,7 @@ impl ConsensusEngine {
                 None
             }
         };
-        
+
         // Initialize transaction validator
         let transaction_validator = Arc::new(TransactionValidator::new(
             ai_client.clone(),
@@ -143,7 +142,7 @@ impl ConsensusEngine {
             audit_trail.clone(),
             performance_optimizer.clone(),
         ));
-        
+
         // Initialize block processor
         let current_block = Arc::new(RwLock::new(None));
         let block_processor = Arc::new(BlockProcessor::new(
@@ -152,13 +151,16 @@ impl ConsensusEngine {
             ai_client.clone(),
             ai_integration.clone(),
         ));
-        
+
         // Initialize WASM runtime
-        let wasm_runtime = Arc::new(ContractRuntime::new(
-            1_000_000, // Max gas per call
-            256,       // Max memory pages
-        ).map_err(|e| format!("Failed to initialize WASM runtime: {:?}", e))?);
-        
+        let wasm_runtime = Arc::new(
+            ContractRuntime::new(
+                1_000_000, // Max gas per call
+                256,       // Max memory pages
+            )
+            .map_err(|e| format!("Failed to initialize WASM runtime: {:?}", e))?,
+        );
+
         Ok(Self {
             runtime,
             pqc_manager,
@@ -180,7 +182,7 @@ impl ConsensusEngine {
     /// Start the consensus engine
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Starting consensus engine...");
-        
+
         // Check and rotate keys if needed
         {
             let mut key_manager = self.key_manager.write().await;
@@ -188,18 +190,18 @@ impl ConsensusEngine {
                 warn!("Failed to rotate keys: {}", e);
             }
         }
-        
+
         // Start supporting services
         // Note: These services are ready to use upon instantiation
         info!("High-risk queue ready");
         info!("Audit trail ready");
         info!("Performance optimizer ready");
-        
+
         // Check AI service health
         if let Err(e) = self.check_ai_service_health().await {
             warn!("AI service health check failed: {}", e);
         }
-        
+
         info!("Consensus engine started successfully");
         Ok(())
     }
@@ -207,12 +209,12 @@ impl ConsensusEngine {
     /// Stop the consensus engine
     pub async fn stop(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Stopping consensus engine...");
-        
+
         // Stop supporting services
         info!("Shutting down high-risk queue");
         info!("Shutting down audit trail");
         info!("Shutting down performance optimizer");
-        
+
         info!("Consensus engine stopped");
         Ok(())
     }
@@ -229,42 +231,57 @@ impl ConsensusEngine {
     }
 
     /// Discover available AI services
-    pub async fn discover_ai_services(&self) -> Result<Vec<crate::consensus::ai_oracle_client::AIServiceInfo>, Box<dyn std::error::Error>> {
+    pub async fn discover_ai_services(
+        &self,
+    ) -> Result<Vec<crate::consensus::ai_oracle_client::AIServiceInfo>, Box<dyn std::error::Error>>
+    {
         let services = self.ai_client.discover_services().await?;
         info!("Discovered {} AI services", services.len());
         for service in &services {
-            debug!("AI Service: {} - Type: {:?} - Availability: {:.2}", 
-                   service.service_id, service.service_type, service.availability_score);
+            debug!(
+                "AI Service: {} - Type: {:?} - Availability: {:.2}",
+                service.service_id, service.service_type, service.availability_score
+            );
         }
         Ok(services)
     }
 
     /// Request AI analysis for a transaction or data
     pub async fn request_ai_analysis(
-        &self, 
-        service_type: AIServiceType, 
-        data: HashMap<String, Value>
+        &self,
+        service_type: AIServiceType,
+        data: HashMap<String, Value>,
     ) -> Result<crate::consensus::SignedAIOracleResponse, Box<dyn std::error::Error>> {
-        let response = self.ai_client.request_ai_analysis(service_type, data).await?;
-        
+        let response = self
+            .ai_client
+            .request_ai_analysis(service_type, data)
+            .await?;
+
         // Validate response confidence score from metadata
         if let Some(metadata) = &response.response.metadata {
             if let Some(confidence) = metadata.confidence_score {
                 if confidence < self.ai_client.get_config().risk_threshold {
-                    warn!("AI analysis confidence score below threshold: {}", confidence);
+                    warn!(
+                        "AI analysis confidence score below threshold: {}",
+                        confidence
+                    );
                 }
             }
         }
 
-        info!("AI analysis completed: service_type={:?}, response_id={}", 
-              response.response.service_type, response.response.id);
+        info!(
+            "AI analysis completed: service_type={:?}, response_id={}",
+            response.response.service_type, response.response.id
+        );
 
         Ok(response)
     }
 
     /// Propose a block with the given transactions
     pub async fn propose_block(&self, transactions: Vec<Transaction>) -> Result<Block, String> {
-        self.block_processor.propose_block(transactions).await
+        self.block_processor
+            .propose_block(transactions)
+            .await
             .map_err(|e| e.to_string())
     }
 
@@ -301,7 +318,11 @@ impl ConsensusEngine {
 
     /// Validate transaction with queue management
     pub async fn validate_transaction_with_queue(&self, tx: &Transaction) -> Result<bool, String> {
-        match self.transaction_validator.validate_transaction_with_queue(tx).await {
+        match self
+            .transaction_validator
+            .validate_transaction_with_queue(tx)
+            .await
+        {
             Ok(result) => Ok(result.is_valid),
             Err(e) => Err(e.to_string()),
         }
@@ -309,7 +330,11 @@ impl ConsensusEngine {
 
     /// Validate transaction with optimized performance
     pub async fn validate_transaction_optimized(&self, tx: &Transaction) -> Result<bool, String> {
-        match self.transaction_validator.validate_transaction_optimized(tx).await {
+        match self
+            .transaction_validator
+            .validate_transaction_optimized(tx)
+            .await
+        {
             Ok(result) => Ok(result.is_valid),
             Err(e) => Err(e.to_string()),
         }
@@ -318,50 +343,75 @@ impl ConsensusEngine {
     /// Get comprehensive consensus engine statistics
     pub async fn get_stats(&self) -> HashMap<String, Value> {
         let mut stats = HashMap::new();
-        
+
         // Block processing stats
         let block_stats = self.block_processor.get_stats().await;
-        stats.insert("block_processing".to_string(), 
-            serde_json::to_value(block_stats).unwrap_or_default());
-        
+        stats.insert(
+            "block_processing".to_string(),
+            serde_json::to_value(block_stats).unwrap_or_default(),
+        );
+
         // Transaction validation stats
         let validation_stats = self.transaction_validator.get_validation_stats().await;
-        stats.insert("transaction_validation".to_string(), 
-            serde_json::to_value(validation_stats).unwrap_or_default());
-        
+        stats.insert(
+            "transaction_validation".to_string(),
+            serde_json::to_value(validation_stats).unwrap_or_default(),
+        );
+
         // AI integration stats
         if let Some(ai_stats) = self.get_ai_integration_stats().await {
             stats.insert("ai_integration".to_string(), ai_stats);
         }
-        
+
         // Key management stats
         {
             let key_manager = self.key_manager.read().await;
             if let Some(key_store) = key_manager.get_key_store() {
                 let mut key_stats = HashMap::new();
-                key_stats.insert("node_id".to_string(), Value::String(key_store.node_id.clone()));
-                key_stats.insert("created_at".to_string(), Value::Number(key_store.created_at.into()));
-                key_stats.insert("version".to_string(), Value::String(key_store.version.clone()));
-                key_stats.insert("needs_rotation".to_string(), 
-                    Value::Bool(key_manager.needs_key_rotation()));
-                
-                stats.insert("key_management".to_string(), 
-                    serde_json::to_value(key_stats).unwrap_or_default());
+                key_stats.insert(
+                    "node_id".to_string(),
+                    Value::String(key_store.node_id.clone()),
+                );
+                key_stats.insert(
+                    "created_at".to_string(),
+                    Value::Number(key_store.created_at.into()),
+                );
+                key_stats.insert(
+                    "version".to_string(),
+                    Value::String(key_store.version.clone()),
+                );
+                key_stats.insert(
+                    "needs_rotation".to_string(),
+                    Value::Bool(key_manager.needs_key_rotation()),
+                );
+
+                stats.insert(
+                    "key_management".to_string(),
+                    serde_json::to_value(key_stats).unwrap_or_default(),
+                );
             }
         }
-        
+
         // Service health
         let mut health_stats = HashMap::new();
-        health_stats.insert("ai_integration_available".to_string(), 
-            Value::Bool(self.has_ai_integration()));
-        health_stats.insert("block_processor_available".to_string(), 
-            Value::Bool(self.block_processor.has_ai_validation()));
-        health_stats.insert("transaction_validator_available".to_string(), 
-            Value::Bool(self.transaction_validator.has_ai_validation()));
-        
-        stats.insert("service_health".to_string(), 
-            serde_json::to_value(health_stats).unwrap_or_default());
-        
+        health_stats.insert(
+            "ai_integration_available".to_string(),
+            Value::Bool(self.has_ai_integration()),
+        );
+        health_stats.insert(
+            "block_processor_available".to_string(),
+            Value::Bool(self.block_processor.has_ai_validation()),
+        );
+        health_stats.insert(
+            "transaction_validator_available".to_string(),
+            Value::Bool(self.transaction_validator.has_ai_validation()),
+        );
+
+        stats.insert(
+            "service_health".to_string(),
+            serde_json::to_value(health_stats).unwrap_or_default(),
+        );
+
         stats
     }
 
@@ -442,12 +492,8 @@ impl ConsensusEngine {
         storage: &StorageManager,
     ) -> Result<ExecutionResult, ConsensusError> {
         match tx {
-            Transaction::Deploy(deploy_tx) => {
-                self.execute_deployment(deploy_tx, storage).await
-            }
-            Transaction::Call(call_tx) => {
-                self.execute_contract_call(call_tx, storage).await
-            }
+            Transaction::Deploy(deploy_tx) => self.execute_deployment(deploy_tx, storage).await,
+            Transaction::Call(call_tx) => self.execute_contract_call(call_tx, storage).await,
             _ => Ok(ExecutionResult::success()),
         }
     }
@@ -466,7 +512,7 @@ impl ConsensusEngine {
         // Check if contract already exists
         if storage.contract_exists(&contract_address).await? {
             return Ok(ExecutionResult::failure(
-                "Contract already exists".to_string()
+                "Contract already exists".to_string(),
             ));
         }
 
@@ -487,9 +533,10 @@ impl ConsensusEngine {
             Ok(addr) => addr,
             Err(e) => {
                 error!("WASM contract deployment failed: {:?}", e);
-                return Ok(ExecutionResult::failure(
-                    format!("Contract deployment failed: {:?}", e)
-                ));
+                return Ok(ExecutionResult::failure(format!(
+                    "Contract deployment failed: {:?}",
+                    e
+                )));
             }
         };
 
@@ -502,10 +549,12 @@ impl ConsensusEngine {
         );
 
         // Store contract state in blockchain storage
-        storage.store_contract(&contract_address, &contract_state).await?;
+        storage
+            .store_contract(&contract_address, &contract_state)
+            .await?;
 
         info!("Contract deployed successfully at {}", deployed_address);
-        
+
         Ok(ExecutionResult {
             success: true,
             gas_used: 1000, // TODO: Calculate actual gas used from WASM runtime
@@ -520,17 +569,23 @@ impl ConsensusEngine {
         call_tx: &CallTransaction,
         storage: &StorageManager,
     ) -> Result<ExecutionResult, ConsensusError> {
-        info!("Executing contract call from {} to {}", call_tx.from, call_tx.to);
+        info!(
+            "Executing contract call from {} to {}",
+            call_tx.from, call_tx.to
+        );
 
         // Check if contract exists
         if !storage.contract_exists(&call_tx.to).await? {
-            return Ok(ExecutionResult::failure(
-                format!("Contract not found: {}", call_tx.to)
-            ));
+            return Ok(ExecutionResult::failure(format!(
+                "Contract not found: {}",
+                call_tx.to
+            )));
         }
 
         // Get contract state
-        let mut contract_state = storage.get_contract(&call_tx.to).await?
+        let mut contract_state = storage
+            .get_contract(&call_tx.to)
+            .await?
             .ok_or_else(|| ConsensusError::ContractNotFound(call_tx.to.clone()))?;
 
         // Prepare WASM contract call
@@ -552,9 +607,10 @@ impl ConsensusEngine {
             Ok(result) => result,
             Err(e) => {
                 error!("WASM contract call failed: {:?}", e);
-                return Ok(ExecutionResult::failure(
-                    format!("Contract call failed: {:?}", e)
-                ));
+                return Ok(ExecutionResult::failure(format!(
+                    "Contract call failed: {:?}",
+                    e
+                )));
             }
         };
 
@@ -572,14 +628,20 @@ impl ConsensusEngine {
         // Store updated state
         storage.store_contract(&call_tx.to, &contract_state).await?;
 
-        info!("Contract call executed successfully: gas_used={}, success={}", 
-               execution_result.gas_used, execution_result.success);
-        
+        info!(
+            "Contract call executed successfully: gas_used={}, success={}",
+            execution_result.gas_used, execution_result.success
+        );
+
         Ok(ExecutionResult {
             success: execution_result.success,
             gas_used: execution_result.gas_used,
             output: execution_result.return_value,
-            error: if execution_result.success { None } else { Some("Contract execution failed".to_string()) },
+            error: if execution_result.success {
+                None
+            } else {
+                Some("Contract execution failed".to_string())
+            },
         })
     }
 
@@ -599,14 +661,16 @@ impl ConsensusEngine {
         storage: &StorageManager,
     ) -> Result<String, ConsensusError> {
         let result = self.execute_deployment(deploy_tx, storage).await?;
-        
+
         if result.success {
             let contract_address = String::from_utf8(result.output)
                 .map_err(|e| ConsensusError::Execution(e.to_string()))?;
             Ok(contract_address)
         } else {
             Err(ConsensusError::Execution(
-                result.error.unwrap_or_else(|| "Unknown deployment error".to_string())
+                result
+                    .error
+                    .unwrap_or_else(|| "Unknown deployment error".to_string()),
             ))
         }
     }
@@ -618,12 +682,14 @@ impl ConsensusEngine {
         storage: &StorageManager,
     ) -> Result<Vec<u8>, ConsensusError> {
         let result = self.execute_contract_call(call_tx, storage).await?;
-        
+
         if result.success {
             Ok(result.output)
         } else {
             Err(ConsensusError::Execution(
-                result.error.unwrap_or_else(|| "Unknown call error".to_string())
+                result
+                    .error
+                    .unwrap_or_else(|| "Unknown call error".to_string()),
             ))
         }
     }
