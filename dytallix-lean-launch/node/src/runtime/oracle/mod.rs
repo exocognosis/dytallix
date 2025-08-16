@@ -4,6 +4,8 @@ use axum::{Json, Extension};
 use crate::rpc::errors::ApiError;
 use crate::rpc::RpcContext;
 use crate::storage::oracle::{OracleStore, AiRiskRecord};
+use base64::Engine; // for new decode API
+use base64::engine::general_purpose::STANDARD as B64;
 
 #[derive(Deserialize)]
 pub struct OracleAiRiskInput {
@@ -12,9 +14,10 @@ pub struct OracleAiRiskInput {
     pub signature: Option<String>,
 }
 
-fn verify_sig(pubkey_b64: &str, tx_hash: &str, score: f32, sig_b64: &str) -> bool {
-    if let (Ok(pk_bytes), Ok(sig_bytes)) = (base64::decode(pubkey_b64), base64::decode(sig_b64)) {
-        if let (Ok(pk), Ok(sig)) = (PublicKey::from_bytes(&pk_bytes), Signature::from_slice(&sig_bytes)) {
+// Public for unit testing
+pub fn verify_sig(pubkey_b64: &str, tx_hash: &str, score: f32, sig_b64: &str) -> bool {
+    if let (Ok(pk_bytes), Ok(sig_bytes)) = (B64.decode(pubkey_b64), B64.decode(sig_b64)) {
+        if let (Ok(pk), Ok(sig)) = (PublicKey::from_bytes(&pk_bytes), Signature::from_bytes(&sig_bytes)) {
             let msg = format!("{}:{}", tx_hash, score);
             return pk.verify(msg.as_bytes(), &sig).is_ok();
         }
