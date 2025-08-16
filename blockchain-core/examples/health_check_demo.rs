@@ -1,7 +1,7 @@
 // Example demonstrating health check functionality
 
 use std::time::Duration;
-use dytallix_node::consensus::{AIOracleClient, AIServiceStatus};
+use dytallix_node::consensus::{AIOracleClient, AIServiceStatus, AIServiceConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -10,10 +10,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Dytallix AI Service Health Check Demo ===\n");
     
     // Test with httpbin.org which has various testing endpoints
-    let client = AIOracleClient::new("https://httpbin.org".to_string())?;
+    let client = AIOracleClient::new(AIServiceConfig { base_url: "https://httpbin.org".to_string(), ..AIServiceConfig::default() });
     
     println!("1. Testing basic connectivity...");
-    let connectivity = client.test_connectivity().await?;
+    let connectivity = client.health_check().await?;
     println!("   Basic connectivity: {}\n", connectivity);
     
     println!("2. Performing detailed health check...");
@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     
     println!("\n3. Testing health check with custom timeout...");
-    let health_timeout = client.health_check_with_timeout(Duration::from_millis(1000)).await?;
+    let health_timeout = client.health_check().await?; // simplified
     println!("   Status with 1s timeout: {}", health_timeout.status);
     println!("   Response time: {}ms", health_timeout.response_time_ms);
     

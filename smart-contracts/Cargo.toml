@@ -43,7 +43,8 @@ tokio-test = "0.4"
 rand = "0.8"
 
 [features]
-default = ["std"]
+# Include cosmwasm feature by default so bridge contract modules compile during workspace tests
+default = ["std", "cosmwasm"]
 std = [
     "scale/std",
     "scale-info/std",

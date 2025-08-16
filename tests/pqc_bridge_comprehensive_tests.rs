@@ -3,7 +3,7 @@
 //! Tests include edge cases, invalid signatures, tampered payloads, and performance benchmarks.
 
 use dytallix_interoperability::*;
-use dytallix_pqc::{BridgePQCManager, CrossChainPayload, SignatureAlgorithm};
+use dytallix_pqc::{BridgePQCManager, SignatureAlgorithm, BridgeSignature, CrossChainPayload};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH, Instant};
 
@@ -122,7 +122,7 @@ mod pqc_bridge_tests {
             amount: 1000000,
             decimals: 6,
             metadata: AssetMetadata {
-                name: "Insufficient Test".to_string(),
+                name: "Insufficient Test". to_string(),
                 symbol: "INSUF".to_string(),
                 description: "Token for testing insufficient signatures".to_string(),
                 icon_url: None,
@@ -493,21 +493,23 @@ mod pqc_security_tests {
         let tampered_payloads = vec![
             // Change amount
             CrossChainPayload::GenericBridgePayload {
-                amount: 2000000, // Changed
-                ..match original_payload.clone() {
-                    CrossChainPayload::GenericBridgePayload { asset_id, source_chain, dest_chain, source_address, dest_address, metadata, .. } =>
-                        CrossChainPayload::GenericBridgePayload { asset_id, amount: 0, source_chain, dest_chain, source_address, dest_address, metadata }
-                    _ => unreachable!()
-                }
+                asset_id: match &original_payload { CrossChainPayload::GenericBridgePayload { asset_id, .. } => asset_id.clone(), _ => unreachable!() },
+                amount: 2000000,
+                source_chain: match &original_payload { CrossChainPayload::GenericBridgePayload { source_chain, .. } => source_chain.clone(), _ => unreachable!() },
+                dest_chain: match &original_payload { CrossChainPayload::GenericBridgePayload { dest_chain, .. } => dest_chain.clone(), _ => unreachable!() },
+                source_address: match &original_payload { CrossChainPayload::GenericBridgePayload { source_address, .. } => source_address.clone(), _ => unreachable!() },
+                dest_address: match &original_payload { CrossChainPayload::GenericBridgePayload { dest_address, .. } => dest_address.clone(), _ => unreachable!() },
+                metadata: match &original_payload { CrossChainPayload::GenericBridgePayload { metadata, .. } => metadata.clone(), _ => unreachable!() },
             },
             // Change destination address
             CrossChainPayload::GenericBridgePayload {
-                dest_address: "cosmos1hacker".to_string(), // Changed
-                ..match original_payload.clone() {
-                    CrossChainPayload::GenericBridgePayload { asset_id, amount, source_chain, dest_chain, source_address, metadata, .. } =>
-                        CrossChainPayload::GenericBridgePayload { asset_id, amount, source_chain, dest_chain, source_address, dest_address: String::new(), metadata }
-                    _ => unreachable!()
-                }
+                asset_id: match &original_payload { CrossChainPayload::GenericBridgePayload { asset_id, .. } => asset_id.clone(), _ => unreachable!() },
+                amount: match &original_payload { CrossChainPayload::GenericBridgePayload { amount, .. } => *amount, _ => unreachable!() },
+                source_chain: match &original_payload { CrossChainPayload::GenericBridgePayload { source_chain, .. } => source_chain.clone(), _ => unreachable!() },
+                dest_chain: match &original_payload { CrossChainPayload::GenericBridgePayload { dest_chain, .. } => dest_chain.clone(), _ => unreachable!() },
+                source_address: match &original_payload { CrossChainPayload::GenericBridgePayload { source_address, .. } => source_address.clone(), _ => unreachable!() },
+                dest_address: "cosmos1hacker".to_string(),
+                metadata: match &original_payload { CrossChainPayload::GenericBridgePayload { metadata, .. } => metadata.clone(), _ => unreachable!() },
             },
         ];
         
@@ -608,6 +610,8 @@ mod pqc_security_tests {
             payload_hash: vec![],
             timestamp: 0,
             validator_id: "test_validator".to_string(),
+            nonce: 0,
+            sequence: 0,
         };
         
         let payload = CrossChainPayload::GenericBridgePayload {

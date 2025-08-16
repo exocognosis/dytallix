@@ -5,6 +5,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# EVM/Hardhat artifacts (removed in Cosmos migration)
+artifacts/
+cache/
+deployments/
+hardhat.config.*
+tokenomics/
+
 # Build outputs
 dist/
 build/
@@ -15,6 +22,8 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.staging
+.env.*
 
 # IDE files
 .vscode/
@@ -69,10 +78,32 @@ temp/
 # Mock data backups (if any)
 *.backup
 
-# EVM/Hardhat artifacts (proactive prevention)
+# Additional EVM/Hardhat explicit prevention while retaining audit folder
 artifacts/*
 !artifacts/hardhat_audit/
 cache/
 deployments/
 hardhat.config.js
 hardhat.config.ts
+
+# PQC build artifacts / vendor support
+/tmp_pqc_build/
+vendor/pqclean/.git/
+vendor/pqclean/.github/
+
+# Standardized repo folders (tracked, listed for clarity)
+node/
+faucet/
+explorer/
+web/
+ops/
+reports/
+
+# Ensure no secrets or local override envs
+ops/*.env
+scripts/*.env
+reports/*.tmp
+
+# Track reports and changelog
+!reports/
+!reports/CHANGELOG.md

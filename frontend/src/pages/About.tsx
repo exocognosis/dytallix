@@ -102,10 +102,11 @@ export function About() {
               <h2 className="text-2xl font-bold text-blue-400 mb-4">Our Mission</h2>
               <div className="text-gray-300 space-y-4 leading-relaxed">
                 <p>
-                  Dytallix is pioneering the next generation of blockchain technology by combining post-quantum cryptography with artificial intelligence to create a truly quantum-safe ecosystem. Our mission is to protect digital assets and decentralized applications against the emerging threat of quantum computing while maintaining the performance and usability that users expect.
+                  Dytallix is pioneering the next generation of blockchain by combining post-quantum cryptography and artificial intelligence into a unified, quantum-secure ecosystem.
+                  Our mission is to protect digital assets and decentralized applications from the accelerating threat of quantum computing, without compromising performance or usability.
                 </p>
                 <p>
-                  As quantum computers advance toward breaking classical cryptographic systems, Dytallix provides a future-proof foundation for the decentralized economy. We believe that quantum resistance shouldn't come at the cost of innovation, which is why we've built a platform that enhances security while enabling new possibilities for developers and users.
+                  As quantum machines advance toward breaking classical cryptography, Dytallix offers a future-proof foundation for the decentralized economy. We believe quantum resistance should never come at the cost of innovation, which is why our platform enhances security while unlocking new capabilities for developers and users alike.
                 </p>
               </div>
             </CardContent>

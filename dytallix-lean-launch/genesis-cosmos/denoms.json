@@ -1,0 +1,26 @@
+{
+  "denoms": [
+    {
+      "description": "Governance and staking token for Dytallix",
+      "denom_units": [
+        { "denom": "uDGT", "exponent": 0, "aliases": [] },
+        { "denom": "DGT",  "exponent": 6, "aliases": [] }
+      ],
+      "base": "uDGT",
+      "display": "DGT",
+      "name": "Dytallix Governance Token",
+      "symbol": "DGT"
+    },
+    {
+      "description": "Reward and inflationary token for Dytallix",
+      "denom_units": [
+        { "denom": "uDRT", "exponent": 0, "aliases": [] },
+        { "denom": "DRT",  "exponent": 6, "aliases": [] }
+      ],
+      "base": "uDRT",
+      "display": "DRT",
+      "name": "Dytallix Reward Token",
+      "symbol": "DRT"
+    }
+  ]
+}

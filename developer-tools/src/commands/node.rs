@@ -142,7 +142,7 @@ pub async fn node_logs(config: &Config) -> Result<()> {
         ("INFO", "Consensus round completed in 2.3s"),
         ("WARN", "High memory usage detected: 85%"),
         ("INFO", "Smart contract deployed at dyt1contract123..."),
-        ("INFO", "Transaction fee collected: 1000 DYT"),
+        ("INFO", "Transaction fee collected: 1.000000 DGT"),
     ];
     
     for (level, message) in logs {

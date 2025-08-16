@@ -337,7 +337,7 @@ mod tests {
         
         // Add Cosmos connector
         let cosmos_config = CosmosConfig::default();
-        let cosmos_connector = CosmosConnector::new(cosmos_config).unwrap();
+        let cosmos_connector = CosmosConnector::new(cosmos_config).await.unwrap();
         manager.add_cosmos_connector("cosmoshub".to_string(), cosmos_connector);
         
         // Skip Polkadot connector in tests due to async new and network requirements

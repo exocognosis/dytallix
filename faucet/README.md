@@ -53,11 +53,37 @@ Request test tokens for a Dytallix address.
 ```json
 {
   "success": true,
-  "message": "Tokens sent successfully",
-  "txHash": "ABC123...",
-  "amount": "1000000udyt",
+  "message": "Dual tokens sent successfully",
+  "transactions": [
+    {
+      "token": "DGT",
+      "amount": "10000000udgt",
+      "amountFormatted": "10.000000 DGT",
+      "txHash": "ABC123...",
+      "purpose": "For governance voting and protocol decisions"
+    },
+    {
+      "token": "DRT",
+      "amount": "100000000udrt", 
+      "amountFormatted": "100.000000 DRT",
+      "txHash": "DEF456...",
+      "purpose": "For rewards, incentives, and transaction fees"
+    }
+  ],
   "recipient": "dyt1example_address_here",
-  "timestamp": "2025-08-01T00:00:00.000Z"
+  "timestamp": "2025-08-01T00:00:00.000Z",
+  "tokenomicsInfo": {
+    "DGT": {
+      "name": "Dytallix Governance Token",
+      "supply": "Fixed (1B DGT)",
+      "votingPower": "1 DGT = 1 Vote"
+    },
+    "DRT": {
+      "name": "Dytallix Reward Token",
+      "supply": "Inflationary (~6% annual)",
+      "utility": "Staking rewards, AI payments, transaction fees"
+    }
+  }
 }
 ```
 
@@ -68,14 +94,25 @@ Get faucet operational status and network information.
 ```json
 {
   "status": "operational",
-  "faucetBalance": "1000000000udyt",
+  "faucetBalance": "1000000000",
   "faucetAddress": "dyt1faucet_address",
   "chainId": "dytallix-testnet-1",
   "network": {
     "connected": true,
     "blockHeight": "12345"
   },
-  "tokensPerRequest": "1000000udyt"
+  "tokenDistribution": {
+    "DGT": {
+      "amountPerRequest": "10000000udgt",
+      "description": "For governance voting and protocol decisions",
+      "balanceLimit": "50 DGT per address"
+    },
+    "DRT": {
+      "amountPerRequest": "100000000udrt",
+      "description": "For rewards, incentives, and transaction fees",
+      "balanceLimit": "500 DRT per address"
+    }
+  }
 }
 ```
 
@@ -86,8 +123,18 @@ Check balance for a specific address.
 ```json
 {
   "address": "dyt1example_address",
-  "balance": "5000000",
-  "denom": "udyt",
+  "balances": {
+    "dgt": {
+      "amount": "5000000udgt",
+      "formatted": "5.000000 DGT",
+      "description": "Used for governance voting, staking, fees, and protocol decisions"
+    },
+    "drt": {
+      "amount": "50000000udrt",
+      "formatted": "50.000000 DRT", 
+      "description": "Used for rewards, incentives, staking rewards, and AI service payments"
+    }
+  },
   "timestamp": "2025-08-01T00:00:00.000Z"
 }
 ```
@@ -105,7 +152,8 @@ Health check endpoint for monitoring.
 | `NODE_ENV` | development | Environment mode |
 | `CHAIN_ID` | dytallix-testnet-1 | Blockchain chain ID |
 | `RPC_ENDPOINT` | http://127.0.0.1:26657 | RPC endpoint URL |
-| `FAUCET_AMOUNT` | 1000000udyt | Tokens per request |
+| `DGT_FAUCET_AMOUNT` | 10000000udgt | DGT tokens per request (10 DGT) |
+| `DRT_FAUCET_AMOUNT` | 100000000udrt | DRT tokens per request (100 DRT) |
 | `RATE_LIMIT_WINDOW_MS` | 3600000 | Rate limit window (1 hour) |
 | `RATE_LIMIT_MAX_REQUESTS` | 5 | Max requests per window |
 | `IP_COOLDOWN_MS` | 1800000 | IP cooldown period (30 min) |

@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { TOKENS, formatAmountWithSymbol, getTokenByMicroDenom } = require('../tokens');
 const winston = require('winston');
 const moment = require('moment');
 
@@ -233,7 +234,7 @@ class BlockchainService {
       code: txData.tx_result.code || 0,
       gasWanted: parseInt(txData.tx_result.gas_wanted) || 0,
       gasUsed: parseInt(txData.tx_result.gas_used) || 0,
-      fee: '0udyt', // Simplified
+      fee: '0udgt', // Simplified
       memo: '',
       timestamp: new Date().toISOString(),
       success: (txData.tx_result.code || 0) === 0
@@ -260,7 +261,7 @@ class BlockchainService {
       code: 0,
       gasWanted: 100000,
       gasUsed: 75000 + Math.floor(Math.random() * 20000),
-      fee: '1000udyt',
+      fee: formatAmountWithSymbol('1000', 'udgt'),
       memo: 'Simulated transaction',
       timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(),
       success: true

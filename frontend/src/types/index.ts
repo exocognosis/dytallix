@@ -74,6 +74,9 @@ export interface SmartContract {
   creator: string
   created_at: number
   abi?: any[]
+  // Template and network metadata for deployed templates
+  templateId?: string
+  network?: string
 }
 
 export interface ContractCall {

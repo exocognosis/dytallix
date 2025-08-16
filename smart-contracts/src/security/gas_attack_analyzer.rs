@@ -251,7 +251,7 @@ impl GasAttackAnalyzer {
                     "Use batch operations where possible".to_string(),
                     "Implement storage access limits".to_string(),
                 ],
-                gas_impact: Some(griefing_indicators.storage_op_count * 5000), // Estimated gas per storage op
+                gas_impact: Some(griefing_indicators.storage_op_count as u64 * 5000u64), // Estimated gas per storage op
             });
         }
 

@@ -8,6 +8,7 @@ mod client;
 mod crypto;
 mod utils;
 mod help;
+mod tokens;
 
 use commands::*;
 use config::Config;
