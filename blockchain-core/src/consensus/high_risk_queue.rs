@@ -4,19 +4,19 @@
 //! by the AI analysis system. It provides manual review workflow capabilities,
 //! notification systems, and bulk approval/rejection functionality.
 
+use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
+use log::{info, warn};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use tokio::sync::{RwLock, Mutex};
-use chrono::{DateTime, Utc};
-use serde::{Serialize, Deserialize};
+use tokio::sync::{Mutex, RwLock};
 use uuid::Uuid;
-use anyhow::{Result, anyhow};
-use log::{info, warn};
 
-use crate::types::{Transaction, TxHash};
 use crate::consensus::ai_integration::{AIVerificationResult, RiskProcessingDecision};
 use crate::consensus::notification_system::{NotificationSystem, NotificationSystemConfig};
 use crate::consensus::notification_types::NotificationType;
+use crate::types::{Transaction, TxHash};
 
 /// Status of a transaction in the high-risk queue
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -24,11 +24,22 @@ pub enum ReviewStatus {
     /// Transaction is pending manual review
     Pending,
     /// Transaction is currently being reviewed by an officer
-    InReview { officer_id: String, started_at: DateTime<Utc> },
+    InReview {
+        officer_id: String,
+        started_at: DateTime<Utc>,
+    },
     /// Transaction has been approved for processing
-    Approved { officer_id: String, approved_at: DateTime<Utc>, notes: Option<String> },
+    Approved {
+        officer_id: String,
+        approved_at: DateTime<Utc>,
+        notes: Option<String>,
+    },
     /// Transaction has been rejected
-    Rejected { officer_id: String, rejected_at: DateTime<Utc>, reason: String },
+    Rejected {
+        officer_id: String,
+        rejected_at: DateTime<Utc>,
+        reason: String,
+    },
     /// Transaction was auto-expired due to timeout
     Expired { expired_at: DateTime<Utc> },
 }
@@ -93,7 +104,7 @@ impl Default for HighRiskQueueConfig {
     fn default() -> Self {
         Self {
             max_queue_size: 1000,
-            max_queue_time_hours: 72, // 3 days
+            max_queue_time_hours: 72,  // 3 days
             max_review_time_hours: 24, // 1 day
             enable_notifications: true,
             enable_auto_prioritization: true,
@@ -125,7 +136,7 @@ impl HighRiskQueue {
     /// Create a new high-risk transaction queue
     pub fn new(config: HighRiskQueueConfig) -> Self {
         let notification_system = NotificationSystem::new(NotificationSystemConfig {
-            enable_email: true, // Enable email notifications by default
+            enable_email: true,  // Enable email notifications by default
             enable_in_app: true, // Enable in-app notifications
             ..Default::default()
         });
@@ -161,7 +172,10 @@ impl HighRiskQueue {
         {
             let hash_map = self.hash_to_queue_id.read().await;
             if hash_map.contains_key(&transaction_hash) {
-                return Err(anyhow!("Transaction already in queue: {}", hex::encode(&transaction_hash)));
+                return Err(anyhow!(
+                    "Transaction already in queue: {}",
+                    hex::encode(&transaction_hash)
+                ));
             }
         }
 
@@ -173,17 +187,22 @@ impl HighRiskQueue {
                     current_size: pending.len(),
                     max_size: self.config.max_queue_size,
                     warning_level: 3, // Medium warning level
-                }).await;
-                return Err(anyhow!("Queue is at capacity: {}/{}", pending.len(), self.config.max_queue_size));
+                })
+                .await;
+                return Err(anyhow!(
+                    "Queue is at capacity: {}/{}",
+                    pending.len(),
+                    self.config.max_queue_size
+                ));
             }
         }
 
         let queue_id = Uuid::new_v4();
         let now = Utc::now();
-        
+
         // Determine priority based on AI result
         let priority = self.calculate_priority(&ai_result);
-        
+
         // Create tags based on the risk decision and AI result
         let tags = self.generate_tags(&risk_decision, &ai_result);
 
@@ -208,9 +227,11 @@ impl HighRiskQueue {
             let mut hash_map = self.hash_to_queue_id.write().await;
 
             // Insert in priority order (highest priority first)
-            let insert_position = pending.iter().position(|t| t.priority < priority)
+            let insert_position = pending
+                .iter()
+                .position(|t| t.priority < priority)
                 .unwrap_or(pending.len());
-            
+
             pending.insert(insert_position, queued_transaction.clone());
             transactions.insert(queue_id, queued_transaction);
             hash_map.insert(transaction_hash.clone(), queue_id);
@@ -222,21 +243,32 @@ impl HighRiskQueue {
         // Send notification for high/critical priority transactions
         if matches!(priority, ReviewPriority::High | ReviewPriority::Critical) {
             let risk_score = match &ai_result {
-                AIVerificationResult::Verified { risk_score: Some(score), .. } => *score,
-                AIVerificationResult::Verified { fraud_probability: Some(prob), .. } => *prob,
+                AIVerificationResult::Verified {
+                    risk_score: Some(score),
+                    ..
+                } => *score,
+                AIVerificationResult::Verified {
+                    fraud_probability: Some(prob),
+                    ..
+                } => *prob,
                 _ => 0.5, // Default risk score if not available
             };
-            
+
             self.send_notification(NotificationType::NewHighRiskTransaction {
                 queue_id,
                 transaction_hash: hex::encode(&transaction_hash),
                 risk_score,
                 priority: priority.clone(),
-            }).await;
+            })
+            .await;
         }
 
-        info!("Transaction {} queued for review with priority {:?} (queue ID: {})", 
-              hex::encode(&transaction_hash), priority, queue_id);
+        info!(
+            "Transaction {} queued for review with priority {:?} (queue ID: {})",
+            hex::encode(&transaction_hash),
+            priority,
+            queue_id
+        );
 
         Ok(queue_id)
     }
@@ -250,12 +282,16 @@ impl HighRiskQueue {
     /// Start reviewing a transaction
     pub async fn start_review(&self, queue_id: Uuid, officer_id: String) -> Result<()> {
         let mut transactions = self.transactions.write().await;
-        
-        let transaction = transactions.get_mut(&queue_id)
+
+        let transaction = transactions
+            .get_mut(&queue_id)
             .ok_or_else(|| anyhow!("Transaction not found in queue: {}", queue_id))?;
 
         if !matches!(transaction.status, ReviewStatus::Pending) {
-            return Err(anyhow!("Transaction is not in pending status: {:?}", transaction.status));
+            return Err(anyhow!(
+                "Transaction is not in pending status: {:?}",
+                transaction.status
+            ));
         }
 
         transaction.status = ReviewStatus::InReview {
@@ -264,8 +300,11 @@ impl HighRiskQueue {
         };
         transaction.last_updated = Utc::now();
 
-        info!("Officer {} started reviewing transaction {}", officer_id, queue_id);
-        
+        info!(
+            "Officer {} started reviewing transaction {}",
+            officer_id, queue_id
+        );
+
         let _ = self.update_stats().await;
         Ok(())
     }
@@ -280,7 +319,8 @@ impl HighRiskQueue {
         let mut transactions = self.transactions.write().await;
         let mut hash_map = self.hash_to_queue_id.write().await;
 
-        let transaction = transactions.get_mut(&queue_id)
+        let transaction = transactions
+            .get_mut(&queue_id)
             .ok_or_else(|| anyhow!("Transaction not found in queue: {}", queue_id))?;
 
         transaction.status = ReviewStatus::Approved {
@@ -291,12 +331,12 @@ impl HighRiskQueue {
         transaction.last_updated = Utc::now();
 
         let approved_transaction = transaction.clone();
-        
+
         // Remove from tracking (approved transactions are processed)
         hash_map.remove(&transaction.transaction_hash);
 
         info!("Officer {} approved transaction {}", officer_id, queue_id);
-        
+
         let _ = self.update_stats().await;
         Ok(approved_transaction)
     }
@@ -311,7 +351,8 @@ impl HighRiskQueue {
         let mut transactions = self.transactions.write().await;
         let mut hash_map = self.hash_to_queue_id.write().await;
 
-        let transaction = transactions.get_mut(&queue_id)
+        let transaction = transactions
+            .get_mut(&queue_id)
             .ok_or_else(|| anyhow!("Transaction not found in queue: {}", queue_id))?;
 
         transaction.status = ReviewStatus::Rejected {
@@ -325,7 +366,7 @@ impl HighRiskQueue {
         hash_map.remove(&transaction.transaction_hash);
 
         info!("Officer {} rejected transaction {}", officer_id, queue_id);
-        
+
         let _ = self.update_stats().await;
         Ok(())
     }
@@ -349,32 +390,54 @@ impl HighRiskQueue {
     }
 
     /// Bulk approve transactions
-    pub async fn bulk_approve(&self, queue_ids: Vec<Uuid>, officer_id: String) -> Result<Vec<QueuedTransaction>> {
+    pub async fn bulk_approve(
+        &self,
+        queue_ids: Vec<Uuid>,
+        officer_id: String,
+    ) -> Result<Vec<QueuedTransaction>> {
         let mut approved = Vec::new();
-        
+
         for queue_id in queue_ids {
-            match self.approve_transaction(queue_id, officer_id.clone(), None).await {
+            match self
+                .approve_transaction(queue_id, officer_id.clone(), None)
+                .await
+            {
                 Ok(transaction) => approved.push(transaction),
                 Err(e) => warn!("Failed to approve transaction {}: {}", queue_id, e),
             }
         }
 
-        info!("Officer {} bulk approved {} transactions", officer_id, approved.len());
+        info!(
+            "Officer {} bulk approved {} transactions",
+            officer_id,
+            approved.len()
+        );
         Ok(approved)
     }
 
     /// Bulk reject transactions
-    pub async fn bulk_reject(&self, queue_ids: Vec<Uuid>, officer_id: String, reason: String) -> Result<usize> {
+    pub async fn bulk_reject(
+        &self,
+        queue_ids: Vec<Uuid>,
+        officer_id: String,
+        reason: String,
+    ) -> Result<usize> {
         let mut rejected_count = 0;
-        
+
         for queue_id in queue_ids {
-            match self.reject_transaction(queue_id, officer_id.clone(), reason.clone()).await {
+            match self
+                .reject_transaction(queue_id, officer_id.clone(), reason.clone())
+                .await
+            {
                 Ok(_) => rejected_count += 1,
                 Err(e) => warn!("Failed to reject transaction {}: {}", queue_id, e),
             }
         }
 
-        info!("Officer {} bulk rejected {} transactions", officer_id, rejected_count);
+        info!(
+            "Officer {} bulk rejected {} transactions",
+            officer_id, rejected_count
+        );
         Ok(rejected_count)
     }
 
@@ -392,9 +455,7 @@ impl HighRiskQueue {
             let transactions = self.transactions.read().await;
             for (queue_id, transaction) in transactions.iter() {
                 let should_expire = match &transaction.status {
-                    ReviewStatus::Pending => {
-                        (now - transaction.queued_at) > max_age
-                    }
+                    ReviewStatus::Pending => (now - transaction.queued_at) > max_age,
                     ReviewStatus::InReview { started_at, .. } => {
                         (now - *started_at) > max_review_time
                     }
@@ -417,16 +478,17 @@ impl HighRiskQueue {
                 if let Some(transaction) = transactions.get_mut(&queue_id) {
                     transaction.status = ReviewStatus::Expired { expired_at: now };
                     hash_map.remove(&transaction.transaction_hash);
-                    
+
                     // Remove from pending queue if present
                     pending.retain(|t| t.queue_id != queue_id);
-                    
+
                     self.send_notification(NotificationType::TransactionExpired {
                         queue_id,
                         transaction_hash: hex::encode(&transaction.transaction_hash),
                         expiry_time: now,
-                    }).await;
-                    
+                    })
+                    .await;
+
                     expired_count += 1;
                 }
             }
@@ -465,7 +527,11 @@ impl HighRiskQueue {
     }
 
     /// Generate tags based on risk decision and AI result
-    fn generate_tags(&self, risk_decision: &RiskProcessingDecision, ai_result: &AIVerificationResult) -> Vec<String> {
+    fn generate_tags(
+        &self,
+        risk_decision: &RiskProcessingDecision,
+        ai_result: &AIVerificationResult,
+    ) -> Vec<String> {
         let mut tags = Vec::new();
 
         // Add tag based on decision reason
@@ -478,7 +544,11 @@ impl HighRiskQueue {
 
         // Add tags based on AI result
         match ai_result {
-            AIVerificationResult::Verified { risk_score, fraud_probability, .. } => {
+            AIVerificationResult::Verified {
+                risk_score,
+                fraud_probability,
+                ..
+            } => {
                 if let Some(score) = risk_score {
                     if *score > 0.8 {
                         tags.push("high-risk".to_string());
@@ -515,17 +585,39 @@ impl HighRiskQueue {
 
         // Log the notification for now
         match notification {
-            NotificationType::NewHighRiskTransaction { queue_id, transaction_hash: _, risk_score: _, ref priority } => {
-                warn!("🚨 New {:?} priority transaction queued for review: {}", priority, queue_id);
+            NotificationType::NewHighRiskTransaction {
+                queue_id,
+                transaction_hash: _,
+                risk_score: _,
+                ref priority,
+            } => {
+                warn!(
+                    "🚨 New {:?} priority transaction queued for review: {}",
+                    priority, queue_id
+                );
             }
             NotificationType::TransactionExpired { queue_id, .. } => {
                 warn!("⏰ Transaction expired in queue: {}", queue_id);
             }
-            NotificationType::ReviewTimeout { queue_id, ref officer_id, .. } => {
-                warn!("⏰ Review timeout for transaction {} (officer: {})", queue_id, officer_id);
+            NotificationType::ReviewTimeout {
+                queue_id,
+                ref officer_id,
+                ..
+            } => {
+                warn!(
+                    "⏰ Review timeout for transaction {} (officer: {})",
+                    queue_id, officer_id
+                );
             }
-            NotificationType::QueueCapacityWarning { current_size, max_size, .. } => {
-                warn!("⚠️ Queue approaching capacity: {}/{}", current_size, max_size);
+            NotificationType::QueueCapacityWarning {
+                current_size,
+                max_size,
+                ..
+            } => {
+                warn!(
+                    "⚠️ Queue approaching capacity: {}/{}",
+                    current_size, max_size
+                );
             }
             _ => {
                 // Handle other notification types generically
@@ -549,7 +641,7 @@ impl HighRiskQueue {
         stats.total_pending = 0;
         stats.total_in_review = 0;
         stats.priority_breakdown.clear();
-        
+
         let mut oldest_pending: Option<DateTime<Utc>> = None;
         let mut review_times = Vec::new();
 
@@ -561,11 +653,17 @@ impl HighRiskQueue {
                     if oldest_pending.is_none() || transaction.queued_at < oldest_pending.unwrap() {
                         oldest_pending = Some(transaction.queued_at);
                     }
-                    *stats.priority_breakdown.entry(transaction.priority.clone()).or_insert(0) += 1;
+                    *stats
+                        .priority_breakdown
+                        .entry(transaction.priority.clone())
+                        .or_insert(0) += 1;
                 }
                 ReviewStatus::InReview { .. } => {
                     stats.total_in_review += 1;
-                    *stats.priority_breakdown.entry(transaction.priority.clone()).or_insert(0) += 1;
+                    *stats
+                        .priority_breakdown
+                        .entry(transaction.priority.clone())
+                        .or_insert(0) += 1;
                 }
                 ReviewStatus::Approved { approved_at, .. } => {
                     if approved_at.date_naive() == now.date_naive() {
@@ -587,7 +685,8 @@ impl HighRiskQueue {
 
         // Calculate average review time
         if !review_times.is_empty() {
-            stats.average_review_time_minutes = review_times.iter().sum::<f64>() / review_times.len() as f64;
+            stats.average_review_time_minutes =
+                review_times.iter().sum::<f64>() / review_times.len() as f64;
         }
 
         // Calculate oldest pending age
@@ -609,8 +708,8 @@ impl HighRiskQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::TransferTransaction;
     use crate::consensus::ai_integration::RiskProcessingDecision;
+    use crate::types::TransferTransaction;
 
     fn create_test_transaction() -> Transaction {
         Transaction::Transfer(TransferTransaction {
@@ -640,7 +739,7 @@ mod tests {
     async fn test_enqueue_transaction() {
         let config = HighRiskQueueConfig::default();
         let queue = HighRiskQueue::new(config);
-        
+
         let transaction = create_test_transaction();
         let tx_hash = [0u8; 32];
         let ai_result = create_test_ai_result(0.85);
@@ -648,12 +747,10 @@ mod tests {
             reason: "High risk score".to_string(),
         };
 
-        let queue_id = queue.enqueue_transaction(
-            transaction,
-            tx_hash,
-            ai_result,
-            risk_decision,
-        ).await.unwrap();
+        let queue_id = queue
+            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .await
+            .unwrap();
 
         let stats = queue.get_statistics().await;
         assert_eq!(stats.total_pending, 1);
@@ -667,28 +764,37 @@ mod tests {
     async fn test_priority_ordering() {
         let config = HighRiskQueueConfig::default();
         let queue = HighRiskQueue::new(config);
-        
+
         // Add transactions with different risk scores
         let tx1 = create_test_transaction();
         let tx2 = create_test_transaction();
         let tx3 = create_test_transaction();
-        
+
         let low_risk = create_test_ai_result(0.3);
         let high_risk = create_test_ai_result(0.85);
         let critical_risk = create_test_ai_result(0.95);
-        
+
         let risk_decision = RiskProcessingDecision::RequireReview {
             reason: "Test".to_string(),
         };
 
         // Add in reverse priority order
-        queue.enqueue_transaction(tx1, [1u8; 32], low_risk, risk_decision.clone()).await.unwrap();
-        queue.enqueue_transaction(tx2, [2u8; 32], high_risk, risk_decision.clone()).await.unwrap();
-        queue.enqueue_transaction(tx3, [3u8; 32], critical_risk, risk_decision).await.unwrap();
+        queue
+            .enqueue_transaction(tx1, [1u8; 32], low_risk, risk_decision.clone())
+            .await
+            .unwrap();
+        queue
+            .enqueue_transaction(tx2, [2u8; 32], high_risk, risk_decision.clone())
+            .await
+            .unwrap();
+        queue
+            .enqueue_transaction(tx3, [3u8; 32], critical_risk, risk_decision)
+            .await
+            .unwrap();
 
         let pending = queue.get_pending_transactions().await;
         assert_eq!(pending.len(), 3);
-        
+
         // Should be ordered by priority: Critical, High, Low
         assert_eq!(pending[0].priority, ReviewPriority::Critical);
         assert_eq!(pending[1].priority, ReviewPriority::High);
@@ -699,7 +805,7 @@ mod tests {
     async fn test_review_workflow() {
         let config = HighRiskQueueConfig::default();
         let queue = HighRiskQueue::new(config);
-        
+
         let transaction = create_test_transaction();
         let tx_hash = [0u8; 32];
         let ai_result = create_test_ai_result(0.85);
@@ -707,25 +813,29 @@ mod tests {
             reason: "High risk score".to_string(),
         };
 
-        let queue_id = queue.enqueue_transaction(
-            transaction,
-            tx_hash,
-            ai_result,
-            risk_decision,
-        ).await.unwrap();
+        let queue_id = queue
+            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .await
+            .unwrap();
 
         // Start review
-        queue.start_review(queue_id, "officer1".to_string()).await.unwrap();
-        
+        queue
+            .start_review(queue_id, "officer1".to_string())
+            .await
+            .unwrap();
+
         let tx = queue.get_transaction(queue_id).await.unwrap();
         assert!(matches!(tx.status, ReviewStatus::InReview { .. }));
 
         // Approve transaction
-        let approved = queue.approve_transaction(
-            queue_id,
-            "officer1".to_string(),
-            Some("Looks good".to_string()),
-        ).await.unwrap();
+        let approved = queue
+            .approve_transaction(
+                queue_id,
+                "officer1".to_string(),
+                Some("Looks good".to_string()),
+            )
+            .await
+            .unwrap();
 
         assert!(matches!(approved.status, ReviewStatus::Approved { .. }));
     }
@@ -734,7 +844,7 @@ mod tests {
     async fn test_bulk_operations() {
         let config = HighRiskQueueConfig::default();
         let queue = HighRiskQueue::new(config);
-        
+
         let mut queue_ids = Vec::new();
         let risk_decision = RiskProcessingDecision::RequireReview {
             reason: "Bulk test".to_string(),
@@ -747,36 +857,37 @@ mod tests {
             tx_hash[0] = i;
             let ai_result = create_test_ai_result(0.75);
 
-            let queue_id = queue.enqueue_transaction(
-                transaction,
-                tx_hash,
-                ai_result,
-                risk_decision.clone(),
-            ).await.unwrap();
+            let queue_id = queue
+                .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision.clone())
+                .await
+                .unwrap();
             queue_ids.push(queue_id);
         }
 
         // Bulk approve first 3
-        let approved = queue.bulk_approve(
-            queue_ids[0..3].to_vec(),
-            "officer1".to_string(),
-        ).await.unwrap();
+        let approved = queue
+            .bulk_approve(queue_ids[0..3].to_vec(), "officer1".to_string())
+            .await
+            .unwrap();
         assert_eq!(approved.len(), 3);
 
         // Bulk reject last 2
-        let rejected_count = queue.bulk_reject(
-            queue_ids[3..5].to_vec(),
-            "officer1".to_string(),
-            "Bulk rejection test".to_string(),
-        ).await.unwrap();
+        let rejected_count = queue
+            .bulk_reject(
+                queue_ids[3..5].to_vec(),
+                "officer1".to_string(),
+                "Bulk rejection test".to_string(),
+            )
+            .await
+            .unwrap();
         assert_eq!(rejected_count, 2);
     }
 
     #[cfg(test)]
     mod integration_tests {
         use super::*;
-        use crate::types::{TransferTransaction, PQCTransactionSignature};
         use crate::consensus::ai_integration::{AIVerificationResult, RiskProcessingDecision};
+        use crate::types::{PQCTransactionSignature, TransferTransaction};
 
         #[tokio::test]
         async fn test_end_to_end_queue_workflow() {
@@ -806,7 +917,7 @@ mod tests {
             let ai_result = AIVerificationResult::Verified {
                 risk_score: Some(0.9),
                 processing_decision: RiskProcessingDecision::RequireReview {
-                    reason: "High fraud probability detected".to_string()
+                    reason: "High fraud probability detected".to_string(),
                 },
                 fraud_probability: Some(0.85),
                 confidence: Some(0.95),
@@ -815,22 +926,33 @@ mod tests {
             };
 
             // Enqueue the transaction
-            let queue_id = queue.enqueue_transaction(
-                tx,
-                "test_tx_123".to_string(),
-                ai_result,
-                RiskProcessingDecision::RequireReview {
-                    reason: "High fraud probability detected".to_string()
-                },
-            ).await.expect("Failed to enqueue transaction");
+            let queue_id = queue
+                .enqueue_transaction(
+                    tx,
+                    "test_tx_123".to_string(),
+                    ai_result,
+                    RiskProcessingDecision::RequireReview {
+                        reason: "High fraud probability detected".to_string(),
+                    },
+                )
+                .await
+                .expect("Failed to enqueue transaction");
 
             // Verify the transaction is in the queue
-            let pending = queue.get_pending_transactions(Some(ReviewPriority::Critical)).await;
+            let pending = queue
+                .get_pending_transactions(Some(ReviewPriority::Critical))
+                .await;
             assert_eq!(pending.len(), 1);
             assert_eq!(pending[0].queue_id, queue_id);
 
             // Approve the transaction
-            let result = queue.approve_transaction(queue_id, "compliance_officer_1".to_string(), "Approved after review".to_string()).await;
+            let result = queue
+                .approve_transaction(
+                    queue_id,
+                    "compliance_officer_1".to_string(),
+                    "Approved after review".to_string(),
+                )
+                .await;
             assert!(result.is_ok());
 
             // Verify the transaction is no longer pending
@@ -869,7 +991,7 @@ mod tests {
             let ai_result = AIVerificationResult::Verified {
                 risk_score: Some(0.95),
                 processing_decision: RiskProcessingDecision::RequireReview {
-                    reason: "Suspicious transaction pattern".to_string()
+                    reason: "Suspicious transaction pattern".to_string(),
                 },
                 fraud_probability: Some(0.9),
                 confidence: Some(0.98),
@@ -878,14 +1000,17 @@ mod tests {
             };
 
             // This should trigger a notification
-            let _queue_id = queue.enqueue_transaction(
-                tx,
-                "notification_test_tx".to_string(),
-                ai_result,
-                RiskProcessingDecision::RequireReview {
-                    reason: "Suspicious transaction pattern".to_string()
-                },
-            ).await.expect("Failed to enqueue transaction");
+            let _queue_id = queue
+                .enqueue_transaction(
+                    tx,
+                    "notification_test_tx".to_string(),
+                    ai_result,
+                    RiskProcessingDecision::RequireReview {
+                        reason: "Suspicious transaction pattern".to_string(),
+                    },
+                )
+                .await
+                .expect("Failed to enqueue transaction");
 
             // Verify notification was queued (basic check)
             let notification_queue = queue.notification_queue.lock().await;

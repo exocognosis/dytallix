@@ -5,7 +5,11 @@ import drtIcon from '../assets/drt.svg'
 import { requestFaucet } from '../lib/api.js'
 import { loadMeta } from '../wallet/Keystore'
 
+<<<<<<< HEAD
 // Cosmos network configuration
+=======
+// Cosmos network configuration (informational)
+>>>>>>> origin/main
 const COSMOS_CONFIG = {
   lcdUrl: import.meta.env.VITE_LCD_HTTP_URL || 'https://lcd-testnet.dytallix.com',
   rpcUrl: import.meta.env.VITE_RPC_HTTP_URL || 'https://rpc-testnet.dytallix.com',
@@ -18,31 +22,15 @@ const FaucetForm = () => {
   const [selectedToken, setSelectedToken] = useState('DRT')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const [messageType, setMessageType] = useState('') // 'success' or 'error'
+  const [messageType, setMessageType] = useState('')
   const [cooldowns, setCooldowns] = useState({ DGT: 0, DRT: 0 })
   const [connected, setConnected] = useState(false)
 
-  // Token configurations (display copy only)
   const tokenConfig = {
-    DGT: {
-      name: 'DGT (Dytallix Governance Tokens)',
-      description: 'On-chain governance and protocol control',
-      amount: 2,
-      icon: dgtIcon,
-      cooldownMinutes: 1440,
-      successMessage: 'DGT allocation successful.'
-    },
-    DRT: {
-      name: 'DRT (Dytallix Reward Tokens)',
-      description: 'Fuel AI module usage, reward testnet actions',
-      amount: 50,
-      icon: drtIcon,
-      cooldownMinutes: 360,
-      successMessage: 'DRT sent to your wallet.'
-    }
+    DGT: { name: 'DGT (Dytallix Governance Tokens)', description: 'On-chain governance and protocol control', amount: 2, icon: dgtIcon, cooldownMinutes: 1440, successMessage: 'DGT allocation successful.' },
+    DRT: { name: 'DRT (Dytallix Reward Tokens)', description: 'Fuel AI module usage, reward testnet actions', amount: 50, icon: drtIcon, cooldownMinutes: 360, successMessage: 'DRT sent to your wallet.' }
   }
 
-  // Load cooldowns and token preference
   useEffect(() => {
     const savedCooldowns = localStorage.getItem('dytallix-faucet-cooldowns')
     if (savedCooldowns) {
@@ -60,26 +48,16 @@ const FaucetForm = () => {
 
   useEffect(() => { localStorage.setItem('dytallix-faucet-selected-token', selectedToken) }, [selectedToken])
 
-  // Wallet autofill (local PQC wallet)
   useEffect(() => {
     try {
       const meta = loadMeta()
-      if (meta?.address) {
-        setAddress(meta.address)
-        setConnected(true)
-        return
-      }
+      if (meta?.address) { setAddress(meta.address); setConnected(true); return }
     } catch {}
     setConnected(false)
   }, [])
 
   const isOnCooldown = (token) => cooldowns[token] && cooldowns[token] > Date.now()
-  const getCooldownMinutes = (token) => {
-    if (!cooldowns[token]) return 0
-    const remaining = cooldowns[token] - Date.now()
-    return Math.max(0, Math.ceil(remaining / (1000 * 60)))
-  }
-
+  const getCooldownMinutes = (token) => { if (!cooldowns[token]) return 0; const remaining = cooldowns[token] - Date.now(); return Math.max(0, Math.ceil(remaining / (1000 * 60))) }
   const shortHash = (h) => (h && h.length > 20 ? `${h.slice(0, 10)}...${h.slice(-8)}` : h)
   const isBech32 = (addr) => typeof addr === 'string' && addr.startsWith('dytallix1') && addr.length >= 39
 
@@ -103,7 +81,6 @@ const FaucetForm = () => {
     setIsLoading(true)
     try {
       const res = await requestFaucet({ address: address.trim(), token: selectedToken })
-      // success
       setMessage(`${res.amount} ${res.token} sent. Tx: ${shortHash(res.txHash)}`)
       setMessageType('success')
       const cooldownEnd = Date.now() + (tokenConfig[selectedToken].cooldownMinutes * 60 * 1000)
@@ -119,7 +96,6 @@ const FaucetForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
-      {/* Token selector */}
       <div className={styles.inputGroup}>
         <label htmlFor="token-selection" className={styles.label}>Select Token Type</label>
         <div className={styles.tokenSelector}>
@@ -154,7 +130,6 @@ const FaucetForm = () => {
 
       {message && (<div className={`${styles.message} ${styles[messageType]}`}>{message}</div>)}
 
-      {/* Faucet Information */}
       <div className={styles.faucetInfo}>
         <h3 className={styles.faucetInfoTitle}>Faucet Information</h3>
         <div className={styles.faucetInfoPanel}>

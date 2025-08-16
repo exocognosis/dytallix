@@ -4,13 +4,15 @@
 //! high-risk transactions in the queue. It includes endpoints for listing
 //! pending transactions, approving/rejecting transactions, and viewing statistics.
 
-use std::sync::Arc;
-use serde::{Serialize, Deserialize};
 use anyhow::Result;
 use log::info;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::consensus::high_risk_queue::{HighRiskQueue, QueuedTransaction, QueueStatistics, ReviewPriority};
+use crate::consensus::high_risk_queue::{
+    HighRiskQueue, QueueStatistics, QueuedTransaction, ReviewPriority,
+};
 
 /// Request to approve a transaction
 #[derive(Debug, Serialize, Deserialize)]
@@ -84,7 +86,10 @@ impl TransactionReviewApi {
     }
 
     /// Get all pending transactions with optional filtering
-    pub async fn get_pending_transactions(&self, filters: Option<ListFilters>) -> Result<Vec<TransactionReviewView>> {
+    pub async fn get_pending_transactions(
+        &self,
+        filters: Option<ListFilters>,
+    ) -> Result<Vec<TransactionReviewView>> {
         let pending = self.queue.get_pending_transactions().await;
         let mut transactions: Vec<TransactionReviewView> = pending
             .into_iter()
@@ -98,9 +103,7 @@ impl TransactionReviewApi {
             }
 
             if let Some(tags) = filters.tags {
-                transactions.retain(|tx| {
-                    tags.iter().any(|tag| tx.tags.contains(tag))
-                });
+                transactions.retain(|tx| tags.iter().any(|tag| tx.tags.contains(tag)));
             }
 
             // Apply pagination
@@ -134,22 +137,37 @@ impl TransactionReviewApi {
     }
 
     /// Approve a transaction
-    pub async fn approve_transaction(&self, queue_id: Uuid, request: ApprovalRequest) -> Result<()> {
-        self.queue.approve_transaction(queue_id, request.officer_id, request.notes).await?;
+    pub async fn approve_transaction(
+        &self,
+        queue_id: Uuid,
+        request: ApprovalRequest,
+    ) -> Result<()> {
+        self.queue
+            .approve_transaction(queue_id, request.officer_id, request.notes)
+            .await?;
         info!("Transaction {} approved via API", queue_id);
         Ok(())
     }
 
     /// Reject a transaction
-    pub async fn reject_transaction(&self, queue_id: Uuid, request: RejectionRequest) -> Result<()> {
-        self.queue.reject_transaction(queue_id, request.officer_id, request.reason).await?;
+    pub async fn reject_transaction(
+        &self,
+        queue_id: Uuid,
+        request: RejectionRequest,
+    ) -> Result<()> {
+        self.queue
+            .reject_transaction(queue_id, request.officer_id, request.reason)
+            .await?;
         info!("Transaction {} rejected via API", queue_id);
         Ok(())
     }
 
     /// Bulk approve transactions
     pub async fn bulk_approve(&self, request: BulkRequest) -> Result<usize> {
-        let approved = self.queue.bulk_approve(request.transaction_ids, request.officer_id).await?;
+        let approved = self
+            .queue
+            .bulk_approve(request.transaction_ids, request.officer_id)
+            .await?;
         let count = approved.len();
         info!("Bulk approved {} transactions via API", count);
         Ok(count)
@@ -157,8 +175,13 @@ impl TransactionReviewApi {
 
     /// Bulk reject transactions
     pub async fn bulk_reject(&self, request: BulkRequest) -> Result<usize> {
-        let reason = request.reason.unwrap_or_else(|| "Bulk rejection".to_string());
-        let count = self.queue.bulk_reject(request.transaction_ids, request.officer_id, reason).await?;
+        let reason = request
+            .reason
+            .unwrap_or_else(|| "Bulk rejection".to_string());
+        let count = self
+            .queue
+            .bulk_reject(request.transaction_ids, request.officer_id, reason)
+            .await?;
         info!("Bulk rejected {} transactions via API", count);
         Ok(count)
     }
@@ -169,13 +192,18 @@ impl TransactionReviewApi {
     }
 
     /// Get transactions grouped by priority
-    pub async fn get_priority_summary(&self) -> Result<std::collections::HashMap<ReviewPriority, Vec<TransactionReviewView>>> {
+    pub async fn get_priority_summary(
+        &self,
+    ) -> Result<std::collections::HashMap<ReviewPriority, Vec<TransactionReviewView>>> {
         let pending = self.queue.get_pending_transactions().await;
         let mut summary = std::collections::HashMap::new();
 
         for tx in pending {
             let view = self.convert_to_review_view(tx.clone());
-            summary.entry(tx.priority).or_insert_with(Vec::new).push(view);
+            summary
+                .entry(tx.priority)
+                .or_insert_with(Vec::new)
+                .push(view);
         }
 
         Ok(summary)
@@ -190,12 +218,7 @@ impl TransactionReviewApi {
                 Some(transfer.from.clone()),
                 Some(transfer.to.clone()),
             ),
-            crate::types::Transaction::Deploy(deploy) => (
-                "Deploy".to_string(),
-                None,
-                None,
-                None,
-            ),
+            crate::types::Transaction::Deploy(deploy) => ("Deploy".to_string(), None, None, None),
             crate::types::Transaction::Call(call) => (
                 "Call".to_string(),
                 None,
@@ -217,18 +240,33 @@ impl TransactionReviewApi {
         };
 
         let (risk_score, fraud_probability, confidence) = match &tx.ai_result {
-            crate::consensus::ai_integration::AIVerificationResult::Verified { 
-                risk_score, fraud_probability, confidence, .. 
+            crate::consensus::ai_integration::AIVerificationResult::Verified {
+                risk_score,
+                fraud_probability,
+                confidence,
+                ..
             } => (*risk_score, *fraud_probability, *confidence),
-            crate::consensus::ai_integration::AIVerificationResult::Failed { .. } => (Some(1.0), Some(1.0), Some(0.0)),
-            crate::consensus::ai_integration::AIVerificationResult::Unavailable { .. } => (Some(0.5), None, None),
-            crate::consensus::ai_integration::AIVerificationResult::Skipped { .. } => (Some(0.3), None, Some(1.0)),
+            crate::consensus::ai_integration::AIVerificationResult::Failed { .. } => {
+                (Some(1.0), Some(1.0), Some(0.0))
+            }
+            crate::consensus::ai_integration::AIVerificationResult::Unavailable { .. } => {
+                (Some(0.5), None, None)
+            }
+            crate::consensus::ai_integration::AIVerificationResult::Skipped { .. } => {
+                (Some(0.3), None, Some(1.0))
+            }
         };
 
         let ai_decision_reason = match &tx.risk_decision {
-            crate::consensus::ai_integration::RiskProcessingDecision::RequireReview { reason } => reason.clone(),
-            crate::consensus::ai_integration::RiskProcessingDecision::AutoApprove => "Auto-approve (should not be in queue)".to_string(),
-            crate::consensus::ai_integration::RiskProcessingDecision::AutoReject { reason } => format!("Auto-reject: {}", reason),
+            crate::consensus::ai_integration::RiskProcessingDecision::RequireReview { reason } => {
+                reason.clone()
+            }
+            crate::consensus::ai_integration::RiskProcessingDecision::AutoApprove => {
+                "Auto-approve (should not be in queue)".to_string()
+            }
+            crate::consensus::ai_integration::RiskProcessingDecision::AutoReject { reason } => {
+                format!("Auto-reject: {}", reason)
+            }
         };
 
         TransactionReviewView {
@@ -386,8 +424,8 @@ pub mod endpoints {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::consensus::high_risk_queue::{HighRiskQueueConfig, HighRiskQueue};
     use crate::consensus::ai_integration::{AIVerificationResult, RiskProcessingDecision};
+    use crate::consensus::high_risk_queue::{HighRiskQueue, HighRiskQueueConfig};
     use crate::types::{Transaction, TransferTransaction};
     use chrono::Utc;
 
@@ -435,7 +473,10 @@ mod tests {
             reason: "Test".to_string(),
         };
 
-        queue.enqueue_transaction(transaction, tx_hash, ai_result, risk_decision).await.unwrap();
+        queue
+            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .await
+            .unwrap();
 
         // Test getting pending transactions
         let pending = api.get_pending_transactions(None).await.unwrap();
@@ -457,10 +498,15 @@ mod tests {
             reason: "Test".to_string(),
         };
 
-        let queue_id = queue.enqueue_transaction(transaction, tx_hash, ai_result, risk_decision).await.unwrap();
+        let queue_id = queue
+            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .await
+            .unwrap();
 
         // Start review
-        api.start_review(queue_id, "officer1".to_string()).await.unwrap();
+        api.start_review(queue_id, "officer1".to_string())
+            .await
+            .unwrap();
 
         // Approve the transaction
         let approval_request = ApprovalRequest {
@@ -468,11 +514,16 @@ mod tests {
             notes: Some("Looks good".to_string()),
         };
 
-        api.approve_transaction(queue_id, approval_request).await.unwrap();
+        api.approve_transaction(queue_id, approval_request)
+            .await
+            .unwrap();
 
         // Verify the transaction is approved
         let tx = queue.get_transaction(queue_id).await.unwrap();
-        assert!(matches!(tx.status, crate::consensus::high_risk_queue::ReviewStatus::Approved { .. }));
+        assert!(matches!(
+            tx.status,
+            crate::consensus::high_risk_queue::ReviewStatus::Approved { .. }
+        ));
     }
 
     #[tokio::test]
@@ -488,7 +539,10 @@ mod tests {
             reason: "Test".to_string(),
         };
 
-        queue.enqueue_transaction(transaction, tx_hash, ai_result, risk_decision).await.unwrap();
+        queue
+            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .await
+            .unwrap();
 
         // Test getting statistics
         let stats = api.get_statistics().await;

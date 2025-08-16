@@ -1,12 +1,12 @@
 // Core blockchain types for Dytallix
 // Post-Quantum Cryptography Enhanced Blockchain
 
-use serde::{Serialize, Deserialize};
-use serde_json::Value;
-use uuid::Uuid;
 use dytallix_pqc::{Signature, SignatureAlgorithm};
-use sha3::{Sha3_256, Digest};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sha3::{Digest, Sha3_256};
 use std::fmt;
+use uuid::Uuid;
 
 /// Dytallix address format (dyt1...)
 pub type Address = String;
@@ -28,8 +28,8 @@ pub type Timestamp = u64;
 
 // Serde helpers for u128 <-> string JSON (avoids JS precision loss)
 pub mod serde_u128_string {
-    use serde::{Serializer, Deserializer, Deserialize};
     use serde::de::Error as DeError;
+    use serde::{Deserialize, Deserializer, Serializer};
     pub fn serialize<S: Serializer>(v: &u64, s: S) -> Result<S::Ok, S::Error> {
         s.serialize_str(&v.to_string())
     }
@@ -51,25 +51,25 @@ pub struct Block {
 pub struct BlockHeader {
     /// Block number in the chain
     pub number: BlockNumber,
-    
+
     /// Hash of the previous block
     pub parent_hash: Hash,
-    
+
     /// Merkle root of all transactions in this block
     pub transactions_root: Hash,
-    
+
     /// State root after applying all transactions
     pub state_root: Hash,
-    
+
     /// Block timestamp
     pub timestamp: Timestamp,
-    
+
     /// Address of the validator who produced this block
     pub validator: Address,
-    
+
     /// Post-quantum signature of the block hash by validator
     pub signature: PQCBlockSignature,
-    
+
     /// Nonce for PoW (if hybrid consensus)
     pub nonce: u64,
 }
@@ -79,7 +79,7 @@ pub struct BlockHeader {
 pub struct PQCBlockSignature {
     /// The signature data
     pub signature: Signature,
-    
+
     /// Public key of the signer (validator)
     pub public_key: Vec<u8>,
 }
@@ -89,16 +89,16 @@ pub struct PQCBlockSignature {
 pub enum Transaction {
     /// Simple transfer between accounts
     Transfer(TransferTransaction),
-    
+
     /// Smart contract deployment
     Deploy(DeployTransaction),
-    
+
     /// Smart contract call
     Call(CallTransaction),
-    
+
     /// Validator staking transaction
     Stake(StakeTransaction),
-    
+
     /// AI service request transaction
     AIRequest(AIRequestTransaction),
 }
@@ -108,30 +108,30 @@ pub enum Transaction {
 pub struct TransferTransaction {
     /// Transaction hash
     pub hash: TxHash,
-    
+
     /// Sender address
     pub from: Address,
-    
+
     /// Recipient address
     pub to: Address,
-    
+
     /// Amount to transfer
     #[serde(with = "serde_u128_string")]
     pub amount: Amount,
-    
+
     /// Transaction fee
     #[serde(with = "serde_u128_string")]
     pub fee: Amount,
-    
+
     /// Transaction nonce (to prevent replay attacks)
     pub nonce: u64,
-    
+
     /// Timestamp when transaction was created
     pub timestamp: Timestamp,
-    
+
     /// Post-quantum signature by sender
     pub signature: PQCTransactionSignature,
-    
+
     /// AI-calculated risk score (0.0 = low risk, 1.0 = high risk)
     pub ai_risk_score: Option<f64>,
 }
@@ -241,12 +241,7 @@ impl StakeTransaction {
     pub fn calculate_hash(&self) -> TxHash {
         let data = format!(
             "{}:{}:{:?}:{}:{}:{}",
-            self.validator,
-            self.amount,
-            self.action,
-            self.fee,
-            self.nonce,
-            self.timestamp
+            self.validator, self.amount, self.action, self.fee, self.nonce, self.timestamp
         );
         let mut hasher = Sha3_256::new();
         hasher.update(data.as_bytes());
@@ -274,9 +269,9 @@ pub struct AIRequestTransaction {
     pub from: Address,
     pub service_type: AIServiceType,
     pub request_data: Vec<u8>,
-    pub payload: serde_json::Value,  // Added for compatibility
-    pub ai_risk_score: Option<f64>,  // Added for risk scoring
-    pub ai_response: Option<serde_json::Value>,  // Added for AI response storage
+    pub payload: serde_json::Value, // Added for compatibility
+    pub ai_risk_score: Option<f64>, // Added for risk scoring
+    pub ai_response: Option<serde_json::Value>, // Added for AI response storage
     #[serde(with = "serde_u128_string")]
     pub fee: Amount,
     pub nonce: u64,
@@ -386,7 +381,7 @@ impl AIResponsePayload {
 pub struct PQCTransactionSignature {
     /// The signature data
     pub signature: Signature,
-    
+
     /// Public key of the signer
     pub public_key: Vec<u8>,
 }
@@ -397,19 +392,19 @@ pub struct AccountState {
     /// Account balance
     #[serde(with = "serde_u128_string")]
     pub balance: Amount,
-    
+
     /// Transaction nonce
     pub nonce: u64,
-    
+
     /// Smart contract code (if this is a contract account)
     pub code: Option<Vec<u8>>,
-    
+
     /// Contract storage (if this is a contract account)
     pub storage: std::collections::HashMap<String, Vec<u8>>,
-    
+
     /// AI reputation score (0-1000)
     pub reputation_score: u16,
-    
+
     /// Last AI analysis timestamp
     pub last_ai_analysis: Option<Timestamp>,
 }
@@ -419,20 +414,20 @@ pub struct AccountState {
 pub struct ValidatorInfo {
     /// Validator address
     pub address: Address,
-    
+
     /// Staked amount
     #[serde(with = "serde_u128_string")]
     pub stake: Amount,
-    
+
     /// Public key for block signing
     pub public_key: Vec<u8>,
-    
+
     /// Signature algorithm used
     pub signature_algorithm: SignatureAlgorithm,
-    
+
     /// Is currently active
     pub active: bool,
-    
+
     /// Commission rate (basis points)
     pub commission: u16,
 }
@@ -470,7 +465,7 @@ pub struct TxReceipt {
 }
 
 /// Transaction Pool for managing pending transactions
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -492,12 +487,12 @@ impl TransactionPool {
             max_size,
         }
     }
-    
+
     /// Add a transaction to the pool
     pub async fn add_transaction(&self, tx: Transaction) -> Result<TxHash, String> {
         let tx_hash = tx.hash();
         let fee = tx.fee();
-        
+
         // Check if transaction already exists
         {
             let lookup = self.lookup.read().await;
@@ -505,12 +500,12 @@ impl TransactionPool {
                 return Err("Transaction already in pool".to_string());
             }
         }
-        
+
         // Add to pending transactions
         {
             let mut pending = self.pending.write().await;
             let mut lookup = self.lookup.write().await;
-            
+
             // Check pool size limit
             if lookup.len() >= self.max_size {
                 // Remove lowest fee transaction
@@ -524,19 +519,19 @@ impl TransactionPool {
                     }
                 }
             }
-            
+
             pending.entry(fee).or_insert_with(Vec::new).push(tx.clone());
             lookup.insert(tx_hash.clone(), tx);
         }
-        
+
         Ok(tx_hash)
     }
-    
+
     /// Get transactions with highest fees for block creation
     pub async fn get_pending_transactions(&self, max_count: usize) -> Vec<Transaction> {
         let pending = self.pending.read().await;
         let mut transactions = Vec::new();
-        
+
         // Iterate from highest fee to lowest
         for (_, txs) in pending.iter().rev() {
             for tx in txs {
@@ -549,15 +544,15 @@ impl TransactionPool {
                 break;
             }
         }
-        
+
         transactions
     }
-    
+
     /// Remove transactions that have been included in a block
     pub async fn remove_transactions(&self, tx_hashes: &[TxHash]) {
         let mut pending = self.pending.write().await;
         let mut lookup = self.lookup.write().await;
-        
+
         for tx_hash in tx_hashes {
             if let Some(tx) = lookup.remove(tx_hash) {
                 let fee = tx.fee();
@@ -570,12 +565,12 @@ impl TransactionPool {
             }
         }
     }
-    
+
     /// Get current pool statistics
     pub async fn get_stats(&self) -> PoolStats {
         let lookup = self.lookup.read().await;
         let pending = self.pending.read().await;
-        
+
         PoolStats {
             total_transactions: lookup.len(),
             fee_levels: pending.len(),
@@ -593,8 +588,11 @@ pub struct PoolStats {
 
 impl fmt::Display for PoolStats {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Pool: {}/{} transactions, {} fee levels", 
-               self.total_transactions, self.max_size, self.fee_levels)
+        write!(
+            f,
+            "Pool: {}/{} transactions, {} fee levels",
+            self.total_transactions, self.max_size, self.fee_levels
+        )
     }
 }
 
@@ -619,24 +617,24 @@ impl Block {
         let hash = hasher.finalize();
         hex::encode(hash)
     }
-    
+
     /// Verify all transactions in this block
     pub fn verify_transactions(&self) -> bool {
         // Basic checks: we have transactions
         if self.transactions.is_empty() {
             return false;
         }
-        
+
         // Verify each transaction's signature
         for tx in &self.transactions {
             if !tx.verify_signature() {
                 return false;
             }
         }
-        
+
         true
     }
-    
+
     // Verify all transactions in this block with AI signature verification
     // TODO: Re-enable after fixing import paths
     /*
@@ -645,12 +643,12 @@ impl Block {
         if !self.verify_transactions() {
             return Ok(false);
         }
-        
+
         // If AI verification is not required, skip it
         if !ai_integration.is_ai_verification_required() {
             return Ok(true);
         }
-        
+
         // Verify AI responses for AI request transactions
         for tx in &self.transactions {
             if let Transaction::AIRequest(ai_tx) = tx {
@@ -669,7 +667,7 @@ impl Block {
                 }
             }
         }
-        
+
         Ok(true)
     }
     */
@@ -681,28 +679,26 @@ impl BlockHeader {
         if transactions.is_empty() {
             return "0".repeat(64);
         }
-        
-        let tx_hashes: Vec<String> = transactions.iter()
-            .map(|tx| tx.hash())
-            .collect();
-        
+
+        let tx_hashes: Vec<String> = transactions.iter().map(|tx| tx.hash()).collect();
+
         Self::merkle_root(&tx_hashes)
     }
-    
+
     /// Simple merkle root calculation
     fn merkle_root(hashes: &[String]) -> Hash {
         if hashes.is_empty() {
             return "0".repeat(64);
         }
-        
+
         if hashes.len() == 1 {
             return hashes[0].clone();
         }
-        
+
         let mut level = hashes.to_vec();
         while level.len() > 1 {
             let mut next_level = Vec::new();
-            
+
             for chunk in level.chunks(2) {
                 let mut hasher = Sha3_256::new();
                 hasher.update(chunk[0].as_bytes());
@@ -714,10 +710,10 @@ impl BlockHeader {
                 let hash = hasher.finalize();
                 next_level.push(hex::encode(hash));
             }
-            
+
             level = next_level;
         }
-        
+
         level[0].clone()
     }
 }
@@ -733,7 +729,7 @@ impl Transaction {
             Transaction::AIRequest(tx) => tx.hash.clone(),
         }
     }
-    
+
     /// Get the sender address
     pub fn from(&self) -> &Address {
         match self {
@@ -744,7 +740,7 @@ impl Transaction {
             Transaction::AIRequest(tx) => &tx.from,
         }
     }
-    
+
     /// Get the transaction fee
     pub fn fee(&self) -> Amount {
         match self {
@@ -755,7 +751,7 @@ impl Transaction {
             Transaction::AIRequest(tx) => tx.fee,
         }
     }
-    
+
     /// Get the transaction nonce
     pub fn nonce(&self) -> u64 {
         match self {
@@ -793,10 +789,10 @@ impl Transaction {
     pub fn verify_signature(&self) -> bool {
         // Get the transaction signature
         let signature = self.signature();
-        
+
         // Build the signing message
         let message = self.signing_message();
-        
+
         // Create a temporary PQC manager to verify the signature
         // In a real implementation, this would use a shared PQC manager instance
         match dytallix_pqc::PQCManager::new() {
@@ -813,15 +809,9 @@ impl Transaction {
 
 impl TransferTransaction {
     /// Create a new transfer transaction
-    pub fn new(
-        from: Address,
-        to: Address,
-        amount: Amount,
-        fee: Amount,
-        nonce: u64,
-    ) -> Self {
+    pub fn new(from: Address, to: Address, amount: Amount, fee: Amount, nonce: u64) -> Self {
         let timestamp = chrono::Utc::now().timestamp() as u64;
-        
+
         // Create transaction without signature first
         let mut tx = Self {
             hash: String::new(),
@@ -835,23 +825,23 @@ impl TransferTransaction {
                 signature: Signature {
                     data: Vec::new(),
                     algorithm: SignatureAlgorithm::Dilithium5,
-                    
-                    
                 },
                 public_key: Vec::new(),
             },
             ai_risk_score: None, // Will be calculated later
         };
-        
+
         // Calculate hash
         tx.hash = tx.calculate_hash();
         tx
     }
-    
+
     /// Calculate hash of transaction data (without signature)
     pub fn calculate_hash(&self) -> TxHash {
-        let data = format!("{}:{}:{}:{}:{}:{}",
-            self.from, self.to, self.amount, self.fee, self.nonce, self.timestamp);
+        let data = format!(
+            "{}:{}:{}:{}:{}:{}",
+            self.from, self.to, self.amount, self.fee, self.nonce, self.timestamp
+        );
         let mut hasher = Sha3_256::new();
         hasher.update(data.as_bytes());
         let hash = hasher.finalize();
@@ -866,8 +856,12 @@ impl TransferTransaction {
 
 impl fmt::Display for Block {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Block #{} with {} transactions", 
-               self.header.number, self.transactions.len())
+        write!(
+            f,
+            "Block #{} with {} transactions",
+            self.header.number,
+            self.transactions.len()
+        )
     }
 }
 
@@ -876,19 +870,19 @@ impl fmt::Display for Transaction {
         match self {
             Transaction::Transfer(tx) => {
                 write!(f, "Transfer: {} -> {} ({})", tx.from, tx.to, tx.amount)
-            },
+            }
             Transaction::Deploy(tx) => {
                 write!(f, "Deploy contract by {}", tx.from)
-            },
+            }
             Transaction::Call(tx) => {
                 write!(f, "Call {} by {}", tx.to, tx.from)
-            },
+            }
             Transaction::Stake(tx) => {
                 write!(f, "Stake {:?}: {} ({})", tx.action, tx.validator, tx.amount)
-            },
+            }
             Transaction::AIRequest(tx) => {
                 write!(f, "AI {:?} request by {}", tx.service_type, tx.from)
-            },
+            }
         }
     }
 }
@@ -947,10 +941,10 @@ impl StakeTransaction {
             StakeAction::Undelegate => "Undelegate".to_string(),
         };
         format!(
-             "stake:{}:{}:{}:{}:{}:{}",
-             self.validator, self.amount, action_str, self.fee, self.nonce, self.timestamp
-         )
-         .into_bytes()
+            "stake:{}:{}:{}:{}:{}:{}",
+            self.validator, self.amount, action_str, self.fee, self.nonce, self.timestamp
+        )
+        .into_bytes()
     }
 }
 
@@ -983,14 +977,9 @@ impl Transaction {
     }
 
     /// Sign the transaction using the provided PQC manager
-    pub fn sign_transaction(
-        &mut self,
-        pqc: &crate::crypto::PQCManager,
-    ) -> Result<(), String> {
+    pub fn sign_transaction(&mut self, pqc: &crate::crypto::PQCManager) -> Result<(), String> {
         let message = self.signing_bytes();
-        let sig = pqc
-            .sign_message(&message)
-            .map_err(|e| e.to_string())?;
+        let sig = pqc.sign_message(&message).map_err(|e| e.to_string())?;
 
         let signature = crate::types::PQCTransactionSignature {
             signature: dytallix_pqc::Signature {
@@ -1015,23 +1004,37 @@ impl Transaction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_amount_serde_roundtrip() {
         #[derive(Serialize, Deserialize, Debug, PartialEq)]
-        struct Wrapper { #[serde(with = "crate::types::serde_u128_string")] amount: Amount }
-        let w = Wrapper { amount: 12_345_678_901_234_567u64 }; // fits in u64
+        struct Wrapper {
+            #[serde(with = "crate::types::serde_u128_string")]
+            amount: Amount,
+        }
+        let w = Wrapper {
+            amount: 12_345_678_901_234_567u64,
+        }; // fits in u64
         let json = serde_json::to_string(&w).unwrap();
         assert!(json.contains("12345678901234567"));
         let de: Wrapper = serde_json::from_str(&json).unwrap();
         assert_eq!(de, w);
     }
-    
+
     #[test]
     fn test_receipt_serde_roundtrip() {
-        let r = TxReceipt { tx_hash: "0xabc".into(), block_number: 5, status: TxStatus::Success, gas_used: 0, fee_paid: 10, timestamp: 111, index: 0, error: None };
+        let r = TxReceipt {
+            tx_hash: "0xabc".into(),
+            block_number: 5,
+            status: TxStatus::Success,
+            gas_used: 0,
+            fee_paid: 10,
+            timestamp: 111,
+            index: 0,
+            error: None,
+        };
         let json = serde_json::to_string(&r).unwrap();
         let back: TxReceipt = serde_json::from_str(&json).unwrap();
         assert_eq!(r, back);
     }
- }
+}

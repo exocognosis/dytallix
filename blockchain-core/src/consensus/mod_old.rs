@@ -2018,7 +2018,6 @@ impl AIOracleClient {
                 let ai_response = AIResponsePayload::new(
                     payload.id.clone(),
                     payload.service_type.clone(),
-                    serde_json::Value::Null,
                     status,
                 )
                 .with_error(response_error)

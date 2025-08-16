@@ -25,6 +25,14 @@ build/
 .env.staging
 .env.*
 
+# EVM/Hardhat artifacts (prevent reintroduction)
+artifacts/
+cache/
+deployments/
+hardhat.config.*
+.solhint*
+contracts/
+
 # IDE files
 .vscode/
 .idea/
