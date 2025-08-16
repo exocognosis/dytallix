@@ -1,13 +1,16 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use log::{info, debug, error};
-use crate::types::{Address, Block, BlockNumber, Timestamp, Amount, Transaction, AccountState, Transaction as TxEnum, TxReceipt, TxStatus};
-use serde::{Serialize, Deserialize};
+use crate::types::{
+    AccountState, Address, Amount, Block, BlockNumber, Timestamp, Transaction,
+    Transaction as TxEnum, TxReceipt, TxStatus,
+};
+use log::{debug, error, info};
+use rocksdb::{Options, DB};
+use serde::{Deserialize, Serialize};
 use sha3::Digest as Sha3Digest;
 use sha3::Sha3_256;
-use rocksdb::{DB, Options};
+use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 /// Transaction receipt persisted for lookup
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,13 +46,36 @@ pub struct ContractMetadata {
 }
 
 impl ContractState {
-    pub fn new(code: Vec<u8>, deployer: Address, deployment_block: BlockNumber, timestamp: Timestamp) -> Self {
-        Self { code, storage: HashMap::new(), balance: 0, metadata: ContractMetadata { deployer, deployment_block, last_modified: timestamp, call_count: 0 } }
+    pub fn new(
+        code: Vec<u8>,
+        deployer: Address,
+        deployment_block: BlockNumber,
+        timestamp: Timestamp,
+    ) -> Self {
+        Self {
+            code,
+            storage: HashMap::new(),
+            balance: 0,
+            metadata: ContractMetadata {
+                deployer,
+                deployment_block,
+                last_modified: timestamp,
+                call_count: 0,
+            },
+        }
     }
-    pub fn set_storage(&mut self, key: Vec<u8>, value: Vec<u8>) { self.storage.insert(key, value); }
-    pub fn get_storage(&self, key: &[u8]) -> Option<&Vec<u8>> { self.storage.get(key) }
-    pub fn increment_calls(&mut self) { self.metadata.call_count += 1; }
-    pub fn update_timestamp(&mut self, timestamp: Timestamp) { self.metadata.last_modified = timestamp; }
+    pub fn set_storage(&mut self, key: Vec<u8>, value: Vec<u8>) {
+        self.storage.insert(key, value);
+    }
+    pub fn get_storage(&self, key: &[u8]) -> Option<&Vec<u8>> {
+        self.storage.get(key)
+    }
+    pub fn increment_calls(&mut self) {
+        self.metadata.call_count += 1;
+    }
+    pub fn update_timestamp(&mut self, timestamp: Timestamp) {
+        self.metadata.last_modified = timestamp;
+    }
 }
 
 /// Persistent storage manager (RocksDB)
@@ -75,69 +101,182 @@ impl StorageManager {
         opts.create_if_missing(true);
         let db_path = Path::new(&data_dir).join("node.db");
         let db = DB::open(&opts, db_path)?;
-        let mgr = Self { db: Arc::new(db), account_cache: Arc::new(RwLock::new(HashMap::new())) };
+        let mgr = Self {
+            db: Arc::new(db),
+            account_cache: Arc::new(RwLock::new(HashMap::new())),
+        };
         mgr.ensure_chain_id(&chain_id)?;
         // If height not set treat as fresh and init genesis
-        if mgr.get_height()? == 0 { mgr.init_genesis(&chain_id).await?; }
+        if mgr.get_height()? == 0 {
+            mgr.init_genesis(&chain_id).await?;
+        }
         Ok(mgr)
     }
 
     fn ensure_chain_id(&self, expected: &str) -> Result<(), Box<dyn std::error::Error>> {
-        match self.db.get(META_CHAIN_ID.as_bytes())? { Some(stored) => { let stored_str = String::from_utf8(stored)?; if stored_str != expected { return Err(format!("Chain ID mismatch: existing {} expected {}", stored_str, expected).into()); } }, None => { self.db.put(META_CHAIN_ID, expected)?; } }
+        match self.db.get(META_CHAIN_ID.as_bytes())? {
+            Some(stored) => {
+                let stored_str = String::from_utf8(stored)?;
+                if stored_str != expected {
+                    return Err(format!(
+                        "Chain ID mismatch: existing {} expected {}",
+                        stored_str, expected
+                    )
+                    .into());
+                }
+            }
+            None => {
+                self.db.put(META_CHAIN_ID, expected)?;
+            }
+        }
         Ok(())
     }
 
     async fn init_genesis(&self, _chain_id: &str) -> Result<(), Box<dyn std::error::Error>> {
         // Load balances from genesis file if provided
-        let genesis_path = std::env::var("DYT_GENESIS_FILE").unwrap_or_else(|_| "genesisBlock.json".to_string());
+        let genesis_path =
+            std::env::var("DYT_GENESIS_FILE").unwrap_or_else(|_| "genesisBlock.json".to_string());
         if Path::new(&genesis_path).exists() {
             if let Ok(text) = std::fs::read_to_string(&genesis_path) {
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
                     // Accept either dgt_allocations or allocations arrays; only load dyt1* addresses
                     if let Some(arr) = json.get("dgt_allocations").and_then(|v| v.as_array()) {
-                        for entry in arr { if let (Some(addr), Some(amount)) = (entry.get("address").and_then(|v| v.as_str()), entry.get("amount").and_then(|v| v.as_u64())) { if addr.starts_with("dyt1") { let mut acct = AccountState::default(); acct.balance = amount; self.store_account_state(addr, &acct)?; } } }
+                        for entry in arr {
+                            if let (Some(addr), Some(amount)) = (
+                                entry.get("address").and_then(|v| v.as_str()),
+                                entry.get("amount").and_then(|v| v.as_u64()),
+                            ) {
+                                if addr.starts_with("dyt1") {
+                                    let mut acct = AccountState::default();
+                                    acct.balance = amount;
+                                    self.store_account_state(addr, &acct)?;
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
         // Initialize metadata height=0 best_hash=0*64
         self.db.put(META_HEIGHT, 0u64.to_be_bytes())?;
-        self.db.put(META_BEST_HASH, vec![b'0';64])?;
+        self.db.put(META_BEST_HASH, vec![b'0'; 64])?;
         Ok(())
     }
 
-    fn set_height(&self, h: u64) -> Result<(), Box<dyn std::error::Error>> { self.db.put(META_HEIGHT, h.to_be_bytes())?; Ok(()) }
-    pub fn get_height(&self) -> Result<u64, Box<dyn std::error::Error>> { Ok(self.db.get(META_HEIGHT)?.map(|b| { let mut arr=[0u8;8]; arr.copy_from_slice(&b); u64::from_be_bytes(arr)}).unwrap_or(0)) }
-    fn set_best_hash(&self, hash: &str) -> Result<(), Box<dyn std::error::Error>> { self.db.put(META_BEST_HASH, hash.as_bytes())?; Ok(()) }
-    pub fn get_best_hash(&self) -> Result<String, Box<dyn std::error::Error>> { Ok(self.db.get(META_BEST_HASH)?.map(|b| String::from_utf8_lossy(&b).to_string()).unwrap_or_else(|| "0".repeat(64))) }
+    fn set_height(&self, h: u64) -> Result<(), Box<dyn std::error::Error>> {
+        self.db.put(META_HEIGHT, h.to_be_bytes())?;
+        Ok(())
+    }
+    pub fn get_height(&self) -> Result<u64, Box<dyn std::error::Error>> {
+        Ok(self
+            .db
+            .get(META_HEIGHT)?
+            .map(|b| {
+                let mut arr = [0u8; 8];
+                arr.copy_from_slice(&b);
+                u64::from_be_bytes(arr)
+            })
+            .unwrap_or(0))
+    }
+    fn set_best_hash(&self, hash: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.db.put(META_BEST_HASH, hash.as_bytes())?;
+        Ok(())
+    }
+    pub fn get_best_hash(&self) -> Result<String, Box<dyn std::error::Error>> {
+        Ok(self
+            .db
+            .get(META_BEST_HASH)?
+            .map(|b| String::from_utf8_lossy(&b).to_string())
+            .unwrap_or_else(|| "0".repeat(64)))
+    }
 
-    fn account_key(address: &str) -> String { format!("acct:{}", address) }
-    fn block_hash_key(hash: &str) -> String { format!("blk_hash:{}", hash) }
-    fn block_num_key(num: u64) -> String { format!("blk_num:{:016x}", num) }
-    fn tx_key(hash: &str) -> String { format!("tx:{}", hash) }
-    fn rcpt_key(hash: &str) -> String { format!("rcpt:{}", hash) }
-    fn contract_key(address: &str) -> String { format!("contract:{}", address) }
-    fn receipt_key(hash: &str) -> String { format!("receipt:{}", hash) }
+    fn account_key(address: &str) -> String {
+        format!("acct:{}", address)
+    }
+    fn block_hash_key(hash: &str) -> String {
+        format!("blk_hash:{}", hash)
+    }
+    fn block_num_key(num: u64) -> String {
+        format!("blk_num:{:016x}", num)
+    }
+    fn tx_key(hash: &str) -> String {
+        format!("tx:{}", hash)
+    }
+    fn rcpt_key(hash: &str) -> String {
+        format!("rcpt:{}", hash)
+    }
+    fn contract_key(address: &str) -> String {
+        format!("contract:{}", address)
+    }
+    fn receipt_key(hash: &str) -> String {
+        format!("receipt:{}", hash)
+    }
 
-    pub fn store_account_state(&self, address: &str, state: &AccountState) -> Result<(), Box<dyn std::error::Error>> { let enc = bincode::serialize(state)?; self.db.put(Self::account_key(address), enc)?; Ok(()) }
-    pub fn get_account_state(&self, address: &str) -> Result<AccountState, Box<dyn std::error::Error>> { if let Some(v) = self.db.get(Self::account_key(address))? { Ok(bincode::deserialize(&v)?) } else { Ok(AccountState::default()) } }
+    pub fn store_account_state(
+        &self,
+        address: &str,
+        state: &AccountState,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let enc = bincode::serialize(state)?;
+        self.db.put(Self::account_key(address), enc)?;
+        Ok(())
+    }
+    pub fn get_account_state(
+        &self,
+        address: &str,
+    ) -> Result<AccountState, Box<dyn std::error::Error>> {
+        if let Some(v) = self.db.get(Self::account_key(address))? {
+            Ok(bincode::deserialize(&v)?)
+        } else {
+            Ok(AccountState::default())
+        }
+    }
 
     /// External API: Get address balance
-    pub async fn get_address_balance(&self, address: &str) -> Result<u64, Box<dyn std::error::Error>> { Ok(self.get_account_state(address)?.balance) }
+    pub async fn get_address_balance(
+        &self,
+        address: &str,
+    ) -> Result<u64, Box<dyn std::error::Error>> {
+        Ok(self.get_account_state(address)?.balance)
+    }
     /// External API: Set (overwrite) address balance (used only in tests / genesis)
-    pub async fn set_address_balance(&self, address: &str, balance: u64) -> Result<(), Box<dyn std::error::Error>> { let mut st = self.get_account_state(address)?; st.balance = balance; self.store_account_state(address, &st)?; Ok(()) }
-    pub async fn get_address_nonce(&self, address: &str) -> Result<u64, Box<dyn std::error::Error>> { Ok(self.get_account_state(address)?.nonce) }
+    pub async fn set_address_balance(
+        &self,
+        address: &str,
+        balance: u64,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut st = self.get_account_state(address)?;
+        st.balance = balance;
+        self.store_account_state(address, &st)?;
+        Ok(())
+    }
+    pub async fn get_address_nonce(
+        &self,
+        address: &str,
+    ) -> Result<u64, Box<dyn std::error::Error>> {
+        Ok(self.get_account_state(address)?.nonce)
+    }
 
     /// Apply a transfer inclusion (validates nonce & balances) and mutate state
     pub fn apply_transfer(&self, tx: &crate::types::TransferTransaction) -> Result<(), String> {
-        let mut sender = self.get_account_state(&tx.from).map_err(|e| e.to_string())?;
+        let mut sender = self
+            .get_account_state(&tx.from)
+            .map_err(|e| e.to_string())?;
         let mut recipient = self.get_account_state(&tx.to).map_err(|e| e.to_string())?;
-        if sender.nonce != tx.nonce { return Err("nonce_mismatch".into()); }
+        if sender.nonce != tx.nonce {
+            return Err("nonce_mismatch".into());
+        }
         let total = tx.amount.checked_add(tx.fee).ok_or("overflow")?;
-        if sender.balance < total { return Err("insufficient_balance".into()); }
-        sender.balance -= total; sender.nonce += 1; recipient.balance = recipient.balance.saturating_add(tx.amount);
-        self.store_account_state(&tx.from, &sender).map_err(|e| e.to_string())?;
-        self.store_account_state(&tx.to, &recipient).map_err(|e| e.to_string())?;
+        if sender.balance < total {
+            return Err("insufficient_balance".into());
+        }
+        sender.balance -= total;
+        sender.nonce += 1;
+        recipient.balance = recipient.balance.saturating_add(tx.amount);
+        self.store_account_state(&tx.from, &sender)
+            .map_err(|e| e.to_string())?;
+        self.store_account_state(&tx.to, &recipient)
+            .map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -148,54 +287,142 @@ impl StorageManager {
         // Store each transaction & receipt placeholder (success assumed if already applied)
         for (idx, tx) in block.transactions.iter().enumerate() {
             let tx_hash = tx.hash();
-            if self.db.get(Self::tx_key(&tx_hash))?.is_none() { self.db.put(Self::tx_key(&tx_hash), bincode::serialize(tx)?)?; }
+            if self.db.get(Self::tx_key(&tx_hash))?.is_none() {
+                self.db
+                    .put(Self::tx_key(&tx_hash), bincode::serialize(tx)?)?;
+            }
             if self.db.get(Self::receipt_key(&tx_hash))?.is_none() {
-                let (from,to,amount,fee,nonce) = match tx { TxEnum::Transfer(t)=> (t.from.clone(), Some(t.to.clone()), Some(t.amount), t.fee, t.nonce), _ => (tx.from().clone(), None, None, tx.fee(), tx.nonce()) };
-                let receipt = TransactionReceipt { hash: tx_hash.clone(), status: "success".into(), block_number: height, index: idx as u32, fee, from, to, amount, nonce, error: None };
-                self.db.put(Self::receipt_key(&tx_hash), bincode::serialize(&receipt)?)?;
+                let (from, to, amount, fee, nonce) = match tx {
+                    TxEnum::Transfer(t) => (
+                        t.from.clone(),
+                        Some(t.to.clone()),
+                        Some(t.amount),
+                        t.fee,
+                        t.nonce,
+                    ),
+                    _ => (tx.from().clone(), None, None, tx.fee(), tx.nonce()),
+                };
+                let receipt = TransactionReceipt {
+                    hash: tx_hash.clone(),
+                    status: "success".into(),
+                    block_number: height,
+                    index: idx as u32,
+                    fee,
+                    from,
+                    to,
+                    amount,
+                    nonce,
+                    error: None,
+                };
+                self.db
+                    .put(Self::receipt_key(&tx_hash), bincode::serialize(&receipt)?)?;
             }
         }
-        self.db.put(Self::block_hash_key(&hash), bincode::serialize(block)?)?;
+        self.db
+            .put(Self::block_hash_key(&hash), bincode::serialize(block)?)?;
         self.db.put(Self::block_num_key(height), hash.as_bytes())?;
-        self.set_height(height)?; self.set_best_hash(&hash)?;
+        self.set_height(height)?;
+        self.set_best_hash(&hash)?;
         Ok(())
     }
 
-    pub async fn get_block_by_height(&self, height: u64) -> Result<Option<Block>, Box<dyn std::error::Error>> { if let Some(hbytes) = self.db.get(Self::block_num_key(height))? { let hash = String::from_utf8(hbytes)?; self.get_block_by_hash(&hash).await } else { Ok(None) } }
-    pub async fn get_block_by_hash(&self, hash: &str) -> Result<Option<Block>, Box<dyn std::error::Error>> { if let Some(raw) = self.db.get(Self::block_hash_key(hash))? { let blk: Block = bincode::deserialize(&raw)?; Ok(Some(blk)) } else { Ok(None) } }
+    pub async fn get_block_by_height(
+        &self,
+        height: u64,
+    ) -> Result<Option<Block>, Box<dyn std::error::Error>> {
+        if let Some(hbytes) = self.db.get(Self::block_num_key(height))? {
+            let hash = String::from_utf8(hbytes)?;
+            self.get_block_by_hash(&hash).await
+        } else {
+            Ok(None)
+        }
+    }
+    pub async fn get_block_by_hash(
+        &self,
+        hash: &str,
+    ) -> Result<Option<Block>, Box<dyn std::error::Error>> {
+        if let Some(raw) = self.db.get(Self::block_hash_key(hash))? {
+            let blk: Block = bincode::deserialize(&raw)?;
+            Ok(Some(blk))
+        } else {
+            Ok(None)
+        }
+    }
 
-    pub async fn list_blocks_desc(&self, limit: usize, from: Option<u64>) -> Result<Vec<Block>, Box<dyn std::error::Error>> {
+    pub async fn list_blocks_desc(
+        &self,
+        limit: usize,
+        from: Option<u64>,
+    ) -> Result<Vec<Block>, Box<dyn std::error::Error>> {
         let current = from.unwrap_or(self.get_height()?);
         let mut out = Vec::new();
         let mut h = current;
         loop {
-            if out.len() >= limit { break; }
-            if let Some(b) = self.get_block_by_height(h).await? { out.push(b); }
-            if h == 0 { break; }
+            if out.len() >= limit {
+                break;
+            }
+            if let Some(b) = self.get_block_by_height(h).await? {
+                out.push(b);
+            }
+            if h == 0 {
+                break;
+            }
             h -= 1; // safe because we break at 0
         }
         Ok(out)
     }
 
-    pub async fn get_transaction_by_hash(&self, hash: &str) -> Result<Option<Transaction>, Box<dyn std::error::Error>> { if let Some(raw) = self.db.get(Self::tx_key(hash))? { Ok(Some(bincode::deserialize(&raw)?)) } else { Ok(None) } }
-    pub async fn store_transaction(&self, tx: &Transaction) -> Result<(), Box<dyn std::error::Error>> { let key = Self::tx_key(&tx.hash()); if self.db.get(&key)?.is_none() { self.db.put(key, bincode::serialize(tx)?)?; } Ok(()) }
+    pub async fn get_transaction_by_hash(
+        &self,
+        hash: &str,
+    ) -> Result<Option<Transaction>, Box<dyn std::error::Error>> {
+        if let Some(raw) = self.db.get(Self::tx_key(hash))? {
+            Ok(Some(bincode::deserialize(&raw)?))
+        } else {
+            Ok(None)
+        }
+    }
+    pub async fn store_transaction(
+        &self,
+        tx: &Transaction,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let key = Self::tx_key(&tx.hash());
+        if self.db.get(&key)?.is_none() {
+            self.db.put(key, bincode::serialize(tx)?)?;
+        }
+        Ok(())
+    }
 
     /// Store a transaction receipt under receipt:{hash}
-    pub async fn store_receipt(&self, receipt: &TxReceipt) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn store_receipt(
+        &self,
+        receipt: &TxReceipt,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let key = Self::receipt_key(&receipt.tx_hash);
         self.db.put(key, bincode::serialize(receipt)?)?;
         Ok(())
     }
 
     /// Fetch a transaction receipt by tx hash (tries new prefix, falls back to legacy rcpt:)
-    pub async fn get_receipt(&self, hash: &str) -> Result<Option<TxReceipt>, Box<dyn std::error::Error>> {
-        if let Some(raw) = self.db.get(Self::receipt_key(hash))? { return Ok(Some(bincode::deserialize(&raw)?)); }
-        if let Some(raw) = self.db.get(Self::rcpt_key(hash))? { return Ok(Some(bincode::deserialize(&raw)?)); }
+    pub async fn get_receipt(
+        &self,
+        hash: &str,
+    ) -> Result<Option<TxReceipt>, Box<dyn std::error::Error>> {
+        if let Some(raw) = self.db.get(Self::receipt_key(hash))? {
+            return Ok(Some(bincode::deserialize(&raw)?));
+        }
+        if let Some(raw) = self.db.get(Self::rcpt_key(hash))? {
+            return Ok(Some(bincode::deserialize(&raw)?));
+        }
         Ok(None)
     }
 
     /// Store a full contract state (code + storage + metadata)
-    pub async fn store_contract(&self, address: &str, state: &ContractState) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn store_contract(
+        &self,
+        address: &str,
+        state: &ContractState,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let enc = bincode::serialize(state)?;
         self.db.put(Self::contract_key(address), enc)?;
         Ok(())
@@ -207,17 +434,30 @@ impl StorageManager {
     }
 
     /// Retrieve a contract state
-    pub async fn get_contract(&self, address: &str) -> Result<Option<ContractState>, Box<dyn std::error::Error>> {
-        if let Some(raw) = self.db.get(Self::contract_key(address))? { Ok(Some(bincode::deserialize(&raw)?)) } else { Ok(None) }
+    pub async fn get_contract(
+        &self,
+        address: &str,
+    ) -> Result<Option<ContractState>, Box<dyn std::error::Error>> {
+        if let Some(raw) = self.db.get(Self::contract_key(address))? {
+            Ok(Some(bincode::deserialize(&raw)?))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Generic put helper (used by runtime persistence)
-    pub async fn put(&self, key: &[u8], value: &[u8]) -> Result<(), Box<dyn std::error::Error>> { self.db.put(key, value)?; Ok(()) }
+    pub async fn put(&self, key: &[u8], value: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+        self.db.put(key, value)?;
+        Ok(())
+    }
     /// Generic get helper (used by runtime persistence)
-    pub async fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> { Ok(self.db.get(key)?) }
+    pub async fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
+        Ok(self.db.get(key)?)
+    }
 
     /// Legacy compatibility (was in-memory). Now uses RocksDB key prefixes.
-    pub async fn clear(&self) -> Result<(), Box<dyn std::error::Error>> { // Not efficient; for tests only.
+    pub async fn clear(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Not efficient; for tests only.
         self.db.flush()?; // leave data (full deletion would require destroying DB)
         Ok(())
     }
@@ -235,13 +475,36 @@ impl StorageManager {
 }
 
 // --- Helper: build a simple block from transactions (used by background producer) ---
-pub fn build_block(parent_hash: String, number: u64, txs: Vec<Transaction>, validator: Address) -> Block {
+pub fn build_block(
+    parent_hash: String,
+    number: u64,
+    txs: Vec<Transaction>,
+    validator: Address,
+) -> Block {
     let transactions_root = crate::types::BlockHeader::calculate_transactions_root(&txs);
     let state_root = "0".repeat(64); // placeholder
     let timestamp = chrono::Utc::now().timestamp() as u64;
-    let signature = crate::types::PQCBlockSignature { signature: dytallix_pqc::Signature { data: vec![], algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5 }, public_key: vec![] };
-    let header = crate::types::BlockHeader { number, parent_hash, transactions_root, state_root, timestamp, validator, signature, nonce: 0 };
-    Block { header, transactions: txs }
+    let signature = crate::types::PQCBlockSignature {
+        signature: dytallix_pqc::Signature {
+            data: vec![],
+            algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+        },
+        public_key: vec![],
+    };
+    let header = crate::types::BlockHeader {
+        number,
+        parent_hash,
+        transactions_root,
+        state_root,
+        timestamp,
+        validator,
+        signature,
+        nonce: 0,
+    };
+    Block {
+        header,
+        transactions: txs,
+    }
 }
 
 #[cfg(test)]
@@ -252,7 +515,16 @@ mod tests {
     #[tokio::test]
     async fn test_store_get_receipt_roundtrip() {
         let mgr = StorageManager::new().await.unwrap();
-        let rcpt = TxReceipt { tx_hash: "0xdeadbeef".into(), block_number: 1, status: TxStatus::Success, gas_used: 0, fee_paid: 1, timestamp: 123, index: 0, error: None };
+        let rcpt = TxReceipt {
+            tx_hash: "0xdeadbeef".into(),
+            block_number: 1,
+            status: TxStatus::Success,
+            gas_used: 0,
+            fee_paid: 1,
+            timestamp: 123,
+            index: 0,
+            error: None,
+        };
         mgr.store_receipt(&rcpt).await.unwrap();
         let fetched = mgr.get_receipt(&rcpt.tx_hash).await.unwrap().unwrap();
         assert_eq!(fetched, rcpt);

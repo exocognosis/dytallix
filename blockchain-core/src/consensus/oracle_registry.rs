@@ -5,12 +5,12 @@
 //! in the Dytallix blockchain network.
 
 use anyhow::Result;
+use chrono;
+use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono;
-use log::{info, warn, error, debug};
 
 use crate::types::{Address, Amount, Timestamp};
 use dytallix_pqc::PQCManager;
@@ -45,11 +45,11 @@ impl Default for OracleRegistryConfig {
             max_oracle_count: 100,
             min_reputation_threshold: 0.7,
             reputation_decay_factor: 0.99, // 1% decay per day
-            slashing_percentage: 0.1, // 10% slashing
-            slashing_grace_period: 86400, // 24 hours
-            performance_window: 604800, // 7 days
-            max_response_time_ms: 5000, // 5 seconds
-            min_accuracy_threshold: 0.8, // 80% accuracy
+            slashing_percentage: 0.1,      // 10% slashing
+            slashing_grace_period: 86400,  // 24 hours
+            performance_window: 604800,    // 7 days
+            max_response_time_ms: 5000,    // 5 seconds
+            min_accuracy_threshold: 0.8,   // 80% accuracy
         }
     }
 }
@@ -308,7 +308,10 @@ impl OracleRegistry {
         // Check if oracle already exists
         let oracles = self.oracles.read().await;
         if oracles.contains_key(&oracle_address) {
-            return Err(anyhow::anyhow!("Oracle {} already registered", oracle_address));
+            return Err(anyhow::anyhow!(
+                "Oracle {} already registered",
+                oracle_address
+            ));
         }
 
         // Check registry capacity
@@ -324,8 +327,13 @@ impl OracleRegistry {
         }
 
         // If whitelist exists and is not empty, oracle must be whitelisted
-        if !access_control.whitelist.is_empty() && !access_control.whitelist.contains(&oracle_address) {
-            return Err(anyhow::anyhow!("Oracle {} is not whitelisted", oracle_address));
+        if !access_control.whitelist.is_empty()
+            && !access_control.whitelist.contains(&oracle_address)
+        {
+            return Err(anyhow::anyhow!(
+                "Oracle {} is not whitelisted",
+                oracle_address
+            ));
         }
         drop(access_control);
 
@@ -367,7 +375,10 @@ impl OracleRegistry {
         stats.last_updated = now;
         drop(stats);
 
-        info!("Oracle {} registered successfully with stake {}", oracle_address, stake_amount);
+        info!(
+            "Oracle {} registered successfully with stake {}",
+            oracle_address, stake_amount
+        );
         Ok(())
     }
 
@@ -379,16 +390,20 @@ impl OracleRegistry {
                 OracleStatus::Pending => {
                     oracle.status = OracleStatus::Active;
                     oracle.last_activity = chrono::Utc::now().timestamp() as u64;
-                    
+
                     // Update statistics
                     let mut stats = self.stats.write().await;
                     stats.active_count += 1;
                     stats.last_updated = oracle.last_activity;
-                    
+
                     info!("Oracle {} activated", oracle_address);
                     Ok(())
                 }
-                _ => Err(anyhow::anyhow!("Oracle {} cannot be activated from status {:?}", oracle_address, oracle.status)),
+                _ => Err(anyhow::anyhow!(
+                    "Oracle {} cannot be activated from status {:?}",
+                    oracle_address,
+                    oracle.status
+                )),
             }
         } else {
             Err(anyhow::anyhow!("Oracle {} not found", oracle_address))
@@ -422,8 +437,10 @@ impl OracleRegistry {
             }
 
             // Update response time
-            let total_time = reputation.avg_response_time_ms * (reputation.total_responses - 1) as f64;
-            reputation.avg_response_time_ms = (total_time + response_time_ms as f64) / reputation.total_responses as f64;
+            let total_time =
+                reputation.avg_response_time_ms * (reputation.total_responses - 1) as f64;
+            reputation.avg_response_time_ms =
+                (total_time + response_time_ms as f64) / reputation.total_responses as f64;
 
             // Calculate new reputation score
             let accuracy_score = if reputation.total_responses > 0 {
@@ -433,7 +450,8 @@ impl OracleRegistry {
             };
 
             let signature_score = if reputation.total_responses > 0 {
-                (reputation.total_responses - reputation.invalid_signature_responses) as f64 / reputation.total_responses as f64
+                (reputation.total_responses - reputation.invalid_signature_responses) as f64
+                    / reputation.total_responses as f64
             } else {
                 1.0
             };
@@ -445,14 +463,19 @@ impl OracleRegistry {
             };
 
             // Combined reputation score (weighted average)
-            let new_score = (accuracy_score * 0.5) + (signature_score * 0.3) + (response_time_score * 0.2);
+            let new_score =
+                (accuracy_score * 0.5) + (signature_score * 0.3) + (response_time_score * 0.2);
             reputation.current_score = new_score.min(1.0).max(0.0);
             reputation.max_score = reputation.max_score.max(reputation.current_score);
             reputation.last_updated = now;
 
             // Add to daily scores (keep last 30 days)
-            reputation.daily_scores.push((now, reputation.current_score));
-            reputation.daily_scores.retain(|(timestamp, _)| now - timestamp <= 30 * 24 * 3600);
+            reputation
+                .daily_scores
+                .push((now, reputation.current_score));
+            reputation
+                .daily_scores
+                .retain(|(timestamp, _)| now - timestamp <= 30 * 24 * 3600);
 
             // Update performance metrics
             performance.last_response = now;
@@ -472,11 +495,16 @@ impl OracleRegistry {
             // Check if oracle should be suspended due to low reputation
             if reputation.current_score < self.config.min_reputation_threshold {
                 oracle.status = OracleStatus::Suspended;
-                warn!("Oracle {} suspended due to low reputation: {}", oracle_address, reputation.current_score);
+                warn!(
+                    "Oracle {} suspended due to low reputation: {}",
+                    oracle_address, reputation.current_score
+                );
             }
 
-            info!("Updated reputation for oracle {}: score={:.3}, accuracy={:.3}", 
-                  oracle_address, reputation.current_score, accuracy_score);
+            info!(
+                "Updated reputation for oracle {}: score={:.3}, accuracy={:.3}",
+                oracle_address, reputation.current_score, accuracy_score
+            );
 
             Ok(())
         } else {
@@ -494,7 +522,8 @@ impl OracleRegistry {
         let mut oracles = self.oracles.write().await;
         if let Some(oracle) = oracles.get_mut(oracle_address) {
             let now = chrono::Utc::now().timestamp() as u64;
-            let slash_amount = (oracle.stake.total_amount as f64 * self.config.slashing_percentage) as Amount;
+            let slash_amount =
+                (oracle.stake.total_amount as f64 * self.config.slashing_percentage) as Amount;
 
             if immediate {
                 // Immediate slashing
@@ -510,8 +539,10 @@ impl OracleRegistry {
                 }
                 stats.last_updated = now;
 
-                error!("Oracle {} immediately slashed for: {}. Amount: {}", 
-                       oracle_address, slash_reason, slash_amount);
+                error!(
+                    "Oracle {} immediately slashed for: {}. Amount: {}",
+                    oracle_address, slash_reason, slash_amount
+                );
             } else {
                 // Grace period slashing
                 oracle.stake.pending_slash = slash_amount;
@@ -519,8 +550,10 @@ impl OracleRegistry {
                 oracle.status = OracleStatus::Suspended;
                 oracle.last_activity = now;
 
-                warn!("Oracle {} scheduled for slashing after grace period. Reason: {}. Amount: {}", 
-                      oracle_address, slash_reason, slash_amount);
+                warn!(
+                    "Oracle {} scheduled for slashing after grace period. Reason: {}. Amount: {}",
+                    oracle_address, slash_reason, slash_amount
+                );
             }
 
             Ok(())
@@ -546,7 +579,10 @@ impl OracleRegistry {
                     oracle.last_activity = now;
                     slashed_count += 1;
 
-                    error!("Executed pending slash for oracle {}: {}", address, oracle.stake.locked_amount);
+                    error!(
+                        "Executed pending slash for oracle {}: {}",
+                        address, oracle.stake.locked_amount
+                    );
                 }
             }
         }
@@ -576,7 +612,9 @@ impl OracleRegistry {
         let mut access_control = self.access_control.write().await;
         if !access_control.blacklist.contains(&oracle_address) {
             access_control.blacklist.push(oracle_address.clone());
-            access_control.access_notes.insert(oracle_address.clone(), reason.clone());
+            access_control
+                .access_notes
+                .insert(oracle_address.clone(), reason.clone());
             info!("Oracle {} added to blacklist: {}", oracle_address, reason);
         }
 
@@ -607,12 +645,16 @@ impl OracleRegistry {
     }
 
     /// Get oracles by reputation threshold
-    pub async fn get_oracles_by_reputation(&self, min_reputation: f64) -> HashMap<Address, OracleRegistryEntry> {
+    pub async fn get_oracles_by_reputation(
+        &self,
+        min_reputation: f64,
+    ) -> HashMap<Address, OracleRegistryEntry> {
         let oracles = self.oracles.read().await;
         oracles
             .iter()
             .filter(|(_, oracle)| {
-                oracle.status == OracleStatus::Active && oracle.reputation.current_score >= min_reputation
+                oracle.status == OracleStatus::Active
+                    && oracle.reputation.current_score >= min_reputation
             })
             .map(|(addr, oracle)| (addr.clone(), oracle.clone()))
             .collect()
@@ -658,16 +700,18 @@ mod tests {
         let config = OracleRegistryConfig::default();
         let registry = OracleRegistry::new(config).unwrap();
 
-        let result = registry.register_oracle(
-            "dyt1oracle1".to_string(),
-            "Test Oracle".to_string(),
-            "Test oracle for unit testing".to_string(),
-            vec![1, 2, 3, 4],
-            2000000000, // 20 DYTX
-            "1.0.0".to_string(),
-            vec!["risk_scoring".to_string()],
-            Some("test@example.com".to_string()),
-        ).await;
+        let result = registry
+            .register_oracle(
+                "dyt1oracle1".to_string(),
+                "Test Oracle".to_string(),
+                "Test oracle for unit testing".to_string(),
+                vec![1, 2, 3, 4],
+                2000000000, // 20 DYTX
+                "1.0.0".to_string(),
+                vec!["risk_scoring".to_string()],
+                Some("test@example.com".to_string()),
+            )
+            .await;
 
         assert!(result.is_ok());
 
@@ -682,29 +726,41 @@ mod tests {
         let registry = OracleRegistry::new(config).unwrap();
 
         // Register oracle
-        registry.register_oracle(
-            "dyt1oracle2".to_string(),
-            "Test Oracle 2".to_string(),
-            "Test oracle 2".to_string(),
-            vec![5, 6, 7, 8],
-            2000000000,
-            "1.0.0".to_string(),
-            vec!["risk_scoring".to_string()],
-            None,
-        ).await.unwrap();
+        registry
+            .register_oracle(
+                "dyt1oracle2".to_string(),
+                "Test Oracle 2".to_string(),
+                "Test oracle 2".to_string(),
+                vec![5, 6, 7, 8],
+                2000000000,
+                "1.0.0".to_string(),
+                vec!["risk_scoring".to_string()],
+                None,
+            )
+            .await
+            .unwrap();
 
         // Activate oracle
-        registry.activate_oracle(&"dyt1oracle2".to_string()).await.unwrap();
+        registry
+            .activate_oracle(&"dyt1oracle2".to_string())
+            .await
+            .unwrap();
 
         // Update reputation
-        registry.update_reputation(
-            &"dyt1oracle2".to_string(),
-            1000, // 1 second response time
-            true, // accurate
-            true, // valid signature
-        ).await.unwrap();
+        registry
+            .update_reputation(
+                &"dyt1oracle2".to_string(),
+                1000, // 1 second response time
+                true, // accurate
+                true, // valid signature
+            )
+            .await
+            .unwrap();
 
-        let oracle = registry.get_oracle(&"dyt1oracle2".to_string()).await.unwrap();
+        let oracle = registry
+            .get_oracle(&"dyt1oracle2".to_string())
+            .await
+            .unwrap();
         assert!(oracle.reputation.current_score > 0.9);
         assert_eq!(oracle.reputation.accurate_responses, 1);
     }
@@ -715,27 +771,39 @@ mod tests {
         let registry = OracleRegistry::new(config).unwrap();
 
         // Register and activate oracle
-        registry.register_oracle(
-            "dyt1oracle3".to_string(),
-            "Test Oracle 3".to_string(),
-            "Test oracle 3".to_string(),
-            vec![9, 10, 11, 12],
-            2000000000,
-            "1.0.0".to_string(),
-            vec!["risk_scoring".to_string()],
-            None,
-        ).await.unwrap();
+        registry
+            .register_oracle(
+                "dyt1oracle3".to_string(),
+                "Test Oracle 3".to_string(),
+                "Test oracle 3".to_string(),
+                vec![9, 10, 11, 12],
+                2000000000,
+                "1.0.0".to_string(),
+                vec!["risk_scoring".to_string()],
+                None,
+            )
+            .await
+            .unwrap();
 
-        registry.activate_oracle(&"dyt1oracle3".to_string()).await.unwrap();
+        registry
+            .activate_oracle(&"dyt1oracle3".to_string())
+            .await
+            .unwrap();
 
         // Slash oracle
-        registry.slash_oracle(
-            &"dyt1oracle3".to_string(),
-            "Malicious behavior detected".to_string(),
-            true, // immediate
-        ).await.unwrap();
+        registry
+            .slash_oracle(
+                &"dyt1oracle3".to_string(),
+                "Malicious behavior detected".to_string(),
+                true, // immediate
+            )
+            .await
+            .unwrap();
 
-        let oracle = registry.get_oracle(&"dyt1oracle3".to_string()).await.unwrap();
+        let oracle = registry
+            .get_oracle(&"dyt1oracle3".to_string())
+            .await
+            .unwrap();
         assert_eq!(oracle.status, OracleStatus::Slashed);
         assert!(oracle.stake.locked_amount > 0);
     }

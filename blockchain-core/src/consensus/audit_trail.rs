@@ -7,18 +7,18 @@
 //! - Data retention policy management
 //! - Regulatory export functionality
 
+use anyhow::{anyhow, Result};
+use chrono::{DateTime, Duration, Utc};
+use log::info;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc, Duration};
-use serde::{Serialize, Deserialize};
 use uuid::Uuid;
-use anyhow::{Result, anyhow};
-use log::info;
 
-use crate::types::{Transaction, TxHash, Address};
 use crate::consensus::ai_integration::{AIVerificationResult, RiskProcessingDecision};
 use crate::consensus::notification_types::ReviewPriority;
+use crate::types::{Address, Transaction, TxHash};
 
 /// Comprehensive audit entry for AI decisions
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,7 +82,10 @@ pub enum ComplianceStatus {
     /// Failed compliance checks
     Failed { reason: String },
     /// Flagged for investigation
-    Flagged { reason: String, investigator: Option<String> },
+    Flagged {
+        reason: String,
+        investigator: Option<String>,
+    },
 }
 
 /// Data retention policy information
@@ -276,7 +279,8 @@ impl AuditTrailManager {
         let compliance_status = self.determine_compliance_status(&ai_result, &risk_decision);
 
         // Determine retention policy based on transaction characteristics
-        let retention_info = self.determine_retention_policy(&transaction_metadata, &compliance_status);
+        let retention_info =
+            self.determine_retention_policy(&transaction_metadata, &compliance_status);
 
         let audit_entry = AuditEntry {
             audit_id,
@@ -302,7 +306,8 @@ impl AuditTrailManager {
         // Update index
         {
             let mut index = self.audit_index.write().await;
-            index.entry(transaction_hash.clone())
+            index
+                .entry(transaction_hash.clone())
                 .or_insert_with(Vec::new)
                 .push(audit_id);
         }
@@ -313,7 +318,11 @@ impl AuditTrailManager {
             stats.pending_entries += 1;
         }
 
-        info!("Recorded audit entry {} for transaction {}", audit_id, hex::encode(&transaction_hash));
+        info!(
+            "Recorded audit entry {} for transaction {}",
+            audit_id,
+            hex::encode(&transaction_hash)
+        );
 
         // Check if we need to flush
         if self.should_flush().await {
@@ -360,7 +369,10 @@ impl AuditTrailManager {
     }
 
     /// Query audit entries with filtering and pagination
-    pub async fn query_audit_entries(&self, query: ComplianceQuery) -> Result<(Vec<AuditEntry>, ComplianceReportSummary)> {
+    pub async fn query_audit_entries(
+        &self,
+        query: ComplianceQuery,
+    ) -> Result<(Vec<AuditEntry>, ComplianceReportSummary)> {
         // Update query statistics
         {
             let mut stats = self.stats.write().await;
@@ -377,17 +389,21 @@ impl AuditTrailManager {
         for entry in storage.values() {
             if self.entry_matches_query(entry, &query) {
                 matching_entries.push(entry.clone());
-                
+
                 // Update summary statistics
                 let status_key = format!("{:?}", entry.compliance_status);
                 *summary_stats.entry(status_key).or_insert(0) += 1;
-                
+
                 if let Some(amount) = entry.transaction_metadata.amount {
                     total_volume += amount;
                 }
 
                 // Extract risk score for average calculation
-                if let AIVerificationResult::Verified { risk_score: Some(score), .. } = &entry.ai_result {
+                if let AIVerificationResult::Verified {
+                    risk_score: Some(score),
+                    ..
+                } = &entry.ai_result
+                {
                     risk_scores.push(*score);
                 }
             }
@@ -417,7 +433,7 @@ impl AuditTrailManager {
             average_risk_score,
             total_volume,
             manual_reviews_required: 0, // Would be calculated from entries
-            flagged_transactions: 0, // Would be calculated from entries
+            flagged_transactions: 0,    // Would be calculated from entries
         };
 
         Ok((paginated_entries, summary))
@@ -430,7 +446,7 @@ impl AuditTrailManager {
         format: ExportFormat,
     ) -> Result<Vec<u8>> {
         let (entries, _summary) = self.query_audit_entries(query).await?;
-        
+
         match format {
             ExportFormat::Json => {
                 let json_data = serde_json::to_vec_pretty(&entries)?;
@@ -440,13 +456,16 @@ impl AuditTrailManager {
                 // Create CSV format for regulatory reporting
                 let mut csv_data = Vec::new();
                 csv_data.extend_from_slice(b"audit_id,transaction_hash,timestamp,oracle_id,risk_score,compliance_status,amount,from_address,to_address\n");
-                
+
                 for entry in entries {
                     let risk_score = match &entry.ai_result {
-                        AIVerificationResult::Verified { risk_score: Some(score), .. } => score.to_string(),
+                        AIVerificationResult::Verified {
+                            risk_score: Some(score),
+                            ..
+                        } => score.to_string(),
                         _ => "N/A".to_string(),
                     };
-                    
+
                     let line = format!(
                         "{},{},{},{},{},{:?},{},{},{}\n",
                         entry.audit_id,
@@ -456,12 +475,20 @@ impl AuditTrailManager {
                         risk_score,
                         entry.compliance_status,
                         entry.transaction_metadata.amount.unwrap_or(0),
-                        entry.transaction_metadata.from_address.as_deref().unwrap_or("N/A"),
-                        entry.transaction_metadata.to_address.as_deref().unwrap_or("N/A")
+                        entry
+                            .transaction_metadata
+                            .from_address
+                            .as_deref()
+                            .unwrap_or("N/A"),
+                        entry
+                            .transaction_metadata
+                            .to_address
+                            .as_deref()
+                            .unwrap_or("N/A")
                     );
                     csv_data.extend_from_slice(line.as_bytes());
                 }
-                
+
                 Ok(csv_data)
             }
         }
@@ -471,9 +498,10 @@ impl AuditTrailManager {
     pub async fn get_transaction_audit_trail(&self, transaction_hash: &TxHash) -> Vec<AuditEntry> {
         let index = self.audit_index.read().await;
         let storage = self.audit_storage.read().await;
-        
+
         if let Some(audit_ids) = index.get(transaction_hash) {
-            audit_ids.iter()
+            audit_ids
+                .iter()
                 .filter_map(|id| storage.get(id))
                 .cloned()
                 .collect()
@@ -496,7 +524,7 @@ impl AuditTrailManager {
 
         let now = Utc::now();
         let mut archived_count = 0;
-        
+
         // In production, this would move entries to cold storage
         let storage = self.audit_storage.read().await;
         for entry in storage.values() {
@@ -508,7 +536,7 @@ impl AuditTrailManager {
 
         if archived_count > 0 {
             info!("Archived {} old audit entries", archived_count);
-            
+
             let mut stats = self.stats.write().await;
             stats.archived_entries += archived_count;
         }
@@ -523,7 +551,7 @@ impl AuditTrailManager {
         new_status: ComplianceStatus,
     ) -> Result<()> {
         let mut storage = self.audit_storage.write().await;
-        
+
         if let Some(entry) = storage.get_mut(&audit_id) {
             entry.compliance_status = new_status;
             info!("Updated compliance status for audit entry {}", audit_id);
@@ -612,7 +640,9 @@ impl AuditTrailManager {
         status: &ComplianceStatus,
     ) -> RetentionInfo {
         let classification = match status {
-            ComplianceStatus::Failed { .. } | ComplianceStatus::Flagged { .. } => DataClassification::HighRisk,
+            ComplianceStatus::Failed { .. } | ComplianceStatus::Flagged { .. } => {
+                DataClassification::HighRisk
+            }
             _ => {
                 if metadata.amount.unwrap_or(0) > 10000 {
                     DataClassification::Financial
@@ -623,10 +653,10 @@ impl AuditTrailManager {
         };
 
         let retention_days = match classification {
-            DataClassification::Standard => 2557, // 7 years
+            DataClassification::Standard => 2557,  // 7 years
             DataClassification::Financial => 3653, // 10 years
-            DataClassification::HighRisk => 7305, // 20 years
-            DataClassification::Legal => 36525, // 100 years (indefinite)
+            DataClassification::HighRisk => 7305,  // 20 years
+            DataClassification::Legal => 36525,    // 100 years (indefinite)
         };
 
         RetentionInfo {
@@ -746,16 +776,19 @@ mod tests {
             reason: "Test review".to_string(),
         };
 
-        let audit_id = audit_manager.record_ai_decision(
-            &transaction,
-            tx_hash.clone(),
-            ai_result,
-            risk_decision,
-            ReviewPriority::Medium,
-            "test-oracle".to_string(),
-            "test-request".to_string(),
-            Some(12345),
-        ).await.unwrap();
+        let audit_id = audit_manager
+            .record_ai_decision(
+                &transaction,
+                tx_hash.clone(),
+                ai_result,
+                risk_decision,
+                ReviewPriority::Medium,
+                "test-oracle".to_string(),
+                "test-request".to_string(),
+                Some(12345),
+            )
+            .await
+            .unwrap();
 
         assert!(!audit_id.is_nil());
 
@@ -779,16 +812,19 @@ mod tests {
                 reason: format!("Test review {}", i),
             };
 
-            audit_manager.record_ai_decision(
-                &transaction,
-                tx_hash,
-                ai_result,
-                risk_decision,
-                ReviewPriority::Medium,
-                "test-oracle".to_string(),
-                format!("test-request-{}", i),
-                Some(12345 + i),
-            ).await.unwrap();
+            audit_manager
+                .record_ai_decision(
+                    &transaction,
+                    tx_hash,
+                    ai_result,
+                    risk_decision,
+                    ReviewPriority::Medium,
+                    "test-oracle".to_string(),
+                    format!("test-request-{}", i),
+                    Some(12345 + i),
+                )
+                .await
+                .unwrap();
         }
 
         // Flush entries to storage
@@ -827,16 +863,19 @@ mod tests {
             reason: "Export test".to_string(),
         };
 
-        audit_manager.record_ai_decision(
-            &transaction,
-            tx_hash,
-            ai_result,
-            risk_decision,
-            ReviewPriority::Medium,
-            "test-oracle".to_string(),
-            "export-request".to_string(),
-            Some(12345),
-        ).await.unwrap();
+        audit_manager
+            .record_ai_decision(
+                &transaction,
+                tx_hash,
+                ai_result,
+                risk_decision,
+                ReviewPriority::Medium,
+                "test-oracle".to_string(),
+                "export-request".to_string(),
+                Some(12345),
+            )
+            .await
+            .unwrap();
 
         audit_manager.flush_pending_entries().await.unwrap();
 
@@ -855,13 +894,19 @@ mod tests {
             limit: 10,
         };
 
-        let json_data = audit_manager.export_compliance_data(query.clone(), ExportFormat::Json).await.unwrap();
+        let json_data = audit_manager
+            .export_compliance_data(query.clone(), ExportFormat::Json)
+            .await
+            .unwrap();
         assert!(!json_data.is_empty());
 
         // Test CSV export
-        let csv_data = audit_manager.export_compliance_data(query, ExportFormat::Csv).await.unwrap();
+        let csv_data = audit_manager
+            .export_compliance_data(query, ExportFormat::Csv)
+            .await
+            .unwrap();
         assert!(!csv_data.is_empty());
-        
+
         // Verify CSV header
         let csv_string = String::from_utf8(csv_data).unwrap();
         assert!(csv_string.starts_with("audit_id,transaction_hash,timestamp"));

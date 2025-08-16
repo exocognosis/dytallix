@@ -3,11 +3,11 @@
 //! This module handles Post-Quantum Cryptography (PQC) key generation, storage,
 //! and management for the consensus engine.
 
-use std::path::Path;
-use anyhow::{Result, anyhow};
-use serde::{Serialize, Deserialize};
-use log::{info, warn, error};
+use anyhow::{anyhow, Result};
+use log::{error, info, warn};
+use serde::{Deserialize, Serialize};
 use std::fs;
+use std::path::Path;
 
 use crate::crypto::PQCManager;
 
@@ -54,26 +54,28 @@ impl KeyManager {
     /// Initialize key management system
     pub fn initialize(&mut self) -> Result<()> {
         let key_file = Path::new(&self.key_file_path);
-        
+
         if key_file.exists() {
             self.load_keys()?;
         } else {
             self.generate_and_store_keys()?;
         }
-        
+
         Ok(())
     }
 
     /// Load existing keys from file
     pub fn load_keys(&mut self) -> Result<()> {
         let key_file = Path::new(&self.key_file_path);
-        
+
         match fs::read_to_string(key_file) {
             Ok(data) => {
                 if let Ok(store) = serde_json::from_str::<NodeKeyStore>(&data) {
                     info!("Loaded PQC keys from {}", key_file.display());
-                    info!("Available algorithms: {}, {}, {}",
-                          store.dilithium.algorithm, store.falcon.algorithm, store.sphincs.algorithm);
+                    info!(
+                        "Available algorithms: {}, {}, {}",
+                        store.dilithium.algorithm, store.falcon.algorithm, store.sphincs.algorithm
+                    );
                     self.key_store = Some(store);
                     Ok(())
                 } else {
@@ -92,7 +94,7 @@ impl KeyManager {
     /// Generate new keys and store them
     pub fn generate_and_store_keys(&mut self) -> Result<()> {
         let key_file = Path::new(&self.key_file_path);
-        
+
         // Ensure directory exists
         if let Some(parent) = key_file.parent() {
             fs::create_dir_all(parent)?;
@@ -119,9 +121,12 @@ impl KeyManager {
         let json_data = serde_json::to_string_pretty(&key_store)?;
         fs::write(key_file, json_data)?;
 
-        info!("Generated and stored new PQC keys to {}", key_file.display());
+        info!(
+            "Generated and stored new PQC keys to {}",
+            key_file.display()
+        );
         self.key_store = Some(key_store);
-        
+
         Ok(())
     }
 
@@ -131,10 +136,10 @@ impl KeyManager {
         // In a real implementation, you would use the PQC manager
         let key_id = uuid::Uuid::new_v4().to_string();
         let created_at = chrono::Utc::now().timestamp() as u64;
-        
+
         Ok(PQCKeyInfo {
             algorithm: algorithm.to_string(),
-            public_key: vec![0u8; 32], // Placeholder
+            public_key: vec![0u8; 32],  // Placeholder
             private_key: vec![0u8; 64], // Placeholder
             key_id,
             created_at,
@@ -185,7 +190,7 @@ impl KeyManager {
         if let Some(store) = &self.key_store {
             let current_time = chrono::Utc::now().timestamp() as u64;
             let key_age = current_time - store.created_at;
-            
+
             // Rotate keys if they're older than 30 days
             key_age > 30 * 24 * 60 * 60
         } else {
@@ -221,7 +226,7 @@ impl KeyManager {
     pub fn backup_keys(&self, backup_path: &str) -> Result<()> {
         if let Some(store) = &self.key_store {
             let backup_file = Path::new(backup_path);
-            
+
             // Ensure backup directory exists
             if let Some(parent) = backup_file.parent() {
                 fs::create_dir_all(parent)?;
@@ -229,7 +234,7 @@ impl KeyManager {
 
             let json_data = serde_json::to_string_pretty(store)?;
             fs::write(backup_file, json_data)?;
-            
+
             info!("Backed up PQC keys to {}", backup_path);
             Ok(())
         } else {
@@ -240,21 +245,21 @@ impl KeyManager {
     /// Restore keys from backup
     pub fn restore_from_backup(&mut self, backup_path: &str) -> Result<()> {
         let backup_file = Path::new(backup_path);
-        
+
         if !backup_file.exists() {
             return Err(anyhow!("Backup file does not exist: {}", backup_path));
         }
 
         let data = fs::read_to_string(backup_file)?;
         let store: NodeKeyStore = serde_json::from_str(&data)?;
-        
+
         // Save to main location
         let json_data = serde_json::to_string_pretty(&store)?;
         fs::write(&self.key_file_path, json_data)?;
-        
+
         self.key_store = Some(store);
         info!("Restored PQC keys from backup: {}", backup_path);
-        
+
         Ok(())
     }
 }

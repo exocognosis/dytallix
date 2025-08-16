@@ -1,0 +1,43 @@
+{
+  "transactions": [
+    {
+      "hash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "from": "0x742d35cc6634c0532925a3b8d6b9dcc14f8e8a2b",
+      "to": "0x8ba1f109551bd432803012645hac136c1e5cc56c",
+      "value": "1000000000000000000",
+      "gasPrice": "20000000000",
+      "gasLimit": "21000",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "blockNumber": 123456,
+      "status": "success",
+      "anomalyScore": 0.15,
+      "riskLevel": "low"
+    },
+    {
+      "hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+      "from": "0x123456789abcdef123456789abcdef123456789a",
+      "to": "0x987654321fedcba987654321fedcba987654321f",
+      "value": "5000000000000000000",
+      "gasPrice": "50000000000",
+      "gasLimit": "100000",
+      "timestamp": "2024-01-15T11:45:00Z",
+      "blockNumber": 123457,
+      "status": "success",
+      "anomalyScore": 0.75,
+      "riskLevel": "high"
+    },
+    {
+      "hash": "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+      "from": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      "to": "0xcafebabecafebabecafebabecafebabecafebabe",
+      "value": "2500000000000000000",
+      "gasPrice": "30000000000",
+      "gasLimit": "50000",
+      "timestamp": "2024-01-15T12:15:00Z",
+      "blockNumber": 123458,
+      "status": "failed",
+      "anomalyScore": 0.45,
+      "riskLevel": "medium"
+    }
+  ]
+}

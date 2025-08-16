@@ -243,7 +243,8 @@ impl CircuitBreakerContext {
 
     /// Check if circuit breaker should close
     pub fn should_close(&self) -> bool {
-        self.state == CircuitBreakerState::HalfOpen && self.stats.failure_rate < self.failure_threshold
+        self.state == CircuitBreakerState::HalfOpen
+            && self.stats.failure_rate < self.failure_threshold
     }
 
     /// Check if circuit breaker should move to half-open
@@ -251,7 +252,7 @@ impl CircuitBreakerContext {
         if self.state != CircuitBreakerState::Open {
             return false;
         }
-        
+
         if let Some(last_opened) = self.stats.last_opened_time {
             let elapsed = last_opened.elapsed();
             elapsed.as_secs() >= self.recovery_time_seconds
@@ -263,7 +264,7 @@ impl CircuitBreakerContext {
     /// Update circuit breaker state
     pub fn update_state(&mut self, new_state: CircuitBreakerState) {
         use std::time::Instant;
-        
+
         match new_state {
             CircuitBreakerState::Open => {
                 self.stats.last_opened_time = Some(Instant::now());
@@ -275,7 +276,7 @@ impl CircuitBreakerContext {
                 // No specific timestamp update needed for half-open
             }
         }
-        
+
         self.state = new_state;
     }
 }
