@@ -14,6 +14,7 @@ use tokio::time::interval;
 
 mod mempool;
 mod rpc;
+mod runtime { pub mod oracle; }
 mod state;
 mod storage;
 mod ws;
@@ -209,6 +210,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/tx/:hash", get(rpc::get_tx))
         .route("/stats", get(rpc::stats))
         .route("/peers", get(rpc::peers))
+        .route("/oracle/ai_risk", post(runtime::oracle::post_ai_risk))
         .layer(Extension(ctx));
     if ws_enabled {
         app = app.route("/ws", get(ws_handler).layer(Extension(ws_hub)));

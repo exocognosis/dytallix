@@ -134,3 +134,57 @@ See `scripts/devnet.sh` for an automated E2E proving:
 - Contract execution layer
 - Indexed queries (address tx history)
 
+## AI Risk Oracle (New)
+Endpoint: POST /oracle/ai_risk
+Payload:
+```
+{ "tx_hash": "0x...", "score": 0.0-1.0, "signature": "BASE64(ed25519)" }
+```
+Behavior:
+- Stores record under key `oracle:ai:{tx_hash}`.
+- If env `AI_ORACLE_PUBKEY` (base64) is set, signature must be a valid ed25519 signature over the ASCII message `"{tx_hash}:{score}"`.
+- On `GET /tx/{hash}` the field `ai_risk_score` is included when a record exists (pending or confirmed).
+- Survives restarts (persisted in RocksDB).
+
+Local Dev (no signature): omit `AI_ORACLE_PUBKEY` and signature is optional/ignored.
+
+### Example
+```
+# Post score (dev, unsigned)
+curl -X POST localhost:3030/oracle/ai_risk -H 'Content-Type: application/json' \
+  -d '{"tx_hash":"0xabc...","score":0.42}'
+
+# Query receipt (after or before inclusion)
+curl localhost:3030/tx/0xabc...
+# => { ..., "ai_risk_score": 0.42 }
+```
+
+### Signed Mode
+```
+export AI_ORACLE_PUBKEY=BASE64_PUBKEY
+curl -X POST localhost:3030/oracle/ai_risk -d '{"tx_hash":"0x...","score":0.9,"signature":"BASE64_SIG"}'
+```
+Signature generation reference (Python ed25519):
+```
+import base64, nacl.signing
+sk = nacl.signing.SigningKey.generate()
+pk = sk.verify_key
+msg = f"{tx_hash}:{score}".encode()
+sig = sk.sign(msg).signature
+print('AI_ORACLE_PUBKEY=', base64.b64encode(bytes(pk)).decode())
+print('signature=', base64.b64encode(sig).decode())
+```
+
+## External AI Risk Microservice
+A minimal service can score transactions and post to the oracle endpoint.
+Example (Python FastAPI) in `tools/ai-risk-service` (build & run via included Dockerfile).
+
+Workflow:
+1. Client submits tx -> obtains hash.
+2. Risk service computes `{score}` using tx fields (heuristic / model).
+3. Risk service (or off-chain daemon) signs and POSTs score to `/oracle/ai_risk`.
+4. Receipt queries now reflect `ai_risk_score`.
+
+## Keys Added
+- `oracle:ai:{tx_hash}` -> JSON { tx_hash, score, signature?, oracle_pubkey? }
+

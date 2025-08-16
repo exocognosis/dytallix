@@ -14,6 +14,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::storage::oracle::OracleStore;
 
 #[derive(Clone)]
 pub struct RpcContext {
@@ -166,9 +167,17 @@ pub async fn get_tx(
     ctx: axum::Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     if let Some(r) = ctx.storage.get_receipt(&hash) {
-        Ok(Json(serde_json::to_value(r).unwrap()))
+        let mut v = serde_json::to_value(r).unwrap();
+        let store = OracleStore { db: &ctx.storage.db };
+        if let Some(ai) = store.get_ai_risk(&hash) {
+            v["ai_risk_score"] = serde_json::json!(ai.score);
+        }
+        Ok(Json(v))
     } else if ctx.mempool.lock().unwrap().contains(&hash) {
-        Ok(Json(json!({"status":"pending","hash": hash })))
+        let store = OracleStore { db: &ctx.storage.db };
+        let mut base = serde_json::json!({"status":"pending","hash": hash });
+        if let Some(ai) = store.get_ai_risk(&hash) { base["ai_risk_score"] = serde_json::json!(ai.score); }
+        Ok(Json(base))
     } else {
         Err(ApiError::NotFound)
     }
