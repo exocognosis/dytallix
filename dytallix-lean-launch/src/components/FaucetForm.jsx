@@ -5,6 +5,14 @@ import drtIcon from '../assets/drt.svg'
 import { requestFaucet } from '../lib/api.js'
 import { loadMeta } from '../wallet/Keystore'
 
+// Cosmos network configuration (restored to match main branch and avoid merge conflict)
+const COSMOS_CONFIG = {
+  lcdUrl: import.meta.env.VITE_LCD_HTTP_URL || 'https://lcd-testnet.dytallix.com',
+  rpcUrl: import.meta.env.VITE_RPC_HTTP_URL || 'https://rpc-testnet.dytallix.com',
+  chainId: import.meta.env.VITE_CHAIN_ID || 'dytallix-testnet-1',
+  faucetApiUrl: import.meta.env.VITE_FAUCET_API_URL || '/api/faucet'
+}
+
 const FaucetForm = () => {
   const [address, setAddress] = useState('')
   const [selectedToken, setSelectedToken] = useState('DRT')
@@ -155,7 +163,7 @@ const FaucetForm = () => {
             <li className={`muted ${styles.faucetInfoItem}`}><strong>Network:</strong> Dytallix Testnet</li>
             <li className={`muted ${styles.faucetInfoItem}`}><strong>DGT Amount:</strong> 2 DGT per request (24h cooldown)</li>
             <li className={`muted ${styles.faucetInfoItem}`}><strong>DRT Amount:</strong> 50 DRT per request (6h cooldown)</li>
-            <li className={`muted ${styles.faucetInfoItem}`}><strong>Network ID:</strong> dytallix-testnet-1</li>
+            <li className={`muted ${styles.faucetInfoItem}`}><strong>Network ID:</strong> {COSMOS_CONFIG.chainId}</li>
           </ul>
         </div>
       </div>
