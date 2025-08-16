@@ -109,10 +109,10 @@ export function Wallet() {
         >
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight flex items-center justify-center">
             <WalletIcon className="w-12 h-12 mr-4 text-blue-400" />
-            Digital Wallet
+            Post Quantum Wallet
           </h1>
           <p className="text-lg md:text-xl text-gray-300">
-            Manage your Post-Quantum cryptocurrency accounts and transactions
+            Manage your Dytallis accounts and transactions
           </p>
         </motion.div>
       </section>

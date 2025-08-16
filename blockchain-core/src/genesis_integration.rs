@@ -1,16 +1,18 @@
 /*
 Genesis Block Integration for Consensus Engine
 
-Integrates genesis configuration with the consensus engine to initialize 
+Integrates genesis configuration with the consensus engine to initialize
 the blockchain state with proper token allocations, validators, and parameters.
 */
 
-use crate::genesis::GenesisConfig;
-use crate::types::{Block, BlockHeader, Transaction, ValidatorInfo, AccountState, Address, Amount, Hash};
 use crate::consensus::ConsensusEngine;
-use sha3::{Sha3_256, Digest};
-use std::collections::HashMap;
+use crate::genesis::GenesisConfig;
+use crate::types::{
+    AccountState, Address, Amount, Block, BlockHeader, Hash, Transaction, ValidatorInfo,
+};
 use chrono::Utc;
+use sha3::{Digest, Sha3_256};
+use std::collections::HashMap;
 
 /// Genesis block creator for Dytallix blockchain
 pub struct GenesisBlockCreator {
@@ -42,7 +44,7 @@ impl GenesisBlockCreator {
 
         // Create genesis block header
         let header = BlockHeader {
-            number: 0, // Genesis block is block 0
+            number: 0,                   // Genesis block is block 0
             parent_hash: "0".repeat(64), // No parent for genesis block
             transactions_root,
             state_root,
@@ -69,7 +71,7 @@ impl GenesisBlockCreator {
     /// Create genesis transactions for initial DGT allocations
     fn create_genesis_transactions(&self) -> Result<Vec<Transaction>, String> {
         let mut transactions = Vec::new();
-        
+
         // Create mint transactions for each DGT allocation
         for (index, allocation) in self.config.dgt_allocations.iter().enumerate() {
             let tx = Transaction::Transfer(crate::types::TransferTransaction {
@@ -98,28 +100,28 @@ impl GenesisBlockCreator {
     /// Calculate the genesis state root after applying all allocations
     fn calculate_genesis_state_root(&self) -> Result<Hash, String> {
         let mut state_data = String::new();
-        
+
         // Add all DGT allocations to the state calculation
         for allocation in &self.config.dgt_allocations {
             state_data.push_str(&format!("{}:{}", allocation.address, allocation.amount));
         }
-        
+
         // Add genesis configuration hash
         state_data.push_str(&format!("network:{}", self.config.network.chain_id));
         state_data.push_str(&format!("validators:{}", self.config.validators.len()));
-        
+
         // Calculate SHA3-256 hash
         let mut hasher = Sha3_256::new();
         hasher.update(state_data.as_bytes());
         let hash = hasher.finalize();
-        
+
         Ok(hex::encode(hash))
     }
 
     /// Initialize account states from genesis configuration
     pub fn create_genesis_accounts(&self) -> HashMap<Address, AccountState> {
         let mut accounts = HashMap::new();
-        
+
         // Create accounts for DGT allocations
         for allocation in &self.config.dgt_allocations {
             let account_state = AccountState {
@@ -132,7 +134,7 @@ impl GenesisBlockCreator {
             };
             accounts.insert(allocation.address.clone(), account_state);
         }
-        
+
         // Create accounts for validators
         for validator in &self.config.validators {
             // Skip if validator account already exists (might be in DGT allocations)
@@ -148,7 +150,7 @@ impl GenesisBlockCreator {
                 accounts.insert(validator.address.clone(), account_state);
             }
         }
-        
+
         accounts
     }
 
@@ -181,17 +183,19 @@ pub struct GenesisInitializer;
 
 impl GenesisInitializer {
     /// Initialize the blockchain with genesis configuration
-    pub fn initialize_blockchain(config: GenesisConfig) -> Result<(Block, HashMap<Address, AccountState>, Vec<ValidatorInfo>), String> {
+    pub fn initialize_blockchain(
+        config: GenesisConfig,
+    ) -> Result<(Block, HashMap<Address, AccountState>, Vec<ValidatorInfo>), String> {
         // Create genesis block
         let creator = GenesisBlockCreator::new(config.clone());
         let genesis_block = creator.create_genesis_block()?;
-        
+
         // Create initial account states
         let genesis_accounts = creator.create_genesis_accounts();
-        
+
         // Get initial validators
         let validators = config.validators.clone();
-        
+
         Ok((genesis_block, genesis_accounts, validators))
     }
 
@@ -205,15 +209,20 @@ impl GenesisInitializer {
         // Check timestamp matches configuration
         let expected_timestamp = config.network.genesis_time.timestamp() as u64;
         if block.header.timestamp != expected_timestamp {
-            return Err(format!("Genesis timestamp mismatch: expected {}, got {}", 
-                expected_timestamp, block.header.timestamp));
+            return Err(format!(
+                "Genesis timestamp mismatch: expected {}, got {}",
+                expected_timestamp, block.header.timestamp
+            ));
         }
 
         // Check that we have the correct number of genesis transactions
         let expected_tx_count = config.dgt_allocations.len();
         if block.transactions.len() != expected_tx_count {
-            return Err(format!("Expected {} genesis transactions, got {}", 
-                expected_tx_count, block.transactions.len()));
+            return Err(format!(
+                "Expected {} genesis transactions, got {}",
+                expected_tx_count,
+                block.transactions.len()
+            ));
         }
 
         // Validate each transaction corresponds to a DGT allocation
@@ -221,7 +230,10 @@ impl GenesisInitializer {
             if let Transaction::Transfer(tx) = transaction {
                 let allocation = &config.dgt_allocations[index];
                 if tx.to != allocation.address || tx.amount != allocation.amount {
-                    return Err(format!("Genesis transaction {} does not match allocation", index));
+                    return Err(format!(
+                        "Genesis transaction {} does not match allocation",
+                        index
+                    ));
                 }
             } else {
                 return Err(format!("Genesis transaction {} is not a transfer", index));
@@ -240,14 +252,17 @@ mod tests {
     fn test_genesis_block_creation() {
         let config = GenesisConfig::mainnet();
         let creator = GenesisBlockCreator::new(config.clone());
-        
+
         let genesis_block = creator.create_genesis_block().unwrap();
-        
+
         // Verify genesis block properties
         assert_eq!(genesis_block.header.number, 0);
         assert_eq!(genesis_block.header.parent_hash, "0".repeat(64));
-        assert_eq!(genesis_block.transactions.len(), config.dgt_allocations.len());
-        
+        assert_eq!(
+            genesis_block.transactions.len(),
+            config.dgt_allocations.len()
+        );
+
         // Verify all allocations are present as transactions
         for (index, allocation) in config.dgt_allocations.iter().enumerate() {
             if let Transaction::Transfer(tx) = &genesis_block.transactions[index] {
@@ -264,12 +279,12 @@ mod tests {
     fn test_genesis_accounts_creation() {
         let config = GenesisConfig::mainnet();
         let creator = GenesisBlockCreator::new(config.clone());
-        
+
         let accounts = creator.create_genesis_accounts();
-        
+
         // Should have accounts for all allocations and validators
         assert!(accounts.len() >= config.dgt_allocations.len());
-        
+
         // Check each allocation has correct balance
         for allocation in &config.dgt_allocations {
             let account = accounts.get(&allocation.address).unwrap();
@@ -283,15 +298,16 @@ mod tests {
     fn test_vesting_calculations() {
         let config = GenesisConfig::mainnet();
         let creator = GenesisBlockCreator::new(config);
-        
+
         // Test community treasury (should be fully unlocked)
-        let community_vested = creator.get_current_vested_amount(&"0xCommunityTreasury".to_string());
+        let community_vested =
+            creator.get_current_vested_amount(&"0xCommunityTreasury".to_string());
         assert_eq!(community_vested, 400_000_000_000_000_000_000_000_000);
-        
+
         // Test dev team (should be locked due to cliff)
         let dev_vested = creator.get_current_vested_amount(&"0xDevTeam".to_string());
         assert_eq!(dev_vested, 0); // Should be 0 due to 1-year cliff
-        
+
         let dev_locked = creator.get_current_locked_amount(&"0xDevTeam".to_string());
         assert_eq!(dev_locked, 150_000_000_000_000_000_000_000_000);
     }
@@ -300,15 +316,19 @@ mod tests {
     fn test_transfer_permissions() {
         let config = GenesisConfig::mainnet();
         let creator = GenesisBlockCreator::new(config);
-        
+
         // Community treasury should be able to transfer full amount
-        assert!(creator.can_transfer(&"0xCommunityTreasury".to_string(), 400_000_000_000_000_000_000_000_000));
-        
+        assert!(creator.can_transfer(
+            &"0xCommunityTreasury".to_string(),
+            400_000_000_000_000_000_000_000_000
+        ));
+
         // Dev team should not be able to transfer anything due to cliff
         assert!(!creator.can_transfer(&"0xDevTeam".to_string(), 1));
-        
+
         // Ecosystem fund should be able to transfer some amount (linear vesting, no cliff)
-        assert!(creator.can_transfer(&"0xEcosystemFund".to_string(), 1_000_000_000_000_000_000)); // 1 token
+        assert!(creator.can_transfer(&"0xEcosystemFund".to_string(), 1_000_000_000_000_000_000));
+        // 1 token
     }
 
     #[test]
@@ -316,10 +336,10 @@ mod tests {
         let config = GenesisConfig::mainnet();
         let creator = GenesisBlockCreator::new(config.clone());
         let genesis_block = creator.create_genesis_block().unwrap();
-        
+
         // Should validate successfully
         GenesisInitializer::validate_genesis_block(&genesis_block, &config).unwrap();
-        
+
         // Test with wrong block number
         let mut invalid_block = genesis_block.clone();
         invalid_block.header.number = 1;
@@ -329,14 +349,15 @@ mod tests {
     #[test]
     fn test_blockchain_initialization() {
         let config = GenesisConfig::mainnet();
-        
-        let (genesis_block, accounts, validators) = GenesisInitializer::initialize_blockchain(config.clone()).unwrap();
-        
+
+        let (genesis_block, accounts, validators) =
+            GenesisInitializer::initialize_blockchain(config.clone()).unwrap();
+
         // Verify results
         assert_eq!(genesis_block.header.number, 0);
         assert!(!accounts.is_empty());
         assert_eq!(validators.len(), config.validators.len());
-        
+
         // Verify total DGT balance across all accounts
         let total_balance: Amount = accounts.values().map(|acc| acc.balance).sum();
         assert_eq!(total_balance, 1_000_000_000_000_000_000_000_000_000); // 1 billion DGT

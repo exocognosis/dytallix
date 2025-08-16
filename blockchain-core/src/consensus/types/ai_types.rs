@@ -3,9 +3,9 @@
 //! This module contains all type definitions related to AI service communication,
 //! requests, responses, and related data structures.
 
+use chrono;
 use serde::{Deserialize, Serialize};
 use uuid;
-use chrono;
 
 /// Service types for AI Oracle requests
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -263,11 +263,7 @@ impl std::fmt::Display for AIServiceStatus {
 // Implementation methods for AIResponsePayload
 impl AIResponsePayload {
     /// Create a new response payload with minimal required fields
-    pub fn new(
-        request_id: String,
-        service_type: AIServiceType,
-        status: ResponseStatus,
-    ) -> Self {
+    pub fn new(request_id: String, service_type: AIServiceType, status: ResponseStatus) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             request_id,
@@ -300,8 +296,7 @@ impl AIResponsePayload {
         service_type: AIServiceType,
         error: super::error_types::AIResponseError,
     ) -> Self {
-        Self::new(request_id, service_type, ResponseStatus::Failure)
-            .with_error(error)
+        Self::new(request_id, service_type, ResponseStatus::Failure).with_error(error)
     }
 
     /// Create a timeout response
@@ -312,8 +307,7 @@ impl AIResponsePayload {
             super::error_types::ErrorCategory::NetworkError,
             true,
         );
-        Self::new(request_id, service_type, ResponseStatus::Timeout)
-            .with_error(error)
+        Self::new(request_id, service_type, ResponseStatus::Timeout).with_error(error)
     }
 
     /// Set the response data
@@ -398,14 +392,22 @@ impl AIResponsePayload {
 
     /// Check if the response is a failure
     pub fn is_failure(&self) -> bool {
-        matches!(self.status, ResponseStatus::Failure | ResponseStatus::InternalError)
+        matches!(
+            self.status,
+            ResponseStatus::Failure | ResponseStatus::InternalError
+        )
     }
 
     /// Check if the response is retryable
     pub fn is_retryable(&self) -> bool {
         match &self.error {
             Some(error) => error.retryable,
-            None => matches!(self.status, ResponseStatus::Timeout | ResponseStatus::ServiceUnavailable | ResponseStatus::RateLimited),
+            None => matches!(
+                self.status,
+                ResponseStatus::Timeout
+                    | ResponseStatus::ServiceUnavailable
+                    | ResponseStatus::RateLimited
+            ),
         }
     }
 

@@ -1,6 +1,6 @@
 use dytallix_pqc::{PQCManager as DytallixPQCManager, Signature, SignatureAlgorithm};
-use log::info;
 use hex;
+use log::info;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PQCKeyPair {
@@ -31,16 +31,16 @@ impl std::fmt::Debug for PQCManager {
 impl PQCManager {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         info!("Generating post-quantum cryptographic keys...");
-        
+
         let inner = DytallixPQCManager::new()?;
         info!("Post-quantum keys generated successfully");
-        
+
         Ok(Self { inner })
     }
-    
+
     pub fn sign_message(&self, message: &[u8]) -> Result<PQCSignature, Box<dyn std::error::Error>> {
         let signature = self.inner.sign(message)?;
-        
+
         Ok(PQCSignature {
             signature: signature.data.clone(),
             algorithm: format!("{:?}", signature.algorithm),
@@ -49,7 +49,9 @@ impl PQCManager {
         })
     }
 
-    pub fn load_or_generate<P: AsRef<std::path::Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load_or_generate<P: AsRef<std::path::Path>>(
+        path: P,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let inner = DytallixPQCManager::load_or_generate(path)?;
         Ok(Self { inner })
     }
@@ -58,7 +60,7 @@ impl PQCManager {
         self.inner.validate_keys()?;
         Ok(())
     }
-    
+
     pub fn verify_signature(
         &self,
         message: &[u8],
@@ -79,23 +81,29 @@ impl PQCManager {
 
         Ok(self.inner.verify(message, &sig, public_key)?)
     }
-    
+
     pub fn get_dilithium_public_key(&self) -> &[u8] {
         self.inner.get_signature_public_key()
     }
-    
+
     pub fn get_kyber_public_key(&self) -> &[u8] {
         self.inner.get_key_exchange_public_key()
     }
-    
-    pub fn perform_key_exchange(&self, _peer_public_key: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+
+    pub fn perform_key_exchange(
+        &self,
+        _peer_public_key: &[u8],
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         info!("Key exchange performed, shared secret generated");
         // Placeholder implementation
         Ok(vec![0u8; 32])
     }
-    
+
     // Crypto-agility: Allow swapping algorithms
-    pub fn set_signature_algorithm(&mut self, algorithm: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn set_signature_algorithm(
+        &mut self,
+        algorithm: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         match algorithm {
             "CRYSTALS-Dilithium5" => {
                 // Already using this
@@ -144,8 +152,7 @@ impl PQCManager {
 // --- Message formatters ----------------------------------------------------
 
 use crate::types::{
-    AIRequestTransaction, CallTransaction, DeployTransaction, StakeTransaction,
-    TransferTransaction,
+    AIRequestTransaction, CallTransaction, DeployTransaction, StakeTransaction, TransferTransaction,
 };
 
 fn format_transfer_message(tx: &TransferTransaction) -> Vec<u8> {

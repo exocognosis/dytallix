@@ -1,0 +1,26 @@
+[
+  {
+    "label": "dev_team",
+    "address": "",
+    "start_time": 0,
+    "cliff_seconds": 31536000,
+    "end_time": 157680000,
+    "amount_uDGT": "150000000000000000"
+  },
+  {
+    "label": "initial_validators",
+    "address": "",
+    "start_time": 0,
+    "cliff_seconds": 15552000,
+    "end_time": 72576000,
+    "amount_uDGT": "100000000000000000"
+  },
+  {
+    "label": "ecosystem_fund",
+    "address": "",
+    "start_time": 0,
+    "cliff_seconds": 0,
+    "end_time": 157680000,
+    "amount_uDGT": "100000000000000000"
+  }
+]

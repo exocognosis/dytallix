@@ -76,6 +76,7 @@ pub struct PerformanceAnalysisReport {
     pub ai_insights: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct QueryAnalyzer {
     pool: PgPool,
     ai_insights_enabled: bool,
@@ -302,7 +303,7 @@ impl QueryAnalyzer {
             },
             cache_hit_ratio: cache_row.get::<Option<f64>, _>("cache_hit_ratio").unwrap_or(0.0),
             deadlocks_count: conn_row.get::<Option<i64>, _>("deadlocks_count").unwrap_or(0),
-            slow_queries_count,
+            slow_queries_count: slow_query_count,
             avg_query_time_ms: avg_query_time,
             database_size_mb: size_row.get::<Option<f64>, _>("db_size_mb").unwrap_or(0.0),
             index_size_mb: size_row.get::<Option<f64>, _>("index_size_mb").unwrap_or(0.0),
@@ -517,7 +518,7 @@ impl QueryAnalyzer {
     }
 
     fn calculate_confidence_score(&self, query: &QueryStatistics) -> f64 {
-        let mut score = 0.5; // Base score
+        let mut score: f64 = 0.5; // Base score with explicit type
         
         // Higher confidence for frequently called queries
         if query.calls > 100 {
@@ -534,7 +535,8 @@ impl QueryAnalyzer {
             score += 0.1;
         }
         
-        score.min(1.0)
+        score = score.min(1.0_f64);
+        score
     }
 
     fn calculate_overall_performance_score(

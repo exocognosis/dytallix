@@ -10,7 +10,7 @@ import {
 import { Button } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { motion } from 'framer-motion'
-import { useDeployContract } from '../../hooks/useAPI'
+import { useDeployContract, useDeployTemplate } from '../../hooks/useAPI'
 
 interface ContractTemplate {
   id: string
@@ -84,7 +84,9 @@ export function DeployContractModal({ isOpen, onClose }: DeployContractModalProp
   const [isDeploying, setIsDeploying] = useState(false)
   const [deploymentStatus, setDeploymentStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle')
   const [deploymentHash, setDeploymentHash] = useState('')
+  const [errorMsg, setErrorMsg] = useState<string>('')
 
+  const deployTemplate = useDeployTemplate()
   const deployContract = useDeployContract()
 
   const handleDeploy = async () => {
@@ -92,27 +94,34 @@ export function DeployContractModal({ isOpen, onClose }: DeployContractModalProp
 
     setIsDeploying(true)
     setDeploymentStatus('deploying')
+    setErrorMsg('')
 
     try {
-      // Simulate deployment process
-      const mockCode = `// ${selectedTemplate.title}\n// PQC Algorithm: ${selectedPQC}\n// Name: ${contractName}`
-      const mockABI = [
-        { type: 'function', name: 'deploy', inputs: [], outputs: [] }
-      ]
+      // For ERC-20 PQC, backend maps to WrappedDytallix(name, symbol, admin, bridge, originalChain, originalAsset)
+      // We'll pass: [name, symbol] and backend will use default admin/bridge accounts
+      let args: any[] = []
+      if (selectedTemplate.id === 'erc20-pqc') {
+        args = [contractName, contractName.slice(0, 4).toUpperCase()]
+      }
 
-      const result = await deployContract.mutateAsync({ code: mockCode, abi: mockABI })
-      
-      setDeploymentStatus('success')
-      setDeploymentHash('0x742d35Cc4Cf3E3C3E3C3E3C3E3C3E3C3E3C3E3C3')
-      
+      const result = await deployTemplate.mutateAsync({ templateId: selectedTemplate.id, args })
+
+      if (result?.success && result.data?.address) {
+        setDeploymentStatus('success')
+        setDeploymentHash(result.data.address)
+      } else {
+        throw new Error(result?.error || 'Unknown deployment error')
+      }
+
       // Auto close after success
       setTimeout(() => {
         onClose()
         resetModal()
       }, 3000)
       
-    } catch (error) {
+    } catch (error: any) {
       setDeploymentStatus('error')
+      setErrorMsg(error?.message || 'Deployment failed')
     } finally {
       setIsDeploying(false)
     }
@@ -125,6 +134,7 @@ export function DeployContractModal({ isOpen, onClose }: DeployContractModalProp
     setIsDeploying(false)
     setDeploymentStatus('idle')
     setDeploymentHash('')
+    setErrorMsg('')
   }
 
   const handleClose = () => {
@@ -200,6 +210,16 @@ export function DeployContractModal({ isOpen, onClose }: DeployContractModalProp
                       <code className="bg-gray-800 px-4 py-2 rounded text-green-400 font-mono">
                         {deploymentHash}
                       </code>
+                    </motion.div>
+                  )}
+
+                  {deploymentStatus === 'error' && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center py-8"
+                    >
+                      <p className="text-red-400">{errorMsg}</p>
                     </motion.div>
                   )}
 

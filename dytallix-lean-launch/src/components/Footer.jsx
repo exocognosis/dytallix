@@ -4,6 +4,8 @@ import styles from '../styles/Footer.module.css'
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
+  // Read-only indicator of background animation state
+  const bgOn = (() => { try { return localStorage.getItem('bg_enabled') !== 'false' } catch { return true } })()
 
   return (
     <footer className={styles.footer}>
@@ -20,7 +22,7 @@ const Footer = () => {
             <h4 className={styles.footerSubtitle}>Platform</h4>
             <ul className={styles.footerLinks}>
               <li><Link to="/faucet" className={styles.footerLink}>Faucet</Link></li>
-              <li><Link to="/tech-specs" className={styles.footerLink}>Tech Specs</Link></li>
+              <li><Link to="/tech-stack" className={styles.footerLink}>Tech Stack</Link></li>
               <li><Link to="/modules" className={styles.footerLink}>AI Modules</Link></li>
               <li><Link to="/roadmap" className={styles.footerLink}>Roadmap</Link></li>
             </ul>
@@ -54,6 +56,7 @@ const Footer = () => {
           <div className={styles.footerBottomLinks}>
             <a href="/privacy" className={styles.footerBottomLink}>Privacy Policy</a>
             <a href="/terms" className={styles.footerBottomLink}>Terms of Service</a>
+            <span className={styles.footerBottomLink} aria-hidden="true">Background animation: {bgOn ? 'On' : 'Off'}</span>
           </div>
         </div>
       </div>

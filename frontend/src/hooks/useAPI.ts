@@ -206,6 +206,41 @@ export function useDeployContract() {
   )
 }
 
+export function useDeployTemplate() {
+  const queryClient = useQueryClient()
+
+  return useMutation(
+    ({ templateId, args }: { templateId: string; args?: any[] }) => 
+      api.deployTemplate(templateId, args || []),
+    {
+      onSuccess: () => {
+        toast.success('Template deployed successfully!')
+        queryClient.invalidateQueries(QUERY_KEYS.CONTRACTS)
+      },
+      onError: (error: any) => {
+        toast.error(`Template deployment failed: ${error.message || 'Unknown error'}`)
+      },
+    }
+  )
+}
+
+export function useCallContract() {
+  return useMutation(
+    (params: { contract_address: string; function_name: string; parameters?: any[]; gas_limit?: number }) =>
+      api.callContract({
+        contract_address: params.contract_address,
+        function_name: params.function_name,
+        parameters: params.parameters || [],
+        gas_limit: (params.gas_limit as any) ?? undefined as any,
+      } as any),
+    {
+      onError: (error: any) => {
+        toast.error(`Contract call failed: ${error.message || 'Unknown error'}`)
+      },
+    }
+  )
+}
+
 export function useAnalyzeFraud() {
   return useMutation(
     (transaction: Transaction) => api.analyzeFraud(transaction),
