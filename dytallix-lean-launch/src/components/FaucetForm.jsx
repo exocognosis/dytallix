@@ -5,7 +5,7 @@ import drtIcon from '../assets/drt.svg'
 import { requestFaucet } from '../lib/api.js'
 import { loadMeta } from '../wallet/Keystore'
 
-// Cosmos network configuration (restored to match main branch and avoid merge conflict)
+// Cosmos network configuration
 const COSMOS_CONFIG = {
   lcdUrl: import.meta.env.VITE_LCD_HTTP_URL || 'https://lcd-testnet.dytallix.com',
   rpcUrl: import.meta.env.VITE_RPC_HTTP_URL || 'https://rpc-testnet.dytallix.com',
@@ -81,7 +81,6 @@ const FaucetForm = () => {
   }
 
   const shortHash = (h) => (h && h.length > 20 ? `${h.slice(0, 10)}...${h.slice(-8)}` : h)
-
   const isBech32 = (addr) => typeof addr === 'string' && addr.startsWith('dytallix1') && addr.length >= 39
 
   const handleSubmit = async (e) => {
