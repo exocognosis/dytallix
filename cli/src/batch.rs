@@ -30,7 +30,7 @@ impl Batch {
         for m in &mut self.messages { match m { BatchMsg::Send { denom, amount, .. } => {
             if *amount == 0 { return Err(anyhow!("amount must be > 0")); }
             *denom = denom.to_ascii_uppercase();
-            if denom != "DGT" && denom != "DRT" { return Err(anyhow!("invalid denom")); }
+            if denom != "DGT" && denom != "DRT" { return Err(anyhow!("invalid denom: {}; valid: DGT, DRT", denom)); }
         } } }
         Ok(())
     }

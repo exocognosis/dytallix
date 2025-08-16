@@ -42,7 +42,7 @@ jobs:
       - name: Cargo test
         run: |
           cd cli
-          cargo test -q --package dyt ${{ matrix.features }} -- --nocapture
+          cargo test -q --package dcli ${{ matrix.features }} -- --nocapture
   integration-placeholder:
     if: false  # enable later when node integration available
     runs-on: ubuntu-latest

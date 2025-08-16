@@ -10,9 +10,9 @@ pub enum StakeAction { Delegate { #[arg(long)] from: String, #[arg(long)] valida
 
 pub async fn run(_rpc: &str, fmt: OutputFormat, cmd: StakeCmd) -> Result<()> {
     match cmd.action {
-        StakeAction::Delegate { .. } => out(fmt, "TODO stake delegate"),
-        StakeAction::Undelegate { .. } => out(fmt, "TODO stake undelegate"),
-        StakeAction::Show { address } => out(fmt, format!("TODO stake show {}", address).as_str()),
+        StakeAction::Delegate { .. } => out(fmt, "TODO stake delegate (locks DGT)"),
+        StakeAction::Undelegate { .. } => out(fmt, "TODO stake undelegate (releases DGT)"),
+        StakeAction::Show { address } => out(fmt, format!("TODO stake show {} (DGT stake)", address).as_str()),
     }
     Ok(())
 }

@@ -10,8 +10,8 @@ pub enum GovAction { Propose { #[arg(long)] from: String, #[arg(long)] title: St
 
 pub async fn run(_rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
     match cmd.action {
-        GovAction::Propose { .. } => emit(fmt, "TODO governance propose"),
-        GovAction::Vote { .. } => emit(fmt, "TODO governance vote"),
+        GovAction::Propose { .. } => emit(fmt, "TODO governance propose (uses DGT for deposit/stake)"),
+        GovAction::Vote { .. } => emit(fmt, "TODO governance vote (DGT weight)"),
         GovAction::Show { proposal } => emit(fmt, format!("TODO governance show {}", proposal).as_str()),
     }
     Ok(())

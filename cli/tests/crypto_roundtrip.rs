@@ -1,4 +1,5 @@
-use dyt::crypto::{ActivePQC, PQC}; // ensure trait in scope
+use dcli::crypto::{ActivePQC, PQC}; // ensure trait in scope
+use dcli::addr;
 
 #[test]
 fn keygen_sign_verify_roundtrip() {
@@ -13,7 +14,7 @@ fn keygen_sign_verify_roundtrip() {
 fn address_derivation_stable() {
     // For deterministic test use fixed pk bytes pattern
     let pk = [1u8; 64];
-    let addr = dyt::addr::address_from_pk(&pk);
+    let addr = addr::address_from_pk(&pk);
     assert!(addr.starts_with("dyt1"));
     assert_eq!(addr.len(), 48);
 }

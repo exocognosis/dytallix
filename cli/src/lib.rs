@@ -1,3 +1,5 @@
+// Crate renamed from `dyt` to `dcli` for dual-token (DGT/DRT) standardization.
+
 pub mod crypto;
 pub mod addr;
 pub mod keystore;

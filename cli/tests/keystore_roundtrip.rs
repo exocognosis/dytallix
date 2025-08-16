@@ -1,4 +1,4 @@
-use dyt::keystore;
+use dcli::keystore;
 
 #[test]
 fn keystore_roundtrip_change_password() {

@@ -9,10 +9,14 @@ The format follows Keep a Changelog and Semantic Versioning where applicable.
 - Standardized directory layout (node/, faucet/, explorer/, web/, src/, server/, ops/, scripts/, docs/, reports/, artifacts/)
 - Environment configuration template consolidation (.env.example with legacy + new VITE_* vars)
 - Security-focused ignore patterns (.gitignore, .dockerignore)
+- Dual-token nomenclature enforcement in CLI: governance token DGT, reward token DRT (validation restricts denoms to DGT/DRT).
 
 ### Changed
 - README unification: monorepo layout, branching overview, Cosmos-only focus
 - Project structure standardized for mv-testnet integration
+- CLI package/binary renamed from `dyt` to `dcli`.
+- Environment variable prefix migrated from `DYT_` to `DX_` (old names still accepted with deprecation warnings).
+- Updated docs, CI workflow, and examples to use `dcli` and dual-token model.
 
 ### Security
 - Reinforced exclusion of secrets (.env*, mnemonic guidance)

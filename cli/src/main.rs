@@ -1,14 +1,15 @@
 use clap::{Parser, Subcommand, Args, ValueEnum};
 use anyhow::Result;
+use tracing::{info};
 
-use dyt::{output::OutputFormat, config, cmd::{keys, tx as txcmd, query, gov, stake}, secure};
+use dcli::{output::OutputFormat, config, cmd::{keys, tx as txcmd, query, gov, stake}, secure};
 
 #[derive(Parser, Debug)]
-#[command(name="dyt", version, about="Dytallix Unified CLI", long_about=None)]
+#[command(name="dcli", version, about="Dytallix Unified CLI (dual-token DGT/DRT)", long_about=None)]
 struct Cli {
     #[arg(long, global=true)] rpc: Option<String>,
     #[arg(long, global=true)] chain_id: Option<String>,
-    #[arg(long, global=true, env="DYT_HOME", default_value="~/.dyt")] home: String,
+    #[arg(long, global=true, env="DX_HOME", default_value="~/.dcli")] home: String, // old: DYT_HOME ~/.dyt
     #[arg(long, global=true, value_enum, default_value="text")] output: OutputArg,
     #[command(subcommand)] cmd: Commands,
 }
@@ -41,12 +42,21 @@ enum ConfigAction { Show, Set { key: String, value: String } }
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Initialize tracing subscriber once (env RUST_LOG controls level, default info)
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_target(false)
+        .compact()
+        .try_init();
+
     let cli = Cli::parse();
     secure::install_signal_handlers();
     let mut cfg = config::load()?;
     if let Some(r) = cli.rpc.as_ref() { cfg.rpc = r.clone(); }
     if let Some(c) = cli.chain_id.as_ref() { cfg.chain_id = c.clone(); }
     let fmt: OutputFormat = cli.output.into();
+
+    info!(command=?cli.cmd, "starting CLI command");
 
     match cli.cmd.clone() {
         Commands::Config(cc) => match cc.action { ConfigAction::Show => {

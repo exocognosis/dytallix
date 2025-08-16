@@ -11,6 +11,7 @@ use once_cell::sync::Lazy;
 use std::sync::RwLock;
 use zeroize::Zeroize;
 use std::time::{Instant, Duration};
+use tracing::{info, warn};
 
 use crate::addr::address_from_pk;
 use crate::crypto::{ActivePQC, PQC};
@@ -115,9 +116,10 @@ pub fn create_new(home: &str, name: &str, password: &str) -> Result<KeystoreEntr
     let address = address_from_pk(&pk);
     let kp = KdfParams::default();
     let enc = encrypt_sk(password, &sk, kp)?;
-    let ent = KeystoreEntry { name: name.into(), address, pk: B64.encode(&pk), enc, created: now() };
+    let ent = KeystoreEntry { name: name.into(), address: address.clone(), pk: B64.encode(&pk), enc, created: now() };
     ks.keys.push(ent.clone());
     save(home, &ks)?;
+    info!("event=keystore_create name={}" , name);
     Ok(ent)
 }
 
@@ -130,16 +132,17 @@ pub fn change_password(home: &str, name: &str, old: &str, newp: &str) -> Result<
 
 pub fn unlock(home: &str, name: &str, password: &str) -> Result<UnlockedKey> {
     static FAILS: Lazy<RwLock<u32>> = Lazy::new(|| RwLock::new(0));
-    if *FAILS.read().unwrap() >= 5 { return Err(anyhow!("too many failures")) }
+    if *FAILS.read().unwrap() >= 5 { warn!("event=unlock_blocked name={} reason=too_many_failures", name); return Err(anyhow!("too many failures")) }
     let ks = load_or_init(home)?; let ent = ks.keys.into_iter().find(|k| k.name==name).ok_or(anyhow!("not found"))?;
-    let sk = decrypt_sk(password, &ent.enc).map_err(|e| { let mut f = FAILS.write().unwrap(); *f += 1; e })?;
+    let sk = match decrypt_sk(password, &ent.enc) { Ok(v) => v, Err(e) => { let mut f = FAILS.write().unwrap(); *f += 1; warn!("event=unlock_failure name={} attempt={} error=decrypt", name, *f); return Err(e); } };
     let pk = B64.decode(ent.pk)?;
-    let uk = UnlockedKey { name: ent.name, sk, pk: pk.clone(), address: ent.address, last_used: Instant::now() };
+    let uk = UnlockedKey { name: ent.name.clone(), sk, pk: pk.clone(), address: ent.address.clone(), last_used: Instant::now() };
     {
         let mut w = UNLOCKED.write().unwrap();
         w.retain(|k| k.name != uk.name);
         w.push(uk.clone());
     }
+    info!("event=unlock_success name={}", ent.name);
     Ok(uk)
 }
 

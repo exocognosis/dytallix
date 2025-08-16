@@ -17,3 +17,6 @@ pub use dilithium::Dilithium as ActivePQC;
 mod mock;
 #[cfg(feature = "pqc-mock")]
 pub use mock::MockPQC as ActivePQC;
+
+#[path = "kdf.rs"] mod kdf;
+pub use kdf::*;

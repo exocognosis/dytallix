@@ -1,4 +1,9 @@
-# Dyt CLI
+# Dytallix CLI (dcli)
+
+## Dual Token Model
+Governance token: **DGT** (used for staking, governance proposals, voting, security).
+Reward token: **DRT** (emission / rewards distribution). CLI accepts only these two denoms.
+All examples use `DGT` for governance/staking flows and `DRT` for reward transfers where noted.
 
 ## Overview
 Production-friendly modular CLI for Dytallix.
@@ -8,7 +13,7 @@ Modules:
 - `keystore/` secure Argon2id + XChaCha20Poly1305 encrypted keys (no plaintext on disk)
 - `tx/` canonical message & signed transaction types
 - `rpc/` lightweight HTTP client
-- `config.rs` persistent defaults at `~/.dyt/config.json`
+- `config.rs` persistent defaults at `~/.dcli/config.json`
 - `output.rs` uniform JSON vs text printing
 - `batch.rs` batch transaction ingestion & validation
 - `secure.rs` signal-driven keystore purge
@@ -18,6 +23,8 @@ Global flags:
 - `--chain-id` (override config)
 - `--output text|json` (default text)
 
+Backward compatibility: old env vars with `DYT_` prefix still read with deprecation warnings. Prefer `DX_*` going forward.
+
 ## Security Model
 Secret keys stored only encrypted in `keystore.json` with:
 - KDF: Argon2id (m=19456 KiB, t=2, p=1) -> 32-byte key
@@ -25,40 +32,28 @@ Secret keys stored only encrypted in `keystore.json` with:
 - Salt: 16 bytes random
 - Secret key decrypted only in-memory after `keys unlock`
 - Password failure rate limit (5 per process)
-- Auto-lock timeout (env `DYL_KEY_TIMEOUT_SECS`, default 300s) after which decrypted keys are purged
+- Auto-lock timeout (env `DX_KEY_TIMEOUT_SECS`, default 300s) after which decrypted keys are purged
 - In-memory secret material zeroized on drop (Guard + purge)
 - Signal handlers (SIGINT/SIGTERM) trigger immediate in-memory purge (`secure.rs`)
+- Structured logging via `tracing` (set `RUST_LOG=info` or `warn`, no secrets ever logged)
+- Passphrase retry UX with bounded attempts + backoff (env override)
+- CI no-confirm mode to skip interactive confirmation in automation
 
-### Keystore JSON Schema
-```
-{
-  "version": 1,
-  "keys": [
-    {
-      "name": "default",
-      "address": "dyt1...",
-      "pk": "<base64 public key>",
-      "enc": {
-        "alg": "chacha20poly1305",
-        "nonce": "<base64 24 bytes>",
-        "salt": "<base64 16 bytes>",
-        "kdf": { "alg": "argon2id", "m_cost": 19456, "t_cost": 2, "p": 1 },
-        "ct": "<base64 ciphertext+tag>"
-      },
-      "created": 1690000000
-    }
-  ]
-}
-```
+### Passphrase UX (Retries & Backoff)
+Defaults (configurable):
+- Max retries: 3 (`DX_PASSPHRASE_MAX_RETRIES`)
+- Backoff: 400ms (`DX_PASSPHRASE_BACKOFF_MS`)
+
+### CI Mode (No Confirm)
+Set `DX_CI_NO_CONFIRM=1` (or `true`) to disable confirmation prompt in non-interactive pipelines.
 
 ### Message & Transaction Schema
 Messages (enum, `type` tagged, snake_case):
-```
-// Msg
+```json
 {"type":"send","from":"dyt1...","to":"dyt1...","denom":"DGT","amount":"100"}
 ```
 Canonical Tx JSON (fields order stable through serde struct):
-```
+```json
 {
   "chain_id": "dyt-localnet",
   "nonce": 1,
@@ -67,78 +62,40 @@ Canonical Tx JSON (fields order stable through serde struct):
   "memo": ""
 }
 ```
-Signed Tx:
-```
-{
-  "tx": { ... },
-  "signature": "<base64>",
-  "public_key": "<base64>",
-  "hash": "0x<sha3-256(tx_json)>"
-}
-```
-Hash: `sha3-256` over canonical JSON bytes of `tx` (no signature fields included).
-
-### Canonical Hashing Rules
-1. Serialize `Tx` via serde_json with numeric u128 fields stringified.
-2. Compute SHA3-256 digest.
-3. Hex prefix with `0x`.
-4. Signing uses PQC Active implementation (Dilithium real or mock) over hash bytes.
 
 ## Commands & Examples
 ### Config
 ```
-# Show current (merged) config
-$ dyt config show
-# Set defaults
-$ dyt config set --key rpc --value http://127.0.0.1:3030
-$ dyt config set --key chain-id --value dyt-localnet
-# JSON output
-$ dyt --output json config show
+$ dcli config show
+$ dcli config set --key rpc --value http://127.0.0.1:3030
+$ dcli config set --key chain-id --value dyt-localnet
+$ dcli --output json config show
 ```
 
 ### Keys
 ```
-$ dyt keys new --name alice
-$ dyt keys list
-$ dyt keys unlock --name alice
-$ dyt keys change-password --name alice
-$ dyt keys export --name alice
+$ dcli keys new --name alice
+$ dcli keys list
+$ dcli keys unlock --name alice
+$ dcli keys change-password --name alice
+$ dcli keys export --name alice
 ```
 JSON output variant:
 ```
-$ dyt --output json keys list
+$ dcli --output json keys list
 ```
 
 ### Transfer
 ```
-$ dyt tx transfer --from alice --to dyt1xyz... --denom DGT --amount 100 --fee 1
-# Legacy shortcut
-$ dyt transfer --from alice --to dyt1xyz... --denom DGT --amount 100 --fee 1
+$ dcli tx transfer --from alice --to dyt1xyz... --denom DGT --amount 100 --fee 1
+# Legacy shortcut supported (still works):
+$ dcli transfer --from alice --to dyt1xyz... --denom DGT --amount 100 --fee 1
 ```
+Denom must be `DGT` or `DRT` (case-insensitive input normalized to uppercase). Use `DRT` for reward token transfers.
 
 ### Batch Transactions
 Batch JSON schema (`cli/src/batch.rs`):
-```
-{
-  "chain_id": "dytallix-testnet-1",
-  "from": "alice",
-  "nonce": "auto" | <number>,
-  "fee": "1000",
-  "memo": "", // optional
-  "messages": [
-    { "type":"send", "to":"dyt1...", "denom":"DGT", "amount":"100" }
-  ],
-  "broadcast": true
-}
-```
-Rules:
-- `nonce":"auto"` fetches from RPC `/account/nonce/{address}` else falls back to 0.
-- `denom` must be `DGT` or `DRT` (case-insensitive input; normalized upper-case).
-- `amount` > 0.
-- At least one message required.
-
-Create file example `batch.json`:
-```
+```json
 {
   "chain_id": "dytallix-testnet-1",
   "from": "alice",
@@ -147,14 +104,22 @@ Create file example `batch.json`:
   "memo": "airdrop round 1",
   "messages": [
     { "type":"send","to":"dyt1abc...","denom":"dgt","amount":"5" },
-    { "type":"send","to":"dyt1def...","denom":"DGT","amount":"7" }
+    { "type":"send","to":"dyt1def...","denom":"DRT","amount":"7" }
   ],
   "broadcast": false
 }
 ```
 Sign only (no broadcast):
 ```
-$ cat batch.json | dyt tx batch --file - --output json
+$ cat batch.json | dcli tx batch --file - --output json
+```
+Broadcast variant (`"broadcast": true`):
+```
+$ dcli tx batch --file batch.json --output json
+```
+
+### JSON Output Example (Signed Tx)
+```json
 [
   {
     "tx": { ... },
@@ -164,26 +129,20 @@ $ cat batch.json | dyt tx batch --file - --output json
   }
 ]
 ```
-Broadcast variant (`broadcast:true`):
-```
-$ dyt tx batch --file batch.json --output json
-[
-  { "hash": "0x...", "status": "ok" }
-]
-```
-Text output prints simple lines (`hash=... status=...`).
-
-Security note: If interrupted (Ctrl+C) during batch processing, in-memory decrypted keys are immediately purged by signal handlers.
 
 ## Testing
 ```
-cargo test -q
-cargo test -q --no-default-features --features pqc-mock
+cargo test -q -p dcli
+cargo test -q -p dcli --no-default-features --features pqc-mock
 ```
 
-## Exit Codes
-- Non-zero on validation, RPC, signing, or IO errors.
+## Migration Notes
+- Binary renamed from `dyt` to `dcli`.
+- Env vars `DYT_*` deprecated; use `DX_*` (`DX_PASSPHRASE_MAX_RETRIES`, etc.).
+- Config home moved from `~/.dyt` to `~/.dcli`.
+- Denoms restricted to `DGT` and `DRT`.
 
-## Future Work
-- Staking, governance, wasm deploy integration
-- Offline signing flow
+Optional shell alias for transition:
+```
+alias dyt=dcli
+```

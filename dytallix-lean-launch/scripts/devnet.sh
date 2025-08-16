@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Dual-token context: Node currently agnostic; client tooling (dcli) enforces DGT/DRT denoms.
+
 set -euo pipefail
 
 # Devnet script for Rust node proving end-to-end flow: block production, tx inclusion, persistence.

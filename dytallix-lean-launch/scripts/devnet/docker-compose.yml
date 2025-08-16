@@ -1,0 +1,46 @@
+version: "3.8"
+services:
+  node1:
+    image: dytallix-node:latest
+    container_name: dyt-node1
+    command: ["start","--home","/root/.dytallix"]
+    volumes:
+      - ../../configs/devnet/node1:/root/.dytallix
+    ports:
+      - "26657:26657"   # RPC
+      - "26656:26656"   # P2P
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:26657/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+
+  node2:
+    image: dytallix-node:latest
+    container_name: dyt-node2
+    command: ["start","--home","/root/.dytallix"]
+    volumes:
+      - ../../configs/devnet/node2:/root/.dytallix
+    ports:
+      - "26660:26660"
+      - "26659:26659"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:26660/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+
+  node3:
+    image: dytallix-node:latest
+    container_name: dyt-node3
+    command: ["start","--home","/root/.dytallix"]
+    volumes:
+      - ../../configs/devnet/node3:/root/.dytallix
+    ports:
+      - "26663:26663"
+      - "26662:26662"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:26663/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 60

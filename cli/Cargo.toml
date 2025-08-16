@@ -1,5 +1,5 @@
 [package]
-name = "dyt" # renamed from dytallix-cli
+name = "dcli" # renamed from dyt (deprecated) for dual-token DGT/DRT era
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,7 @@ description = "Unified CLI for Dytallix node RPC, keys, staking, governance, was
 license = "Apache-2.0"
 
 [[bin]]
-name = "dyt"
+name = "dcli" # new binary name (old: dyt)
 path = "src/main.rs"
 
 [dependencies]
@@ -35,6 +35,8 @@ argon2 = "0.5"
 chacha20poly1305 = "0.10"
 rpassword = "7"
 zeroize = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 tempfile = "3"

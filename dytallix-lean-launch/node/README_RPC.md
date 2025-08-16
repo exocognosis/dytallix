@@ -1,5 +1,7 @@
 # Dytallix Lean Launch RPC
 
+> Note: Dual-token model active. Upstream tooling (dcli) enforces denoms `DGT` (governance/stake) and `DRT` (rewards). Future RPC endpoints will expose governance/staking modules using DGT.
+
 Status: MV(T) + Persistent Storage + Background Block Producer
 Default Port: 3030
 Base URL: http://localhost:3030

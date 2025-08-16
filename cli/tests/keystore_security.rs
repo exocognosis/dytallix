@@ -1,4 +1,4 @@
-use dyt::keystore::{create_new, unlock, get_unlocked, purge};
+use dcli::keystore::{create_new, unlock, get_unlocked, purge};
 
 #[test]
 fn purge_works() {

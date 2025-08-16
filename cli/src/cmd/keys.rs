@@ -3,6 +3,7 @@ use clap::Args;
 use std::path::PathBuf;
 use colored::*;
 use crate::{keystore, output::{OutputFormat, print_json}};
+use tracing::{info, warn};
 
 #[derive(Args, Debug, Clone)]
 pub struct KeysCmd { #[command(subcommand)] pub action: KeyAction }
@@ -28,6 +29,7 @@ pub async fn handle(cli_home: &str, fmt: OutputFormat, kc: KeysCmd) -> Result<()
         KeyAction::New { name, password_file } => {
             let password = read_password(password_file.as_ref(), "Enter password: ")?;
             let ent = keystore::create_new(cli_home, &name, &password)?;
+            info!("event=key_created name={}", ent.name);
             if fmt.is_json() {
                 print_json(&serde_json::json!({"result":"created","name": ent.name, "address": ent.address, "created": ent.created }))?;
             } else {
@@ -43,13 +45,19 @@ pub async fn handle(cli_home: &str, fmt: OutputFormat, kc: KeysCmd) -> Result<()
         }
         KeyAction::Unlock { name, password_file } => {
             let password = read_password(password_file.as_ref(), "Password: ")?;
-            let u = keystore::unlock(cli_home, &name, &password)?;
-            if fmt.is_json() { print_json(&serde_json::json!({"result":"unlocked","name":u.name,"address":u.address}))?; } else { println!("Unlocked {} {}", u.name.green(), u.address); }
+            match keystore::unlock(cli_home, &name, &password) {
+                Ok(u) => {
+                    info!("event=key_unlocked name={}", u.name);
+                    if fmt.is_json() { print_json(&serde_json::json!({"result":"unlocked","name":u.name,"address":u.address}))?; } else { println!("Unlocked {} {}", u.name.green(), u.address); }
+                },
+                Err(e) => { warn!("event=unlock_error name={} error={}", name, e); return Err(e); }
+            }
         }
         KeyAction::ChangePassword { name, old_password_file, new_password_file } => {
             let oldp = read_password(old_password_file.as_ref(), "Old password: ")?;
             let newp = read_password(new_password_file.as_ref(), "New password: ")?;
             keystore::change_password(cli_home, &name, &oldp, &newp)?;
+            info!("event=key_password_changed name={}", name);
             if fmt.is_json() { print_json(&serde_json::json!({"result":"password_changed","name":name}))?; } else { println!("Password changed for {}", name); }
         }
         KeyAction::Export { name } => {

@@ -7,7 +7,7 @@ use crate::output::{OutputFormat, print_json, print_json_array};
 pub struct TransferCmd {
     #[arg(long)] pub from: String,
     #[arg(long)] pub to: String,
-    #[arg(long)] pub denom: String,
+    #[arg(long, help="Token denom (DGT governance | DRT reward)")] pub denom: String,
     #[arg(long)] pub amount: u128,
     #[arg(long)] pub fee: u128,
     #[arg(long, default_value="")] pub memo: String,

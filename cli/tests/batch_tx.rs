@@ -1,5 +1,5 @@
-use dyt::batch::{Batch, BatchMsg};
-use dyt::tx::{NonceSpec};
+use dcli::batch::{Batch, BatchMsg};
+use dcli::tx::{NonceSpec};
 use serde_json::json;
 
 #[test]

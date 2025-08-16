@@ -25,6 +25,11 @@ hex = { workspace = true }
 dytallix-pqc = { path = "pqc-crypto" }
 dytallix-interoperability = { path = "interoperability" }
 
+[dev-dependencies]
+# For examples / tests that need secure password input and memory zeroization
+rpassword = "7"
+zeroize = "1"
+
 [workspace.dependencies]
 # Shared dependencies for the workspace
 tokio = { version = "1.0", features = ["full"] }

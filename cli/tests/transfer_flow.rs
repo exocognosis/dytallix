@@ -1,5 +1,5 @@
-use dyt::tx::{Tx, Msg, SignedTx};
-use dyt::crypto::{ActivePQC, PQC};
+use dcli::tx::{Tx, Msg, SignedTx};
+use dcli::crypto::{ActivePQC, PQC};
 
 #[test]
 fn build_and_sign_transfer() {
@@ -17,8 +17,8 @@ fn build_and_sign_transfer() {
 
 #[tokio::test]
 async fn optional_broadcast_integration() {
-    if std::env::var("DYT_INT_RPC").is_err() { return; }
-    let rpc = std::env::var("DYT_INT_RPC").unwrap();
+    if std::env::var("DX_INT_RPC").is_err() { return; }
+    let rpc = std::env::var("DX_INT_RPC").unwrap();
     // This requires an unlocked key workflow; here we just ensure endpoint presence
     let client = reqwest::Client::new();
     let res = client.get(format!("{}/stats", rpc)).send().await;

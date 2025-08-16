@@ -24,12 +24,15 @@ impl Msg {
         match self {
             Msg::Send { denom, amount, .. } => {
                 if *amount == 0 { return Err(anyhow!("amount zero")); }
-                if denom != "DGT" && denom != "DRT" { return Err(anyhow!("unsupported denom")); }
+                let up = denom.to_ascii_uppercase();
+                if up != "DGT" && up != "DRT" { return Err(anyhow!("unsupported denom: {}; valid: DGT, DRT", denom)); }
             }
         }
         Ok(())
     }
 }
+
+// TODO: consider cloning & normalizing upstream rather than only validating.
 
 #[derive(Clone, Debug)]
 pub enum NonceSpec { Auto, Exact(u64) }

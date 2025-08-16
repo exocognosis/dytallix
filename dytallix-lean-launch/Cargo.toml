@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "dytallixd",
+    "node"
+]
+resolver = "2"
