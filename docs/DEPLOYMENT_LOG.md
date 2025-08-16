@@ -20,7 +20,7 @@ This document tracks all bridge contract deployments across different networks.
 |----------|---------|-------------------|
 | **DytallixBridge** | TBD | 🟡 Pending |
 | **WrappedTokenFactory** | TBD | 🟡 Pending |
-| **Wrapped DYT Token** | TBD | 🟡 Pending |
+| **Wrapped DGT Token** | TBD | 🟡 Pending |
 
 ### Transaction Hashes
 
@@ -28,7 +28,7 @@ This document tracks all bridge contract deployments across different networks.
 |----------|-----------------|
 | **DytallixBridge** | TBD |
 | **WrappedTokenFactory** | TBD |
-| **Wrapped DYT Token** | TBD |
+| **Wrapped DGT Token** | TBD |
 
 ### Configuration
 
@@ -58,8 +58,8 @@ npx hardhat verify --network sepolia <BRIDGE_ADDRESS>
 # Verify WrappedTokenFactory  
 npx hardhat verify --network sepolia <FACTORY_ADDRESS> <BRIDGE_ADDRESS>
 
-# Verify Wrapped DYT Token
-npx hardhat verify --network sepolia <WRAPPED_DYT_ADDRESS>
+# Verify Wrapped DGT Token
+npx hardhat verify --network sepolia <WRAPPED_DGT_ADDRESS>
 ```
 
 ### Integration Information
@@ -72,7 +72,7 @@ npx hardhat verify --network sepolia <WRAPPED_DYT_ADDRESS>
 ```bash
 SEPOLIA_BRIDGE_ADDRESS=<BRIDGE_ADDRESS>
 SEPOLIA_FACTORY_ADDRESS=<FACTORY_ADDRESS>
-SEPOLIA_WRAPPED_DYT_ADDRESS=<WRAPPED_DYT_ADDRESS>
+SEPOLIA_WRAPPED_DGT_ADDRESS=<WRAPPED_DGT_ADDRESS>
 ```
 
 #### Rust Integration

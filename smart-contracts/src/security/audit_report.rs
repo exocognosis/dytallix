@@ -148,7 +148,7 @@ pub struct Recommendation {
 }
 
 /// Recommendation priority
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum Priority {
     Immediate,  // Fix now
     High,       // Fix within days
@@ -286,7 +286,7 @@ impl AuditReportGenerator {
             }
 
             markdown.push_str(&format!("\n**Remediation Effort:** {}\n\n", 
-                self.remediation_effort_description(detailed_finding.remediation_effort)));
+                self.remediation_effort_description(detailed_finding.remediation_effort.clone())));
 
             if let Some(poc) = &detailed_finding.proof_of_concept {
                 markdown.push_str("**Proof of Concept:**\n");

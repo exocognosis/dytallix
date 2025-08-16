@@ -338,31 +338,32 @@ impl FuzzTester {
             MutationStrategy::BitFlip { probability } => {
                 let mut mutated = data.to_vec();
                 for i in 0..mutated.len() {
-                    if rand::random::<f64>() < *probability {
-                        mutated[i] ^= 1 << (rand::random::<usize>() % 8);
+                    if random_f64() < *probability {
+                        let bit: u8 = (random_u64() % 8) as u8;
+                        mutated[i] ^= 1 << bit;
                     }
                 }
                 mutations.push(mutated);
             }
             MutationStrategy::ByteInsert { max_bytes } => {
                 let mut mutated = data.to_vec();
-                let insert_count = rand::random::<usize>() % max_bytes + 1;
-                let insert_pos = if data.is_empty() { 0 } else { rand::random::<usize>() % data.len() };
+                let insert_count = (random_u64() as usize % *max_bytes) + 1;
+                let insert_pos = if data.is_empty() { 0 } else { (random_u64() as usize) % data.len() };
                 
                 for _ in 0..insert_count {
-                    mutated.insert(insert_pos, rand::random::<u8>());
+                    mutated.insert(insert_pos, random_u8());
                 }
                 mutations.push(mutated);
             }
             MutationStrategy::ByteDelete { max_bytes } => {
                 if !data.is_empty() {
                     let mut mutated = data.to_vec();
-                    let delete_count = std::cmp::min(*max_bytes, mutated.len());
-                    let delete_count = rand::random::<usize>() % delete_count + 1;
+                    let max_del = std::cmp::min(*max_bytes, mutated.len());
+                    let delete_count = (random_u64() as usize % max_del) + 1;
                     
                     for _ in 0..delete_count {
                         if !mutated.is_empty() {
-                            let pos = rand::random::<usize>() % mutated.len();
+                            let pos = (random_u64() as usize) % mutated.len();
                             mutated.remove(pos);
                         }
                     }
@@ -372,8 +373,8 @@ impl FuzzTester {
             MutationStrategy::ByteReplace { probability } => {
                 let mut mutated = data.to_vec();
                 for i in 0..mutated.len() {
-                    if rand::random::<f64>() < *probability {
-                        mutated[i] = rand::random::<u8>();
+                    if random_f64() < *probability {
+                        mutated[i] = random_u8();
                     }
                 }
                 mutations.push(mutated);
@@ -473,7 +474,7 @@ impl FuzzInputGenerator for RandomDataGenerator {
         
         let mut data = vec![0u8; size];
         for byte in &mut data {
-            *byte = rand::random::<u8>();
+            *byte = random_u8();
         }
         
         inputs.push(data);
@@ -574,11 +575,25 @@ impl FuzzInputGenerator for StringFuzzGenerator {
             "<script>alert('xss')</script>", // XSS (if applicable)
             "'; DROP TABLE users; --", // SQL injection (if applicable)
             "\x00\x00\x00\x00", // Null bytes
-            "AAAA".repeat(1000), // Long string
+            // long string pattern
+            // using owned String then borrowing as bytes below
+            // ensure &str type for array
+            "LONG_AAAA", 
         ];
         
-        let pattern = &patterns[iteration as usize % patterns.len()];
-        inputs.push(pattern.as_bytes().to_vec());
+        let pattern = if patterns[patterns.len()-1] == "LONG_AAAA" {
+            if iteration % 6 == 5 { 
+                // generate long string separately
+                let long = "AAAA".repeat(1000); 
+                inputs.push(long.as_bytes().to_vec());
+            } else {
+                let p = &patterns[iteration as usize % (patterns.len()-1)];
+                inputs.push(p.as_bytes().to_vec());
+            }
+        } else {
+            let p = &patterns[iteration as usize % patterns.len()];
+            inputs.push(p.as_bytes().to_vec());
+        };
         
         inputs
     }
@@ -588,21 +603,24 @@ impl FuzzInputGenerator for StringFuzzGenerator {
     }
 }
 
-// Simple random number implementation since we might not have access to rand crate
+// Replace generic rand module with concrete helpers
 mod rand {
     use std::sync::atomic::{AtomicU64, Ordering};
-    
     static SEED: AtomicU64 = AtomicU64::new(1);
-    
-    pub fn random<T>() -> T 
-    where
-        T: From<u64>
-    {
+    pub fn next_u64() -> u64 {
         let current = SEED.load(Ordering::Relaxed);
         let next = current.wrapping_mul(1103515245).wrapping_add(12345);
         SEED.store(next, Ordering::Relaxed);
-        T::from(next)
+        next
     }
+}
+
+fn random_u64() -> u64 { rand::next_u64() }
+fn random_u8() -> u8 { (rand::next_u64() & 0xFF) as u8 }
+fn random_f64() -> f64 { 
+    // scale to [0,1)
+    let v = rand::next_u64();
+    (v as f64) / (u64::MAX as f64 + 1.0)
 }
 
 #[cfg(test)]

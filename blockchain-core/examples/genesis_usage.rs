@@ -15,7 +15,7 @@ use chrono::Utc;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Dytallix Genesis Configuration Example");
-    println!("=" * 50);
+    println!("{}", "=".repeat(50));
 
     // 1. Load mainnet genesis configuration
     let genesis_config = GenesisConfig::mainnet();

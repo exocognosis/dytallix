@@ -128,173 +128,84 @@ const ContractScannerDemo = () => {
 
   const getSeverityColor = (type) => {
     switch (type) {
-      case 'HIGH': return '#dc2626'
-      case 'MEDIUM': return '#d97706'
-      case 'INFO': return '#2563eb'
-      default: return '#6b7280'
+      case 'HIGH': return '#EF4444'
+      case 'MEDIUM': return '#F59E0B'
+      case 'INFO': return '#60A5FA'
+      default: return '#9AA4B2'
     }
   }
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: '1fr 1fr' }}>
+      <div style={{ display: 'grid', gap: 24, gridTemplateColumns: '1fr 1fr' }}>
         <div>
-          <label style={{ 
-            display: 'block', 
-            fontWeight: '600', 
-            marginBottom: '8px',
-            color: '#374151' 
-          }}>
-            Smart Contract Code:
-          </label>
+          <label className="form-label">Smart Contract Code</label>
           <textarea
             value={contractCode}
             onChange={(e) => setContractCode(e.target.value)}
-            style={{
-              width: '100%',
-              height: '300px',
-              padding: '12px',
-              border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              fontSize: '0.875rem',
-              fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-              resize: 'vertical',
-              backgroundColor: '#f8fafc'
-            }}
+            className="textarea"
+            style={{ fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace', minHeight: 300 }}
             placeholder="Paste your Solidity contract code here..."
           />
         </div>
 
         <div>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '16px'
-          }}>
-            <h3 style={{ margin: 0, color: '#374151' }}>Security Analysis</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h3 style={{ margin: 0 }}>Security Analysis</h3>
             <button
               onClick={scanContract}
               disabled={!contractCode.trim() || isScanning}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: isScanning ? '#9ca3af' : '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                cursor: contractCode.trim() && !isScanning ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
+              className={`btn ${isScanning ? 'btn-secondary' : 'btn-primary'}`}
             >
-              {isScanning ? (
-                <>
-                  <div style={{
-                    width: '14px',
-                    height: '14px',
-                    border: '2px solid rgba(255, 255, 255, 0.3)',
-                    borderTop: '2px solid white',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }}></div>
-                  Scanning...
-                </>
-              ) : (
-                'Scan Contract'
-              )}
+              {isScanning ? 'Scanning...' : 'Scan Contract'}
             </button>
           </div>
 
-          <div style={{
-            height: '300px',
-            border: '2px solid #e5e7eb',
-            borderRadius: '8px',
-            padding: '16px',
-            backgroundColor: '#f9fafb',
-            overflow: 'auto'
-          }}>
+          <div className="card" style={{ minHeight: 300, overflow: 'auto' }}>
             {!results && !isScanning && (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                height: '100%',
-                color: '#6b7280',
-                textAlign: 'center'
-              }}>
+              <div className="muted" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
                 Click "Scan Contract" to analyze the code for security vulnerabilities
               </div>
             )}
 
             {isScanning && (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                height: '100%',
-                color: '#6b7280',
-                textAlign: 'center'
-              }}>
+              <div className="muted" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
                 Analyzing contract for security issues...
               </div>
             )}
 
             {results && (
-              <div style={{ display: 'grid', gap: '16px' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  paddingBottom: '12px',
-                  borderBottom: '1px solid #e5e7eb'
-                }}>
-                  <span style={{ fontWeight: '600' }}>Overall Score:</span>
-                  <span style={{ 
-                    fontWeight: '600',
-                    color: results.overallScore === 'GOOD' ? '#059669' : 
-                           results.overallScore === 'FAIR' ? '#d97706' : '#dc2626'
-                  }}>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid var(--surface-border)' }}>
+                  <span style={{ fontWeight: 700 }}>Overall Score:</span>
+                  <span className={
+                    results.overallScore === 'GOOD' ? 'badge badge-success' :
+                    results.overallScore === 'FAIR' ? 'badge badge-warning' : 'badge badge-neutral'
+                  }>
                     {results.overallScore}
                   </span>
                 </div>
 
                 <div>
-                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0 0 12px 0' }}>
+                  <p className="muted" style={{ margin: '0 0 10px 0', fontSize: '0.9rem' }}>
                     Analyzed {results.linesAnalyzed} lines in {results.analysisTime}
                   </p>
                 </div>
 
                 {[...results.vulnerabilities, ...results.warnings, ...results.info].map((finding, index) => (
-                  <div key={index} style={{
-                    padding: '12px',
-                    backgroundColor: '#fff',
-                    border: `1px solid ${getSeverityColor(finding.type)}40`,
-                    borderLeft: `4px solid ${getSeverityColor(finding.type)}`,
-                    borderRadius: '6px'
-                  }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '6px'
-                    }}>
-                      <span style={{ 
-                        fontSize: '0.875rem', 
-                        fontWeight: '600',
-                        color: getSeverityColor(finding.type)
-                      }}>
+                  <div key={index} className="card" style={{ padding: 12, borderLeft: `4px solid ${getSeverityColor(finding.type)}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: '0.875rem', fontWeight: 700, color: getSeverityColor(finding.type) }}>
                         {finding.type}
                       </span>
-                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                      <span className="muted" style={{ fontSize: '0.75rem' }}>
                         Line {finding.line}
                       </span>
                     </div>
-                    <h4 style={{ margin: '0 0 6px 0', fontSize: '0.9rem', color: '#374151' }}>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem' }}>
                       {finding.title}
                     </h4>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280', lineHeight: '1.4' }}>
+                    <p className="muted" style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.5 }}>
                       {finding.description}
                     </p>
                   </div>
@@ -304,15 +215,6 @@ const ContractScannerDemo = () => {
           </div>
         </div>
       </div>
-
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
     </div>
   )
 }

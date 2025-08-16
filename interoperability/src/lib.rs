@@ -30,7 +30,7 @@ pub struct AssetMetadata {
     pub icon_url: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BridgeTxId(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -185,15 +185,7 @@ impl DytallixBridge {
                 keypair.public_key.clone(),
                 SignatureAlgorithm::Dilithium5,
             );
-            
-            self.add_validator(BridgeValidator {
-                id: "validator_1".to_string(),
-                public_key: keypair.public_key,
-                algorithm: "dilithium".to_string(),
-                stake: 1000000,
-                reputation: 1.0,
-                is_active: true,
-            });
+            self.add_validator(BridgeValidator { id: "validator_1".to_string(), public_key: keypair.public_key.clone(), algorithm: "dilithium".to_string(), stake: 1000000, reputation: 1.0, is_active: true });
         }
         
         // Generate and add validator 2 with Falcon
@@ -203,15 +195,7 @@ impl DytallixBridge {
                 keypair.public_key.clone(),
                 SignatureAlgorithm::Falcon1024,
             );
-            
-            self.add_validator(BridgeValidator {
-                id: "validator_2".to_string(),
-                public_key: keypair.public_key,
-                algorithm: "falcon".to_string(),
-                stake: 950000,
-                reputation: 0.98,
-                is_active: true,
-            });
+            self.add_validator(BridgeValidator { id: "validator_2".to_string(), public_key: keypair.public_key.clone(), algorithm: "falcon".to_string(), stake: 950000, reputation: 0.98, is_active: true });
         }
         
         // Generate and add validator 3 with SPHINCS+
@@ -221,15 +205,7 @@ impl DytallixBridge {
                 keypair.public_key.clone(),
                 SignatureAlgorithm::SphincsSha256128s,
             );
-            
-            self.add_validator(BridgeValidator {
-                id: "validator_3".to_string(),
-                public_key: keypair.public_key,
-                algorithm: "sphincs+".to_string(),
-                stake: 800000,
-                reputation: 0.95,
-                is_active: true,
-            });
+            self.add_validator(BridgeValidator { id: "validator_3".to_string(), public_key: keypair.public_key.clone(), algorithm: "sphincs+".to_string(), stake: 800000, reputation: 0.95, is_active: true });
         }
     }
     
@@ -330,6 +306,8 @@ impl DytallixBridge {
             payload_hash: hash.as_bytes().to_vec(),
             timestamp: legacy_sig.timestamp,
             validator_id: legacy_sig.validator_id.clone(),
+            nonce: 0, // TODO: supply real nonce if available
+            sequence: 0, // TODO: supply real sequence if available
         })
     }
     
@@ -1101,6 +1079,8 @@ impl DytallixIBC {
             payload_hash: hash.as_bytes().to_vec(),
             timestamp: pqc_sig.timestamp,
             validator_id: pqc_sig.validator_id.clone(),
+            nonce: 0, // TODO: real nonce
+            sequence: 0, // TODO: real sequence
         })
     }
     

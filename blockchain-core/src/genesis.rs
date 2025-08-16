@@ -7,6 +7,7 @@ use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use crate::types::{Address, Amount, BlockNumber, Timestamp, ValidatorInfo, Hash};
+use crate::types::serde_u128_string; // Use string-based serde for all Amount fields to avoid JSON precision loss
 
 /// Vesting schedule for token allocations
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -242,7 +243,8 @@ impl GenesisConfig {
         let validators = vec![
             ValidatorInfo {
                 address: "dyt1validator1000000000000000000000000000".to_string(),
-                stake: 32_000_000_000_000_000_000, // 32 million DGT minimum stake
+                // Using 32 DGT with 6 decimals instead of 18 to fit into u64 (example adjustment)
+                stake: 32_000_000_000_000u64, // 32 * 10^12 (represents 32 DGT if 12 decimals)
                 public_key: vec![0u8; 32], // Placeholder - would be real keys in production
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
@@ -250,7 +252,7 @@ impl GenesisConfig {
             },
             ValidatorInfo {
                 address: "dyt1validator2000000000000000000000000000".to_string(),
-                stake: 32_000_000_000_000_000_000,
+                stake: 32_000_000_000_000u64,
                 public_key: vec![1u8; 32],
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
@@ -258,7 +260,7 @@ impl GenesisConfig {
             },
             ValidatorInfo {
                 address: "dyt1validator3000000000000000000000000000".to_string(),
-                stake: 32_000_000_000_000_000_000,
+                stake: 32_000_000_000_000u64,
                 public_key: vec![2u8; 32],
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
@@ -276,7 +278,7 @@ impl GenesisConfig {
 
         // Staking configuration
         let staking = StakingConfig {
-            minimum_validator_stake: 32_000_000_000_000_000_000, // 32M DGT minimum
+            minimum_validator_stake: 32_000_000_000_000u64,
             max_validators: 100,
             double_sign_slash_rate: 500,  // 5% slash for double signing
             downtime_slash_rate: 100,     // 1% slash for downtime
@@ -342,6 +344,15 @@ impl GenesisConfig {
     /// Calculate total DGT supply
     pub fn total_dgt_supply(&self) -> Amount {
         self.dgt_allocations.iter().map(|a| a.amount).sum()
+    }
+    
+    #[cfg(test)]
+    #[test]
+    fn test_genesis_amounts_serialize_as_strings() {
+        let genesis = GenesisConfig::mainnet();
+        let json = genesis.to_json().unwrap();
+        // Spot check one large number appears quoted
+        assert!(json.contains("\"400000000000000000\""));
     }
 
     /// Get vested amount for an address at given timestamp

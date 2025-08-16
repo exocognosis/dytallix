@@ -5,8 +5,7 @@ members = [
     "pqc-crypto",
     "smart-contracts",
     "governance",
-    "interoperability",
-    "DytallixLeanLaunch/tokenomics"
+    "interoperability"
 ]
 
 resolver = "2"
@@ -20,6 +19,9 @@ edition = "2021"
 blake3 = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
+# Added for integration tests referencing these crates
+dytallix-pqc = { path = "pqc-crypto" }
+dytallix-interoperability = { path = "interoperability" }
 
 [workspace.dependencies]
 # Shared dependencies for the workspace

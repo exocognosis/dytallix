@@ -42,26 +42,14 @@ const AnomalyDemo = () => {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <label style={{ 
-          display: 'block', 
-          fontWeight: '600', 
-          marginBottom: '8px',
-          color: '#374151' 
-        }}>
-          Select Transaction to Analyze:
+      <div style={{ marginBottom: '16px' }}>
+        <label className="form-label">
+          Select Transaction to Analyze
         </label>
         <select
           value={selectedTx}
           onChange={(e) => setSelectedTx(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            border: '2px solid #e5e7eb',
-            borderRadius: '8px',
-            fontSize: '1rem',
-            backgroundColor: '#fff'
-          }}
+          className="select"
         >
           <option value="">Choose a transaction...</option>
           {mockTxLogs.transactions.map((tx) => (
@@ -75,80 +63,40 @@ const AnomalyDemo = () => {
       <button
         onClick={analyzeTransaction}
         disabled={!selectedTx || isAnalyzing}
-        style={{
-          width: '100%',
-          padding: '14px 24px',
-          backgroundColor: isAnalyzing ? '#9ca3af' : '#3b82f6',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          fontSize: '1rem',
-          fontWeight: '600',
-          cursor: selectedTx && !isAnalyzing ? 'pointer' : 'not-allowed',
-          marginBottom: '32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px'
-        }}
+        className={`btn ${isAnalyzing ? 'btn-secondary' : 'btn-primary'}`}
+        style={{ width: '100%', marginBottom: 20 }}
       >
-        {isAnalyzing ? (
-          <>
-            <div style={{
-              width: '16px',
-              height: '16px',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              borderTop: '2px solid white',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite'
-            }}></div>
-            Analyzing Transaction...
-          </>
-        ) : (
-          'Run Anomaly Detection'
-        )}
+        {isAnalyzing ? 'Analyzing Transaction...' : 'Run Anomaly Detection'}
       </button>
 
       {results && (
-        <div style={{
-          padding: '24px',
-          backgroundColor: results.isAnomalous ? '#fef2f2' : '#f0f9ff',
-          border: `2px solid ${results.isAnomalous ? '#fecaca' : '#bae6fd'}`,
-          borderRadius: '12px'
+        <div className="card" style={{
+          borderColor: results.isAnomalous ? 'rgba(239,68,68,0.35)' : 'rgba(59,130,246,0.25)'
         }}>
-          <h3 style={{ 
-            marginBottom: '16px',
-            color: results.isAnomalous ? '#991b1b' : '#0369a1'
-          }}>
+          <h3 style={{ marginBottom: 12 }}>
             Analysis Results
           </h3>
 
-          <div style={{ display: 'grid', gap: '16px' }}>
+          <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: '600' }}>Anomaly Score:</span>
-              <span style={{ 
-                color: results.isAnomalous ? '#dc2626' : '#059669',
-                fontWeight: '600'
-              }}>
+              <span style={{ fontWeight: 600 }}>Anomaly Score:</span>
+              <span className={results.isAnomalous ? 'badge badge-warning' : 'badge badge-success'}>
                 {results.anomalyScore}%
               </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: '600' }}>Recommendation:</span>
-              <span style={{ 
-                color: results.isAnomalous ? '#dc2626' : '#059669',
-                fontWeight: '600'
-              }}>
+              <span style={{ fontWeight: 600 }}>Recommendation:</span>
+              <span className={results.isAnomalous ? 'badge badge-warning' : 'badge badge-success'}>
                 {results.recommendation}
               </span>
             </div>
 
             <div>
-              <h4 style={{ marginBottom: '8px', fontWeight: '600' }}>Analysis Factors:</h4>
-              <ul style={{ margin: 0, paddingLeft: '20px' }}>
+              <h4 style={{ marginBottom: 6, fontWeight: 700 }}>Analysis Factors</h4>
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
                 {results.factors.map((factor, index) => (
-                  <li key={index} style={{ marginBottom: '4px', color: '#6b7280' }}>
+                  <li key={index} className="muted" style={{ marginBottom: 4 }}>
                     {factor}
                   </li>
                 ))}
@@ -157,15 +105,6 @@ const AnomalyDemo = () => {
           </div>
         </div>
       )}
-
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
     </div>
   )
 }

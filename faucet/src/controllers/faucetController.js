@@ -1,5 +1,6 @@
 const winston = require('winston');
 const axios = require('axios');
+const { TOKENS, formatAmountWithSymbol, getTokenByMicroDenom } = require('../tokens');
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -40,10 +41,10 @@ class FaucetController {
       const { address } = req.body;
       const clientIp = req.ip || req.connection.remoteAddress;
 
-      logger.info('Faucet request received', {
+      logger.info('Dual token faucet request received', {
         address,
         clientIp,
-        amount: this.faucetAmount
+        tokenConfig: this.tokenConfig
       });
 
       // Validate address format (basic validation)
@@ -54,37 +55,85 @@ class FaucetController {
         });
       }
 
-      // Check if address already has sufficient balance
-      const currentBalance = await this.getAddressBalance(address);
-      if (currentBalance && currentBalance > 5000000) { // 5 DYT threshold
+      // Check if address already has sufficient balance for both tokens
+      const dgtBalance = await this.getAddressBalance(address, 'udgt');
+      const drtBalance = await this.getAddressBalance(address, 'udrt');
+      
+      // DGT threshold: 50 DGT (50,000,000 udgt)
+      if (dgtBalance && dgtBalance > 50000000) {
         return res.status(429).json({
-          error: 'Address already has sufficient balance',
-          message: `Address has ${currentBalance} udyt, faucet is limited to addresses with less than 5000000 udyt`,
-          currentBalance: currentBalance
+          error: 'Address already has sufficient DGT balance',
+          message: `Address has ${formatAmountWithSymbol(dgtBalance, 'udgt')}, faucet is limited to addresses with less than 50 DGT`,
+          currentBalance: {
+            dgt: formatAmountWithSymbol(dgtBalance, 'udgt'),
+            drt: formatAmountWithSymbol(drtBalance, 'udrt')
+          }
         });
       }
 
-      // Simulate sending tokens (replace with actual blockchain transaction)
-      const txHash = await this.simulateSendTransaction(address, this.faucetAmount);
+      // DRT threshold: 500 DRT (500,000,000 udrt)
+      if (drtBalance && drtBalance > 500000000) {
+        return res.status(429).json({
+          error: 'Address already has sufficient DRT balance',
+          message: `Address has ${formatAmountWithSymbol(drtBalance, 'udrt')}, faucet is limited to addresses with less than 500 DRT`,
+          currentBalance: {
+            dgt: formatAmountWithSymbol(dgtBalance, 'udgt'),
+            drt: formatAmountWithSymbol(drtBalance, 'udrt')
+          }
+        });
+      }
 
-      logger.info('Tokens sent successfully', {
+      // Send both tokens
+      const transactions = [];
+      
+      // Send DGT (governance token)
+      const dgtTxHash = await this.simulateSendTransaction(address, this.tokenConfig.DGT.amount);
+      transactions.push({
+        token: 'DGT',
+        amount: this.tokenConfig.DGT.amount,
+        amountFormatted: formatAmountWithSymbol(this.tokenConfig.DGT.amount.replace('udgt', ''), 'udgt'),
+        txHash: dgtTxHash,
+        purpose: this.tokenConfig.DGT.description
+      });
+
+      // Send DRT (reward token)
+      const drtTxHash = await this.simulateSendTransaction(address, this.tokenConfig.DRT.amount);
+      transactions.push({
+        token: 'DRT',
+        amount: this.tokenConfig.DRT.amount,
+        amountFormatted: formatAmountWithSymbol(this.tokenConfig.DRT.amount.replace('udrt', ''), 'udrt'),
+        txHash: drtTxHash,
+        purpose: this.tokenConfig.DRT.description
+      });
+
+      logger.info('Dual tokens sent successfully', {
         address,
-        amount: this.faucetAmount,
-        txHash,
+        transactions,
         clientIp
       });
 
       res.status(200).json({
         success: true,
-        message: 'Tokens sent successfully',
-        txHash,
-        amount: this.faucetAmount,
+        message: 'Dual tokens sent successfully',
+        transactions,
         recipient: address,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        tokenomicsInfo: {
+          DGT: {
+            name: TOKENS.DGT.displayName,
+            supply: 'Fixed (1B DGT)',
+            votingPower: '1 DGT = 1 Vote'
+          },
+          DRT: {
+            name: TOKENS.DRT.displayName,
+            supply: 'Inflationary (~6% annual)',
+            utility: 'Staking rewards, AI payments, transaction fees'
+          }
+        }
       });
 
     } catch (error) {
-      logger.error('Error sending tokens', {
+      logger.error('Error sending dual tokens', {
         error: error.message,
         stack: error.stack,
         address: req.body.address
@@ -111,9 +160,20 @@ class FaucetController {
         faucetAddress: this.faucetAddress,
         chainId: this.chainId,
         network: networkStatus,
-        tokensPerRequest: this.faucetAmount,
+        tokenDistribution: {
+          DGT: {
+            amountPerRequest: this.tokenConfig.DGT.amount,
+            description: this.tokenConfig.DGT.description,
+            balanceLimit: '50 DGT per address'
+          },
+          DRT: {
+            amountPerRequest: this.tokenConfig.DRT.amount,
+            description: this.tokenConfig.DRT.description,
+            balanceLimit: '500 DRT per address'
+          }
+        },
         lastUpdated: new Date().toISOString(),
-        note: networkStatus.connected ? 'Connected to kvstore testnet' : 'Network connection issues'
+        note: networkStatus.connected ? 'Connected to testnet with dual-token system' : 'Network connection issues'
       });
 
     } catch (error) {
@@ -137,17 +197,30 @@ class FaucetController {
         });
       }
 
-      const balance = await this.getAddressBalance(address);
+      const dgtBalance = await this.getAddressBalance(address, 'udgt');
+      const drtBalance = await this.getAddressBalance(address, 'udrt');
       
       res.json({
         address,
-        balance: balance || '0',
-        denom: 'udyt',
+        balances: {
+          dgt: {
+            amount: dgtBalance || '0',
+            denom: 'udgt',
+            formatted: formatAmountWithSymbol(dgtBalance || '0', 'udgt'),
+            description: TOKENS.DGT.description
+          },
+          drt: {
+            amount: drtBalance || '0', 
+            denom: 'udrt',
+            formatted: formatAmountWithSymbol(drtBalance || '0', 'udrt'),
+            description: TOKENS.DRT.description
+          }
+        },
         timestamp: new Date().toISOString()
       });
 
     } catch (error) {
-      logger.error('Error getting balance', { 
+      logger.error('Error getting dual token balance', { 
         error: error.message, 
         address: req.params.address 
       });
@@ -189,10 +262,10 @@ class FaucetController {
     return txHash;
   }
 
-  async getAddressBalance(address) {
+  async getAddressBalance(address, denom = 'udgt') {
     try {
-      // This would make an actual RPC call to get balance
-      // For now, return simulated balance
+      // This would make an actual RPC call to get balance for specific denomination
+      // For now, return simulated balance based on denomination
       const response = await axios.post(`${this.rpcEndpoint}`, {
         jsonrpc: '2.0',
         method: 'abci_query',
@@ -206,12 +279,23 @@ class FaucetController {
 
       if (response && response.data && response.data.result) {
         // Parse balance from response (simplified)
-        return Math.floor(Math.random() * 10000000); // Simulated balance
+        // In real implementation, filter by denom
+        if (denom === 'udgt') {
+          return Math.floor(Math.random() * 50000000); // 0-50 DGT simulated
+        } else if (denom === 'udrt') {
+          return Math.floor(Math.random() * 500000000); // 0-500 DRT simulated
+        }
       }
       
-      return Math.floor(Math.random() * 10000000); // Simulated balance
+      // Fallback simulated balances
+      if (denom === 'udgt') {
+        return Math.floor(Math.random() * 50000000); // 0-50 DGT
+      } else if (denom === 'udrt') {
+        return Math.floor(Math.random() * 500000000); // 0-500 DRT
+      }
+      return 0;
     } catch (error) {
-      logger.warn('Failed to get balance', { address, error: error.message });
+      logger.warn('Failed to get balance', { address, denom, error: error.message });
       return null;
     }
   }
