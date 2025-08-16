@@ -1,11 +1,11 @@
 // Shared notification types for the high-risk transaction queue system
 // These types are used across multiple modules to ensure consistency
 
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
-use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use crate::types::TxHash;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use uuid::Uuid;
 
 // Re-export types that are used by other modules
 pub use crate::consensus::high_risk_queue::ReviewPriority;
@@ -153,12 +153,21 @@ impl NotificationType {
     /// Get the priority level for this notification type
     pub fn priority_level(&self) -> u8 {
         match self {
-            NotificationType::SystemAlert { severity: AlertSeverity::Critical, .. } => 5,
+            NotificationType::SystemAlert {
+                severity: AlertSeverity::Critical,
+                ..
+            } => 5,
             NotificationType::QueueCapacityWarning { warning_level, .. } => *warning_level,
             NotificationType::ReviewTimeout { .. } => 4,
             NotificationType::TransactionExpired { .. } => 3,
-            NotificationType::NewHighRiskTransaction { priority: ReviewPriority::Critical, .. } => 4,
-            NotificationType::NewHighRiskTransaction { priority: ReviewPriority::High, .. } => 3,
+            NotificationType::NewHighRiskTransaction {
+                priority: ReviewPriority::Critical,
+                ..
+            } => 4,
+            NotificationType::NewHighRiskTransaction {
+                priority: ReviewPriority::High,
+                ..
+            } => 3,
             NotificationType::NewHighRiskTransaction { .. } => 2,
             NotificationType::ManualReviewAssigned { .. } => 2,
             NotificationType::TransactionApproved { .. } => 1,
@@ -170,7 +179,9 @@ impl NotificationType {
     /// Get a human-readable title for this notification
     pub fn title(&self) -> String {
         match self {
-            NotificationType::NewHighRiskTransaction { .. } => "New High-Risk Transaction".to_string(),
+            NotificationType::NewHighRiskTransaction { .. } => {
+                "New High-Risk Transaction".to_string()
+            }
             NotificationType::TransactionApproved { .. } => "Transaction Approved".to_string(),
             NotificationType::TransactionRejected { .. } => "Transaction Rejected".to_string(),
             NotificationType::TransactionExpired { .. } => "Transaction Expired".to_string(),

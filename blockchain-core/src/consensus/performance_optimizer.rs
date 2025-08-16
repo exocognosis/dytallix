@@ -7,17 +7,17 @@
 //! - Graceful degradation with reduced AI features
 //! - Performance monitoring and optimization metrics
 
+use anyhow::{anyhow, Result};
+use chrono::{DateTime, Duration, Utc};
+use log::{debug, info, warn};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use tokio::sync::{RwLock, Mutex, Semaphore};
-use chrono::{DateTime, Utc, Duration};
-use serde::{Serialize, Deserialize};
+use tokio::sync::{Mutex, RwLock, Semaphore};
 use uuid::Uuid;
-use anyhow::{Result, anyhow};
-use log::{info, warn, debug};
 
-use crate::types::{Transaction, TxHash};
 use crate::consensus::ai_integration::{AIVerificationResult, RiskProcessingDecision};
+use crate::types::{Transaction, TxHash};
 
 /// Configuration for performance optimization
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -181,7 +181,7 @@ impl PerformanceOptimizer {
     /// Create a new performance optimizer
     pub fn new(config: PerformanceConfig) -> Self {
         let request_semaphore = Arc::new(Semaphore::new(config.max_concurrent_requests));
-        
+
         Self {
             config,
             pending_batches: Arc::new(RwLock::new(VecDeque::new())),
@@ -195,49 +195,58 @@ impl PerformanceOptimizer {
     }
 
     /// Check cache for existing result
-    pub async fn get_cached_result(&self, transaction_hash: &TxHash) -> Option<AIVerificationResult> {
+    pub async fn get_cached_result(
+        &self,
+        transaction_hash: &TxHash,
+    ) -> Option<AIVerificationResult> {
         if !self.config.enable_caching {
             return None;
         }
 
         let cache_key = self.generate_cache_key(transaction_hash);
         let mut cache = self.cache.write().await;
-        
+
         if let Some(entry) = cache.get_mut(&cache_key) {
             // Check if cache entry is still valid
             let now = Utc::now();
             let age = (now - entry.cached_at).num_seconds() as u64;
-            
+
             if age <= self.config.cache_ttl_seconds {
                 // Update access statistics
                 entry.access_count += 1;
                 entry.last_accessed = now;
-                
+
                 // Update metrics
                 let mut metrics = self.metrics.write().await;
                 metrics.cache_hits += 1;
-                
-                debug!("Cache hit for transaction {}", hex::encode(transaction_hash));
+
+                debug!(
+                    "Cache hit for transaction {}",
+                    hex::encode(transaction_hash)
+                );
                 return Some(entry.result.clone());
             } else {
                 // Remove expired entry
                 cache.remove(&cache_key);
-                debug!("Cache entry expired for transaction {}", hex::encode(transaction_hash));
+                debug!(
+                    "Cache entry expired for transaction {}",
+                    hex::encode(transaction_hash)
+                );
             }
         }
 
         // Update cache miss metrics
         let mut metrics = self.metrics.write().await;
         metrics.cache_misses += 1;
-        
+
         None
     }
 
     /// Cache an AI verification result
     pub async fn cache_result(
-        &self, 
-        transaction_hash: &TxHash, 
-        result: &AIVerificationResult
+        &self,
+        transaction_hash: &TxHash,
+        result: &AIVerificationResult,
     ) -> Result<()> {
         if !self.config.enable_caching {
             return Ok(());
@@ -254,27 +263,34 @@ impl PerformanceOptimizer {
         };
 
         let mut cache = self.cache.write().await;
-        
+
         // Check cache size limit
         if cache.len() >= self.config.max_cache_size {
             self.evict_cache_entries(&mut cache).await;
         }
 
         cache.insert(cache_key, entry);
-        debug!("Cached result for transaction {}", hex::encode(transaction_hash));
-        
+        debug!(
+            "Cached result for transaction {}",
+            hex::encode(transaction_hash)
+        );
+
         Ok(())
     }
 
     /// Add transaction to batch queue
-    pub async fn add_to_batch(&self, transaction_hash: TxHash, transaction: Transaction) -> Result<Uuid> {
+    pub async fn add_to_batch(
+        &self,
+        transaction_hash: TxHash,
+        transaction: Transaction,
+    ) -> Result<Uuid> {
         if !self.config.enable_batching {
             return Err(anyhow!("Batching is disabled"));
         }
 
         let batch_id = Uuid::new_v4();
         let priority = self.determine_batch_priority(&transaction);
-        
+
         let batch = BatchRequest {
             batch_id,
             transactions: vec![(transaction_hash, transaction)],
@@ -283,13 +299,16 @@ impl PerformanceOptimizer {
         };
 
         let mut batches = self.pending_batches.write().await;
-        
+
         // Try to merge with existing batch of same priority
         let mut merged = false;
         for existing_batch in batches.iter_mut() {
-            if existing_batch.priority == priority && 
-               existing_batch.transactions.len() < self.config.max_batch_size {
-                existing_batch.transactions.extend(batch.transactions.clone());
+            if existing_batch.priority == priority
+                && existing_batch.transactions.len() < self.config.max_batch_size
+            {
+                existing_batch
+                    .transactions
+                    .extend(batch.transactions.clone());
                 merged = true;
                 break;
             }
@@ -297,7 +316,10 @@ impl PerformanceOptimizer {
 
         if !merged {
             // Insert in priority order
-            let insert_pos = batches.iter().position(|b| b.priority < priority).unwrap_or(batches.len());
+            let insert_pos = batches
+                .iter()
+                .position(|b| b.priority < priority)
+                .unwrap_or(batches.len());
             batches.insert(insert_pos, batch);
         }
 
@@ -312,29 +334,34 @@ impl PerformanceOptimizer {
         }
 
         let mut batches = self.pending_batches.write().await;
-        
+
         // Check for ready batches (either full or timed out)
         let now = Utc::now();
         let timeout = Duration::milliseconds(self.config.batch_timeout_ms as i64);
-        
+
         for (index, batch) in batches.iter().enumerate() {
             let is_full = batch.transactions.len() >= self.config.max_batch_size;
             let is_timed_out = (now - batch.created_at) >= timeout;
-            
+
             if is_full || is_timed_out {
                 let batch = batches.remove(index).unwrap();
-                
+
                 // Update metrics
                 let mut metrics = self.metrics.write().await;
                 metrics.batched_requests += batch.transactions.len() as u64;
-                
-                debug!("Processing batch {} with {} transactions (full: {}, timeout: {})", 
-                       batch.batch_id, batch.transactions.len(), is_full, is_timed_out);
-                       
+
+                debug!(
+                    "Processing batch {} with {} transactions (full: {}, timeout: {})",
+                    batch.batch_id,
+                    batch.transactions.len(),
+                    is_full,
+                    is_timed_out
+                );
+
                 return Some(batch);
             }
         }
-        
+
         None
     }
 
@@ -381,9 +408,9 @@ impl PerformanceOptimizer {
 
     /// Perform fallback validation
     pub async fn fallback_validation(
-        &self, 
-        transaction_hash: &TxHash, 
-        transaction: &Transaction
+        &self,
+        transaction_hash: &TxHash,
+        transaction: &Transaction,
     ) -> Result<AIVerificationResult> {
         let fallback_mode = {
             let fallback = self.fallback_mode.read().await;
@@ -408,8 +435,8 @@ impl PerformanceOptimizer {
                 // Pattern-based risk assessment
                 let risk_score = self.assess_pattern_risk(transaction).await;
                 let decision = if risk_score > 0.8 {
-                    RiskProcessingDecision::RequireReview { 
-                        reason: "High pattern-based risk score".to_string() 
+                    RiskProcessingDecision::RequireReview {
+                        reason: "High pattern-based risk score".to_string(),
                     }
                 } else if risk_score > 0.6 {
                     RiskProcessingDecision::AutoApprove
@@ -428,10 +455,12 @@ impl PerformanceOptimizer {
             }
             FallbackMode::HistoricalBased => {
                 // Historical data-based assessment
-                let risk_score = self.assess_historical_risk(transaction_hash, transaction).await;
+                let risk_score = self
+                    .assess_historical_risk(transaction_hash, transaction)
+                    .await;
                 let decision = if risk_score > 0.7 {
-                    RiskProcessingDecision::RequireReview { 
-                        reason: "High historical risk indicator".to_string() 
+                    RiskProcessingDecision::RequireReview {
+                        reason: "High historical risk indicator".to_string(),
                     }
                 } else {
                     RiskProcessingDecision::AutoApprove
@@ -453,8 +482,8 @@ impl PerformanceOptimizer {
                     response_id: Uuid::new_v4().to_string(),
                     risk_score: Some(0.8),
                     confidence: Some(0.9),
-                    processing_decision: RiskProcessingDecision::RequireReview { 
-                        reason: "Conservative fallback mode - manual review required".to_string() 
+                    processing_decision: RiskProcessingDecision::RequireReview {
+                        reason: "Conservative fallback mode - manual review required".to_string(),
                     },
                     fraud_probability: Some(0.7),
                 })
@@ -476,7 +505,9 @@ impl PerformanceOptimizer {
         };
 
         // Degrade if error rate is high or too many concurrent requests
-        error_rate > 0.1 || metrics.current_concurrent_requests > (self.config.max_concurrent_requests as u64 * 8 / 10)
+        error_rate > 0.1
+            || metrics.current_concurrent_requests
+                > (self.config.max_concurrent_requests as u64 * 8 / 10)
     }
 
     /// Record request metrics
@@ -494,7 +525,7 @@ impl PerformanceOptimizer {
         {
             let mut metrics = self.metrics.write().await;
             metrics.total_requests += 1;
-            
+
             if !success {
                 metrics.error_count += 1;
             }
@@ -502,7 +533,8 @@ impl PerformanceOptimizer {
             // Calculate average response time
             let times = self.response_times.lock().await;
             if !times.is_empty() {
-                metrics.average_response_time_ms = times.iter().sum::<u64>() as f64 / times.len() as f64;
+                metrics.average_response_time_ms =
+                    times.iter().sum::<u64>() as f64 / times.len() as f64;
             }
 
             metrics.last_updated = Utc::now();
@@ -547,9 +579,12 @@ impl PerformanceOptimizer {
 
     /// Acquire request permit (for concurrency limiting)
     pub async fn acquire_request_permit(&self) -> Result<tokio::sync::SemaphorePermit> {
-        let permit = self.request_semaphore.acquire().await
+        let permit = self
+            .request_semaphore
+            .acquire()
+            .await
             .map_err(|e| anyhow!("Failed to acquire request permit: {}", e))?;
-        
+
         // Update concurrent request metrics
         {
             let mut metrics = self.metrics.write().await;
@@ -611,15 +646,18 @@ impl PerformanceOptimizer {
     /// Evict least recently used cache entries
     async fn evict_cache_entries(&self, cache: &mut HashMap<String, CacheEntry>) {
         let evict_count = cache.len() / 4; // Evict 25% of entries
-        
+
         // Sort by last accessed time and remove oldest
-        let mut entries: Vec<_> = cache.iter().map(|(k, v)| (k.clone(), v.last_accessed)).collect();
+        let mut entries: Vec<_> = cache
+            .iter()
+            .map(|(k, v)| (k.clone(), v.last_accessed))
+            .collect();
         entries.sort_by_key(|(_, last_accessed)| *last_accessed);
-        
+
         for (key, _) in entries.iter().take(evict_count) {
             cache.remove(key);
         }
-        
+
         debug!("Evicted {} cache entries", evict_count);
     }
 
@@ -629,19 +667,19 @@ impl PerformanceOptimizer {
         match transaction {
             Transaction::Transfer(tx) => {
                 let mut risk: f64 = 0.0;
-                
+
                 // High amount transactions are riskier
                 if tx.amount > 1000000 {
                     risk += 0.3;
                 } else if tx.amount > 100000 {
                     risk += 0.1;
                 }
-                
+
                 // TODO: Add more sophisticated pattern analysis
                 // - Time-based patterns
                 // - Address reputation
                 // - Transaction frequency
-                
+
                 risk.min(1.0)
             }
             Transaction::Deploy(_) => 0.4, // Contract deployments have moderate risk
@@ -652,7 +690,11 @@ impl PerformanceOptimizer {
     }
 
     /// Assess risk based on historical data
-    async fn assess_historical_risk(&self, _transaction_hash: &TxHash, transaction: &Transaction) -> f64 {
+    async fn assess_historical_risk(
+        &self,
+        _transaction_hash: &TxHash,
+        transaction: &Transaction,
+    ) -> f64 {
         // Simplified historical risk assessment
         // In production, this would query historical transaction data
         match transaction {
@@ -696,13 +738,13 @@ mod tests {
     async fn test_cache_operations() {
         let config = PerformanceConfig::default();
         let optimizer = PerformanceOptimizer::new(config);
-        
+
         let tx_hash = "test_hash".to_string();
-        
+
         // Should return None for uncached result
         let result = optimizer.get_cached_result(&tx_hash).await;
         assert!(result.is_none());
-        
+
         // Cache a result
         let ai_result = AIVerificationResult::Verified {
             oracle_id: "test".to_string(),
@@ -712,9 +754,9 @@ mod tests {
             processing_decision: RiskProcessingDecision::AutoApprove,
             fraud_probability: Some(0.3),
         };
-        
+
         optimizer.cache_result(&tx_hash, &ai_result).await.unwrap();
-        
+
         // Should now return cached result
         let cached = optimizer.get_cached_result(&tx_hash).await;
         assert!(cached.is_some());
@@ -724,18 +766,24 @@ mod tests {
     async fn test_batch_processing() {
         let config = PerformanceConfig::default();
         let optimizer = PerformanceOptimizer::new(config);
-        
+
         let tx1 = create_test_transaction(1000);
         let tx2 = create_test_transaction(2000);
-        
+
         // Add transactions to batch
-        optimizer.add_to_batch("tx1".to_string(), tx1).await.unwrap();
-        optimizer.add_to_batch("tx2".to_string(), tx2).await.unwrap();
-        
+        optimizer
+            .add_to_batch("tx1".to_string(), tx1)
+            .await
+            .unwrap();
+        optimizer
+            .add_to_batch("tx2".to_string(), tx2)
+            .await
+            .unwrap();
+
         // Should have pending batch
         let batch = optimizer.get_next_batch().await;
         assert!(batch.is_some());
-        
+
         let batch = batch.unwrap();
         assert_eq!(batch.transactions.len(), 2);
     }
@@ -744,18 +792,22 @@ mod tests {
     async fn test_fallback_modes() {
         let config = PerformanceConfig::default();
         let optimizer = PerformanceOptimizer::new(config);
-        
+
         let tx = create_test_transaction(5000);
         let tx_hash = "test_tx".to_string();
-        
+
         // Test different fallback modes
-        for mode in [FallbackMode::BasicOnly, FallbackMode::PatternBased, 
-                     FallbackMode::HistoricalBased, FallbackMode::Conservative] {
+        for mode in [
+            FallbackMode::BasicOnly,
+            FallbackMode::PatternBased,
+            FallbackMode::HistoricalBased,
+            FallbackMode::Conservative,
+        ] {
             optimizer.activate_fallback(mode).await.unwrap();
-            
+
             let result = optimizer.fallback_validation(&tx_hash, &tx).await;
             assert!(result.is_ok());
-            
+
             optimizer.deactivate_fallback().await.unwrap();
         }
     }
@@ -764,12 +816,12 @@ mod tests {
     async fn test_performance_metrics() {
         let config = PerformanceConfig::default();
         let optimizer = PerformanceOptimizer::new(config);
-        
+
         // Record some metrics
         optimizer.record_request_metrics(100, true).await;
         optimizer.record_request_metrics(200, false).await;
         optimizer.record_timeout().await;
-        
+
         let metrics = optimizer.get_metrics().await;
         assert_eq!(metrics.total_requests, 3);
         assert_eq!(metrics.error_count, 1);
@@ -782,20 +834,20 @@ mod tests {
         let mut config = PerformanceConfig::default();
         config.max_concurrent_requests = 2;
         let optimizer = PerformanceOptimizer::new(config);
-        
+
         // Acquire permits
         let permit1 = optimizer.acquire_request_permit().await.unwrap();
         let permit2 = optimizer.acquire_request_permit().await.unwrap();
-        
+
         let metrics = optimizer.get_metrics().await;
         assert_eq!(metrics.current_concurrent_requests, 2);
-        
+
         // Release permits
         drop(permit1);
         optimizer.release_request_permit().await;
         drop(permit2);
         optimizer.release_request_permit().await;
-        
+
         let metrics = optimizer.get_metrics().await;
         assert_eq!(metrics.current_concurrent_requests, 0);
     }

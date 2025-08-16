@@ -4,17 +4,17 @@
 //! registry management, reputation tracking, and performance monitoring.
 
 use anyhow::Result;
+use chrono;
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono;
-use log::{info, warn, error};
 
 use crate::consensus::{
-    AIServiceConfig, AIOracleClient, SignedAIOracleResponse,
-    signature_verification::{SignatureVerifier, VerificationConfig},
     oracle_registry::{OracleRegistry, OracleRegistryConfig, OracleStatus},
+    signature_verification::{SignatureVerifier, VerificationConfig},
+    AIOracleClient, AIServiceConfig, SignedAIOracleResponse,
 };
 use crate::types::{Address, Amount, Transaction};
 
@@ -122,12 +122,11 @@ impl EnhancedAIIntegrationManager {
     /// Create a new enhanced AI integration manager
     pub async fn new(config: EnhancedAIConfig) -> Result<Self> {
         let oracle_registry = Arc::new(OracleRegistry::new(config.oracle_registry_config.clone())?);
-        let signature_verifier = Arc::new(SignatureVerifier::new(config.verification_config.clone())?);
-        
+        let signature_verifier =
+            Arc::new(SignatureVerifier::new(config.verification_config.clone())?);
+
         // Create AI client
-        let ai_client = Arc::new(
-            AIOracleClient::new(config.ai_service_config.clone())
-        );
+        let ai_client = Arc::new(AIOracleClient::new(config.ai_service_config.clone()));
 
         Ok(Self {
             config,
@@ -151,19 +150,24 @@ impl EnhancedAIIntegrationManager {
         supported_services: Vec<String>,
         contact_info: Option<String>,
     ) -> Result<()> {
-        info!("Registering oracle {} with stake {}", oracle_address, stake_amount);
+        info!(
+            "Registering oracle {} with stake {}",
+            oracle_address, stake_amount
+        );
 
         // Register with the oracle registry
-        self.oracle_registry.register_oracle(
-            oracle_address.clone(),
-            oracle_name,
-            description,
-            public_key.clone(),
-            stake_amount,
-            oracle_version,
-            supported_services,
-            contact_info,
-        ).await?;
+        self.oracle_registry
+            .register_oracle(
+                oracle_address.clone(),
+                oracle_name,
+                description,
+                public_key.clone(),
+                stake_amount,
+                oracle_version,
+                supported_services,
+                contact_info,
+            )
+            .await?;
 
         info!("Oracle {} registered successfully", oracle_address);
         Ok(())
@@ -203,8 +207,7 @@ impl EnhancedAIIntegrationManager {
                     reputation_score: oracle.reputation.current_score,
                     error: Some(format!(
                         "Oracle reputation {} below threshold {}",
-                        oracle.reputation.current_score,
-                        self.config.min_oracle_reputation
+                        oracle.reputation.current_score, self.config.min_oracle_reputation
                     )),
                     oracle_status: Some(oracle.status),
                     validated_at: validation_start,
@@ -254,7 +257,9 @@ impl EnhancedAIIntegrationManager {
             active_validations.insert(validation_id.clone(), start_time);
         }
 
-        let result = self.perform_validation(signed_response, expected_accuracy).await;
+        let result = self
+            .perform_validation(signed_response, expected_accuracy)
+            .await;
 
         // Remove from active validations
         {
@@ -265,7 +270,11 @@ impl EnhancedAIIntegrationManager {
         // Update metrics
         let end_time = chrono::Utc::now().timestamp_millis() as u64;
         let validation_time = end_time - start_time;
-        self.update_validation_metrics(result.is_ok() && result.as_ref().unwrap_or(&false) == &true, validation_time).await;
+        self.update_validation_metrics(
+            result.is_ok() && result.as_ref().unwrap_or(&false) == &true,
+            validation_time,
+        )
+        .await;
 
         result
     }
@@ -287,10 +296,16 @@ impl EnhancedAIIntegrationManager {
         }
 
         // Step 2: Verify signature
-        let signature_valid = match self.signature_verifier.verify_signed_response(signed_response, None) {
+        let signature_valid = match self
+            .signature_verifier
+            .verify_signed_response(signed_response, None)
+        {
             Ok(()) => true,
             Err(e) => {
-                error!("Signature verification failed for oracle {}: {}", oracle_id, e);
+                error!(
+                    "Signature verification failed for oracle {}: {}",
+                    oracle_id, e
+                );
                 return Ok(false);
             }
         };
@@ -299,30 +314,37 @@ impl EnhancedAIIntegrationManager {
         let response_time = signed_response.response.processing_time_ms;
         let is_accurate = expected_accuracy.map(|acc| acc >= 0.8).unwrap_or(true); // Default to accurate if no expectation
 
-        if let Err(e) = self.oracle_registry.update_reputation(
-            oracle_id,
-            response_time,
-            is_accurate,
-            signature_valid,
-        ).await {
-            warn!("Failed to update reputation for oracle {}: {}", oracle_id, e);
+        if let Err(e) = self
+            .oracle_registry
+            .update_reputation(oracle_id, response_time, is_accurate, signature_valid)
+            .await
+        {
+            warn!(
+                "Failed to update reputation for oracle {}: {}",
+                oracle_id, e
+            );
         }
 
         // Step 4: Check for automatic slashing conditions
         if self.config.enable_auto_slashing && (!signature_valid || !is_accurate) {
-            self.check_auto_slashing(oracle_id, signature_valid, is_accurate).await;
+            self.check_auto_slashing(oracle_id, signature_valid, is_accurate)
+                .await;
         }
 
         Ok(signature_valid && is_accurate)
     }
 
     async fn check_auto_slashing(&self, oracle_id: &str, signature_valid: bool, is_accurate: bool) {
-        if let Some(oracle) = self.oracle_registry.get_oracle(&oracle_id.to_string()).await {
+        if let Some(oracle) = self
+            .oracle_registry
+            .get_oracle(&oracle_id.to_string())
+            .await
+        {
             let reputation = &oracle.reputation;
             let performance = &oracle.performance;
 
             // Auto-slashing conditions
-            let should_slash = 
+            let should_slash =
                 // Too many consecutive failures
                 performance.consecutive_failures >= 10 ||
                 // Very low reputation
@@ -336,14 +358,25 @@ impl EnhancedAIIntegrationManager {
                 } else if reputation.current_score < 0.3 {
                     format!("Low reputation: {:.3}", reputation.current_score)
                 } else {
-                    format!("High invalid signature rate: {:.1}%", 
-                           reputation.invalid_signature_responses as f64 / reputation.total_responses as f64 * 100.0)
+                    format!(
+                        "High invalid signature rate: {:.1}%",
+                        reputation.invalid_signature_responses as f64
+                            / reputation.total_responses as f64
+                            * 100.0
+                    )
                 };
 
-                if let Err(e) = self.oracle_registry.slash_oracle(&oracle_id.to_string(), reason.clone(), false).await {
+                if let Err(e) = self
+                    .oracle_registry
+                    .slash_oracle(&oracle_id.to_string(), reason.clone(), false)
+                    .await
+                {
                     error!("Failed to slash oracle {}: {}", oracle_id, e);
                 } else {
-                    warn!("Auto-slashing initiated for oracle {}: {}", oracle_id, reason);
+                    warn!(
+                        "Auto-slashing initiated for oracle {}: {}",
+                        oracle_id, reason
+                    );
                 }
             }
         }
@@ -362,8 +395,9 @@ impl EnhancedAIIntegrationManager {
 
         // Update average validation time
         let total_time = metrics.avg_validation_time_ms * (metrics.total_validations - 1) as f64;
-        metrics.avg_validation_time_ms = (total_time + validation_time_ms as f64) / metrics.total_validations as f64;
-        
+        metrics.avg_validation_time_ms =
+            (total_time + validation_time_ms as f64) / metrics.total_validations as f64;
+
         metrics.last_validation = now;
     }
 
@@ -371,10 +405,11 @@ impl EnhancedAIIntegrationManager {
     pub async fn process_transaction_with_ai(
         &self,
         transaction: &Transaction,
-    ) -> Result<(f64, bool)> { // Returns (risk_score, is_valid)
+    ) -> Result<(f64, bool)> {
+        // Returns (risk_score, is_valid)
         // This would integrate with the AI service to get risk analysis
         // For now, return a placeholder implementation
-        
+
         match transaction {
             Transaction::AIRequest(ai_tx) => {
                 // For AI request transactions, we might have a pre-computed response
@@ -428,10 +463,10 @@ impl EnhancedAIIntegrationManager {
             .into_iter()
             .map(|(addr, oracle)| (addr, oracle.reputation.current_score, oracle.status))
             .collect();
-        
+
         // Sort by reputation score descending
         leaderboard.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         leaderboard
     }
 
@@ -450,21 +485,27 @@ impl EnhancedAIIntegrationManager {
         reason: String,
         immediate: bool,
     ) -> Result<()> {
-        self.oracle_registry.slash_oracle(oracle_address, reason, immediate).await?;
+        self.oracle_registry
+            .slash_oracle(oracle_address, reason, immediate)
+            .await?;
         info!("Oracle {} manually slashed", oracle_address);
         Ok(())
     }
 
     /// Add oracle to whitelist
     pub async fn whitelist_oracle(&self, oracle_address: Address) -> Result<()> {
-        self.oracle_registry.whitelist_oracle(oracle_address.clone()).await?;
+        self.oracle_registry
+            .whitelist_oracle(oracle_address.clone())
+            .await?;
         info!("Oracle {} added to whitelist", oracle_address);
         Ok(())
     }
 
     /// Add oracle to blacklist
     pub async fn blacklist_oracle(&self, oracle_address: Address, reason: String) -> Result<()> {
-        self.oracle_registry.blacklist_oracle(oracle_address.clone(), reason.clone()).await?;
+        self.oracle_registry
+            .blacklist_oracle(oracle_address.clone(), reason.clone())
+            .await?;
         info!("Oracle {} blacklisted: {}", oracle_address, reason);
         Ok(())
     }
@@ -481,25 +522,31 @@ mod tests {
         let manager = EnhancedAIIntegrationManager::new(config).await.unwrap();
 
         // Register an oracle
-        let result = manager.register_oracle(
-            "dyt1test_oracle".to_string(),
-            "Test Oracle".to_string(),
-            "Test oracle for integration testing".to_string(),
-            vec![1, 2, 3, 4],
-            2000000000, // 20 DYTX
-            "1.0.0".to_string(),
-            vec!["risk_scoring".to_string()],
-            Some("test@example.com".to_string()),
-        ).await;
+        let result = manager
+            .register_oracle(
+                "dyt1test_oracle".to_string(),
+                "Test Oracle".to_string(),
+                "Test oracle for integration testing".to_string(),
+                vec![1, 2, 3, 4],
+                2000000000, // 20 DYTX
+                "1.0.0".to_string(),
+                vec!["risk_scoring".to_string()],
+                Some("test@example.com".to_string()),
+            )
+            .await;
 
         assert!(result.is_ok());
 
         // Activate the oracle
-        let activation_result = manager.activate_oracle(&"dyt1test_oracle".to_string()).await;
+        let activation_result = manager
+            .activate_oracle(&"dyt1test_oracle".to_string())
+            .await;
         assert!(activation_result.is_ok());
 
         // Validate oracle authorization
-        let auth_result = manager.validate_oracle_authorization(&"dyt1test_oracle".to_string()).await;
+        let auth_result = manager
+            .validate_oracle_authorization(&"dyt1test_oracle".to_string())
+            .await;
         assert!(auth_result.is_authorized);
         assert!(auth_result.reputation_score > 0.9); // Should start with high reputation
     }
@@ -510,30 +557,40 @@ mod tests {
         let manager = EnhancedAIIntegrationManager::new(config).await.unwrap();
 
         // Register and activate oracle
-        manager.register_oracle(
-            "dyt1slash_test".to_string(),
-            "Slash Test Oracle".to_string(),
-            "Oracle for slashing test".to_string(),
-            vec![5, 6, 7, 8],
-            2000000000,
-            "1.0.0".to_string(),
-            vec!["risk_scoring".to_string()],
-            None,
-        ).await.unwrap();
+        manager
+            .register_oracle(
+                "dyt1slash_test".to_string(),
+                "Slash Test Oracle".to_string(),
+                "Oracle for slashing test".to_string(),
+                vec![5, 6, 7, 8],
+                2000000000,
+                "1.0.0".to_string(),
+                vec!["risk_scoring".to_string()],
+                None,
+            )
+            .await
+            .unwrap();
 
-        manager.activate_oracle(&"dyt1slash_test".to_string()).await.unwrap();
+        manager
+            .activate_oracle(&"dyt1slash_test".to_string())
+            .await
+            .unwrap();
 
         // Manually slash the oracle
-        let slash_result = manager.manual_slash_oracle(
-            &"dyt1slash_test".to_string(),
-            "Test slashing".to_string(),
-            true, // immediate
-        ).await;
+        let slash_result = manager
+            .manual_slash_oracle(
+                &"dyt1slash_test".to_string(),
+                "Test slashing".to_string(),
+                true, // immediate
+            )
+            .await;
 
         assert!(slash_result.is_ok());
 
         // Verify oracle is no longer authorized
-        let auth_result = manager.validate_oracle_authorization(&"dyt1slash_test".to_string()).await;
+        let auth_result = manager
+            .validate_oracle_authorization(&"dyt1slash_test".to_string())
+            .await;
         assert!(!auth_result.is_authorized);
     }
 }

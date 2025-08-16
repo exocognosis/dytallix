@@ -104,3 +104,5 @@ deployment/gcp/terraform/.terraform/providers/
 *.terraform.lock.hcl
 terraform.tfstate*
 .pids/
+# Allow committing audit artifacts
+!dytallix-lean-launch/artifacts/hardhat_audit/
