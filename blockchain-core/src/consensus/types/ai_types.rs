@@ -385,6 +385,16 @@ impl AIResponsePayload {
         }
     }
 
+    /// Check if the response is fresh (within 5 minutes)
+    pub fn is_fresh(&self) -> bool {
+        self.age_seconds() <= 300 // 5 minutes
+    }
+
+    /// Check if the response is stale (older than 5 minutes)
+    pub fn is_stale(&self) -> bool {
+        !self.is_fresh()
+    }
+
     /// Check if the response is successful
     pub fn is_successful(&self) -> bool {
         self.status == ResponseStatus::Success

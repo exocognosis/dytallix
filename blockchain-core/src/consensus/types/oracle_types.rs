@@ -54,6 +54,12 @@ pub struct OracleIdentity {
     pub is_active: bool,
     /// Oracle's certificate chain
     pub certificate_chain: Vec<OracleCertificate>,
+    /// Oracle endpoint URL (optional for backward compatibility)
+    pub url: Option<String>,
+    /// Services supported by this oracle (optional for backward compatibility)
+    pub supported_services: Option<Vec<AIServiceType>>,
+    /// Last activity timestamp for activity tracking (optional for backward compatibility)
+    pub last_activity: Option<u64>,
 }
 
 /// Oracle certificate for identity verification
@@ -206,10 +212,15 @@ impl AIResponseSignature {
     pub fn is_recent(&self, max_age_seconds: u64) -> bool {
         self.age_seconds() <= max_age_seconds
     }
+
+    /// Check if the signature is fresh (within 5 minutes)
+    pub fn is_fresh(&self) -> bool {
+        self.is_recent(300) // 5 minutes
+    }
 }
 
 impl OracleIdentity {
-    /// Create a new oracle identity
+    /// Create a new oracle identity (modern API)
     pub fn new(
         oracle_id: String,
         name: String,
@@ -222,9 +233,36 @@ impl OracleIdentity {
             public_key,
             signature_algorithm,
             registered_at: chrono::Utc::now().timestamp() as u64,
-            reputation_score: 0.0,
+            reputation_score: 0.5, // Fixed: start with neutral reputation
             is_active: true,
             certificate_chain: Vec::new(),
+            url: None,
+            supported_services: None,
+            last_activity: Some(chrono::Utc::now().timestamp() as u64),
+        }
+    }
+
+    /// Create a new oracle identity with extended fields (legacy API for mod.rs tests)
+    /// Parameters: (id, public_key, name, url, supported_services)
+    pub fn new_legacy(
+        id: String,
+        public_key: Vec<u8>,
+        name: String,
+        url: String,
+        supported_services: Vec<AIServiceType>,
+    ) -> Self {
+        Self {
+            oracle_id: id,
+            name,
+            public_key,
+            signature_algorithm: SignatureAlgorithm::Dilithium5, // Default
+            registered_at: chrono::Utc::now().timestamp() as u64,
+            reputation_score: 0.5,
+            is_active: true,
+            certificate_chain: Vec::new(),
+            url: Some(url),
+            supported_services: Some(supported_services),
+            last_activity: Some(chrono::Utc::now().timestamp() as u64),
         }
     }
 
@@ -249,6 +287,66 @@ impl OracleIdentity {
     /// Check if the oracle is trusted (high reputation and active)
     pub fn is_trusted(&self, min_reputation: f64) -> bool {
         self.is_active && self.reputation_score >= min_reputation
+    }
+
+    /// Check if the oracle supports a given service
+    pub fn supports_service(&self, service_type: &AIServiceType) -> bool {
+        match &self.supported_services {
+            Some(services) => services.contains(service_type),
+            None => false,
+        }
+    }
+
+    /// Get the oracle ID (backward compatibility alias)
+    pub fn id(&self) -> &str {
+        &self.oracle_id
+    }
+
+    /// Get the oracle URL
+    pub fn url(&self) -> Option<&str> {
+        self.url.as_deref()
+    }
+
+    /// Get supported services
+    pub fn supported_services(&self) -> Option<&Vec<AIServiceType>> {
+        self.supported_services.as_ref()
+    }
+
+    /// Get reputation score (backward compatibility alias)
+    pub fn reputation(&self) -> f64 {
+        self.reputation_score
+    }
+
+    /// Update reputation score (backward compatibility - returns updated instance)
+    pub fn update_reputation(mut self, score: f64) -> Self {
+        self.reputation_score = score.clamp(0.0, 1.0);
+        self
+    }
+
+    /// Update reputation score in-place (for mutable references)
+    pub fn update_reputation_mut(&mut self, score: f64) {
+        self.reputation_score = score.clamp(0.0, 1.0);
+    }
+
+    /// Update activity timestamp
+    pub fn update_activity(&mut self) {
+        self.last_activity = Some(chrono::Utc::now().timestamp() as u64);
+    }
+
+    /// Get seconds since last activity
+    pub fn inactive_seconds(&self) -> u64 {
+        match self.last_activity {
+            Some(last) => {
+                let now = chrono::Utc::now().timestamp() as u64;
+                if now > last { now - last } else { 0 }
+            }
+            None => u64::MAX, // If never active, return max value
+        }
+    }
+
+    /// Check if oracle is inactive (more than 1 hour since last activity)
+    pub fn is_inactive(&self) -> bool {
+        self.inactive_seconds() > 3600 // 1 hour
     }
 }
 
@@ -333,6 +431,13 @@ impl SignedAIOracleResponse {
     /// Check if the response is fresh (not expired)
     pub fn is_fresh(&self) -> bool {
         !self.is_expired()
+    }
+
+    /// Check if the signature is verified (placeholder - actual verification would be complex)
+    pub fn is_verified(&self) -> bool {
+        // In a real implementation, this would verify the signature cryptographically
+        // For now, return false as a placeholder
+        false
     }
 
     /// Get seconds until expiration
