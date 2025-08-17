@@ -6,5 +6,6 @@ pub mod genesis;
 pub mod genesis_integration;
 pub mod networking;
 pub mod runtime;
+pub mod staking;
 pub mod storage;
 pub mod types;
