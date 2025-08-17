@@ -30,6 +30,32 @@ impl RpcClient {
         }
         Err(anyhow!("no broadcast endpoint available"))
     }
+    
+    pub async fn call(&self, method: &str, params: &[serde_json::Value]) -> Result<serde_json::Value> {
+        let body = serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params,
+            "id": 1
+        });
+        
+        let url = format!("{}/rpc", self.base);
+        let resp = self.client.post(&url).json(&body).send().await?;
+        
+        if !resp.status().is_success() {
+            return Err(anyhow!(format!("RPC call failed {}: {}", resp.status(), resp.text().await.unwrap_or_default())));
+        }
+        
+        let result: serde_json::Value = resp.json().await?;
+        
+        if let Some(error) = result.get("error") {
+            return Err(anyhow!("RPC error: {}", error));
+        }
+        
+        result.get("result")
+            .cloned()
+            .ok_or_else(|| anyhow!("No result in RPC response"))
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

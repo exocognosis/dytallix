@@ -925,6 +925,15 @@ impl ContractRuntime {
         contracts.keys().cloned().collect()
     }
     
+    // Helper method for testing - set contract storage directly
+    #[cfg(test)]
+    pub fn set_contract_storage(&self, address: &Address, key: Vec<u8>, value: Vec<u8>) {
+        let mut storage = self.contract_storage.lock().unwrap();
+        if let Some(contract_storage) = storage.storage.get_mut(address) {
+            contract_storage.insert(key, value);
+        }
+    }
+    
     pub fn get_events(&self, contract_address: Option<&Address>) -> Vec<ContractEvent> {
         let events = self.event_storage.lock().unwrap();
         match contract_address {

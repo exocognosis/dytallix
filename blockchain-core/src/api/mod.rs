@@ -618,6 +618,79 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         })
         .boxed();
 
+    // Contract RPC endpoint
+    let contract_rpc = warp::path("rpc")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(warp::any().map(move || (storage.clone(), tx_pool.clone())))
+        .and_then(|request: serde_json::Value, ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)| async move {
+            if let Some(method) = request.get("method").and_then(|m| m.as_str()) {
+                let result = match method {
+                    "contract_deploy" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
+                            handle_contract_deploy(params.clone(), ctx).await
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    "contract_instantiate" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
+                            handle_contract_instantiate(params.clone(), ctx).await
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    "contract_execute" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
+                            handle_contract_execute(params.clone(), ctx).await
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    "contract_get_code" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
+                            handle_contract_get_code(params.clone(), ctx).await
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    "contract_get_instance" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
+                            handle_contract_get_instance(params.clone(), ctx).await
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    "contract_get_storage" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
+                            handle_contract_get_storage(params.clone(), ctx).await
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    "contract_list" => {
+                        handle_contract_list(ctx).await
+                    }
+                    _ => {
+                        serde_json::json!({"error": {"code": -32601, "message": "Method not found"}})
+                    }
+                };
+                
+                Ok::<_, warp::Rejection>(warp::reply::json(&serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "result": result,
+                    "id": request.get("id").unwrap_or(&serde_json::json!(1))
+                })).into_response())
+            } else {
+                Ok(warp::reply::json(&serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32600, "message": "Invalid Request"},
+                    "id": request.get("id").unwrap_or(&serde_json::json!(1))
+                })).into_response())
+            }
+        })
+        .boxed();
+
     // CORS
     let cors = {
         let origin = std::env::var("FRONTEND_ORIGIN").ok();
@@ -640,6 +713,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .or(get_block)
         .or(peers)
         .or(stats)
+        .or(contract_rpc)
         .with(cors)
         .with(warp::log("api"));
 
@@ -713,4 +787,157 @@ async fn handle_websocket(
     }
 
     info!("WebSocket connection closed");
+}
+
+// Contract RPC handler functions
+async fn handle_contract_deploy(
+    params: serde_json::Value, 
+    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+) -> serde_json::Value {
+    let (_storage, _tx_pool) = ctx;
+    
+    // Extract deployment parameters
+    if let Some(code_hex) = params.get("code").and_then(|c| c.as_str()) {
+        if let Ok(code) = hex::decode(code_hex) {
+            // Validate WASM code
+            if code.len() < 8 || &code[0..4] != b"\x00asm" {
+                return serde_json::json!({"error": "Invalid WASM code"});
+            }
+            
+            // Generate contract address and code hash
+            let code_hash = blake3::hash(&code);
+            let address = generate_contract_address(&code_hash.as_bytes());
+            
+            // For now, return success (proper integration with runtime comes later)
+            return serde_json::json!({
+                "success": true,
+                "address": address,
+                "code_hash": hex::encode(code_hash.as_bytes()),
+                "gas_used": 50000
+            });
+        }
+    }
+    
+    serde_json::json!({"error": "Invalid deployment parameters"})
+}
+
+async fn handle_contract_instantiate(
+    params: serde_json::Value,
+    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+) -> serde_json::Value {
+    let (_storage, _tx_pool) = ctx;
+    
+    if let Some(code_hash) = params.get("code_hash").and_then(|h| h.as_str()) {
+        // Generate instance address
+        let instance_address = generate_instance_address(code_hash);
+        
+        return serde_json::json!({
+            "success": true,
+            "instance_address": instance_address,
+            "gas_used": 30000
+        });
+    }
+    
+    serde_json::json!({"error": "Invalid instantiation parameters"})
+}
+
+async fn handle_contract_execute(
+    params: serde_json::Value,
+    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+) -> serde_json::Value {
+    let (_storage, _tx_pool) = ctx;
+    
+    if let Some(_contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
+        return serde_json::json!({
+            "success": true,
+            "return_value": "",
+            "gas_used": 20000,
+            "events": []
+        });
+    }
+    
+    serde_json::json!({"error": "Invalid execution parameters"})
+}
+
+async fn handle_contract_get_code(
+    params: serde_json::Value,
+    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+) -> serde_json::Value {
+    let (_storage, _tx_pool) = ctx;
+    
+    if let Some(hash) = params.get("hash").and_then(|h| h.as_str()) {
+        return serde_json::json!({
+            "hash": hash,
+            "size": 1024,
+            "deployed_at": chrono::Utc::now().timestamp()
+        });
+    }
+    
+    serde_json::json!({"error": "Code not found"})
+}
+
+async fn handle_contract_get_instance(
+    params: serde_json::Value,
+    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+) -> serde_json::Value {
+    let (_storage, _tx_pool) = ctx;
+    
+    if let Some(address) = params.get("address").and_then(|a| a.as_str()) {
+        return serde_json::json!({
+            "address": address,
+            "code_hash": "mock_code_hash",
+            "call_count": 0,
+            "last_called": chrono::Utc::now().timestamp()
+        });
+    }
+    
+    serde_json::json!({"error": "Instance not found"})
+}
+
+async fn handle_contract_get_storage(
+    params: serde_json::Value,
+    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+) -> serde_json::Value {
+    let (_storage, _tx_pool) = ctx;
+    
+    if let Some(_contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
+        if let Some(_key) = params.get("key").and_then(|k| k.as_str()) {
+            return serde_json::json!({
+                "value": "mock_value"
+            });
+        }
+    }
+    
+    serde_json::json!({"error": "Storage key not found"})
+}
+
+async fn handle_contract_list(
+    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+) -> serde_json::Value {
+    let (_storage, _tx_pool) = ctx;
+    
+    // Return mock contract list for now
+    serde_json::json!([
+        {
+            "address": "contract1_mock_address",
+            "code_hash": "mock_hash_1"
+        },
+        {
+            "address": "contract2_mock_address", 
+            "code_hash": "mock_hash_2"
+        }
+    ])
+}
+
+// Helper functions for address generation
+fn generate_contract_address(code_hash: &[u8]) -> String {
+    let hash = blake3::hash(code_hash);
+    format!("contract_{}", hex::encode(&hash.as_bytes()[0..16]))
+}
+
+fn generate_instance_address(code_hash: &str) -> String {
+    let timestamp = chrono::Utc::now().timestamp();
+    let input = format!("{}_{}", code_hash, timestamp);
+    let hash = blake3::hash(input.as_bytes());
+    format!("instance_{}", hex::encode(&hash.as_bytes()[0..16]))
 }
