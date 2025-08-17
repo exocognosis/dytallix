@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand, Args, ValueEnum};
 use anyhow::Result;
 use tracing::{info};
 
-use dcli::{output::OutputFormat, config, cmd::{keys, tx as txcmd, query, gov, stake, contract}, secure};
+use dcli::{output::OutputFormat, config, cmd::{keys, tx as txcmd, query, gov, stake, contract, wallet}, secure};
 
 #[derive(Parser, Debug)]
 #[command(name="dcli", version, about="Dytallix Unified CLI (dual-token DGT/DRT)", long_about=None)]
@@ -21,6 +21,7 @@ impl From<OutputArg> for OutputFormat { fn from(o: OutputArg) -> Self { match o 
 #[derive(Subcommand, Debug, Clone)]
 enum Commands {
     Keys(keys::KeysCmd),
+    Wallet(wallet::WalletCmd),
     Tx(TxGroup),
     Transfer(txcmd::TransferCmd),
     Batch(txcmd::BatchCmd),
@@ -66,6 +67,7 @@ async fn main() -> Result<()> {
             cfg = config::set(&key, &value)?; if fmt.is_json() { println!("{}", serde_json::to_string_pretty(&cfg)?); } else { println!("Updated {}", key); }
         }},
         Commands::Keys(k) => keys::handle(&cli.home, fmt, k).await?,
+        Commands::Wallet(w) => wallet::handle(&cli.home, fmt, w).await?,
         Commands::Tx(tg) => match tg.action { TxAction::Transfer(c) => txcmd::handle_transfer(&cfg.rpc, &cfg.chain_id, &cli.home, c, fmt).await?, TxAction::Batch(bc) => txcmd::handle_batch(&cfg.rpc, &cfg.chain_id, &cli.home, bc, fmt).await? },
         Commands::Transfer(c) => txcmd::handle_transfer(&cfg.rpc, &cfg.chain_id, &cli.home, c, fmt).await?,
         Commands::Batch(bc) => txcmd::handle_batch(&cfg.rpc, &cfg.chain_id, &cli.home, bc, fmt).await?,

@@ -2,6 +2,7 @@
 
 pub mod crypto;
 pub mod addr;
+pub mod addr_new;
 pub mod keystore;
 pub mod tx; // new transaction types & signing
 pub mod rpc; // rpc client
