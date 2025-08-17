@@ -18,12 +18,14 @@ mod runtime {
     pub mod bridge;
     pub mod emission;
     pub mod oracle;
-} // added emission module
+    pub mod governance;
+} // added emission and governance modules
 mod state;
 mod storage;
 mod ws;
 mod util; // added util module declaration
 use crate::runtime::emission::EmissionEngine;
+use crate::runtime::governance::GovernanceModule;
 use mempool::Mempool;
 use rpc::RpcContext;
 use state::State;
@@ -88,6 +90,7 @@ async fn main() -> anyhow::Result<()> {
         ws: ws_hub.clone(),
         tps: tps_window.clone(),
         emission: Arc::new(EmissionEngine::new(storage.clone(), state.clone())),
+        governance: Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone()))),
     };
 
     // Initialize bridge validators if provided
@@ -191,6 +194,12 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             let _ = producer_ctx.storage.put_block(&block, &receipts);
+            
+            // Process governance end block
+            if let Err(e) = producer_ctx.governance.lock().unwrap().end_block(height) {
+                eprintln!("Governance end_block error at height {}: {}", height, e);
+            }
+            
             producer_ctx
                 .tps
                 .lock()
@@ -228,6 +237,12 @@ async fn main() -> anyhow::Result<()> {
         .route("/bridge/halt", post(rpc::bridge_halt))
         .route("/bridge/state", get(rpc::bridge_state))
         .route("/emission/claim", post(rpc::emission_claim))
+        .route("/gov/submit", post(rpc::gov_submit_proposal))
+        .route("/gov/deposit", post(rpc::gov_deposit))
+        .route("/gov/vote", post(rpc::gov_vote))
+        .route("/gov/proposal/:id", get(rpc::gov_get_proposal))
+        .route("/gov/tally/:id", get(rpc::gov_tally))
+        .route("/gov/config", get(rpc::gov_get_config))
         .layer(Extension(ctx));
     if ws_enabled {
         app = app.route("/ws", get(ws_handler).layer(Extension(ws_hub)));

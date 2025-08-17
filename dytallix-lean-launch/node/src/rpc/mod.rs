@@ -19,7 +19,8 @@ use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::storage::oracle::OracleStore;
 use crate::runtime::bridge;
-use crate::EmissionEngine; // updated import for emission engine via re-export
+use crate::runtime::emission::EmissionEngine;
+use crate::runtime::governance::GovernanceModule;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 #[derive(Clone)]
@@ -30,6 +31,7 @@ pub struct RpcContext {
     pub ws: WsHub,
     pub tps: Arc<Mutex<TpsWindow>>,
     pub emission: Arc<EmissionEngine>,
+    pub governance: Arc<Mutex<GovernanceModule>>,
 }
 
 #[derive(Deserialize)]
@@ -385,6 +387,123 @@ pub async fn emission_claim(
         )),
         Err(_) => Err(ApiError::Internal),
     }
+}
+
+// Governance RPC endpoints
+pub async fn gov_submit_proposal(
+    Extension(ctx): Extension<RpcContext>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    use crate::runtime::governance::ProposalType;
+    
+    let title = body.get("title").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
+    let description = body.get("description").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
+    let key = body.get("key").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
+    let value = body.get("value").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
+    let height = ctx.storage.height();
+    
+    let proposal_type = ProposalType::ParameterChange {
+        key: key.to_string(),
+        value: value.to_string(),
+    };
+    
+    match ctx.governance.lock().unwrap().submit_proposal(
+        height,
+        title.to_string(),
+        description.to_string(),
+        proposal_type,
+    ) {
+        Ok(proposal_id) => Ok(Json(json!({"proposal_id": proposal_id}))),
+        Err(e) => {
+            eprintln!("Governance submit error: {}", e);
+            Err(ApiError::Internal)
+        }
+    }
+}
+
+pub async fn gov_deposit(
+    Extension(ctx): Extension<RpcContext>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let depositor = body.get("depositor").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
+    let proposal_id = body.get("proposal_id").and_then(|v| v.as_u64()).ok_or(ApiError::Internal)?;
+    let amount = body.get("amount").and_then(|v| v.as_u64()).ok_or(ApiError::Internal)? as u128;
+    let height = ctx.storage.height();
+    
+    match ctx.governance.lock().unwrap().deposit(
+        height,
+        depositor,
+        proposal_id,
+        amount,
+        "udgt",
+    ) {
+        Ok(()) => Ok(Json(json!({"success": true}))),
+        Err(e) => {
+            eprintln!("Governance deposit error: {}", e);
+            Err(ApiError::Internal)
+        }
+    }
+}
+
+pub async fn gov_vote(
+    Extension(ctx): Extension<RpcContext>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    use crate::runtime::governance::VoteOption;
+    
+    let voter = body.get("voter").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
+    let proposal_id = body.get("proposal_id").and_then(|v| v.as_u64()).ok_or(ApiError::Internal)?;
+    let option_str = body.get("option").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
+    let height = ctx.storage.height();
+    
+    let option = match option_str {
+        "yes" => VoteOption::Yes,
+        "no" => VoteOption::No,
+        "abstain" => VoteOption::Abstain,
+        _ => return Err(ApiError::Internal),
+    };
+    
+    match ctx.governance.lock().unwrap().vote(height, voter, proposal_id, option) {
+        Ok(()) => Ok(Json(json!({"success": true}))),
+        Err(e) => {
+            eprintln!("Governance vote error: {}", e);
+            Err(ApiError::Internal)
+        }
+    }
+}
+
+pub async fn gov_get_proposal(
+    Extension(ctx): Extension<RpcContext>,
+    Path(proposal_id): Path<u64>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    match ctx.governance.lock().unwrap().get_proposal(proposal_id) {
+        Ok(Some(proposal)) => Ok(Json(serde_json::to_value(proposal).unwrap())),
+        Ok(None) => Err(ApiError::Internal),
+        Err(e) => {
+            eprintln!("Governance get proposal error: {}", e);
+            Err(ApiError::Internal)
+        }
+    }
+}
+
+pub async fn gov_tally(
+    Extension(ctx): Extension<RpcContext>,
+    Path(proposal_id): Path<u64>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    match ctx.governance.lock().unwrap().tally(proposal_id) {
+        Ok(tally) => Ok(Json(serde_json::to_value(tally).unwrap())),
+        Err(e) => {
+            eprintln!("Governance tally error: {}", e);
+            Err(ApiError::Internal)
+        }
+    }
+}
+
+pub async fn gov_get_config(
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let config = ctx.governance.lock().unwrap().get_config();
+    Ok(Json(serde_json::to_value(config).unwrap()))
 }
 
 pub mod errors;
