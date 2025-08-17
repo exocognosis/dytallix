@@ -5,11 +5,7 @@ import drtIcon from '../assets/drt.svg'
 import { requestFaucet } from '../lib/api.js'
 import { loadMeta } from '../wallet/Keystore'
 
-<<<<<<< HEAD
 // Cosmos network configuration
-=======
-// Cosmos network configuration (informational)
->>>>>>> origin/main
 const COSMOS_CONFIG = {
   lcdUrl: import.meta.env.VITE_LCD_HTTP_URL || 'https://lcd-testnet.dytallix.com',
   rpcUrl: import.meta.env.VITE_RPC_HTTP_URL || 'https://rpc-testnet.dytallix.com',
