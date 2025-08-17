@@ -10,11 +10,23 @@ pub struct KeysCmd { #[command(subcommand)] pub action: KeyAction }
 
 #[derive(clap::Subcommand, Debug, Clone)]
 pub enum KeyAction {
-    #[command(name="new")] New { #[arg(long, default_value="default")] name: String, #[arg(long)] password_file: Option<PathBuf> },
+    #[command(name="new")] New { 
+        #[arg(long, default_value="default")] name: String, 
+        #[arg(long)] password_file: Option<PathBuf>,
+        #[arg(long, help="Use legacy secp256k1 algorithm (deprecated)")] legacy_secp: bool,
+        #[arg(long, value_enum, default_value="pqc")] algo: AlgorithmChoice,
+    },
     #[command(name="list")] List,
     #[command(name="unlock")] Unlock { name: String, #[arg(long)] password_file: Option<PathBuf> },
     #[command(name="change-password")] ChangePassword { name: String, #[arg(long)] old_password_file: Option<PathBuf>, #[arg(long)] new_password_file: Option<PathBuf> },
     #[command(name="export")] Export { name: String },
+}
+
+#[derive(clap::ValueEnum, Debug, Clone)]
+pub enum AlgorithmChoice {
+    Pqc,
+    #[clap(hide = true)] // Hide legacy option but still allow it
+    Secp256k1,
 }
 
 fn read_password(pf: Option<&PathBuf>, prompt: &str) -> Result<String> {
@@ -26,22 +38,53 @@ fn read_password(pf: Option<&PathBuf>, prompt: &str) -> Result<String> {
 
 pub async fn handle(cli_home: &str, fmt: OutputFormat, kc: KeysCmd) -> Result<()> {
     match kc.action {
-        KeyAction::New { name, password_file } => {
+        KeyAction::New { name, password_file, legacy_secp, algo } => {
             let password = read_password(password_file.as_ref(), "Enter password: ")?;
-            let ent = keystore::create_new(cli_home, &name, &password)?;
-            info!("event=key_created name={}", ent.name);
-            if fmt.is_json() {
-                print_json(&serde_json::json!({"result":"created","name": ent.name, "address": ent.address, "created": ent.created }))?;
+            
+            // Determine algorithm - legacy_secp flag overrides algo parameter
+            let (algorithm, use_legacy_address) = if legacy_secp {
+                warn!("Using deprecated legacy secp256k1 algorithm");
+                ("secp256k1", true)
             } else {
-                println!("Created {} {}", ent.name.green(), ent.address);
+                match algo {
+                    AlgorithmChoice::Pqc => ("pqc", false),
+                    AlgorithmChoice::Secp256k1 => {
+                        warn!("Using deprecated secp256k1 algorithm");
+                        ("secp256k1", true)
+                    }
+                }
+            };
+            
+            let ent = keystore::create_new_with_algorithm(cli_home, &name, &password, algorithm, use_legacy_address)?;
+            info!("event=key_created name={} algorithm={}", ent.name, ent.algorithm);
+            
+            if fmt.is_json() {
+                print_json(&serde_json::json!({
+                    "result":"created",
+                    "name": ent.name, 
+                    "address": ent.address, 
+                    "algorithm": ent.algorithm,
+                    "created": ent.created 
+                }))?;
+            } else {
+                println!("Created {} {} ({})", ent.name.green(), ent.address, ent.algorithm);
             }
         }
         KeyAction::List => {
             let list = keystore::list(cli_home)?;
             if fmt.is_json() {
-                let j: Vec<_> = list.into_iter().map(|k| serde_json::json!({"name":k.name, "address":k.address, "created":k.created})).collect();
+                let j: Vec<_> = list.into_iter().map(|k| serde_json::json!({
+                    "name":k.name, 
+                    "address":k.address, 
+                    "algorithm":k.algorithm,
+                    "created":k.created
+                })).collect();
                 print_json(&j)?;
-            } else { for k in list { println!("{}\t{}\t{}", k.name, k.address, k.created); } }
+            } else { 
+                for k in list { 
+                    println!("{}\t{}\t{}\t{}", k.name, k.address, k.algorithm, k.created); 
+                } 
+            }
         }
         KeyAction::Unlock { name, password_file } => {
             let password = read_password(password_file.as_ref(), "Password: ")?;

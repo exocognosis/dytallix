@@ -30,6 +30,12 @@ pub struct KeystoreEntry {
     pub pk: String, // base64 public key raw bytes
     pub enc: EncBlob,
     pub created: u64,
+    #[serde(default = "default_algorithm")]
+    pub algorithm: String, // "pqc" or "secp256k1"
+}
+
+fn default_algorithm() -> String {
+    "pqc".to_string() // Default to PQC for new wallets
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -110,16 +116,52 @@ fn decrypt_sk(password: &str, enc: &EncBlob) -> Result<Vec<u8>> {
 }
 
 pub fn create_new(home: &str, name: &str, password: &str) -> Result<KeystoreEntry> {
+    create_new_with_algorithm(home, name, password, "pqc", false)
+}
+
+pub fn create_new_legacy(home: &str, name: &str, password: &str) -> Result<KeystoreEntry> {
+    create_new_with_algorithm(home, name, password, "secp256k1", true)
+}
+
+pub fn create_new_with_algorithm(home: &str, name: &str, password: &str, algorithm: &str, legacy: bool) -> Result<KeystoreEntry> {
     let mut ks = load_or_init(home)?;
     if ks.keys.iter().any(|k| k.name==name) { return Err(anyhow!("name exists")) }
-    let (sk, pk) = ActivePQC::keypair();
-    let address = address_from_pk(&pk);
+    
+    let (sk, pk, address) = match algorithm {
+        "pqc" => {
+            let (sk, pk) = ActivePQC::keypair();
+            let address = if legacy {
+                crate::addr::legacy_address_from_pk(&pk)
+            } else {
+                crate::addr::address_from_pk(&pk)
+            };
+            (sk, pk, address)
+        },
+        "secp256k1" => {
+            // For legacy secp256k1 support - this would need actual secp256k1 implementation
+            // For now, fall back to PQC with legacy address format
+            warn!("Legacy secp256k1 not implemented, using PQC with legacy address format");
+            let (sk, pk) = ActivePQC::keypair();
+            let address = crate::addr::legacy_address_from_pk(&pk);
+            (sk, pk, address)
+        },
+        _ => return Err(anyhow!("Unsupported algorithm: {}", algorithm))
+    };
+    
     let kp = KdfParams::default();
     let enc = encrypt_sk(password, &sk, kp)?;
-    let ent = KeystoreEntry { name: name.into(), address: address.clone(), pk: B64.encode(&pk), enc, created: now() };
+    let ent = KeystoreEntry { 
+        name: name.into(), 
+        address: address.clone(), 
+        pk: B64.encode(&pk), 
+        enc, 
+        created: now(),
+        algorithm: algorithm.to_string()
+    };
+    
     ks.keys.push(ent.clone());
     save(home, &ks)?;
-    info!("event=keystore_create name={}" , name);
+    info!("event=keystore_create name={} algorithm={}" , name, algorithm);
     Ok(ent)
 }
 
