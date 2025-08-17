@@ -8,6 +8,8 @@ All examples use `DGT` for governance/staking flows and `DRT` for reward transfe
 ## Overview
 Production-friendly modular CLI for Dytallix.
 
+**📖 For detailed cryptographic specifications, signature formats, and transaction schema, see [CRYPTO.md](../CRYPTO.md).**
+
 Modules:
 - `cmd/` subcommand handlers
 - `keystore/` secure Argon2id + XChaCha20Poly1305 encrypted keys (no plaintext on disk)
@@ -119,15 +121,32 @@ $ dcli tx batch --file batch.json --output json
 ```
 
 ### JSON Output Example (Signed Tx)
+
+For current canonical SignedTx format, see [CRYPTO.md](../CRYPTO.md#wire-format).
+
+Example output:
 ```json
-[
-  {
-    "tx": { ... },
-    "signature": "<base64>",
-    "public_key": "<base64>",
-    "hash": "0x..."
-  }
-]
+{
+  "tx": {
+    "chain_id": "dytallix-mainnet-1", 
+    "nonce": 42,
+    "msgs": [
+      {
+        "type": "send",
+        "from": "dyt1alice123456789012345678901234567890123456",
+        "to": "dyt1bob123456789012345678901234567890123456", 
+        "denom": "DGT",
+        "amount": "1000000000000000000"
+      }
+    ],
+    "fee": "10000000000000000",
+    "memo": "Payment for services"
+  },
+  "public_key": "base64_encoded_public_key...",
+  "signature": "base64_encoded_signature...",
+  "algorithm": "dilithium5",
+  "version": 1
+}
 ```
 
 ## Testing

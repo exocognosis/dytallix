@@ -1,4 +1,6 @@
 use dytallix_lean_node::storage::tx::Transaction;
+
+#[cfg(feature = "legacy-submit")]
 use dytallix_lean_node::util::hash::blake3_tx_hash;
 
 #[allow(dead_code)]
@@ -6,11 +8,13 @@ pub fn dummy_sig() -> String {
     "0x".to_string() + &"00".repeat(64)
 }
 
+#[cfg(feature = "legacy-submit")]
 #[allow(dead_code)]
 pub fn dummy_hash(tag: &str) -> String {
     blake3_tx_hash(tag.as_bytes())
 }
 
+#[cfg(feature = "legacy-submit")]
 #[allow(dead_code)]
 pub fn make_tx(from: &str, to: &str, amount: u128, fee: u128, nonce: u64) -> Transaction {
     let hash = blake3_tx_hash(format!("{}:{}:{}:{}:{}", from, to, amount, fee, nonce).as_bytes());
