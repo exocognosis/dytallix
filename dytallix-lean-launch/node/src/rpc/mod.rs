@@ -312,7 +312,11 @@ pub async fn get_tx(
             db: &ctx.storage.db,
         };
         if let Some(ai) = store.get_ai_risk(&hash) {
-            v["ai_risk_score"] = serde_json::json!(ai.score);
+            v["ai_risk_score"] = serde_json::json!(ai.risk_score);
+            v["ai_model_id"] = serde_json::json!(ai.model_id);
+            if let Some(confidence) = ai.confidence {
+                v["ai_confidence"] = serde_json::json!(confidence);
+            }
         }
         Ok(Json(v))
     } else if ctx.mempool.lock().unwrap().contains(&hash) {
@@ -321,7 +325,11 @@ pub async fn get_tx(
         };
         let mut base = serde_json::json!({"status":"pending","hash": hash });
         if let Some(ai) = store.get_ai_risk(&hash) {
-            base["ai_risk_score"] = serde_json::json!(ai.score);
+            base["ai_risk_score"] = serde_json::json!(ai.risk_score);
+            base["ai_model_id"] = serde_json::json!(ai.model_id);
+            if let Some(confidence) = ai.confidence {
+                base["ai_confidence"] = serde_json::json!(confidence);
+            }
         }
         Ok(Json(base))
     } else {
@@ -507,3 +515,4 @@ pub async fn gov_get_config(
 }
 
 pub mod errors;
+pub mod oracle;

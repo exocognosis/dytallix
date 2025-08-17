@@ -56,6 +56,28 @@ impl RpcClient {
             .cloned()
             .ok_or_else(|| anyhow!("No result in RPC response"))
     }
+
+    pub async fn get(&self, path: &str) -> Result<serde_json::Value> {
+        let url = format!("{}{}", self.base, path);
+        let resp = self.client.get(&url).send().await?;
+        
+        if !resp.status().is_success() {
+            return Err(anyhow!(format!("GET request failed {}: {}", resp.status(), resp.text().await.unwrap_or_default())));
+        }
+        
+        resp.json().await.map_err(Into::into)
+    }
+
+    pub async fn post(&self, path: &str, data: &serde_json::Value) -> Result<serde_json::Value> {
+        let url = format!("{}{}", self.base, path);
+        let resp = self.client.post(&url).json(data).send().await?;
+        
+        if !resp.status().is_success() {
+            return Err(anyhow!(format!("POST request failed {}: {}", resp.status(), resp.text().await.unwrap_or_default())));
+        }
+        
+        resp.json().await.map_err(Into::into)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
