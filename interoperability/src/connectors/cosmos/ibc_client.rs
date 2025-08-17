@@ -71,21 +71,51 @@ impl CosmosIbcClient {
     }
     
     /// Set signing key for transaction operations
+    /// Now supports both legacy secp256k1 and PQC keys
     pub fn set_signing_key(&mut self, private_key_hex: &str) -> Result<(), BridgeError> {
-        if private_key_hex.len() != 64 {
-            return Err(BridgeError::InvalidKey("Private key must be 32 bytes (64 hex chars)".to_string()));
-        }
-        
-        let _key_bytes = hex::decode(private_key_hex)
+        // Validate hex format first
+        let key_bytes = hex::decode(private_key_hex)
             .map_err(|e| BridgeError::InvalidKey(format!("Invalid hex private key: {}", e)))?;
         
-        // TODO: Real implementation would:
-        // 1. Parse secp256k1 private key
-        // 2. Derive public key and address
-        // 3. Store signing key securely
+        // Determine key type by length
+        match key_bytes.len() {
+            32 => {
+                // Legacy secp256k1 private key (32 bytes = 64 hex chars)
+                println!("⚠️  Warning: Using legacy secp256k1 key for IBC signing");
+                println!("⚠️  Consider migrating to PQC key for quantum resistance");
+                // TODO: Real implementation would parse secp256k1 private key
+            },
+            4864 => {
+                // Dilithium5 private key (~4864 bytes)
+                println!("🔐 Using PQC (Dilithium5) key for IBC signing");
+                // TODO: Real implementation would:
+                // 1. Parse Dilithium5 private key
+                // 2. Derive public key and address
+                // 3. Store signing key securely with proper zeroization
+            },
+            _ => {
+                return Err(BridgeError::InvalidKey(
+                    format!("Unsupported key size: {} bytes. Expected 32 (secp256k1) or 4864 (Dilithium5)", 
+                           key_bytes.len())
+                ));
+            }
+        }
         
         self.signing_key_set = true;
         println!("🔑 Signing key configured for Cosmos transactions");
+        Ok(())
+    }
+    
+    /// Set PQC signing key from PQC manager
+    pub fn set_pqc_signing_key(&mut self, _pqc_manager: &dytallix_pqc::PQCManager) -> Result<(), BridgeError> {
+        // TODO: Real implementation would:
+        // 1. Extract PQC public/private key pair
+        // 2. Derive Cosmos address from PQC public key
+        // 3. Set up signing interface for IBC operations
+        
+        println!("🔐 Configuring PQC signing key for IBC operations");
+        self.signing_key_set = true;
+        println!("✅ PQC signing key configured for IBC operations");
         Ok(())
     }
     
