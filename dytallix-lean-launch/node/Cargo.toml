@@ -42,3 +42,4 @@ rand = "0.7"
 default = ["pqc-real"]
 pqc-real = ["pqcrypto-dilithium", "pqcrypto-traits"]
 pqc-mock = []
+legacy-submit = [] # Dev-only legacy submit logic (OFF by default)

@@ -10,3 +10,4 @@ pub mod config;
 pub mod cmd;
 pub mod batch; // batch reader/validator
 pub mod secure; // signal-based security handlers
+pub mod types; // canonical transaction types
