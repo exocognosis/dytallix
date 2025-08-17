@@ -804,17 +804,40 @@ async fn handle_contract_deploy(
                 return serde_json::json!({"error": "Invalid WASM code"});
             }
             
-            // Generate contract address and code hash
-            let code_hash = blake3::hash(&code);
-            let address = generate_contract_address(&code_hash.as_bytes());
-            
-            // For now, return success (proper integration with runtime comes later)
-            return serde_json::json!({
-                "success": true,
-                "address": address,
-                "code_hash": hex::encode(code_hash.as_bytes()),
-                "gas_used": 50000
-            });
+            // Create runtime and deploy contract
+            if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
+                let deployment = crate::contracts::ContractDeployment {
+                    code: code.clone(),
+                    metadata: serde_json::json!({}),
+                    deployer: params.get("from").and_then(|f| f.as_str()).unwrap_or("unknown").to_string(),
+                    gas_limit: params.get("gas_limit").and_then(|g| g.as_u64()).unwrap_or(100_000),
+                    address: generate_contract_address(&blake3::hash(&code).as_bytes()),
+                    initial_state: params.get("initial_state")
+                        .and_then(|s| serde_json::to_vec(s).ok())
+                        .unwrap_or_default(),
+                    timestamp: chrono::Utc::now().timestamp() as u64,
+                    ai_audit_score: None,
+                };
+                
+                match runtime.deploy_contract(deployment).await {
+                    Ok(address) => {
+                        let code_hash = blake3::hash(&code);
+                        return serde_json::json!({
+                            "success": true,
+                            "address": address,
+                            "code_hash": hex::encode(code_hash.as_bytes()),
+                            "gas_used": 50000 // TODO: Get actual gas used
+                        });
+                    }
+                    Err(e) => {
+                        return serde_json::json!({
+                            "error": format!("Deployment failed: {}", e)
+                        });
+                    }
+                }
+            } else {
+                return serde_json::json!({"error": "Failed to create contract runtime"});
+            }
         }
     }
     
@@ -827,8 +850,9 @@ async fn handle_contract_instantiate(
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
     
+    // For MVP, we don't distinguish between deployment and instantiation
+    // In a full implementation, this would create instances from deployed code
     if let Some(code_hash) = params.get("code_hash").and_then(|h| h.as_str()) {
-        // Generate instance address
         let instance_address = generate_instance_address(code_hash);
         
         return serde_json::json!({
@@ -847,13 +871,39 @@ async fn handle_contract_execute(
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
     
-    if let Some(_contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
-        return serde_json::json!({
-            "success": true,
-            "return_value": "",
-            "gas_used": 20000,
-            "events": []
-        });
+    if let Some(contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
+        if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
+            let call = crate::contracts::ContractCall {
+                contract_id: contract_address.to_string(),
+                function: params.get("function").and_then(|f| f.as_str()).unwrap_or("execute").to_string(),
+                args: params.get("args").cloned().unwrap_or(serde_json::json!({})),
+                caller: params.get("from").and_then(|f| f.as_str()).unwrap_or("unknown").to_string(),
+                gas_limit: params.get("gas_limit").and_then(|g| g.as_u64()).unwrap_or(100_000),
+                contract_address: contract_address.to_string(),
+                method: params.get("function").and_then(|f| f.as_str()).unwrap_or("execute").to_string(),
+                input_data: params.get("args")
+                    .and_then(|a| serde_json::to_vec(a).ok())
+                    .unwrap_or_default(),
+                value: params.get("value").and_then(|v| v.as_u64()).unwrap_or(0),
+                timestamp: chrono::Utc::now().timestamp() as u64,
+            };
+            
+            match runtime.call_contract(call).await {
+                Ok(result) => {
+                    return serde_json::json!({
+                        "success": result.success,
+                        "return_value": hex::encode(&result.return_value),
+                        "gas_used": result.gas_used,
+                        "events": result.events
+                    });
+                }
+                Err(e) => {
+                    return serde_json::json!({
+                        "error": format!("Execution failed: {}", e)
+                    });
+                }
+            }
+        }
     }
     
     serde_json::json!({"error": "Invalid execution parameters"})
@@ -866,9 +916,10 @@ async fn handle_contract_get_code(
     let (_storage, _tx_pool) = ctx;
     
     if let Some(hash) = params.get("hash").and_then(|h| h.as_str()) {
+        // TODO: Implement proper code storage and retrieval
         return serde_json::json!({
             "hash": hash,
-            "size": 1024,
+            "size": 1024, // Mock size
             "deployed_at": chrono::Utc::now().timestamp()
         });
     }
@@ -883,15 +934,22 @@ async fn handle_contract_get_instance(
     let (_storage, _tx_pool) = ctx;
     
     if let Some(address) = params.get("address").and_then(|a| a.as_str()) {
-        return serde_json::json!({
-            "address": address,
-            "code_hash": "mock_code_hash",
-            "call_count": 0,
-            "last_called": chrono::Utc::now().timestamp()
-        });
+        if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
+            if let Some(info) = runtime.get_contract_info(address) {
+                return serde_json::json!({
+                    "address": info.address,
+                    "code_hash": info.code_hash,
+                    "deployer": info.deployer,
+                    "gas_limit": info.gas_limit,
+                    "deployed_at": info.timestamp
+                });
+            }
+        }
+        
+        return serde_json::json!({"error": "Instance not found"});
     }
     
-    serde_json::json!({"error": "Instance not found"})
+    serde_json::json!({"error": "Invalid address parameter"})
 }
 
 async fn handle_contract_get_storage(
@@ -900,15 +958,22 @@ async fn handle_contract_get_storage(
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
     
-    if let Some(_contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
-        if let Some(_key) = params.get("key").and_then(|k| k.as_str()) {
-            return serde_json::json!({
-                "value": "mock_value"
-            });
+    if let Some(contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
+        if let Some(key_hex) = params.get("key").and_then(|k| k.as_str()) {
+            if let Ok(key) = hex::decode(key_hex) {
+                if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
+                    if let Some(value) = runtime.get_contract_storage(contract_address, &key) {
+                        return serde_json::json!({
+                            "value": hex::encode(&value)
+                        });
+                    }
+                }
+                return serde_json::json!({"error": "Storage key not found"});
+            }
         }
     }
     
-    serde_json::json!({"error": "Storage key not found"})
+    serde_json::json!({"error": "Invalid storage parameters"})
 }
 
 async fn handle_contract_list(
@@ -916,17 +981,24 @@ async fn handle_contract_list(
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
     
-    // Return mock contract list for now
-    serde_json::json!([
-        {
-            "address": "contract1_mock_address",
-            "code_hash": "mock_hash_1"
-        },
-        {
-            "address": "contract2_mock_address", 
-            "code_hash": "mock_hash_2"
-        }
-    ])
+    if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
+        let contracts = runtime.list_contracts();
+        let contract_list: Vec<serde_json::Value> = contracts.iter()
+            .filter_map(|addr| {
+                runtime.get_contract_info(addr).map(|info| {
+                    serde_json::json!({
+                        "address": info.address,
+                        "code_hash": info.code_hash,
+                        "deployer": info.deployer
+                    })
+                })
+            })
+            .collect();
+            
+        return serde_json::json!(contract_list);
+    }
+    
+    serde_json::json!([])
 }
 
 // Helper functions for address generation
