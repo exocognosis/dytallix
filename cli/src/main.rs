@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand, Args, ValueEnum};
 use anyhow::Result;
 use tracing::{info};
 
-use dcli::{output::OutputFormat, config, cmd::{keys, tx as txcmd, query, gov, stake}, secure};
+use dcli::{output::OutputFormat, config, cmd::{keys, tx as txcmd, query, gov, stake, contract}, secure};
 
 #[derive(Parser, Debug)]
 #[command(name="dcli", version, about="Dytallix Unified CLI (dual-token DGT/DRT)", long_about=None)]
@@ -28,6 +28,7 @@ enum Commands {
     Query(query::QueryCmd),
     Gov(gov::GovCmd),
     Stake(stake::StakeCmd),
+    Contract(contract::ContractArgs),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -71,6 +72,10 @@ async fn main() -> Result<()> {
         Commands::Query(qc) => query::run(&cfg.rpc, fmt, qc).await?,
         Commands::Gov(gc) => gov::run(&cfg.rpc, fmt, gc).await?,
         Commands::Stake(sc) => stake::run(&cfg.rpc, fmt, sc).await?,
+        Commands::Contract(cc) => {
+            let rpc_client = dcli::rpc::RpcClient::new(&cfg.rpc);
+            cc.run(&rpc_client).await?;
+        },
     }
     Ok(())
 }
