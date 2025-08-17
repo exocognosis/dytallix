@@ -233,6 +233,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/stats", get(rpc::stats))
         .route("/peers", get(rpc::peers))
         .route("/oracle/ai_risk", post(runtime::oracle::post_ai_risk))
+        .route("/oracle/ai_risk_batch", post(runtime::oracle::post_ai_risk_batch))
         .route("/bridge/ingest", post(rpc::bridge_ingest))
         .route("/bridge/halt", post(rpc::bridge_halt))
         .route("/bridge/state", get(rpc::bridge_state))

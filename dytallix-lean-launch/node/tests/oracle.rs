@@ -1,4 +1,4 @@
-use dytallix_lean_node::storage::oracle::AiRiskRecord;
+use dytallix_lean_node::storage::oracle::{AiRiskRecord, OracleStore};
 use dytallix_lean_node::storage::state::Storage;
 use tempfile::tempdir;
 
@@ -8,7 +8,9 @@ fn oracle_store_roundtrip() {
     let store = Storage::open(dir.path().join("node.db")).unwrap();
     let rec = AiRiskRecord {
         tx_hash: "0xabc".into(),
-        score: 0.55,
+        model_id: "test-model-v1".into(),
+        risk_score: 0.55,
+        confidence: Some(0.85),
         signature: None,
         oracle_pubkey: None,
     };
@@ -18,5 +20,114 @@ fn oracle_store_roundtrip() {
         .unwrap();
     let raw = store.db.get("oracle:ai:0xabc").unwrap().unwrap();
     let got: AiRiskRecord = serde_json::from_slice(&raw).unwrap();
-    assert_eq!(got.score, 0.55);
+    assert_eq!(got.risk_score, 0.55);
+    assert_eq!(got.model_id, "test-model-v1");
+    assert_eq!(got.confidence, Some(0.85));
+}
+
+#[test]
+fn oracle_validation_tests() {
+    let dir = tempdir().unwrap();
+    let storage = Storage::open(dir.path().join("node.db")).unwrap();
+    let oracle_store = OracleStore { db: &storage.db };
+
+    // Valid record should succeed
+    let valid_rec = AiRiskRecord {
+        tx_hash: "0x123abc".into(),
+        model_id: "model-v1".into(),
+        risk_score: 0.5,
+        confidence: Some(0.8),
+        signature: None,
+        oracle_pubkey: None,
+    };
+    assert!(oracle_store.put_ai_risk(&valid_rec).is_ok());
+
+    // Invalid risk_score should fail
+    let invalid_score = AiRiskRecord {
+        tx_hash: "0x456def".into(),
+        model_id: "model-v1".into(),
+        risk_score: 1.5, // Invalid - out of range
+        confidence: Some(0.8),
+        signature: None,
+        oracle_pubkey: None,
+    };
+    assert!(oracle_store.put_ai_risk(&invalid_score).is_err());
+
+    // Invalid confidence should fail
+    let invalid_confidence = AiRiskRecord {
+        tx_hash: "0x789ghi".into(),
+        model_id: "model-v1".into(),
+        risk_score: 0.5,
+        confidence: Some(1.2), // Invalid - out of range
+        signature: None,
+        oracle_pubkey: None,
+    };
+    assert!(oracle_store.put_ai_risk(&invalid_confidence).is_err());
+
+    // Empty model_id should fail
+    let empty_model = AiRiskRecord {
+        tx_hash: "0xaabbcc".into(),
+        model_id: "".into(), // Invalid - empty
+        risk_score: 0.5,
+        confidence: Some(0.8),
+        signature: None,
+        oracle_pubkey: None,
+    };
+    assert!(oracle_store.put_ai_risk(&empty_model).is_err());
+
+    // Invalid tx_hash should fail
+    let invalid_hash = AiRiskRecord {
+        tx_hash: "invalid_hash".into(), // Invalid - doesn't start with 0x
+        model_id: "model-v1".into(),
+        risk_score: 0.5,
+        confidence: Some(0.8),
+        signature: None,
+        oracle_pubkey: None,
+    };
+    assert!(oracle_store.put_ai_risk(&invalid_hash).is_err());
+}
+
+#[test]
+fn oracle_batch_operations() {
+    let dir = tempdir().unwrap();
+    let storage = Storage::open(dir.path().join("node.db")).unwrap();
+    let oracle_store = OracleStore { db: &storage.db };
+
+    let records = vec![
+        AiRiskRecord {
+            tx_hash: "0x111".into(),
+            model_id: "model-v1".into(),
+            risk_score: 0.1,
+            confidence: Some(0.9),
+            signature: None,
+            oracle_pubkey: None,
+        },
+        AiRiskRecord {
+            tx_hash: "0x222".into(),
+            model_id: "model-v2".into(),
+            risk_score: 0.8,
+            confidence: None,
+            signature: None,
+            oracle_pubkey: None,
+        },
+        AiRiskRecord {
+            tx_hash: "0x333".into(),
+            model_id: "model-v1".into(),
+            risk_score: 2.0, // Invalid - should fail
+            confidence: Some(0.5),
+            signature: None,
+            oracle_pubkey: None,
+        },
+    ];
+
+    let failed_hashes = oracle_store.put_ai_risks_batch(&records).unwrap();
+    
+    // One record should have failed (the one with invalid risk_score)
+    assert_eq!(failed_hashes.len(), 1);
+    assert_eq!(failed_hashes[0], "0x333");
+
+    // The valid records should be retrievable
+    assert!(oracle_store.get_ai_risk("0x111").is_some());
+    assert!(oracle_store.get_ai_risk("0x222").is_some());
+    assert!(oracle_store.get_ai_risk("0x333").is_none());
 }
