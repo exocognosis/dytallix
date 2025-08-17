@@ -129,6 +129,21 @@ pub struct StakingConfig {
     pub downtime_slash_rate: u16,
     /// Blocks to consider validator offline
     pub offline_threshold: BlockNumber,
+    /// Emission rate per block (in uDRT)
+    pub emission_per_block: u128,
+}
+
+impl StakingConfig {
+    /// Convert to staking module parameters
+    pub fn to_staking_params(&self) -> crate::staking::StakingParams {
+        crate::staking::StakingParams {
+            max_validators: self.max_validators,
+            min_self_stake: self.minimum_validator_stake as u128,
+            slash_double_sign: self.double_sign_slash_rate,
+            slash_downtime: self.downtime_slash_rate,
+            emission_per_block: self.emission_per_block,
+        }
+    }
 }
 
 /// Network metadata
@@ -287,6 +302,7 @@ impl GenesisConfig {
             double_sign_slash_rate: 500, // 5% slash for double signing
             downtime_slash_rate: 100,    // 1% slash for downtime
             offline_threshold: 300,      // 300 blocks (~1 hour) to be considered offline
+            emission_per_block: 1_000_000, // 1 DRT per block in uDRT
         };
 
         Self {

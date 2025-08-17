@@ -138,6 +138,51 @@ struct ErrorResponse {
     message: String,
 }
 
+// Staking API types
+#[derive(Debug, Deserialize)]
+struct StakingRegisterRequest {
+    address: String,
+    consensus_pubkey: String,
+    commission_rate: u16,
+}
+
+#[derive(Debug, Deserialize)]
+struct StakingDelegateRequest {
+    delegator: String,
+    validator: String,
+    amount: u128,
+}
+
+#[derive(Debug, Deserialize)]
+struct StakingClaimRequest {
+    delegator: String,
+    validator: String,
+}
+
+#[derive(Debug, Serialize)]
+struct ValidatorResponse {
+    address: String,
+    total_stake: u128,
+    status: String,
+    commission_rate: u16,
+    self_stake: u128,
+}
+
+#[derive(Debug, Serialize)]
+struct DelegationResponse {
+    delegator_address: String,
+    validator_address: String,
+    stake_amount: u128,
+    pending_rewards: u128,
+}
+
+#[derive(Debug, Serialize)]
+struct StakingStatsResponse {
+    total_stake: u128,
+    total_validators: u32,
+    active_validators: u32,
+}
+
 impl<T> ApiResponse<T> {
     fn success(data: T) -> Self {
         Self {

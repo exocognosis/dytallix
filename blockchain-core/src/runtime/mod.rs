@@ -5,6 +5,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 // Enable smart contracts integration now that the crate compiles
 use crate::storage::StorageManager;
+use crate::staking::{StakingState, StakingError};
+use crate::types::{Address, BlockNumber};
 use dytallix_contracts::runtime::{
     ContractCall, ContractDeployment, ContractRuntime, ExecutionResult,
 };
@@ -17,6 +19,10 @@ pub struct RuntimeState {
     pub total_supply: u64,
     pub last_block_number: u64,
     pub last_block_timestamp: u64,
+    /// DRT token balances (separate from DGT balances)
+    pub drt_balances: HashMap<String, u128>,
+    /// Staking state for validators and delegations
+    pub staking: StakingState,
 }
 
 impl Default for RuntimeState {
@@ -31,7 +37,44 @@ impl Default for RuntimeState {
             total_supply: 1_000_000_000_000,
             last_block_number: 0,
             last_block_timestamp: 0,
+            drt_balances: HashMap::new(),
+            staking: StakingState::new(),
         }
+    }
+}
+
+impl RuntimeState {
+    /// Initialize runtime state with genesis configuration
+    pub fn from_genesis(genesis: &crate::genesis::GenesisConfig) -> Self {
+        let mut state = Self::default();
+        
+        // Initialize staking with genesis parameters
+        state.staking.params = genesis.staking.to_staking_params();
+        
+        // Initialize DGT balances from genesis allocations
+        for allocation in &genesis.dgt_allocations {
+            state.balances.insert(allocation.address.clone(), allocation.amount as u64);
+        }
+        
+        // Initialize genesis validators
+        for validator_info in &genesis.validators {
+            let _ = state.staking.register_validator(
+                validator_info.address.clone(),
+                validator_info.public_key.clone(),
+                validator_info.commission,
+            );
+            
+            // Self-delegate the validator's initial stake
+            if validator_info.stake > 0 {
+                let _ = state.staking.delegate(
+                    validator_info.address.clone(),
+                    validator_info.address.clone(),
+                    validator_info.stake as u128,
+                );
+            }
+        }
+        
+        state
     }
 }
 
@@ -44,14 +87,26 @@ pub struct DytallixRuntime {
 
 impl DytallixRuntime {
     pub fn new(storage: Arc<StorageManager>) -> Result<Self, Box<dyn std::error::Error>> {
+        Self::new_with_genesis(storage, None)
+    }
+
+    pub fn new_with_genesis(
+        storage: Arc<StorageManager>,
+        genesis: Option<&crate::genesis::GenesisConfig>,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         // Initialize contract runtime with reasonable limits
-        let contract_runtime = Arc::new(ContractRuntime::new(
+        let contract_runtime = Arc<ContractRuntime>::new(ContractRuntime::new(
             10_000_000, // 10M gas limit per call
             256,        // 256 pages (16MB) memory limit
         )?);
 
+        let initial_state = match genesis {
+            Some(genesis_config) => RuntimeState::from_genesis(genesis_config),
+            None => RuntimeState::default(),
+        };
+
         Ok(Self {
-            state: Arc::new(RwLock::new(RuntimeState::default())),
+            state: Arc::new(RwLock::new(initial_state)),
             storage,
             contract_runtime,
         })
@@ -293,6 +348,119 @@ impl DytallixRuntime {
             deployed_address
         );
         Ok(deployed_address)
+    }
+
+    // Staking-related methods
+
+    /// Register a new validator
+    pub async fn register_validator(
+        &self,
+        address: Address,
+        consensus_pubkey: Vec<u8>,
+        commission_rate: u16,
+    ) -> Result<(), StakingError> {
+        let mut state = self.state.write().await;
+        state.staking.register_validator(address, consensus_pubkey, commission_rate)
+    }
+
+    /// Delegate DGT tokens to a validator
+    pub async fn delegate(
+        &self,
+        delegator: Address,
+        validator: Address,
+        amount: u128,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // Check if delegator has sufficient DGT balance
+        let dgt_balance = self.get_balance(&delegator).await? as u128;
+        let amount_u64 = amount as u64; // Convert for balance check (assuming u64 precision is sufficient)
+        
+        if dgt_balance < amount_u64 {
+            return Err(Box::new(StakingError::InsufficientFunds));
+        }
+
+        let mut state = self.state.write().await;
+        
+        // Lock DGT tokens by reducing balance
+        let current_balance = state.balances.get(&delegator).copied().unwrap_or(0);
+        if current_balance < amount_u64 {
+            return Err(Box::new(StakingError::InsufficientFunds));
+        }
+        state.balances.insert(delegator.clone(), current_balance - amount_u64);
+
+        // Create delegation
+        state.staking.delegate(delegator, validator, amount)?;
+        
+        debug!("Delegated {} uDGT", amount);
+        Ok(())
+    }
+
+    /// Get active validators
+    pub async fn get_active_validators(&self) -> Vec<crate::staking::Validator> {
+        let state = self.state.read().await;
+        state.staking.get_active_validators().into_iter().cloned().collect()
+    }
+
+    /// Get validator info
+    pub async fn get_validator(&self, address: &Address) -> Option<crate::staking::Validator> {
+        let state = self.state.read().await;
+        state.staking.validators.get(address).cloned()
+    }
+
+    /// Get delegation info
+    pub async fn get_delegation(&self, delegator: &Address, validator: &Address) -> Option<crate::staking::Delegation> {
+        let state = self.state.read().await;
+        let delegation_key = format!("{}:{}", delegator, validator);
+        state.staking.delegations.get(&delegation_key).cloned()
+    }
+
+    /// Calculate pending rewards for a delegation
+    pub async fn calculate_pending_rewards(
+        &self,
+        delegator: &Address,
+        validator: &Address,
+    ) -> Result<u128, StakingError> {
+        let state = self.state.read().await;
+        state.staking.calculate_pending_rewards(delegator, validator)
+    }
+
+    /// Claim rewards for a delegation
+    pub async fn claim_rewards(
+        &self,
+        delegator: &Address,
+        validator: &Address,
+    ) -> Result<u128, StakingError> {
+        let mut state = self.state.write().await;
+        let rewards = state.staking.claim_rewards(delegator, validator)?;
+        
+        if rewards > 0 {
+            // Credit DRT tokens to delegator
+            let current_drt = state.drt_balances.get(delegator).copied().unwrap_or(0);
+            state.drt_balances.insert(delegator.clone(), current_drt + rewards);
+            debug!("Credited {} uDRT rewards to {}", rewards, delegator);
+        }
+        
+        Ok(rewards)
+    }
+
+    /// Process block rewards (called during block processing)
+    pub async fn process_block_rewards(&self, block_height: BlockNumber) -> Result<(), StakingError> {
+        let mut state = self.state.write().await;
+        state.staking.process_block_rewards(block_height)
+    }
+
+    /// Get DRT balance for an address
+    pub async fn get_drt_balance(&self, address: &str) -> u128 {
+        let state = self.state.read().await;
+        state.drt_balances.get(address).copied().unwrap_or(0)
+    }
+
+    /// Get staking statistics
+    pub async fn get_staking_stats(&self) -> (u128, u32, u32) {
+        let state = self.state.read().await;
+        let total_stake = state.staking.total_stake;
+        let total_validators = state.staking.validators.len() as u32;
+        let active_validators = state.staking.get_active_validators().len() as u32;
+        (total_stake, total_validators, active_validators)
     }
 
     pub async fn save_state(&self) -> Result<(), Box<dyn std::error::Error>> {
