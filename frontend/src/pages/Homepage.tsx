@@ -101,7 +101,7 @@ export const Homepage: React.FC = () => {
         >
           Platform Features
         </motion.h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             { title: "Quantum Wallet", link: "/wallet", desc: "Quantum-resistant wallet for secure digital asset management", color: "text-primary-400" },
             { title: "Testnet Faucet", link: "/faucet", desc: "Get testnet tokens (DGT/DRT) for development and testing", color: "text-quantum-400" },
@@ -118,16 +118,13 @@ export const Homepage: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.6 }}
+              className="h-full"
             >
-              <Link to={item.link} className="block">
-                <Card className="bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover transition-all duration-300 group">
-                  <CardContent className="p-6 space-y-3">
-                    <h4 className={`font-semibold ${item.color} group-hover:opacity-80 mb-1`}>
-                      {item.title} →
-                    </h4>
-                    <p className="text-dashboard-text-gray text-sm">
-                      {item.desc}
-                    </p>
+              <Link to={item.link} className="block h-full">
+                <Card className="h-full flex bg-dashboard-card border-dashboard-border shadow-lg dashboard-card hover:bg-dashboard-card-hover hover:border-dashboard-border-hover transition-all duration-300 group">
+                  <CardContent className="p-6 space-y-3 flex flex-col justify-start h-full">
+                    <h4 className={`font-semibold ${item.color} group-hover:opacity-80 mb-1`}> {item.title} → </h4>
+                    <p className="text-dashboard-text-gray text-sm line-clamp-4 flex-grow"> {item.desc} </p>
                   </CardContent>
                 </Card>
               </Link>
