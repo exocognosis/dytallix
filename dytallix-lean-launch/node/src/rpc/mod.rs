@@ -41,7 +41,7 @@ fn validate_signed_tx(
     signed_tx: &SignedTx, 
     expected_chain_id: &str,
     expected_nonce: u64,
-    available_balance: u128
+    account_state: &crate::state::AccountState
 ) -> Result<(), ValidationError> {
     // Verify signature
     if let Err(_) = signed_tx.verify() {
@@ -64,22 +64,39 @@ fn validate_signed_tx(
         });
     }
 
-    // Calculate total required amount (sum of all msg amounts + fee)
-    let mut total_required = signed_tx.tx.fee;
+    // Calculate required amounts per denomination
+    let mut required_per_denom: std::collections::HashMap<String, u128> = std::collections::HashMap::new();
+    
+    // Add transaction fee (always in udgt for now)
+    let fee_denom = "udgt".to_string();
+    required_per_denom.insert(fee_denom.clone(), signed_tx.tx.fee);
+    
+    // Add amounts from messages
     for msg in &signed_tx.tx.msgs {
         match msg {
-            crate::types::Msg::Send { amount, .. } => {
-                total_required = total_required.saturating_add(*amount);
+            crate::types::Msg::Send { denom, amount, .. } => {
+                // Convert DGT/DRT to micro denominations  
+                let micro_denom = match denom.to_ascii_uppercase().as_str() {
+                    "DGT" => "udgt",
+                    "DRT" => "udrt", 
+                    _ => denom.as_str() // Pass through other denoms
+                };
+                
+                let current = required_per_denom.get(micro_denom).copied().unwrap_or(0);
+                required_per_denom.insert(micro_denom.to_string(), current.saturating_add(*amount));
             }
         }
     }
 
-    // Check balance
-    if available_balance < total_required {
-        return Err(ValidationError::InsufficientFunds { 
-            required: total_required, 
-            available: available_balance 
-        });
+    // Check balance for each required denomination
+    for (denom, required_amount) in required_per_denom {
+        let available = account_state.balance_of(&denom);
+        if available < required_amount {
+            return Err(ValidationError::InsufficientFunds { 
+                required: required_amount, 
+                available 
+            });
+        }
     }
 
     Ok(())
@@ -98,14 +115,14 @@ pub async fn submit(
         ApiError::Validation(ValidationError::Internal("no sender address found".to_string()))
     })?;
     
-    // Get current nonce and balance
-    let state = ctx.state.lock().unwrap();
+    // Get current nonce and account state
+    let mut state = ctx.state.lock().unwrap();
     let current_nonce = state.nonce_of(from);
-    let available_balance = state.balance_of(from);
+    let account_state = state.get_account(from);
     drop(state);
     
     // Validate the signed transaction
-    validate_signed_tx(&signed_tx, &chain_id, current_nonce, available_balance)?;
+    validate_signed_tx(&signed_tx, &chain_id, current_nonce, &account_state)?;
     
     // Generate transaction hash
     let tx_hash = signed_tx.tx_hash().map_err(|_| {
@@ -231,10 +248,56 @@ pub async fn get_block(
 
 pub async fn get_balance(
     Path(addr): Path<String>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
     ctx: axum::Extension<RpcContext>,
 ) -> Json<serde_json::Value> {
-    let bal = ctx.state.lock().unwrap().balance_of(&addr);
-    Json(json!({"balance": bal.to_string()}))
+    let mut state = ctx.state.lock().unwrap();
+    
+    // Check if specific denomination is requested
+    if let Some(denom) = params.get("denom") {
+        let bal = state.balance_of(&addr, denom);
+        return Json(json!({
+            "address": addr,
+            "denom": denom,
+            "balance": bal.to_string()
+        }));
+    }
+    
+    // Return all balances for the address
+    let balances = state.balances_of(&addr);
+    let legacy_balance = state.legacy_balance_of(&addr);
+    
+    // Format balances for multi-denomination response
+    let formatted_balances: std::collections::HashMap<String, serde_json::Value> = balances
+        .iter()
+        .map(|(denom, amount)| {
+            let denom_info = match denom.as_str() {
+                "udgt" => json!({
+                    "balance": amount.to_string(),
+                    "formatted": format!("{} DGT", amount / 1_000_000), // Assuming 6 decimal places
+                    "type": "governance",
+                    "description": "Governance token for voting and staking"
+                }),
+                "udrt" => json!({
+                    "balance": amount.to_string(),
+                    "formatted": format!("{} DRT", amount / 1_000_000), // Assuming 6 decimal places  
+                    "type": "reward",
+                    "description": "Reward token for transaction fees and staking rewards"
+                }),
+                _ => json!({
+                    "balance": amount.to_string(),
+                    "type": "unknown"
+                })
+            };
+            (denom.clone(), denom_info)
+        })
+        .collect();
+    
+    Json(json!({
+        "address": addr,
+        "balances": formatted_balances,
+        "legacy_balance": legacy_balance.to_string() // For backward compatibility
+    }))
 }
 
 pub async fn get_tx(

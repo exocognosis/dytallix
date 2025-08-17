@@ -92,7 +92,7 @@ impl std::error::Error for MempoolError {}
 pub fn basic_validate(state: &State, tx: &Transaction) -> Result<(), String> {
     let mut clone_state = state.clone(); // workaround to call mutable methods; consider refactor
     let from_acc = clone_state.get_account(&tx.from);
-    let balance = from_acc.balance;
+    let balance = from_acc.legacy_balance(); // Use legacy balance for backward compatibility
     let nonce = from_acc.nonce;
     if tx.nonce != nonce {
         return Err(format!("InvalidNonce expected={} got={}", nonce, tx.nonce));

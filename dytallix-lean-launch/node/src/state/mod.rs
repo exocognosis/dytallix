@@ -1,12 +1,49 @@
 use crate::storage::state::Storage;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountState {
-    pub balance: u128,
+    pub balances: BTreeMap<String, u128>, // Multi-denomination balances
     pub nonce: u64,
+}
+
+impl AccountState {
+    /// Get balance for a specific denomination
+    pub fn balance_of(&self, denom: &str) -> u128 {
+        self.balances.get(denom).copied().unwrap_or(0)
+    }
+    
+    /// Get legacy single balance (defaults to udgt for backward compatibility)
+    pub fn legacy_balance(&self) -> u128 {
+        self.balance_of("udgt")
+    }
+    
+    /// Set balance for a specific denomination
+    pub fn set_balance(&mut self, denom: &str, amount: u128) {
+        if amount == 0 {
+            self.balances.remove(denom);
+        } else {
+            self.balances.insert(denom.to_string(), amount);
+        }
+    }
+    
+    /// Add to balance for a specific denomination
+    pub fn add_balance(&mut self, denom: &str, amount: u128) {
+        let current = self.balance_of(denom);
+        self.set_balance(denom, current.saturating_add(amount));
+    }
+    
+    /// Subtract from balance for a specific denomination
+    pub fn sub_balance(&mut self, denom: &str, amount: u128) -> Result<(), String> {
+        let current = self.balance_of(denom);
+        if current < amount {
+            return Err(format!("Insufficient balance in {}: {} < {}", denom, current, amount));
+        }
+        self.set_balance(denom, current - amount);
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
@@ -22,42 +59,82 @@ impl State {
             storage,
         }
     }
+    
     pub fn get_account(&mut self, addr: &str) -> AccountState {
         // lazy load DB
         if let Some(a) = self.accounts.get(addr) {
             return a.clone();
         }
-        let bal = self.storage.get_balance_db(addr);
+        let balances = self.storage.get_balances_db(addr);
         let nonce = self.storage.get_nonce_db(addr);
         let a = AccountState {
-            balance: bal,
+            balances,
             nonce,
         };
         self.accounts.insert(addr.to_string(), a.clone());
         a
     }
-    pub fn balance_of(&mut self, addr: &str) -> u128 {
-        self.get_account(addr).balance
+    
+    /// Get balance for specific denomination
+    pub fn balance_of(&mut self, addr: &str, denom: &str) -> u128 {
+        self.get_account(addr).balance_of(denom)
     }
+    
+    /// Get legacy single balance (backward compatibility)
+    pub fn legacy_balance_of(&mut self, addr: &str) -> u128 {
+        self.get_account(addr).legacy_balance()
+    }
+    
+    /// Get all balances for an address
+    pub fn balances_of(&mut self, addr: &str) -> BTreeMap<String, u128> {
+        self.get_account(addr).balances.clone()
+    }
+    
     pub fn nonce_of(&mut self, addr: &str) -> u64 {
         self.get_account(addr).nonce
     }
-    pub fn apply_transfer(&mut self, from: &str, to: &str, amount: u128, fee: u128) {
+    
+    /// Apply transfer with specific denomination
+    pub fn apply_transfer(&mut self, from: &str, to: &str, denom: &str, amount: u128, fee_denom: &str, fee: u128) -> Result<(), String> {
         let mut sender = self.get_account(from);
-        sender.balance -= amount + fee;
+        
+        // Subtract amount from sender
+        sender.sub_balance(denom, amount)?;
+        // Subtract fee from sender (fees are always in fee_denom, typically "udgt")
+        sender.sub_balance(fee_denom, fee)?;
         sender.nonce += 1;
-        self.accounts.insert(from.to_string(), sender.clone());
+        
         let mut recv = self.get_account(to);
-        recv.balance += amount;
+        recv.add_balance(denom, amount);
+        
+        // Update in-memory cache
+        self.accounts.insert(from.to_string(), sender.clone());
         self.accounts.insert(to.to_string(), recv.clone());
-        let _ = self.storage.set_balance_db(from, sender.balance);
+        
+        // Persist to storage
+        let _ = self.storage.set_balances_db(from, &sender.balances);
         let _ = self.storage.set_nonce_db(from, sender.nonce);
-        let _ = self.storage.set_balance_db(to, recv.balance);
+        let _ = self.storage.set_balances_db(to, &recv.balances);
+        
+        Ok(())
     }
-    pub fn credit(&mut self, addr: &str, amount: u128) {
+    
+    /// Legacy apply_transfer for backward compatibility (uses udgt as default)
+    pub fn apply_transfer_legacy(&mut self, from: &str, to: &str, amount: u128, fee: u128) {
+        // Convert to new multi-denom format
+        let _ = self.apply_transfer(from, to, "udgt", amount, "udgt", fee);
+    }
+    
+    /// Credit specific denomination to an address
+    pub fn credit(&mut self, addr: &str, denom: &str, amount: u128) {
         let mut a = self.get_account(addr);
-        a.balance += amount;
+        a.add_balance(denom, amount);
         self.accounts.insert(addr.to_string(), a.clone());
-        let _ = self.storage.set_balance_db(addr, a.balance);
+        let _ = self.storage.set_balances_db(addr, &a.balances);
+    }
+    
+    /// Legacy credit for backward compatibility (uses udgt as default)
+    pub fn credit_legacy(&mut self, addr: &str, amount: u128) {
+        self.credit(addr, "udgt", amount);
     }
 }
