@@ -15,6 +15,10 @@ import Dashboard from './pages/Dashboard.jsx'
 import Explorer from './pages/Explorer.jsx'
 import Deploy from './pages/Deploy.jsx'
 import QuantumBackground from './components/QuantumBackground'
+import PulseGuard from './pages/PulseGuard.jsx'
+import FlowRate from './pages/FlowRate.jsx'
+import StakeBalancer from './pages/StakeBalancer.jsx'
+import NetFlux from './pages/NetFlux.jsx'
 
 function App() {
   // Validate configuration on app load
@@ -42,6 +46,11 @@ function App() {
           <Route path="/modules" element={<Modules />} />
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/dev-resources" element={<DevResources />} />
+          {/* Updated module routes */}
+          <Route path="/pulseguard" element={<PulseGuard />} />
+          <Route path="/flowrate" element={<FlowRate />} />
+          <Route path="/stakebalancer" element={<StakeBalancer />} />
+          <Route path="/netflux" element={<NetFlux />} />
         </Routes>
       </main>
       <Footer />
