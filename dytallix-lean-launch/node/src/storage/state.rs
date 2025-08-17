@@ -3,6 +3,7 @@ use super::receipts::TxReceipt;
 use super::tx::Transaction;
 use rocksdb::{Options, DB};
 use std::path::PathBuf;
+use std::collections::BTreeMap;
 
 pub struct Storage {
     pub db: DB,
@@ -106,7 +107,32 @@ impl Storage {
     }
 
     // Durable balance + nonce methods
+    /// Get multi-denomination balances for an address
+    pub fn get_balances_db(&self, addr: &str) -> BTreeMap<String, u128> {
+        self.db
+            .get(format!("acct:balances:{}", addr))
+            .ok()
+            .flatten()
+            .and_then(|b| bincode::deserialize::<BTreeMap<String, u128>>(&b).ok())
+            .unwrap_or_else(BTreeMap::new)
+    }
+    
+    /// Set multi-denomination balances for an address
+    pub fn set_balances_db(&self, addr: &str, balances: &BTreeMap<String, u128>) -> anyhow::Result<()> {
+        self.db
+            .put(format!("acct:balances:{}", addr), bincode::serialize(balances)?)?;
+        Ok(())
+    }
+    
+    /// Legacy single balance getter (for backward compatibility)
     pub fn get_balance_db(&self, addr: &str) -> u128 {
+        // Check if new multi-denom format exists first
+        let balances = self.get_balances_db(addr);
+        if !balances.is_empty() {
+            return balances.get("udgt").copied().unwrap_or(0);
+        }
+        
+        // Fallback to legacy single balance format
         self.db
             .get(format!("acct:bal:{}", addr))
             .ok()
@@ -114,7 +140,15 @@ impl Storage {
             .and_then(|b| bincode::deserialize::<u128>(&b).ok())
             .unwrap_or(0)
     }
+    
+    /// Legacy single balance setter (for backward compatibility)  
     pub fn set_balance_db(&self, addr: &str, bal: u128) -> anyhow::Result<()> {
+        // Migrate to multi-denom format
+        let mut balances = self.get_balances_db(addr);
+        balances.insert("udgt".to_string(), bal);
+        self.set_balances_db(addr, &balances)?;
+        
+        // Also keep legacy format for compatibility during migration
         self.db
             .put(format!("acct:bal:{}", addr), bincode::serialize(&bal)?)?;
         Ok(())
