@@ -50,6 +50,9 @@ pub enum OracleAction {
         /// Transaction hash (hex format)
         tx_hash: String,
     },
+    
+    /// Get oracle system statistics
+    Stats,
 }
 
 pub async fn run(rpc_url: &str, output_format: OutputFormat, cmd: OracleCmd) -> Result<()> {
@@ -72,6 +75,10 @@ pub async fn run(rpc_url: &str, output_format: OutputFormat, cmd: OracleCmd) -> 
         
         OracleAction::Query { tx_hash } => {
             query_risk(&client, &tx_hash, output_format).await
+        }
+        
+        OracleAction::Stats => {
+            get_stats(&client, output_format).await
         }
     }
 }
@@ -263,6 +270,63 @@ async fn query_risk(
                 println!("   (Transaction exists but no risk assessment available)");
             } else {
                 println!("   (Transaction not found)");
+            }
+        }
+    }
+    
+    Ok(())
+}
+
+async fn get_stats(
+    client: &RpcClient,
+    output_format: OutputFormat,
+) -> Result<()> {
+    let response = client.get("/oracle/stats").await?;
+    
+    if output_format.is_json() {
+        println!("{}", serde_json::to_string_pretty(&response)?);
+    } else {
+        println!("🔮 Oracle System Statistics");
+        println!("===========================");
+        
+        if let Some(signature_enabled) = response.get("signature_verification_enabled").and_then(|v| v.as_bool()) {
+            if signature_enabled {
+                println!("🔐 Signature Verification: ✅ Enabled");
+            } else {
+                println!("🔐 Signature Verification: ⚠️  Disabled");
+            }
+        }
+        
+        if let Some(schema_version) = response.get("schema_version").and_then(|v| v.as_str()) {
+            println!("📋 Schema Version: {}", schema_version);
+        }
+        
+        if let Some(endpoints) = response.get("supported_endpoints").and_then(|v| v.as_array()) {
+            println!("🌐 Supported Endpoints:");
+            for endpoint in endpoints {
+                if let Some(endpoint_str) = endpoint.as_str() {
+                    println!("   - {}", endpoint_str);
+                }
+            }
+        }
+        
+        if let Some(validation_rules) = response.get("validation_rules") {
+            println!("✅ Validation Rules:");
+            if let Some(risk_range) = validation_rules.get("risk_score_range").and_then(|v| v.as_str()) {
+                println!("   Risk Score Range: {}", risk_range);
+            }
+            if let Some(conf_range) = validation_rules.get("confidence_range").and_then(|v| v.as_str()) {
+                println!("   Confidence Range: {}", conf_range);
+            }
+            if let Some(hash_format) = validation_rules.get("tx_hash_format").and_then(|v| v.as_str()) {
+                println!("   TX Hash Format: {}", hash_format);
+            }
+            if let Some(model_required) = validation_rules.get("model_id_required").and_then(|v| v.as_bool()) {
+                if model_required {
+                    println!("   Model ID: Required");
+                } else {
+                    println!("   Model ID: Optional");
+                }
             }
         }
     }

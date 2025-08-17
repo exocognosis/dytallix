@@ -515,3 +515,4 @@ pub async fn gov_get_config(
 }
 
 pub mod errors;
+pub mod oracle;
