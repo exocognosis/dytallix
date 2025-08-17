@@ -170,7 +170,7 @@ impl GovernanceModule {
             return Err("Only DGT (udgt) deposits are allowed".to_string());
         }
 
-        let mut proposal = self.get_proposal(proposal_id)?
+        let mut proposal = self._get_proposal(proposal_id)?
             .ok_or("Proposal not found")?;
 
         // Check if we're in deposit period
@@ -209,7 +209,7 @@ impl GovernanceModule {
         proposal_id: u64,
         option: VoteOption,
     ) -> Result<(), String> {
-        let proposal = self.get_proposal(proposal_id)?
+        let proposal = self._get_proposal(proposal_id)?
             .ok_or("Proposal not found")?;
 
         // Check if we're in voting period
@@ -253,7 +253,7 @@ impl GovernanceModule {
         let proposal_ids = self.get_all_proposal_ids()?;
         
         for proposal_id in proposal_ids {
-            if let Some(mut proposal) = self.get_proposal(proposal_id)? {
+            if let Some(mut proposal) = self._get_proposal(proposal_id)? {
                 match proposal.status {
                     ProposalStatus::DepositPeriod => {
                         if height > proposal.deposit_end_height {
@@ -334,7 +334,7 @@ impl GovernanceModule {
 
     /// Execute a passed proposal
     pub fn execute(&mut self, proposal_id: u64) -> Result<(), String> {
-        let proposal = self.get_proposal(proposal_id)?
+        let proposal = self._get_proposal(proposal_id)?
             .ok_or("Proposal not found")?;
 
         if proposal.status != ProposalStatus::Passed {
@@ -379,6 +379,11 @@ impl GovernanceModule {
         self.events.clear();
     }
 
+    /// Public method to get proposal (exposed for RPC)
+    pub fn get_proposal(&self, proposal_id: u64) -> Result<Option<Proposal>, String> {
+        self._get_proposal(proposal_id)
+    }
+
     // Storage helper methods
 
     fn next_proposal_id(&self) -> u64 {
@@ -404,7 +409,7 @@ impl GovernanceModule {
         Ok(())
     }
 
-    fn get_proposal(&self, proposal_id: u64) -> Result<Option<Proposal>, String> {
+    fn _get_proposal(&self, proposal_id: u64) -> Result<Option<Proposal>, String> {
         let key = format!("gov:proposal:{}", proposal_id);
         match self.storage.db.get(key) {
             Ok(Some(data)) => {
