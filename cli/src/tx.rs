@@ -33,10 +33,12 @@ mod tests {
         let (sk, pk) = ActivePQC::keypair();
         let msg = Msg::Send { from: "a".into(), to: "b".into(), denom: "DGT".into(), amount: 10 }; 
         let tx = Tx::new("chain", 1, vec![msg], 1, "").unwrap();
-        let stx = SignedTx::sign(tx.clone(), &sk, &pk).unwrap();
+        let stx = SignedTx::sign(tx.clone(), &sk, &pk, 21000, 1000).unwrap();
         stx.verify().unwrap();
         assert_eq!(stx.algorithm, ActivePQC::ALG);
         assert_eq!(stx.version, 1);
+        assert_eq!(stx.gas_limit, 21000);
+        assert_eq!(stx.gas_price, 1000);
         let tx2 = Tx::new("chain", 1, vec![Msg::Send { from: "a".into(), to: "b".into(), denom: "DGT".into(), amount: 10 }], 1, "").unwrap();
         let bytes1 = canonical_json(&tx).unwrap();
         let bytes2 = canonical_json(&tx2).unwrap();
