@@ -228,7 +228,7 @@ impl GovernanceModule {
 
         // Get voter's DGT balance as voting weight
         let weight = {
-            let state = self.state.lock().unwrap();
+            let mut state = self.state.lock().unwrap();
             let account = state.get_account(voter);
             account.balance_of("udgt")
         };

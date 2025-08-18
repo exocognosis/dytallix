@@ -173,7 +173,7 @@ impl SignedTx {
 }
 
 // Validation helpers
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub enum ValidationError {
     InvalidChainId { expected: String, got: String },
     InvalidNonce { expected: u64, got: u64 },

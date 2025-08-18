@@ -1,0 +1,92 @@
+groups:
+- name: dytallix-node-alerts
+  rules:
+  - alert: DytallixTPSDrop
+    expr: rate(dytallix_total_transactions[5m]) * 60 < 50
+    for: 10m
+    labels:
+      severity: warning
+      service: dytallix-node
+    annotations:
+      summary: "Dytallix transaction throughput below threshold"
+      description: "Transaction rate has been below 50 TPS for more than 10 minutes. Current rate: {{ $value }} TPS"
+
+  - alert: DytallixOracleLatencyHigh
+    expr: histogram_quantile(0.95, rate(dytallix_oracle_latency_seconds_bucket[5m])) > 5
+    for: 5m
+    labels:
+      severity: warning
+      service: dytallix-node
+    annotations:
+      summary: "Dytallix oracle latency too high"
+      description: "95th percentile oracle latency has been above 5 seconds for more than 5 minutes. Current latency: {{ $value }}s"
+
+  - alert: DytallixBlocksHalted
+    expr: increase(dytallix_total_blocks[3m]) == 0
+    for: 3m
+    labels:
+      severity: critical
+      service: dytallix-node
+    annotations:
+      summary: "Dytallix block production halted"
+      description: "No new blocks have been produced in the last 3 minutes. This indicates a critical issue with the blockchain."
+
+  - alert: DytallixMempoolFull
+    expr: dytallix_mempool_size > 5000
+    for: 2m
+    labels:
+      severity: warning
+      service: dytallix-node
+    annotations:
+      summary: "Dytallix mempool approaching capacity"
+      description: "Mempool size is {{ $value }} transactions, approaching the maximum capacity."
+
+  - alert: DytallixBlockProcessingTooSlow
+    expr: histogram_quantile(0.95, rate(dytallix_block_processing_seconds_bucket[5m])) > 30
+    for: 5m
+    labels:
+      severity: warning
+      service: dytallix-node
+    annotations:
+      summary: "Dytallix block processing is slow"
+      description: "95th percentile block processing time has been above 30 seconds for more than 5 minutes. Current time: {{ $value }}s"
+
+  - alert: DytallixMetricsDown
+    expr: up{job="dytallix-node"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: dytallix-node
+    annotations:
+      summary: "Dytallix metrics endpoint is down"
+      description: "Unable to scrape metrics from Dytallix node for more than 1 minute."
+
+  - alert: DytallixEmissionPoolLow
+    expr: dytallix_emission_pool_size < 1000
+    for: 5m
+    labels:
+      severity: warning
+      service: dytallix-node
+    annotations:
+      summary: "Dytallix emission pool running low"
+      description: "Total emission pool size is {{ $value }}, which is below the recommended threshold."
+
+  - alert: DytallixHighGasUsage
+    expr: rate(dytallix_total_gas_used[5m]) > 1000
+    for: 10m
+    labels:
+      severity: info
+      service: dytallix-node
+    annotations:
+      summary: "Dytallix gas usage is high"
+      description: "Gas usage rate has been above 1000 gas/second for more than 10 minutes. Current rate: {{ $value }} gas/s"
+
+  - alert: DytallixOracleStale
+    expr: (time() - dytallix_last_oracle_update_timestamp) > 3600
+    for: 0m
+    labels:
+      severity: warning
+      service: dytallix-node
+    annotations:
+      summary: "Dytallix oracle data is stale"
+      description: "Oracle has not been updated for more than 1 hour. Last update: {{ $value }}s ago"
