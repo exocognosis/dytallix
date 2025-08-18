@@ -1,4 +1,5 @@
 pub mod api;
+pub mod config;
 pub mod consensus;
 pub mod contracts;
 pub mod crypto;
@@ -6,6 +7,7 @@ pub mod genesis;
 pub mod genesis_integration;
 pub mod networking;
 pub mod runtime;
+pub mod secrets;
 pub mod staking;
 pub mod storage;
 pub mod types;

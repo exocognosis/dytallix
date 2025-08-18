@@ -39,6 +39,9 @@ tracing-subscriber = "0.3"
 anyhow = "1.0"
 thiserror = "1.0"
 
+# Secrets management dependencies
+async-trait = "0.1"
+
 # Utilities
 uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
