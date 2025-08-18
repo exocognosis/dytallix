@@ -2,7 +2,7 @@
 // Tests the full workflow from validator registration to reward claiming
 
 use std::collections::HashMap;
-use blockchain_core::staking::{StakingState, ValidatorStatus, StakingError};
+use blockchain_core::staking::{StakingState, ValidatorStatus, StakingError, SlashType, Evidence, ValidatorEvent};
 
 #[test]
 fn test_full_staking_workflow() {
@@ -127,6 +127,252 @@ fn test_max_validators_limit() {
     // Verify active validator count
     let active_validators = staking.get_active_validators();
     assert_eq!(active_validators.len(), 2);
+}
+
+// New tests for validator lifecycle operations
+
+#[test]
+fn test_validator_leave_functionality() {
+    let mut staking = StakingState::new();
+    
+    // Register and activate validator
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 500).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    assert_eq!(staking.validators["validator1"].status, ValidatorStatus::Active);
+    assert_eq!(staking.validators.len(), 1);
+    
+    // Check events were emitted for registration and activation
+    assert!(staking.get_events().len() >= 2);
+    
+    // Validator leave should succeed
+    let result = staking.validator_leave(&"validator1".to_string());
+    assert!(result.is_ok());
+    
+    // Validator should be removed (MVP implementation)
+    assert!(!staking.validators.contains_key("validator1"));
+    assert_eq!(staking.total_stake, 0);
+    
+    // Should have emitted leave event
+    let events = staking.get_events();
+    assert!(events.iter().any(|e| matches!(e, ValidatorEvent::ValidatorLeft { .. })));
+}
+
+#[test]
+fn test_uptime_tracking_and_jailing() {
+    let mut staking = StakingState::new();
+    staking.params.downtime_threshold = 3; // Low threshold for testing
+    
+    // Register and activate validator
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 500).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    assert_eq!(staking.validators["validator1"].status, ValidatorStatus::Active);
+    assert_eq!(staking.validators["validator1"].missed_blocks, 0);
+    
+    // Record missed blocks
+    staking.record_missed_block(&"validator1".to_string()).unwrap();
+    assert_eq!(staking.validators["validator1"].missed_blocks, 1);
+    assert_eq!(staking.validators["validator1"].status, ValidatorStatus::Active);
+    
+    staking.record_missed_block(&"validator1".to_string()).unwrap();
+    assert_eq!(staking.validators["validator1"].missed_blocks, 2);
+    assert_eq!(staking.validators["validator1"].status, ValidatorStatus::Active);
+    
+    // Third miss should jail the validator and apply slashing
+    staking.record_missed_block(&"validator1".to_string()).unwrap();
+    assert_eq!(staking.validators["validator1"].missed_blocks, 3);
+    assert_eq!(staking.validators["validator1"].status, ValidatorStatus::Jailed);
+    assert!(staking.validators["validator1"].total_slashed > 0);
+    
+    // Should have emitted jail and slash events
+    let events = staking.get_events();
+    assert!(events.iter().any(|e| matches!(e, ValidatorEvent::ValidatorJailed { .. })));
+    assert!(events.iter().any(|e| matches!(e, ValidatorEvent::ValidatorSlashed { .. })));
+    
+    // Record validator present should reset missed blocks
+    staking.record_validator_present(&"validator1".to_string()).unwrap();
+    assert_eq!(staking.validators["validator1"].missed_blocks, 0);
+    assert_eq!(staking.validators["validator1"].last_seen_height, staking.current_height);
+}
+
+#[test]
+fn test_slashing_functionality() {
+    let mut staking = StakingState::new();
+    
+    // Register and activate validator
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 500).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    let initial_stake = staking.validators["validator1"].total_stake;
+    let initial_total_stake = staking.total_stake;
+    
+    // Slash for downtime (1% = 100 basis points by default)
+    let result = staking.slash_validator(&"validator1".to_string(), SlashType::Downtime);
+    assert!(result.is_ok());
+    
+    let validator = &staking.validators["validator1"];
+    let expected_slash = (initial_stake * staking.params.slash_downtime as u128) / 10000;
+    
+    assert_eq!(validator.total_slashed, expected_slash);
+    assert_eq!(validator.slash_count, 1);
+    assert_eq!(validator.total_stake, initial_stake - expected_slash);
+    assert_eq!(staking.total_stake, initial_total_stake - expected_slash);
+    assert_eq!(validator.status, ValidatorStatus::Jailed); // Status should still be jailed from previous test pattern
+    
+    // Double sign should mark as slashed
+    let result = staking.slash_validator(&"validator1".to_string(), SlashType::DoubleSign);
+    assert!(result.is_ok());
+    assert_eq!(staking.validators["validator1"].status, ValidatorStatus::Slashed);
+    assert_eq!(staking.validators["validator1"].slash_count, 2);
+    
+    // Should have emitted slashing events
+    let events = staking.get_events();
+    let slash_events: Vec<_> = events.iter().filter(|e| matches!(e, ValidatorEvent::ValidatorSlashed { .. })).collect();
+    assert!(slash_events.len() >= 2);
+}
+
+#[test]
+fn test_evidence_handling() {
+    let mut staking = StakingState::new();
+    
+    // Register and activate validator
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 500).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    // Create valid double sign evidence
+    let evidence = Evidence::DoubleSign {
+        validator_address: "validator1".to_string(),
+        height: 100,
+        signature_1: vec![1, 2, 3],
+        signature_2: vec![4, 5, 6],  // Different signature
+        block_hash_1: vec![7, 8, 9],
+        block_hash_2: vec![10, 11, 12], // Different block hash
+    };
+    
+    let result = staking.handle_evidence(evidence);
+    assert!(result.is_ok());
+    assert_eq!(staking.validators["validator1"].status, ValidatorStatus::Slashed);
+    
+    // Create invalid evidence (same signatures)
+    let invalid_evidence = Evidence::DoubleSign {
+        validator_address: "validator1".to_string(),
+        height: 100,
+        signature_1: vec![1, 2, 3],
+        signature_2: vec![1, 2, 3], // Same signature - invalid
+        block_hash_1: vec![7, 8, 9],
+        block_hash_2: vec![10, 11, 12],
+    };
+    
+    let result = staking.handle_evidence(invalid_evidence);
+    assert!(matches!(result, Err(StakingError::InvalidEvidence)));
+    
+    // Test downtime evidence
+    let downtime_evidence = Evidence::Downtime {
+        validator_address: "validator1".to_string(),
+        missed_blocks: staking.params.downtime_threshold + 1, // Above threshold
+        window_start: 1,
+        window_end: 100,
+    };
+    
+    let result = staking.handle_evidence(downtime_evidence);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_validator_query_functions() {
+    let mut staking = StakingState::new();
+    
+    // Register multiple validators with different states
+    staking.register_validator("validator1".to_string(), vec![1], 500).unwrap();
+    staking.register_validator("validator2".to_string(), vec![2], 600).unwrap();
+    staking.register_validator("validator3".to_string(), vec![3], 700).unwrap();
+    
+    // Activate one validator
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    // Jail another validator by simulating downtime
+    staking.params.downtime_threshold = 1;
+    staking.record_missed_block(&"validator1".to_string()).unwrap();
+    
+    // Test get_validator_stats
+    let stats1 = staking.get_validator_stats(&"validator1".to_string()).unwrap();
+    assert_eq!(stats1.status, ValidatorStatus::Jailed);
+    assert_eq!(stats1.commission_rate, 500);
+    assert_eq!(stats1.missed_blocks, 1);
+    assert!(stats1.total_slashed > 0);
+    
+    let stats2 = staking.get_validator_stats(&"validator2".to_string()).unwrap();
+    assert_eq!(stats2.status, ValidatorStatus::Pending);
+    assert_eq!(stats2.commission_rate, 600);
+    
+    // Test get_validator_set with filters
+    let all_validators = staking.get_validator_set(None);
+    assert_eq!(all_validators.len(), 3);
+    
+    let jailed_validators = staking.get_validator_set(Some(ValidatorStatus::Jailed));
+    assert_eq!(jailed_validators.len(), 1);
+    assert_eq!(jailed_validators[0].address, "validator1".to_string());
+    
+    let pending_validators = staking.get_validator_set(Some(ValidatorStatus::Pending));
+    assert_eq!(pending_validators.len(), 2);
+    
+    let active_validators = staking.get_validator_set(Some(ValidatorStatus::Active));
+    assert_eq!(active_validators.len(), 0); // None are active after jailing
+}
+
+#[test]
+fn test_unjail_validator() {
+    let mut staking = StakingState::new();
+    staking.params.downtime_threshold = 1; // Jail after 1 missed block
+    
+    // Register and activate validator
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 500).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    // Jail the validator
+    staking.record_missed_block(&"validator1".to_string()).unwrap();
+    assert_eq!(staking.validators["validator1"].status, ValidatorStatus::Jailed);
+    
+    // Unjail should work
+    let result = staking.unjail_validator(&"validator1".to_string());
+    assert!(result.is_ok());
+    assert_eq!(staking.validators["validator1"].status, ValidatorStatus::Inactive);
+    assert_eq!(staking.validators["validator1"].missed_blocks, 0);
+    
+    // Should have emitted status change event
+    let events = staking.get_events();
+    assert!(events.iter().any(|e| matches!(e, ValidatorEvent::ValidatorStatusChanged { new_status: ValidatorStatus::Inactive, .. })));
+    
+    // Unjailing non-jailed validator should fail
+    let result = staking.unjail_validator(&"validator1".to_string());
+    assert!(matches!(result, Err(StakingError::InvalidStatus)));
+}
+
+#[test]
+fn test_events_system() {
+    let mut staking = StakingState::new();
+    
+    // Register validator (should emit event)
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 500).unwrap();
+    assert_eq!(staking.get_events().len(), 1);
+    
+    // Activate validator (should emit status change event)
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    assert_eq!(staking.get_events().len(), 2);
+    
+    // Check event types
+    let events = staking.get_events();
+    assert!(matches!(events[0], ValidatorEvent::ValidatorJoined { .. }));
+    assert!(matches!(events[1], ValidatorEvent::ValidatorStatusChanged { .. }));
+    
+    // Clear events
+    staking.clear_events();
+    assert_eq!(staking.get_events().len(), 0);
+    
+    // Further operations should create new events
+    staking.slash_validator(&"validator1".to_string(), SlashType::DoubleSign).unwrap();
+    assert!(staking.get_events().len() > 0);
 }
 
 #[test]
