@@ -668,3 +668,4 @@ mod regression_tests {
             assert_eq!(fee, fee2);
         }
     }
+}

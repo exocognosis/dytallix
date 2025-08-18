@@ -96,7 +96,7 @@ impl EmissionEngine {
         self.set_pool_amount(pool, new_amt);
         // credit account
         if let Ok(mut st) = self.state.lock() {
-            st.credit(to, amount);
+            st.credit(to, "udgt", amount);
         }
         Ok(new_amt)
     }

@@ -32,6 +32,7 @@ pub struct RpcContext {
     pub tps: Arc<Mutex<TpsWindow>>,
     pub emission: Arc<EmissionEngine>,
     pub governance: Arc<Mutex<GovernanceModule>>,
+    pub metrics: Arc<crate::metrics::Metrics>,
 }
 
 #[derive(Deserialize)]
@@ -112,7 +113,7 @@ pub async fn submit(
     let signed_tx = body.signed_tx;
     
     // Get chain ID and first sender address
-    let chain_id = ctx.storage.get_chain_id();
+    let chain_id = ctx.storage.get_chain_id().unwrap_or_default();
     let from = signed_tx.first_from_address().ok_or_else(|| {
         ApiError::Validation(ValidationError::Internal("no sender address found".to_string()))
     })?;
@@ -510,7 +511,10 @@ pub async fn gov_tally(
 pub async fn gov_get_config(
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let config = ctx.governance.lock().unwrap().get_config();
+    let config = {
+        let governance = ctx.governance.lock().unwrap();
+        governance.get_config().clone()
+    };
     Ok(Json(serde_json::to_value(config).unwrap()))
 }
 

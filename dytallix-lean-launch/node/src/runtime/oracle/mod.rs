@@ -40,6 +40,8 @@ pub async fn post_ai_risk(
     Extension(ctx): Extension<RpcContext>,
     Json(inp): Json<OracleAiRiskInput>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    let start_time = std::time::SystemTime::now();
+    
     if !(0.0..=1.0).contains(&inp.risk_score) {
         return Err(ApiError::Internal);
     }
@@ -62,6 +64,12 @@ pub async fn post_ai_risk(
         oracle_pubkey: configured_pk,
     };
     store.put_ai_risk(&rec).map_err(|_| ApiError::Internal)?;
+    
+    // Record oracle metrics
+    if let Ok(latency) = start_time.elapsed() {
+        ctx.metrics.record_oracle_update(latency);
+    }
+    
     Ok(Json(serde_json::json!({"ok": true})))
 }
 
@@ -70,6 +78,8 @@ pub async fn post_ai_risk_batch(
     Extension(ctx): Extension<RpcContext>,
     Json(inp): Json<OracleAiRiskBatchInput>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    let start_time = std::time::SystemTime::now();
+    
     let configured_pk = std::env::var("AI_ORACLE_PUBKEY").ok();
     let store = OracleStore {
         db: &ctx.storage.db,
@@ -110,6 +120,11 @@ pub async fn post_ai_risk_batch(
     }
     
     let failed_hashes = store.put_ai_risks_batch(&records).map_err(|_| ApiError::Internal)?;
+    
+    // Record oracle metrics for batch processing
+    if let Ok(latency) = start_time.elapsed() {
+        ctx.metrics.record_oracle_update(latency);
+    }
     
     Ok(Json(serde_json::json!({
         "processed": records.len(),

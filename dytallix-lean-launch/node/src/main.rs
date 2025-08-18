@@ -24,8 +24,10 @@ mod state;
 mod storage;
 mod ws;
 mod util; // added util module declaration
+mod metrics; // observability module
 use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::GovernanceModule;
+use crate::metrics::{MetricsServer, parse_metrics_config};
 use mempool::Mempool;
 use rpc::RpcContext;
 use state::State;
@@ -74,14 +76,18 @@ async fn main() -> anyhow::Result<()> {
     // Prefund dev faucet account if not already
     {
         let mut st = state.lock().unwrap();
-        if st.balance_of("dyt1senderdev000000") == 0 {
-            st.credit("dyt1senderdev000000", 1_000_000);
+        if st.balance_of("dyt1senderdev000000", "udgt") == 0 {
+            st.credit("dyt1senderdev000000", "udgt", 1_000_000);
         }
     }
 
     let mempool = Arc::new(Mutex::new(Mempool::new(10_000)));
     let ws_hub = WsHub::new();
     let tps_window = Arc::new(Mutex::new(TpsWindow::new(60)));
+
+    // Initialize metrics
+    let metrics_config = parse_metrics_config();
+    let (metrics_server, metrics) = MetricsServer::new(metrics_config.clone())?;
 
     let ctx = RpcContext {
         storage: storage.clone(),
@@ -91,6 +97,7 @@ async fn main() -> anyhow::Result<()> {
         tps: tps_window.clone(),
         emission: Arc::new(EmissionEngine::new(storage.clone(), state.clone())),
         governance: Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone()))),
+        metrics: metrics.clone(),
     };
 
     // Initialize bridge validators if provided
@@ -102,6 +109,12 @@ async fn main() -> anyhow::Result<()> {
         let mut ticker = interval(Duration::from_millis(block_interval_ms));
         loop {
             ticker.tick().await;
+            let block_start_time = SystemTime::now();
+            
+            // Update mempool size metric
+            let mempool_size = { producer_ctx.mempool.lock().unwrap().len() };
+            producer_ctx.metrics.update_mempool_size(mempool_size);
+            
             // advance emission pools to new height (height+1)
             let next_height = producer_ctx.storage.height() + 1;
             producer_ctx.emission.apply_until(next_height);
@@ -109,17 +122,22 @@ async fn main() -> anyhow::Result<()> {
             if snapshot.is_empty() && !empty_blocks {
                 continue;
             }
+            
+            let mut total_gas_used = 0u64;
             // apply txs
             let mut receipts: Vec<TxReceipt> = vec![];
             let mut applied: Vec<storage::tx::Transaction> = vec![];
             {
                 let mut st = producer_ctx.state.lock().unwrap();
                 for tx in snapshot.iter() {
+                    let tx_start_time = SystemTime::now();
+                    
                     // revalidate
-                    let bal = st.balance_of(&tx.from);
+                    let bal = st.balance_of(&tx.from, "udgt");
                     let nonce = st.nonce_of(&tx.from);
                     if nonce != tx.nonce {
                         receipts.push(TxReceipt {
+                            receipt_version: crate::storage::receipts::RECEIPT_FORMAT_VERSION,
                             tx_hash: tx.hash.clone(),
                             status: TxStatus::Failed,
                             block_height: None,
@@ -130,11 +148,17 @@ async fn main() -> anyhow::Result<()> {
                             fee: tx.fee,
                             nonce: tx.nonce,
                             error: Some("InvalidNonce".into()),
+                            gas_used: 0,
+                            gas_limit: 0,
+                            gas_price: 0,
+                            gas_refund: 0,
+                            success: false,
                         });
                         continue;
                     }
                     if bal < tx.amount + tx.fee {
                         receipts.push(TxReceipt {
+                            receipt_version: crate::storage::receipts::RECEIPT_FORMAT_VERSION,
                             tx_hash: tx.hash.clone(),
                             status: TxStatus::Failed,
                             block_height: None,
@@ -145,12 +169,23 @@ async fn main() -> anyhow::Result<()> {
                             fee: tx.fee,
                             nonce: tx.nonce,
                             error: Some("InsufficientBalance".into()),
+                            gas_used: 0,
+                            gas_limit: 0,
+                            gas_price: 0,
+                            gas_refund: 0,
+                            success: false,
                         });
                         continue;
                     }
                     // signature placeholder
-                    st.apply_transfer(&tx.from, &tx.to, tx.amount, tx.fee);
+                    st.apply_transfer(&tx.from, &tx.to, "udgt", tx.amount, "udgt", tx.fee);
+                    
+                    // Gas calculation (simplified - using fee as gas proxy)
+                    let gas_used = tx.fee as u64; // Convert to u64 for compatibility
+                    total_gas_used += gas_used;
+                    
                     receipts.push(TxReceipt {
+                        receipt_version: crate::storage::receipts::RECEIPT_FORMAT_VERSION,
                         tx_hash: tx.hash.clone(),
                         status: TxStatus::Success,
                         block_height: None,
@@ -161,8 +196,18 @@ async fn main() -> anyhow::Result<()> {
                         fee: tx.fee,
                         nonce: tx.nonce,
                         error: None,
+                        gas_used: gas_used,
+                        gas_limit: gas_used, // Simplified
+                        gas_price: 1, // Simplified
+                        gas_refund: 0,
+                        success: true,
                     });
                     applied.push(tx.clone());
+                    
+                    // Record transaction processing time
+                    if let Ok(elapsed) = tx_start_time.elapsed() {
+                        producer_ctx.metrics.record_transaction(elapsed);
+                    }
                 }
             }
             // build block (include only successful txs)
@@ -194,6 +239,22 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             let _ = producer_ctx.storage.put_block(&block, &receipts);
+            
+            // Record metrics
+            if let Ok(block_processing_time) = block_start_time.elapsed() {
+                producer_ctx.metrics.record_block(
+                    height,
+                    success_txs.len(),
+                    total_gas_used,
+                    block_processing_time
+                );
+            }
+            producer_ctx.metrics.update_current_block_gas(total_gas_used);
+            
+            // Update emission pool metrics
+            let emission_snapshot = producer_ctx.emission.snapshot();
+            let total_emission_pool: u128 = emission_snapshot.pools.values().sum();
+            producer_ctx.metrics.update_emission_pool(total_emission_pool as f64);
             
             // Process governance end block
             if let Err(e) = producer_ctx.governance.lock().unwrap().end_block(height) {
@@ -249,6 +310,18 @@ async fn main() -> anyhow::Result<()> {
         .layer(Extension(ctx));
     if ws_enabled {
         app = app.route("/ws", get(ws_handler).layer(Extension(ws_hub)));
+    }
+
+    // Start metrics server if enabled
+    if metrics_config.enabled {
+        let metrics_server_task = tokio::spawn(async move {
+            if let Err(e) = metrics_server.start().await {
+                eprintln!("Metrics server error: {}", e);
+            }
+        });
+        
+        // Don't wait for metrics server, let it run in background
+        std::mem::forget(metrics_server_task);
     }
 
     let addr: SocketAddr = "0.0.0.0:3030".parse().unwrap();
