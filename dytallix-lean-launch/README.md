@@ -6,6 +6,7 @@ This directory hosts the standardized minimum viable public testnet (MV(T)) envi
 - Cosmos-focused testnet frontend & services (no EVM / Hardhat remnants)
 - Dual-token (DGT governance / DRT reward) faucet integration
 - PQC (post-quantum cryptography) groundwork & integrity validation
+- **Deterministic gas accounting system** for all transaction types
 - Foundation for AI modules, explorer expansion, and deployment automation
 
 ## Directory Overview
@@ -70,7 +71,19 @@ Never commit real mnemonics or secrets. `.env`, `.env.staging`, production secre
 - Dual-token faucet with bech32 address validation (`dytallix1...`)
 - Cosmos integration via CosmJS (LCD / RPC / WebSocket placeholders)
 - PQC WASM integrity manifest & facade (`src/crypto/pqc`)
+- **Gas accounting system** with deterministic fee calculation and CLI support
 - Responsive UI with modular component structure
+
+## Gas System Overview
+
+Dytallix implements a deterministic gas accounting system:
+
+- **Fee unit**: `datt` (1 DGT = 1,000,000,000 datt)
+- **Gas calculation**: `fee = gas_limit * gas_price`
+- **CLI integration**: `--gas` and `--gas-price` flags with automatic estimation
+- **Out-of-gas handling**: Full revert with deterministic gas usage tracking
+
+For detailed information, see [`docs/GAS.md`](docs/GAS.md).
 
 ## Scripts
 - `npm run dev` – Frontend development server

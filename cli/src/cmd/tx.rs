@@ -11,11 +11,15 @@ pub struct TransferCmd {
     #[arg(long)] pub amount: u128,
     #[arg(long)] pub fee: u128,
     #[arg(long, default_value="")] pub memo: String,
+    #[arg(long, help="Gas limit for transaction")] pub gas: Option<u64>,
+    #[arg(long, help="Gas price in datt (1 DGT = 1_000_000_000 datt)", default_value="1000")] pub gas_price: u64,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct BatchCmd {
     #[arg(long, help="Path to batch JSON file or - for STDIN")] pub file: String,
+    #[arg(long, help="Gas limit for batch transaction")] pub gas: Option<u64>,
+    #[arg(long, help="Gas price in datt", default_value="1000")] pub gas_price: u64,
 }
 
 pub async fn handle_transfer(rpc_url: &str, chain_id: &str, _home: &str, c: TransferCmd, fmt: OutputFormat) -> Result<()> {
@@ -35,10 +39,52 @@ pub async fn handle_transfer(rpc_url: &str, chain_id: &str, _home: &str, c: Tran
     let nonce = client.get_nonce(&guard_addr).await.unwrap_or(Some(0)).unwrap_or(0); // fallback to 0
     let msg = Msg::Send { from: guard_addr.clone(), to: c.to.clone(), denom: c.denom.clone(), amount: c.amount };
     let tx = Tx::new(chain_id, nonce, vec![msg], c.fee, c.memo)?;
-    let stx = SignedTx::sign(tx, &sk_clone, &pk_clone)?;
+    
+    // Gas estimation and validation
+    let gas_limit = if let Some(gas) = c.gas {
+        gas
+    } else {
+        // Estimate gas limit with safety factor
+        estimate_gas_for_transfer(&tx, c.gas_price)?
+    };
+    
+    // Display gas information to user
+    let intrinsic_gas = estimate_intrinsic_gas_for_transfer(&tx)?;
+    if fmt.is_json() {
+        println!("{{\"intrinsic_gas\": {}, \"gas_limit\": {}, \"gas_price\": {}, \"estimated_fee_datt\": {}}}", 
+                 intrinsic_gas, gas_limit, c.gas_price, gas_limit * c.gas_price);
+    } else {
+        println!("Intrinsic gas: {}", intrinsic_gas);
+        println!("Gas limit: {}", gas_limit);
+        println!("Gas price: {} datt", c.gas_price);
+        println!("Estimated fee: {} datt ({:.9} DGT)", gas_limit * c.gas_price, (gas_limit * c.gas_price) as f64 / 1_000_000_000.0);
+    }
+    
+    let stx = SignedTx::sign(tx, &sk_clone, &pk_clone, gas_limit, c.gas_price)?;
     let br = client.submit(&stx).await?;
     if fmt.is_json() { print_json(&serde_json::json!({"hash": br.hash, "status": br.status}))?; } else { println!("hash={} status={}", br.hash, br.status); }
     Ok(())
+}
+
+// Gas estimation functions
+fn estimate_gas_for_transfer(tx: &Tx, gas_price: u64) -> Result<u64> {
+    let intrinsic = estimate_intrinsic_gas_for_transfer(tx)?;
+    // Apply 2x safety factor as per specification
+    Ok(intrinsic * 2)
+}
+
+fn estimate_intrinsic_gas_for_transfer(tx: &Tx) -> Result<u64> {
+    // Estimate transaction size
+    let tx_bytes = serde_json::to_vec(tx)?;
+    let tx_size = tx_bytes.len();
+    
+    // For transfer transactions
+    let base_cost = 500u64; // Transfer base cost
+    let per_byte_cost = 2u64;
+    let size_cost = per_byte_cost * (tx_size as u64);
+    
+    Ok(base_cost + size_cost)
+}
 }
 
 pub async fn handle_batch(rpc_url: &str, default_chain_id: &str, _home: &str, c: BatchCmd, fmt: OutputFormat) -> Result<()> {
@@ -67,12 +113,51 @@ pub async fn handle_batch(rpc_url: &str, default_chain_id: &str, _home: &str, c:
         }
     }
     let tx = Tx::new(&chain_id, nonce, msgs, b.fee, &b.memo)?;
-    let stx = SignedTx::sign(tx, &sk_clone, &pk_clone)?;
+    
+    // Gas estimation for batch
+    let gas_limit = if let Some(gas) = c.gas {
+        gas
+    } else {
+        estimate_gas_for_batch(&tx, c.gas_price)?
+    };
+    
+    // Display gas information
+    let intrinsic_gas = estimate_intrinsic_gas_for_batch(&tx)?;
+    if fmt.is_json() {
+        println!("{{\"intrinsic_gas\": {}, \"gas_limit\": {}, \"gas_price\": {}, \"estimated_fee_datt\": {}}}", 
+                 intrinsic_gas, gas_limit, c.gas_price, gas_limit * c.gas_price);
+    } else {
+        println!("Batch intrinsic gas: {}", intrinsic_gas);
+        println!("Gas limit: {}", gas_limit);
+        println!("Gas price: {} datt", c.gas_price);
+        println!("Estimated fee: {} datt ({:.9} DGT)", gas_limit * c.gas_price, (gas_limit * c.gas_price) as f64 / 1_000_000_000.0);
+    }
+    
+    let stx = SignedTx::sign(tx, &sk_clone, &pk_clone, gas_limit, c.gas_price)?;
     if b.broadcast {
         let br = client.submit(&stx).await?;
         if fmt.is_json() { print_json_array(&[serde_json::json!({"hash": br.hash, "status": br.status})])?; } else { println!("hash={} status={}", br.hash, br.status); }
     } else {
-        if fmt.is_json() { print_json_array(&[&stx])?; } else { println!("signed_tx hash={}", stx.hash); }
+        if fmt.is_json() { print_json_array(&[&stx])?; } else { println!("signed_tx hash={}", stx.tx_hash()?); }
     }
     Ok(())
+}
+
+fn estimate_gas_for_batch(tx: &Tx, gas_price: u64) -> Result<u64> {
+    let intrinsic = estimate_intrinsic_gas_for_batch(tx)?;
+    // Apply higher safety factor for batch transactions
+    Ok(intrinsic * 3)
+}
+
+fn estimate_intrinsic_gas_for_batch(tx: &Tx) -> Result<u64> {
+    // Estimate transaction size
+    let tx_bytes = serde_json::to_vec(tx)?;
+    let tx_size = tx_bytes.len();
+    
+    // Base cost for batch (higher than single transfer)
+    let base_cost = 500u64 + (tx.msgs.len() as u64 - 1) * 200; // Extra cost per additional message
+    let per_byte_cost = 2u64;
+    let size_cost = per_byte_cost * (tx_size as u64);
+    
+    Ok(base_cost + size_cost)
 }
