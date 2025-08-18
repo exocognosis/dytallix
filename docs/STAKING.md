@@ -1,6 +1,6 @@
 # Staking System Implementation
 
-This document describes the staking, validator registry, delegation, and reward accrual system implemented for the Dytallix blockchain.
+This document describes the staking, validator registry, delegation, reward accrual, and validator lifecycle operations system implemented for the Dytallix blockchain.
 
 ## Overview
 
@@ -9,7 +9,9 @@ The staking system implements a Proof-of-Stake (PoS) mechanism with the followin
 1. **Validator Registry** - On-chain state for validator management
 2. **Delegation System** - DGT staking toward validators
 3. **Reward Accrual Engine** - Per-block reward distribution
-4. **Emissions Integration** - Stub interface for DRT reward distribution
+4. **Validator Lifecycle Operations** - Join/leave, uptime tracking, slashing
+5. **Evidence Handling** - Double-sign detection and slashing
+6. **Events System** - Validator lifecycle events and notifications
 
 ## Architecture
 
@@ -23,19 +25,28 @@ pub struct Validator {
     pub address: Address,
     pub consensus_pubkey: Vec<u8>,
     pub total_stake: u128,
-    pub status: ValidatorStatus,  // Pending, Active, Inactive, Slashed
+    pub status: ValidatorStatus,  // Pending, Active, Inactive, Leaving, Slashed, Jailed
     pub reward_index: u128,       // Fixed-point for proportional rewards
     pub accumulated_unpaid: u128,
     pub commission_rate: u16,     // Basis points (e.g., 500 = 5%)
     pub self_stake: u128,
+    // New lifecycle fields
+    pub missed_blocks: u64,       // Consecutive missed blocks
+    pub last_seen_height: BlockNumber, // Last active block
+    pub slash_count: u32,         // Number of times slashed
+    pub total_slashed: u128,      // Total amount slashed
 }
 ```
 
 **Key Functions:**
 - `register_validator()` - Register new validator with Pending status
-- `activate_validator()` - Auto-activate when minimum self-stake met
+- `validator_leave()` - Initiate graceful validator exit
 - `get_active_validators()` - List validators participating in consensus
-- `slash_validator()` - Placeholder for slashing mechanism
+- `slash_validator()` - Apply slashing penalties for misbehavior
+- `record_missed_block()` - Track validator downtime
+- `record_validator_present()` - Reset missed block counters
+- `handle_evidence()` - Process evidence of validator misbehavior
+- `unjail_validator()` - Administrative function to unjail validators
 
 #### 2. Delegation System
 
@@ -76,6 +87,60 @@ pub trait EmissionsProvider {
 
 Simple implementation provides constant 1 DRT per block.
 
+#### 5. Validator Lifecycle Operations
+
+**Lifecycle Management:**
+- `validator_leave()` - Graceful validator exit with immediate stake return (MVP)
+- Auto-activation when minimum self-stake requirements are met
+- Status transitions: Pending → Active → Leaving/Jailed/Slashed
+
+**Uptime Tracking:**
+- `missed_blocks` counter for consecutive missed blocks
+- `last_seen_height` tracking for validator activity
+- Configurable downtime threshold for automatic jailing
+- `record_missed_block()` and `record_validator_present()` functions
+
+**Slashing System:**
+```rust
+pub enum SlashType {
+    DoubleSign,    // 5% slash rate (default)
+    Downtime,      // 1% slash rate (default)
+}
+```
+
+**Evidence Handling:**
+```rust
+pub enum Evidence {
+    DoubleSign {
+        validator_address: Address,
+        height: BlockNumber,
+        signature_1: Vec<u8>,
+        signature_2: Vec<u8>,
+        block_hash_1: Vec<u8>,
+        block_hash_2: Vec<u8>,
+    },
+    Downtime {
+        validator_address: Address,
+        missed_blocks: u64,
+        window_start: BlockNumber,
+        window_end: BlockNumber,
+    },
+}
+```
+
+#### 6. Events System
+
+**Validator Events:**
+```rust
+pub enum ValidatorEvent {
+    ValidatorJoined { validator_address, self_stake, commission_rate, block_height },
+    ValidatorLeft { validator_address, final_stake, block_height },
+    ValidatorSlashed { validator_address, slash_type, slash_amount, block_height },
+    ValidatorStatusChanged { validator_address, old_status, new_status, block_height },
+    ValidatorJailed { validator_address, reason, block_height },
+}
+```
+
 ## Integration Points
 
 ### Runtime Integration (`blockchain-core/src/runtime/mod.rs`)
@@ -91,10 +156,16 @@ pub struct RuntimeState {
 
 **New Runtime Methods:**
 - `register_validator()` - Validator registration
+- `validator_leave()` - Initiate validator exit
 - `delegate()` - DGT delegation with balance locking
 - `claim_rewards()` - DRT reward claiming
 - `process_block_rewards()` - Called during block processing
 - `get_active_validators()` - Query active validator set
+- `record_missed_block()` - Track validator downtime
+- `record_validator_present()` - Reset uptime counters
+- `handle_evidence()` - Process misbehavior evidence
+- `slash_validator()` - Apply slashing penalties
+- `unjail_validator()` - Administrative unjailing
 
 ### CLI Integration (`cli/src/cmd/stake.rs`)
 
@@ -102,21 +173,33 @@ pub struct RuntimeState {
 ```bash
 dcli stake register-validator --address <addr> --pubkey <key> --commission <rate> --self-stake <amount>
 dcli stake delegate --from <delegator> --validator <validator> --amount <amount>
+dcli stake leave --validator <validator>
 dcli stake show --address <address>
-dcli stake validators
+dcli stake validators [--status <active|pending|jailed|slashed>]
 dcli stake claim-rewards --delegator <addr> --validator <addr>
 dcli stake stats
+dcli stake unjail --validator <validator>
+dcli stake slash --validator <validator> --type <double-sign|downtime>
 ```
 
 ### API Integration (`blockchain-core/src/api/mod.rs`)
 
 **New RPC Methods:**
 - `staking_register_validator`
+- `staking_validator_leave`
 - `staking_delegate`
 - `staking_get_validator`
 - `staking_get_validators`
+- `staking_get_validator_stats`
 - `staking_claim_rewards`
 - `staking_get_stats`
+- `staking_record_missed_block`
+- `staking_record_validator_present`
+- `staking_handle_evidence`
+- `staking_slash_validator`
+- `staking_unjail_validator`
+- `staking_get_events`
+- `staking_clear_events`
 
 ## Configuration
 
@@ -128,6 +211,10 @@ pub struct StakingParams {
     pub slash_double_sign: u16,      // Default: 500 (5%)
     pub slash_downtime: u16,         // Default: 100 (1%)
     pub emission_per_block: u128,    // Default: 1e6 uDRT (1 DRT)
+    // New lifecycle parameters
+    pub downtime_threshold: u64,     // Default: 100 (consecutive missed blocks)
+    pub signed_blocks_window: u64,   // Default: 10000 (sliding window size)
+    pub min_signed_per_window: u64,  // Default: 5000 (50% minimum)
 }
 ```
 
@@ -152,6 +239,8 @@ Staking parameters are included in the genesis configuration via existing `Staki
 - Minimum self-stake requirement prevents frivolous registrations
 - Maximum validator limit maintains network decentralization
 - Commission rate transparency
+- Uptime tracking prevents inactive validators
+- Configurable slashing penalties deter misbehavior
 
 ### Delegation Protection
 - Prevents duplicate delegations to same validator
@@ -163,28 +252,48 @@ Staking parameters are included in the genesis configuration via existing `Staki
 - Overflow protection in calculations
 - Reward cursor prevents double-claiming
 
+### Slashing & Evidence Security
+- Multiple evidence types with validation
+- Configurable slash rates in basis points
+- Automatic jailing for downtime violations
+- Administrative unjail function for recovery
+- Event logging for all validator lifecycle changes
+
 ## Testing
 
 Comprehensive test suite covers:
 - Validator registration and activation
+- Validator lifecycle operations (leave, jail, unjail)
 - Delegation mechanics and constraints
 - Reward calculation accuracy
+- Uptime tracking and missed block detection
+- Slashing system with configurable penalties
+- Evidence handling and validation
+- Events system for lifecycle notifications
+- Query functions and validator statistics
 - Edge cases and error conditions
 
 **Run tests:**
 ```bash
 cd blockchain-core
 cargo test staking
+
+# Run integration tests
+cd ../tests
+cargo test integration_staking
 ```
 
 ## Future Enhancements
 
 ### Phase 2 Features (Not in MVP)
 - **Undelegation**: Token unbonding with time delay
-- **Slashing**: Actual token burning for misbehavior
 - **Commission**: Validator fee collection
 - **Governance Integration**: Stake-weighted voting
 - **Advanced Rewards**: Variable emission schedules
+- **Sliding Window Uptime**: Replace consecutive missed blocks with sliding window
+- **Full Evidence Verification**: Cryptographic signature validation
+- **Delegator Slashing**: Proportional slashing of delegated stakes
+- **Token Burning/Redistribution**: Economic penalties for slashed tokens
 
 ### Optimization Opportunities
 - Batch reward processing
@@ -237,21 +346,93 @@ curl -X POST http://localhost:8545/rpc \
   }'
 ```
 
+### Validator Leave
+```bash
+curl -X POST http://localhost:8545/rpc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "staking_validator_leave",
+    "params": ["validator_address"],
+    "id": 1
+  }'
+```
+
+### Query Validator Stats
+```bash
+curl -X POST http://localhost:8545/rpc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "staking_get_validator_stats",
+    "params": ["validator_address"],
+    "id": 1
+  }'
+```
+
+### Handle Evidence
+```bash
+curl -X POST http://localhost:8545/rpc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "staking_handle_evidence",
+    "params": [{
+      "DoubleSign": {
+        "validator_address": "validator1",
+        "height": 100,
+        "signature_1": [1,2,3],
+        "signature_2": [4,5,6],
+        "block_hash_1": [7,8,9],
+        "block_hash_2": [10,11,12]
+      }
+    }],
+    "id": 1
+  }'
+```
+
 ## Implementation Status
 
 - [x] Core staking module with validator registry
 - [x] Delegation system with DGT locking
 - [x] Reward accrual engine with fixed-point math
+- [x] **Validator lifecycle operations (validator_leave, graceful exit)**
+- [x] **Uptime tracking with missed block counters**
+- [x] **Slashing system with configurable penalties**
+- [x] **Evidence handling scaffold for double-sign detection**
+- [x] **Events system for validator lifecycle notifications**
+- [x] **Query functions for validator statistics and status**
 - [x] Runtime integration with state management
 - [x] CLI commands for staking operations
 - [x] API endpoints for RPC integration
-- [x] Comprehensive test suite
-- [x] Documentation and examples
+- [x] Comprehensive test suite (15+ new test cases)
+- [x] Updated documentation with new features
 - [ ] Full RPC server integration (requires server implementation)
+- [ ] WebSocket event streaming for real-time notifications
+- [ ] Sliding window uptime tracking (using consecutive blocks for MVP)
+- [ ] Full cryptographic evidence verification (basic validation in place)
 - [ ] Undelegation mechanism (deferred)
-- [ ] Slashing implementation (deferred)
 - [ ] Commission distribution (deferred)
+- [ ] Delegator slashing and token burning/redistribution (deferred)
 
 ## Notes
 
-This implementation provides a solid foundation for the Dytallix staking system while maintaining compatibility with the existing codebase. The modular design allows for easy extension and future feature additions.
+This implementation provides a comprehensive foundation for the Dytallix staking system with full validator lifecycle operations, uptime tracking, evidence handling, and slashing capabilities. The implementation includes:
+
+**MVP Features Completed:**
+- Complete validator lifecycle (join/leave operations)
+- Uptime tracking with configurable downtime thresholds
+- Slashing system with configurable penalty rates
+- Evidence handling scaffold for double-sign detection
+- Events system for real-time validator lifecycle notifications
+- Query interfaces for validator statistics and status
+- Comprehensive test coverage for all new functionality
+
+**Design Decisions:**
+- Immediate validator removal on leave (no unbonding delay for MVP)
+- Consecutive missed block tracking (sliding window planned for future)
+- Basic evidence validation (full cryptographic verification placeholder)
+- Configurable slashing rates using basis points for precision
+- Event-driven architecture for integration with external systems
+
+The modular design allows for easy extension and future feature additions while maintaining compatibility with the existing codebase.
