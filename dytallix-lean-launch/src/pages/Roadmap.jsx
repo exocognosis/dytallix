@@ -168,7 +168,8 @@ const Roadmap = () => {
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12 }}>
               Key Milestones
             </h2>
-            <div className="grid grid-2" style={{ gap: 16 }}>
+            {/* Updated to enforce a 2x2 grid layout */}
+            <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
               <div className="card" style={{ background: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.25)' }}>
                 <h3 style={{ color: '#93C5FD', marginBottom: 8, fontSize: '1.05rem' }}>
                   🎯 Testnet Milestone
