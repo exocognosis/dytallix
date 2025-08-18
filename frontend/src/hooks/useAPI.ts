@@ -19,6 +19,11 @@ export const QUERY_KEYS = {
   SYSTEM_METRICS: 'system-metrics',
   NETWORK_ACTIVITY: 'network-activity',
   POST_QUANTUM_STATUS: 'post-quantum-status',
+  GOVERNANCE_PROPOSALS: 'governance-proposals',
+  GOVERNANCE_PROPOSAL: 'governance-proposal',
+  STAKING_VALIDATORS: 'staking-validators',
+  STAKING_DELEGATIONS: 'staking-delegations',
+  STAKING_REWARDS: 'staking-rewards',
 } as const
 
 // Blockchain queries
@@ -251,6 +256,74 @@ export function useAnalyzeFraud() {
       onError: (error: any) => {
         toast.error(`Fraud analysis failed: ${error.message || 'Unknown error'}`)
       },
+    }
+  )
+}
+
+// Governance queries
+export function useGovernanceData() {
+  return useQuery(
+    QUERY_KEYS.GOVERNANCE_PROPOSALS,
+    () => api.getGovernanceProposals?.() || Promise.resolve([]),
+    {
+      refetchInterval: 30000, // Refresh every 30 seconds
+      retry: 2,
+    }
+  )
+}
+
+export function useGovernanceProposal(proposalId: number) {
+  return useQuery(
+    [QUERY_KEYS.GOVERNANCE_PROPOSAL, proposalId],
+    () => api.getGovernanceProposal?.(proposalId) || Promise.resolve(null),
+    {
+      enabled: !!proposalId,
+      refetchInterval: 30000,
+    }
+  )
+}
+
+// Staking queries
+export function useStakingData() {
+  return useQuery(
+    QUERY_KEYS.STAKING_VALIDATORS,
+    () => api.getStakingValidators?.() || Promise.resolve([]),
+    {
+      refetchInterval: 30000, // Refresh every 30 seconds
+      retry: 2,
+    }
+  )
+}
+
+export function useStakingValidators() {
+  return useQuery(
+    QUERY_KEYS.STAKING_VALIDATORS,
+    () => api.getStakingValidators?.() || Promise.resolve([]),
+    {
+      refetchInterval: 30000,
+      retry: 2,
+    }
+  )
+}
+
+export function useStakingDelegations(delegatorAddress?: string) {
+  return useQuery(
+    [QUERY_KEYS.STAKING_DELEGATIONS, delegatorAddress],
+    () => api.getStakingDelegations?.(delegatorAddress) || Promise.resolve([]),
+    {
+      enabled: !!delegatorAddress,
+      refetchInterval: 30000,
+    }
+  )
+}
+
+export function useStakingRewards(delegatorAddress?: string) {
+  return useQuery(
+    [QUERY_KEYS.STAKING_REWARDS, delegatorAddress],
+    () => api.getStakingRewards?.(delegatorAddress) || Promise.resolve(0),
+    {
+      enabled: !!delegatorAddress,
+      refetchInterval: 30000,
     }
   )
 }

@@ -535,6 +535,126 @@ class DytallixAPI {
       chainId: config.get().chainId,
     }
   }
+
+  // Governance API methods
+  async getGovernanceProposals(): Promise<any[]> {
+    try {
+      const response = await this.blockchain.get('/governance/proposals')
+      return response.data?.proposals || []
+    } catch (error) {
+      config.log('warn', 'Failed to fetch governance proposals, using mock data', error)
+      // Return mock data for now
+      return [
+        {
+          id: 1,
+          title: "Increase Block Size Limit",
+          description: "Proposal to increase the maximum block size from 1MB to 2MB to improve transaction throughput",
+          status: 'active',
+          votesFor: 1250000,
+          votesAgainst: 340000,
+          totalVotes: 1590000,
+          createdAt: '2024-01-15T10:00:00Z',
+          votingDeadline: '2024-02-15T10:00:00Z',
+          proposalType: 'parameter'
+        }
+      ]
+    }
+  }
+
+  async getGovernanceProposal(proposalId: number): Promise<any> {
+    try {
+      const response = await this.blockchain.get(`/governance/proposals/${proposalId}`)
+      return response.data
+    } catch (error) {
+      config.log('warn', `Failed to fetch governance proposal ${proposalId}`, error)
+      return null
+    }
+  }
+
+  async voteOnProposal(proposalId: number, vote: 'for' | 'against', voterAddress: string): Promise<any> {
+    try {
+      const response = await this.blockchain.post(`/governance/proposals/${proposalId}/vote`, {
+        vote,
+        voterAddress
+      })
+      return response.data
+    } catch (error) {
+      config.log('error', `Failed to vote on proposal ${proposalId}`, error)
+      throw error
+    }
+  }
+
+  // Staking API methods
+  async getStakingValidators(): Promise<any[]> {
+    try {
+      const response = await this.blockchain.get('/staking/validators')
+      return response.data?.validators || []
+    } catch (error) {
+      config.log('warn', 'Failed to fetch staking validators, using mock data', error)
+      // Return mock data for now
+      return [
+        {
+          address: 'dyt1validator1...',
+          moniker: 'Quantum Defender',
+          votingPower: 1250000,
+          commission: 5.0,
+          status: 'active',
+          selfStake: 100000,
+          totalStake: 1250000,
+          delegators: 847,
+          uptime: 99.8,
+          recentBlocks: 998
+        }
+      ]
+    }
+  }
+
+  async getStakingDelegations(delegatorAddress: string): Promise<any[]> {
+    try {
+      const response = await this.blockchain.get(`/staking/delegations/${delegatorAddress}`)
+      return response.data?.delegations || []
+    } catch (error) {
+      config.log('warn', `Failed to fetch delegations for ${delegatorAddress}`, error)
+      return []
+    }
+  }
+
+  async getStakingRewards(delegatorAddress: string): Promise<number> {
+    try {
+      const response = await this.blockchain.get(`/staking/rewards/${delegatorAddress}`)
+      return response.data?.totalRewards || 0
+    } catch (error) {
+      config.log('warn', `Failed to fetch rewards for ${delegatorAddress}`, error)
+      return 0
+    }
+  }
+
+  async stakeTokens(validatorAddress: string, amount: number, delegatorAddress: string): Promise<any> {
+    try {
+      const response = await this.blockchain.post('/staking/delegate', {
+        validatorAddress,
+        amount,
+        delegatorAddress
+      })
+      return response.data
+    } catch (error) {
+      config.log('error', 'Failed to stake tokens', error)
+      throw error
+    }
+  }
+
+  async claimStakingRewards(delegatorAddress: string, validatorAddress?: string): Promise<any> {
+    try {
+      const response = await this.blockchain.post('/staking/claim-rewards', {
+        delegatorAddress,
+        validatorAddress
+      })
+      return response.data
+    } catch (error) {
+      config.log('error', 'Failed to claim staking rewards', error)
+      throw error
+    }
+  }
 }
 
 export const api = new DytallixAPI()

@@ -14,7 +14,9 @@ import {
   BoltIcon,
   CurrencyDollarIcon,
   CpuChipIcon,
-  BeakerIcon
+  BeakerIcon,
+  BuildingLibraryIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 import { useWalletStore } from '../store/wallet'
 import { useBlockchainStats } from '../hooks/useAPI'
@@ -27,6 +29,8 @@ const navigation = [
   { name: 'Enterprise AI', href: '/enterprise-ai', icon: CpuChipIcon },
   { name: 'Wallet', href: '/wallet', icon: WalletIcon },
   { name: 'Explorer', href: '/explorer', icon: CubeIcon },
+  { name: 'Governance', href: '/governance', icon: BuildingLibraryIcon },
+  { name: 'Staking', href: '/staking', icon: ShieldCheckIcon },
   { name: 'Analytics', href: '/analytics', icon: BoltIcon },
   { name: 'Contracts', href: '/contracts', icon: CommandLineIcon },
   { name: 'Tokenomics', href: '/tokenomics', icon: CurrencyDollarIcon },
