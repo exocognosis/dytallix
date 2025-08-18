@@ -3,6 +3,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::state::State;
 use crate::storage::tx::Transaction;
+use crate::gas::{TxKind, GasSchedule, validate_gas_limit, intrinsic_gas};
+
+#[cfg(test)]
+mod gas_tests;
 
 #[derive(Debug, Clone)]
 pub struct PendingTx {
@@ -88,18 +92,65 @@ impl std::fmt::Display for MempoolError {
 }
 impl std::error::Error for MempoolError {}
 
-// Simple transfer validation reused pre-inclusion
+// Enhanced validation including gas validation
 pub fn basic_validate(state: &State, tx: &Transaction) -> Result<(), String> {
     let mut clone_state = state.clone(); // workaround to call mutable methods; consider refactor
     let from_acc = clone_state.get_account(&tx.from);
     let balance = from_acc.legacy_balance(); // Use legacy balance for backward compatibility
     let nonce = from_acc.nonce;
+    
     if tx.nonce != nonce {
         return Err(format!("InvalidNonce expected={} got={}", nonce, tx.nonce));
     }
+    
     let needed = tx.amount + tx.fee;
     if balance < needed {
         return Err("InsufficientBalance".to_string());
     }
+    
+    // Gas validation (only if gas fields are set)
+    if tx.gas_limit > 0 || tx.gas_price > 0 {
+        validate_gas(tx)?;
+    }
+    
     Ok(())
+}
+
+// Gas validation function
+fn validate_gas(tx: &Transaction) -> Result<(), String> {
+    let schedule = GasSchedule::default();
+    
+    // For now, assume all transactions are transfers
+    // This will be extended when we have better transaction type detection
+    let tx_kind = TxKind::Transfer;
+    
+    // Estimate transaction size (approximation for now)
+    let tx_size_bytes = estimate_tx_size(tx);
+    let additional_signatures = 0; // Single signature for now
+    
+    // Validate gas limit against intrinsic requirements
+    validate_gas_limit(&tx_kind, tx_size_bytes, additional_signatures, tx.gas_limit, &schedule)
+        .map_err(|e| format!("GasValidationError: {}", e))?;
+    
+    // Check gas price is reasonable (non-zero)
+    if tx.gas_price == 0 {
+        return Err("GasValidationError: gas price cannot be zero".to_string());
+    }
+    
+    Ok(())
+}
+
+// Estimate transaction size for gas calculation
+fn estimate_tx_size(tx: &Transaction) -> usize {
+    // Rough estimate based on serialized fields
+    // This should be more precise in production
+    tx.hash.len() +
+    tx.from.len() +
+    tx.to.len() +
+    16 + // amount (u128)
+    16 + // fee (u128)
+    8 +  // nonce (u64)
+    tx.signature.as_ref().map_or(0, |s| s.len()) +
+    8 +  // gas_limit (u64)
+    8    // gas_price (u64)
 }

@@ -128,10 +128,12 @@ pub struct SignedTx {
     pub signature: String,            // base64
     pub algorithm: String,            // ActivePQC::ALG
     pub version: u32,                 // 1
+    pub gas_limit: u64,               // Maximum gas allowed for this transaction
+    pub gas_price: u64,               // Price per gas unit in datt (1 DGT = 1_000_000_000 datt)
 }
 
 impl SignedTx {
-    pub fn sign(tx: Tx, sk: &[u8], pk: &[u8]) -> Result<Self> {
+    pub fn sign(tx: Tx, sk: &[u8], pk: &[u8], gas_limit: u64, gas_price: u64) -> Result<Self> {
         let bytes = canonical_json(&tx)?; 
         let hash = sha3_256(&bytes); 
         let sig = ActivePQC::sign(sk, &hash);
@@ -140,7 +142,9 @@ impl SignedTx {
             public_key: B64.encode(pk), 
             signature: B64.encode(sig), 
             algorithm: ActivePQC::ALG.to_string(), 
-            version: 1 
+            version: 1,
+            gas_limit,
+            gas_price,
         })
     }
 
@@ -169,6 +173,24 @@ impl SignedTx {
 
     pub fn first_from_address(&self) -> Option<&str> {
         self.tx.msgs.first().map(|m| m.from_address())
+    }
+
+    /// Calculate the total fee that will be charged in datt (gas_limit * gas_price)
+    pub fn total_fee_datt(&self) -> u64 {
+        self.gas_limit.saturating_mul(self.gas_price)
+    }
+
+    /// Get transaction size in bytes for gas calculation
+    pub fn tx_size_bytes(&self) -> Result<usize> {
+        let bytes = canonical_json(&self.tx)?;
+        Ok(bytes.len())
+    }
+
+    /// Count additional signatures beyond the first one
+    pub fn additional_signatures(&self) -> usize {
+        // For now, we only have one signature per transaction
+        // This will be extended when multi-sig is implemented
+        0
     }
 }
 
@@ -248,11 +270,14 @@ mod tests {
             amount: 100 
         };
         let tx = Tx::new("test-chain", 1, vec![msg], 10, "test").unwrap();
-        let signed_tx = SignedTx::sign(tx, &sk, &pk).unwrap();
+        let signed_tx = SignedTx::sign(tx, &sk, &pk, 21000, 1000).unwrap();
         
         assert!(signed_tx.verify().is_ok());
         assert_eq!(signed_tx.algorithm, ActivePQC::ALG);
         assert_eq!(signed_tx.version, 1);
+        assert_eq!(signed_tx.gas_limit, 21000);
+        assert_eq!(signed_tx.gas_price, 1000);
+        assert_eq!(signed_tx.total_fee_datt(), 21_000_000);
     }
 
     #[test]
