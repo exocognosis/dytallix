@@ -92,6 +92,18 @@ app.get('/api/addresses/:address/transactions', explorerController.getAddressTra
 app.get('/api/validators', explorerController.getValidators);
 app.get('/api/search/:query', explorerController.search);
 
+// Governance Routes
+app.get('/api/governance/proposals', explorerController.getGovernanceProposals);
+app.get('/api/governance/proposals/:id', explorerController.getGovernanceProposal);
+app.post('/api/governance/proposals/:id/vote', explorerController.voteOnProposal);
+
+// Staking Routes
+app.get('/api/staking/validators', explorerController.getStakingValidators);
+app.get('/api/staking/delegations/:address', explorerController.getStakingDelegations);
+app.get('/api/staking/rewards/:address', explorerController.getStakingRewards);
+app.post('/api/staking/delegate', explorerController.delegateStake);
+app.post('/api/staking/claim-rewards', explorerController.claimStakingRewards);
+
 // Serve explorer UI
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));

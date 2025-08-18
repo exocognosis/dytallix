@@ -7,6 +7,8 @@ import { Dashboard } from './pages/Dashboard'
 import { EnterpriseAI } from './pages/EnterpriseAI'
 import { Wallet } from './pages/Wallet'
 import { Explorer } from './pages/Explorer'
+import { Governance } from './pages/Governance'
+import { Staking } from './pages/Staking'
 import { Analytics } from './pages/Analytics'
 import { SmartContracts } from './pages/SmartContracts'
 import { Tokenomics } from './pages/Tokenomics'
@@ -64,6 +66,8 @@ function App() {
             <Route path="/enterprise-ai" element={<EnterpriseAI />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/explorer" element={<Explorer />} />
+            <Route path="/governance" element={<Governance />} />
+            <Route path="/staking" element={<Staking />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/contracts" element={<SmartContracts />} />
             <Route path="/tokenomics" element={<Tokenomics />} />

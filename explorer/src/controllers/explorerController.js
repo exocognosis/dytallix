@@ -344,6 +344,274 @@ class ExplorerController {
       res.status(500).json({ error: 'Search failed' });
     }
   }
+
+  // Governance methods
+  async getGovernanceProposals(req, res) {
+    try {
+      // Mock governance proposals for now - will be replaced with real blockchain data
+      const proposals = [
+        {
+          id: 1,
+          title: "Increase Block Size Limit",
+          description: "Proposal to increase the maximum block size from 1MB to 2MB to improve transaction throughput",
+          status: 'active',
+          votesFor: 1250000,
+          votesAgainst: 340000,
+          totalVotes: 1590000,
+          createdAt: '2024-01-15T10:00:00Z',
+          votingDeadline: '2024-02-15T10:00:00Z',
+          proposalType: 'parameter'
+        },
+        {
+          id: 2,
+          title: "DRT Emission Rate Adjustment",
+          description: "Reduce DRT emission rate from 1 DRT per block to 0.8 DRT per block to control inflation",
+          status: 'active',
+          votesFor: 2100000,
+          votesAgainst: 890000,
+          totalVotes: 2990000,
+          createdAt: '2024-01-10T09:00:00Z',
+          votingDeadline: '2024-02-10T09:00:00Z',
+          proposalType: 'tokenomics'
+        }
+      ];
+
+      res.json({
+        proposals,
+        total: proposals.length,
+        activeProposals: proposals.filter(p => p.status === 'active').length
+      });
+    } catch (error) {
+      logger.error('Error getting governance proposals', { error: error.message });
+      res.status(500).json({ error: 'Failed to get governance proposals' });
+    }
+  }
+
+  async getGovernanceProposal(req, res) {
+    try {
+      const proposalId = parseInt(req.params.id);
+      
+      // Mock single proposal - will be replaced with real blockchain data
+      const proposal = {
+        id: proposalId,
+        title: "Increase Block Size Limit",
+        description: "Proposal to increase the maximum block size from 1MB to 2MB to improve transaction throughput",
+        status: 'active',
+        votesFor: 1250000,
+        votesAgainst: 340000,
+        totalVotes: 1590000,
+        createdAt: '2024-01-15T10:00:00Z',
+        votingDeadline: '2024-02-15T10:00:00Z',
+        proposalType: 'parameter',
+        proposer: 'dyt1proposer123...',
+        deposit: 10000
+      };
+
+      res.json(proposal);
+    } catch (error) {
+      logger.error('Error getting governance proposal', { 
+        error: error.message, 
+        proposalId: req.params.id 
+      });
+      res.status(500).json({ error: 'Failed to get governance proposal' });
+    }
+  }
+
+  async voteOnProposal(req, res) {
+    try {
+      const proposalId = parseInt(req.params.id);
+      const { vote, voterAddress } = req.body;
+
+      if (!vote || !voterAddress) {
+        return res.status(400).json({ error: 'Vote and voter address are required' });
+      }
+
+      if (!['for', 'against'].includes(vote)) {
+        return res.status(400).json({ error: 'Vote must be "for" or "against"' });
+      }
+
+      // Mock voting - will be replaced with real blockchain transaction
+      logger.info('Vote submitted', { proposalId, vote, voterAddress });
+
+      res.json({
+        success: true,
+        message: 'Vote submitted successfully',
+        proposalId,
+        vote,
+        voterAddress,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error voting on proposal', { 
+        error: error.message, 
+        proposalId: req.params.id 
+      });
+      res.status(500).json({ error: 'Failed to submit vote' });
+    }
+  }
+
+  // Staking methods
+  async getStakingValidators(req, res) {
+    try {
+      // Mock validators - will be replaced with real blockchain data
+      const validators = [
+        {
+          address: 'dyt1validator1abc...',
+          moniker: 'Quantum Defender',
+          votingPower: 1250000,
+          commission: 5.0,
+          status: 'active',
+          selfStake: 100000,
+          totalStake: 1250000,
+          delegators: 847,
+          uptime: 99.8,
+          recentBlocks: 998,
+          consensusPubkey: 'dytvalconspub1...',
+          details: 'Professional validator securing the Dytallix network'
+        },
+        {
+          address: 'dyt1validator2def...',
+          moniker: 'PQC Sentinel',
+          votingPower: 980000,
+          commission: 3.5,
+          status: 'active',
+          selfStake: 80000,
+          totalStake: 980000,
+          delegators: 623,
+          uptime: 99.9,
+          recentBlocks: 999,
+          consensusPubkey: 'dytvalconspub2...',
+          details: 'Post-quantum cryptography specialist'
+        }
+      ];
+
+      res.json({
+        validators,
+        total: validators.length,
+        activeValidators: validators.filter(v => v.status === 'active').length,
+        totalStaked: validators.reduce((sum, v) => sum + v.totalStake, 0)
+      });
+    } catch (error) {
+      logger.error('Error getting staking validators', { error: error.message });
+      res.status(500).json({ error: 'Failed to get staking validators' });
+    }
+  }
+
+  async getStakingDelegations(req, res) {
+    try {
+      const delegatorAddress = req.params.address;
+
+      // Mock delegations - will be replaced with real blockchain data
+      const delegations = [
+        {
+          validatorAddress: 'dyt1validator1abc...',
+          validatorMoniker: 'Quantum Defender',
+          stakedAmount: 10000,
+          rewards: 125.50,
+          status: 'active'
+        },
+        {
+          validatorAddress: 'dyt1validator2def...',
+          validatorMoniker: 'PQC Sentinel',
+          stakedAmount: 5000,
+          rewards: 67.25,
+          status: 'active'
+        }
+      ];
+
+      res.json({
+        delegations,
+        delegatorAddress,
+        totalStaked: delegations.reduce((sum, d) => sum + d.stakedAmount, 0),
+        totalRewards: delegations.reduce((sum, d) => sum + d.rewards, 0)
+      });
+    } catch (error) {
+      logger.error('Error getting staking delegations', { 
+        error: error.message, 
+        address: req.params.address 
+      });
+      res.status(500).json({ error: 'Failed to get staking delegations' });
+    }
+  }
+
+  async getStakingRewards(req, res) {
+    try {
+      const delegatorAddress = req.params.address;
+
+      // Mock rewards - will be replaced with real blockchain data
+      const totalRewards = 192.75;
+
+      res.json({
+        delegatorAddress,
+        totalRewards,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error getting staking rewards', { 
+        error: error.message, 
+        address: req.params.address 
+      });
+      res.status(500).json({ error: 'Failed to get staking rewards' });
+    }
+  }
+
+  async delegateStake(req, res) {
+    try {
+      const { validatorAddress, amount, delegatorAddress } = req.body;
+
+      if (!validatorAddress || !amount || !delegatorAddress) {
+        return res.status(400).json({ 
+          error: 'Validator address, amount, and delegator address are required' 
+        });
+      }
+
+      if (amount <= 0) {
+        return res.status(400).json({ error: 'Amount must be positive' });
+      }
+
+      // Mock staking transaction - will be replaced with real blockchain transaction
+      logger.info('Stake delegation submitted', { validatorAddress, amount, delegatorAddress });
+
+      res.json({
+        success: true,
+        message: 'Stake delegation submitted successfully',
+        transactionHash: blockchainService.generateHash(),
+        validatorAddress,
+        amount,
+        delegatorAddress,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error delegating stake', { error: error.message });
+      res.status(500).json({ error: 'Failed to delegate stake' });
+    }
+  }
+
+  async claimStakingRewards(req, res) {
+    try {
+      const { delegatorAddress, validatorAddress } = req.body;
+
+      if (!delegatorAddress) {
+        return res.status(400).json({ error: 'Delegator address is required' });
+      }
+
+      // Mock reward claiming - will be replaced with real blockchain transaction
+      logger.info('Staking rewards claimed', { delegatorAddress, validatorAddress });
+
+      res.json({
+        success: true,
+        message: 'Staking rewards claimed successfully',
+        transactionHash: blockchainService.generateHash(),
+        delegatorAddress,
+        validatorAddress,
+        rewardsClaimed: validatorAddress ? 67.25 : 192.75,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error claiming staking rewards', { error: error.message });
+      res.status(500).json({ error: 'Failed to claim staking rewards' });
+    }
+  }
 }
 
 module.exports = new ExplorerController();
