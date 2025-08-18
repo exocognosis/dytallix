@@ -4,13 +4,13 @@
 //! via CLI flags or environment variables. When disabled, it has zero performance impact.
 
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg(feature = "metrics")]
 use prometheus::{
-    Counter, Gauge, Histogram, HistogramOpts, IntCounter, IntGauge, Opts, Registry,
-    TextEncoder, Encoder
+    Gauge, Histogram, HistogramOpts, IntCounter, IntGauge, Opts, Registry,
+    TextEncoder
 };
 
 #[cfg(feature = "metrics")]
@@ -400,11 +400,11 @@ pub fn parse_metrics_config() -> MetricsConfig {
         #[command(about = "Dytallix Node Metrics Configuration")]
         struct Args {
             /// Enable metrics collection and export
-            #[arg(long, env = "DY_METRICS")]
+            #[arg(long)]
             enable_metrics: bool,
             
             /// Metrics server listen address
-            #[arg(long, env = "DY_METRICS_ADDR", default_value = "0.0.0.0:9464")]
+            #[arg(long, default_value = "0.0.0.0:9464")]
             metrics_addr: String,
         }
         

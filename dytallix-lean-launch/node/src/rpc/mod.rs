@@ -513,7 +513,7 @@ pub async fn gov_get_config(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let config = {
         let governance = ctx.governance.lock().unwrap();
-        governance.get_config()
+        governance.get_config().clone()
     };
     Ok(Json(serde_json::to_value(config).unwrap()))
 }

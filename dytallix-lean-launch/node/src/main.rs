@@ -76,8 +76,8 @@ async fn main() -> anyhow::Result<()> {
     // Prefund dev faucet account if not already
     {
         let mut st = state.lock().unwrap();
-        if st.balance_of("dyt1senderdev000000") == 0 {
-            st.credit("dyt1senderdev000000", 1_000_000);
+        if st.balance_of("dyt1senderdev000000", "udgt") == 0 {
+            st.credit("dyt1senderdev000000", "udgt", 1_000_000);
         }
     }
 
@@ -133,10 +133,11 @@ async fn main() -> anyhow::Result<()> {
                     let tx_start_time = SystemTime::now();
                     
                     // revalidate
-                    let bal = st.balance_of(&tx.from);
+                    let bal = st.balance_of(&tx.from, "udgt");
                     let nonce = st.nonce_of(&tx.from);
                     if nonce != tx.nonce {
                         receipts.push(TxReceipt {
+                            receipt_version: crate::storage::receipts::RECEIPT_FORMAT_VERSION,
                             tx_hash: tx.hash.clone(),
                             status: TxStatus::Failed,
                             block_height: None,
@@ -147,11 +148,17 @@ async fn main() -> anyhow::Result<()> {
                             fee: tx.fee,
                             nonce: tx.nonce,
                             error: Some("InvalidNonce".into()),
+                            gas_used: 0,
+                            gas_limit: 0,
+                            gas_price: 0,
+                            gas_refund: 0,
+                            success: false,
                         });
                         continue;
                     }
                     if bal < tx.amount + tx.fee {
                         receipts.push(TxReceipt {
+                            receipt_version: crate::storage::receipts::RECEIPT_FORMAT_VERSION,
                             tx_hash: tx.hash.clone(),
                             status: TxStatus::Failed,
                             block_height: None,
@@ -162,17 +169,23 @@ async fn main() -> anyhow::Result<()> {
                             fee: tx.fee,
                             nonce: tx.nonce,
                             error: Some("InsufficientBalance".into()),
+                            gas_used: 0,
+                            gas_limit: 0,
+                            gas_price: 0,
+                            gas_refund: 0,
+                            success: false,
                         });
                         continue;
                     }
                     // signature placeholder
-                    st.apply_transfer(&tx.from, &tx.to, tx.amount, tx.fee);
+                    st.apply_transfer(&tx.from, &tx.to, "udgt", tx.amount, "udgt", tx.fee);
                     
                     // Gas calculation (simplified - using fee as gas proxy)
-                    let gas_used = tx.fee; // In a real implementation, this would be actual gas consumption
+                    let gas_used = tx.fee as u64; // Convert to u64 for compatibility
                     total_gas_used += gas_used;
                     
                     receipts.push(TxReceipt {
+                        receipt_version: crate::storage::receipts::RECEIPT_FORMAT_VERSION,
                         tx_hash: tx.hash.clone(),
                         status: TxStatus::Success,
                         block_height: None,
@@ -183,6 +196,11 @@ async fn main() -> anyhow::Result<()> {
                         fee: tx.fee,
                         nonce: tx.nonce,
                         error: None,
+                        gas_used: gas_used,
+                        gas_limit: gas_used, // Simplified
+                        gas_price: 1, // Simplified
+                        gas_refund: 0,
+                        success: true,
                     });
                     applied.push(tx.clone());
                     

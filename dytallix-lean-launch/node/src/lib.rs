@@ -9,5 +9,6 @@ pub mod crypto; // new crypto module
 pub mod types; // canonical transaction types
 pub mod addr; // address derivation
 pub mod gas; // gas accounting system
+pub mod metrics; // observability module
             // re-export emission types
 pub use runtime::emission::*;
