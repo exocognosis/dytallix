@@ -137,4 +137,20 @@ impl State {
     pub fn credit_legacy(&mut self, addr: &str, amount: u128) {
         self.credit(addr, "udgt", amount);
     }
+    
+    /// Set balance for specific denomination (used by execution engine)
+    pub fn set_balance(&mut self, addr: &str, denom: &str, amount: u128) {
+        let mut a = self.get_account(addr);
+        a.set_balance(denom, amount);
+        self.accounts.insert(addr.to_string(), a.clone());
+        let _ = self.storage.set_balances_db(addr, &a.balances);
+    }
+    
+    /// Increment nonce for an address (used by execution engine)
+    pub fn increment_nonce(&mut self, addr: &str) {
+        let mut a = self.get_account(addr);
+        a.nonce += 1;
+        self.accounts.insert(addr.to_string(), a.clone());
+        let _ = self.storage.set_nonce_db(addr, a.nonce);
+    }
 }

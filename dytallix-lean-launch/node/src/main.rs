@@ -25,8 +25,13 @@ mod storage;
 mod ws;
 mod util; // added util module declaration
 mod metrics; // observability module
+mod alerts; // alerting subsystem  
+mod gas; // gas accounting system
+mod execution; // deterministic execution engine
 use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::GovernanceModule;
+use crate::gas::GasSchedule;
+use crate::execution::execute_transaction;
 use crate::metrics::{MetricsServer, parse_metrics_config};
 use crate::alerts::{load_alerts_config, AlertsEngine, NodeMetricsGatherer};
 use mempool::Mempool;
@@ -140,85 +145,26 @@ async fn main() -> anyhow::Result<()> {
             }
             
             let mut total_gas_used = 0u64;
-            // apply txs
+            let gas_schedule = GasSchedule::default();
+            
+            // Execute transactions using deterministic execution engine
             let mut receipts: Vec<TxReceipt> = vec![];
             let mut applied: Vec<storage::tx::Transaction> = vec![];
             {
                 let mut st = producer_ctx.state.lock().unwrap();
-                for tx in snapshot.iter() {
+                for (tx_index, tx) in snapshot.iter().enumerate() {
                     let tx_start_time = SystemTime::now();
                     
-                    // revalidate
-                    let bal = st.balance_of(&tx.from, "udgt");
-                    let nonce = st.nonce_of(&tx.from);
-                    if nonce != tx.nonce {
-                        receipts.push(TxReceipt {
-                            receipt_version: crate::storage::receipts::RECEIPT_FORMAT_VERSION,
-                            tx_hash: tx.hash.clone(),
-                            status: TxStatus::Failed,
-                            block_height: None,
-                            index: None,
-                            from: tx.from.clone(),
-                            to: tx.to.clone(),
-                            amount: tx.amount,
-                            fee: tx.fee,
-                            nonce: tx.nonce,
-                            error: Some("InvalidNonce".into()),
-                            gas_used: 0,
-                            gas_limit: 0,
-                            gas_price: 0,
-                            gas_refund: 0,
-                            success: false,
-                        });
-                        continue;
-                    }
-                    if bal < tx.amount + tx.fee {
-                        receipts.push(TxReceipt {
-                            receipt_version: crate::storage::receipts::RECEIPT_FORMAT_VERSION,
-                            tx_hash: tx.hash.clone(),
-                            status: TxStatus::Failed,
-                            block_height: None,
-                            index: None,
-                            from: tx.from.clone(),
-                            to: tx.to.clone(),
-                            amount: tx.amount,
-                            fee: tx.fee,
-                            nonce: tx.nonce,
-                            error: Some("InsufficientBalance".into()),
-                            gas_used: 0,
-                            gas_limit: 0,
-                            gas_price: 0,
-                            gas_refund: 0,
-                            success: false,
-                        });
-                        continue;
-                    }
-                    // signature placeholder
-                    st.apply_transfer(&tx.from, &tx.to, "udgt", tx.amount, "udgt", tx.fee);
+                    // Use deterministic execution engine
+                    let result = execute_transaction(tx, &mut st, next_height, tx_index as u32, &gas_schedule);
                     
-                    // Gas calculation (simplified - using fee as gas proxy)
-                    let gas_used = tx.fee as u64; // Convert to u64 for compatibility
-                    total_gas_used += gas_used;
+                    total_gas_used += result.gas_used;
+                    receipts.push(result.receipt);
                     
-                    receipts.push(TxReceipt {
-                        receipt_version: crate::storage::receipts::RECEIPT_FORMAT_VERSION,
-                        tx_hash: tx.hash.clone(),
-                        status: TxStatus::Success,
-                        block_height: None,
-                        index: None,
-                        from: tx.from.clone(),
-                        to: tx.to.clone(),
-                        amount: tx.amount,
-                        fee: tx.fee,
-                        nonce: tx.nonce,
-                        error: None,
-                        gas_used: gas_used,
-                        gas_limit: gas_used, // Simplified
-                        gas_price: 1, // Simplified
-                        gas_refund: 0,
-                        success: true,
-                    });
-                    applied.push(tx.clone());
+                    // Only include successful transactions in the block
+                    if result.success {
+                        applied.push(tx.clone());
+                    }
                     
                     // Record transaction processing time
                     if let Ok(elapsed) = tx_start_time.elapsed() {
