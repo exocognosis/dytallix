@@ -188,12 +188,12 @@ const Modules = () => {
 
   // Enhanced openModule (scroll & focus)
   function openModule(key) {
-    if (key === 'fraud') {
+    if (key === 'pulseguard') { // renamed from 'fraud'
       anomalyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       anomalyRef.current?.focus?.()
       return
     }
-    if (key === 'validator' || key === 'network' || key === 'gas') {
+    if (['stakebalancer','network','flowrate'].includes(key)) {
       alert('This module is coming soon. Join the Discord or watch the docs for updates!')
     }
   }
@@ -557,32 +557,32 @@ const Modules = () => {
             <div className="grid grid-3" style={{ gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
               {[ 
                 {
-                  key: 'network',
-                  title: 'Network Autotuning',
-                  desc: 'Continuously tunes mempool/consensus params to keep latency low under bursty load.',
-                  status: 'soon',
-                  cta: 'Notify me',
-                },
-                {
-                  key: 'fraud',
-                  title: 'Fraud & Anomaly Monitor (Alpha)',
-                  desc: 'Flags outliers across tx graph + behavior features in near‑real‑time.',
+                  key: 'pulseguard',
+                  title: 'PulseGuard',
+                  desc: 'Flags outliers across transaction graph and behavior features in real time.',
                   status: 'alpha',
                   cta: 'Open preview',
                 },
                 {
-                  key: 'gas',
-                  title: 'Smart Gas Planner',
-                  desc: 'Predictive gas/fee quotes + optimal submit window to reduce reverts.',
+                  key: 'flowrate',
+                  title: 'FlowRate',
+                  desc: 'Predictive gas/fee quotes and optimal submit windows to reduce reverts.',
                   status: 'soon',
                   cta: 'Notify me',
                 },
                 {
-                  key: 'validator',
-                  title: 'Validator Set Optimizer (Beta)',
-                  desc: 'Suggests rotations/weights to improve liveness and decentralization.',
+                  key: 'stakebalancer',
+                  title: 'StakeBalancer',
+                  desc: 'Suggests validator rotations and weights to improve liveness and decentralization.',
                   status: 'beta',
                   cta: 'Request access',
+                },
+                {
+                  key: 'network',
+                  title: 'NetFlux', // renamed from Network Autotuning
+                  desc: 'Continuously tunes mempool/consensus params to keep latency low under bursty load.',
+                  status: 'soon',
+                  cta: 'Notify me',
                 },
               ].map((m, i) => (
                 <div key={i} className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -593,9 +593,8 @@ const Modules = () => {
                   <p className="muted" style={{ fontSize: '0.95rem', lineHeight: 1.6, flex: 1 }}>{m.desc}</p>
                   <div>
                     <button
-                      className={m.status === 'soon' ? 'btn btn-secondary' : 'btn btn-primary'}
+                      className="btn btn-primary" // unified style for all buttons
                       onClick={() => openModule(m.key)}
-                      disabled={m.status === 'soon'}
                     >
                       {m.cta}
                     </button>
