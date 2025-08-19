@@ -765,4 +765,76 @@ rules:
         assert!(elapsed < Duration::from_millis(10));
         assert!(result.is_ok());
     }
+
+    #[tokio::test]
+    async fn test_node_metrics_gatherer_integration() {
+        let tps_window = Arc::new(Mutex::new(super::super::storage::blocks::TpsWindow::new(60)));
+        let gatherer = super::NodeMetricsGatherer::new(tps_window.clone());
+        
+        // Add some test data
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        {
+            let mut window = tps_window.lock().unwrap();
+            window.record_block(now - 10, 100);
+            window.record_block(now - 5, 150);
+            window.record_block(now, 200);
+        }
+        
+        let tps = gatherer.get_current_tps();
+        assert!(tps > 0.0);
+        
+        // Oracle latency should return None (not implemented yet)
+        assert_eq!(gatherer.get_oracle_latency_p95_ms(), None);
+        
+        // Validator heartbeats should return empty (not implemented yet)
+        assert!(gatherer.get_validator_heartbeats().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_end_to_end_alert_workflow() {
+        // Create minimal config for testing
+        let config = AlertsConfig {
+            enabled: true,
+            evaluation_interval_secs: 1,
+            webhook_url: None,
+            log_on_fire: false, // Disable logging for tests
+            rules: RulesConfig {
+                tps_drop: TpsDropConfig {
+                    enabled: true,
+                    threshold: 500.0,
+                    consecutive: 2,
+                },
+                oracle_timeout: OracleTimeoutConfig { enabled: false, ..Default::default() },
+                validator_offline: ValidatorOfflineConfig { enabled: false, ..Default::default() },
+            },
+        };
+
+        #[cfg(feature = "metrics")]
+        let registry = Registry::new();
+        #[cfg(feature = "metrics")]
+        let mut engine = AlertsEngine::new(config, &registry).unwrap();
+        #[cfg(not(feature = "metrics"))]
+        let mut engine = AlertsEngine::new(config).unwrap();
+
+        let gatherer = Arc::new(MockMetricsGatherer::new());
+        
+        // Set TPS below threshold
+        gatherer.set_tps(400); // Below 500 threshold
+        
+        // First evaluation - should not fire yet (consecutive = 2)
+        engine.evaluate_rules(&*gatherer).await.unwrap();
+        assert!(!engine.state.get(&AlertKind::TPSDrop).unwrap().firing);
+        assert_eq!(engine.state.get(&AlertKind::TPSDrop).unwrap().consecutive_failures, 1);
+        
+        // Second evaluation - should fire now
+        engine.evaluate_rules(&*gatherer).await.unwrap();
+        assert!(engine.state.get(&AlertKind::TPSDrop).unwrap().firing);
+        assert_eq!(engine.state.get(&AlertKind::TPSDrop).unwrap().consecutive_failures, 2);
+        
+        // Recover - set TPS above threshold
+        gatherer.set_tps(600); // Above 500 threshold
+        engine.evaluate_rules(&*gatherer).await.unwrap();
+        assert!(!engine.state.get(&AlertKind::TPSDrop).unwrap().firing);
+        assert_eq!(engine.state.get(&AlertKind::TPSDrop).unwrap().consecutive_failures, 0);
+    }
 }
