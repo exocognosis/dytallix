@@ -180,6 +180,21 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap()
                 .as_secs();
             let success_txs: Vec<_> = applied.into_iter().collect();
+            
+            // Get validator set hash from state for block header
+            let validator_set_hash = {
+                let state = producer_ctx.state.lock().unwrap();
+                state.get_validator_set_hash()
+            };
+            
+            // Apply proposer reward (constant DRT emission)
+            // For MVP, use a fixed proposer address - in full implementation this would come from consensus
+            let proposer_address = "dyt1proposer"; // TODO: Get from consensus layer
+            let proposer_reward = {
+                let mut state = producer_ctx.state.lock().unwrap();
+                state.apply_proposer_reward(proposer_address)
+            };
+            
             if success_txs.is_empty() && !empty_blocks {
                 // skip emission if no success and empty blocks disabled
                 // remove failed ones from mempool anyway
@@ -193,7 +208,9 @@ async fn main() -> anyhow::Result<()> {
                 }
                 continue;
             }
-            let block = Block::new(height, parent, ts, success_txs.clone());
+            
+            // Create block with validator set hash
+            let block = Block::new_with_validator_set_hash(height, parent, ts, success_txs.clone(), validator_set_hash);
             for (idx, r) in receipts.iter_mut().enumerate() {
                 if r.status == TxStatus::Success {
                     r.block_height = Some(height);
@@ -269,6 +286,14 @@ async fn main() -> anyhow::Result<()> {
         .route("/gov/proposal/:id", get(rpc::gov_get_proposal))
         .route("/gov/tally/:id", get(rpc::gov_tally))
         .route("/gov/config", get(rpc::gov_get_config))
+        .route("/staking/validators", get(rpc::staking::get_validators))
+        .route("/staking/validator/:address", get(rpc::staking::get_validator))
+        .route("/staking/delegations/:delegator", get(rpc::staking::get_delegations))
+        .route("/staking/delegation/:delegator/:validator", get(rpc::staking::get_delegation))
+        .route("/staking/validator_set_hash", get(rpc::staking::get_validator_set_hash))
+        .route("/staking/params", get(rpc::staking::get_staking_params))
+        .route("/staking/stats", get(rpc::staking::get_staking_stats))
+        .route("/staking/active_validators", get(rpc::staking::get_active_validators))
         .layer(Extension(ctx));
     if ws_enabled {
         app = app.route("/ws", get(ws_handler).layer(Extension(ws_hub)));

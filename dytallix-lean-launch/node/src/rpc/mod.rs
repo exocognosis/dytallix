@@ -87,6 +87,15 @@ fn validate_signed_tx(
                 
                 let current = required_per_denom.get(micro_denom).copied().unwrap_or(0);
                 required_per_denom.insert(micro_denom.to_string(), current.saturating_add(*amount));
+            },
+            crate::types::Msg::Stake { amount, .. } => {
+                // Staking requires uDGT
+                let current = required_per_denom.get("udgt").copied().unwrap_or(0);
+                required_per_denom.insert("udgt".to_string(), current.saturating_add(*amount));
+            },
+            crate::types::Msg::Unstake { .. } => {
+                // Unstaking only requires fee (no additional amount needed)
+                // The actual delegation check will be done during execution
             }
         }
     }
@@ -143,8 +152,20 @@ pub async fn submit(
         }
     }
     
-    // Build legacy Transaction wrapper for storage compatibility
-    // TODO: Remove this legacy conversion once storage is updated
+    // Build Transaction with message data for new execution engine
+    let msg_data_json = serde_json::to_string(&signed_tx.tx.msgs)
+        .map_err(|_| ApiError::Internal)?;
+    
+    let new_tx = Transaction::with_messages(
+        tx_hash.clone(),
+        from.to_string(),
+        signed_tx.tx.fee,
+        signed_tx.tx.nonce,
+        Some(signed_tx.signature.clone()),
+        msg_data_json,
+    );
+    
+    // Legacy validation using the old system (for compatibility)
     let legacy_tx = Transaction::new(
         tx_hash.clone(),
         from.to_string(),
@@ -172,18 +193,18 @@ pub async fn submit(
         }
     }
     
-    // Add to mempool
+    // Add to mempool using the new transaction format
     {
         let mut mempool = ctx.mempool.lock().unwrap();
-        mempool.push(legacy_tx.clone()).map_err(|e| match e {
+        mempool.push(new_tx.clone()).map_err(|e| match e {
             MempoolError::Duplicate => ApiError::DuplicateTx,
             MempoolError::Full => ApiError::MempoolFull,
         })?;
     }
     
     // Store transaction and receipt
-    ctx.storage.put_tx(&legacy_tx).map_err(|_| ApiError::Internal)?;
-    let pending = TxReceipt::pending(&legacy_tx);
+    ctx.storage.put_tx(&new_tx).map_err(|_| ApiError::Internal)?;
+    let pending = TxReceipt::pending(&new_tx);
     ctx.storage.put_pending_receipt(&pending).map_err(|_| ApiError::Internal)?;
     
     // Broadcast to websocket
@@ -520,3 +541,4 @@ pub async fn gov_get_config(
 
 pub mod errors;
 pub mod oracle;
+pub mod staking;
