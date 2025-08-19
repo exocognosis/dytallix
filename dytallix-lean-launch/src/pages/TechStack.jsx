@@ -88,7 +88,7 @@ const TechStack = () => {
           </div>
         </div>
 
-        {/* Architecture Overview moved ABOVE Stack Components */}
+        {/* Architecture Overview moved above Stack Components */}
         <div className="card card-outline-primary" style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 16 }}>
             Architecture Overview
@@ -201,6 +201,8 @@ const TechStack = () => {
             </div>
           ))}
         </div>
+
+        {/* Architecture Overview removed from original position */}
       </div>
     </div>
   )
