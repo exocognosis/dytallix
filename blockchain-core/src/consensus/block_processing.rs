@@ -79,6 +79,7 @@ pub struct BlockProcessor {
     transaction_validator: Arc<TransactionValidator>,
     ai_client: Arc<AIOracleClient>,
     ai_integration: Option<Arc<AIIntegrationManager>>,
+    runtime: Arc<crate::runtime::DytallixRuntime>,
 }
 
 impl BlockProcessor {
@@ -88,18 +89,35 @@ impl BlockProcessor {
         transaction_validator: Arc<TransactionValidator>,
         ai_client: Arc<AIOracleClient>,
         ai_integration: Option<Arc<AIIntegrationManager>>,
+        runtime: Arc<crate::runtime::DytallixRuntime>,
     ) -> Self {
         Self {
             current_block,
             transaction_validator,
             ai_client,
             ai_integration,
+            runtime,
         }
     }
 
     /// Propose a new block with the given transactions
     pub async fn propose_block(&self, transactions: Vec<Transaction>) -> Result<Block> {
         let start_time = std::time::Instant::now();
+
+        // Get current block number
+        let current_block = self.current_block.read().await;
+        let block_number = if let Some(block) = current_block.as_ref() {
+            block.header.number + 1
+        } else {
+            1 // Genesis is block 0, so start with 1
+        };
+
+        // Process staking rewards for this block
+        if let Err(e) = self.runtime.process_block_rewards(block_number).await {
+            warn!("Failed to process staking rewards for block {}: {}", block_number, e);
+        } else {
+            info!("Processed staking rewards for block {}", block_number);
+        }
 
         // Validate all transactions first
         let mut valid_transactions = Vec::new();
@@ -131,20 +149,25 @@ impl BlockProcessor {
         // Calculate Merkle root
         let merkle_root = self.calculate_merkle_root(&valid_transactions);
 
+        // Get active validator set and compute validator set hash
+        let active_validators = self.runtime.get_active_validators().await;
+        let validator_set_hash = self.calculate_validator_set_hash(&active_validators);
+        info!("Block {} validator set hash: {}", block_number, validator_set_hash);
+
         // Get current block for previous hash
-        let current_block = self.current_block.read().await;
         let previous_hash = if let Some(block) = current_block.as_ref() {
-            block.header.parent_hash.clone()
+            block.hash()
         } else {
             "0".repeat(64) // Genesis block
         };
+        drop(current_block); // Release lock
 
-        // Create block header
+        // Create block header with validator set commitment
         let header = BlockHeader {
-            number: 0, // TODO: Get actual block number
+            number: block_number,
             parent_hash: previous_hash,
             transactions_root: merkle_root,
-            state_root: "0".repeat(64), // TODO: Calculate state root
+            state_root: validator_set_hash, // Using state_root field for validator set hash for now
             timestamp: chrono::Utc::now().timestamp() as u64,
             validator: "validator_address".to_string(), // TODO: Get actual validator address
             signature: crate::types::PQCBlockSignature {
@@ -165,8 +188,10 @@ impl BlockProcessor {
 
         let processing_time = start_time.elapsed().as_millis();
         info!(
-            "Block proposed with {} transactions in {}ms",
+            "Block {} proposed with {} transactions, {} active validators in {}ms",
+            block.header.number,
             block.transactions.len(),
+            active_validators.len(),
             processing_time
         );
 
@@ -334,6 +359,35 @@ impl BlockProcessor {
             hasher.update(tx_data.as_bytes());
         }
 
+        hex::encode(hasher.finalize())
+    }
+
+    /// Calculate deterministic hash of the active validator set
+    fn calculate_validator_set_hash(&self, validators: &[crate::staking::Validator]) -> String {
+        if validators.is_empty() {
+            return "0".repeat(64);
+        }
+
+        // Create deterministic representation of validator set
+        let mut validator_data = Vec::new();
+        for validator in validators {
+            // Include address, stake, and status in deterministic order
+            validator_data.push(format!(
+                "{}:{}:{}:{:?}",
+                validator.address,
+                validator.total_stake,
+                validator.commission_rate,
+                validator.status
+            ));
+        }
+        
+        // Sort to ensure deterministic ordering
+        validator_data.sort();
+        
+        // Calculate hash
+        let combined = validator_data.join("|");
+        let mut hasher = Sha256::new();
+        hasher.update(combined.as_bytes());
         hex::encode(hasher.finalize())
     }
 

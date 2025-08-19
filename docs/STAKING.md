@@ -310,6 +310,73 @@ The implementation builds upon existing types:
 
 ## API Documentation
 
+### Staking RPC Methods
+
+#### Register Validator
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "staking_register_validator",
+  "params": ["validator_address", "consensus_pubkey_hex", commission_rate],
+  "id": 1
+}
+```
+
+#### Delegate Tokens
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "staking_delegate", 
+  "params": ["delegator_address", "validator_address", amount],
+  "id": 1
+}
+```
+
+#### Claim Rewards
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "staking_claim_rewards",
+  "params": ["delegator_address", "validator_address"],
+  "id": 1
+}
+```
+
+#### Get Validator Info
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "staking_get_validator",
+  "params": ["validator_address"],
+  "id": 1
+}
+```
+
+#### Get All Validators
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "staking_get_validators",
+  "params": [],
+  "id": 1
+}
+```
+
+#### Get Staking Statistics
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "staking_get_stats",
+  "params": [],
+  "id": 1
+}
+```
+
+### REST API Endpoints
+
+- `GET /staking/stats` - Get staking statistics
+- `GET /staking/validators` - List active validators
+
 ### Validator Registration
 ```bash
 curl -X POST http://localhost:8545/rpc \
@@ -405,6 +472,9 @@ curl -X POST http://localhost:8545/rpc \
 - [x] Runtime integration with state management
 - [x] CLI commands for staking operations
 - [x] API endpoints for RPC integration
+- [x] **NEW: Complete RPC method integration with all staking functions**
+- [x] **NEW: Block processing integration with automatic reward distribution**
+- [x] **NEW: Validator set commitment in block headers for consensus**
 - [x] Comprehensive test suite (15+ new test cases)
 - [x] Updated documentation with new features
 - [ ] Full RPC server integration (requires server implementation)
