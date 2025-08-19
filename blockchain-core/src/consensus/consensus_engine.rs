@@ -150,6 +150,7 @@ impl ConsensusEngine {
             transaction_validator.clone(),
             ai_client.clone(),
             ai_integration.clone(),
+            runtime.clone(),
         ));
 
         // Initialize WASM runtime
