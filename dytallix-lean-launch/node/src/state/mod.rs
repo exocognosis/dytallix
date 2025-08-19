@@ -1,4 +1,5 @@
 use crate::storage::state::Storage;
+use crate::runtime::staking::StakingState;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, BTreeMap};
 use std::sync::Arc;
@@ -50,6 +51,7 @@ impl AccountState {
 pub struct State {
     pub accounts: HashMap<String, AccountState>,
     pub storage: Arc<Storage>,
+    pub staking: StakingState,
 }
 
 impl State {
@@ -57,6 +59,7 @@ impl State {
         Self {
             accounts: HashMap::new(),
             storage,
+            staking: StakingState::new(),
         }
     }
     
@@ -152,5 +155,74 @@ impl State {
         a.nonce += 1;
         self.accounts.insert(addr.to_string(), a.clone());
         let _ = self.storage.set_nonce_db(addr, a.nonce);
+    }
+    
+    /// Apply stake transaction (locks uDGT and updates staking state)
+    pub fn apply_stake(&mut self, delegator: &str, validator: &str, amount: u128, fee: u128) -> Result<(), String> {
+        // Check if delegator has sufficient uDGT balance
+        let delegator_balance = self.balance_of(delegator, "udgt");
+        if delegator_balance < amount + fee {
+            return Err(format!("Insufficient uDGT balance: {} < {}", delegator_balance, amount + fee));
+        }
+        
+        // Debit uDGT from delegator for stake amount
+        let mut delegator_account = self.get_account(delegator);
+        delegator_account.sub_balance("udgt", amount)?;
+        // Debit fee
+        delegator_account.sub_balance("udgt", fee)?;
+        delegator_account.nonce += 1;
+        
+        // Update staking state
+        self.staking.stake(delegator.to_string(), validator.to_string(), amount)
+            .map_err(|e| e.to_string())?;
+        
+        // Update account state
+        self.accounts.insert(delegator.to_string(), delegator_account.clone());
+        let _ = self.storage.set_balances_db(delegator, &delegator_account.balances);
+        let _ = self.storage.set_nonce_db(delegator, delegator_account.nonce);
+        
+        Ok(())
+    }
+    
+    /// Apply unstake transaction (unlocks uDGT and updates staking state)
+    pub fn apply_unstake(&mut self, delegator: &str, validator: &str, amount: u128, fee: u128) -> Result<(), String> {
+        // Check if delegator has sufficient balance for fee
+        let delegator_balance = self.balance_of(delegator, "udgt");
+        if delegator_balance < fee {
+            return Err(format!("Insufficient uDGT balance for fee: {} < {}", delegator_balance, fee));
+        }
+        
+        // Update staking state first (this checks if delegation exists and has enough stake)
+        self.staking.unstake(delegator.to_string(), validator.to_string(), amount)
+            .map_err(|e| e.to_string())?;
+        
+        // Credit uDGT back to delegator
+        let mut delegator_account = self.get_account(delegator);
+        delegator_account.add_balance("udgt", amount);
+        // Debit fee
+        delegator_account.sub_balance("udgt", fee)?;
+        delegator_account.nonce += 1;
+        
+        // Update account state
+        self.accounts.insert(delegator.to_string(), delegator_account.clone());
+        let _ = self.storage.set_balances_db(delegator, &delegator_account.balances);
+        let _ = self.storage.set_nonce_db(delegator, delegator_account.nonce);
+        
+        Ok(())
+    }
+    
+    /// Apply block proposer reward (mint uDRT to proposer)
+    pub fn apply_proposer_reward(&mut self, proposer: &str) -> u128 {
+        let reward_amount = self.staking.apply_proposer_reward(proposer);
+        
+        // Mint uDRT to proposer
+        self.credit(proposer, "udrt", reward_amount);
+        
+        reward_amount
+    }
+    
+    /// Get current validator set hash for block header
+    pub fn get_validator_set_hash(&self) -> [u8; 32] {
+        self.staking.compute_validator_set_hash()
     }
 }

@@ -9,6 +9,7 @@ use crate::gas::{Gas, GasMeter, GasError, GasSchedule, TxKind, intrinsic_gas};
 use crate::storage::tx::Transaction;
 use crate::storage::receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION};
 use crate::state::State;
+use crate::types::Msg;
 use std::collections::HashMap;
 use thiserror::Error;
 
@@ -110,6 +111,221 @@ impl ExecutionContext {
 
 /// Execute a single transaction with deterministic gas accounting
 pub fn execute_transaction(
+    tx: &Transaction,
+    state: &mut State,
+    block_height: u64,
+    tx_index: u32,
+    gas_schedule: &GasSchedule,
+) -> ExecutionResult {
+    // Check if this is a message-based transaction
+    if let Some(ref msg_data) = tx.msg_data {
+        return execute_message_transaction(tx, msg_data, state, block_height, tx_index, gas_schedule);
+    }
+    
+    // Legacy transfer transaction execution
+    execute_legacy_transaction(tx, state, block_height, tx_index, gas_schedule)
+}
+
+/// Execute a message-based transaction (staking, etc.)
+fn execute_message_transaction(
+    tx: &Transaction,
+    msg_data: &str,
+    state: &mut State,
+    block_height: u64,
+    tx_index: u32,
+    gas_schedule: &GasSchedule,
+) -> ExecutionResult {
+    // Step 1: Parse messages
+    let msgs: Vec<Msg> = match serde_json::from_str(msg_data) {
+        Ok(msgs) => msgs,
+        Err(_) => {
+            return ExecutionResult {
+                receipt: create_failed_receipt(tx, 0, 0, 0, "Invalid message data".to_string(), block_height, tx_index),
+                state_changes: Vec::new(),
+                gas_used: 0,
+                success: false,
+            };
+        }
+    };
+    
+    // Step 2: Validate basic transaction fields
+    if let Err(error) = validate_transaction(tx, state) {
+        return ExecutionResult {
+            receipt: create_failed_receipt(tx, 0, 0, 0, error.to_string(), block_height, tx_index),
+            state_changes: Vec::new(),
+            gas_used: 0,
+            success: false,
+        };
+    }
+    
+    // Step 3: Setup gas metering
+    let (gas_limit, gas_price) = if tx.gas_limit > 0 && tx.gas_price > 0 {
+        (tx.gas_limit, tx.gas_price)
+    } else {
+        (tx.fee as u64, 1u64)
+    };
+    let mut ctx = ExecutionContext::new(gas_limit, gas_price);
+    
+    // Step 4: Calculate and deduct upfront fee
+    let upfront_fee = match ctx.calculate_upfront_fee() {
+        Ok(fee) => fee,
+        Err(error) => {
+            return ExecutionResult {
+                receipt: create_failed_receipt(tx, 0, gas_limit, gas_price, error.to_string(), block_height, tx_index),
+                state_changes: Vec::new(),
+                gas_used: 0,
+                success: false,
+            };
+        }
+    };
+    
+    let sender_balance = state.balance_of(&tx.from, "udgt");
+    if sender_balance < upfront_fee {
+        return ExecutionResult {
+            receipt: create_failed_receipt(
+                tx, 
+                0, 
+                gas_limit, 
+                gas_price, 
+                format!("InsufficientFunds for fee: required {}, available {}", upfront_fee, sender_balance),
+                block_height, 
+                tx_index
+            ),
+            state_changes: Vec::new(),
+            gas_used: 0,
+            success: false,
+        };
+    }
+    
+    // Step 5: Deduct upfront fee
+    let old_sender_balance = sender_balance;
+    let new_sender_balance = sender_balance - upfront_fee;
+    ctx.record_state_change(tx.from.clone(), "udgt".to_string(), old_sender_balance, new_sender_balance);
+    state.set_balance(&tx.from, "udgt", new_sender_balance);
+    
+    // Step 6: Calculate intrinsic gas
+    let tx_size = estimate_transaction_size(tx);
+    let intrinsic_gas = match intrinsic_gas(&TxKind::Transfer, tx_size, msgs.len() as u64, gas_schedule) {
+        Ok(gas) => gas,
+        Err(error) => {
+            ctx.revert_state_changes(state);
+            return ExecutionResult {
+                receipt: create_failed_receipt(tx, 0, gas_limit, gas_price, error.to_string(), block_height, tx_index),
+                state_changes: Vec::new(),
+                gas_used: 0,
+                success: false,
+            };
+        }
+    };
+    
+    if let Err(_) = ctx.consume_gas(intrinsic_gas, "intrinsic") {
+        ctx.revert_state_changes(state);
+        return ExecutionResult {
+            receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, "OutOfGas".to_string(), block_height, tx_index),
+            state_changes: Vec::new(),
+            gas_used: ctx.gas_used(),
+            success: false,
+        };
+    }
+    
+    // Step 7: Execute messages
+    for msg in &msgs {
+        if let Err(error) = execute_message(msg, state, &mut ctx) {
+            ctx.revert_state_changes(state);
+            return ExecutionResult {
+                receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, error, block_height, tx_index),
+                state_changes: Vec::new(),
+                gas_used: ctx.gas_used(),
+                success: false,
+            };
+        }
+    }
+    
+    // Step 8: Success
+    ExecutionResult {
+        receipt: create_success_receipt(tx, ctx.gas_used(), gas_limit, gas_price, block_height, tx_index),
+        state_changes: ctx.state_changes,
+        gas_used: ctx.gas_used(),
+        success: true,
+    }
+}
+
+/// Execute a single message
+fn execute_message(msg: &Msg, state: &mut State, ctx: &mut ExecutionContext) -> Result<(), String> {
+    match msg {
+        Msg::Send { from, to, denom, amount } => {
+            execute_send_message(from, to, denom, *amount, state, ctx)
+        },
+        Msg::Stake { delegator, validator, amount } => {
+            execute_stake_message(delegator, validator, *amount, state, ctx)
+        },
+        Msg::Unstake { delegator, validator, amount } => {
+            execute_unstake_message(delegator, validator, *amount, state, ctx)
+        }
+    }
+}
+
+/// Execute a send message
+fn execute_send_message(
+    from: &str, 
+    to: &str, 
+    denom: &str, 
+    amount: u128, 
+    state: &mut State, 
+    ctx: &mut ExecutionContext
+) -> Result<(), String> {
+    // Charge gas for KV operations
+    ctx.consume_gas(40, "kv_read_from").map_err(|_| "OutOfGas".to_string())?;
+    ctx.consume_gas(40, "kv_read_to").map_err(|_| "OutOfGas".to_string())?;
+    ctx.consume_gas(120, "kv_write_from").map_err(|_| "OutOfGas".to_string())?;
+    ctx.consume_gas(120, "kv_write_to").map_err(|_| "OutOfGas".to_string())?;
+    
+    // Convert DGT/DRT to micro denominations
+    let micro_denom = match denom.to_ascii_uppercase().as_str() {
+        "DGT" => "udgt",
+        "DRT" => "udrt",
+        _ => denom
+    };
+    
+    // Apply transfer
+    state.apply_transfer(from, to, micro_denom, amount, "udgt", 0)
+        .map_err(|e| format!("Transfer failed: {}", e))
+}
+
+/// Execute a stake message
+fn execute_stake_message(
+    delegator: &str,
+    validator: &str, 
+    amount: u128,
+    state: &mut State,
+    ctx: &mut ExecutionContext
+) -> Result<(), String> {
+    // Charge gas for staking operations
+    ctx.consume_gas(200, "staking_operation").map_err(|_| "OutOfGas".to_string())?;
+    
+    // Apply stake (fee already deducted in main execution)
+    state.apply_stake(delegator, validator, amount, 0)
+        .map_err(|e| format!("Stake failed: {}", e))
+}
+
+/// Execute an unstake message
+fn execute_unstake_message(
+    delegator: &str,
+    validator: &str,
+    amount: u128,
+    state: &mut State,
+    ctx: &mut ExecutionContext
+) -> Result<(), String> {
+    // Charge gas for staking operations
+    ctx.consume_gas(200, "staking_operation").map_err(|_| "OutOfGas".to_string())?;
+    
+    // Apply unstake (fee already deducted in main execution)
+    state.apply_unstake(delegator, validator, amount, 0)
+        .map_err(|e| format!("Unstake failed: {}", e))
+}
+
+/// Legacy transfer transaction execution
+fn execute_legacy_transaction(
     tx: &Transaction,
     state: &mut State,
     block_height: u64,

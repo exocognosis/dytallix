@@ -9,6 +9,7 @@ pub struct BlockHeader {
     pub timestamp: u64,
     pub tx_count: u32,
     pub tx_root: String,
+    pub validator_set_hash: [u8; 32],
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
@@ -23,6 +24,7 @@ impl Block {
         hasher.update(header.height.to_be_bytes());
         hasher.update(header.parent.as_bytes());
         hasher.update(header.timestamp.to_be_bytes());
+        hasher.update(&header.validator_set_hash);
         for tx in txs {
             hasher.update(tx.hash.as_bytes());
         }
@@ -36,6 +38,26 @@ impl Block {
             timestamp,
             tx_count: txs.len() as u32,
             tx_root: "".to_string(),
+            validator_set_hash: [0u8; 32], // Default empty hash
+        };
+        let hash = Self::compute_hash(&header, &txs);
+        Self { header, txs, hash }
+    }
+    
+    pub fn new_with_validator_set_hash(
+        height: u64, 
+        parent: String, 
+        timestamp: u64, 
+        txs: Vec<Transaction>,
+        validator_set_hash: [u8; 32]
+    ) -> Self {
+        let header = BlockHeader {
+            height,
+            parent: parent.clone(),
+            timestamp,
+            tx_count: txs.len() as u32,
+            tx_root: "".to_string(),
+            validator_set_hash,
         };
         let hash = Self::compute_hash(&header, &txs);
         Self { header, txs, hash }

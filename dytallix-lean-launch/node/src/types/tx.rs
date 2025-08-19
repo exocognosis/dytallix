@@ -23,6 +23,16 @@ pub enum Msg {
         to: String, 
         denom: String, 
         #[serde(with="as_str_u128")] amount: u128 
+    },
+    Stake { 
+        delegator: String, 
+        validator: String, 
+        #[serde(with="as_str_u128")] amount: u128 
+    },
+    Unstake { 
+        delegator: String, 
+        validator: String, 
+        #[serde(with="as_str_u128")] amount: u128 
     }
 }
 
@@ -43,6 +53,28 @@ impl Msg {
                 if up != "DGT" && up != "DRT" { 
                     return Err(anyhow!("unsupported denom: {}; valid: DGT, DRT", denom)); 
                 }
+            },
+            Msg::Stake { delegator, validator, amount } => {
+                if *amount == 0 { 
+                    return Err(anyhow!("stake amount cannot be zero")); 
+                }
+                if delegator.is_empty() { 
+                    return Err(anyhow!("delegator address cannot be empty")); 
+                }
+                if validator.is_empty() { 
+                    return Err(anyhow!("validator address cannot be empty")); 
+                }
+            },
+            Msg::Unstake { delegator, validator, amount } => {
+                if *amount == 0 { 
+                    return Err(anyhow!("unstake amount cannot be zero")); 
+                }
+                if delegator.is_empty() { 
+                    return Err(anyhow!("delegator address cannot be empty")); 
+                }
+                if validator.is_empty() { 
+                    return Err(anyhow!("validator address cannot be empty")); 
+                }
             }
         }
         Ok(())
@@ -51,6 +83,8 @@ impl Msg {
     pub fn from_address(&self) -> &str {
         match self {
             Msg::Send { from, .. } => from,
+            Msg::Stake { delegator, .. } => delegator,
+            Msg::Unstake { delegator, .. } => delegator,
         }
     }
 }
