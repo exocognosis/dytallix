@@ -88,6 +88,29 @@ const TechStack = () => {
           </div>
         </div>
 
+        {/* Architecture Overview moved ABOVE Stack Components */}
+        <div className="card card-outline-primary" style={{ marginBottom: 28 }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 16 }}>
+            Architecture Overview
+          </h2>
+          <div style={{ display: 'grid', gap: 16 }}>
+            <p className="muted" style={{ lineHeight: 1.7 }}>
+              Dytallix uses a modular design that separates consensus, execution, and data availability layers. This design allows for maximum flexibility
+              and upgradeability while maintaining security guarantees.
+            </p>
+            <div style={{ display: 'grid', gap: 10 }}>
+              <h3 style={{ fontWeight: 700 }}>Core Components:</h3>
+              <ul style={{ paddingLeft: 20 }}>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Consensus Layer:</strong> Byzantine Fault Tolerant PoS with instant finality</li>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Execution Layer:</strong> WASM-based virtual machine for smart contracts</li>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Data Layer:</strong> Merkle-compressed state with rollup support</li>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Network Layer:</strong> LibP2P with custom PQC transport encryption</li>
+                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>AI Layer:</strong> Integrated machine learning for security and optimization</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Stack Components (for developers) */}
         <div className="card card-outline-accent" style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 16 }}>Stack Components</h2>
@@ -177,28 +200,6 @@ const TechStack = () => {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="card card-outline-primary" style={{ marginTop: 28 }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 16 }}>
-            Architecture Overview
-          </h2>
-          <div style={{ display: 'grid', gap: 16 }}>
-            <p className="muted" style={{ lineHeight: 1.7 }}>
-              Dytallix uses a modular design that separates consensus, execution, and data availability layers. This design allows for maximum flexibility
-              and upgradeability while maintaining security guarantees.
-            </p>
-            <div style={{ display: 'grid', gap: 10 }}>
-              <h3 style={{ fontWeight: 700 }}>Core Components:</h3>
-              <ul style={{ paddingLeft: 20 }}>
-                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Consensus Layer:</strong> Byzantine Fault Tolerant PoS with instant finality</li>
-                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Execution Layer:</strong> WASM-based virtual machine for smart contracts</li>
-                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Data Layer:</strong> Merkle-compressed state with rollup support</li>
-                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>Network Layer:</strong> LibP2P with custom PQC transport encryption</li>
-                <li className="muted"><strong style={{ color: 'var(--text-primary)' }}>AI Layer:</strong> Integrated machine learning for security and optimization</li>
-              </ul>
-            </div>
-          </div>
         </div>
       </div>
     </div>
