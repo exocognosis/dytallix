@@ -95,9 +95,47 @@ When a transaction runs out of gas:
 
 ### Fee Charging
 
-- **Success**: Fee = `gas_limit * gas_price`
-- **Failure**: Fee = `gas_limit * gas_price` (full amount)
-- **Refunds**: `gas_refund` is always 0 (stub for future implementation)
+- **Success**: Fee = `gas_limit * gas_price` (full amount always charged)
+- **Failure**: Fee = `gas_limit * gas_price` (full amount always charged)
+- **No Refunds**: `gas_refund` is always 0 (no gas refunds in current implementation)
+- **Upfront Deduction**: Fee is deducted before execution begins
+- **Deterministic**: All nodes charge identical fees regardless of execution outcome
+
+### Upfront Fee Mechanics
+
+The execution engine implements upfront fee charging:
+
+1. **Calculate Fee**: `upfront_fee = gas_limit * gas_price` using overflow-safe u128 math
+2. **Validate Balance**: Check sender balance covers `transfer_amount + upfront_fee`
+3. **Immediate Deduction**: Deduct upfront fee before any execution
+4. **No Refunds**: Fee is never refunded, even on execution failure
+
+```rust
+let upfront_fee = gas_limit as u128 * gas_price as u128;
+if sender_balance < transfer_amount + upfront_fee {
+    return Err("InsufficientFunds");
+}
+// Fee deducted immediately, before execution
+sender_balance -= upfront_fee;
+```
+
+### Deterministic Execution
+
+Gas accounting follows strict deterministic rules:
+
+- **No Time Dependencies**: No system time affects gas calculations
+- **No Randomness**: No random values in gas or fee computations  
+- **Integer Arithmetic**: All calculations use deterministic integer math
+- **Identical Results**: Same inputs always produce same gas usage and receipts
+
+### WASM Integration (Future)
+
+Current gas schedule reserves space for WASM execution:
+
+- **VM Instructions**: `PER_VM_INSTRUCTION = 0` (placeholder)
+- **Memory Allocation**: Future gas costs for WASM memory pages
+- **Host Functions**: Gas for WASM-to-host interactions
+- **Instrumentation**: WASM bytecode will be instrumented for gas metering
 
 ## Transaction & Receipt Formats
 

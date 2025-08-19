@@ -9,6 +9,7 @@ pub mod crypto; // new crypto module
 pub mod types; // canonical transaction types
 pub mod addr; // address derivation
 pub mod gas; // gas accounting system
+pub mod execution; // deterministic execution engine
 pub mod metrics; // observability module
 pub mod alerts; // alerting subsystem
             // re-export emission types
