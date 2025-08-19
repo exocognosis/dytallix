@@ -19,6 +19,7 @@ import PulseGuard from './pages/PulseGuard.jsx'
 import FlowRate from './pages/FlowRate.jsx'
 import StakeBalancer from './pages/StakeBalancer.jsx'
 import NetFlux from './pages/NetFlux.jsx'
+import CodeShield from './pages/CodeShield.jsx'
 
 function App() {
   // Validate configuration on app load
@@ -51,6 +52,7 @@ function App() {
           <Route path="/flowrate" element={<FlowRate />} />
           <Route path="/stakebalancer" element={<StakeBalancer />} />
           <Route path="/netflux" element={<NetFlux />} />
+          <Route path="/codeshield" element={<CodeShield />} />
         </Routes>
       </main>
       <Footer />

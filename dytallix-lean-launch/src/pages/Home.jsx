@@ -14,13 +14,14 @@ const Home = () => {
       }}>
         <div className="container center">
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            <h1 className="section-title" style={{ fontSize: '3rem', marginBottom: 16, whiteSpace: 'nowrap' }}>
+            {/* Centered & responsive hero headline */}
+            <h1 className="section-title" style={{ fontSize: '3rem', marginBottom: 16, textAlign: 'center', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.15 }}>
               Quantum-Secure. AI-Enhanced. Future-Ready.
             </h1>
-            <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 0', textAlign: 'center', whiteSpace: 'nowrap' }}>
+            <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 0', textAlign: 'center' }}>
               Dytallix is an L1 blockchain platform and post-quantum cryptocurrency, built from the ground up
             </p>
-            <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 36px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+            <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 36px', textAlign: 'center' }}>
               to resist quantum attacks and support secure, intelligent applications.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>

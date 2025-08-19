@@ -10,7 +10,7 @@ const PulseGuard = () => {
         paddingTop: '110px'
       }}>
         <div className="container center" style={{ maxWidth: 1200 }}>
-          <h1 className="section-title" style={{ fontSize: '2.6rem', marginBottom: 14, textAlign: 'center' }}>PulseGuard (Alpha)</h1>
+          <h1 className="section-title" style={{ fontSize: '2.6rem', marginBottom: 14, textAlign: 'center' }}>PulseGuard</h1>
           <p className="muted" style={{ fontSize: '1.15rem', margin: '0 auto 36px', maxWidth: 840, textAlign: 'center' }}>
             Flags outliers across transaction graph and behavior features in real time.
           </p>
@@ -35,9 +35,24 @@ const PulseGuard = () => {
             {/* Pain Point */}
             <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Pain Point Solved</h3>
-              <p className="muted" style={{ lineHeight: 1.55 }}>
-                Fraud in DeFi, fintech rails, and exchanges evolves faster than static rule engines. Latency and blind spots allow wash trades, liquidity siphoning, flash-loan exploit patterns, cross-exchange MEV laundering, and mule-driven withdrawal bursts to pass undetected. The Dytallix Fraud & Anomaly Monitor ingests live mempool + finalized blocks + behavioral metadata and surfaces adversarial deviations in sub-100ms—before value is irreversibly bridged or settled.
+              {/* Added concise description + solution bullets */}
+              <p className="muted" style={{ fontSize: '.85rem', lineHeight: 1.5, margin: '0 0 12px' }}>
+                Rapidly evolving adversarial patterns outpace static rule engines, causing undetected exploit chains, laundering flows, and noisy false positives.
               </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  'Real-time fusion of mempool, finalized blocks, behavioral & entity metadata',
+                  'Graph + streaming feature extraction with anomaly & ensemble classifiers',
+                  'Sub-100ms risk scoring and prioritized alerting with explainability',
+                  'Multi-hop laundering & exploit path tracing and clustering',
+                  'PQC-secured pipelines & integrity attestations'
+                ].map((item,i)=>(
+                  <li key={i} style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+                    <span style={{ width:8, height:8, marginTop:7, background:'var(--primary-400)', borderRadius:'50%', boxShadow:'0 0 0 3px rgba(34,197,94,0.15)' }} />
+                    <span className="muted" style={{ lineHeight:1.5 }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             {/* Tech Stack */}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 // Added helper constants & functions
 const TX_HASH_RE = /^0x[0-9a-fA-F]{64}$/
 const MAX_CODE_BYTES = 100 * 1024 // 100KB
@@ -326,8 +327,8 @@ const Modules = () => {
                 >
                   {/* BEGIN anomaly content (unchanged) */}
                   <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>🔍 Transaction Anomaly Detection</h2>
-                    <p className="muted" style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>Enter a transaction hash and window to analyze suspicious activity around this transaction.</p>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>🔍 PulseGuard – Transaction Anomaly Detection</h2>
+                    <p className="muted" style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>Enter a transaction hash and window to analyze suspicious activity (PulseGuard preview).</p>
                   </div>
                   <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1.3fr 0.7fr' }}>
                     <input
@@ -403,7 +404,7 @@ const Modules = () => {
                     >
                       {/* BEGIN scanner content (unchanged) */}
                       <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>🛡️ Smart Contract Security Scanner</h2>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>🛡️ CodeShield</h2>
                         <p className="muted" style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>Paste your smart contract code and run a static analysis to detect vulnerabilities.</p>
                       </div>
                       <div style={{ display: 'grid', gap: 12 }}>
@@ -554,54 +555,39 @@ const Modules = () => {
           {/* --- Available AI Modules (interactive status) --- */}
           <div className="card">
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 12 }}>Module Directory</h2>
-            <div className="grid grid-3" style={{ gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-              {[ 
-                {
-                  key: 'pulseguard',
-                  title: 'PulseGuard',
-                  desc: 'Flags outliers across transaction graph and behavior features in real time.',
-                  status: 'alpha',
-                  cta: 'Open preview',
-                },
-                {
-                  key: 'flowrate',
-                  title: 'FlowRate',
-                  desc: 'Predictive gas/fee quotes and optimal submit windows to reduce reverts.',
-                  status: 'soon',
-                  cta: 'Notify me',
-                },
-                {
-                  key: 'stakebalancer',
-                  title: 'StakeBalancer',
-                  desc: 'Suggests validator rotations and weights to improve liveness and decentralization.',
-                  status: 'beta',
-                  cta: 'Request access',
-                },
-                {
-                  key: 'network',
-                  title: 'NetFlux', // renamed from Network Autotuning
-                  desc: 'Continuously tunes mempool/consensus params to keep latency low under bursty load.',
-                  status: 'soon',
-                  cta: 'Notify me',
-                },
-              ].map((m, i) => (
-                <div key={i} className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(() => {
+              const modules = [
+                { key: 'pulseguard', title: 'PulseGuard', desc: 'Flags outliers across transaction graph and behavior features in real time.', status: 'alpha', cta: 'Open preview', path: '/pulseguard' },
+                { key: 'codeshield', title: 'CodeShield', desc: 'Static analysis engine detecting vulnerabilities pre-deployment.', status: 'alpha', cta: 'Open preview', path: '/codeshield' },
+                { key: 'stakebalancer', title: 'StakeBalancer', desc: 'Suggests validator rotations and weights to improve liveness and decentralization.', status: 'beta', cta: 'Request access', path: '/stakebalancer' },
+                { key: 'flowrate', title: 'FlowRate', desc: 'Predictive gas/fee quotes and optimal submit windows to reduce reverts.', status: 'soon', cta: 'Notify me', path: '/flowrate' },
+                { key: 'network', title: 'NetFlux', desc: 'Continuously tunes mempool/consensus params to keep latency low under bursty load.', status: 'soon', cta: 'Notify me', path: '/netflux' },
+              ]
+              const firstRow = modules.slice(0,3)
+              const secondRow = modules.slice(3)
+              const renderCard = (m,i) => (
+                <div key={m.key} className="card" style={{ width: 300, maxWidth: '100%', padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <h3 style={{ margin: 0 }}>{m.title}</h3>
                     <StatusPill status={m.status} />
                   </div>
                   <p className="muted" style={{ fontSize: '0.95rem', lineHeight: 1.6, flex: 1 }}>{m.desc}</p>
                   <div>
-                    <button
-                      className="btn btn-primary" // unified style for all buttons
-                      onClick={() => openModule(m.key)}
-                    >
-                      {m.cta}
-                    </button>
+                    {m.path ? <Link to={m.path} className="btn btn-primary">{m.cta}</Link> : <button className="btn btn-primary" onClick={() => openModule(m.key)}>{m.cta}</button>}
                   </div>
                 </div>
-              ))}
-            </div>
+              )
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+                    {firstRow.map(renderCard)}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+                    {secondRow.map(renderCard)}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           {/* PQC Demo (flag gated) */}

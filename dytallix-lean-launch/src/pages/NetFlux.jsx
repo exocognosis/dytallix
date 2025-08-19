@@ -35,9 +35,23 @@ const NetFlux = () => {
             {/* Pain Point */}
             <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Pain Point Solved</h3>
-              <p className="muted" style={{ lineHeight: 1.55 }}>
-                Bursty transaction surges (NFT mints, airdrops, liquidation cascades) saturate mempool queues and consensus bandwidth, driving up propagation delays, orphaned blocks, and user-visible lag. Static parameterization (block size, mempool eviction, gossip fanout, priority weights) cannot adapt fast enough—degrading UX and opening MEV congestion exploits. NetFlux senses load inflection, predictive backlog growth, and latency drift to retune parameters in-flight before service quality erodes.
+              <p className="muted" style={{ fontSize: '.85rem', lineHeight: 1.5, margin: '0 0 12px' }}>
+                Bursty traffic surges overwhelm static network parameters, inflating propagation delay and degrading UX before manual tuning can react.
               </p>
+              <ul style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:10 }}>
+                {[
+                  'Predictive backlog + latency modeling for pre-emptive adjustment',
+                  'Adaptive tuning of block, gossip, eviction & fee weight params',
+                  'Feedback control loops with safety / rollback guardrails',
+                  'Dynamic priority lane + congestion shaping optimization',
+                  'PQC-secured telemetry ingestion & integrity attestation'
+                ].map((item,i)=>(
+                  <li key={i} style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+                    <span style={{ width:8, height:8, marginTop:7, background:'var(--primary-400)', borderRadius:'50%', boxShadow:'0 0 0 3px rgba(34,197,94,0.15)' }} />
+                    <span className="muted" style={{ lineHeight:1.5 }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             {/* Tech Stack */}

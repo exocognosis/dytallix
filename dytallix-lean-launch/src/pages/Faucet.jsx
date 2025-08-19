@@ -106,13 +106,13 @@ const Faucet = () => {
           </div>
         </div>
 
-        {/* Educational Content Section */}
-        <div style={{ maxWidth: '800px', margin: '48px auto 0' }}>
+        {/* Educational Content Section (expanded full width & white header) */}
+        <div style={{ margin: '48px 0 0' }}>
           <div className="card">
-            <h2 style={{ marginBottom: '32px', color: '#1f2937', textAlign: 'center' }}>
+            <h2 style={{ marginBottom: '32px', color: '#ffffff', textAlign: 'center' }}>
               Understanding the Dytallix Dual Token System
             </h2>
-            <div style={{ width: '100%', maxWidth: 900, margin: '0 auto' }}>
+            <div style={{ width: '100%', margin: '0 auto' }}>
               <div className="grid grid-2" style={{ gap: 20, textAlign: 'left' }}>
                 {/* DGT Section */}
                 <div className="card" style={{ borderColor: 'rgba(59,130,246,0.25)' }}>

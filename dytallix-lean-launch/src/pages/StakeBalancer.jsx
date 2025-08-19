@@ -35,9 +35,23 @@ const StakeBalancer = () => {
             {/* Pain Point */}
             <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Pain Point Solved</h3>
-              <p className="muted" style={{ lineHeight: 1.55 }}>
-                Concentrated stake, correlated infrastructure (same cloud regions/ASNs), and stale validator rotations degrade network liveness and amplify censorship & outage risk. Manual curation under-reacts to latent faults, missed blocks, and adversarial clustering. Validator Set Optimizer continuously scores entropy, geographic and infrastructure dispersion, performance variance, and fault correlation to propose rotation + weight adjustments before systemic degradation manifests.
+              <p className="muted" style={{ fontSize: '.85rem', lineHeight: 1.5, margin: '0 0 12px' }}>
+                Stake centralization, correlated infrastructure and slow manual rotation degrade liveness, raise censorship risk and erode trust over time.
               </p>
+              <ul style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:10 }}>
+                {[
+                  'Multi-objective scoring across liveness, entropy, latency & geography',
+                  'Correlation clustering (ASN / provider / region) & redundancy analysis',
+                  'Stochastic optimization generating rotation & weight proposals',
+                  'Missed block & anomaly detection feeding proactive adjustments',
+                  'What-if simulation: impact projection before execution'
+                ].map((item,i)=>(
+                  <li key={i} style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+                    <span style={{ width:8, height:8, marginTop:7, background:'var(--primary-400)', borderRadius:'50%', boxShadow:'0 0 0 3px rgba(34,197,94,0.15)' }} />
+                    <span className="muted" style={{ lineHeight:1.5 }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             {/* Tech Stack */}
