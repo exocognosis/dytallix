@@ -5,12 +5,12 @@ Tests upfront fee deduction, out-of-gas handling, receipt creation,
 and other core gas accounting functionality.
 */
 
-use dytallix_node::execution::{execute_transaction, ExecutionContext};
-use dytallix_node::gas::{GasSchedule, GasError};
-use dytallix_node::storage::tx::Transaction;
-use dytallix_node::storage::receipts::{TxStatus, RECEIPT_FORMAT_VERSION};
-use dytallix_node::storage::state::Storage;
-use dytallix_node::state::State;
+use dytallix_lean_node::execution::{execute_transaction, ExecutionContext};
+use dytallix_lean_node::gas::{GasSchedule, GasError};
+use dytallix_lean_node::storage::tx::Transaction;
+use dytallix_lean_node::storage::receipts::{TxStatus, RECEIPT_FORMAT_VERSION};
+use dytallix_lean_node::storage::state::Storage;
+use dytallix_lean_node::state::State;
 use std::path::PathBuf;
 use std::sync::Arc;
 

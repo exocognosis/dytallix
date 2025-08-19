@@ -3,12 +3,12 @@ Integration tests for gas execution to verify deterministic behavior
 across block production and replay scenarios.
 */
 
-use dytallix_node::execution::execute_transaction;
-use dytallix_node::gas::GasSchedule;
-use dytallix_node::storage::tx::Transaction;
-use dytallix_node::storage::receipts::TxStatus;
-use dytallix_node::storage::state::Storage;
-use dytallix_node::state::State;
+use dytallix_lean_node::execution::execute_transaction;
+use dytallix_lean_node::gas::GasSchedule;
+use dytallix_lean_node::storage::tx::Transaction;
+use dytallix_lean_node::storage::receipts::TxStatus;
+use dytallix_lean_node::storage::state::Storage;
+use dytallix_lean_node::state::State;
 use std::path::PathBuf;
 use std::sync::Arc;
 

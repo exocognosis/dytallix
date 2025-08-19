@@ -3,12 +3,12 @@ API tests to verify gas fields are properly exposed via RPC endpoints
 and JSON serialization works correctly.
 */
 
-use dytallix_node::execution::execute_transaction;
-use dytallix_node::gas::GasSchedule;
-use dytallix_node::storage::tx::Transaction;
-use dytallix_node::storage::receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION};
-use dytallix_node::storage::state::Storage;
-use dytallix_node::state::State;
+use dytallix_lean_node::execution::execute_transaction;
+use dytallix_lean_node::gas::GasSchedule;
+use dytallix_lean_node::storage::tx::Transaction;
+use dytallix_lean_node::storage::receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION};
+use dytallix_lean_node::storage::state::Storage;
+use dytallix_lean_node::state::State;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::sync::Arc;
