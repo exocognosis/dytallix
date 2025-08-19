@@ -28,6 +28,7 @@ mod metrics; // observability module
 use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::GovernanceModule;
 use crate::metrics::{MetricsServer, parse_metrics_config};
+use crate::alerts::{load_alerts_config, AlertsEngine, NodeMetricsGatherer};
 use mempool::Mempool;
 use rpc::RpcContext;
 use state::State;
@@ -88,6 +89,21 @@ async fn main() -> anyhow::Result<()> {
     // Initialize metrics
     let metrics_config = parse_metrics_config();
     let (metrics_server, metrics) = MetricsServer::new(metrics_config.clone())?;
+
+    // Initialize alerting system
+    let alerts_config_path = std::env::var("DYT_ALERTS_CONFIG")
+        .unwrap_or_else(|_| "./configs/alerts.yaml".to_string());
+    let alerts_config = load_alerts_config(std::path::Path::new(&alerts_config_path))?;
+    
+    #[cfg(feature = "metrics")]
+    let mut alerts_engine = {
+        // Create a dummy registry for now - in a real implementation this would be shared
+        let alerts_registry = prometheus::Registry::new();
+        AlertsEngine::new(alerts_config.clone(), &alerts_registry)?
+    };
+    
+    #[cfg(not(feature = "metrics"))]
+    let mut alerts_engine = AlertsEngine::new(alerts_config.clone())?;
 
     let ctx = RpcContext {
         storage: storage.clone(),
@@ -322,6 +338,19 @@ async fn main() -> anyhow::Result<()> {
         
         // Don't wait for metrics server, let it run in background
         std::mem::forget(metrics_server_task);
+    }
+
+    // Start alerts engine if enabled
+    if alerts_config.enabled {
+        let metrics_gatherer = Arc::new(NodeMetricsGatherer::new(tps_window.clone()));
+        let alerts_task = tokio::spawn(async move {
+            if let Err(e) = alerts_engine.start(metrics_gatherer).await {
+                eprintln!("Alerts engine error: {}", e);
+            }
+        });
+        
+        // Don't wait for alerts engine, let it run in background  
+        std::mem::forget(alerts_task);
     }
 
     let addr: SocketAddr = "0.0.0.0:3030".parse().unwrap();

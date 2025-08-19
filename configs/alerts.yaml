@@ -1,0 +1,36 @@
+# Dytallix Alerting System Configuration
+# This file configures the threshold-based alerting subsystem for detecting
+# and surfacing reliability issues in the Dytallix node.
+
+# Global enable/disable
+enabled: true
+
+# Default evaluation interval in seconds (how often we evaluate all rules)
+evaluation_interval_secs: 5
+
+# Optional webhook (leave blank / omit to disable)
+webhook_url: "https://example.com/alert-webhook"
+
+# Set to true to also log alert JSON payloads even if webhook configured
+log_on_fire: true
+
+# Rule specific configuration
+rules:
+  tps_drop:
+    enabled: true
+    # TPS below this value triggers condition
+    threshold: 1500
+    # Number of consecutive evaluation intervals required
+    consecutive: 3
+    
+  oracle_timeout:
+    enabled: true
+    # p95 latency milliseconds threshold
+    threshold_ms: 800
+    consecutive: 2
+    
+  validator_offline:
+    enabled: true
+    # seconds since last heartbeat considered offline
+    offline_secs: 30
+    consecutive: 1
