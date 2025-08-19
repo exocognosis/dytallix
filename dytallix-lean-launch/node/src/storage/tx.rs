@@ -90,18 +90,3 @@ impl Transaction {
         }
     }
 }
-        gas_price: u64,
-    ) -> Self {
-        Self {
-            hash,
-            from,
-            to,
-            amount,
-            fee,
-            nonce,
-            signature,
-            gas_limit,
-            gas_price,
-        }
-    }
-}
