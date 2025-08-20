@@ -1,0 +1,26 @@
+{
+  "id": "modules/governance",
+  "title": "Governance Module",
+  "description": "Handles on-chain parameter updates.",
+  "source": "@site/docs/modules/governance.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/governance",
+  "permalink": "/docs/modules/governance",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/modules/governance.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Governance Module"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Staking Module",
+    "permalink": "/docs/modules/staking"
+  },
+  "next": {
+    "title": "PQC Crypto Module",
+    "permalink": "/docs/modules/pqc-crypto"
+  }
+}

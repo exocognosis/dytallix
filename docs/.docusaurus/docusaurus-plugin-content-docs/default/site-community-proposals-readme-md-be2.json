@@ -1,0 +1,15 @@
+{
+  "id": "community/proposals-README",
+  "title": "Dytallix Community Proposal System",
+  "description": "This folder contains governance proposals, voting records, and community discussions in Markdown/JSON format.",
+  "source": "@site/community/proposals-README.md",
+  "sourceDirName": "community",
+  "slug": "/community/proposals-README",
+  "permalink": "/docs/community/proposals-README",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/community/proposals-README.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

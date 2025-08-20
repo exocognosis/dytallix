@@ -1,0 +1,26 @@
+{
+  "id": "start/testnet-rules",
+  "title": "Testnet Rules",
+  "description": "Guidelines for using the Dytallix public testnet.",
+  "source": "@site/docs/start/testnet-rules.md",
+  "sourceDirName": "start",
+  "slug": "/start/testnet-rules",
+  "permalink": "/docs/start/testnet-rules",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/start/testnet-rules.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Testnet Rules"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Quickstart",
+    "permalink": "/docs/start/quickstart"
+  },
+  "next": {
+    "title": "FAQ",
+    "permalink": "/docs/start/faq"
+  }
+}

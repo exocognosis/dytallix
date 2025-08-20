@@ -1,0 +1,15 @@
+{
+  "id": "modules/documents-Development",
+  "title": "Dytallix 18–24 Month Development Timeline",
+  "description": "Phase 1: Foundation & Prototyping (Months 1–6)",
+  "source": "@site/modules/documents-Development.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/documents-Development",
+  "permalink": "/docs/modules/documents-Development",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/modules/documents-Development.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

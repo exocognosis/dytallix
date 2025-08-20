@@ -1,0 +1,15 @@
+{
+  "id": "security/GKE_SECURITY_HARDENING",
+  "title": "Dytallix GKE Security Hardening Documentation",
+  "description": "Overview",
+  "source": "@site/security/GKE_SECURITY_HARDENING.md",
+  "sourceDirName": "security",
+  "slug": "/security/GKE_SECURITY_HARDENING",
+  "permalink": "/docs/security/GKE_SECURITY_HARDENING",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/security/GKE_SECURITY_HARDENING.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

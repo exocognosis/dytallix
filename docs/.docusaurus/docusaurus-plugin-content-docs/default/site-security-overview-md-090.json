@@ -1,0 +1,26 @@
+{
+  "id": "security/overview",
+  "title": "Security Overview",
+  "description": "This section provides an overview of security goals, threat model, and controls for the Dytallix testnet.",
+  "source": "@site/security/overview.md",
+  "sourceDirName": "security",
+  "slug": "/security/overview",
+  "permalink": "/docs/security/overview",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/security/overview.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Security Overview"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Upgrades & Resets",
+    "permalink": "/docs/operators/upgrades-resets"
+  },
+  "next": {
+    "title": "Key Management",
+    "permalink": "/docs/security/key-management"
+  }
+}

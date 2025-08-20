@@ -1,0 +1,15 @@
+{
+  "id": "community/INTERFACES",
+  "title": "Dytallix Community & Documentation Interfaces",
+  "description": "Proposal System (Markdown/JSON)",
+  "source": "@site/community/INTERFACES.md",
+  "sourceDirName": "community",
+  "slug": "/community/INTERFACES",
+  "permalink": "/docs/community/INTERFACES",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/community/INTERFACES.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

@@ -1,0 +1,26 @@
+{
+  "id": "developers/smart-contracts",
+  "title": "Smart Contracts",
+  "description": "Deploy contracts on the testnet.",
+  "source": "@site/docs/developers/smart-contracts.md",
+  "sourceDirName": "developers",
+  "slug": "/developers/smart-contracts",
+  "permalink": "/docs/developers/smart-contracts",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/developers/smart-contracts.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Smart Contracts"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Developer Walkthrough",
+    "permalink": "/docs/developers/dev-walkthrough"
+  },
+  "next": {
+    "title": "SDK",
+    "permalink": "/docs/developers/sdk"
+  }
+}

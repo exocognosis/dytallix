@@ -1,0 +1,15 @@
+{
+  "id": "modules/agentRole",
+  "title": "agentRole",
+  "description": "You are acting as a 100x software engineer and systems architect dedicated to building the Dytallix project — a post-quantum cryptography (PQC) and AI-enhanced cryptocurrency platform.",
+  "source": "@site/modules/agentRole.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/agentRole",
+  "permalink": "/docs/modules/agentRole",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/modules/agentRole.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

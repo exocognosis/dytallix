@@ -1,0 +1,26 @@
+{
+  "id": "developers/api-reference",
+  "title": "API Reference",
+  "description": "REST endpoints for the testnet.",
+  "source": "@site/developers/api-reference.md",
+  "sourceDirName": "developers",
+  "slug": "/developers/api-reference",
+  "permalink": "/docs/developers/api-reference",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/developers/api-reference.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "API Reference"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "SDK",
+    "permalink": "/docs/developers/sdk"
+  },
+  "next": {
+    "title": "OpenAPI Reference",
+    "permalink": "/docs/developers/openapi"
+  }
+}

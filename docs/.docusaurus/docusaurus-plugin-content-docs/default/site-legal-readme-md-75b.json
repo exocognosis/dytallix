@@ -1,0 +1,22 @@
+{
+  "id": "legal/README",
+  "title": "Legal Docs",
+  "description": "These legal documents apply to participation in the Dytallix public testnet.",
+  "source": "@site/legal/README.md",
+  "sourceDirName": "legal",
+  "slug": "/legal/",
+  "permalink": "/docs/legal/",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/legal/README.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Legal Docs"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Contribution Guide",
+    "permalink": "/docs/community/contributing"
+  }
+}

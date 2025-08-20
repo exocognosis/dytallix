@@ -1,0 +1,26 @@
+{
+  "id": "security/roadmap",
+  "title": "Security Roadmap",
+  "description": "Q3 2025",
+  "source": "@site/security/roadmap.md",
+  "sourceDirName": "security",
+  "slug": "/security/roadmap",
+  "permalink": "/docs/security/roadmap",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/security/roadmap.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Security Roadmap"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Incident Response",
+    "permalink": "/docs/security/incident-response"
+  },
+  "next": {
+    "title": "Modules Overview",
+    "permalink": "/docs/modules/"
+  }
+}

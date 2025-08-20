@@ -1,0 +1,26 @@
+{
+  "id": "security/application-security",
+  "title": "Application Security",
+  "description": "Secure Development Lifecycle",
+  "source": "@site/security/application-security.md",
+  "sourceDirName": "security",
+  "slug": "/security/application-security",
+  "permalink": "/docs/security/application-security",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/security/application-security.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Application Security"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Network Security",
+    "permalink": "/docs/security/network-security"
+  },
+  "next": {
+    "title": "Monitoring & Detection",
+    "permalink": "/docs/security/monitoring-detection"
+  }
+}

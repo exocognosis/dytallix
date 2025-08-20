@@ -1,0 +1,26 @@
+{
+  "id": "security/incident-response",
+  "title": "Incident Response",
+  "description": "Severity Matrix",
+  "source": "@site/docs/security/incident-response.md",
+  "sourceDirName": "security",
+  "slug": "/security/incident-response",
+  "permalink": "/docs/security/incident-response",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/security/incident-response.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Incident Response"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Monitoring & Detection",
+    "permalink": "/docs/security/monitoring-detection"
+  },
+  "next": {
+    "title": "Security Roadmap",
+    "permalink": "/docs/security/roadmap"
+  }
+}

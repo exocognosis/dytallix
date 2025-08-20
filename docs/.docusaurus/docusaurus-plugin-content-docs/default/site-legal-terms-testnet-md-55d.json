@@ -1,0 +1,17 @@
+{
+  "id": "legal/terms-testnet",
+  "title": "Testnet Terms",
+  "description": "Participation is at your own risk. Tokens have no monetary value. Do not use for production. Rate limits apply.",
+  "source": "@site/legal/terms-testnet.md",
+  "sourceDirName": "legal",
+  "slug": "/legal/terms-testnet",
+  "permalink": "/docs/legal/terms-testnet",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/legal/terms-testnet.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Testnet Terms"
+  }
+}

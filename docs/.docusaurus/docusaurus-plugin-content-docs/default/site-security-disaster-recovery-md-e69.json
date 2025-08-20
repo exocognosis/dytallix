@@ -1,0 +1,17 @@
+{
+  "id": "security/disaster-recovery",
+  "title": "Disaster Recovery",
+  "description": "Draft initial DR plan to satisfy missing reference link. To be expanded with detailed runbooks.",
+  "source": "@site/security/disaster-recovery.md",
+  "sourceDirName": "security",
+  "slug": "/security/disaster-recovery",
+  "permalink": "/docs/security/disaster-recovery",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/security/disaster-recovery.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Disaster Recovery"
+  }
+}

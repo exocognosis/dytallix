@@ -1,0 +1,26 @@
+{
+  "id": "users/wallet-guide",
+  "title": "Wallet Guide",
+  "description": "Manage testnet accounts and keys.",
+  "source": "@site/docs/users/wallet-guide.md",
+  "sourceDirName": "users",
+  "slug": "/users/wallet-guide",
+  "permalink": "/docs/users/wallet-guide",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/users/wallet-guide.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Wallet Guide"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "PQC Primer",
+    "permalink": "/docs/architecture/pqc-primer"
+  },
+  "next": {
+    "title": "Faucet Guide",
+    "permalink": "/docs/users/faucet-guide"
+  }
+}

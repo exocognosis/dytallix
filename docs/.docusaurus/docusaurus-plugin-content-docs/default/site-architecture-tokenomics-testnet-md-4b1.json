@@ -1,0 +1,26 @@
+{
+  "id": "architecture/tokenomics-testnet",
+  "title": "Tokenomics (Testnet)",
+  "description": "Testnet tokens are issued by the faucet and reset on schedule.",
+  "source": "@site/architecture/tokenomics-testnet.md",
+  "sourceDirName": "architecture",
+  "slug": "/architecture/tokenomics-testnet",
+  "permalink": "/docs/architecture/tokenomics-testnet",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/architecture/tokenomics-testnet.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Tokenomics (Testnet)"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Parameters",
+    "permalink": "/docs/architecture/parameters"
+  },
+  "next": {
+    "title": "PQC Primer",
+    "permalink": "/docs/architecture/pqc-primer"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "users/faucet-guide",
+  "title": "Faucet Guide",
+  "description": "Request test tokens via UI or API.",
+  "source": "@site/users/faucet-guide.md",
+  "sourceDirName": "users",
+  "slug": "/users/faucet-guide",
+  "permalink": "/docs/users/faucet-guide",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/users/faucet-guide.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Faucet Guide"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Wallet Guide",
+    "permalink": "/docs/users/wallet-guide"
+  },
+  "next": {
+    "title": "Explorer Guide",
+    "permalink": "/docs/users/explorer-guide"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "Dytallix",
+    "Testnet",
+    "dyt",
+    "pqc",
+    "grpc",
+    "mnemonic",
+    "relayer",
+    "redocly",
+    "linkinator",
+    "telemetry",
+    "nonce",
+    "failover",
+    "roadmap"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "docs/static",
+    "dist",
+    "build"
+  ]
+}

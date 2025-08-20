@@ -1,0 +1,305 @@
+{
+  "docusaurus-plugin-content-docs": {
+    "default": {
+      "path": "/docs",
+      "versions": [
+        {
+          "name": "current",
+          "label": "Next",
+          "isLast": true,
+          "path": "/docs",
+          "mainDocId": "start/overview",
+          "docs": [
+            {
+              "id": "architecture/network-architecture",
+              "path": "/docs/architecture/network-architecture",
+              "sidebar": "docs"
+            },
+            {
+              "id": "architecture/parameters",
+              "path": "/docs/architecture/parameters",
+              "sidebar": "docs"
+            },
+            {
+              "id": "architecture/pqc-primer",
+              "path": "/docs/architecture/pqc-primer",
+              "sidebar": "docs"
+            },
+            {
+              "id": "architecture/tokenomics-testnet",
+              "path": "/docs/architecture/tokenomics-testnet",
+              "sidebar": "docs"
+            },
+            {
+              "id": "community/community-channels",
+              "path": "/docs/community/community-channels",
+              "sidebar": "docs"
+            },
+            {
+              "id": "community/contributing",
+              "path": "/docs/community/contributing",
+              "sidebar": "docs"
+            },
+            {
+              "id": "community/INTERFACES",
+              "path": "/docs/community/INTERFACES"
+            },
+            {
+              "id": "community/ONBOARDING",
+              "path": "/docs/community/ONBOARDING"
+            },
+            {
+              "id": "community/proposals-README",
+              "path": "/docs/community/proposals-README"
+            },
+            {
+              "id": "community/README",
+              "path": "/docs/community/"
+            },
+            {
+              "id": "developers/api-reference",
+              "path": "/docs/developers/api-reference",
+              "sidebar": "docs"
+            },
+            {
+              "id": "developers/dev-walkthrough",
+              "path": "/docs/developers/dev-walkthrough",
+              "sidebar": "docs"
+            },
+            {
+              "id": "developers/examples/go-quickstart",
+              "path": "/docs/developers/examples/go-quickstart",
+              "sidebar": "docs"
+            },
+            {
+              "id": "developers/examples/js-quickstart",
+              "path": "/docs/developers/examples/js-quickstart",
+              "sidebar": "docs"
+            },
+            {
+              "id": "developers/examples/python-quickstart",
+              "path": "/docs/developers/examples/python-quickstart",
+              "sidebar": "docs"
+            },
+            {
+              "id": "developers/openapi",
+              "path": "/docs/developers/openapi",
+              "sidebar": "docs"
+            },
+            {
+              "id": "developers/sdk",
+              "path": "/docs/developers/sdk",
+              "sidebar": "docs"
+            },
+            {
+              "id": "developers/smart-contracts",
+              "path": "/docs/developers/smart-contracts",
+              "sidebar": "docs"
+            },
+            {
+              "id": "developers/websockets-grpc",
+              "path": "/docs/developers/websockets-grpc",
+              "sidebar": "docs"
+            },
+            {
+              "id": "legal/licensing",
+              "path": "/docs/legal/licensing"
+            },
+            {
+              "id": "legal/privacy-policy",
+              "path": "/docs/legal/privacy-policy"
+            },
+            {
+              "id": "legal/README",
+              "path": "/docs/legal/",
+              "sidebar": "docs"
+            },
+            {
+              "id": "legal/terms-testnet",
+              "path": "/docs/legal/terms-testnet"
+            },
+            {
+              "id": "modules/agentRole",
+              "path": "/docs/modules/agentRole"
+            },
+            {
+              "id": "modules/bridge",
+              "path": "/docs/modules/bridge",
+              "sidebar": "docs"
+            },
+            {
+              "id": "modules/context",
+              "path": "/docs/modules/context"
+            },
+            {
+              "id": "modules/documents-Development",
+              "path": "/docs/modules/documents-Development"
+            },
+            {
+              "id": "modules/documents-README",
+              "path": "/docs/modules/documents-README"
+            },
+            {
+              "id": "modules/documents-whitepaper",
+              "path": "/docs/modules/documents-whitepaper"
+            },
+            {
+              "id": "modules/faucet",
+              "path": "/docs/modules/faucet",
+              "sidebar": "docs"
+            },
+            {
+              "id": "modules/governance",
+              "path": "/docs/modules/governance",
+              "sidebar": "docs"
+            },
+            {
+              "id": "modules/index",
+              "path": "/docs/modules/",
+              "sidebar": "docs"
+            },
+            {
+              "id": "modules/pqc-crypto",
+              "path": "/docs/modules/pqc-crypto",
+              "sidebar": "docs"
+            },
+            {
+              "id": "modules/staking",
+              "path": "/docs/modules/staking",
+              "sidebar": "docs"
+            },
+            {
+              "id": "modules/telemetry",
+              "path": "/docs/modules/telemetry",
+              "sidebar": "docs"
+            },
+            {
+              "id": "modules/vision",
+              "path": "/docs/modules/vision"
+            },
+            {
+              "id": "modules/wasm",
+              "path": "/docs/modules/wasm",
+              "sidebar": "docs"
+            },
+            {
+              "id": "operators/monitoring-troubleshooting",
+              "path": "/docs/operators/monitoring-troubleshooting",
+              "sidebar": "docs"
+            },
+            {
+              "id": "operators/upgrades-resets",
+              "path": "/docs/operators/upgrades-resets",
+              "sidebar": "docs"
+            },
+            {
+              "id": "operators/validator-node-setup",
+              "path": "/docs/operators/validator-node-setup",
+              "sidebar": "docs"
+            },
+            {
+              "id": "security/application-security",
+              "path": "/docs/security/application-security",
+              "sidebar": "docs"
+            },
+            {
+              "id": "security/disaster-recovery",
+              "path": "/docs/security/disaster-recovery"
+            },
+            {
+              "id": "security/GKE_SECURITY_HARDENING",
+              "path": "/docs/security/GKE_SECURITY_HARDENING"
+            },
+            {
+              "id": "security/hardening_checklist",
+              "path": "/docs/security/hardening_checklist"
+            },
+            {
+              "id": "security/incident-response",
+              "path": "/docs/security/incident-response",
+              "sidebar": "docs"
+            },
+            {
+              "id": "security/INTERFACES",
+              "path": "/docs/security/INTERFACES"
+            },
+            {
+              "id": "security/key-management",
+              "path": "/docs/security/key-management",
+              "sidebar": "docs"
+            },
+            {
+              "id": "security/monitoring-detection",
+              "path": "/docs/security/monitoring-detection",
+              "sidebar": "docs"
+            },
+            {
+              "id": "security/network-security",
+              "path": "/docs/security/network-security",
+              "sidebar": "docs"
+            },
+            {
+              "id": "security/overview",
+              "path": "/docs/security/overview",
+              "sidebar": "docs"
+            },
+            {
+              "id": "security/policies",
+              "path": "/docs/security/policies"
+            },
+            {
+              "id": "security/roadmap",
+              "path": "/docs/security/roadmap",
+              "sidebar": "docs"
+            },
+            {
+              "id": "start/faq",
+              "path": "/docs/start/faq",
+              "sidebar": "docs"
+            },
+            {
+              "id": "start/overview",
+              "path": "/docs/start/overview",
+              "sidebar": "docs"
+            },
+            {
+              "id": "start/quickstart",
+              "path": "/docs/start/quickstart",
+              "sidebar": "docs"
+            },
+            {
+              "id": "start/testnet-rules",
+              "path": "/docs/start/testnet-rules",
+              "sidebar": "docs"
+            },
+            {
+              "id": "users/explorer-guide",
+              "path": "/docs/users/explorer-guide",
+              "sidebar": "docs"
+            },
+            {
+              "id": "users/faucet-guide",
+              "path": "/docs/users/faucet-guide",
+              "sidebar": "docs"
+            },
+            {
+              "id": "users/wallet-guide",
+              "path": "/docs/users/wallet-guide",
+              "sidebar": "docs"
+            }
+          ],
+          "draftIds": [],
+          "sidebars": {
+            "docs": {
+              "link": {
+                "path": "/docs/start/overview",
+                "label": "start/overview"
+              }
+            }
+          }
+        }
+      ],
+      "breadcrumbs": true
+    }
+  }
+}

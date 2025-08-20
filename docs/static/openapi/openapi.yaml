@@ -1,0 +1,68 @@
+# Synced 2025-08-20T15:29:48.911Z
+openapi: 3.1.0
+info:
+  title: Dytallix Testnet API
+  version: 0.1.0
+servers:
+  - url: https://api.testnet.dytallix.example
+paths:
+  /api/faucet:
+    post:
+      summary: Request testnet tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                address:
+                  type: string
+      responses:
+        '200':
+          description: Tokens sent
+  /api/status:
+    get:
+      summary: Get network status
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  block_height:
+                    type: integer
+  /api/balance:
+    get:
+      summary: Get balance
+      parameters:
+        - in: query
+          name: address
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  amount:
+                    type: integer
+  /api/anomaly/run:
+    post:
+      summary: Run anomaly detection
+      responses:
+        '200':
+          description: Result
+  /api/contract/scan:
+    post:
+      summary: Scan contract for issues
+      responses:
+        '200':
+          description: Report
+components: {}

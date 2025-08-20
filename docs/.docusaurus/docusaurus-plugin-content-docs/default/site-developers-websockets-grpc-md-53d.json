@@ -1,0 +1,26 @@
+{
+  "id": "developers/websockets-grpc",
+  "title": "WebSockets & gRPC",
+  "description": "Realtime subscriptions.",
+  "source": "@site/developers/websockets-grpc.md",
+  "sourceDirName": "developers",
+  "slug": "/developers/websockets-grpc",
+  "permalink": "/docs/developers/websockets-grpc",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/developers/websockets-grpc.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "WebSockets & gRPC"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "OpenAPI Reference",
+    "permalink": "/docs/developers/openapi"
+  },
+  "next": {
+    "title": "JS Quickstart",
+    "permalink": "/docs/developers/examples/js-quickstart"
+  }
+}

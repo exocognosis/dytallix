@@ -1,0 +1,15 @@
+{
+  "id": "evm_migration/MATCHES",
+  "title": "EVM/Hardhat Audit Matches",
+  "description": "This document lists all discovered EVM/Hardhat-related artifacts, their classification, and actions taken during the Cosmos SDK migration.",
+  "source": "@site/docs/evm_migration/MATCHES.md",
+  "sourceDirName": "evm_migration",
+  "slug": "/evm_migration/MATCHES",
+  "permalink": "/docs/evm_migration/MATCHES",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/evm_migration/MATCHES.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

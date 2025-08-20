@@ -1,0 +1,17 @@
+{
+  "id": "security/policies",
+  "title": "Security Policies",
+  "description": "Canonical internal-facing summary of high-level security policies referenced across the docs. Draft status until full governance review.",
+  "source": "@site/security/policies.md",
+  "sourceDirName": "security",
+  "slug": "/security/policies",
+  "permalink": "/docs/security/policies",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/security/policies.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Security Policies"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "developers/dev-walkthrough",
+  "title": "Developer Walkthrough",
+  "description": "End-to-end guide to build and deploy.",
+  "source": "@site/docs/developers/dev-walkthrough.md",
+  "sourceDirName": "developers",
+  "slug": "/developers/dev-walkthrough",
+  "permalink": "/docs/developers/dev-walkthrough",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/developers/dev-walkthrough.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Developer Walkthrough"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Explorer Guide",
+    "permalink": "/docs/users/explorer-guide"
+  },
+  "next": {
+    "title": "Smart Contracts",
+    "permalink": "/docs/developers/smart-contracts"
+  }
+}

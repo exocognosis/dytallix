@@ -1,0 +1,26 @@
+{
+  "id": "developers/sdk",
+  "title": "SDK",
+  "description": "Client libraries for interacting with the chain.",
+  "source": "@site/developers/sdk.md",
+  "sourceDirName": "developers",
+  "slug": "/developers/sdk",
+  "permalink": "/docs/developers/sdk",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/developers/sdk.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "SDK"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Smart Contracts",
+    "permalink": "/docs/developers/smart-contracts"
+  },
+  "next": {
+    "title": "API Reference",
+    "permalink": "/docs/developers/api-reference"
+  }
+}

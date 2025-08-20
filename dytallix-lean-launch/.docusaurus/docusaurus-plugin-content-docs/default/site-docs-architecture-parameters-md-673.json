@@ -1,0 +1,26 @@
+{
+  "id": "architecture/parameters",
+  "title": "Parameters",
+  "description": "Canonical network parameters.",
+  "source": "@site/docs/architecture/parameters.md",
+  "sourceDirName": "architecture",
+  "slug": "/architecture/parameters",
+  "permalink": "/docs/architecture/parameters",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/architecture/parameters.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Parameters"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Network Architecture",
+    "permalink": "/docs/architecture/network-architecture"
+  },
+  "next": {
+    "title": "Tokenomics (Testnet)",
+    "permalink": "/docs/architecture/tokenomics-testnet"
+  }
+}

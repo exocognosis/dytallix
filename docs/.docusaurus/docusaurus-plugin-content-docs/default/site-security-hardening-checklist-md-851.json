@@ -1,0 +1,15 @@
+{
+  "id": "security/hardening_checklist",
+  "title": "Dytallix Security Hardening Checklist",
+  "description": "Overview",
+  "source": "@site/security/hardening_checklist.md",
+  "sourceDirName": "security",
+  "slug": "/security/hardening_checklist",
+  "permalink": "/docs/security/hardening_checklist",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/security/hardening_checklist.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

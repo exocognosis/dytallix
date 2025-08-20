@@ -1,0 +1,17 @@
+{
+  "id": "legal/privacy-policy",
+  "title": "Privacy Policy",
+  "description": "API logs and telemetry are used for debugging and deleted after 30 days. No personal data is sold.",
+  "source": "@site/docs/legal/privacy-policy.md",
+  "sourceDirName": "legal",
+  "slug": "/legal/privacy-policy",
+  "permalink": "/docs/legal/privacy-policy",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/legal/privacy-policy.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Privacy Policy"
+  }
+}

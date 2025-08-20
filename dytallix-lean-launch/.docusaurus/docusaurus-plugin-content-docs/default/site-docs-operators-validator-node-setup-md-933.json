@@ -1,0 +1,26 @@
+{
+  "id": "operators/validator-node-setup",
+  "title": "Validator Node Setup",
+  "description": "Run a validator on the public testnet.",
+  "source": "@site/docs/operators/validator-node-setup.md",
+  "sourceDirName": "operators",
+  "slug": "/operators/validator-node-setup",
+  "permalink": "/docs/operators/validator-node-setup",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/operators/validator-node-setup.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Validator Node Setup"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Go Quickstart",
+    "permalink": "/docs/developers/examples/go-quickstart"
+  },
+  "next": {
+    "title": "Monitoring & Troubleshooting",
+    "permalink": "/docs/operators/monitoring-troubleshooting"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "architecture/network-architecture",
+  "title": "Network Architecture",
+  "description": "Overview of components and data flow.",
+  "source": "@site/architecture/network-architecture.md",
+  "sourceDirName": "architecture",
+  "slug": "/architecture/network-architecture",
+  "permalink": "/docs/architecture/network-architecture",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/architecture/network-architecture.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Network Architecture"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "FAQ",
+    "permalink": "/docs/start/faq"
+  },
+  "next": {
+    "title": "Parameters",
+    "permalink": "/docs/architecture/parameters"
+  }
+}

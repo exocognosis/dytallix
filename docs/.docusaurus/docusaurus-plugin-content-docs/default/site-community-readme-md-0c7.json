@@ -1,0 +1,15 @@
+{
+  "id": "community/README",
+  "title": "Dytallix Community & Documentation",
+  "description": "This directory contains resources for proposals, onboarding, and auto-generated documentation.",
+  "source": "@site/community/README.md",
+  "sourceDirName": "community",
+  "slug": "/community/",
+  "permalink": "/docs/community/",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/community/README.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

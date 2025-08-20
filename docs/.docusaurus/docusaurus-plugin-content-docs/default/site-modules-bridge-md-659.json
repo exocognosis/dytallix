@@ -1,0 +1,26 @@
+{
+  "id": "modules/bridge",
+  "title": "Bridge Module",
+  "description": "Facilitates cross-chain asset and message transfer.",
+  "source": "@site/modules/bridge.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/bridge",
+  "permalink": "/docs/modules/bridge",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/modules/bridge.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Bridge Module"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "PQC Crypto Module",
+    "permalink": "/docs/modules/pqc-crypto"
+  },
+  "next": {
+    "title": "Faucet Module",
+    "permalink": "/docs/modules/faucet"
+  }
+}

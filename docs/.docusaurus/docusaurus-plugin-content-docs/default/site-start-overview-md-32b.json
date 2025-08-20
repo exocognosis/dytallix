@@ -1,0 +1,22 @@
+{
+  "id": "start/overview",
+  "title": "Overview",
+  "description": "The public testnet lets developers and operators experiment with Dytallix in a safe environment. It targets builders, validators, and security researchers.",
+  "source": "@site/start/overview.md",
+  "sourceDirName": "start",
+  "slug": "/start/overview",
+  "permalink": "/docs/start/overview",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/start/overview.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Overview"
+  },
+  "sidebar": "docs",
+  "next": {
+    "title": "Quickstart",
+    "permalink": "/docs/start/quickstart"
+  }
+}

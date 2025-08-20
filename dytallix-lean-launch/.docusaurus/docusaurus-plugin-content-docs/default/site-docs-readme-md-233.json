@@ -1,0 +1,17 @@
+{
+  "id": "README",
+  "title": "Dytallix Public Testnet Docs",
+  "description": "Start here for all public testnet information. Use the tiles below to jump to a section.",
+  "source": "@site/docs/README.md",
+  "sourceDirName": ".",
+  "slug": "/",
+  "permalink": "/docs/",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/README.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Dytallix Public Testnet Docs"
+  }
+}

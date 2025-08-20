@@ -1,0 +1,26 @@
+{
+  "id": "community/contributing",
+  "title": "Contribution Guide",
+  "description": "Workflow",
+  "source": "@site/docs/community/contributing.md",
+  "sourceDirName": "community",
+  "slug": "/community/contributing",
+  "permalink": "/docs/community/contributing",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/community/contributing.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Contribution Guide"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Community Channels",
+    "permalink": "/docs/community/community-channels"
+  },
+  "next": {
+    "title": "Legal Docs",
+    "permalink": "/docs/legal/"
+  }
+}

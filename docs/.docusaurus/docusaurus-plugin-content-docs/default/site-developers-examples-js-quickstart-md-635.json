@@ -1,0 +1,26 @@
+{
+  "id": "developers/examples/js-quickstart",
+  "title": "JS Quickstart",
+  "description": "Interact with the chain using JavaScript.",
+  "source": "@site/developers/examples/js-quickstart.md",
+  "sourceDirName": "developers/examples",
+  "slug": "/developers/examples/js-quickstart",
+  "permalink": "/docs/developers/examples/js-quickstart",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/developers/examples/js-quickstart.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "JS Quickstart"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "WebSockets & gRPC",
+    "permalink": "/docs/developers/websockets-grpc"
+  },
+  "next": {
+    "title": "Python Quickstart",
+    "permalink": "/docs/developers/examples/python-quickstart"
+  }
+}

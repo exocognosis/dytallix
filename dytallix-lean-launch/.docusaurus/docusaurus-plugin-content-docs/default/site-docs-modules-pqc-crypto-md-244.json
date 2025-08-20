@@ -1,0 +1,26 @@
+{
+  "id": "modules/pqc-crypto",
+  "title": "PQC Crypto Module",
+  "description": "Integrates post-quantum primitives (e.g., Dilithium) in a hybrid model.",
+  "source": "@site/docs/modules/pqc-crypto.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/pqc-crypto",
+  "permalink": "/docs/modules/pqc-crypto",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/modules/pqc-crypto.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "PQC Crypto Module"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Governance Module",
+    "permalink": "/docs/modules/governance"
+  },
+  "next": {
+    "title": "Bridge Module",
+    "permalink": "/docs/modules/bridge"
+  }
+}

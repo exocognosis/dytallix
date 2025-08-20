@@ -1,0 +1,26 @@
+{
+  "id": "modules/wasm",
+  "title": "WASM Contracts Module",
+  "description": "Future smart contract execution environment.",
+  "source": "@site/modules/wasm.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/wasm",
+  "permalink": "/docs/modules/wasm",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/modules/wasm.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "WASM Contracts Module"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Telemetry Module",
+    "permalink": "/docs/modules/telemetry"
+  },
+  "next": {
+    "title": "Community Channels",
+    "permalink": "/docs/community/community-channels"
+  }
+}

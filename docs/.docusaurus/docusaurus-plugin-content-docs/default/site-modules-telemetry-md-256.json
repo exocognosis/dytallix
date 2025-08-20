@@ -1,0 +1,26 @@
+{
+  "id": "modules/telemetry",
+  "title": "Telemetry Module",
+  "description": "Aggregates metrics and emits structured events.",
+  "source": "@site/modules/telemetry.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/telemetry",
+  "permalink": "/docs/modules/telemetry",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/modules/telemetry.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Telemetry Module"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Faucet Module",
+    "permalink": "/docs/modules/faucet"
+  },
+  "next": {
+    "title": "WASM Contracts Module",
+    "permalink": "/docs/modules/wasm"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "modules/index",
+  "title": "Modules Overview",
+  "description": "Core and planned modules within the Dytallix network.",
+  "source": "@site/docs/modules/index.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/",
+  "permalink": "/docs/modules/",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/modules/index.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Modules Overview"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Security Roadmap",
+    "permalink": "/docs/security/roadmap"
+  },
+  "next": {
+    "title": "Staking Module",
+    "permalink": "/docs/modules/staking"
+  }
+}

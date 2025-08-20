@@ -1,0 +1,26 @@
+{
+  "id": "operators/monitoring-troubleshooting",
+  "title": "Monitoring & Troubleshooting",
+  "description": "Keep nodes healthy.",
+  "source": "@site/operators/monitoring-troubleshooting.md",
+  "sourceDirName": "operators",
+  "slug": "/operators/monitoring-troubleshooting",
+  "permalink": "/docs/operators/monitoring-troubleshooting",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/operators/monitoring-troubleshooting.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Monitoring & Troubleshooting"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Validator Node Setup",
+    "permalink": "/docs/operators/validator-node-setup"
+  },
+  "next": {
+    "title": "Upgrades & Resets",
+    "permalink": "/docs/operators/upgrades-resets"
+  }
+}

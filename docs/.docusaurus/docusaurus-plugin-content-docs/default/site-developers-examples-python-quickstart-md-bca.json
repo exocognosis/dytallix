@@ -1,0 +1,26 @@
+{
+  "id": "developers/examples/python-quickstart",
+  "title": "Python Quickstart",
+  "description": "Use the Python SDK.",
+  "source": "@site/developers/examples/python-quickstart.md",
+  "sourceDirName": "developers/examples",
+  "slug": "/developers/examples/python-quickstart",
+  "permalink": "/docs/developers/examples/python-quickstart",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/developers/examples/python-quickstart.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Python Quickstart"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "JS Quickstart",
+    "permalink": "/docs/developers/examples/js-quickstart"
+  },
+  "next": {
+    "title": "Go Quickstart",
+    "permalink": "/docs/developers/examples/go-quickstart"
+  }
+}

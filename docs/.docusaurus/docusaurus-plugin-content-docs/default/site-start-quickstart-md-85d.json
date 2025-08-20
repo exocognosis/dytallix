@@ -1,0 +1,26 @@
+{
+  "id": "start/quickstart",
+  "title": "Quickstart",
+  "description": "Get a node running and send your first transaction.",
+  "source": "@site/start/quickstart.md",
+  "sourceDirName": "start",
+  "slug": "/start/quickstart",
+  "permalink": "/docs/start/quickstart",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/start/quickstart.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Quickstart"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Overview",
+    "permalink": "/docs/start/overview"
+  },
+  "next": {
+    "title": "Testnet Rules",
+    "permalink": "/docs/start/testnet-rules"
+  }
+}

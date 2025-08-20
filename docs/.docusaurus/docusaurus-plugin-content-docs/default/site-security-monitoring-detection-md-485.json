@@ -1,0 +1,26 @@
+{
+  "id": "security/monitoring-detection",
+  "title": "Monitoring & Detection",
+  "description": "Telemetry",
+  "source": "@site/security/monitoring-detection.md",
+  "sourceDirName": "security",
+  "slug": "/security/monitoring-detection",
+  "permalink": "/docs/security/monitoring-detection",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/security/monitoring-detection.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Monitoring & Detection"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Application Security",
+    "permalink": "/docs/security/application-security"
+  },
+  "next": {
+    "title": "Incident Response",
+    "permalink": "/docs/security/incident-response"
+  }
+}

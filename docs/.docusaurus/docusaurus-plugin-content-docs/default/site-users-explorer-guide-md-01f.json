@@ -1,0 +1,26 @@
+{
+  "id": "users/explorer-guide",
+  "title": "Explorer Guide",
+  "description": "Use the explorer to inspect blocks and transactions.",
+  "source": "@site/users/explorer-guide.md",
+  "sourceDirName": "users",
+  "slug": "/users/explorer-guide",
+  "permalink": "/docs/users/explorer-guide",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/users/explorer-guide.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Explorer Guide"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Faucet Guide",
+    "permalink": "/docs/users/faucet-guide"
+  },
+  "next": {
+    "title": "Developer Walkthrough",
+    "permalink": "/docs/developers/dev-walkthrough"
+  }
+}

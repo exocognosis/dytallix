@@ -1,0 +1,33 @@
+name: docs-ci
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - 'openapi/**'
+      - 'legal/**'
+      - '.github/workflows/docs-ci.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'openapi/**'
+      - 'legal/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - run: npm install
+      - run: npm run docs:build
+      - run: npx linkinator docs/build --recurse --skip 'https://*'
+      - run: npx remark 'docs/**/*.md' 'docs/**/*.mdx'
+      - run: npx cspell 'docs/**/*.md' 'docs/**/*.mdx'
+      - run: npx @redocly/cli lint openapi/openapi.yaml
+      - name: Spellcheck
+        run: npx cspell "docs/**/*.md"
+      - name: Link Check
+        run: npx linkinator docs --timeout 10000 --retry 2 --verbosity error

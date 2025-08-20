@@ -1,0 +1,17 @@
+{
+  "id": "legal/licensing",
+  "title": "Licensing",
+  "description": "Code is released under the Apache-2.0 license. Modules may carry additional terms; see individual files.",
+  "source": "@site/legal/licensing.md",
+  "sourceDirName": "legal",
+  "slug": "/legal/licensing",
+  "permalink": "/docs/legal/licensing",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/legal/licensing.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Licensing"
+  }
+}

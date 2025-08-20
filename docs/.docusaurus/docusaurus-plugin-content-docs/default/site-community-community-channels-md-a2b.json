@@ -1,0 +1,26 @@
+{
+  "id": "community/community-channels",
+  "title": "Community Channels",
+  "description": "Stay connected during the public testnet.",
+  "source": "@site/community/community-channels.md",
+  "sourceDirName": "community",
+  "slug": "/community/community-channels",
+  "permalink": "/docs/community/community-channels",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/community/community-channels.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Community Channels"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "WASM Contracts Module",
+    "permalink": "/docs/modules/wasm"
+  },
+  "next": {
+    "title": "Contribution Guide",
+    "permalink": "/docs/community/contributing"
+  }
+}

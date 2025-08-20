@@ -1,0 +1,26 @@
+{
+  "id": "developers/examples/go-quickstart",
+  "title": "Go Quickstart",
+  "description": "Interact with Go client.",
+  "source": "@site/developers/examples/go-quickstart.md",
+  "sourceDirName": "developers/examples",
+  "slug": "/developers/examples/go-quickstart",
+  "permalink": "/docs/developers/examples/go-quickstart",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/developers/examples/go-quickstart.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Go Quickstart"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Python Quickstart",
+    "permalink": "/docs/developers/examples/python-quickstart"
+  },
+  "next": {
+    "title": "Validator Node Setup",
+    "permalink": "/docs/operators/validator-node-setup"
+  }
+}

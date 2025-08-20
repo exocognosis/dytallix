@@ -1,0 +1,26 @@
+{
+  "id": "modules/faucet",
+  "title": "Faucet Module",
+  "description": "Dispenses testnet tokens with abuse prevention.",
+  "source": "@site/docs/modules/faucet.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/faucet",
+  "permalink": "/docs/modules/faucet",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/modules/faucet.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Faucet Module"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Bridge Module",
+    "permalink": "/docs/modules/bridge"
+  },
+  "next": {
+    "title": "Telemetry Module",
+    "permalink": "/docs/modules/telemetry"
+  }
+}

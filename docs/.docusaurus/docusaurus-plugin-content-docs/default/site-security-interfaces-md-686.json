@@ -1,0 +1,15 @@
+{
+  "id": "security/INTERFACES",
+  "title": "Dytallix Security & Monitoring Interfaces",
+  "description": "Audit Logging (Rust)",
+  "source": "@site/security/INTERFACES.md",
+  "sourceDirName": "security",
+  "slug": "/security/INTERFACES",
+  "permalink": "/docs/security/INTERFACES",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/security/INTERFACES.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

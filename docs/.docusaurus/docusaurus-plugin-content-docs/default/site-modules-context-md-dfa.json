@@ -1,0 +1,15 @@
+{
+  "id": "modules/context",
+  "title": "Dytallix Project Context Document",
+  "description": "Name",
+  "source": "@site/modules/context.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/context",
+  "permalink": "/docs/modules/context",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/modules/context.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

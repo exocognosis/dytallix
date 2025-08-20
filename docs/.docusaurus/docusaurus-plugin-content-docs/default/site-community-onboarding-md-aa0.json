@@ -1,0 +1,15 @@
+{
+  "id": "community/ONBOARDING",
+  "title": "Dytallix Contributor Onboarding Guide",
+  "description": "Welcome to Dytallix! This guide will help you get started as a contributor.",
+  "source": "@site/community/ONBOARDING.md",
+  "sourceDirName": "community",
+  "slug": "/community/ONBOARDING",
+  "permalink": "/docs/community/ONBOARDING",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/community/ONBOARDING.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

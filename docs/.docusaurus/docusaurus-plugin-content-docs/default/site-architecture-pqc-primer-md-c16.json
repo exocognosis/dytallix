@@ -1,0 +1,26 @@
+{
+  "id": "architecture/pqc-primer",
+  "title": "PQC Primer",
+  "description": "Post-quantum cryptography protects against future quantum attacks. Dytallix uses lattice-based signatures for accounts and node keys.",
+  "source": "@site/architecture/pqc-primer.md",
+  "sourceDirName": "architecture",
+  "slug": "/architecture/pqc-primer",
+  "permalink": "/docs/architecture/pqc-primer",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/architecture/pqc-primer.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "PQC Primer"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Tokenomics (Testnet)",
+    "permalink": "/docs/architecture/tokenomics-testnet"
+  },
+  "next": {
+    "title": "Wallet Guide",
+    "permalink": "/docs/users/wallet-guide"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "developers/openapi",
+  "title": "OpenAPI Reference",
+  "description": "The full OpenAPI specification is maintained at openapi/openapi.yaml.",
+  "source": "@site/developers/openapi.md",
+  "sourceDirName": "developers",
+  "slug": "/developers/openapi",
+  "permalink": "/docs/developers/openapi",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/developers/openapi.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "OpenAPI Reference"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "API Reference",
+    "permalink": "/docs/developers/api-reference"
+  },
+  "next": {
+    "title": "WebSockets & gRPC",
+    "permalink": "/docs/developers/websockets-grpc"
+  }
+}

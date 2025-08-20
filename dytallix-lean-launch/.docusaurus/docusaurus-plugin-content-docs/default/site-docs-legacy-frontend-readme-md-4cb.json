@@ -1,0 +1,15 @@
+{
+  "id": "legacy-frontend-readme",
+  "title": "Legacy Frontend README",
+  "description": "This file contains references to the previous detailed frontend documentation that was in the main README.md before the repository standardization.",
+  "source": "@site/docs/legacy-frontend-readme.md",
+  "sourceDirName": ".",
+  "slug": "/legacy-frontend-readme",
+  "permalink": "/docs/legacy-frontend-readme",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/legacy-frontend-readme.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

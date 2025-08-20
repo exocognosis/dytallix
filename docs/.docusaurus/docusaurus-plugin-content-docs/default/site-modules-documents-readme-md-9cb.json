@@ -1,0 +1,15 @@
+{
+  "id": "modules/documents-README",
+  "title": "Blockchain Core",
+  "description": "The core blockchain implementation for Dytallix, built in Rust with Substrate-compatible modules.",
+  "source": "@site/modules/documents-README.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/documents-README",
+  "permalink": "/docs/modules/documents-README",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/modules/documents-README.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

@@ -1,0 +1,15 @@
+{
+  "id": "modules/vision",
+  "title": "Dytallix Vision Document",
+  "description": "Purpose",
+  "source": "@site/modules/vision.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/vision",
+  "permalink": "/docs/modules/vision",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/modules/vision.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

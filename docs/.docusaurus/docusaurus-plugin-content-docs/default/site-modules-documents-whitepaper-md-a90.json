@@ -1,0 +1,15 @@
+{
+  "id": "modules/documents-whitepaper",
+  "title": "Dytallix Technical Whitepaper",
+  "description": "Abstract",
+  "source": "@site/modules/documents-whitepaper.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/documents-whitepaper",
+  "permalink": "/docs/modules/documents-whitepaper",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/modules/documents-whitepaper.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

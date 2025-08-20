@@ -1,0 +1,26 @@
+{
+  "id": "modules/staking",
+  "title": "Staking Module",
+  "description": "Provides delegation, validator lifecycle, and reward distribution.",
+  "source": "@site/docs/modules/staking.md",
+  "sourceDirName": "modules",
+  "slug": "/modules/staking",
+  "permalink": "/docs/modules/staking",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/dytallix/dytallix-lean-launch/edit/main/docs/docs/modules/staking.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Staking Module"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Modules Overview",
+    "permalink": "/docs/modules/"
+  },
+  "next": {
+    "title": "Governance Module",
+    "permalink": "/docs/modules/governance"
+  }
+}
