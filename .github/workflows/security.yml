@@ -1,0 +1,73 @@
+---
+name: Security
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '17 3 * * *'
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  npm-audit:
+    name: NPM Audit
+    runs-on: ubuntu-latest
+    env:
+      ALLOW_AUDIT_FAIL: ${{ secrets.ALLOW_AUDIT_FAIL || 'false' }}
+      AUDIT_LEVEL: high
+    defaults:
+      run:
+        working-directory: dytallix-lean-launch
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: dytallix-lean-launch/package-lock.json
+      - name: Install
+        run: CYPRESS_INSTALL_BINARY=0 npm ci --no-audit
+      - name: Audit (fail on high unless overridden)
+        run: |
+          echo "Running npm audit --audit-level=${AUDIT_LEVEL}"
+          set +e
+          npm audit --audit-level=${AUDIT_LEVEL}
+          EXIT_CODE=$?
+          set -e
+          if [ "$EXIT_CODE" -ne 0 ] && [ "${ALLOW_AUDIT_FAIL}" != "true" ]; then
+            echo "High/Critical vulnerabilities found. Failing (ALLOW_AUDIT_FAIL=false)." >&2
+            exit 1
+          else
+            echo "Audit completed (exit=$EXIT_CODE). Override or clean vulnerabilities as needed."
+          fi
+  trivy:
+    name: Trivy Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: 'fs'
+          format: 'sarif'
+          output: 'trivy-fs.sarif'
+          severity: 'HIGH,CRITICAL'
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+      - name: Trivy Summary (table)
+        run: |
+          echo 'Trivy findings summary:'
+          grep -E 'Severity:|PkgName:' -n trivy-fs.sarif || true
+      - name: Upload raw SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sarif
+          path: trivy-fs.sarif
