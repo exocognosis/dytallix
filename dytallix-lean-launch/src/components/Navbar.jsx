@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import styles from '../styles/Navbar.module.css'
+import DarkModeToggle from './DarkModeToggle.jsx'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -27,7 +28,7 @@ const Navbar = () => {
     <nav className={styles.navbar}>
       <div className="container">
         <div className={styles.navContent}>
-          <Link to="/" className={styles.logo} aria-label="Dytallix Home">
+          <Link to="/" className={styles.logo} aria-label="Dytallix Home" data-test="nav-home">
             <div className={styles.logoBadge} aria-hidden="true">D</div>
             <span className={styles.logoText}>Dytallix</span>
           </Link>
@@ -35,6 +36,8 @@ const Navbar = () => {
           <div className={`${styles.navLinks} ${isMenuOpen ? styles.navLinksOpen : ''}`}>
             {navItems.map((item) => {
               const isActive = location.pathname === item.path
+              // Create data-test attribute based on path
+              const testId = item.path === '/' ? 'nav-home' : `nav-${item.path.substring(1)}`
               return (
                 <Link
                   key={item.path}
@@ -42,12 +45,15 @@ const Navbar = () => {
                   className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
                   onClick={() => setIsMenuOpen(false)}
                   aria-current={isActive ? 'page' : undefined}
+                  data-test={testId}
                 >
                   {item.label}
                 </Link>
               )
             })}
           </div>
+
+          <DarkModeToggle />
 
           <button
             className={styles.menuButton}

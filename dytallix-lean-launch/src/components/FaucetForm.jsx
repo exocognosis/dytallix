@@ -215,7 +215,12 @@ const FaucetForm = () => {
           Wallet Address 
           {connected ? '(Auto-detected)' : '(Paste bech32 address)'}
           {!connected && (
-            <button type="button" onClick={connectWallet} className={styles.connectButton}>
+            <button 
+              type="button" 
+              onClick={connectWallet} 
+              className={styles.connectButton}
+              data-test="wallet-connect"
+            >
               Connect Wallet
             </button>
           )}
@@ -230,7 +235,8 @@ const FaucetForm = () => {
           }}
           placeholder="dytallix1..." 
           className={styles.input} 
-          disabled={isLoading} 
+          disabled={isLoading}
+          data-test="wallet-address-input"
         />
       </div>
 
@@ -238,6 +244,7 @@ const FaucetForm = () => {
         type="submit" 
         disabled={isLoading || !address.trim() || anyCooldown} 
         className={`${styles.submitButton} ${isLoading ? styles.loading : ''}`}
+        data-test="faucet-submit"
       >
         {isLoading ? (
           <>
@@ -252,7 +259,10 @@ const FaucetForm = () => {
       </button>
 
       {message && (
-        <div className={`${styles.message} ${styles[messageType]}`}>
+        <div 
+          className={`${styles.message} ${styles[messageType]}`}
+          data-test="faucet-status"
+        >
           {message}
         </div>
       )}

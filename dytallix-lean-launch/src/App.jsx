@@ -42,6 +42,7 @@ function App() {
           <Route path="/explorer/tx/:hash" element={<Explorer />} />
           <Route path="/explorer/address/:addr" element={<Explorer />} />
           <Route path="/explorer/contract/:addr" element={<Explorer />} />
+          <Route path="/status" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analytics" element={<Dashboard />} />
           <Route path="/tech-stack" element={<TechStack />} />
