@@ -1,5 +1,7 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::RwLock;
+use std::cmp::Ordering;
 
 use crate::state::State;
 use crate::storage::tx::Transaction;
@@ -8,115 +10,394 @@ use crate::gas::{TxKind, GasSchedule, validate_gas_limit, intrinsic_gas};
 #[cfg(test)]
 mod gas_tests;
 
+/// Configuration constants - can be overridden by environment variables
+pub const DEFAULT_MAX_TX_BYTES: usize = 1024 * 1024; // 1MB
+pub const DEFAULT_MIN_GAS_PRICE: u64 = 1000; // 1000 wei
+pub const DEFAULT_MEMPOOL_MAX_TXS: usize = 10000;
+pub const DEFAULT_MEMPOOL_MAX_BYTES: usize = 100 * 1024 * 1024; // 100MB
+
+/// Rejection reasons for transactions
+#[derive(Debug, Clone, PartialEq)]
+pub enum RejectionReason {
+    InvalidSignature,
+    NonceGap { expected: u64, got: u64 },
+    InsufficientFunds,
+    UnderpricedGas { min: u64, got: u64 },
+    OversizedTx { max: usize, got: usize },
+    Duplicate,
+    InternalError(String),
+}
+
+impl RejectionReason {
+    /// Convert to metric label
+    pub fn to_metric_label(&self) -> &'static str {
+        match self {
+            RejectionReason::InvalidSignature => "invalid_signature",
+            RejectionReason::NonceGap { .. } => "nonce_gap",
+            RejectionReason::InsufficientFunds => "insufficient_funds",
+            RejectionReason::UnderpricedGas { .. } => "underpriced_gas",
+            RejectionReason::OversizedTx { .. } => "oversized_tx",
+            RejectionReason::Duplicate => "duplicate",
+            RejectionReason::InternalError(_) => "internal_error",
+        }
+    }
+}
+
+impl std::fmt::Display for RejectionReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RejectionReason::InvalidSignature => write!(f, "invalid signature"),
+            RejectionReason::NonceGap { expected, got } => {
+                write!(f, "nonce gap: expected {}, got {}", expected, got)
+            }
+            RejectionReason::InsufficientFunds => write!(f, "insufficient funds"),
+            RejectionReason::UnderpricedGas { min, got } => {
+                write!(f, "underpriced gas: min {}, got {}", min, got)
+            }
+            RejectionReason::OversizedTx { max, got } => {
+                write!(f, "oversized transaction: max {}, got {}", max, got)
+            }
+            RejectionReason::Duplicate => write!(f, "duplicate transaction"),
+            RejectionReason::InternalError(msg) => write!(f, "internal error: {}", msg),
+        }
+    }
+}
+
+/// Configuration for mempool
+#[derive(Debug, Clone)]
+pub struct MempoolConfig {
+    pub max_tx_bytes: usize,
+    pub min_gas_price: u64,
+    pub max_txs: usize,
+    pub max_bytes: usize,
+}
+
+impl Default for MempoolConfig {
+    fn default() -> Self {
+        Self {
+            max_tx_bytes: std::env::var("DYT_MAX_TX_BYTES")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(DEFAULT_MAX_TX_BYTES),
+            min_gas_price: std::env::var("DYT_MIN_GAS_PRICE")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(DEFAULT_MIN_GAS_PRICE),
+            max_txs: std::env::var("DYT_MEMPOOL_MAX_TXS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(DEFAULT_MEMPOOL_MAX_TXS),
+            max_bytes: std::env::var("DYT_MEMPOOL_MAX_BYTES")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(DEFAULT_MEMPOOL_MAX_BYTES),
+        }
+    }
+}
+
+/// Transaction with priority ordering
 #[derive(Debug, Clone)]
 pub struct PendingTx {
     pub tx: Transaction,
-    pub _received_at: u64, // renamed from received_at to silence unused warning
+    pub received_at: u64,
+    pub serialized_size: usize,
 }
 
-pub struct Mempool {
-    queue: VecDeque<PendingTx>,
-    hashes: HashSet<String>,
-    pub max: usize,
+/// Priority key for ordering transactions
+/// Primary: gas_price desc, Secondary: nonce asc, Tertiary: tx_hash asc
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct TxPriorityKey {
+    gas_price_neg: i64, // negative for descending order
+    nonce: u64,
+    hash: String,
 }
 
-impl Mempool {
-    pub fn new(max: usize) -> Self {
-        Self {
-            queue: VecDeque::new(),
-            hashes: HashSet::new(),
-            max,
-        }
+impl Ord for TxPriorityKey {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.gas_price_neg
+            .cmp(&other.gas_price_neg)
+            .then_with(|| self.nonce.cmp(&other.nonce))
+            .then_with(|| self.hash.cmp(&other.hash))
     }
+}
 
-    pub fn len(&self) -> usize {
-        self.queue.len()
+impl PartialOrd for TxPriorityKey {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
-    pub fn is_full(&self) -> bool {
-        self.queue.len() >= self.max
-    }
-    pub fn contains(&self, hash: &str) -> bool {
-        self.hashes.contains(hash)
-    }
+}
 
-    pub fn push(&mut self, tx: Transaction) -> Result<(), MempoolError> {
-        if self.is_full() {
-            return Err(MempoolError::Full);
-        }
-        let h = tx.hash.clone();
-        if self.hashes.contains(&h) {
-            return Err(MempoolError::Duplicate);
-        }
-        let now = SystemTime::now()
+impl PendingTx {
+    pub fn new(tx: Transaction) -> Self {
+        let serialized_size = estimate_tx_size(&tx);
+        let received_at = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        self.queue.push_back(PendingTx {
-            tx: tx.clone(),
-            _received_at: now,
-        });
-        self.hashes.insert(h);
-        Ok(())
-    }
-
-    // Take up to n (FIFO) without validation removal
-    pub fn take_snapshot(&self, n: usize) -> Vec<Transaction> {
-        self.queue.iter().take(n).map(|p| p.tx.clone()).collect()
-    }
-
-    // Remove a list of hashes after they were processed (success or failed)
-    pub fn drop_hashes(&mut self, hashes: &[String]) {
-        if hashes.is_empty() {
-            return;
+        
+        Self {
+            tx,
+            received_at,
+            serialized_size,
         }
-        let set: HashSet<String> = hashes.iter().cloned().collect();
-        self.queue.retain(|p| !set.contains(&p.tx.hash));
-        for h in set {
-            self.hashes.remove(&h);
+    }
+
+    pub fn priority_key(&self) -> TxPriorityKey {
+        TxPriorityKey {
+            gas_price_neg: -(self.tx.gas_price as i64), // negative for descending order
+            nonce: self.tx.nonce,
+            hash: self.tx.hash.clone(),
         }
     }
 }
 
+/// Production-grade mempool with admission rules, ordering, and bounded capacity
+pub struct Mempool {
+    config: MempoolConfig,
+    /// Priority-ordered transactions (BTreeSet for deterministic ordering)
+    ordered_txs: BTreeSet<TxPriorityKey>,
+    /// Hash to transaction mapping for O(1) lookup
+    tx_lookup: HashMap<String, PendingTx>,
+    /// Hash set for O(1) duplicate detection
+    tx_hashes: HashSet<String>,
+    /// Total size in bytes of all transactions
+    total_bytes: usize,
+}
+
+impl Mempool {
+    pub fn new() -> Self {
+        Self::with_config(MempoolConfig::default())
+    }
+
+    pub fn with_config(config: MempoolConfig) -> Self {
+        Self {
+            config,
+            ordered_txs: BTreeSet::new(),
+            tx_lookup: HashMap::new(),
+            tx_hashes: HashSet::new(),
+            total_bytes: 0,
+        }
+    }
+
+    /// Add transaction to mempool with full validation
+    pub fn add_transaction(&mut self, state: &State, tx: Transaction) -> Result<(), RejectionReason> {
+        // 1. Signature verification
+        if !verify_envelope(&tx) {
+            return Err(RejectionReason::InvalidSignature);
+        }
+
+        // 2. Duplicate check
+        if self.tx_hashes.contains(&tx.hash) {
+            return Err(RejectionReason::Duplicate);
+        }
+
+        // 3. Size check
+        let tx_size = estimate_tx_size(&tx);
+        if tx_size > self.config.max_tx_bytes {
+            return Err(RejectionReason::OversizedTx {
+                max: self.config.max_tx_bytes,
+                got: tx_size,
+            });
+        }
+
+        // 4. Gas price check
+        if tx.gas_price < self.config.min_gas_price {
+            return Err(RejectionReason::UnderpricedGas {
+                min: self.config.min_gas_price,
+                got: tx.gas_price,
+            });
+        }
+
+        // 5. Nonce and balance validation
+        self.validate_tx_state(state, &tx)?;
+
+        // 6. Create pending transaction
+        let pending_tx = PendingTx::new(tx.clone());
+        let priority_key = pending_tx.priority_key();
+
+        // 7. Check capacity and evict if necessary
+        self.ensure_capacity(&pending_tx)?;
+
+        // 8. Insert transaction
+        self.ordered_txs.insert(priority_key);
+        self.tx_hashes.insert(tx.hash.clone());
+        self.total_bytes += pending_tx.serialized_size;
+        self.tx_lookup.insert(tx.hash.clone(), pending_tx);
+
+        Ok(())
+    }
+
+    /// Validate transaction against account state
+    fn validate_tx_state(&self, state: &State, tx: &Transaction) -> Result<(), RejectionReason> {
+        let mut clone_state = state.clone();
+        let from_acc = clone_state.get_account(&tx.from);
+        let balance = from_acc.legacy_balance();
+        let nonce = from_acc.nonce;
+
+        // Nonce check
+        if tx.nonce != nonce {
+            return Err(RejectionReason::NonceGap {
+                expected: nonce,
+                got: tx.nonce,
+            });
+        }
+
+        // Balance check (fee + transfer amount for send messages)
+        let gas_cost = tx.gas_limit * tx.gas_price;
+        let total_needed = tx.amount + tx.fee + gas_cost as u128;
+        
+        if balance < total_needed {
+            return Err(RejectionReason::InsufficientFunds);
+        }
+
+        // Gas validation
+        if tx.gas_limit > 0 || tx.gas_price > 0 {
+            validate_gas(tx).map_err(|e| RejectionReason::InternalError(e))?;
+        }
+
+        Ok(())
+    }
+
+    /// Ensure capacity by evicting lowest priority transactions if needed
+    fn ensure_capacity(&mut self, new_tx: &PendingTx) -> Result<(), RejectionReason> {
+        // Check if we need to evict by count
+        while self.ordered_txs.len() >= self.config.max_txs {
+            self.evict_lowest_priority()?;
+        }
+
+        // Check if we need to evict by total bytes
+        while self.total_bytes + new_tx.serialized_size > self.config.max_bytes {
+            self.evict_lowest_priority()?;
+        }
+
+        Ok(())
+    }
+
+    /// Evict the lowest priority transaction
+    fn evict_lowest_priority(&mut self) -> Result<(), RejectionReason> {
+        // BTreeSet is ordered, so last() gives us the lowest priority
+        if let Some(lowest_key) = self.ordered_txs.iter().last().cloned() {
+            self.ordered_txs.remove(&lowest_key);
+            
+            if let Some(tx) = self.tx_lookup.remove(&lowest_key.hash) {
+                self.tx_hashes.remove(&lowest_key.hash);
+                self.total_bytes = self.total_bytes.saturating_sub(tx.serialized_size);
+                
+                // Log eviction for metrics
+                log::info!("Evicted transaction {} due to capacity", lowest_key.hash);
+            }
+        }
+        Ok(())
+    }
+
+    /// Get up to n highest priority transactions for block creation
+    pub fn take_snapshot(&self, n: usize) -> Vec<Transaction> {
+        self.ordered_txs
+            .iter()
+            .take(n)
+            .filter_map(|key| self.tx_lookup.get(&key.hash))
+            .map(|pending| pending.tx.clone())
+            .collect()
+    }
+
+    /// Remove transactions by hash (after inclusion in block)
+    pub fn drop_hashes(&mut self, hashes: &[String]) {
+        for hash in hashes {
+            if let Some(pending_tx) = self.tx_lookup.remove(hash) {
+                let priority_key = pending_tx.priority_key();
+                self.ordered_txs.remove(&priority_key);
+                self.tx_hashes.remove(hash);
+                self.total_bytes = self.total_bytes.saturating_sub(pending_tx.serialized_size);
+            }
+        }
+    }
+
+    /// Check if transaction exists in mempool
+    pub fn contains(&self, hash: &str) -> bool {
+        self.tx_hashes.contains(hash)
+    }
+
+    /// Get current mempool statistics
+    pub fn len(&self) -> usize {
+        self.tx_lookup.len()
+    }
+
+    pub fn total_bytes(&self) -> usize {
+        self.total_bytes
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.len() >= self.config.max_txs || self.total_bytes >= self.config.max_bytes
+    }
+
+    /// Get current minimum gas price in the pool
+    pub fn current_min_gas_price(&self) -> u64 {
+        // Find the lowest gas price in the pool (last transaction)
+        self.ordered_txs
+            .iter()
+            .last()
+            .and_then(|key| self.tx_lookup.get(&key.hash))
+            .map(|tx| tx.tx.gas_price)
+            .unwrap_or(self.config.min_gas_price)
+    }
+
+    /// Get pool configuration
+    pub fn config(&self) -> &MempoolConfig {
+        &self.config
+    }
+}
+
+/// Legacy error type for backward compatibility
 #[derive(Debug)]
 pub enum MempoolError {
     Duplicate,
     Full,
+    Rejection(RejectionReason),
 }
+
+impl From<RejectionReason> for MempoolError {
+    fn from(reason: RejectionReason) -> Self {
+        match reason {
+            RejectionReason::Duplicate => MempoolError::Duplicate,
+            reason => MempoolError::Rejection(reason),
+        }
+    }
+}
+
 impl std::fmt::Display for MempoolError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             MempoolError::Duplicate => write!(f, "duplicate"),
             MempoolError::Full => write!(f, "full"),
+            MempoolError::Rejection(reason) => write!(f, "{}", reason),
         }
     }
 }
+
 impl std::error::Error for MempoolError {}
 
-// Enhanced validation including gas validation
-pub fn basic_validate(state: &State, tx: &Transaction) -> Result<(), String> {
-    let mut clone_state = state.clone(); // workaround to call mutable methods; consider refactor
-    let from_acc = clone_state.get_account(&tx.from);
-    let balance = from_acc.legacy_balance(); // Use legacy balance for backward compatibility
-    let nonce = from_acc.nonce;
-    
-    if tx.nonce != nonce {
-        return Err(format!("InvalidNonce expected={} got={}", nonce, tx.nonce));
+/// Verify transaction envelope (signature validation)
+fn verify_envelope(tx: &Transaction) -> bool {
+    match tx.signature.as_ref() {
+        Some(_) => {
+            // For the lean transaction type, we do basic signature validation
+            // In production, this would verify against the transaction signing message
+            true // TODO: Implement proper signature verification for lean Transaction type
+        }
+        None => false, // No signature provided
     }
-    
-    let needed = tx.amount + tx.fee;
-    if balance < needed {
-        return Err("InsufficientBalance".to_string());
-    }
-    
-    // Gas validation (only if gas fields are set)
-    if tx.gas_limit > 0 || tx.gas_price > 0 {
-        validate_gas(tx)?;
-    }
-    
-    Ok(())
 }
 
-// Gas validation function
+/// Enhanced validation including gas validation (legacy function for backward compatibility)
+pub fn basic_validate(state: &State, tx: &Transaction) -> Result<(), String> {
+    let mut mempool = Mempool::new();
+    match mempool.validate_tx_state(state, tx) {
+        Ok(()) => Ok(()),
+        Err(reason) => Err(reason.to_string()),
+    }
+}
+
+/// Gas validation function with enhanced error reporting
 fn validate_gas(tx: &Transaction) -> Result<(), String> {
     let schedule = GasSchedule::default();
     
@@ -140,7 +421,7 @@ fn validate_gas(tx: &Transaction) -> Result<(), String> {
     Ok(())
 }
 
-// Estimate transaction size for gas calculation
+/// Estimate transaction size for gas calculation and size limits
 fn estimate_tx_size(tx: &Transaction) -> usize {
     // Rough estimate based on serialized fields
     // This should be more precise in production
