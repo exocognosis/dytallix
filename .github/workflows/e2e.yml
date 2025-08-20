@@ -1,0 +1,14 @@
+---
+name: E2E Tests (Placeholder)
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder
+        run: |
+          echo 'No Cypress/Playwright tests yet. Add tests and update this workflow.'
