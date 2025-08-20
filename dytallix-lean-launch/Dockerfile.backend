@@ -1,0 +1,26 @@
+# Dytallix Backend Production Dockerfile
+FROM node:20-alpine AS backend
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy application code
+COPY server/ ./server/
+COPY . ./
+
+# Create non-root user
+RUN addgroup -g 1001 -S dytallix && \
+    adduser -S dytallix -u 1001
+
+# Create logs directory
+RUN mkdir -p /var/log/dytallix && \
+    chown dytallix:dytallix /var/log/dytallix
+
+USER dytallix
+
+EXPOSE 8787
+
+CMD ["node", "server/index.js"]

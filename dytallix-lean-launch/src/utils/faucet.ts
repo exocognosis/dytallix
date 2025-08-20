@@ -23,6 +23,14 @@ export async function requestCosmosFaucet(address: string, token: 'DGT' | 'DRT' 
   const nodeUrl = (globalThis as any)?.process?.env?.FAUCET_URL
   const url = viteUrl || nodeUrl || '/api/faucet'
   if (!url) throw new Error('Missing FAUCET_URL')
+  
+  // Production security guard: prevent localhost/http URLs in production
+  const isProduction = (import.meta as any)?.env?.NODE_ENV === 'production' || 
+                      (globalThis as any)?.process?.env?.NODE_ENV === 'production'
+  if (isProduction && (url.includes('localhost') || url.startsWith('http://'))) {
+    throw new Error('Production security violation: faucet URL must be HTTPS non-localhost')
+  }
+  
   const body = JSON.stringify({ address, token })
   const res = await withTimeout(fetch(url, {
     method: 'POST',

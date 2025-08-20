@@ -1,0 +1,21 @@
+dytallix.com, www.dytallix.com {
+  encode gzip
+  root * /var/www/dytallix
+  tls youremail@example.com {
+    protocols tls1.2 tls1.3
+  }
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Referrer-Policy "no-referrer"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    X-XSS-Protection "1; mode=block"
+    Content-Security-Policy "default-src 'self'; connect-src 'self' https: wss:; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; upgrade-insecure-requests"
+  }
+  @api path /api/*
+  handle @api { reverse_proxy backend:8787 }
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}

@@ -4,6 +4,11 @@ import dotenv from 'dotenv'
 import { requestLogger, logError, logInfo } from './logger.js'
 import { assertNotLimited, markGranted } from './rateLimit.js'
 import { transfer, getMaxFor } from './transfer.js'
+// Production deployment enhancements
+import { logger, logRequest } from './logging.js'
+import { configureCors } from './cors.js'
+import { securityHeaders } from './security.js'
+import { registerHealth } from './health.js'
 
 /*
  * Dytallix Minimal Server / Faucet + Dashboard API
@@ -28,6 +33,9 @@ const app = express()
 const PORT = process.env.PORT || 8787
 const ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:5173'
 const COOLDOWN_MIN = parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10)
+
+// Check if using new CORS configuration
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
 const ENABLE_SEC_HEADERS = process.env.ENABLE_SEC_HEADERS === '1'
 const ENABLE_CSP = process.env.ENABLE_CSP === '1' || ENABLE_SEC_HEADERS
 const BECH32_PREFIX = process.env.CHAIN_PREFIX || process.env.BECH32_PREFIX || 'dytallix'
@@ -87,9 +95,35 @@ if (ENABLE_SEC_HEADERS) {
   logInfo('Security headers enabled', { ENABLE_CSP })
 }
 
-app.use(cors({ origin: ORIGIN }))
+// Enhanced security and logging configuration 
 app.use(express.json({ limit: '110kb' }))
-app.use(requestLogger)
+
+// Use enhanced modules if in production environment
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  // Use structured logging in production
+  app.use(logRequest)
+  // Use multi-origin CORS in production
+  if (ALLOWED_ORIGINS) {
+    configureCors(app)
+  } else {
+    app.use(cors({ origin: ORIGIN }))
+  }
+  // Apply security headers
+  securityHeaders(app)
+  // Register health endpoint
+  registerHealth(app, logger)
+} else {
+  // Development mode - keep existing behavior
+  app.use(cors({ origin: ORIGIN }))
+  app.use(requestLogger)
+}
+
+// Fallback health endpoint for non-production environments
+if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
+  app.get('/api/health', (req, res) => {
+    res.json({ ok: true, service: 'dytallix-backend', env: 'development' })
+  })
+}
 
 const sanitizeToken = (t) => (typeof t === 'string' ? t.trim().toUpperCase() : '')
 
