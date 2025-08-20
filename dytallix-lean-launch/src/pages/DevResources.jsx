@@ -10,7 +10,7 @@ const DevResources = () => {
         { title: "Dytallix SDK", description: "Complete software development kit for building on Dytallix", link: "https://github.com/dytallix/sdk", type: "GitHub" },
         { title: "CLI Tools", description: "Command-line interface for interacting with the blockchain", link: "https://github.com/dytallix/cli", type: "GitHub" },
         { title: "Smart Contract Templates", description: "Pre-built contract templates for common use cases", link: "https://github.com/dytallix/contracts", type: "GitHub" },
-        { title: "API Documentation", description: "Complete REST API reference and GraphQL endpoints", link: "https://docs.dytallix.com/api", type: "Documentation" }
+        { title: "API Documentation", description: "Complete REST API reference and GraphQL endpoints", link: "/docs", type: "Internal" }
       ]
     },
     {
@@ -27,17 +27,26 @@ const DevResources = () => {
       items: [
         { title: "Discord Server", description: "Join our developer community for support and discussions", link: "https://discord.gg/dytallix", type: "Community" },
         { title: "Developer Forum", description: "Ask questions and share knowledge with other developers", link: "https://forum.dytallix.com", type: "Community" },
-        { title: "GitHub Organization", description: "Main repository with all open-source projects", link: "https://github.com/dytallix", type: "GitHub" },
+        { title: "GitHub Organization", description: "Main repository with all open-source projects", link: "https://github.com/HisMadRealm/dytallix", type: "GitHub" },
         { title: "Bug Bounty Program", description: "Report security vulnerabilities and earn rewards", link: "https://bounty.dytallix.com", type: "Program" }
       ]
     },
     {
       category: "Learning Resources",
       items: [
-        { title: "Getting Started Guide", description: "Step-by-step tutorial for new developers", link: "https://docs.dytallix.com/getting-started", type: "Documentation" },
+        { title: "Getting Started Guide", description: "Step-by-step tutorial for new developers", link: "/docs", type: "Internal" },
         { title: "Video Tutorials", description: "Video series covering blockchain development basics", link: "https://youtube.com/dytallix", type: "Video" },
-        { title: "Example Projects", description: "Sample applications built on Dytallix", link: "https://github.com/dytallix/examples", type: "GitHub" },
-        { title: "Whitepaper", description: "Technical whitepaper explaining our architecture", link: "https://dytallix.com/whitepaper.pdf", type: "PDF" }
+        { title: "Example Projects", description: "Sample applications built on Dytallix", link: "https://github.com/HisMadRealm/dytallix/tree/main/examples", type: "GitHub" },
+        { title: "Whitepaper", description: "Technical whitepaper explaining our architecture", link: "/whitepaper.pdf", type: "PDF" }
+      ]
+    },
+    {
+      category: "Developer Resources",
+      items: [
+        { title: "GitHub Repository", description: "Main Dytallix repository with source code", link: "https://github.com/HisMadRealm/dytallix", type: "GitHub" },
+        { title: "Documentation Root", description: "Complete documentation and guides", link: "/docs", type: "Internal" },
+        { title: "Whitepaper PDF", description: "Technical architecture and design whitepaper", link: "/whitepaper.pdf", type: "PDF" },
+        { title: "Changelog", description: "Version history and release notes", link: "/changelog", type: "Internal" }
       ]
     }
   ]

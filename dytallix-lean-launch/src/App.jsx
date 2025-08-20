@@ -9,6 +9,9 @@ import TechStack from './pages/TechStack.jsx'
 import Modules from './pages/Modules.jsx'
 import Roadmap from './pages/Roadmap.jsx'
 import DevResources from './pages/DevResources.jsx'
+import Documentation from './pages/Documentation.jsx'
+import Changelog from './pages/Changelog.jsx'
+import NotFound from './pages/NotFound.jsx'
 import { validateConfig } from './config/cosmos.js'
 import Wallet from './pages/Wallet.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -47,12 +50,16 @@ function App() {
           <Route path="/modules" element={<Modules />} />
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/dev-resources" element={<DevResources />} />
+          <Route path="/docs" element={<Documentation />} />
+          <Route path="/changelog" element={<Changelog />} />
           {/* Updated module routes */}
           <Route path="/pulseguard" element={<PulseGuard />} />
           <Route path="/flowrate" element={<FlowRate />} />
           <Route path="/stakebalancer" element={<StakeBalancer />} />
           <Route path="/netflux" element={<NetFlux />} />
           <Route path="/codeshield" element={<CodeShield />} />
+          {/* 404 catch-all route */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
