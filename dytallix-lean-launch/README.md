@@ -104,6 +104,9 @@ For detailed information, see [`docs/GAS.md`](docs/GAS.md).
 - Strict ignore rules to prevent secret leakage (.env*, build caches, artifacts tmp).
 - Rate-limited faucet with configurable per-request caps & cooldown.
 
+## Security Policy
+See [SECURITY.md](SECURITY.md) for coordinated vulnerability disclosure guidelines.
+
 ## Contribution Workflow
 ```bash
 # From mv-testnet

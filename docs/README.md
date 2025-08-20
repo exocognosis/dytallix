@@ -1,65 +1,37 @@
-# Dytallix Blockchain
+---
+title: "Dytallix Public Testnet Docs"
+---
 
-A next-generation blockchain platform featuring post-quantum cryptography, AI-powered oracles, and advanced consensus mechanisms.
+# Dytallix Public Testnet Docs
 
-## Overview
+Start here for all public testnet information. Use the tiles below to jump to a section.
 
-Dytallix is a revolutionary blockchain platform that combines:
-- Post-quantum cryptographic security
-- AI-powered oracle services
-- Advanced consensus mechanisms
-- Smart contract capabilities
-- Modular architecture for scalability
+> Last updated: 2025-08-20
 
-## Quick Start
+## Sections
+
+- [Start](start/overview.md)
+- [Developers](developers/dev-walkthrough.md)
+- [Operators](operators/validator-node-setup.md)
+- [Security](security/overview.md)
+- [Modules](modules/index.md)
+- [Community](community/community-channels.md)
+
+## Build commands
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd dytallix
-
-# Build the blockchain core
-cd blockchain-core
-cargo build --release
-
-# Run the blockchain node
-cargo run --release
+# install deps
+npm install
+# start local docs
+npm run docs:dev
+# production build
+npm run docs:build
 ```
 
-## Architecture
+## Run locally
 
-The project is organized into the following modules:
+```bash
+npm run docs:dev
+```
 
-- **blockchain-core**: Core blockchain functionality and consensus
-- **ai-services**: AI oracle services and risk scoring
-- **smart-contracts**: Smart contract runtime and execution
-- **pqc-crypto**: Post-quantum cryptographic primitives
-- **wallet**: Wallet implementation and CLI tools
-- **developer-tools**: Development utilities and CLI
-- **frontend**: Web interface and explorer
-- **security**: Security monitoring and audit tools
-- **governance**: Governance mechanisms and voting
-- **interoperability**: Cross-chain communication
-- **devops**: Deployment and infrastructure tools
-- **community**: Community resources and proposals
-
-## Documentation
-
-All documentation has been moved to the `docs/` directory:
-
-- [API Reference](docs/API_REFERENCE.md)
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [Development Guide](docs/Development.md)
-- [Contributing Guidelines](docs/CONTRIBUTING.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Whitepaper](docs/whitepaper.md)
-
-Module-specific documentation can be found in the corresponding subdirectories under `docs/`.
-
-## Contributing
-
-Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines on how to contribute to the project.
-
-## License
-
-This project is licensed under the terms specified in the [LICENSE](LICENSE) file.
+Next: [Overview](start/overview.md)

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { generateKeypair, pubkeyFromSecret } from '../lib/crypto/pqc.js'
+import { generateKeypair, pubkeyFromSecret } from '../crypto/pqc/pqc.ts'
 import { deriveAddress } from '../lib/crypto/address.js'
 import {
   saveKeystore,
@@ -12,7 +12,7 @@ import {
   decryptKeystoreToSecret,
   importKeystore as parseKeystore,
   exportKeystore as serializeKeystore,
-} from '../wallet/Keystore'
+} from '../wallet/Keystore.ts'
 
 export function useWallet() {
   const [state, setState] = useState(() => {

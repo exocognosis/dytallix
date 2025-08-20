@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { getBlockHeight } from '../lib/api.js'
-import { TOKENS as TOKENOMICS } from '../tokenomics'
+import { TOKENS as TOKENOMICS } from '../tokenomics/index.ts'
 
 // SendTx: amount/denom selector, fee estimate, confirm modal, result panel (tx hash + block height)
 export default function SendTx({ wallet, balances, onEstimate, onSignAndSubmit }) {

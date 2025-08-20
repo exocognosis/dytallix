@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import { connectWS } from '../lib/ws.js'
-import { _util } from '../lib/crypto/pqc.js'
-import { sign as pqcSign } from '../lib/crypto/pqc.js'
+import * as PQC from '../crypto/pqc/pqc.ts'
 
 export function useTx({ wallet, getSecret }) {
   const [status, setStatus] = useState('idle')
   const [lastHash, setLastHash] = useState('')
   const [error, setError] = useState('')
+
+  const encoder = new TextEncoder()
 
   const estimate = useCallback(async (payload) => {
     const res = await api('/api/tx/estimate', { method: 'POST', body: JSON.stringify(payload) })
@@ -17,10 +18,14 @@ export function useTx({ wallet, getSecret }) {
   const sign = useCallback(async (payload) => {
     const skB64 = getSecret?.()
     if (!skB64) throw new Error('Locked')
-    const msg = _util.enc.encode(JSON.stringify(payload))
-    const sigB64 = await pqcSign(wallet.algo, skB64, msg)
+    const msg = encoder.encode(JSON.stringify(payload))
+    // Decode base64 secret key; adapter expects Uint8Array secret key; fallback if facade signature API differs.
+    const sk = Uint8Array.from(atob(skB64), c => c.charCodeAt(0))
+    // For simplicity assume Dilithium (wallet.algo) sign via PQC facade once implemented; placeholder base64 output
+    const sig = await PQC.sign(wallet.algo, sk, msg)
+    const sigB64 = btoa(String.fromCharCode(...sig))
     return { payload, from: wallet.address, pubkey: wallet.publicKey, algo: wallet.algo, signature: sigB64 }
-  }, [wallet, getSecret])
+  }, [wallet, getSecret, encoder])
 
   const submit = useCallback(async (signed) => {
     setStatus('submitting'); setError('')
@@ -34,7 +39,6 @@ export function useTx({ wallet, getSecret }) {
 
   const track = useCallback((hash, onUpdate) => {
     if (!hash) return () => {}
-    let stopped = false
     ;(async () => {
       try {
         const first = await api(`/api/tx/${hash}`)
@@ -46,11 +50,11 @@ export function useTx({ wallet, getSecret }) {
       ws.onmessage = (ev) => {
         try {
           const data = JSON.parse(ev.data)
-          if (data?.type === 'tx_status' && data.hash === hash) onUpdate?.(data)
+            if (data?.type === 'tx_status' && data.hash === hash) onUpdate?.(data)
         } catch {}
       }
     }
-    return () => { try { ws?.close() } catch {} ; stopped = true }
+    return () => { try { ws?.close() } catch {} }
   }, [])
 
   return { estimate, sign, submit, track, status, lastHash, error }

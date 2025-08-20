@@ -118,3 +118,8 @@ reports/*.tmp
 # Track reports and changelog
 !reports/
 !reports/CHANGELOG.md
+
+# Docusaurus build output
+.docs-build/
+# Spell checker cache
+.cspell-cache/

@@ -404,8 +404,8 @@ const Modules = () => {
                     >
                       {/* BEGIN scanner content (unchanged) */}
                       <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>🛡️ CodeShield</h2>
-                        <p className="muted" style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>Paste your smart contract code and run a static analysis to detect vulnerabilities.</p>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>🛡️ CodeShield - Smart Contract Analysis</h2>
+                        <p className="muted" style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>Paste your smart contract code and run an analysis to detect vulnerabilities.</p>
                       </div>
                       <div style={{ display: 'grid', gap: 12 }}>
                         <div style={{ position:'relative' }}>

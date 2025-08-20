@@ -165,3 +165,7 @@ function ub64(s: string) {
 }
 
 export async function init(config: PQCFacadeConfig) { await getModule(config.algo) }
+
+// Compatibility exports for legacy/fallback callers expecting generateKeypair & pubkeyFromSecret
+export async function generateKeypair(algo: PQCAlgo) { return keygen(algo) }
+export function pubkeyFromSecret(): never { throw new Error('pubkeyFromSecret unsupported in real PQC facade; provide public key explicitly') }
