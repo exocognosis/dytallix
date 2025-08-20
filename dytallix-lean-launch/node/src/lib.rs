@@ -12,5 +12,6 @@ pub mod gas; // gas accounting system
 pub mod execution; // deterministic execution engine
 pub mod metrics; // observability module
 pub mod alerts; // alerting subsystem
+pub mod p2p; // p2p networking and gossip
             // re-export emission types
 pub use runtime::emission::*;

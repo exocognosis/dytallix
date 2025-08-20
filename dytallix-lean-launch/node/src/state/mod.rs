@@ -59,6 +59,22 @@ impl State {
             storage,
         }
     }
+
+    /// Test helper: create state without storage for testing
+    #[cfg(test)]
+    pub fn new_for_test() -> Self {
+        use std::sync::Arc;
+        use tempfile::TempDir;
+        
+        // Create a temporary storage for testing
+        let temp_dir = TempDir::new().expect("Failed to create temp dir");
+        let storage = Arc::new(Storage::open(temp_dir.path().to_path_buf()).expect("Failed to create storage"));
+        
+        Self {
+            accounts: HashMap::new(),
+            storage,
+        }
+    }
     
     pub fn get_account(&mut self, addr: &str) -> AccountState {
         // lazy load DB
@@ -152,5 +168,11 @@ impl State {
         a.nonce += 1;
         self.accounts.insert(addr.to_string(), a.clone());
         let _ = self.storage.set_nonce_db(addr, a.nonce);
+    }
+
+    /// Test helper: set account balance for testing (uses default denomination)
+    #[cfg(test)]
+    pub fn set_account_balance(&mut self, addr: &str, amount: u128) {
+        self.set_balance(addr, "udgt", amount);
     }
 }

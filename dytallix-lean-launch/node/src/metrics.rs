@@ -148,7 +148,15 @@ pub struct Metrics {
     // Transaction metrics  
     pub total_transactions: IntCounter,
     pub mempool_size: IntGauge,
+    pub mempool_bytes: IntGauge,
     pub transaction_processing_time: Histogram,
+    
+    // Mempool-specific metrics
+    pub mempool_admitted_total: IntCounter,
+    pub mempool_rejected_total: prometheus::IntCounterVec,
+    pub mempool_evicted_total: prometheus::IntCounterVec,
+    pub mempool_current_min_gas_price: IntGauge,
+    pub mempool_gossip_duplicates_total: IntCounter,
     
     // Gas metrics
     pub total_gas_used: IntCounter,
@@ -201,12 +209,55 @@ impl Metrics {
             "Current number of pending transactions in mempool"
         ))?;
         registry.register(Box::new(mempool_size.clone()))?;
+
+        let mempool_bytes = IntGauge::with_opts(Opts::new(
+            "dytallix_mempool_bytes",
+            "Current total bytes of pending transactions in mempool"
+        ))?;
+        registry.register(Box::new(mempool_bytes.clone()))?;
         
         let transaction_processing_time = Histogram::with_opts(HistogramOpts::new(
             "dytallix_transaction_processing_seconds",
             "Time spent processing individual transactions"
         ))?;
         registry.register(Box::new(transaction_processing_time.clone()))?;
+
+        // Mempool-specific metrics
+        let mempool_admitted_total = IntCounter::with_opts(Opts::new(
+            "dytallix_mempool_admitted_total",
+            "Total number of transactions admitted to mempool"
+        ))?;
+        registry.register(Box::new(mempool_admitted_total.clone()))?;
+
+        let mempool_rejected_total = prometheus::IntCounterVec::new(
+            Opts::new(
+                "dytallix_mempool_rejected_total",
+                "Total number of transactions rejected by mempool"
+            ),
+            &["reason"]
+        )?;
+        registry.register(Box::new(mempool_rejected_total.clone()))?;
+
+        let mempool_evicted_total = prometheus::IntCounterVec::new(
+            Opts::new(
+                "dytallix_mempool_evicted_total",
+                "Total number of transactions evicted from mempool"
+            ),
+            &["reason"]
+        )?;
+        registry.register(Box::new(mempool_evicted_total.clone()))?;
+
+        let mempool_current_min_gas_price = IntGauge::with_opts(Opts::new(
+            "dytallix_mempool_current_min_gas_price",
+            "Current minimum gas price in the mempool"
+        ))?;
+        registry.register(Box::new(mempool_current_min_gas_price.clone()))?;
+
+        let mempool_gossip_duplicates_total = IntCounter::with_opts(Opts::new(
+            "dytallix_mempool_gossip_duplicates_total",
+            "Total number of duplicate transactions suppressed in gossip"
+        ))?;
+        registry.register(Box::new(mempool_gossip_duplicates_total.clone()))?;
         
         // Gas metrics
         let total_gas_used = IntCounter::with_opts(Opts::new(
@@ -258,7 +309,13 @@ impl Metrics {
             block_processing_time,
             total_transactions,
             mempool_size,
+            mempool_bytes,
             transaction_processing_time,
+            mempool_admitted_total,
+            mempool_rejected_total,
+            mempool_evicted_total,
+            mempool_current_min_gas_price,
+            mempool_gossip_duplicates_total,
             total_gas_used,
             current_block_gas,
             oracle_latency,
@@ -277,9 +334,38 @@ impl Metrics {
         self.block_processing_time.observe(processing_time.as_secs_f64());
     }
     
-    /// Update mempool size
+    /// Update mempool size and bytes
     pub fn update_mempool_size(&self, size: usize) {
         self.mempool_size.set(size as i64);
+    }
+
+    pub fn update_mempool_bytes(&self, bytes: usize) {
+        self.mempool_bytes.set(bytes as i64);
+    }
+
+    /// Record mempool admission
+    pub fn record_mempool_admission(&self) {
+        self.mempool_admitted_total.inc();
+    }
+
+    /// Record mempool rejection with reason
+    pub fn record_mempool_rejection(&self, reason: &str) {
+        self.mempool_rejected_total.with_label_values(&[reason]).inc();
+    }
+
+    /// Record mempool eviction with reason
+    pub fn record_mempool_eviction(&self, reason: &str) {
+        self.mempool_evicted_total.with_label_values(&[reason]).inc();
+    }
+
+    /// Update current minimum gas price in mempool
+    pub fn update_mempool_min_gas_price(&self, gas_price: u64) {
+        self.mempool_current_min_gas_price.set(gas_price as i64);
+    }
+
+    /// Record gossip duplicate suppression
+    pub fn record_gossip_duplicate(&self) {
+        self.mempool_gossip_duplicates_total.inc();
     }
     
     /// Record transaction processing time
@@ -319,6 +405,12 @@ impl Metrics {
     
     pub fn record_block(&self, _height: u64, _tx_count: usize, _gas_used: u64, _processing_time: Duration) {}
     pub fn update_mempool_size(&self, _size: usize) {}
+    pub fn update_mempool_bytes(&self, _bytes: usize) {}
+    pub fn record_mempool_admission(&self) {}
+    pub fn record_mempool_rejection(&self, _reason: &str) {}
+    pub fn record_mempool_eviction(&self, _reason: &str) {}
+    pub fn update_mempool_min_gas_price(&self, _gas_price: u64) {}
+    pub fn record_gossip_duplicate(&self) {}
     pub fn record_transaction(&self, _processing_time: Duration) {}
     pub fn record_oracle_update(&self, _latency: Duration) {}
     pub fn update_emission_pool(&self, _pool_size: f64) {}
