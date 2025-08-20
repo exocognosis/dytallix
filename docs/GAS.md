@@ -270,6 +270,125 @@ All gas calculations must be:
 3. **Consistent**: Gas costs remain stable across minor software updates
 4. **Verifiable**: Gas usage can be independently verified
 
+### Gas Accounting Test Suite
+
+The gas accounting system is validated through comprehensive testing:
+
+#### Unit Tests (`node/tests/gas_accounting_unit.rs`)
+
+**Upfront Fee Deduction Tests:**
+- ✅ Successful transaction with sufficient balance charges `gas_limit × gas_price`
+- ✅ Insufficient balance transactions fail without charging fees
+- ✅ Fee calculation handles overflow conditions safely
+- ✅ Legacy transaction compatibility maintained
+
+**Out-of-Gas (OOG) Handling Tests:**
+- ✅ OOG transactions revert all state changes except fee deduction
+- ✅ Gas consumption recorded accurately before OOG failure
+- ✅ Receipt indicates failure with appropriate error message
+- ✅ Full fee charged even on OOG failure
+
+**Receipt Creation Tests:**
+- ✅ All receipt fields populated correctly (version, hash, gas usage, etc.)
+- ✅ Receipt determinism across identical executions
+- ✅ Gas refund always zero (as per specification)
+- ✅ Status reflects actual transaction outcome
+
+**Boundary Condition Tests:**
+- ✅ Gas price variations (minimum=1, high values)
+- ✅ Gas limit enforcement (intrinsic minimums, low limits)
+- ✅ Fee calculation overflow protection
+- ✅ Nonce validation and error handling
+
+#### Integration Tests (`node/tests/gas_execution_integration.rs`)
+
+**Block Replay Determinism:**
+- ✅ Identical initial state + same transactions = identical final state
+- ✅ State root determinism across multiple replay attempts
+- ✅ Receipt hash consistency for identical executions
+- ✅ Transaction ordering produces deterministic results
+
+**Mixed Transaction Scenarios:**
+- ✅ Successful transfers charge appropriate fees
+- ✅ Failed transfers (insufficient funds) don't charge fees
+- ✅ OOG transactions charge full fee but revert state
+- ✅ State isolation between transactions maintained
+
+**Gas Metering Consistency:**
+- ✅ Identical operations consume identical gas across runs
+- ✅ Gas consumption independent of execution timing
+- ✅ No randomness in gas calculations
+- ✅ Integer arithmetic used throughout (no floating point)
+
+#### Determinism Testing Harness (`scripts/test-gas.sh`)
+
+**End-to-End Determinism Validation:**
+- 🎯 Node startup with clean data directory
+- 🎯 Scripted transaction set submission
+- 🎯 State root capture after execution
+- 🎯 Node kill and restart process
+- 🎯 Transaction replay on fresh database
+- 🎯 State root and receipt hash comparison
+- 🎯 Clear exit codes (0=success, non-zero=failure)
+
+**Test Scenarios Covered:**
+
+1. **Successful Transaction with Sufficient Gas**
+   - Transfer executes completely
+   - Full fee charged: `gas_limit × gas_price`
+   - State updated: balances and nonces
+   - Receipt: `success=true`, actual gas usage recorded
+
+2. **Transaction Failure with Sufficient Gas**
+   - Transaction logic fails (e.g., invalid operation)
+   - Full fee still charged: `gas_limit × gas_price`
+   - State reverted except fee deduction
+   - Receipt: `success=false`, error message included
+
+3. **Out-of-Gas Transaction**
+   - Execution runs until gas exhausted
+   - All state changes reverted (full revert semantics)
+   - Full fee charged: `gas_limit × gas_price`
+   - Receipt: `success=false`, `gas_used` = actual consumption before OOG
+
+4. **Replay Determinism with Multiple Transaction Types**
+   - Same block applied on fresh DB yields identical state root
+   - Receipt hashes identical across replays
+   - Gas usage patterns identical
+   - No temporal dependencies in execution
+
+5. **Gas Price Variations and Fee Calculations**
+   - Minimum gas price (1 datt) handled correctly
+   - High gas prices calculated without overflow
+   - Fee arithmetic uses safe u128 operations
+   - Deterministic fee charging regardless of price
+
+6. **Gas Limit Boundary Conditions**
+   - Transactions with gas_limit at intrinsic requirement
+   - Transactions with gas_limit below intrinsic (fail appropriately)
+   - Maximum gas_limit values handled safely
+   - Consistent behavior across boundary conditions
+
+### Tested Invariants
+
+1. **Upfront Fee Deduction**: `fee = gas_limit × gas_price` charged on both success and failure
+2. **OOG Full Revert**: No state writes on gas exhaustion; `receipt.success=false`; fee charged
+3. **Replay Determinism**: Same block + fresh DB = identical state root and receipts
+4. **Fee Determinism**: Identical transactions always charge identical fees
+5. **No Refunds**: `gas_refund` always equals 0 (no gas refunds implemented)
+6. **Integer Arithmetic**: All calculations use deterministic integer math (no floating point)
+7. **State Isolation**: Failed transactions don't affect other transaction execution
+8. **Nonce Progression**: Account nonces advance deterministically with successful transactions
+
+### CI Integration
+
+Gas tests run automatically in CI pipeline:
+- Unit tests execute on every PR and push
+- Integration tests validate determinism properties  
+- Shell harness tests end-to-end determinism scenarios
+- Tests run in clean environments with appropriate timeouts
+- Test results uploaded as artifacts for analysis
+
 ## References
 
 - Gas implementation: `node/src/gas.rs`

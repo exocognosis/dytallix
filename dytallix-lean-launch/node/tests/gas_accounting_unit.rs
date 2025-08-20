@@ -235,3 +235,253 @@ fn test_invalid_nonce_handling() {
     assert!(result.receipt.error.as_ref().unwrap().contains("InvalidNonce"));
     assert_eq!(result.gas_used, 0);
 }
+
+#[test]
+fn test_gas_price_boundary_conditions() {
+    let mut state = create_test_state();
+    let gas_schedule = GasSchedule::default();
+    
+    state.set_balance("alice", "udgt", u128::MAX);
+    
+    // Test with gas_price = 1 (minimum)
+    let tx_min = Transaction::with_gas(
+        "test_min".to_string(),
+        "alice".to_string(),
+        "bob".to_string(),
+        1_000,
+        10_000,
+        0,
+        Some("sig".to_string()),
+        25_000,
+        1, // Minimum gas price
+    );
+    
+    let result_min = execute_transaction(&tx_min, &mut state, 100, 0, &gas_schedule);
+    assert!(result_min.success);
+    assert_eq!(result_min.receipt.gas_price, 1);
+    assert_eq!(result_min.receipt.fee_charged_datt(), 25_000); // 25_000 * 1
+    
+    // Test with high gas price
+    let tx_high = Transaction::with_gas(
+        "test_high".to_string(),
+        "alice".to_string(),
+        "bob".to_string(),
+        1_000,
+        10_000,
+        1,
+        Some("sig".to_string()),
+        1_000,
+        50_000, // High gas price
+    );
+    
+    let result_high = execute_transaction(&tx_high, &mut state, 100, 1, &gas_schedule);
+    assert!(result_high.success);
+    assert_eq!(result_high.receipt.gas_price, 50_000);
+    assert_eq!(result_high.receipt.fee_charged_datt(), 50_000_000); // 1_000 * 50_000
+}
+
+#[test]
+fn test_gas_limit_boundary_conditions() {
+    let mut state = create_test_state();
+    let gas_schedule = GasSchedule::default();
+    
+    state.set_balance("alice", "udgt", 1_000_000);
+    
+    // Test with gas_limit just at intrinsic requirement
+    let tx_min = Transaction::with_gas(
+        "test_min_gas".to_string(),
+        "alice".to_string(),
+        "bob".to_string(),
+        1_000,
+        10_000,
+        0,
+        Some("sig".to_string()),
+        500, // Minimum for transfer (matches intrinsic)
+        1_000,
+    );
+    
+    let result_min = execute_transaction(&tx_min, &mut state, 100, 0, &gas_schedule);
+    assert!(result_min.success);
+    assert_eq!(result_min.receipt.gas_limit, 500);
+    
+    // Test with gas_limit below intrinsic requirement
+    let tx_low = Transaction::with_gas(
+        "test_low_gas".to_string(),
+        "alice".to_string(),
+        "bob".to_string(),
+        1_000,
+        10_000,
+        1,
+        Some("sig".to_string()),
+        100, // Below intrinsic requirement
+        1_000,
+    );
+    
+    let result_low = execute_transaction(&tx_low, &mut state, 100, 1, &gas_schedule);
+    assert!(!result_low.success);
+    assert!(result_low.receipt.error.as_ref().unwrap().contains("OutOfGas") || 
+           result_low.receipt.error.as_ref().unwrap().contains("InsufficientGas"));
+}
+
+#[test]
+fn test_fee_calculation_overflow_protection() {
+    let mut state = create_test_state();
+    let gas_schedule = GasSchedule::default();
+    
+    state.set_balance("alice", "udgt", u128::MAX);
+    
+    // Test potential overflow conditions
+    let tx_overflow = Transaction::with_gas(
+        "test_overflow".to_string(),
+        "alice".to_string(),
+        "bob".to_string(),
+        1_000,
+        10_000,
+        0,
+        Some("sig".to_string()),
+        u64::MAX, // Maximum gas limit
+        u64::MAX, // Maximum gas price
+    );
+    
+    let result = execute_transaction(&tx_overflow, &mut state, 100, 0, &gas_schedule);
+    // Should handle overflow gracefully (either succeed with proper math or fail safely)
+    if result.success {
+        // If it succeeds, fee calculation should be handled properly
+        let expected_fee = (u64::MAX as u128).saturating_mul(u64::MAX as u128);
+        assert_eq!(result.receipt.fee_charged_datt() as u128, expected_fee.min(u64::MAX as u128));
+    } else {
+        // If it fails, should be due to insufficient funds or overflow protection
+        assert!(result.receipt.error.is_some());
+    }
+}
+
+#[test]
+fn test_gas_refund_always_zero() {
+    let mut state = create_test_state();
+    let gas_schedule = GasSchedule::default();
+    
+    state.set_balance("alice", "udgt", 100_000);
+    
+    // Test successful transaction
+    let tx_success = Transaction::with_gas(
+        "test_success".to_string(),
+        "alice".to_string(),
+        "bob".to_string(),
+        1_000,
+        10_000,
+        0,
+        Some("sig".to_string()),
+        25_000,
+        1_000,
+    );
+    
+    let result_success = execute_transaction(&tx_success, &mut state, 100, 0, &gas_schedule);
+    assert!(result_success.success);
+    assert_eq!(result_success.receipt.gas_refund, 0);
+    
+    // Test failed transaction
+    let tx_fail = Transaction::with_gas(
+        "test_fail".to_string(),
+        "alice".to_string(),
+        "bob".to_string(),
+        1_000,
+        10_000,
+        1,
+        Some("sig".to_string()),
+        50, // Low gas to trigger failure
+        1_000,
+    );
+    
+    let result_fail = execute_transaction(&tx_fail, &mut state, 100, 1, &gas_schedule);
+    assert!(!result_fail.success);
+    assert_eq!(result_fail.receipt.gas_refund, 0);
+}
+
+#[test]
+fn test_deterministic_fee_charging() {
+    let gas_schedule = GasSchedule::default();
+    
+    // Test that identical transactions always charge identical fees
+    let test_params = vec![
+        (25_000u64, 1_000u64, 25_000_000u64), // gas_limit * gas_price
+        (50_000u64, 500u64, 25_000_000u64),   // Different combination, same result
+        (10_000u64, 2_500u64, 25_000_000u64), // Another combination
+    ];
+    
+    for (gas_limit, gas_price, expected_fee) in test_params {
+        let mut state1 = create_test_state();
+        let mut state2 = create_test_state();
+        
+        state1.set_balance("alice", "udgt", 100_000_000);
+        state2.set_balance("alice", "udgt", 100_000_000);
+        
+        let tx = Transaction::with_gas(
+            "test_deterministic".to_string(),
+            "alice".to_string(),
+            "bob".to_string(),
+            1_000,
+            10_000,
+            0,
+            Some("sig".to_string()),
+            gas_limit,
+            gas_price,
+        );
+        
+        let result1 = execute_transaction(&tx, &mut state1, 100, 0, &gas_schedule);
+        let result2 = execute_transaction(&tx, &mut state2, 100, 0, &gas_schedule);
+        
+        // Results must be identical
+        assert_eq!(result1.success, result2.success);
+        assert_eq!(result1.receipt.fee_charged_datt(), expected_fee);
+        assert_eq!(result2.receipt.fee_charged_datt(), expected_fee);
+        assert_eq!(result1.receipt.fee_charged_datt(), result2.receipt.fee_charged_datt());
+        
+        // Final balances must be identical
+        assert_eq!(state1.balance_of("alice", "udgt"), state2.balance_of("alice", "udgt"));
+    }
+}
+
+#[test]
+fn test_receipt_hash_determinism() {
+    let gas_schedule = GasSchedule::default();
+    
+    // Create identical transactions and verify receipt determinism
+    let tx = Transaction::with_gas(
+        "deterministic_test".to_string(),
+        "alice".to_string(),
+        "bob".to_string(),
+        1_000,
+        10_000,
+        0,
+        Some("sig".to_string()),
+        25_000,
+        1_000,
+    );
+    
+    let mut results = Vec::new();
+    
+    // Execute same transaction multiple times on fresh states
+    for i in 0..5 {
+        let mut state = create_test_state();
+        state.set_balance("alice", "udgt", 100_000);
+        
+        let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+        results.push(result);
+    }
+    
+    // All receipts should be identical
+    let first_receipt = &results[0].receipt;
+    for result in &results[1..] {
+        assert_eq!(result.receipt.receipt_version, first_receipt.receipt_version);
+        assert_eq!(result.receipt.tx_hash, first_receipt.tx_hash);
+        assert_eq!(result.receipt.from, first_receipt.from);
+        assert_eq!(result.receipt.to, first_receipt.to);
+        assert_eq!(result.receipt.amount, first_receipt.amount);
+        assert_eq!(result.receipt.gas_limit, first_receipt.gas_limit);
+        assert_eq!(result.receipt.gas_price, first_receipt.gas_price);
+        assert_eq!(result.receipt.gas_used, first_receipt.gas_used);
+        assert_eq!(result.receipt.gas_refund, first_receipt.gas_refund);
+        assert_eq!(result.receipt.status, first_receipt.status);
+        assert_eq!(result.receipt.error, first_receipt.error);
+    }
+}
