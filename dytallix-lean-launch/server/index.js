@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import { requestLogger, logError, logInfo } from './logger.js'
 import { assertNotLimited, markGranted } from './rateLimit.js'
 import { transfer, getMaxFor } from './transfer.js'
+import { register, rateLimitHitsTotal, faucetRequestsTotal } from './metrics.js'
 import fs from 'fs'
 
 /*
@@ -12,6 +13,19 @@ import fs from 'fs'
  */
 
 dotenv.config()
+
+// Production environment validation
+if (process.env.NODE_ENV === 'production') {
+  const requiredSecrets = ['FAUCET_MNEMONIC']
+  const missing = requiredSecrets.filter(secret => !process.env[secret] || process.env[secret].includes('placeholder'))
+  
+  if (missing.length > 0) {
+    logError('Production startup failed: missing required secrets', { missing })
+    process.exit(1)
+  }
+  
+  logInfo('Production environment validation passed')
+}
 
 const app = express()
 const PORT = process.env.PORT || 8787
@@ -125,9 +139,10 @@ app.get('/api/status', async (req, res, next) => {
     const response = {
       ok: nodeStatus,
       network,
-      redis: !!process.env.FAUCET_REDIS_URL, // Redis availability
+      redis: !!process.env.DLX_RATE_LIMIT_REDIS_URL, // Redis availability
       rateLimit: {
-        windowSeconds: COOLDOWN_MIN * 60,
+        dgtWindowHours: 24,
+        drtWindowHours: 6,
         maxRequests: 1 // One request per window per token
       },
       uptime: process.uptime(),
@@ -295,7 +310,17 @@ app.post('/api/faucet', async (req, res, next) => {
 
     // Check rate limits for all requested tokens
     for (const tokenSymbol of requestedTokens) {
-      await assertNotLimited(ip, cleanAddress, tokenSymbol, COOLDOWN_MIN)
+      try {
+        await assertNotLimited(ip, cleanAddress, tokenSymbol, COOLDOWN_MIN)
+      } catch (rateLimitError) {
+        // Record rate limit hit metric
+        rateLimitHitsTotal.inc({ token: tokenSymbol })
+        
+        // Record request outcome metric  
+        faucetRequestsTotal.inc({ token: tokenSymbol, outcome: 'denied' })
+        
+        throw rateLimitError
+      }
     }
 
     // Dispense all requested tokens
@@ -310,6 +335,9 @@ app.post('/api/faucet', async (req, res, next) => {
           txHash: hash
         })
         await markGranted(ip, cleanAddress, tokenSymbol, COOLDOWN_MIN)
+        
+        // Record successful request metric
+        faucetRequestsTotal.inc({ token: tokenSymbol, outcome: 'allow' })
       } catch (transferError) {
         logError(`Transfer failed for ${tokenSymbol}`, transferError)
         // If one token fails, still report the others that succeeded
@@ -393,6 +421,16 @@ app.get('/anomaly', (req, res, next) => {
 })
 
 app.get('/health', (req,res)=> res.json({ ok:true, ts:new Date().toISOString() }))
+
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType)
+    res.end(await register.metrics())
+  } catch (err) {
+    res.status(500).end(err)
+  }
+})
 
 // Error handler
 // eslint-disable-next-line no-unused-vars

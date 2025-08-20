@@ -1,4 +1,11 @@
 import { logInfo, logError } from './logger.js'
+import { createClient } from 'redis'
+
+// Token-specific cooldown periods (in minutes)
+const TOKEN_COOLDOWNS = {
+  DGT: 24 * 60, // 24 hours
+  DRT: 6 * 60   // 6 hours
+}
 
 // Rate Limiter Interface
 class IRateLimiter {
@@ -56,26 +63,38 @@ class RedisRateLimiter extends IRateLimiter {
     super()
     this.redisUrl = redisUrl
     this.redis = null
+    this.fallback = new InMemoryRateLimiter()
     this.connectRedis()
   }
 
   async connectRedis() {
     try {
-      // Note: In production you'd use actual Redis client
-      // For now, just log the attempt and fall back to in-memory
-      logInfo('Redis rate limiter configured', { url: this.redisUrl })
-      // this.redis = createRedisClient(this.redisUrl)
-      // await this.redis.connect()
+      this.redis = createClient({ url: this.redisUrl })
+      
+      this.redis.on('error', (err) => {
+        logError('Redis client error', err)
+      })
+      
+      this.redis.on('connect', () => {
+        logInfo('Redis client connected')
+      })
+      
+      this.redis.on('ready', () => {
+        logInfo('Redis client ready')
+      })
+      
+      await this.redis.connect()
+      logInfo('Redis rate limiter connected', { url: this.redisUrl.replace(/\/\/.*@/, '//***@') })
     } catch (err) {
-      logError('Redis connection failed, falling back to in-memory', err)
-      this.fallback = new InMemoryRateLimiter()
+      logError('Redis connection failed, using in-memory fallback', err)
+      this.redis = null
     }
   }
 
   async checkAndConsume(key) {
-    if (!this.redis) {
+    if (!this.redis || !this.redis.isReady) {
       // Fallback to in-memory if Redis not available
-      return this.fallback ? this.fallback.checkAndConsume(key) : { allowed: true }
+      return this.fallback.checkAndConsume(key)
     }
 
     try {
@@ -94,8 +113,8 @@ class RedisRateLimiter extends IRateLimiter {
   }
 
   async markGranted(key, cooldownMinutes) {
-    if (!this.redis) {
-      return this.fallback?.markGranted(key, cooldownMinutes)
+    if (!this.redis || !this.redis.isReady) {
+      return this.fallback.markGranted(key, cooldownMinutes)
     }
 
     try {
@@ -104,14 +123,20 @@ class RedisRateLimiter extends IRateLimiter {
       logInfo('Redis cooldown set', { key, ttlSeconds })
     } catch (err) {
       logError('Redis set failed', err)
-      this.fallback?.markGranted(key, cooldownMinutes)
+      this.fallback.markGranted(key, cooldownMinutes)
+    }
+  }
+
+  async disconnect() {
+    if (this.redis && this.redis.isReady) {
+      await this.redis.disconnect()
     }
   }
 }
 
 // Rate limiter factory
 function createRateLimiter() {
-  const redisUrl = process.env.FAUCET_REDIS_URL
+  const redisUrl = process.env.DLX_RATE_LIMIT_REDIS_URL
   if (redisUrl) {
     logInfo('Using Redis rate limiter', { redisUrl: redisUrl.replace(/\/\/.*@/, '//***@') })
     return new RedisRateLimiter(redisUrl)
@@ -127,7 +152,8 @@ function keyFor(ip, address, token) {
   return `faucet:${ip}:${address.toLowerCase()}:${token}`
 }
 
-export async function assertNotLimited(ip, address, token, cooldownMinutes) {
+export async function assertNotLimited(ip, address, token, defaultCooldownMinutes) {
+  const cooldownMinutes = TOKEN_COOLDOWNS[token] || defaultCooldownMinutes
   const addressKey = keyFor(ip, address, token)
   const ipKey = `faucet:ip:${ip}:${token}`
   
@@ -142,6 +168,7 @@ export async function assertNotLimited(ip, address, token, cooldownMinutes) {
     err.status = 429
     err.code = 'RATE_LIMITED'
     err.retryAfter = addressCheck.retryAfterSeconds
+    err.token = token
     throw err
   }
 
@@ -150,11 +177,13 @@ export async function assertNotLimited(ip, address, token, cooldownMinutes) {
     err.status = 429
     err.code = 'RATE_LIMITED'
     err.retryAfter = ipCheck.retryAfterSeconds
+    err.token = token
     throw err
   }
 }
 
-export async function markGranted(ip, address, token, cooldownMinutes) {
+export async function markGranted(ip, address, token, defaultCooldownMinutes) {
+  const cooldownMinutes = TOKEN_COOLDOWNS[token] || defaultCooldownMinutes
   const addressKey = keyFor(ip, address, token)
   const ipKey = `faucet:ip:${ip}:${token}`
   
