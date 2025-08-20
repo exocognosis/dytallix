@@ -1,6 +1,6 @@
 use crate::crypto::PQCManager;
 use crate::metrics::{with_metrics, metrics_handler, MetricsMiddleware};
-use crate::feedback::{FeedbackRequest, FeedbackResponse, FeedbackStats, FEEDBACK_SERVICE};
+use crate::feedback::{FeedbackRequest, FeedbackResponse, FeedbackStats, get_feedback_service};
 use bytes; // add bytes crate usage
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info, warn};
@@ -297,7 +297,8 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::body::json())
         .and_then(|feedback: FeedbackRequest| async move {
             let client_ip = "127.0.0.1"; // TODO: Extract real IP from request
-            let response = FEEDBACK_SERVICE.process_feedback(feedback, client_ip).await;
+            let service = get_feedback_service();
+            let response = service.process_feedback(feedback, client_ip).await;
             
             let status = if response.success {
                 warp::http::StatusCode::CREATED
@@ -317,7 +318,8 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path("stats"))
         .and(warp::get())
         .and_then(|| async move {
-            let stats = FEEDBACK_SERVICE.get_stats().await;
+            let service = get_feedback_service();
+            let stats = service.get_stats().await;
             Result::<_, warp::Rejection>::Ok(
                 warp::reply::with_status(warp::reply::json(&stats), warp::http::StatusCode::OK).into_response()
             )

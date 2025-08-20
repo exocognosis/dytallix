@@ -245,3 +245,7 @@ impl FeedbackService {
 // Global feedback service instance
 static FEEDBACK_SERVICE: once_cell::sync::Lazy<Arc<FeedbackService>> = 
     once_cell::sync::Lazy::new(|| Arc::new(FeedbackService::new()));
+
+pub fn get_feedback_service() -> Arc<FeedbackService> {
+    FEEDBACK_SERVICE.clone()
+}

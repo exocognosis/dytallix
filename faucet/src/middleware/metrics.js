@@ -180,5 +180,7 @@ module.exports = {
   rateLimitHitsTotal,
   http5xxResponsesTotal,
   httpRequestDuration,
-  inFlightRequests
+  inFlightRequests,
+  // Export registry for testing
+  register
 };

@@ -73,15 +73,33 @@ impl MetricsMiddleware {
 
     // Clean path to avoid PII in metrics labels
     fn clean_path(path: &str) -> String {
-        path
-            // Replace long alphanumeric strings (potential addresses)
-            .replace(regex::Regex::new(r"/[a-zA-Z0-9]{20,}").unwrap().as_str(), "/[address]")
-            // Replace numeric IDs
-            .replace(regex::Regex::new(r"/\d+").unwrap().as_str(), "/[id]") 
-            // Replace dytallix addresses
-            .replace(regex::Regex::new(r"/dyt[a-zA-Z0-9]+").unwrap().as_str(), "/[address]")
-            // Replace hex hashes
-            .replace(regex::Regex::new(r"/0x[a-fA-F0-9]+").unwrap().as_str(), "/[hash]")
+        // Replace long alphanumeric strings (potential addresses)
+        let path = if let Ok(re) = regex::Regex::new(r"/[a-zA-Z0-9]{20,}") {
+            re.replace_all(path, "/[address]").to_string()
+        } else {
+            path.to_string()
+        };
+        
+        // Replace numeric IDs
+        let path = if let Ok(re) = regex::Regex::new(r"/\d+") {
+            re.replace_all(&path, "/[id]").to_string()
+        } else {
+            path
+        };
+        
+        // Replace dytallix addresses
+        let path = if let Ok(re) = regex::Regex::new(r"/dyt[a-zA-Z0-9]+") {
+            re.replace_all(&path, "/[address]").to_string()
+        } else {
+            path
+        };
+        
+        // Replace hex hashes
+        if let Ok(re) = regex::Regex::new(r"/0x[a-fA-F0-9]+") {
+            re.replace_all(&path, "/[hash]").to_string()
+        } else {
+            path
+        }
     }
 
     pub fn track_request(&self, path: &str, method: &str, status: u16, duration: f64) {
