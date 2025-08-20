@@ -1,5 +1,7 @@
 /* Global styles for Dytallix Lean Launch - Dark Dashboard Theme */
 
+@import url('../../website/minor-a11y-fixes.css');
+
 * {
   margin: 0;
   padding: 0;

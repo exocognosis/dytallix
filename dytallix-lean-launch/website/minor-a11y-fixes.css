@@ -1,0 +1,125 @@
+/* Dark mode and accessibility improvements */
+
+/* Focus states for better accessibility */
+*:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.7);
+  outline-offset: 2px;
+}
+
+/* Dark mode styles (body.dark class) */
+body.dark {
+  background: var(--bg-900);
+  color: var(--text-primary);
+}
+
+body.dark a {
+  color: var(--primary-400);
+}
+
+body.dark a:hover {
+  color: var(--primary-300);
+}
+
+/* Light mode styles (default) */
+body:not(.dark) {
+  background: #ffffff;
+  color: #1f2937;
+}
+
+body:not(.dark) a {
+  color: #2563eb;
+}
+
+body:not(.dark) a:hover {
+  color: #1d4ed8;
+}
+
+/* Ensure contrast ratios >= 4.5:1 for dark mode */
+body.dark .card {
+  background: var(--surface-700);
+  border-color: var(--surface-border);
+  color: var(--text-primary);
+}
+
+body.dark .input,
+body.dark .select,
+body.dark .textarea {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  border-color: var(--surface-border);
+}
+
+body.dark .btn-primary {
+  background: linear-gradient(135deg, var(--primary-400), var(--accent-500));
+  color: white;
+}
+
+/* Mobile responsive adjustments (max-width: 640px) */
+@media (max-width: 640px) {
+  /* Stack grid cards on mobile */
+  .grid-cards,
+  .grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  
+  /* Full-width inputs and textareas on mobile */
+  .input,
+  .textarea,
+  .select {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  /* Container padding adjustments */
+  .container {
+    padding: 0 16px !important;
+  }
+  
+  /* Card padding adjustments */
+  .card {
+    padding: 16px !important;
+  }
+  
+  /* Navigation adjustments */
+  .section {
+    padding: 40px 0 !important;
+  }
+}
+
+/* Ensure no horizontal scroll on mobile */
+@media (max-width: 640px) {
+  body {
+    overflow-x: hidden;
+  }
+  
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  body.dark {
+    --text-primary: #ffffff;
+    --surface-border: rgba(255, 255, 255, 0.3);
+  }
+  
+  body:not(.dark) {
+    --text-primary: #000000;
+    --surface-border: rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

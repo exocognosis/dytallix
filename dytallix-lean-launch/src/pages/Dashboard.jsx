@@ -13,7 +13,36 @@ const logEvent = () => {}
 const logApiError = () => {}
 
 // Placeholder components
-const BlockHeightWidget = () => <div className="card">Block Height Widget</div>
+const BlockHeightWidget = () => {
+  const [height, setHeight] = useState(0)
+  
+  useEffect(() => {
+    const fetchHeight = async () => {
+      try {
+        const response = await fetch('/api/status/height')
+        const data = await response.json()
+        if (data.ok && data.height) {
+          setHeight(data.height)
+        }
+      } catch (error) {
+        console.error('Error fetching block height:', error)
+      }
+    }
+    
+    fetchHeight()
+    const interval = setInterval(fetchHeight, 10000) // Poll every 10 seconds
+    return () => clearInterval(interval)
+  }, [])
+  
+  return (
+    <div className="card">
+      <h3>Block Height</h3>
+      <div data-test="chain-height" style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+        {height > 0 ? height : 'Loading...'}
+      </div>
+    </div>
+  )
+}
 const PQCStatusCard = () => <div className="card">PQC Status Card</div>
 const LineChart = () => <div className="card">Line Chart</div>
 

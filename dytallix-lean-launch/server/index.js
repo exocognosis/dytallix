@@ -376,6 +376,22 @@ function aiRateCheck(ip, key){ const now=Date.now(); const bucketKey=`${ip}:${ke
 
 app.post('/api/ai/anomaly', (req,res,next)=>{ try { const ip=req.socket.remoteAddress||'unknown'; aiRateCheck(ip,'anomaly'); res.json({ ok:true, anomaly:false, score:Number((Math.random()*0.4).toFixed(3)) }) } catch(e){ next(e) } })
 
+// GET version of anomaly endpoint for testing purposes
+app.get('/anomaly', (req, res, next) => {
+  try {
+    const timestamp = new Date().toISOString()
+    const anomalies = [] // Empty for normal operations
+    res.json({
+      ok: true,
+      timestamp,
+      anomalies,
+      status: 'healthy'
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
 app.get('/health', (req,res)=> res.json({ ok:true, ts:new Date().toISOString() }))
 
 // Error handler
