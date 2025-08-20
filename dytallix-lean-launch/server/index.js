@@ -107,7 +107,73 @@ async function fetchNodeStatus() {
   return { network, height, raw: j }
 }
 
-// Minimal Cosmos-backed status endpoints (existing)
+// Standardized API status endpoint
+app.get('/api/status', async (req, res, next) => {
+  try {
+    const started = Date.now()
+    let network = 'unknown'
+    let nodeStatus = false
+    
+    try {
+      const nodeInfo = await fetchNodeStatus()
+      network = nodeInfo.network || 'dytallix-testnet-1'
+      nodeStatus = true
+    } catch (nodeErr) {
+      logError('Node status check failed', nodeErr)
+    }
+
+    const response = {
+      ok: nodeStatus,
+      network,
+      redis: !!process.env.FAUCET_REDIS_URL, // Redis availability
+      rateLimit: {
+        windowSeconds: COOLDOWN_MIN * 60,
+        maxRequests: 1 // One request per window per token
+      },
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    }
+    
+    res.json(response)
+    logInfo('api.status', { ms: Date.now() - started, network, redis: response.redis })
+  } catch (err) { 
+    next(err) 
+  }
+})
+
+// Enhanced balance endpoint - support query parameter format
+app.get('/api/balance', async (req, res, next) => {
+  try {
+    const address = req.query.address || req.params.address
+    
+    if (!address || !isBech32Address(address)) {
+      return res.status(400).json({
+        error: 'Invalid address parameter'
+      })
+    }
+
+    // Mock balance response - in production this would query the blockchain
+    const balances = [
+      { symbol: 'DGT', amount: '0', denom: 'udgt' },
+      { symbol: 'DRT', amount: '0', denom: 'udrt' }
+    ]
+
+    res.json({
+      address,
+      balances
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Legacy balance endpoint for compatibility
+app.get('/api/balance/:address', async (req, res, next) => {
+  req.query.address = req.params.address
+  return app._router.handle(req, res, next)
+})
+
+// Minimal Cosmos-backed status endpoints (existing - keep for compatibility)
 app.get('/api/status/height', async (req, res, next) => {
   try {
     const { height } = await fetchNodeStatus()
@@ -185,40 +251,122 @@ app.get('/api/dashboard/timeseries', async (req, res, next) => {
 app.post('/api/faucet', async (req, res, next) => {
   try {
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
-    const { address, token } = req.body || {}
+    const { address, token, tokens } = req.body || {}
 
     const cleanAddress = typeof address === 'string' ? address.trim() : ''
-    const cleanToken = sanitizeToken(token)
-
-    if (!isBech32Address(cleanAddress)) {
-      const err = new Error('INVALID_ADDRESS')
-      err.status = 400
-      throw err
+    
+    // Support both legacy single token and new dual-token requests
+    let requestedTokens = []
+    if (tokens && Array.isArray(tokens)) {
+      // New format: { address, tokens: ['DGT', 'DRT'] }
+      requestedTokens = tokens.map(sanitizeToken).filter(t => ['DGT', 'DRT'].includes(t))
+    } else if (token) {
+      // Legacy format: { address, token: 'DGT' }
+      const cleanToken = sanitizeToken(token)
+      if (['DGT', 'DRT'].includes(cleanToken)) {
+        requestedTokens = [cleanToken]
+      }
     }
 
-    if (!['DGT', 'DRT'].includes(cleanToken)) {
-      const err = new Error('INVALID_TOKEN')
-      err.status = 400
-      throw err
+    if (!isBech32Address(cleanAddress)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_ADDRESS',
+        message: 'Please enter a valid Dytallix bech32 address'
+      })
+    }
+
+    if (requestedTokens.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_TOKEN',
+        message: 'Please specify valid token(s): DGT, DRT, or both'
+      })
     }
 
     // Optional: reject if prefix mismatch vs loaded tokenomics file requirement
     if (process.env.ENFORCE_PREFIX === '1' && !cleanAddress.startsWith(`${BECH32_PREFIX}1`)) {
-      const err = new Error('PREFIX_MISMATCH')
-      err.status = 400
-      throw err
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_ADDRESS',
+        message: 'Address prefix mismatch'
+      })
     }
 
-    assertNotLimited(ip, cleanAddress, cleanToken, COOLDOWN_MIN)
+    // Check rate limits for all requested tokens
+    for (const tokenSymbol of requestedTokens) {
+      await assertNotLimited(ip, cleanAddress, tokenSymbol, COOLDOWN_MIN)
+    }
 
-    const { hash } = await transfer({ token: cleanToken, to: cleanAddress })
-    const amount = getMaxFor(cleanToken)
+    // Dispense all requested tokens
+    const dispensed = []
+    for (const tokenSymbol of requestedTokens) {
+      try {
+        const { hash } = await transfer({ token: tokenSymbol, to: cleanAddress })
+        const amount = getMaxFor(tokenSymbol)
+        dispensed.push({
+          symbol: tokenSymbol,
+          amount,
+          txHash: hash
+        })
+        await markGranted(ip, cleanAddress, tokenSymbol, COOLDOWN_MIN)
+      } catch (transferError) {
+        logError(`Transfer failed for ${tokenSymbol}`, transferError)
+        // If one token fails, still report the others that succeeded
+        if (dispensed.length === 0) {
+          throw transferError // If first token fails, propagate error
+        }
+      }
+    }
 
-    markGranted(ip, cleanAddress, cleanToken, COOLDOWN_MIN)
+    if (dispensed.length === 0) {
+      return res.status(500).json({
+        success: false,
+        error: 'SERVER_ERROR',
+        message: 'Failed to dispense any tokens'
+      })
+    }
 
-    res.json({ ok: true, token: cleanToken, amount, txHash: hash })
+    // Return new format response
+    const response = {
+      success: true,
+      dispensed,
+      message: `Successfully dispensed ${dispensed.map(d => d.symbol).join(' + ')} tokens`
+    }
+
+    // Legacy compatibility: if single token requested, include legacy fields
+    if (dispensed.length === 1 && token) {
+      response.ok = true
+      response.token = dispensed[0].symbol
+      response.amount = dispensed[0].amount
+      response.txHash = dispensed[0].txHash
+    }
+
+    res.json(response)
   } catch (err) {
-    next(err)
+    if (err.message?.includes('Rate limit exceeded') || err.code === 'RATE_LIMITED') {
+      return res.status(429).json({
+        success: false,
+        error: 'RATE_LIMIT',
+        message: err.message,
+        retryAfterSeconds: err.retryAfter
+      })
+    }
+    
+    if (err.message === 'INVALID_ADDRESS' || err.message === 'INVALID_TOKEN') {
+      return res.status(400).json({
+        success: false,
+        error: err.message,
+        message: err.message
+      })
+    }
+    
+    logError('Faucet request failed', err)
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Internal server error'
+    })
   }
 })
 

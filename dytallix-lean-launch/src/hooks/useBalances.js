@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api.js'
 import { connectWS } from '../lib/ws.js'
-import { TOKENS as TOKENOMICS } from '../tokenomics'
+import tokenConfig from '../tokenomics.js'
 
 const NATIVE_TOKEN = { symbol: 'DYL', decimals: 6 }
 
@@ -12,8 +12,8 @@ export function useBalances(address) {
 
   const TOKENS = useMemo(() => ({
     native: NATIVE_TOKEN,
-    DGT: { symbol: TOKENOMICS.DGT.symbol, decimals: TOKENOMICS.DGT.decimals },
-    DRT: { symbol: TOKENOMICS.DRT.symbol, decimals: TOKENOMICS.DRT.decimals }
+    DGT: { symbol: tokenConfig.DGT.symbol, decimals: tokenConfig.DGT.decimals },
+    DRT: { symbol: tokenConfig.DRT.symbol, decimals: tokenConfig.DRT.decimals }
   }), [])
 
   const refresh = useCallback(async () => {

@@ -4,6 +4,7 @@
   display: flex;
   gap: 16px;
   margin-bottom: 8px;
+  flex-direction: column;
 }
 
 .tokenOption {
@@ -26,6 +27,29 @@
   border-color: rgba(59,130,246,0.45);
   background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(139,92,246,0.12));
   box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+.tokenAmountItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.connectButton {
+  margin-left: 12px;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: rgba(59,130,246,0.8);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.connectButton:hover {
+  background: rgba(59,130,246,1);
 }
 
 .tokenHeader {
