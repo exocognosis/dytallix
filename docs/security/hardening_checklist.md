@@ -597,9 +597,9 @@ This document provides a comprehensive security hardening checklist for the Dyta
 - [Terraform Security Guidelines](https://www.terraform.io/docs/cloud/sentinel/import/tfplan-v2.html)
 
 ### Internal Documentation
-- [Dytallix Security Policies](../SECURITY_POLICIES.md)
-- [Incident Response Procedures](../INCIDENT_RESPONSE.md)
-- [Disaster Recovery Plan](../DISASTER_RECOVERY.md)
+- [Dytallix Security Policies](policies.md)
+- [Incident Response Procedures](incident-response.md)
+- [Disaster Recovery Plan](disaster-recovery.md)
 
 ---
 
