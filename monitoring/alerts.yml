@@ -1,0 +1,147 @@
+# Prometheus alerting rules for Dytallix services
+# These rules define conditions that trigger alerts for monitoring critical issues
+# TODO: Adjust thresholds based on your service baseline and SLA requirements
+
+groups:
+  - name: dytallix-api-health
+    rules:
+      # High 5xx error rate alert
+      - alert: HighAPIErrorRate
+        expr: |
+          (
+            rate(http_5xx_responses_total[5m]) / 
+            rate(http_requests_total[5m])
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High 5xx error rate detected"
+          description: "{{ $labels.job }} has {{ $value }}% 5xx error rate over the last 5 minutes"
+          # TODO: Add runbook link
+          runbook_url: "https://docs.dytallix.com/runbooks/high-error-rate"
+
+      # Absolute 5xx error count (for low-traffic services)
+      - alert: HighAbsolute5xxErrors
+        expr: rate(http_5xx_responses_total[1m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High absolute 5xx error count"
+          description: "{{ $labels.job }} has {{ $value }} 5xx errors per second"
+
+  - name: dytallix-rate-limiting
+    rules:
+      # Rate limit spikes
+      - alert: HighRateLimitHits
+        expr: rate(rate_limit_hits_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          service: faucet
+        annotations:
+          summary: "High rate limit hits detected"
+          description: "Faucet service experiencing {{ $value }} rate limit hits per second over 5 minutes"
+          # TODO: Investigate if this indicates attack or legitimate high demand
+
+  - name: dytallix-faucet-health
+    rules:
+      # Faucet-specific error monitoring
+      - alert: FaucetRequestFailures
+        expr: |
+          (
+            rate(faucet_requests_total{result="error"}[5m]) / 
+            rate(faucet_requests_total[5m])
+          ) * 100 > 10
+        for: 3m
+        labels:
+          severity: warning
+          service: faucet
+        annotations:
+          summary: "High faucet request failure rate"
+          description: "{{ $value }}% of faucet requests are failing"
+
+      # Faucet request latency
+      - alert: HighFaucetLatency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket{job="dytallix-faucet"}[5m])
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          service: faucet
+        annotations:
+          summary: "High faucet API latency"
+          description: "95th percentile latency is {{ $value }}s for faucet requests"
+
+  - name: dytallix-blockchain-health
+    rules:
+      # Blockchain API latency
+      - alert: HighBlockchainAPILatency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket{job="dytallix-blockchain-api"}[5m])
+          ) > 5.0
+        for: 5m
+        labels:
+          severity: warning
+          service: blockchain-api
+        annotations:
+          summary: "High blockchain API latency"
+          description: "95th percentile latency is {{ $value }}s for blockchain API requests"
+
+      # TODO: Add blockchain-specific metrics when available
+      # - alert: BlockProductionStalled
+      #   expr: increase(blocks_produced_total[10m]) == 0
+      #   for: 10m
+      #   labels:
+      #     severity: critical
+      #     service: blockchain
+      #   annotations:
+      #     summary: "Block production has stalled"
+
+  - name: dytallix-system-health
+    rules:
+      # Service down detection
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 1 minute"
+
+      # High request volume (potential DDoS or viral growth)
+      - alert: HighRequestVolume
+        expr: rate(http_requests_total[1m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Very high request volume detected"
+          description: "{{ $labels.job }} receiving {{ $value }} requests per second"
+          # TODO: Verify if this is legitimate traffic or attack
+
+# TODO: Add additional service-specific alerts as the system grows:
+# - Memory usage alerts
+# - Disk space alerts  
+# - Database connection alerts
+# - External service dependency alerts
+# - Business metric alerts (e.g., failed token distributions)
+#
+# Example additional rules:
+# - name: dytallix-resources
+#   rules:
+#     - alert: HighMemoryUsage
+#       expr: process_resident_memory_bytes / 1024 / 1024 > 1000
+#       for: 5m
+#       labels:
+#         severity: warning
+#       annotations:
+#         summary: "High memory usage"
+#         description: "{{ $labels.job }} using {{ $value }}MB memory"

@@ -6,9 +6,16 @@ const winston = require('winston');
 const dotenv = require('dotenv');
 
 const faucetController = require('./controllers/faucetController-dual');
+const feedbackController = require('./controllers/feedbackController');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { validateRequest } = require('./middleware/validation');
 const rateLimitMiddleware = require('./middleware/rateLimit');
+const { 
+  metricsMiddleware, 
+  trackRateLimit, 
+  trackFaucetMetrics, 
+  metricsEndpoint 
+} = require('./middleware/metrics');
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +43,10 @@ app.use(cors({
   credentials: true
 }));
 
+// Metrics middleware (before other middleware to track all requests)
+app.use(metricsMiddleware);
+app.use(trackRateLimit);
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -52,6 +63,9 @@ const globalLimiter = rateLimit({
   legacyHeaders: false,
 });
 app.use(globalLimiter);
+
+// Track faucet-specific metrics
+app.use(trackFaucetMetrics);
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -120,6 +134,13 @@ app.post('/api/faucet',
 
 app.get('/api/status', (req, res) => faucetController.getStatus(req, res));
 app.get('/api/balance/:address', (req, res) => faucetController.getBalance(req, res));
+
+// Feedback endpoint
+app.post('/api/feedback', (req, res) => feedbackController.submitFeedback(req, res));
+app.get('/api/feedback/stats', (req, res) => feedbackController.getFeedbackStats(req, res));
+
+// Metrics endpoint
+app.get('/metrics', metricsEndpoint);
 
 // Error handling middleware
 app.use(notFound);

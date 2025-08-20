@@ -1,4 +1,6 @@
 use crate::crypto::PQCManager;
+use crate::metrics::{with_metrics, metrics_handler, MetricsMiddleware};
+use crate::feedback::{FeedbackRequest, FeedbackResponse, FeedbackStats, FEEDBACK_SERVICE};
 use bytes; // add bytes crate usage
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info, warn};
@@ -279,6 +281,46 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                 warp::http::StatusCode::OK,
             )
             .into_response()
+        })
+        .boxed();
+
+    // Metrics endpoint
+    let metrics = warp::path("metrics")
+        .and(warp::get())
+        .and_then(metrics_handler)
+        .boxed();
+
+    // Feedback endpoint
+    let feedback = warp::path("api")
+        .and(warp::path("feedback"))
+        .and(warp::post())
+        .and(warp::body::json())
+        .and_then(|feedback: FeedbackRequest| async move {
+            let client_ip = "127.0.0.1"; // TODO: Extract real IP from request
+            let response = FEEDBACK_SERVICE.process_feedback(feedback, client_ip).await;
+            
+            let status = if response.success {
+                warp::http::StatusCode::CREATED
+            } else {
+                warp::http::StatusCode::BAD_REQUEST
+            };
+            
+            Result::<_, warp::Rejection>::Ok(
+                warp::reply::with_status(warp::reply::json(&response), status).into_response()
+            )
+        })
+        .boxed();
+
+    // Feedback stats endpoint
+    let feedback_stats = warp::path("api")
+        .and(warp::path("feedback"))
+        .and(warp::path("stats"))
+        .and(warp::get())
+        .and_then(|| async move {
+            let stats = FEEDBACK_SERVICE.get_stats().await;
+            Result::<_, warp::Rejection>::Ok(
+                warp::reply::with_status(warp::reply::json(&stats), warp::http::StatusCode::OK).into_response()
+            )
         })
         .boxed();
 
@@ -867,6 +909,9 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let json_routes = health
+        .or(metrics)
+        .or(feedback)
+        .or(feedback_stats)
         .or(balance)
         .or(submit_tx)
         .or(get_tx)
