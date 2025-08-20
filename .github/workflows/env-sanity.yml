@@ -1,0 +1,40 @@
+name: Env Sanity & Production Build Guard
+on:
+  push:
+    branches: [ mv-testnet, main ]
+  pull_request:
+
+jobs:
+  env-guard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dytallix-lean-launch
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: dytallix-lean-launch/package-lock.json
+      - name: Install deps
+        run: npm ci
+      - name: Env Sanity (production)
+        env:
+          VITE_API_URL: ${{ secrets.CI_VITE_API_URL }}
+          VITE_FAUCET_API_URL: ${{ secrets.CI_VITE_FAUCET_API_URL }}
+          VITE_LCD_HTTP_URL: ${{ secrets.CI_VITE_LCD_HTTP_URL }}
+          VITE_RPC_HTTP_URL: ${{ secrets.CI_VITE_RPC_HTTP_URL }}
+          VITE_RPC_WS_URL: ${{ secrets.CI_VITE_RPC_WS_URL }}
+          VITE_CHAIN_ID: ${{ secrets.CI_VITE_CHAIN_ID }}
+        run: bash ../scripts/verify_env.sh production
+      - name: Build (production)
+        env:
+          VITE_API_URL: ${{ secrets.CI_VITE_API_URL }}
+          VITE_FAUCET_API_URL: ${{ secrets.CI_VITE_FAUCET_API_URL }}
+          VITE_LCD_HTTP_URL: ${{ secrets.CI_VITE_LCD_HTTP_URL }}
+          VITE_RPC_HTTP_URL: ${{ secrets.CI_VITE_RPC_HTTP_URL }}
+          VITE_RPC_WS_URL: ${{ secrets.CI_VITE_RPC_WS_URL }}
+          VITE_CHAIN_ID: ${{ secrets.CI_VITE_CHAIN_ID }}
+        run: npm run build

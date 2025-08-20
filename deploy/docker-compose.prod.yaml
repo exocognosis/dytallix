@@ -1,0 +1,36 @@
+version: "3.9"
+services:
+  frontend:
+    image: dytallix/frontend:${FRONTEND_TAG:-latest}
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_FAUCET_API_URL=${VITE_FAUCET_API_URL}
+    volumes:
+      - ../dytallix-lean-launch/dist:/var/www/dytallix:ro
+  backend:
+    build:
+      context: ../dytallix-lean-launch
+      dockerfile: Dockerfile.backend
+    restart: always
+    env_file:
+      - ../dytallix-lean-launch/.env.production
+    environment:
+      - LOG_DIR=/var/log/dytallix
+    volumes:
+      - logs:/var/log/dytallix
+  proxy:
+    image: nginx:1.27-alpine
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt/live/dytallix.com:/etc/ssl/dytallix:ro
+      - ../dytallix-lean-launch/dist:/var/www/dytallix:ro
+volumes:
+  logs: {}
