@@ -147,13 +147,12 @@ const DevResources = () => {
 
         {/* Network Configuration Section */}
         <div className="card" style={{ marginTop: '60px' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '24px', color: '#1f2937', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '24px', textAlign: 'center' }}>
             Network Configuration
           </h2>
           
-          <p style={{ 
+          <p className="muted" style={{ 
             fontSize: '1.125rem', 
-            color: '#6b7280', 
             marginBottom: '32px',
             textAlign: 'center',
             lineHeight: '1.6'
@@ -188,46 +187,40 @@ const NetworkConfig = () => {
       margin: '0 auto'
     }}>
       {configItems.map((item, index) => (
-        <div key={index} style={{ 
+        <div key={index} className="card card-tint-info" style={{ 
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
-          padding: '16px',
-          backgroundColor: '#f8fafc',
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0'
+          padding: '16px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, color: '#1f2937', fontSize: '1rem', fontWeight: '600' }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>
               {item.label}
             </h3>
             <code style={{ 
-              backgroundColor: '#e2e8f0', 
+              background: 'rgba(255,255,255,0.08)', 
               padding: '4px 8px', 
               borderRadius: '4px',
               fontSize: '0.875rem',
-              color: '#374151',
+              border: '1px solid rgba(255,255,255,0.12)',
               wordBreak: 'break-all'
             }}>
-              {item.value}
+              {item.value || '—'}
             </code>
           </div>
-          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem', lineHeight: '1.4' }}>
+          <p className="muted" style={{ margin: 0, fontSize: '0.875rem', lineHeight: '1.4' }}>
             {item.description}
           </p>
         </div>
       ))}
       
-      <div style={{ 
+      <div className="card card-tint-warning" style={{ 
         marginTop: '16px',
-        padding: '12px',
-        backgroundColor: '#fef3c7',
-        borderRadius: '8px',
-        border: '1px solid #fcd34d'
+        padding: '12px'
       }}>
-        <p style={{ margin: 0, color: '#92400e', fontSize: '0.875rem' }}>
+        <p style={{ margin: 0, fontSize: '0.875rem' }}>
           <strong>Note:</strong> These endpoints are configured via environment variables. 
-          See <code style={{ backgroundColor: 'rgba(255,255,255,0.5)', padding: '2px 4px', borderRadius: '3px' }}>
+          See <code style={{ background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '3px', border: '1px solid rgba(255,255,255,0.12)' }}>
             .env.staging.example
           </code> for the template.
         </p>
