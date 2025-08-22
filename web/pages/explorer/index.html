@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dytallix Explorer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        h2 {
+            margin: 0 0 15px 0;
+            color: #1f2937;
+            font-size: 18px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .hash {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            color: #059669;
+            cursor: pointer;
+        }
+        
+        .hash:hover {
+            text-decoration: underline;
+        }
+        
+        .status-success {
+            color: #059669;
+            font-weight: 600;
+        }
+        
+        .status-failed {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        
+        .time {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        .detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1000;
+        }
+        
+        .detail-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .detail-close {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        .detail-close:hover {
+            color: #374151;
+        }
+        
+        pre {
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        
+        .auto-refresh {
+            color: #6b7280;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dytallix Explorer</h1>
+        </header>
+        
+        <div class="section">
+            <h2>Latest Blocks</h2>
+            <div id="blocks-loading" class="loading">Loading blocks...</div>
+            <div id="blocks-error" class="error" style="display: none;"></div>
+            <table id="blocks-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Height</th>
+                        <th>Hash</th>
+                        <th>Time</th>
+                        <th>Transactions</th>
+                    </tr>
+                </thead>
+                <tbody id="blocks-tbody">
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>Recent Transactions</h2>
+            <div id="txs-loading" class="loading">Loading transactions...</div>
+            <div id="txs-error" class="error" style="display: none;"></div>
+            <table id="txs-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Hash</th>
+                        <th>Height</th>
+                        <th>Status</th>
+                        <th>Gas Used</th>
+                    </tr>
+                </thead>
+                <tbody id="txs-tbody">
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="auto-refresh">Auto-refreshing every 5 seconds</div>
+    </div>
+    
+    <div id="detail-overlay" class="detail-overlay">
+        <div class="detail-modal">
+            <button class="detail-close" onclick="closeDetail()">&times;</button>
+            <h3>Transaction Details</h3>
+            <pre id="detail-content"></pre>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        
+        function truncateHash(hash) {
+            if (!hash) return 'N/A';
+            return hash.length > 16 ? hash.substring(0, 8) + '...' + hash.substring(hash.length - 8) : hash;
+        }
+        
+        function formatTime(timeStr) {
+            if (!timeStr) return 'N/A';
+            try {
+                return new Date(timeStr).toLocaleString();
+            } catch (e) {
+                return timeStr;
+            }
+        }
+        
+        function formatStatus(status) {
+            if (status === 1) {
+                return '<span class="status-success">Success</span>';
+            } else {
+                return '<span class="status-failed">Failed</span>';
+            }
+        }
+        
+        async function loadBlocks() {
+            try {
+                const response = await fetch(`${API_BASE}/explorer/blocks?limit=10`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const tbody = document.getElementById('blocks-tbody');
+                tbody.innerHTML = '';
+                
+                data.blocks.forEach(block => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${block.height}</td>
+                        <td class="hash">${truncateHash(block.hash)}</td>
+                        <td class="time">${formatTime(block.time)}</td>
+                        <td>${block.tx_count}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                document.getElementById('blocks-loading').style.display = 'none';
+                document.getElementById('blocks-error').style.display = 'none';
+                document.getElementById('blocks-table').style.display = 'table';
+            } catch (error) {
+                console.error('Failed to load blocks:', error);
+                document.getElementById('blocks-loading').style.display = 'none';
+                document.getElementById('blocks-error').style.display = 'block';
+                document.getElementById('blocks-error').textContent = `Failed to load blocks: ${error.message}`;
+            }
+        }
+        
+        async function loadTransactions() {
+            try {
+                const response = await fetch(`${API_BASE}/explorer/txs?limit=10`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const tbody = document.getElementById('txs-tbody');
+                tbody.innerHTML = '';
+                
+                data.transactions.forEach(tx => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="hash" onclick="showTransactionDetail('${tx.hash}')">${truncateHash(tx.hash)}</td>
+                        <td>${tx.height}</td>
+                        <td>${formatStatus(tx.status)}</td>
+                        <td>${tx.gas_used || 0}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                document.getElementById('txs-loading').style.display = 'none';
+                document.getElementById('txs-error').style.display = 'none';
+                document.getElementById('txs-table').style.display = 'table';
+            } catch (error) {
+                console.error('Failed to load transactions:', error);
+                document.getElementById('txs-loading').style.display = 'none';
+                document.getElementById('txs-error').style.display = 'block';
+                document.getElementById('txs-error').textContent = `Failed to load transactions: ${error.message}`;
+            }
+        }
+        
+        async function showTransactionDetail(hash) {
+            try {
+                const response = await fetch(`${API_BASE}/explorer/tx/${hash}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const tx = await response.json();
+                document.getElementById('detail-content').textContent = JSON.stringify(tx, null, 2);
+                document.getElementById('detail-overlay').style.display = 'block';
+            } catch (error) {
+                console.error('Failed to load transaction details:', error);
+                alert(`Failed to load transaction details: ${error.message}`);
+            }
+        }
+        
+        function closeDetail() {
+            document.getElementById('detail-overlay').style.display = 'none';
+        }
+        
+        function loadData() {
+            loadBlocks();
+            loadTransactions();
+        }
+        
+        // Initial load
+        loadData();
+        
+        // Auto-refresh every 5 seconds
+        setInterval(loadData, 5000);
+        
+        // Close modal on overlay click
+        document.getElementById('detail-overlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetail();
+            }
+        });
+    </script>
+</body>
+</html>
