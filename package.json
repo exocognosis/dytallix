@@ -3,7 +3,17 @@
     "node-fetch": "^2.7.0"
   },
   "scripts": {
-    "start:faucet:dev": "npm --prefix dytallix-lean-launch-1 run dev:full",
-    "build:faucet": "npm --prefix dytallix-lean-launch-1 run build"
+    "start:faucet:dev": "npm --prefix dytallix-lean-launch run dev:full",
+    "build:faucet": "npm --prefix dytallix-lean-launch run build",
+    "self-test": "bash scripts/test-pqc.sh",
+    "gen:pqclean-manifest": "node scripts/gen-pqclean-manifest.js",
+    "test": "jest --runInBand"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testMatch": ["**/tests/**/*.test.js"],
+    "testEnvironment": "node"
   }
 }

@@ -1,0 +1,6 @@
+{
+  "generated_at": "2025-08-21T15:05:01.495Z",
+  "tool": "scripts/gen-pqclean-manifest.js",
+  "note": "Update only via generation script; used for integrity verification at startup.",
+  "files": []
+}
