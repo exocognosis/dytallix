@@ -1,44 +1,68 @@
 import React, { useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import '../styles/global.css'
 
-// Temporary placeholder constants to fix build
+// Strengthened placeholder utilities & fallbacks to prevent runtime crashes
 const DEFAULT_RANGE = '1h'
 const DEFAULT_REFRESH_MS = 10000
 const persistRange = () => {}
 const persistRefresh = () => {}
 const getOverview = () => Promise.resolve({})
-const getTimeseries = () => Promise.resolve([])
-const openDashboardSocket = () => {}
+const getTimeseries = () => Promise.resolve({ points: [] })
+// Ensure we ALWAYS return an object with a no-op close so cleanup is safe
+const openDashboardSocket = (handlers = {}) => {
+  try {
+    // If a real implementation gets injected later it can override this.
+    // For now just simulate an interface.
+    return { close: () => {}, send: () => {} }
+  } catch (e) {
+    return { close: () => {} }
+  }
+}
 const logEvent = () => {}
-const logApiError = () => {}
+const logApiError = () => 1
 
 // Placeholder components
 const BlockHeightWidget = () => {
   const [height, setHeight] = useState(0)
-  
+  const [err, setErr] = useState('')
+
   useEffect(() => {
+    let cancelled = false
     const fetchHeight = async () => {
       try {
-        const response = await fetch('/api/status/height')
-        const data = await response.json()
-        if (data.ok && data.height) {
-          setHeight(data.height)
+        const res = await fetch('/api/status/height', { cache: 'no-store' })
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`)
+        }
+        let data
+        try {
+          data = await res.json()
+        } catch (e) {
+          throw new Error('Invalid JSON in /api/status/height')
+        }
+        if (!cancelled && data && (data.ok || data.height != null)) {
+          setHeight(Number(data.height) || 0)
+          setErr('')
         }
       } catch (error) {
-        console.error('Error fetching block height:', error)
+        if (!cancelled) {
+          setErr('Unavailable')
+          // Silent console to avoid noisy crashes in production; keep for dev.
+          console.warn('Block height fetch issue:', error?.message || error)
+        }
       }
     }
-    
+
     fetchHeight()
     const interval = setInterval(fetchHeight, 10000) // Poll every 10 seconds
-    return () => clearInterval(interval)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [])
-  
+
   return (
     <div className="card">
       <h3>Block Height</h3>
       <div data-test="chain-height" style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-        {height > 0 ? height : 'Loading...'}
+        {err ? err : height > 0 ? height : 'Loading...'}
       </div>
     </div>
   )
@@ -169,10 +193,25 @@ const Dashboard = () => {
   // Auto refresh
   useAutoRefresh(refreshMs, loadAll)
 
-  // Socket updates (overview only)
+  // Hardened WebSocket lifecycle (prevents undefined close() crash)
   useEffect(() => {
-    const sock = openDashboardSocket({ onOverview: (o) => setOverview((prev) => ({ ...prev, ...o, _mock: false })), onError: () => {} })
-    return () => sock.close()
+    let sock
+    try {
+      sock = openDashboardSocket({
+        onOverview: (o) => setOverview((prev) => ({ ...(prev || {}), ...o, _mock: false })),
+        onError: () => {}
+      }) || null
+    } catch (e) {
+      console.warn('Socket init failed (non-fatal):', e)
+      sock = null
+    }
+    return () => {
+      try {
+        if (sock && typeof sock.close === 'function') sock.close()
+      } catch (e) {
+        console.warn('Socket cleanup error (ignored):', e)
+      }
+    }
   }, [])
 
   const health = useMemo(() => overview ? deriveHealth(overview) : 'healthy', [overview])

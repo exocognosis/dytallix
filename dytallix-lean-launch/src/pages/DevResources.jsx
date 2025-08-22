@@ -81,7 +81,7 @@ const DevResources = () => {
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 16, textAlign: 'center' }}>
                 {category.category}
               </h2>
-              <div className="grid grid-2">
+              <div className="grid grid-2x2">
                 {category.items.map((item, itemIndex) => {
                   const colors = getTypeStyle(item.type)
                   const isInternal = item.type === 'Internal'
@@ -145,23 +145,13 @@ const DevResources = () => {
           </div>
         </div>
 
-        {/* Network Configuration Section */}
-        <div className="card" style={{ marginTop: '60px' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '24px', color: '#1f2937', textAlign: 'center' }}>
-            Network Configuration
-          </h2>
-          
-          <p style={{ 
-            fontSize: '1.125rem', 
-            color: '#6b7280', 
-            marginBottom: '32px',
-            textAlign: 'center',
-            lineHeight: '1.6'
-          }}>
-            Current Cosmos SDK endpoints and network settings for this instance.
-          </p>
-          
-          <NetworkConfig />
+        {/* Network Configuration Section (restored) */}
+        <div className="network-config-wrapper">
+          <div className="card network-config">
+            <h2 className="network-config-title">Network Configuration</h2>
+            <p className="network-config-subtitle">Current Cosmos SDK endpoints and network settings for this instance.</p>
+            <NetworkConfig />
+          </div>
         </div>
       </div>
     </div>
@@ -181,56 +171,20 @@ const NetworkConfig = () => {
   ]
 
   return (
-    <div style={{ 
-      display: 'grid', 
-      gap: '16px',
-      maxWidth: '800px',
-      margin: '0 auto'
-    }}>
-      {configItems.map((item, index) => (
-        <div key={index} style={{ 
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          padding: '16px',
-          backgroundColor: '#f8fafc',
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, color: '#1f2937', fontSize: '1rem', fontWeight: '600' }}>
-              {item.label}
-            </h3>
-            <code style={{ 
-              backgroundColor: '#e2e8f0', 
-              padding: '4px 8px', 
-              borderRadius: '4px',
-              fontSize: '0.875rem',
-              color: '#374151',
-              wordBreak: 'break-all'
-            }}>
-              {item.value}
-            </code>
+    <div>
+      <div className="network-config-items">
+        {configItems.map((item, i) => (
+          <div key={i} className="network-config-item">
+            <div className="network-config-item-header">
+              <h3>{item.label}</h3>
+              <code>{item.value}</code>
+            </div>
+            <p>{item.description}</p>
           </div>
-          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem', lineHeight: '1.4' }}>
-            {item.description}
-          </p>
-        </div>
-      ))}
-      
-      <div style={{ 
-        marginTop: '16px',
-        padding: '12px',
-        backgroundColor: '#fef3c7',
-        borderRadius: '8px',
-        border: '1px solid #fcd34d'
-      }}>
-        <p style={{ margin: 0, color: '#92400e', fontSize: '0.875rem' }}>
-          <strong>Note:</strong> These endpoints are configured via environment variables. 
-          See <code style={{ backgroundColor: 'rgba(255,255,255,0.5)', padding: '2px 4px', borderRadius: '3px' }}>
-            .env.staging.example
-          </code> for the template.
-        </p>
+        ))}
+      </div>
+      <div className="network-config-note">
+        <p><strong>Note:</strong> These endpoints are configured via environment variables. See <code>.env.staging.example</code> for the template.</p>
       </div>
     </div>
   )
