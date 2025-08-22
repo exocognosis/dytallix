@@ -56,7 +56,7 @@ const FaucetForm = () => {
   useEffect(() => {
     try {
       const meta = loadMeta()
-      if (meta?.address && !walletAutoFilled) { 
+      if (meta?.address && !walletAutoFilled && isBech32(meta.address)) { 
         setAddress(meta.address)
         setConnected(true)
         setWalletAutoFilled(true)
@@ -125,6 +125,23 @@ const FaucetForm = () => {
     }
   }
 
+  // Get last success details for display
+  const getLastSuccessDetails = () => {
+    try {
+      const lastSuccess = localStorage.getItem('dytallix-faucet-last-success')
+      if (lastSuccess) {
+        const parsed = JSON.parse(lastSuccess)
+        const timeDiff = Date.now() - (parsed.timestamp || 0)
+        const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60))
+        if (hoursAgo < 24 && parsed.dispensed && parsed.dispensed.length > 0) {
+          const dispensedText = parsed.dispensed.map(d => `${d.amount} ${d.symbol}`).join(' + ')
+          return `Last request: ${dispensedText} (${hoursAgo}h ago)`
+        }
+      }
+    } catch {}
+    return null
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setMessage('')
@@ -136,7 +153,7 @@ const FaucetForm = () => {
 
     if (anyCooldown) {
       const cooldownTokens = selectedTokens.filter(token => isOnCooldown(token))
-      showMessage(`Please wait ${maxCooldownMinutes} more minutes before requesting ${cooldownTokens.join(', ')} again.`, 'error')
+      showMessage(`Please wait ${maxCooldownMinutes} more minutes before requesting ${cooldownTokens.join(', ')} again.`, 'cooldown')
       return
     }
 
@@ -157,20 +174,50 @@ const FaucetForm = () => {
         
         showMessage(`✅ ${dispensedList} sent successfully!${txMessage}`, 'success')
         
-        // Update cooldowns for all dispensed tokens
+        // Update cooldowns - prioritize backend cooldowns, fall back to config
         const newCooldowns = { ...cooldowns }
-        res.dispensed.forEach(dispensed => {
-          const cooldownEnd = Date.now() + (tokenConfig[dispensed.symbol].cooldownMinutes * 60 * 1000)
-          newCooldowns[dispensed.symbol] = cooldownEnd
-        })
+        if (res.cooldowns) {
+          // Use backend cooldowns if provided
+          Object.keys(res.cooldowns).forEach(symbol => {
+            newCooldowns[symbol] = res.cooldowns[symbol]
+          })
+        } else {
+          // Fall back to config-based cooldowns
+          res.dispensed.forEach(dispensed => {
+            const cooldownEnd = Date.now() + (tokenConfig[dispensed.symbol].cooldownMinutes * 60 * 1000)
+            newCooldowns[dispensed.symbol] = cooldownEnd
+          })
+        }
         setCooldowns(newCooldowns)
         localStorage.setItem('dytallix-faucet-cooldowns', JSON.stringify(newCooldowns))
-        localStorage.setItem('dytallix-faucet-last-success', JSON.stringify(res))
+        localStorage.setItem('dytallix-faucet-last-success', JSON.stringify({
+          ...res,
+          timestamp: Date.now()
+        }))
       } else {
         let errorMessage = res.message || 'Request failed'
         if (res.error === 'RATE_LIMIT' && res.retryAfterSeconds) {
           const minutes = Math.ceil(res.retryAfterSeconds / 60)
           errorMessage = `Rate limit exceeded. Please wait ${minutes} minutes before trying again.`
+          
+          // Update cooldowns from rate limit response if provided
+          if (res.cooldowns) {
+            const newCooldowns = { ...cooldowns }
+            if (res.cooldowns.tokens) {
+              Object.keys(res.cooldowns.tokens).forEach(symbol => {
+                const tokenCooldown = res.cooldowns.tokens[symbol]
+                if (tokenCooldown && tokenCooldown.nextAllowedAt) {
+                  let timestamp = tokenCooldown.nextAllowedAt
+                  if (timestamp < 1e12) {
+                    timestamp = timestamp * 1000
+                  }
+                  newCooldowns[symbol] = timestamp
+                }
+              })
+            }
+            setCooldowns(newCooldowns)
+            localStorage.setItem('dytallix-faucet-cooldowns', JSON.stringify(newCooldowns))
+          }
         }
         showMessage(errorMessage, 'error')
       }
@@ -186,8 +233,18 @@ const FaucetForm = () => {
       <div className={styles.inputGroup}>
         <label htmlFor="token-selection" className={styles.label}>Select Tokens</label>
         <div className={styles.tokenSelector}>
-          {Object.entries(TOKEN_OPTIONS).map(([key, option]) => (
-            <div key={key} className={`${styles.tokenOption} ${selectedOption === key ? styles.selected : ''}`} onClick={() => setSelectedOption(key)}>
+          {Object.entries(TOKEN_OPTIONS).map(([key, option]) => {
+            const optionOnCooldown = option.tokens.some(token => isOnCooldown(token))
+            return (
+              <div 
+                key={key} 
+                className={`${styles.tokenOption} ${selectedOption === key ? styles.selected : ''} ${optionOnCooldown ? styles.disabled : ''}`} 
+                onClick={() => !optionOnCooldown && setSelectedOption(key)}
+                role="radio"
+                aria-checked={selectedOption === key}
+                aria-disabled={optionOnCooldown}
+                tabIndex={optionOnCooldown ? -1 : 0}
+              >
               <div className={styles.tokenHeader}>
                 <div className={styles.tokenInfo}>
                   <div className={styles.tokenName}>{option.label}</div>
@@ -206,7 +263,8 @@ const FaucetForm = () => {
                 ))}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -258,12 +316,40 @@ const FaucetForm = () => {
         )}
       </button>
 
+      {/* Cooldown notice when tokens are on cooldown */}
+      {anyCooldown && (
+        <div 
+          className={`${styles.message} ${styles.cooldownNotice}`}
+          role="status"
+          aria-live="polite"
+          data-test="cooldown-notice"
+        >
+          ⏳ Cooldown active for {selectedTokens.filter(t => isOnCooldown(t)).join(', ')}. 
+          Please wait {maxCooldownMinutes} more minutes.
+        </div>
+      )}
+
+      {/* Main status message */}
       {message && (
         <div 
           className={`${styles.message} ${styles[messageType]}`}
+          role={messageType === 'error' ? 'alert' : 'status'}
+          aria-live={messageType === 'error' ? 'assertive' : 'polite'}
           data-test="faucet-status"
         >
           {message}
+        </div>
+      )}
+
+      {/* Last success details */}
+      {getLastSuccessDetails() && !message && (
+        <div 
+          className={styles.lastResult}
+          role="status"
+          aria-live="polite"
+          data-test="last-result"
+        >
+          {getLastSuccessDetails()}
         </div>
       )}
 

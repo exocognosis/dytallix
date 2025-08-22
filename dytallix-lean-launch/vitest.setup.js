@@ -1,4 +1,5 @@
 // Setup for Vitest + jsdom
+import '@testing-library/jest-dom'
 
 // localStorage mock (simple in-memory)
 if (typeof window !== 'undefined' && typeof window.localStorage === 'undefined') {
