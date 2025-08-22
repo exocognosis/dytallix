@@ -8,7 +8,9 @@ members = [
     "interoperability",
     "dytallix-lean-launch/node",
     "cli",
-    "sdk"
+    "sdk",
+    "explorer/indexer",
+    "explorer/api"
 ]
 
 resolver = "2"
