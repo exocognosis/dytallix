@@ -7,7 +7,8 @@ VITE_LCD_HTTP_URL=https://<staging>:1317
 VITE_RPC_HTTP_URL=https://<staging>:26657
 VITE_RPC_WS_URL=wss://<staging>:26657/websocket
 VITE_CHAIN_ID=dytallix-testnet-vX
-FAUCET_URL=https://<faucet-endpoint>
+VITE_API_URL=https://<api-endpoint>
+# VITE_FAUCET_URL=https://<faucet-endpoint>  # Optional override
 TEST_MNEMONIC="<12 or 24 word test mnemonic>"
 ```
 

@@ -4,7 +4,20 @@ import { getBalances, sendTokens, subscribeTxAndBlocks, waitForTx, getChainId, g
 
 dotenv.config({ path: '.env.staging', override: false });
 
-const faucetUrl = process.env.FAUCET_URL || '';
+// Use new environment variable pattern for faucet URL
+const faucetUrl = (() => {
+  // Explicit faucet URL takes precedence
+  if (process.env.VITE_FAUCET_URL) {
+    return process.env.VITE_FAUCET_URL;
+  }
+  // Derive from API base URL
+  if (process.env.VITE_API_URL) {
+    return process.env.VITE_API_URL + '/faucet';
+  }
+  // Fallback (no legacy support needed as this is for new tests)
+  return '';
+})();
+
 const testMnemonic = process.env.TEST_MNEMONIC || '';
 const chainIdEnv = process.env.VITE_CHAIN_ID || '';
 const TEST_DENOM_BASE = process.env.TEST_DENOM_BASE || 'uDGT'; // default governance token
@@ -20,7 +33,7 @@ if (!isValidMnemonic) {
 
 // Helper to request faucet for a specific token symbol inferred from denom
 async function requestFaucet(address: string, baseDenom: string) {
-  if (!faucetUrl) throw new Error('FAUCET_URL not set');
+  if (!faucetUrl) throw new Error('Faucet URL not configured');
   const token = baseDenom === 'uDGT' ? 'DGT' : baseDenom === 'uDRT' ? 'DRT' : '';
   if (!token) throw new Error('Unsupported test denom');
   const res = await fetch(faucetUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address, token }) });

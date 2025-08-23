@@ -10,6 +10,7 @@ The format follows Keep a Changelog and Semantic Versioning where applicable.
 - Environment configuration template consolidation (.env.example with legacy + new VITE_* vars)
 - Security-focused ignore patterns (.gitignore, .dockerignore)
 - Dual-token nomenclature enforcement in CLI: governance token DGT, reward token DRT (validation restricts denoms to DGT/DRT).
+- **Centralized environment variable loader** (`src/config/env.ts`) with unified API and faucet endpoint configuration
 
 ### Changed
 - README unification: monorepo layout, branching overview, Cosmos-only focus
@@ -17,6 +18,10 @@ The format follows Keep a Changelog and Semantic Versioning where applicable.
 - CLI package/binary renamed from `dyt` to `dcli`.
 - Environment variable prefix migrated from `DYT_` to `DX_` (old names still accepted with deprecation warnings).
 - Updated docs, CI workflow, and examples to use `dcli` and dual-token model.
+- **BREAKING: Environment variable consolidation for API and faucet endpoints**
+  - Removed: `FAUCET_URL` (unprefixed), `VITE_FAUCET_API_URL`
+  - Added: `VITE_API_URL` (required base API), `VITE_FAUCET_URL` (optional override)
+  - Migration: Set `VITE_API_URL` to your API base; faucet defaults to `{API_URL}/faucet`
 
 ### Security
 - Reinforced exclusion of secrets (.env*, mnemonic guidance)

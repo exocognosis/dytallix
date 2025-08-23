@@ -4,13 +4,14 @@ import dgtIcon from '../assets/dgt.svg'
 import drtIcon from '../assets/drt.svg'
 import { requestFaucet } from '../lib/api.js'
 import { loadMeta } from '../wallet/Keystore'
+import { faucetBaseUrl } from '../config/env.ts'
 
 // Cosmos network configuration
 const COSMOS_CONFIG = {
   lcdUrl: import.meta.env.VITE_LCD_HTTP_URL || 'https://lcd-testnet.dytallix.com',
   rpcUrl: import.meta.env.VITE_RPC_HTTP_URL || 'https://rpc-testnet.dytallix.com',
   chainId: import.meta.env.VITE_CHAIN_ID || 'dytallix-testnet-1',
-  faucetApiUrl: import.meta.env.VITE_FAUCET_API_URL || '/api/faucet'
+  faucetApiUrl: faucetBaseUrl || '/api/faucet'
 }
 
 // Token selection options

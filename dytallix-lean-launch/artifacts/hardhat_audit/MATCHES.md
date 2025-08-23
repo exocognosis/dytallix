@@ -62,7 +62,8 @@ Recommended additions (if not already defined):
 - `VITE_RPC_HTTP_URL` – Cosmos RPC endpoint
 - `VITE_RPC_WS_URL` – Cosmos WebSocket RPC endpoint
 - `VITE_CHAIN_ID` – Chain ID (e.g. `dytallix-testnet-1`)
-- `VITE_FAUCET_API_URL` – Faucet backend endpoint (optional hardening)
+- `VITE_API_URL` – Base API endpoint (required)
+- `VITE_FAUCET_URL` – Optional explicit faucet endpoint override
 
 ## Recommended Next Steps
 1. Integrate CosmJS (or gRPC-Web) for on-chain queries & tx signing

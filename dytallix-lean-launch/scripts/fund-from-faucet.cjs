@@ -1,14 +1,29 @@
 /**
  * Usage:
  *   VITE_LCD_HTTP_URL=http://localhost:1317 \
- *   FAUCET_URL=http://localhost:8787/api/faucet \
+ *   VITE_API_URL=http://localhost:8787/api \
+ *   VITE_FAUCET_URL=http://localhost:8787/api/faucet \
  *   TEST_MNEMONIC="word1 ... word24" \
  *   TOKEN=DGT node scripts/fund-from-faucet.js
  */
 const { DirectSecp256k1HdWallet } = require('@cosmjs/proto-signing');
 
 const LCD = process.env.VITE_LCD_HTTP_URL || process.env.LCD_HTTP_URL || 'http://178.156.187.81:1317';
-const FAUCET = process.env.FAUCET_URL || 'http://localhost:8787/api/faucet';
+
+// Use new environment variable pattern for faucet URL
+const FAUCET = (() => {
+  // Explicit faucet URL takes precedence
+  if (process.env.VITE_FAUCET_URL) {
+    return process.env.VITE_FAUCET_URL;
+  }
+  // Derive from API base URL
+  if (process.env.VITE_API_URL) {
+    return process.env.VITE_API_URL + '/faucet';
+  }
+  // Fallback to default
+  return 'http://localhost:8787/api/faucet';
+})();
+
 const MNEMONIC = process.env.TEST_MNEMONIC;
 const PREFIX = process.env.BECH32_PREFIX || 'cosmos';
 const TOKEN = (process.env.TOKEN || 'DGT').toUpperCase();

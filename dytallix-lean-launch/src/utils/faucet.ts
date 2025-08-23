@@ -1,5 +1,7 @@
 // Cosmos faucet helper
-// POST to FAUCET_URL with { address: "<bech32>", token: 'DGT'|'DRT' }
+// Uses centralized environment configuration
+
+import { faucetBaseUrl } from '../config/env.ts'
 
 export interface FaucetResponse {
   ok: boolean;
@@ -18,11 +20,9 @@ function withTimeout(p: Promise<Response>, ms = 15000) {
 }
 
 export async function requestCosmosFaucet(address: string, token: 'DGT' | 'DRT' = 'DRT'): Promise<FaucetResponse> {
-  // Prefer Vite client env in browser
-  const viteUrl = (import.meta as any)?.env?.VITE_FAUCET_URL
-  const nodeUrl = (globalThis as any)?.process?.env?.FAUCET_URL
-  const url = viteUrl || nodeUrl || '/api/faucet'
-  if (!url) throw new Error('Missing FAUCET_URL')
+  const url = faucetBaseUrl
+  if (!url) throw new Error('Faucet URL not configured')
+  
   const body = JSON.stringify({ address, token })
   const res = await withTimeout(fetch(url, {
     method: 'POST',

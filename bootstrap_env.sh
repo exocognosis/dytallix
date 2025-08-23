@@ -19,9 +19,15 @@ echo "Detected CHAIN_ID: ${CHAIN_ID:-<unknown>}"
 read -r -p "Confirm/enter CHAIN_ID: " INPUT_CHAIN_ID || true
 CHAIN_ID="${INPUT_CHAIN_ID:-$CHAIN_ID}"
 
-# Faucet guess: ask you; default to local Express on 8787
-read -r -p "Enter FAUCET_URL (default http://$HOST:8787/api/faucet): " INPUT_FAUCET || true
-FAUCET_URL="${INPUT_FAUCET:-http://$HOST:8787/api/faucet}"
+# API base URL (required for new pattern)
+read -r -p "Enter VITE_API_URL (e.g., http://$HOST:8787/api): " VITE_API_URL || true
+if [ -z "$VITE_API_URL" ]; then
+  echo "Warning: VITE_API_URL not set. Using legacy fallback."
+  VITE_API_URL="http://$HOST:8787/api"
+fi
+
+# Optional explicit faucet URL (leave blank to use API_URL + /faucet)
+read -r -p "Enter VITE_FAUCET_URL (optional, defaults to API_URL/faucet): " VITE_FAUCET_URL || true
 
 # Test mnemonic prompt (DO NOT use prod keys)
 read -r -p "Paste TEST_MNEMONIC (24 or 12 words; leave blank to skip): " TEST_MNEMONIC || true
@@ -32,7 +38,15 @@ VITE_LCD_HTTP_URL=http://$HOST:1317
 VITE_RPC_HTTP_URL=http://$HOST:26657
 VITE_RPC_WS_URL=ws://$HOST:26657/websocket
 VITE_CHAIN_ID=$CHAIN_ID
-FAUCET_URL=$FAUCET_URL
+VITE_API_URL=$VITE_API_URL
+EOF
+
+# Add VITE_FAUCET_URL only if provided
+if [ -n "$VITE_FAUCET_URL" ]; then
+  echo "VITE_FAUCET_URL=$VITE_FAUCET_URL" >> "$ENV_FILE"
+fi
+
+cat >> "$ENV_FILE" <<EOF
 TEST_MNEMONIC="$TEST_MNEMONIC"
 
 # optional flags

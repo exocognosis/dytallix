@@ -6,6 +6,7 @@ test('env diag', async () => {
   console.log('DIAG BECH32_PREFIX=', process.env.BECH32_PREFIX);
   console.log('DIAG APP_URL=', process.env.APP_URL);
   console.log('DIAG LCD=', process.env.VITE_LCD_HTTP_URL);
-  console.log('DIAG FAUCET=', process.env.FAUCET_URL);
+  console.log('DIAG API_URL=', process.env.VITE_API_URL);
+  console.log('DIAG FAUCET_URL=', process.env.VITE_FAUCET_URL || (process.env.VITE_API_URL ? process.env.VITE_API_URL + '/faucet' : 'not configured'));
   console.log('DIAG CHAIN_ID=', process.env.VITE_CHAIN_ID);
 });

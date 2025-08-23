@@ -1,4 +1,6 @@
 // Cosmos SDK configuration
+import { faucetBaseUrl } from './env.ts'
+
 export const cosmosConfig = {
   // LCD (Light Client Daemon) REST API endpoint
   lcdUrl: import.meta.env.VITE_LCD_HTTP_URL || 'http://localhost:1317',
@@ -12,8 +14,8 @@ export const cosmosConfig = {
   // Chain identifier
   chainId: import.meta.env.VITE_CHAIN_ID || 'dytallix-testnet-1',
   
-  // Faucet service endpoint
-  faucetUrl: import.meta.env.FAUCET_URL || 'http://localhost:8787/api/faucet'
+  // Faucet service endpoint (using centralized configuration)
+  faucetUrl: faucetBaseUrl
 }
 
 // Validate required environment variables
