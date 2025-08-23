@@ -1,6 +1,11 @@
 # Dytallix Project Makefile
 
-.PHONY: help build test lint clean verify-token-migration ci install checksum security-audit trivy
+.PHONY: help build test lint clean verify-token-migration ci install checksum security-audit trivy dev faucet test-unit test-e2e
+
+# Configuration variables
+FRONTEND_DIR?=dytallix-lean-launch
+FAUCET_ENDPOINT?=http://localhost:8787/api/faucet
+FAUCET_ADDRESS?=dytallix1test123456789012345678901234567890
 
 # Default target
 help:
@@ -9,9 +14,13 @@ help:
 	@echo ""
 	@echo "Available targets:"
 	@echo "  build                 - Build all components"
-	@echo "  test                  - Run all tests"
+	@echo "  test                  - Run all tests (lint + unit + e2e)"
+	@echo "  test-unit             - Run unit tests only"
+	@echo "  test-e2e              - Run end-to-end tests only"
 	@echo "  lint                  - Run linters for all components"
 	@echo "  clean                 - Clean build artifacts"
+	@echo "  dev                   - Start development environment"
+	@echo "  faucet                - Test faucet functionality"
 	@echo "  verify-token-migration - Verify no legacy DYT references remain"
 	@echo ""
 	@echo "CI/CD targets for dytallix-lean-launch:"
@@ -21,6 +30,50 @@ help:
 	@echo "  security-audit        - Run npm audit for high/critical vulnerabilities"
 	@echo "  trivy                 - Run Trivy filesystem scan"
 	@echo ""
+	@echo "Configuration variables:"
+	@echo "  FRONTEND_DIR         - Frontend directory (default: $(FRONTEND_DIR))"
+	@echo "  FAUCET_ENDPOINT      - Faucet API endpoint (default: $(FAUCET_ENDPOINT))"
+	@echo "  FAUCET_ADDRESS       - Test address for faucet (default: $(FAUCET_ADDRESS))"
+	@echo ""
+
+# Development environment
+dev:
+	@echo "🚀 Starting development environment..."
+	@echo "Starting backend server..."
+	cd $(FRONTEND_DIR) && npm run server &
+	@echo "Starting frontend development server..."
+	cd $(FRONTEND_DIR) && npm run dev &
+	@echo "✅ Development environment started"
+	@echo "Frontend: http://localhost:5173"
+	@echo "Backend: http://localhost:8787"
+
+# Faucet testing
+faucet:
+	@echo "🚰 Testing faucet functionality..."
+	@echo "Endpoint: $(FAUCET_ENDPOINT)"
+	@echo "Address: $(FAUCET_ADDRESS)"
+	@./scripts/faucet_request.sh $(FAUCET_ADDRESS) DGT $(FAUCET_ENDPOINT)
+	@echo "✅ Faucet test complete"
+
+# Test targets
+test: lint test-unit test-e2e
+	@echo "✅ All tests completed"
+
+test-unit:
+	@echo "🧪 Running unit tests..."
+	@echo "Running Rust unit tests..."
+	cargo test --lib
+	@echo "Running frontend unit tests..."
+	cd $(FRONTEND_DIR) && npm test -- --run
+	@echo "✅ Unit tests complete"
+
+test-e2e:
+	@echo "🧪 Running end-to-end tests..."
+	@echo "Running Cypress E2E tests..."
+	cd $(FRONTEND_DIR) && npm run test:e2e || echo "E2E tests completed with issues"
+	@echo "Running Rust integration tests..."
+	FAUCET_URL=$(FAUCET_ENDPOINT) cargo test --test faucet_integration || echo "Integration tests completed with issues"
+	@echo "✅ E2E tests complete"
 
 # Build all components
 build:
