@@ -1,4 +1,5 @@
 const blockchainService = require('../services/blockchainService');
+const dataService = require('../services/dataService');
 const { TOKENS, formatAmountWithSymbol, getTokenByMicroDenom } = require('../tokens');
 const winston = require('winston');
 
@@ -112,14 +113,24 @@ class ExplorerController {
         // Simulate transactions for each block
         const txCount = block.txCount || 0;
         for (let i = 0; i < txCount; i++) {
-          transactions.push({
+          const gasUsed = 75000 + Math.floor(Math.random() * 20000);
+          const txType = Math.random() > 0.8 ? 'contract_execution' : 
+                        Math.random() > 0.9 ? 'contract_deploy' : 'transfer';
+          
+          const transaction = {
             hash: blockchainService.generateHash(),
             height: block.height,
             time: block.time,
             success: Math.random() > 0.1, // 90% success rate
-            gasUsed: 75000 + Math.floor(Math.random() * 20000),
-            fee: '1000udgt'
-          });
+            gasUsed,
+            fee: '1000udgt',
+            type: txType
+          };
+          
+          // Add AI risk score
+          transaction.ai_risk_score = dataService.calculateAIRiskScore(transaction);
+          
+          transactions.push(transaction);
         }
       }
 
@@ -136,7 +147,12 @@ class ExplorerController {
       });
     } catch (error) {
       logger.error('Error getting transactions', { error: error.message });
-      res.status(500).json({ error: 'Failed to get transactions' });
+      res.status(500).json({ 
+        error: { 
+          code: 'TRANSACTIONS_ERROR', 
+          message: 'Failed to get transactions' 
+        } 
+      });
     }
   }
 
@@ -146,8 +162,10 @@ class ExplorerController {
       
       if (!hash || hash.length !== 64) {
         return res.status(400).json({ 
-          error: 'Invalid transaction hash',
-          message: 'Transaction hash must be 64 characters long'
+          error: { 
+            code: 'INVALID_HASH', 
+            message: 'Transaction hash must be 64 characters long' 
+          } 
         });
       }
 
@@ -155,9 +173,19 @@ class ExplorerController {
       
       if (!transaction) {
         return res.status(404).json({ 
-          error: 'Transaction not found',
-          message: `Transaction with hash ${hash} not found`
+          error: { 
+            code: 'NOT_FOUND', 
+            message: `Transaction with hash ${hash} not found` 
+          } 
         });
+      }
+
+      // Add AI risk score and gas used if not present
+      if (!transaction.ai_risk_score) {
+        transaction.ai_risk_score = dataService.calculateAIRiskScore(transaction);
+      }
+      if (!transaction.gasUsed) {
+        transaction.gasUsed = 75000 + Math.floor(Math.random() * 20000);
       }
 
       res.json(transaction);
@@ -166,7 +194,12 @@ class ExplorerController {
         error: error.message, 
         hash: req.params.hash 
       });
-      res.status(500).json({ error: 'Failed to get transaction' });
+      res.status(500).json({ 
+        error: { 
+          code: 'TRANSACTION_ERROR', 
+          message: 'Failed to get transaction' 
+        } 
+      });
     }
   }
 
@@ -348,33 +381,33 @@ class ExplorerController {
   // Governance methods
   async getGovernanceProposals(req, res) {
     try {
-      // Mock governance proposals for now - will be replaced with real blockchain data
-      const proposals = [
-        {
-          id: 1,
+      const proposals = await dataService.getProposals();
+      
+      // Add mock proposals if none exist
+      if (proposals.length === 0) {
+        await dataService.createProposal({
           title: "Increase Block Size Limit",
           description: "Proposal to increase the maximum block size from 1MB to 2MB to improve transaction throughput",
-          status: 'active',
-          votesFor: 1250000,
-          votesAgainst: 340000,
-          totalVotes: 1590000,
-          createdAt: '2024-01-15T10:00:00Z',
-          votingDeadline: '2024-02-15T10:00:00Z',
-          proposalType: 'parameter'
-        },
-        {
-          id: 2,
-          title: "DRT Emission Rate Adjustment",
+          submitter: 'dyt1proposer123',
+          voting_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          metadata: { proposalType: 'parameter' }
+        });
+        
+        await dataService.createProposal({
+          title: "DRT Emission Rate Adjustment", 
           description: "Reduce DRT emission rate from 1 DRT per block to 0.8 DRT per block to control inflation",
-          status: 'active',
-          votesFor: 2100000,
-          votesAgainst: 890000,
-          totalVotes: 2990000,
-          createdAt: '2024-01-10T09:00:00Z',
-          votingDeadline: '2024-02-10T09:00:00Z',
-          proposalType: 'tokenomics'
-        }
-      ];
+          submitter: 'dyt1proposer456',
+          voting_end: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
+          metadata: { proposalType: 'tokenomics' }
+        });
+        
+        const updatedProposals = await dataService.getProposals();
+        return res.json({
+          proposals: updatedProposals,
+          total: updatedProposals.length,
+          activeProposals: updatedProposals.filter(p => p.status === 'active').length
+        });
+      }
 
       res.json({
         proposals,
@@ -383,7 +416,45 @@ class ExplorerController {
       });
     } catch (error) {
       logger.error('Error getting governance proposals', { error: error.message });
-      res.status(500).json({ error: 'Failed to get governance proposals' });
+      res.status(500).json({ 
+        error: { 
+          code: 'GOVERNANCE_ERROR', 
+          message: 'Failed to get governance proposals' 
+        } 
+      });
+    }
+  }
+
+  async createGovernanceProposal(req, res) {
+    try {
+      const { title, description, metadata } = req.body;
+      
+      if (!title || !description) {
+        return res.status(400).json({ 
+          error: { 
+            code: 'INVALID_INPUT', 
+            message: 'Title and description are required' 
+          } 
+        });
+      }
+
+      const proposal = await dataService.createProposal({
+        title,
+        description,
+        submitter: req.body.submitter || 'dyt1anonymous',
+        voting_end: req.body.voting_end || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        metadata: metadata || {}
+      });
+
+      res.status(201).json(proposal);
+    } catch (error) {
+      logger.error('Error creating governance proposal', { error: error.message });
+      res.status(500).json({ 
+        error: { 
+          code: 'CREATION_ERROR', 
+          message: 'Failed to create governance proposal' 
+        } 
+      });
     }
   }
 
@@ -391,21 +462,25 @@ class ExplorerController {
     try {
       const proposalId = parseInt(req.params.id);
       
-      // Mock single proposal - will be replaced with real blockchain data
-      const proposal = {
-        id: proposalId,
-        title: "Increase Block Size Limit",
-        description: "Proposal to increase the maximum block size from 1MB to 2MB to improve transaction throughput",
-        status: 'active',
-        votesFor: 1250000,
-        votesAgainst: 340000,
-        totalVotes: 1590000,
-        createdAt: '2024-01-15T10:00:00Z',
-        votingDeadline: '2024-02-15T10:00:00Z',
-        proposalType: 'parameter',
-        proposer: 'dyt1proposer123...',
-        deposit: 10000
-      };
+      if (isNaN(proposalId)) {
+        return res.status(400).json({ 
+          error: { 
+            code: 'INVALID_ID', 
+            message: 'Invalid proposal ID' 
+          } 
+        });
+      }
+
+      const proposal = await dataService.getProposal(proposalId);
+      
+      if (!proposal) {
+        return res.status(404).json({ 
+          error: { 
+            code: 'NOT_FOUND', 
+            message: `Proposal ${proposalId} not found` 
+          } 
+        });
+      }
 
       res.json(proposal);
     } catch (error) {
@@ -413,40 +488,291 @@ class ExplorerController {
         error: error.message, 
         proposalId: req.params.id 
       });
-      res.status(500).json({ error: 'Failed to get governance proposal' });
+      res.status(500).json({ 
+        error: { 
+          code: 'GOVERNANCE_ERROR', 
+          message: 'Failed to get governance proposal' 
+        } 
+      });
     }
   }
 
   async voteOnProposal(req, res) {
     try {
       const proposalId = parseInt(req.params.id);
-      const { vote, voterAddress } = req.body;
+      const { voter, option } = req.body;
 
-      if (!vote || !voterAddress) {
-        return res.status(400).json({ error: 'Vote and voter address are required' });
+      if (!voter || !option) {
+        return res.status(400).json({ 
+          error: { 
+            code: 'INVALID_INPUT', 
+            message: 'Voter and option are required' 
+          } 
+        });
       }
 
-      if (!['for', 'against'].includes(vote)) {
-        return res.status(400).json({ error: 'Vote must be "for" or "against"' });
+      if (!['yes', 'no', 'abstain'].includes(option)) {
+        return res.status(400).json({ 
+          error: { 
+            code: 'INVALID_OPTION', 
+            message: 'Option must be "yes", "no", or "abstain"' 
+          } 
+        });
       }
 
-      // Mock voting - will be replaced with real blockchain transaction
-      logger.info('Vote submitted', { proposalId, vote, voterAddress });
+      const result = await dataService.castVote(proposalId, voter, option);
+      
+      if (result.error) {
+        return res.status(400).json({ 
+          error: { 
+            code: 'VOTE_ERROR', 
+            message: result.error 
+          } 
+        });
+      }
 
+      const updatedProposal = await dataService.getProposal(proposalId);
       res.json({
         success: true,
         message: 'Vote submitted successfully',
-        proposalId,
-        vote,
-        voterAddress,
-        timestamp: new Date().toISOString()
+        proposal: updatedProposal
       });
     } catch (error) {
       logger.error('Error voting on proposal', { 
         error: error.message, 
         proposalId: req.params.id 
       });
-      res.status(500).json({ error: 'Failed to submit vote' });
+      res.status(500).json({ 
+        error: { 
+          code: 'VOTE_ERROR', 
+          message: 'Failed to submit vote' 
+        } 
+      });
+    }
+  }
+
+  // Contracts API methods
+  async deployContract(req, res) {
+    try {
+      const { wasm, sourceCode, initMsg, from } = req.body;
+      
+      if (!from) {
+        return res.status(400).json({ 
+          error: { 
+            code: 'INVALID_INPUT', 
+            message: 'From address is required' 
+          } 
+        });
+      }
+
+      if (!wasm && !sourceCode) {
+        return res.status(400).json({ 
+          error: { 
+            code: 'INVALID_INPUT', 
+            message: 'Either wasm or sourceCode is required' 
+          } 
+        });
+      }
+
+      const deployment = {
+        code: wasm || sourceCode,
+        initMsg: initMsg || {},
+        from,
+        gasUsed: 100000 + Math.floor(Math.random() * 50000)
+      };
+
+      const result = await dataService.deployContract(deployment);
+      
+      logger.info('Contract deployed', { 
+        address: result.address, 
+        from, 
+        gasUsed: result.gasUsed 
+      });
+
+      res.status(201).json(result);
+    } catch (error) {
+      logger.error('Error deploying contract', { error: error.message });
+      res.status(500).json({ 
+        error: { 
+          code: 'DEPLOY_ERROR', 
+          message: 'Failed to deploy contract' 
+        } 
+      });
+    }
+  }
+
+  async executeContract(req, res) {
+    try {
+      const address = req.params.address;
+      const { execMsg, from } = req.body;
+
+      if (!from || !execMsg) {
+        return res.status(400).json({ 
+          error: { 
+            code: 'INVALID_INPUT', 
+            message: 'From address and execMsg are required' 
+          } 
+        });
+      }
+
+      const result = await dataService.executeContract(address, { execMsg, from });
+      
+      if (result.error) {
+        return res.status(404).json({ 
+          error: { 
+            code: 'CONTRACT_NOT_FOUND', 
+            message: result.error 
+          } 
+        });
+      }
+
+      logger.info('Contract executed', { 
+        address, 
+        from, 
+        gasUsed: result.gasUsed 
+      });
+
+      res.json(result);
+    } catch (error) {
+      logger.error('Error executing contract', { error: error.message, address: req.params.address });
+      res.status(500).json({ 
+        error: { 
+          code: 'EXECUTION_ERROR', 
+          message: 'Failed to execute contract' 
+        } 
+      });
+    }
+  }
+
+  async getContractState(req, res) {
+    try {
+      const address = req.params.address;
+      const contract = await dataService.getContract(address);
+
+      if (!contract) {
+        return res.status(404).json({ 
+          error: { 
+            code: 'CONTRACT_NOT_FOUND', 
+            message: `Contract ${address} not found` 
+          } 
+        });
+      }
+
+      res.json({
+        address: contract.address,
+        state: contract.state,
+        lastExecuted: contract.executions.length > 0 ? 
+          contract.executions[contract.executions.length - 1].timestamp : 
+          contract.createdAt
+      });
+    } catch (error) {
+      logger.error('Error getting contract state', { 
+        error: error.message, 
+        address: req.params.address 
+      });
+      res.status(500).json({ 
+        error: { 
+          code: 'STATE_ERROR', 
+          message: 'Failed to get contract state' 
+        } 
+      });
+    }
+  }
+
+  async getContracts(req, res) {
+    try {
+      const contracts = await dataService.getContracts();
+      
+      res.json({
+        contracts: contracts.map(c => ({
+          address: c.address,
+          creator: c.creator,
+          createdAt: c.createdAt,
+          gasLast: c.gasLast,
+          executionCount: c.executions.length
+        })),
+        total: contracts.length
+      });
+    } catch (error) {
+      logger.error('Error getting contracts', { error: error.message });
+      res.status(500).json({ 
+        error: { 
+          code: 'CONTRACTS_ERROR', 
+          message: 'Failed to get contracts' 
+        } 
+      });
+    }
+  }
+
+  async getContract(req, res) {
+    try {
+      const address = req.params.address;
+      const contract = await dataService.getContract(address);
+
+      if (!contract) {
+        return res.status(404).json({ 
+          error: { 
+            code: 'CONTRACT_NOT_FOUND', 
+            message: `Contract ${address} not found` 
+          } 
+        });
+      }
+
+      res.json(contract);
+    } catch (error) {
+      logger.error('Error getting contract', { 
+        error: error.message, 
+        address: req.params.address 
+      });
+      res.status(500).json({ 
+        error: { 
+          code: 'CONTRACT_ERROR', 
+          message: 'Failed to get contract' 
+        } 
+      });
+    }
+  }
+
+  // Accounts API methods  
+  async getAccountDetails(req, res) {
+    try {
+      const address = req.params.addr;
+      
+      if (!address || !address.startsWith('dyt')) {
+        return res.status(400).json({ 
+          error: { 
+            code: 'INVALID_ADDRESS', 
+            message: 'Invalid address format' 
+          } 
+        });
+      }
+
+      const account = await dataService.getAccount(address);
+      
+      res.json({
+        address: account.address,
+        balances: {
+          DGT: (account.balances.DGT / 1000000).toFixed(6), // Convert from micro to base units
+          DRT: (account.balances.DRT / 1000000).toFixed(6)
+        },
+        staking: {
+          staked: (account.staking.staked / 1000000).toFixed(6),
+          pendingRewards: (account.staking.pendingRewards / 1000000).toFixed(6),
+          apr: account.staking.apr.toFixed(2) + '%'
+        },
+        txCount: account.txCount
+      });
+    } catch (error) {
+      logger.error('Error getting account', { 
+        error: error.message, 
+        address: req.params.addr 
+      });
+      res.status(500).json({ 
+        error: { 
+          code: 'ACCOUNT_ERROR', 
+          message: 'Failed to get account' 
+        } 
+      });
     }
   }
 

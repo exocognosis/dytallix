@@ -94,8 +94,19 @@ app.get('/api/search/:query', explorerController.search);
 
 // Governance Routes
 app.get('/api/governance/proposals', explorerController.getGovernanceProposals);
+app.post('/api/governance', explorerController.createGovernanceProposal);
 app.get('/api/governance/proposals/:id', explorerController.getGovernanceProposal);
 app.post('/api/governance/proposals/:id/vote', explorerController.voteOnProposal);
+
+// Contracts Routes
+app.post('/api/contracts/deploy', explorerController.deployContract);
+app.post('/api/contracts/:address/execute', explorerController.executeContract);
+app.get('/api/contracts/:address/state', explorerController.getContractState);
+app.get('/api/contracts/:address', explorerController.getContract);
+app.get('/api/contracts', explorerController.getContracts);
+
+// Accounts Routes  
+app.get('/api/accounts/:addr', explorerController.getAccountDetails);
 
 // Staking Routes
 app.get('/api/staking/validators', explorerController.getStakingValidators);
