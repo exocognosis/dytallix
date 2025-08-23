@@ -47,7 +47,8 @@ function collectConnectSrc() {
     process.env.VITE_RPC_WS_URL,
     process.env.RPC_HTTP_URL,
     process.env.RPC_URL,
-    process.env.FAUCET_URL // (frontend may call faucet directly in some deployments)
+    process.env.VITE_API_URL, // New unified API endpoint
+    process.env.VITE_FAUCET_URL // Optional explicit faucet endpoint  
   ].filter(Boolean)
   const origins = new Set(["'self'" ])
   for (const c of candidates) {

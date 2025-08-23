@@ -14,8 +14,8 @@ const faucetUrl = (() => {
   if (process.env.VITE_API_URL) {
     return process.env.VITE_API_URL + '/faucet';
   }
-  // Legacy fallback
-  return process.env.FAUCET_URL || '';
+  // Fallback (no legacy support needed as this is for new tests)
+  return '';
 })();
 
 const testMnemonic = process.env.TEST_MNEMONIC || '';

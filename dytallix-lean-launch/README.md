@@ -59,10 +59,28 @@ Access:
 
 ## Environment Configuration
 Key variables (see `.env.example`):
-- Cosmos: `VITE_LCD_HTTP_URL`, `VITE_RPC_HTTP_URL`, `VITE_RPC_WS_URL`, `VITE_CHAIN_ID`, `CHAIN_PREFIX`
-- Faucet: `FAUCET_MNEMONIC` (dev only), `FAUCET_MAX_PER_REQUEST_DGT`, `FAUCET_MAX_PER_REQUEST_DRT`, `FAUCET_COOLDOWN_MINUTES`, `FAUCET_GAS_PRICE`
-- Security: `ENABLE_SEC_HEADERS`, `ENABLE_CSP`
-- Legacy React compatibility vars: `REACT_APP_*` (phase-out; prefer `VITE_` prefix)
+- **Cosmos**: `VITE_LCD_HTTP_URL`, `VITE_RPC_HTTP_URL`, `VITE_RPC_WS_URL`, `VITE_CHAIN_ID`, `CHAIN_PREFIX`
+- **API & Faucet**: `VITE_API_URL` (required base API), `VITE_FAUCET_URL` (optional override)
+- **Faucet Backend**: `FAUCET_MNEMONIC` (dev only), `FAUCET_MAX_PER_REQUEST_DGT`, `FAUCET_MAX_PER_REQUEST_DRT`, `FAUCET_COOLDOWN_MINUTES`, `FAUCET_GAS_PRICE`
+- **Security**: `ENABLE_SEC_HEADERS`, `ENABLE_CSP`
+- **Legacy React compatibility vars**: `REACT_APP_*` (phase-out; prefer `VITE_` prefix)
+
+### Environment Variable Migration (v1.1.1+)
+The faucet configuration has been unified for better consistency:
+
+**Removed variables**:
+- `FAUCET_URL` (unprefixed legacy)
+- `VITE_FAUCET_API_URL` (deprecated)
+
+**New variables**:
+- `VITE_API_URL` - **Required** base API endpoint (e.g., `https://api.example.com`)
+- `VITE_FAUCET_URL` - **Optional** explicit faucet endpoint override
+
+**Migration steps**:
+1. Add `VITE_API_URL` pointing to your API base URL
+2. If your faucet lives under `/faucet` path, no additional configuration needed
+3. If your faucet has a different URL, set `VITE_FAUCET_URL` explicitly
+4. Remove old `FAUCET_URL` and `VITE_FAUCET_API_URL` references
 
 Never commit real mnemonics or secrets. `.env`, `.env.staging`, production secrets remain untracked.
 
