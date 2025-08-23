@@ -29,6 +29,18 @@
   box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
 }
 
+.tokenOption.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(180deg, var(--surface-800), var(--surface-700));
+}
+
+.tokenOption.disabled:hover {
+  border-color: var(--surface-border);
+  box-shadow: none;
+  transform: none;
+}
+
 .tokenAmountItem {
   display: flex;
   align-items: center;
@@ -271,6 +283,39 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+/* New styles for improved UX states */
+.cooldownNotice {
+  background: rgba(251,191,36,0.12);
+  color: #FCD34D;
+  border-color: rgba(251,191,36,0.28);
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: 1px solid;
+}
+
+.cooldown {
+  background: rgba(251,191,36,0.12);
+  color: #FCD34D;
+  border-color: rgba(251,191,36,0.28);
+}
+
+.lastResult {
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  background: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.24);
+  color: var(--text-muted);
+}
+
+.lastResult strong {
+  color: var(--text-primary);
 }
 
 @media (max-width: 480px) {
