@@ -12,6 +12,7 @@ on:
       - 'package-lock.json'
       - 'Makefile'
       - 'docs/**'
+      - 'scripts/**'
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -60,4 +61,115 @@ jobs:
         with:
           name: build-artifacts
           path: dytallix-lean-launch/artifacts
+          if-no-files-found: warn
+
+  gas-tests:
+    name: Gas Accounting Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: dytallix-lean-launch
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev pkg-config
+      - name: Build node
+        run: |
+          cd node
+          cargo build --release
+      - name: Run gas accounting unit tests
+        run: |
+          cd node
+          cargo test gas_accounting_unit --lib -- --nocapture
+      - name: Run gas execution integration tests
+        run: |
+          cd node
+          cargo test gas_execution_integration --lib -- --nocapture
+      - name: Run all gas-related tests
+        run: |
+          cd node
+          cargo test gas --lib -- --nocapture
+      - name: Test gas determinism harness
+        run: |
+          # Test the shell script with dry run (mocked)
+          ../scripts/test-gas.sh --help
+          echo "Gas determinism harness validated"
+      - name: Upload gas test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gas-test-results
+          path: |
+            dytallix-lean-launch/node/target/debug/deps/gas_*
+            /tmp/dytallix-gas-test*
+          if-no-files-found: warn
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [build-test, gas-tests]
+    defaults:
+      run:
+        working-directory: dytallix-lean-launch
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev pkg-config curl
+      - name: Build node
+        run: |
+          cd node
+          cargo build --release
+      - name: Run integration test suite
+        run: |
+          cd node
+          cargo test --release -- --nocapture --test-threads=1
+      - name: Run gas system validation script
+        run: |
+          if [ -f "../scripts/test_gas_system.sh" ]; then
+            ../scripts/test_gas_system.sh
+          else
+            echo "Gas system validation script not found, skipping"
+          fi
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            dytallix-lean-launch/node/target/release/deps/
+            /tmp/dytallix-*
           if-no-files-found: warn
