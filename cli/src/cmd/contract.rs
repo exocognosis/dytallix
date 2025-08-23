@@ -48,6 +48,12 @@ pub enum ContractCommand {
         output: OutputFormat,
     },
     
+    /// WASM-specific commands
+    Wasm {
+        #[command(subcommand)]
+        wasm_command: WasmCommand,
+    },
+    
     /// Instantiate a deployed contract
     Instantiate {
         /// Contract code hash to instantiate
@@ -150,11 +156,40 @@ pub enum QueryCommand {
     },
 }
 
+#[derive(Debug, Subcommand)]
+pub enum WasmCommand {
+    /// Deploy a WASM contract 
+    Deploy {
+        /// Path to the WASM contract file
+        wasm_file: PathBuf,
+        
+        /// Gas limit for deployment
+        #[arg(long, default_value = "500000")]
+        gas: u64,
+    },
+    
+    /// Execute a WASM contract method
+    Exec {
+        /// Contract address
+        address: String,
+        
+        /// Method name to execute
+        method: String,
+        
+        /// Gas limit for execution
+        #[arg(long, default_value = "20000")]
+        gas: u64,
+    },
+}
+
 impl ContractArgs {
     pub async fn run(&self, rpc_client: &RpcClient) -> Result<()> {
         match &self.command {
             ContractCommand::Deploy { code, from, gas, state, output } => {
                 self.deploy_contract(rpc_client, code, from, *gas, state, output).await
+            }
+            ContractCommand::Wasm { wasm_command } => {
+                self.handle_wasm_command(rpc_client, wasm_command).await
             }
             ContractCommand::Instantiate { code_hash, from, args, gas, output } => {
                 self.instantiate_contract(rpc_client, code_hash, from, args, *gas, output).await
@@ -391,6 +426,58 @@ impl ContractArgs {
                             }
                         }
                     }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
+    async fn handle_wasm_command(&self, rpc_client: &RpcClient, wasm_command: &WasmCommand) -> Result<()> {
+        match wasm_command {
+            WasmCommand::Deploy { wasm_file, gas } => {
+                info!("Deploying WASM contract from: {}", wasm_file.display());
+                
+                // Read WASM file
+                let code = std::fs::read(wasm_file)
+                    .map_err(|e| anyhow!("Failed to read WASM file: {}", e))?;
+                
+                // Create deployment request
+                let request = serde_json::json!({
+                    "code_base64": base64::encode(&code),
+                    "gas_limit": gas,
+                });
+                
+                // Submit to WASM deploy endpoint
+                let response = rpc_client.call("wasm_deploy", &[request]).await?;
+                
+                if let Some(result) = response.as_object() {
+                    println!("WASM Contract Deployment:");
+                    println!("  Address: {}", result.get("address").unwrap_or(&Value::Null));
+                    println!("  Code Hash: {}", result.get("code_hash").unwrap_or(&Value::Null));
+                    println!("  Gas Used: {}", result.get("gas_used").unwrap_or(&Value::Null));
+                }
+            }
+            
+            WasmCommand::Exec { address, method, gas } => {
+                info!("Executing WASM contract {} method: {}", address, method);
+                
+                // Create execution request
+                let request = serde_json::json!({
+                    "address": address,
+                    "method": method,
+                    "args_json": {},
+                    "gas_limit": gas,
+                });
+                
+                // Submit to WASM execute endpoint
+                let response = rpc_client.call("wasm_execute", &[request]).await?;
+                
+                if let Some(result) = response.as_object() {
+                    println!("WASM Contract Execution:");
+                    println!("  Result: {}", result.get("result_json").unwrap_or(&Value::Null));
+                    println!("  Gas Used: {}", result.get("gas_used").unwrap_or(&Value::Null));
+                    println!("  Height: {}", result.get("height").unwrap_or(&Value::Null));
                 }
             }
         }
