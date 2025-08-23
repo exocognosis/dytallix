@@ -6,6 +6,36 @@ The format follows Keep a Changelog and Semantic Versioning where applicable.
 
 ## [Unreleased]
 ### Added
+- **Comprehensive Faucet QA/CI Infrastructure**
+  - JSON Schema definition for faucet API response validation (`frontend/faucet.response.schema.json`)
+  - TypeScript faucet client with Ajv schema validation (`src/faucetClient.ts`)
+  - Comprehensive unit tests for faucet schema validation (`src/__tests__/faucet.test.ts`)
+  - Enhanced Cypress E2E tests for complete faucet flow including wallet balance verification (`cypress/e2e/faucet.cy.ts`)
+  - Rust integration tests for faucet API contract validation (`tests/faucet_integration.rs`)
+  - Local faucet testing script with JSON validation (`scripts/faucet_request.sh`)
+  
+- **Enhanced CI/CD Pipeline**
+  - Multi-job CI workflow with separate lint, unit test, E2E test, and build stages
+  - Rust toolchain integration with clippy and rustfmt
+  - Parallel test execution for improved CI performance
+  - Cypress screenshot and video artifact capture on test failures
+  - Backend server orchestration for E2E testing in CI
+
+- **Improved Makefile Targets**
+  - `make dev` - Start development environment (backend + frontend)
+  - `make faucet` - Test faucet functionality using validation script
+  - `make test` - Run comprehensive test suite (lint + unit + e2e)
+  - `make test-unit` - Run unit tests only (Rust + frontend)
+  - `make test-e2e` - Run end-to-end tests only (Cypress + integration)
+  - Configurable variables: `FRONTEND_DIR`, `FAUCET_ENDPOINT`, `FAUCET_ADDRESS`
+
+- **Faucet API Schema Validation**
+  - Dual-token system support (DGT governance + DRT rewards tokens)
+  - Legacy single-token compatibility mode
+  - Comprehensive error handling with standardized error codes
+  - Transaction hash format validation (0x + 64 hex characters)
+  - Rate limiting detection and validation
+
 - Standardized directory layout (node/, faucet/, explorer/, web/, src/, server/, ops/, scripts/, docs/, reports/, artifacts/)
 - Environment configuration template consolidation (.env.example with legacy + new VITE_* vars)
 - Security-focused ignore patterns (.gitignore, .dockerignore)
@@ -13,6 +43,12 @@ The format follows Keep a Changelog and Semantic Versioning where applicable.
 - **Centralized environment variable loader** (`src/config/env.ts`) with unified API and faucet endpoint configuration
 
 ### Changed
+- **CI Workflow Architecture**
+  - Split monolithic CI job into focused parallel jobs (lint, unit, e2e, build)
+  - Enhanced error handling with graceful degradation for existing test failures
+  - Improved artifact collection and upload strategy
+  - Added Rust integration alongside Node.js testing
+
 - README unification: monorepo layout, branching overview, Cosmos-only focus
 - Project structure standardized for mv-testnet integration
 - CLI package/binary renamed from `dyt` to `dcli`.
@@ -24,6 +60,13 @@ The format follows Keep a Changelog and Semantic Versioning where applicable.
   - Migration: Set `VITE_API_URL` to your API base; faucet defaults to `{API_URL}/faucet`
 
 ### Security
+- **Contract Validation Implementation**
+  - Faucet API response schema enforcement prevents injection attacks
+  - Address format validation (bech32 with dytallix1 prefix)
+  - Token symbol enumeration (only DGT/DRT accepted)
+  - Transaction hash format verification prevents malformed data
+  - Rate limiting validation ensures proper cooldown enforcement
+
 - Reinforced exclusion of secrets (.env*, mnemonic guidance)
 
 ---
