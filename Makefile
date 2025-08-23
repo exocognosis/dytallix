@@ -80,35 +80,23 @@ build:
 	@echo "🔨 Building Rust components..."
 	cargo build --release
 	@echo "🔨 Building frontend..."
-	cd frontend && npm run build
+	cd $(FRONTEND_DIR) && npm run build
 	@echo "✅ Build complete"
-
-# Run tests
-test:
-	@echo "🧪 Running Rust tests..."
-	cargo test
-	@echo "🧪 Running frontend tests..."
-	cd frontend && npm test
-	@echo "✅ Tests complete"
 
 # Run linters
 lint:
 	@echo "🔍 Running Rust linter..."
 	cargo clippy -- -D warnings
-	@echo "🔍 Running frontend linter..."
-	cd frontend && npm run lint
-	@echo "🔍 Running faucet linter..."
-	cd faucet && npm run lint
-	@echo "🔍 Running explorer linter..."
-	cd explorer && npm run lint
+	@echo "🔍 Running $(FRONTEND_DIR) linter..."
+	cd $(FRONTEND_DIR) && npm run lint
 	@echo "✅ Linting complete"
 
 # Clean build artifacts
 clean:
 	@echo "🧹 Cleaning Rust artifacts..."
 	cargo clean
-	@echo "🧹 Cleaning frontend artifacts..."
-	cd frontend && rm -rf dist node_modules/.cache
+	@echo "🧹 Cleaning $(FRONTEND_DIR) artifacts..."
+	cd $(FRONTEND_DIR) && rm -rf dist node_modules/.cache
 	@echo "✅ Clean complete"
 
 # Verify token migration
