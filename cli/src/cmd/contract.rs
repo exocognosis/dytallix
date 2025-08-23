@@ -12,7 +12,8 @@ use clap::{Args, Subcommand};
 use serde_json::Value;
 use std::path::PathBuf;
 use anyhow::{Result, anyhow};
-use log::{info, error};
+use tracing::{info, error};
+use base64::Engine;
 
 use crate::rpc::RpcClient;
 use crate::output::OutputFormat;
@@ -237,7 +238,7 @@ impl ContractArgs {
             OutputFormat::Json => {
                 println!("{}", serde_json::to_string_pretty(&response)?);
             }
-            OutputFormat::Table => {
+            OutputFormat::Text => {
                 if let Some(result) = response.as_object() {
                     println!("Contract Deployment Result:");
                     println!("  Address: {}", result.get("address").unwrap_or(&Value::Null));
@@ -281,7 +282,7 @@ impl ContractArgs {
             OutputFormat::Json => {
                 println!("{}", serde_json::to_string_pretty(&response)?);
             }
-            OutputFormat::Table => {
+            OutputFormat::Text => {
                 if let Some(result) = response.as_object() {
                     println!("Contract Instantiation Result:");
                     println!("  Instance Address: {}", result.get("instance_address").unwrap_or(&Value::Null));
@@ -326,7 +327,7 @@ impl ContractArgs {
             OutputFormat::Json => {
                 println!("{}", serde_json::to_string_pretty(&response)?);
             }
-            OutputFormat::Table => {
+            OutputFormat::Text => {
                 if let Some(result) = response.as_object() {
                     println!("Contract Execution Result:");
                     println!("  Success: {}", result.get("success").unwrap_or(&Value::Bool(false)));
@@ -352,7 +353,7 @@ impl ContractArgs {
                     OutputFormat::Json => {
                         println!("{}", serde_json::to_string_pretty(&response)?);
                     }
-                    OutputFormat::Table => {
+                    OutputFormat::Text => {
                         if let Some(result) = response.as_object() {
                             println!("Contract Code Information:");
                             println!("  Hash: {}", hash);
@@ -371,7 +372,7 @@ impl ContractArgs {
                     OutputFormat::Json => {
                         println!("{}", serde_json::to_string_pretty(&response)?);
                     }
-                    OutputFormat::Table => {
+                    OutputFormat::Text => {
                         if let Some(result) = response.as_object() {
                             println!("Contract Instance Information:");
                             println!("  Address: {}", address);
@@ -394,7 +395,7 @@ impl ContractArgs {
                     OutputFormat::Json => {
                         println!("{}", serde_json::to_string_pretty(&response)?);
                     }
-                    OutputFormat::Table => {
+                    OutputFormat::Text => {
                         if let Some(result) = response.as_object() {
                             println!("Contract Storage:");
                             println!("  Contract: {}", contract);
@@ -412,7 +413,7 @@ impl ContractArgs {
                     OutputFormat::Json => {
                         println!("{}", serde_json::to_string_pretty(&response)?);
                     }
-                    OutputFormat::Table => {
+                    OutputFormat::Text => {
                         if let Some(contracts) = response.as_array() {
                             println!("Deployed Contracts ({}):", contracts.len());
                             for (i, contract) in contracts.iter().enumerate() {
@@ -444,7 +445,7 @@ impl ContractArgs {
                 
                 // Create deployment request
                 let request = serde_json::json!({
-                    "code_base64": base64::encode(&code),
+                    "code_base64": base64::engine::general_purpose::STANDARD.encode(&code),
                     "gas_limit": gas,
                 });
                 
