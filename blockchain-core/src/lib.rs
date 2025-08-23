@@ -11,3 +11,4 @@ pub mod secrets;
 pub mod staking;
 pub mod storage;
 pub mod types;
+pub mod wasm;

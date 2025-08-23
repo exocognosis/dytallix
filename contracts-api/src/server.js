@@ -186,6 +186,148 @@ app.post('/contracts/call', async (req, res) => {
   }
 })
 
+// WASM-specific endpoints
+// In-memory storage for WASM contracts (can be replaced by database)
+const wasmContracts = []
+let wasmNonce = 0
+
+// POST /wasm/deploy - Deploy a WASM contract
+app.post('/wasm/deploy', async (req, res) => {
+  try {
+    const { code_base64, gas_limit = 500000 } = req.body
+    
+    if (!code_base64) {
+      return res.status(400).json({ success: false, error: 'code_base64 is required' })
+    }
+    
+    // Decode base64 WASM code
+    const code = Buffer.from(code_base64, 'base64')
+    
+    // Generate contract address and code hash (mock implementation)
+    wasmNonce++
+    const address = `0x${'0'.repeat(24)}${wasmNonce.toString(16).padStart(40, '0')}`
+    const code_hash = ethers.keccak256(code).slice(0, 66) // 32 bytes hex
+    
+    // Mock gas usage calculation
+    const gas_used = Math.min(gas_limit, 1000 + code.length * 10)
+    
+    // Store contract
+    const contract = {
+      address,
+      code_hash,
+      code: code_base64,
+      creator: 'dyt1mock_deployer',
+      deployed_at_height: Date.now(),
+      last_gas_used: gas_used,
+      created_at: new Date().toISOString()
+    }
+    
+    wasmContracts.push(contract)
+    
+    res.json({ 
+      success: true, 
+      data: { address, code_hash, gas_used } 
+    })
+  } catch (e) {
+    console.error('WASM deploy error:', e)
+    res.status(500).json({ success: false, error: e.message })
+  }
+})
+
+// POST /wasm/execute - Execute a WASM contract method
+app.post('/wasm/execute', async (req, res) => {
+  try {
+    const { address, method, args_json = {}, gas_limit = 20000 } = req.body
+    
+    if (!address || !method) {
+      return res.status(400).json({ success: false, error: 'address and method are required' })
+    }
+    
+    // Find contract
+    const contract = wasmContracts.find(c => c.address.toLowerCase() === address.toLowerCase())
+    if (!contract) {
+      return res.status(404).json({ success: false, error: 'Contract not found' })
+    }
+    
+    // Mock execution - simple counter logic for demo
+    let result_json = {}
+    let gas_used = 1000
+    
+    if (method === 'increment') {
+      result_json = { success: true }
+      gas_used = 2000
+    } else if (method === 'get') {
+      result_json = { value: 1 }
+      gas_used = 1500
+    } else {
+      result_json = { error: 'Unknown method' }
+      gas_used = 500
+    }
+    
+    // Update contract
+    contract.last_gas_used = gas_used
+    
+    res.json({ 
+      success: true, 
+      data: { 
+        result_json, 
+        gas_used, 
+        height: Date.now() 
+      } 
+    })
+  } catch (e) {
+    console.error('WASM execute error:', e)
+    res.status(500).json({ success: false, error: e.message })
+  }
+})
+
+// GET /wasm/contract/:address - Get contract metadata
+app.get('/wasm/contract/:address', async (req, res) => {
+  try {
+    const { address } = req.params
+    
+    const contract = wasmContracts.find(c => c.address.toLowerCase() === address.toLowerCase())
+    if (!contract) {
+      return res.status(404).json({ success: false, error: 'Contract not found' })
+    }
+    
+    const metadata = {
+      address: contract.address,
+      code_hash: contract.code_hash,
+      creator: contract.creator,
+      deployed_at_height: contract.deployed_at_height,
+      last_gas_used: contract.last_gas_used,
+      created_at: contract.created_at
+    }
+    
+    res.json({ success: true, data: metadata })
+  } catch (e) {
+    console.error('WASM contract get error:', e)
+    res.status(500).json({ success: false, error: e.message })
+  }
+})
+
+// GET /wasm/contract/:address/state - Get contract state (stub)
+app.get('/wasm/contract/:address/state', async (req, res) => {
+  try {
+    const { address } = req.params
+    const { key } = req.query
+    
+    const contract = wasmContracts.find(c => c.address.toLowerCase() === address.toLowerCase())
+    if (!contract) {
+      return res.status(404).json({ success: false, error: 'Contract not found' })
+    }
+    
+    // Mock state response
+    const state = key ? { [key]: 'mock_value' } : { counter: 1, initialized: true }
+    
+    res.json({ success: true, data: state })
+  } catch (e) {
+    console.error('WASM state get error:', e)
+    res.status(500).json({ success: false, error: e.message })
+  }
+})
+
 const port = process.env.PORT || 3030
 app.listen(port, () => {
   console.log(`Contracts API listening on http://localhost:${port}`)

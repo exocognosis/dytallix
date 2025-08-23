@@ -85,7 +85,6 @@ fn estimate_intrinsic_gas_for_transfer(tx: &Tx) -> Result<u64> {
     
     Ok(base_cost + size_cost)
 }
-}
 
 pub async fn handle_batch(rpc_url: &str, default_chain_id: &str, _home: &str, c: BatchCmd, fmt: OutputFormat) -> Result<()> {
     let b = batch::read_batch(Some(&c.file))?; // path or stdin
