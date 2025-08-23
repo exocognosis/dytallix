@@ -19,7 +19,8 @@ mod runtime {
     pub mod emission;
     pub mod oracle;
     pub mod governance;
-} // added emission and governance modules
+    pub mod staking;
+} // added emission, governance, and staking modules
 mod state;
 mod storage;
 mod ws;
@@ -30,6 +31,7 @@ mod gas; // gas accounting system
 mod execution; // deterministic execution engine
 use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::GovernanceModule;
+use crate::runtime::staking::StakingModule;
 use crate::gas::GasSchedule;
 use crate::execution::execute_transaction;
 use crate::metrics::{MetricsServer, parse_metrics_config};
@@ -118,6 +120,7 @@ async fn main() -> anyhow::Result<()> {
         tps: tps_window.clone(),
         emission: Arc::new(Mutex::new(EmissionEngine::new(storage.clone(), state.clone()))),
         governance: Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone()))),
+        staking: Arc::new(Mutex::new(StakingModule::new(storage.clone()))),
         metrics: metrics.clone(),
     };
 
@@ -139,6 +142,12 @@ async fn main() -> anyhow::Result<()> {
             // advance emission pools to new height (height+1)
             let next_height = producer_ctx.storage.height() + 1;
             producer_ctx.emission.lock().unwrap().apply_until(next_height);
+            
+            // Apply staking rewards from emission
+            let staking_rewards = producer_ctx.emission.lock().unwrap().get_latest_staking_rewards();
+            if staking_rewards > 0 {
+                producer_ctx.staking.lock().unwrap().apply_external_emission(staking_rewards);
+            }
             let snapshot = { producer_ctx.mempool.lock().unwrap().take_snapshot(max_txs) };
             if snapshot.is_empty() && !empty_blocks {
                 continue;

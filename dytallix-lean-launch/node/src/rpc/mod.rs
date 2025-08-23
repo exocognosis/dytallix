@@ -21,6 +21,7 @@ use crate::storage::oracle::OracleStore;
 use crate::runtime::bridge;
 use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::GovernanceModule;
+use crate::runtime::staking::StakingModule;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 #[derive(Clone)]
@@ -32,6 +33,7 @@ pub struct RpcContext {
     pub tps: Arc<Mutex<TpsWindow>>,
     pub emission: Arc<Mutex<EmissionEngine>>,
     pub governance: Arc<Mutex<GovernanceModule>>,
+    pub staking: Arc<Mutex<StakingModule>>,
     pub metrics: Arc<crate::metrics::Metrics>,
 }
 

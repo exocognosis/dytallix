@@ -463,6 +463,19 @@ impl DytallixRuntime {
         (total_stake, total_validators, active_validators)
     }
 
+    /// Apply external emission to staking system (called by emission engine)
+    pub async fn apply_staking_emission(&self, amount: u128) -> Result<(), StakingError> {
+        let mut state = self.state.write().await;
+        state.staking.apply_external_emission(amount);
+        Ok(())
+    }
+
+    /// Get reward statistics for emission validation
+    pub async fn get_reward_stats(&self) -> (u128, u128) {
+        let state = self.state.read().await;
+        state.staking.get_reward_stats()
+    }
+
     pub async fn save_state(&self) -> Result<(), Box<dyn std::error::Error>> {
         let state = self.state.read().await;
 

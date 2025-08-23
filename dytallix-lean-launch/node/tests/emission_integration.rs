@@ -3,7 +3,8 @@ use axum::{
     Extension, Router,
 };
 use dytallix_lean_node::{
-    mempool::Mempool, rpc, runtime::emission::EmissionEngine, state::State,
+    mempool::Mempool, rpc, runtime::emission::EmissionEngine, runtime::staking::StakingModule, 
+    runtime::governance::GovernanceModule, state::State,
     storage::blocks::TpsWindow, storage::state::Storage, ws::server::WsHub,
 };
 use serde_json::json;
@@ -19,6 +20,9 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
     let tps = Arc::new(Mutex::new(TpsWindow::new(60)));
     let ws = WsHub::new();
     let emission = Arc::new(Mutex::new(EmissionEngine::new(storage.clone(), state.clone())));
+    let staking = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
+    let governance = Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone())));
+    let metrics = Arc::new(dytallix_lean_node::metrics::Metrics::new());
     let ctx = dytallix_lean_node::rpc::RpcContext {
         storage,
         mempool,
@@ -26,6 +30,9 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
         ws,
         tps,
         emission,
+        governance,
+        staking,
+        metrics,
     };
     let router = Router::new()
         .route("/stats", get(rpc::stats))
