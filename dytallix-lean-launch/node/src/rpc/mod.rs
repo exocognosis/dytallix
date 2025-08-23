@@ -21,6 +21,7 @@ use crate::storage::oracle::OracleStore;
 use crate::runtime::bridge;
 use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::GovernanceModule;
+use crate::runtime::staking::StakingModule;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 #[derive(Clone)]
@@ -30,8 +31,9 @@ pub struct RpcContext {
     pub state: Arc<Mutex<State>>,
     pub ws: WsHub,
     pub tps: Arc<Mutex<TpsWindow>>,
-    pub emission: Arc<EmissionEngine>,
+    pub emission: Arc<Mutex<EmissionEngine>>,
     pub governance: Arc<Mutex<GovernanceModule>>,
+    pub staking: Arc<Mutex<StakingModule>>,
     pub metrics: Arc<crate::metrics::Metrics>,
 }
 
@@ -345,7 +347,7 @@ pub async fn stats(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value> 
         .as_secs();
     let rolling_tps = { ctx.tps.lock().unwrap().rolling_tps(now) };
     let chain_id = ctx.storage.get_chain_id();
-    let em_snap = ctx.emission.snapshot();
+    let em_snap = ctx.emission.lock().unwrap().snapshot();
     Json(
         json!({"height": ctx.storage.height(), "mempool_size": ctx.mempool.lock().unwrap().len(), "rolling_tps": rolling_tps, "chain_id": chain_id, "emission_pools": em_snap.pools }),
     )
@@ -390,7 +392,7 @@ pub async fn emission_claim(
         .get("to")
         .and_then(|v| v.as_str())
         .ok_or(ApiError::Internal)?;
-    match ctx.emission.claim(pool, amount, to) {
+    match ctx.emission.lock().unwrap().claim(pool, amount, to) {
         Ok(remaining) => Ok(Json(
             json!({"pool": pool, "remaining": remaining.to_string()}),
         )),
@@ -517,6 +519,132 @@ pub async fn gov_get_config(
         governance.get_config().clone()
     };
     Ok(Json(serde_json::to_value(config).unwrap()))
+}
+
+// Rewards API endpoints
+
+#[derive(Deserialize)]
+pub struct RewardsQuery {
+    pub limit: Option<u32>,
+    pub start_height: Option<u64>,
+}
+
+/// GET /api/rewards - Get recent emission events with pagination
+pub async fn get_rewards(
+    Extension(ctx): Extension<RpcContext>,
+    Query(params): Query<RewardsQuery>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let limit = params.limit.unwrap_or(50).min(500); // Default 50, max 500
+    let current_height = ctx.storage.height();
+    let start_height = params.start_height.unwrap_or(current_height);
+    
+    let mut events = Vec::new();
+    let emission = ctx.emission.lock().unwrap();
+    
+    for height in (1..=start_height.min(current_height)).rev().take(limit as usize) {
+        if let Some(event) = emission.get_event(height) {
+            // Format numbers as strings to prevent JS precision issues
+            let formatted_event = json!({
+                "height": event.height,
+                "timestamp": event.timestamp,
+                "total_emitted": event.total_emitted.to_string(),
+                "pools": {
+                    "block_rewards": event.pools.get("block_rewards").unwrap_or(&0).to_string(),
+                    "staking_rewards": event.pools.get("staking_rewards").unwrap_or(&0).to_string(),
+                    "ai_module_incentives": event.pools.get("ai_module_incentives").unwrap_or(&0).to_string(),
+                    "bridge_operations": event.pools.get("bridge_operations").unwrap_or(&0).to_string(),
+                },
+                "reward_index_after": event.reward_index_after.map(|v| v.to_string()),
+                "circulating_supply": event.circulating_supply.to_string(),
+            });
+            events.push(formatted_event);
+        }
+    }
+    
+    // Get staking stats
+    let (total_stake, reward_index, pending_emission) = ctx.staking.lock().unwrap().get_stats();
+    
+    Ok(Json(json!({
+        "events": events,
+        "pagination": {
+            "limit": limit,
+            "start_height": start_height,
+            "total_available": current_height,
+        },
+        "staking_stats": {
+            "total_stake": total_stake.to_string(),
+            "reward_index": reward_index.to_string(),
+            "pending_emission": pending_emission.to_string(),
+        }
+    })))
+}
+
+/// GET /api/rewards/:height - Get emission event for specific height
+pub async fn get_rewards_by_height(
+    Extension(ctx): Extension<RpcContext>,
+    Path(height): Path<u64>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let emission = ctx.emission.lock().unwrap();
+    
+    match emission.get_event(height) {
+        Some(event) => {
+            // Format numbers as strings to prevent JS precision issues
+            let formatted_event = json!({
+                "height": event.height,
+                "timestamp": event.timestamp,
+                "total_emitted": event.total_emitted.to_string(),
+                "pools": {
+                    "block_rewards": event.pools.get("block_rewards").unwrap_or(&0).to_string(),
+                    "staking_rewards": event.pools.get("staking_rewards").unwrap_or(&0).to_string(),
+                    "ai_module_incentives": event.pools.get("ai_module_incentives").unwrap_or(&0).to_string(),
+                    "bridge_operations": event.pools.get("bridge_operations").unwrap_or(&0).to_string(),
+                },
+                "reward_index_after": event.reward_index_after.map(|v| v.to_string()),
+                "circulating_supply": event.circulating_supply.to_string(),
+            });
+            Ok(Json(formatted_event))
+        }
+        None => Err(ApiError::Internal), // Could return 404 instead
+    }
+}
+
+/// Enhanced stats endpoint with emission data
+pub async fn stats_with_emission(
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    // Get base stats
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let rolling_tps = { ctx.tps.lock().unwrap().rolling_tps(now) };
+    let chain_id = ctx.storage.get_chain_id();
+    let em_snap = ctx.emission.lock().unwrap().snapshot();
+    
+    // Get latest emission event
+    let current_height = ctx.storage.height();
+    let latest_emission_event = ctx.emission.lock().unwrap().get_event(current_height);
+    
+    // Get staking stats
+    let (total_stake, reward_index, pending_emission) = ctx.staking.lock().unwrap().get_stats();
+    
+    Ok(Json(json!({
+        "height": ctx.storage.height(),
+        "mempool_size": ctx.mempool.lock().unwrap().len(),
+        "rolling_tps": rolling_tps,
+        "chain_id": chain_id,
+        "emission_pools": em_snap.pools,
+        "latest_emission": latest_emission_event.map(|event| json!({
+            "height": event.height,
+            "total_emitted": event.total_emitted.to_string(),
+            "circulating_supply": event.circulating_supply.to_string(),
+        })),
+        "staking": {
+            "total_stake": total_stake.to_string(),
+            "reward_index": reward_index.to_string(),
+            "pending_emission": pending_emission.to_string(),
+        }
+    })))
 }
 
 pub mod errors;

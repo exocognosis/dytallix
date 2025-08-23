@@ -1,9 +1,11 @@
 use crate::{state::State, storage::state::Storage};
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-// Simple emission pools model.
-// Pools accumulate a fixed amount per block. Claiming reduces pool and credits account.
+// Deterministic emission engine with per-block event tracking
+// Supports dynamic emission schedules from genesis configuration
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EmissionSnapshot {
@@ -11,30 +13,148 @@ pub struct EmissionSnapshot {
     pub pools: std::collections::HashMap<String, u128>,
 }
 
+/// Per-block emission event for auditable ledger
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmissionEvent {
+    pub height: u64,
+    pub timestamp: u64,
+    pub total_emitted: u128,
+    pub pools: HashMap<String, u128>, // keys: block_rewards, staking_rewards, ai_module_incentives, bridge_operations
+    pub reward_index_after: Option<u128>, // scaled (e.g., 1e12)
+    pub circulating_supply: u128,
+}
+
+/// Genesis-based emission configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmissionConfig {
+    pub annual_inflation_rate: u16, // basis points (500 = 5%)
+    pub initial_supply: u128,
+    pub emission_breakdown: EmissionBreakdown,
+}
+
+/// Emission distribution breakdown
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmissionBreakdown {
+    pub block_rewards: u8,      // percentage (60)
+    pub staking_rewards: u8,    // percentage (25)
+    pub ai_module_incentives: u8, // percentage (10)
+    pub bridge_operations: u8,  // percentage (5)
+}
+
+impl EmissionBreakdown {
+    pub fn is_valid(&self) -> bool {
+        self.block_rewards + self.staking_rewards + self.ai_module_incentives + self.bridge_operations == 100
+    }
+}
+
 #[derive(Clone)]
 pub struct EmissionEngine {
     pub storage: Arc<Storage>,
     pub state: Arc<Mutex<State>>, // to credit balances
-    pub per_block: std::collections::HashMap<String, u128>,
+    pub config: EmissionConfig,
+    pub circulating_supply: u128, // tracks total DRT emitted
 }
 
 impl EmissionEngine {
     pub fn new(storage: Arc<Storage>, state: Arc<Mutex<State>>) -> Self {
-        let mut per_block = std::collections::HashMap::new();
-        per_block.insert("community".to_string(), 5); // arbitrary small values
-        per_block.insert("staking".to_string(), 7);
-        per_block.insert("ecosystem".to_string(), 3);
+        // Default configuration - in production this should come from genesis
+        let config = EmissionConfig {
+            annual_inflation_rate: 500, // 5% in basis points
+            initial_supply: 0,          // DRT starts with 0 supply
+            emission_breakdown: EmissionBreakdown {
+                block_rewards: 60,
+                staking_rewards: 25,
+                ai_module_incentives: 10,
+                bridge_operations: 5,
+            },
+        };
+        
+        // Load existing circulating supply from storage
+        let circulating_supply = storage
+            .db
+            .get("emission:circulating_supply")
+            .ok()
+            .flatten()
+            .and_then(|v| bincode::deserialize::<u128>(&v).ok())
+            .unwrap_or(0);
+        
         Self {
             storage,
             state,
-            per_block,
+            config,
+            circulating_supply,
         }
     }
+    
+    pub fn new_with_config(storage: Arc<Storage>, state: Arc<Mutex<State>>, config: EmissionConfig) -> Self {
+        // Load existing circulating supply from storage
+        let circulating_supply = storage
+            .db
+            .get("emission:circulating_supply")
+            .ok()
+            .flatten()
+            .and_then(|v| bincode::deserialize::<u128>(&v).ok())
+            .unwrap_or(config.initial_supply);
+        
+        Self {
+            storage,
+            state,
+            config,
+            circulating_supply,
+        }
+    }
+    
     fn pool_key(pool: &str) -> String {
         format!("emission:pool:{}", pool)
     }
+    
     fn height_key() -> &'static str {
         "emission:last_height"
+    }
+    
+    fn event_key(height: u64) -> String {
+        format!("emission:event:{}", height)
+    }
+    
+    fn circulating_supply_key() -> &'static str {
+        "emission:circulating_supply"
+    }
+
+    /// Calculate per-block emission based on annual inflation rate
+    /// Formula: (annual_rate / 100) * circulating_supply / blocks_per_year
+    /// Assumes ~6 second blocks = 5,256,000 blocks per year
+    fn calculate_per_block_emission(&self) -> u128 {
+        const BLOCKS_PER_YEAR: u128 = 5_256_000; // ~6 second blocks
+        
+        if self.circulating_supply == 0 {
+            // Bootstrap emission when supply is 0 - use a small fixed amount
+            return 1_000_000; // 1 DRT in uDRT (micro denomination)
+        }
+        
+        let annual_emission = (self.circulating_supply * self.config.annual_inflation_rate as u128) / 10000;
+        annual_emission / BLOCKS_PER_YEAR
+    }
+    
+    /// Calculate per-block distribution across pools
+    fn calculate_pool_distributions(&self, total_emission: u128) -> HashMap<String, u128> {
+        let mut pools = HashMap::new();
+        let breakdown = &self.config.emission_breakdown;
+        
+        // Calculate amounts with proper rounding
+        let block_rewards = (total_emission * breakdown.block_rewards as u128) / 100;
+        let staking_rewards = (total_emission * breakdown.staking_rewards as u128) / 100;
+        let ai_module_incentives = (total_emission * breakdown.ai_module_incentives as u128) / 100;
+        
+        // Allocate remainder to bridge_operations to ensure no loss
+        let allocated = block_rewards + staking_rewards + ai_module_incentives;
+        let bridge_operations = total_emission.saturating_sub(allocated);
+        
+        pools.insert("block_rewards".to_string(), block_rewards);
+        pools.insert("staking_rewards".to_string(), staking_rewards);
+        pools.insert("ai_module_incentives".to_string(), ai_module_incentives);
+        pools.insert("bridge_operations".to_string(), bridge_operations);
+        
+        pools
     }
 
     pub fn pool_amount(&self, pool: &str) -> u128 {
@@ -46,11 +166,19 @@ impl EmissionEngine {
             .and_then(|v| bincode::deserialize::<u128>(&v).ok())
             .unwrap_or(0)
     }
+    
     fn set_pool_amount(&self, pool: &str, amt: u128) {
         let _ = self
             .storage
             .db
             .put(Self::pool_key(pool), bincode::serialize(&amt).unwrap());
+    }
+    
+    fn set_circulating_supply(&self, supply: u128) {
+        let _ = self
+            .storage
+            .db
+            .put(Self::circulating_supply_key(), bincode::serialize(&supply).unwrap());
     }
 
     pub fn last_accounted_height(&self) -> u64 {
@@ -70,21 +198,79 @@ impl EmissionEngine {
             })
             .unwrap_or(0)
     }
+    
     fn set_last_height(&self, h: u64) {
         let _ = self.storage.db.put(Self::height_key(), h.to_be_bytes());
     }
+    
+    /// Get emission event for a specific height
+    pub fn get_event(&self, height: u64) -> Option<EmissionEvent> {
+        self.storage
+            .db
+            .get(Self::event_key(height))
+            .ok()
+            .flatten()
+            .and_then(|v| bincode::deserialize::<EmissionEvent>(&v).ok())
+    }
+    
+    /// Store emission event
+    fn store_event(&self, event: &EmissionEvent) {
+        let _ = self
+            .storage
+            .db
+            .put(Self::event_key(event.height), bincode::serialize(event).unwrap());
+    }
 
-    pub fn apply_until(&self, target_height: u64) {
+    pub fn apply_until(&mut self, target_height: u64) {
         let mut h = self.last_accounted_height();
+        
         while h < target_height {
             h += 1;
-            for (pool, amt) in &self.per_block {
-                let cur = self.pool_amount(pool);
-                self.set_pool_amount(pool, cur + amt);
+            
+            // Calculate emission for this block
+            let total_emission = self.calculate_per_block_emission();
+            let pool_distributions = self.calculate_pool_distributions(total_emission);
+            
+            // Update pool amounts
+            for (pool, amount) in &pool_distributions {
+                let current = self.pool_amount(pool);
+                self.set_pool_amount(pool, current.saturating_add(*amount));
             }
+            
+            // Update circulating supply
+            self.circulating_supply = self.circulating_supply.saturating_add(total_emission);
+            self.set_circulating_supply(self.circulating_supply);
+            
+            // Create and store emission event
+            let timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            
+            let event = EmissionEvent {
+                height: h,
+                timestamp,
+                total_emitted: total_emission,
+                pools: pool_distributions,
+                reward_index_after: None, // Will be set by staking module if needed
+                circulating_supply: self.circulating_supply,
+            };
+            
+            self.store_event(&event);
         }
+        
         if h >= target_height {
             self.set_last_height(target_height);
+        }
+    }
+    
+    /// Get the staking rewards amount for the latest block
+    pub fn get_latest_staking_rewards(&self) -> u128 {
+        let latest_height = self.last_accounted_height();
+        if let Some(event) = self.get_event(latest_height) {
+            event.pools.get("staking_rewards").copied().unwrap_or(0)
+        } else {
+            0
         }
     }
     pub fn claim(&self, pool: &str, amount: u128, to: &str) -> Result<u128, String> {
@@ -102,9 +288,13 @@ impl EmissionEngine {
     }
     pub fn snapshot(&self) -> EmissionSnapshot {
         let mut pools = std::collections::HashMap::new();
-        for k in self.per_block.keys() {
-            pools.insert(k.clone(), self.pool_amount(k));
+        
+        // Use current pool names from emission breakdown
+        let pool_names = ["block_rewards", "staking_rewards", "ai_module_incentives", "bridge_operations"];
+        for pool in pool_names.iter() {
+            pools.insert(pool.to_string(), self.pool_amount(pool));
         }
+        
         EmissionSnapshot {
             height: self.last_accounted_height(),
             pools,

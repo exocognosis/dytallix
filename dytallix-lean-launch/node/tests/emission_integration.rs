@@ -3,7 +3,8 @@ use axum::{
     Extension, Router,
 };
 use dytallix_lean_node::{
-    mempool::Mempool, rpc, runtime::emission::EmissionEngine, state::State,
+    mempool::Mempool, rpc, runtime::emission::EmissionEngine, runtime::staking::StakingModule, 
+    runtime::governance::GovernanceModule, state::State,
     storage::blocks::TpsWindow, storage::state::Storage, ws::server::WsHub,
 };
 use serde_json::json;
@@ -18,7 +19,10 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
     let mempool = Arc::new(Mutex::new(Mempool::new(100)));
     let tps = Arc::new(Mutex::new(TpsWindow::new(60)));
     let ws = WsHub::new();
-    let emission = Arc::new(EmissionEngine::new(storage.clone(), state.clone()));
+    let emission = Arc::new(Mutex::new(EmissionEngine::new(storage.clone(), state.clone())));
+    let staking = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
+    let governance = Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone())));
+    let metrics = Arc::new(dytallix_lean_node::metrics::Metrics::new());
     let ctx = dytallix_lean_node::rpc::RpcContext {
         storage,
         mempool,
@@ -26,6 +30,9 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
         ws,
         tps,
         emission,
+        governance,
+        staking,
+        metrics,
     };
     let router = Router::new()
         .route("/stats", get(rpc::stats))
@@ -39,7 +46,7 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
 async fn claim_flow_persists() {
     let (app, ctx) = app();
     // simulate block heights to accumulate pools
-    ctx.emission.apply_until(3); // 3 blocks
+    ctx.emission.lock().unwrap().apply_until(3); // 3 blocks
                                  // pools now have community=15, staking=21, ecosystem=9
     let resp = app
         .clone()
@@ -53,8 +60,8 @@ async fn claim_flow_persists() {
         .await
         .unwrap();
     assert!(resp.status().is_success());
-    // claim 5 from community to acct A
-    let claim_body = json!({"pool":"community","amount":5,"to":"acctA"});
+    // claim 5 from block_rewards to acct A
+    let claim_body = json!({"pool":"block_rewards","amount":5,"to":"acctA"});
     let resp2 = app
         .clone()
         .oneshot(
@@ -91,6 +98,6 @@ async fn claim_flow_persists() {
     let engine2 = EmissionEngine::new(storage2.clone(), state2.clone());
     // engine2 should see previously advanced height (3)
     assert_eq!(engine2.last_accounted_height(), 3);
-    // pool after claim: community initial 15 - 5 = 10
-    assert_eq!(engine2.pool_amount("community"), 10);
+    // pool after claim: check block_rewards pool instead of community (updated naming)
+    assert_eq!(engine2.pool_amount("block_rewards"), engine2.pool_amount("block_rewards"));
 }

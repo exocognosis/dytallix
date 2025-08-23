@@ -112,6 +112,8 @@ pub struct StakingState {
     pub current_height: BlockNumber,
     /// Pending events to be emitted
     pub pending_events: Vec<ValidatorEvent>,
+    /// Pending staking emission when no stake exists (carries over until stake > 0)
+    pub pending_staking_emission: u128,
 }
 
 impl Default for StakingState {
@@ -123,6 +125,7 @@ impl Default for StakingState {
             total_stake: 0,
             current_height: 0,
             pending_events: Vec::new(),
+            pending_staking_emission: 0,
         }
     }
 }
@@ -766,6 +769,60 @@ impl StakingState {
         } else {
             Err(StakingError::InvalidStatus)
         }
+    }
+
+    /// Apply external emission rewards to staking system
+    /// If total_stake > 0, update reward_index proportionally
+    /// If total_stake == 0, accumulate in pending_staking_emission
+    pub fn apply_external_emission(&mut self, amount: u128) {
+        if self.total_stake > 0 {
+            // Distribute to all validators based on their stake
+            let reward_per_unit = (amount * REWARD_SCALE) / self.total_stake;
+            
+            for validator in self.validators.values_mut() {
+                if validator.status == ValidatorStatus::Active && validator.total_stake > 0 {
+                    validator.reward_index = validator.reward_index.saturating_add(
+                        (reward_per_unit * validator.total_stake) / REWARD_SCALE
+                    );
+                }
+            }
+            
+            // If we have pending emission, apply it too
+            if self.pending_staking_emission > 0 {
+                let pending_reward_per_unit = (self.pending_staking_emission * REWARD_SCALE) / self.total_stake;
+                
+                for validator in self.validators.values_mut() {
+                    if validator.status == ValidatorStatus::Active && validator.total_stake > 0 {
+                        validator.reward_index = validator.reward_index.saturating_add(
+                            (pending_reward_per_unit * validator.total_stake) / REWARD_SCALE
+                        );
+                    }
+                }
+                
+                self.pending_staking_emission = 0;
+            }
+        } else {
+            // No stake yet, accumulate for later distribution
+            self.pending_staking_emission = self.pending_staking_emission.saturating_add(amount);
+        }
+    }
+
+    /// Get current reward index and pending emission for statistics
+    pub fn get_reward_stats(&self) -> (u128, u128) {
+        // Calculate average reward index across active validators
+        let active_validators: Vec<_> = self.validators.values()
+            .filter(|v| v.status == ValidatorStatus::Active)
+            .collect();
+        
+        let avg_reward_index = if !active_validators.is_empty() {
+            active_validators.iter()
+                .map(|v| v.reward_index)
+                .sum::<u128>() / active_validators.len() as u128
+        } else {
+            0
+        };
+        
+        (avg_reward_index, self.pending_staking_emission)
     }
 }
 
