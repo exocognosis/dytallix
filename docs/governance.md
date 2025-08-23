@@ -108,14 +108,26 @@ ProposalType::ParameterChange {
 Proposals follow this lifecycle:
 
 ```
-DepositPeriod -> VotingPeriod -> Passed/Rejected -> Executed (terminal)
+DepositPeriod -> VotingPeriod -> Passed/Rejected/Failed -> Executed (terminal)
 ```
 
 - **DepositPeriod**: Collecting deposits to reach minimum threshold
 - **VotingPeriod**: Active voting period for DGT holders  
 - **Passed**: Proposal passed vote, ready for execution
-- **Rejected**: Proposal failed (insufficient deposits or negative vote)
+- **Rejected**: Proposal failed vote (insufficient quorum, threshold not met, or vetoed)
+- **Failed**: Proposal failed due to insufficient deposits during deposit period
 - **Executed**: Proposal executed and parameter changes applied (terminal state)
+
+## Governance Parameters
+
+The governance system uses the following parameters for decision making:
+
+- **Quorum**: 33.33% - Minimum participation required for a vote to be valid
+- **Threshold**: 50% - Minimum percentage of participating votes that must be "yes" for proposal to pass  
+- **Veto Threshold**: 33.33% - Minimum percentage of "no_with_veto" votes to reject a proposal regardless of other votes
+- **Min Deposit**: 1000 DGT - Minimum deposit required to move proposal to voting period
+- **Deposit Period**: 300 blocks - Time allowed for collecting deposits
+- **Voting Period**: 300 blocks - Time allowed for voting
 
 ## Events
 
@@ -134,8 +146,12 @@ The governance system emits the following events:
 
 ### Submit Proposal
 ```bash
-dcli gov submit --title "Proposal Title" --description "Detailed description" --key parameter_name --value new_value
+dcli gov submit --title "Proposal Title" --description "Detailed description" --param-key parameter_name --new-value new_value --deposit initial_deposit_amount --from your_address
 ```
+
+**Supported Parameters:**
+- `gas_limit` - Transaction gas limit parameter
+- `consensus.max_gas_per_block` - Maximum gas allowed per block
 
 ### Deposit on Proposal
 ```bash
@@ -144,8 +160,14 @@ dcli gov deposit --from your_address --proposal proposal_id --amount amount_in_m
 
 ### Vote on Proposal
 ```bash
-dcli gov vote --from your_address --proposal proposal_id --option yes|no|abstain
+dcli gov vote --from your_address --proposal proposal_id --option yes|no|no_with_veto|abstain
 ```
+
+**Vote Options:**
+- `yes` - Vote in favor of the proposal
+- `no` - Vote against the proposal  
+- `no_with_veto` - Vote against with veto power (can reject even if majority votes yes)
+- `abstain` - Abstain from voting (counts toward quorum but not toward threshold)
 
 ### Query Proposal
 ```bash

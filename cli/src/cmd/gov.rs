@@ -14,15 +14,17 @@ pub struct GovCmd {
 pub enum GovAction { 
     Submit { 
         #[arg(long)] 
-        from: String, 
-        #[arg(long)] 
         title: String, 
         #[arg(long)] 
         description: String,
+        #[arg(long, name = "param-key")]
+        param_key: String,
+        #[arg(long, name = "new-value")]
+        new_value: String,
         #[arg(long)]
-        key: String,
-        #[arg(long)]
-        value: String,
+        deposit: u64,
+        #[arg(long)] 
+        from: String, 
     }, 
     Deposit {
         #[arg(long)]
@@ -38,7 +40,7 @@ pub enum GovAction {
         #[arg(long)] 
         proposal: u64, 
         #[arg(long)] 
-        option: String,
+        option: String, // yes, no, no_with_veto, abstain
     }, 
     Show { 
         #[arg(long)] 
@@ -53,16 +55,37 @@ pub enum GovAction {
 
 pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
     match cmd.action {
-        GovAction::Submit { from: _, title, description, key, value } => {
-            let payload = json!({
+        GovAction::Submit { title, description, param_key, new_value, deposit, from } => {
+            // First submit the proposal
+            let submit_payload = json!({
                 "title": title,
                 "description": description,
-                "key": key,
-                "value": value
+                "key": param_key,
+                "value": new_value
             });
             
-            match post_json(rpc, "gov/submit", &payload).await {
-                Ok(response) => emit(fmt, &format!("Proposal submitted: {}", response)),
+            match post_json(rpc, "gov/submit", &submit_payload).await {
+                Ok(response) => {
+                    emit(fmt, &format!("Proposal submitted: {}", response));
+                    
+                    // If there's an initial deposit, try to parse the proposal ID and make a deposit
+                    if deposit > 0 {
+                        if let Ok(resp_obj) = serde_json::from_str::<serde_json::Value>(&response) {
+                            if let Some(proposal_id) = resp_obj.get("proposal_id").and_then(|v| v.as_u64()) {
+                                let deposit_payload = json!({
+                                    "depositor": from,
+                                    "proposal_id": proposal_id,
+                                    "amount": deposit
+                                });
+                                
+                                match post_json(rpc, "gov/deposit", &deposit_payload).await {
+                                    Ok(deposit_response) => emit(fmt, &format!("Initial deposit made: {}", deposit_response)),
+                                    Err(e) => emit(fmt, &format!("Warning: Could not make initial deposit: {}", e)),
+                                }
+                            }
+                        }
+                    }
+                },
                 Err(e) => emit(fmt, &format!("Error submitting proposal: {}", e)),
             }
         },

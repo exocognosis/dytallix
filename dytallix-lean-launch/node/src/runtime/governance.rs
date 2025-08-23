@@ -15,6 +15,10 @@ pub struct GovernanceConfig {
     pub deposit_period: u64,      // blocks
     pub voting_period: u64,       // blocks
     pub gas_limit: u64,          // Current gas limit parameter
+    pub max_gas_per_block: u64,   // Consensus parameter for max gas per block
+    pub quorum: u128,            // Minimum participation required (in micro units)
+    pub threshold: u128,          // Minimum yes votes for proposal to pass (in basis points, e.g., 5000 = 50%)
+    pub veto_threshold: u128,     // Minimum no_with_veto votes to veto proposal (in basis points)
 }
 
 impl Default for GovernanceConfig {
@@ -24,6 +28,10 @@ impl Default for GovernanceConfig {
             deposit_period: 300,         // 300 blocks for deposit period
             voting_period: 300,          // 300 blocks for voting period
             gas_limit: 21_000,          // Default gas limit
+            max_gas_per_block: 10_000_000, // Default max gas per block
+            quorum: 3333,               // 33.33% quorum required (in basis points)
+            threshold: 5000,            // 50% threshold for passing (in basis points)
+            veto_threshold: 3333,       // 33.33% veto threshold (in basis points)
         }
     }
 }
@@ -57,6 +65,7 @@ pub enum ProposalStatus {
     VotingPeriod,
     Passed,
     Rejected,
+    Failed,  // For expired deposits without reaching minimum
     Executed,
 }
 
@@ -73,6 +82,7 @@ pub struct Vote {
 pub enum VoteOption {
     Yes,
     No,
+    NoWithVeto,
     Abstain,
 }
 
@@ -81,7 +91,9 @@ pub enum VoteOption {
 pub struct TallyResult {
     pub yes: u128,
     pub no: u128,
+    pub no_with_veto: u128,
     pub abstain: u128,
+    pub total_voting_power: u128,
 }
 
 /// Governance events
@@ -258,11 +270,11 @@ impl GovernanceModule {
                     ProposalStatus::DepositPeriod => {
                         if height > proposal.deposit_end_height {
                             // Deposit period ended without reaching min deposit
-                            proposal.status = ProposalStatus::Rejected;
+                            proposal.status = ProposalStatus::Failed;
                             self.store_proposal(&proposal)?;
                             self.emit_event(GovernanceEvent::ProposalRejected { 
                                 id: proposal_id, 
-                                reason: Some("Insufficient deposits".to_string()) 
+                                reason: Some("Insufficient deposits - proposal failed".to_string()) 
                             });
                         }
                     }
@@ -272,7 +284,8 @@ impl GovernanceModule {
                             let tally = self.tally(proposal_id)?;
                             proposal.tally = Some(tally.clone());
                             
-                            if tally.yes > tally.no {
+                            // Use enhanced tally logic to determine if proposal passes
+                            if self.proposal_passes(&tally)? {
                                 proposal.status = ProposalStatus::Passed;
                                 self.emit_event(GovernanceEvent::ProposalPassed { 
                                     id: proposal_id, 
@@ -282,9 +295,16 @@ impl GovernanceModule {
                                 });
                             } else {
                                 proposal.status = ProposalStatus::Rejected;
+                                let reason = if tally.total_voting_power < (self.get_total_staking_power()? * self.config.quorum) / 10000 {
+                                    "Quorum not met"
+                                } else if tally.no_with_veto >= (tally.total_voting_power * self.config.veto_threshold) / 10000 {
+                                    "Proposal vetoed"
+                                } else {
+                                    "Threshold not met"
+                                };
                                 self.emit_event(GovernanceEvent::ProposalRejected { 
                                     id: proposal_id, 
-                                    reason: Some("Majority voted no".to_string()) 
+                                    reason: Some(reason.to_string()) 
                                 });
                             }
                             self.store_proposal(&proposal)?;
@@ -319,17 +339,69 @@ impl GovernanceModule {
         
         let mut yes = 0u128;
         let mut no = 0u128;
+        let mut no_with_veto = 0u128;
         let mut abstain = 0u128;
 
         for vote in votes {
             match vote.option {
                 VoteOption::Yes => yes += vote.weight,
                 VoteOption::No => no += vote.weight,
+                VoteOption::NoWithVeto => no_with_veto += vote.weight,
                 VoteOption::Abstain => abstain += vote.weight,
             }
         }
 
-        Ok(TallyResult { yes, no, abstain })
+        let total_voting_power = yes + no + no_with_veto + abstain;
+
+        Ok(TallyResult { 
+            yes, 
+            no, 
+            no_with_veto, 
+            abstain,
+            total_voting_power,
+        })
+    }
+
+    /// Check if a proposal passes based on governance parameters
+    pub fn proposal_passes(&self, tally: &TallyResult) -> Result<bool, String> {
+        // Get total staking power for quorum calculation
+        let total_staking_power = self.get_total_staking_power()?;
+        
+        // Check quorum: minimum participation required
+        let quorum_required = (total_staking_power * self.config.quorum) / 10000; // basis points
+        if tally.total_voting_power < quorum_required {
+            return Ok(false); // Quorum not met
+        }
+        
+        // Check veto threshold: if no_with_veto >= veto_threshold, proposal is vetoed
+        let veto_threshold = (tally.total_voting_power * self.config.veto_threshold) / 10000;
+        if tally.no_with_veto >= veto_threshold {
+            return Ok(false); // Proposal vetoed
+        }
+        
+        // Check threshold: yes votes must be >= threshold of participating votes (excluding abstain)
+        let participating_votes = tally.yes + tally.no + tally.no_with_veto;
+        if participating_votes == 0 {
+            return Ok(false); // No participating votes
+        }
+        
+        let threshold_required = (participating_votes * self.config.threshold) / 10000;
+        Ok(tally.yes >= threshold_required)
+    }
+
+    /// Get total staking power for quorum calculation
+    fn get_total_staking_power(&self) -> Result<u128, String> {
+        // For MVP, we'll use total DGT supply as a proxy for staking power
+        // In a full implementation, this would query the staking module
+        let state = self.state.lock().unwrap();
+        let mut total_power = 0u128;
+        
+        for (_, account) in &state.accounts {
+            total_power += account.balance_of("udgt");
+        }
+        
+        // Minimum total power to avoid division by zero
+        Ok(total_power.max(1))
     }
 
     /// Execute a passed proposal
@@ -357,6 +429,13 @@ impl GovernanceModule {
                 let gas_limit: u64 = value.parse()
                     .map_err(|_| "Invalid gas_limit value".to_string())?;
                 self.config.gas_limit = gas_limit;
+                self.store_config()?;
+                Ok(())
+            }
+            "consensus.max_gas_per_block" => {
+                let max_gas_per_block: u64 = value.parse()
+                    .map_err(|_| "Invalid consensus.max_gas_per_block value".to_string())?;
+                self.config.max_gas_per_block = max_gas_per_block;
                 self.store_config()?;
                 Ok(())
             }
@@ -442,9 +521,21 @@ impl GovernanceModule {
         let prefix = format!("gov:vote:{}:", proposal_id);
         let mut votes = Vec::new();
         
-        // Note: This is a simplified implementation. In production, you'd want
-        // a more efficient way to iterate over keys with a prefix.
-        // For now, we'll implement a basic version.
+        // This is a simplified implementation that scans all possible vote keys
+        // In a production system, you'd want a more efficient prefix scan
+        // For now, we'll iterate through potential voter addresses
+        
+        // Get all accounts to check for votes
+        let state = self.state.lock().unwrap();
+        for (voter_addr, _) in &state.accounts {
+            let vote_key = format!("gov:vote:{}:{}", proposal_id, voter_addr);
+            if let Ok(Some(data)) = self.storage.db.get(vote_key) {
+                if let Ok(vote) = bincode::deserialize::<Vote>(&data) {
+                    votes.push(vote);
+                }
+            }
+        }
+        
         Ok(votes)
     }
 
@@ -580,5 +671,61 @@ mod tests {
         let tally = governance.tally(proposal_id).unwrap();
         assert_eq!(tally.yes, 500_000_000);
         assert_eq!(tally.no, 0);
+        assert_eq!(tally.no_with_veto, 0);
+        assert_eq!(tally.abstain, 0);
+    }
+
+    #[test]
+    fn test_no_with_veto_vote() {
+        let (mut governance, _temp_dir) = setup_test_governance();
+        
+        // Setup account with DGT balance
+        {
+            let mut state = governance.state.lock().unwrap();
+            let mut account = state.get_account("voter1");
+            account.add_balance("udgt", 500_000_000); // 500 DGT
+            state.accounts.insert("voter1".to_string(), account);
+        }
+        
+        let proposal_id = governance.submit_proposal(
+            100,
+            "Test Proposal".to_string(),
+            "Test Description".to_string(),
+            ProposalType::ParameterChange {
+                key: "consensus.max_gas_per_block".to_string(),
+                value: "15000000".to_string(),
+            },
+        ).unwrap();
+        
+        // Manually transition to voting period for test
+        {
+            let mut proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
+            proposal.status = ProposalStatus::VotingPeriod;
+            governance.store_proposal(&proposal).unwrap();
+        }
+        
+        governance.vote(200, "voter1", proposal_id, VoteOption::NoWithVeto).unwrap();
+        
+        let tally = governance.tally(proposal_id).unwrap();
+        assert_eq!(tally.yes, 0);
+        assert_eq!(tally.no, 0);
+        assert_eq!(tally.no_with_veto, 500_000_000);
+        assert_eq!(tally.abstain, 0);
+    }
+
+    #[test]
+    fn test_parameter_change_execution() {
+        let (mut governance, _temp_dir) = setup_test_governance();
+        
+        // Test gas_limit parameter change
+        governance.apply_parameter_change("gas_limit", "100000").unwrap();
+        assert_eq!(governance.config.gas_limit, 100000);
+        
+        // Test consensus.max_gas_per_block parameter change
+        governance.apply_parameter_change("consensus.max_gas_per_block", "20000000").unwrap();
+        assert_eq!(governance.config.max_gas_per_block, 20000000);
+        
+        // Test invalid parameter
+        assert!(governance.apply_parameter_change("invalid_param", "123").is_err());
     }
 }
