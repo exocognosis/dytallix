@@ -468,6 +468,7 @@ pub async fn gov_vote(
     let option = match option_str {
         "yes" => VoteOption::Yes,
         "no" => VoteOption::No,
+        "no_with_veto" => VoteOption::NoWithVeto,
         "abstain" => VoteOption::Abstain,
         _ => return Err(ApiError::Internal),
     };
