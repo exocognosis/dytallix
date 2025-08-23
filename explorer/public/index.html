@@ -38,6 +38,22 @@
                     <i class="fas fa-search text-2xl mr-3"></i>
                     <h1 class="text-xl font-bold">Dytallix Testnet Explorer</h1>
                 </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#" id="navBlocks" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-cube mr-1"></i>Blocks
+                        </a>
+                        <a href="#" id="navGovernance" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-vote-yea mr-1"></i>Governance
+                        </a>
+                        <a href="#" id="navContracts" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-file-contract mr-1"></i>Contracts
+                        </a>
+                        <a href="#" id="navAccounts" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-wallet mr-1"></i>Accounts
+                        </a>
+                    </div>
+                </div>
                 <div class="flex items-center space-x-4">
                     <span id="networkStatus" class="text-sm opacity-90">
                         <i class="fas fa-circle text-green-400 mr-1"></i>
@@ -113,94 +129,186 @@
             </div>
         </div>
 
-        <!-- Main Content Tabs -->
-        <div class="bg-white rounded-lg shadow-md">
-            <div class="border-b border-gray-200">
-                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                    <button id="blocksTab" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                        <i class="fas fa-cube mr-2"></i>Recent Blocks
-                    </button>
-                    <button id="transactionsTab" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                        <i class="fas fa-exchange-alt mr-2"></i>Recent Transactions
-                    </button>
-                    <button id="validatorsTab" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                        <i class="fas fa-shield-alt mr-2"></i>Validators
-                    </button>
-                </nav>
+        <!-- Main Content Area -->
+        <div id="mainContent">
+            <!-- Blocks Page (Default) -->
+            <div id="blocksPage" class="page-content">
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                            <button id="blocksTab" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                <i class="fas fa-cube mr-2"></i>Recent Blocks
+                            </button>
+                            <button id="transactionsTab" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                <i class="fas fa-exchange-alt mr-2"></i>Recent Transactions
+                            </button>
+                            <button id="validatorsTab" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                <i class="fas fa-shield-alt mr-2"></i>Validators
+                            </button>
+                        </nav>
+                    </div>
+
+                    <div class="p-6">
+                        <!-- Blocks Tab Content -->
+                        <div id="blocksContent" class="tab-content">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Height</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hash</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proposer</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="blocksTableBody" class="bg-white divide-y divide-gray-200">
+                                        <tr>
+                                            <td colspan="5" class="px-6 py-4 text-center">
+                                                <div class="loading mx-auto"></div>
+                                                <p class="text-gray-500 mt-2">Loading blocks...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Transactions Tab Content -->
+                        <div id="transactionsContent" class="tab-content hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hash</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Height</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gas Used</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI Risk</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transactionsTableBody" class="bg-white divide-y divide-gray-200">
+                                        <tr>
+                                            <td colspan="6" class="px-6 py-4 text-center">
+                                                <div class="loading mx-auto"></div>
+                                                <p class="text-gray-500 mt-2">Loading transactions...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Validators Tab Content -->
+                        <div id="validatorsContent" class="tab-content hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Public Key</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Voting Power</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proposer Priority</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="validatorsTableBody" class="bg-white divide-y divide-gray-200">
+                                        <tr>
+                                            <td colspan="4" class="px-6 py-4 text-center">
+                                                <div class="loading mx-auto"></div>
+                                                <p class="text-gray-500 mt-2">Loading validators...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="p-6">
-                <!-- Blocks Tab Content -->
-                <div id="blocksContent" class="tab-content">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Height</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hash</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proposer</th>
-                                </tr>
-                            </thead>
-                            <tbody id="blocksTableBody" class="bg-white divide-y divide-gray-200">
-                                <tr>
-                                    <td colspan="5" class="px-6 py-4 text-center">
-                                        <div class="loading mx-auto"></div>
-                                        <p class="text-gray-500 mt-2">Loading blocks...</p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+            <!-- Governance Page -->
+            <div id="governancePage" class="page-content hidden">
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xl font-bold text-gray-900">
+                                <i class="fas fa-vote-yea mr-2 text-blue-600"></i>
+                                Governance Proposals
+                            </h2>
+                            <button id="createProposalBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300">
+                                <i class="fas fa-plus mr-2"></i>Create Proposal
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div id="proposalsContainer">
+                            <div class="text-center">
+                                <div class="loading mx-auto"></div>
+                                <p class="text-gray-500 mt-2">Loading proposals...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Transactions Tab Content -->
-                <div id="transactionsContent" class="tab-content hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hash</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Height</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gas Used</th>
-                                </tr>
-                            </thead>
-                            <tbody id="transactionsTableBody" class="bg-white divide-y divide-gray-200">
-                                <tr>
-                                    <td colspan="5" class="px-6 py-4 text-center">
-                                        <div class="loading mx-auto"></div>
-                                        <p class="text-gray-500 mt-2">Loading transactions...</p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+            <!-- Contracts Page -->
+            <div id="contractsPage" class="page-content hidden">
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xl font-bold text-gray-900">
+                                <i class="fas fa-file-contract mr-2 text-green-600"></i>
+                                Smart Contracts
+                            </h2>
+                            <button id="deployContractBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-300">
+                                <i class="fas fa-plus mr-2"></i>Deploy Contract
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div id="contractsContainer">
+                            <div class="text-center">
+                                <div class="loading mx-auto"></div>
+                                <p class="text-gray-500 mt-2">Loading contracts...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Validators Tab Content -->
-                <div id="validatorsContent" class="tab-content hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Public Key</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Voting Power</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proposer Priority</th>
-                                </tr>
-                            </thead>
-                            <tbody id="validatorsTableBody" class="bg-white divide-y divide-gray-200">
-                                <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center">
-                                        <div class="loading mx-auto"></div>
-                                        <p class="text-gray-500 mt-2">Loading validators...</p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+            <!-- Accounts Page -->
+            <div id="accountsPage" class="page-content hidden">
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="p-6 border-b border-gray-200">
+                        <h2 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-wallet mr-2 text-purple-600"></i>
+                            Account Details
+                        </h2>
+                        <div class="mt-4">
+                            <div class="flex items-center space-x-4">
+                                <input
+                                    type="text"
+                                    id="accountSearchInput"
+                                    placeholder="Enter account address (dyt1...)"
+                                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                />
+                                <button
+                                    id="accountSearchBtn"
+                                    class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition duration-300"
+                                >
+                                    <i class="fas fa-search mr-2"></i>Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div id="accountDetailsContainer">
+                            <div class="text-center text-gray-500">
+                                <i class="fas fa-info-circle text-4xl mb-4"></i>
+                                <p>Enter an account address above to view details</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -221,6 +329,84 @@
                             </button>
                         </div>
                         <div id="searchResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Proposal Modal -->
+        <div id="createProposalModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                    <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                </div>
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Create Governance Proposal</h3>
+                            <button id="closeProposalModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <form id="proposalForm">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                                    <input type="text" id="proposalTitle" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                                    <textarea id="proposalDescription" required rows="4" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Submitter Address</label>
+                                    <input type="text" id="proposalSubmitter" placeholder="dyt1..." class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                </div>
+                                <div class="flex justify-end space-x-3 pt-4">
+                                    <button type="button" id="cancelProposal" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition duration-300">Cancel</button>
+                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300">Create Proposal</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deploy Contract Modal -->
+        <div id="deployContractModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                    <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                </div>
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Deploy Smart Contract</h3>
+                            <button id="closeContractModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <form id="contractForm">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Contract Code</label>
+                                    <textarea id="contractCode" required rows="6" placeholder="Paste your contract source code or WASM here..." class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Initialization Message (JSON)</label>
+                                    <textarea id="contractInitMsg" rows="3" placeholder='{"owner": "dyt1...", "param": "value"}' class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">From Address</label>
+                                    <input type="text" id="contractFrom" required placeholder="dyt1..." class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                                </div>
+                                <div class="flex justify-end space-x-3 pt-4">
+                                    <button type="button" id="cancelContract" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition duration-300">Cancel</button>
+                                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-300">Deploy Contract</button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
