@@ -116,7 +116,7 @@ async fn main() -> anyhow::Result<()> {
         state: state.clone(),
         ws: ws_hub.clone(),
         tps: tps_window.clone(),
-        emission: Arc::new(EmissionEngine::new(storage.clone(), state.clone())),
+        emission: Arc::new(Mutex::new(EmissionEngine::new(storage.clone(), state.clone()))),
         governance: Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone()))),
         metrics: metrics.clone(),
     };
@@ -138,7 +138,7 @@ async fn main() -> anyhow::Result<()> {
             
             // advance emission pools to new height (height+1)
             let next_height = producer_ctx.storage.height() + 1;
-            producer_ctx.emission.apply_until(next_height);
+            producer_ctx.emission.lock().unwrap().apply_until(next_height);
             let snapshot = { producer_ctx.mempool.lock().unwrap().take_snapshot(max_txs) };
             if snapshot.is_empty() && !empty_blocks {
                 continue;

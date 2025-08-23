@@ -30,7 +30,7 @@ pub struct RpcContext {
     pub state: Arc<Mutex<State>>,
     pub ws: WsHub,
     pub tps: Arc<Mutex<TpsWindow>>,
-    pub emission: Arc<EmissionEngine>,
+    pub emission: Arc<Mutex<EmissionEngine>>,
     pub governance: Arc<Mutex<GovernanceModule>>,
     pub metrics: Arc<crate::metrics::Metrics>,
 }
@@ -345,7 +345,7 @@ pub async fn stats(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value> 
         .as_secs();
     let rolling_tps = { ctx.tps.lock().unwrap().rolling_tps(now) };
     let chain_id = ctx.storage.get_chain_id();
-    let em_snap = ctx.emission.snapshot();
+    let em_snap = ctx.emission.lock().unwrap().snapshot();
     Json(
         json!({"height": ctx.storage.height(), "mempool_size": ctx.mempool.lock().unwrap().len(), "rolling_tps": rolling_tps, "chain_id": chain_id, "emission_pools": em_snap.pools }),
     )
@@ -390,7 +390,7 @@ pub async fn emission_claim(
         .get("to")
         .and_then(|v| v.as_str())
         .ok_or(ApiError::Internal)?;
-    match ctx.emission.claim(pool, amount, to) {
+    match ctx.emission.lock().unwrap().claim(pool, amount, to) {
         Ok(remaining) => Ok(Json(
             json!({"pool": pool, "remaining": remaining.to_string()}),
         )),
