@@ -1,0 +1,212 @@
+name: Observability Lint
+
+on:
+  pull_request:
+    paths:
+      - 'observability/**'
+      - 'docs/OBSERVABILITY.md'
+      - 'scripts/run_observability_stack.sh'
+      - 'scripts/induce_validator_halt.sh'
+      - 'dytallix-lean-launch/node/src/metrics.rs'
+      - '.github/workflows/observability-lint.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'observability/**'
+      - 'docs/OBSERVABILITY.md'
+      - 'scripts/run_observability_stack.sh'
+      - 'scripts/induce_validator_halt.sh'
+      - 'dytallix-lean-launch/node/src/metrics.rs'
+
+jobs:
+  lint-observability:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq yq curl
+
+      - name: Install promtool
+        run: |
+          PROMETHEUS_VERSION="2.45.0"
+          wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
+          tar xvfz prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
+          sudo mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/promtool /usr/local/bin/
+          rm -rf prometheus-${PROMETHEUS_VERSION}.linux-amd64*
+
+      - name: Validate Prometheus configuration
+        run: |
+          echo "Validating Prometheus configuration..."
+          promtool check config observability/prometheus/prometheus.yml
+
+      - name: Validate alert rules
+        run: |
+          echo "Validating alert rules..."
+          promtool check rules observability/prometheus/alerts/core-rules.yml
+
+      - name: Validate Grafana datasource configuration
+        run: |
+          echo "Validating Grafana datasource configuration..."
+          yq eval . observability/grafana/provisioning/datasources/datasource.yml > /dev/null
+
+      - name: Validate Grafana dashboard provisioning
+        run: |
+          echo "Validating Grafana dashboard provisioning..."
+          yq eval . observability/grafana/provisioning/dashboards/dashboards.yml > /dev/null
+
+      - name: Validate Grafana dashboards JSON
+        run: |
+          echo "Validating Grafana dashboard JSON files..."
+          for dashboard in observability/grafana/dashboards/*.json; do
+            echo "Validating $dashboard"
+            jq empty "$dashboard"
+            
+            # Check for required fields
+            if ! jq -e '.dashboard.uid' "$dashboard" > /dev/null; then
+              echo "Error: Dashboard $dashboard missing required 'uid' field"
+              exit 1
+            fi
+            
+            if ! jq -e '.dashboard.title' "$dashboard" > /dev/null; then
+              echo "Error: Dashboard $dashboard missing required 'title' field"
+              exit 1
+            fi
+          done
+
+      - name: Validate script syntax
+        run: |
+          echo "Validating shell script syntax..."
+          bash -n scripts/run_observability_stack.sh
+          bash -n scripts/induce_validator_halt.sh
+
+      - name: Check metric inventory completeness
+        run: |
+          echo "Checking metric inventory in documentation..."
+          
+          # Extract metric names from metrics.rs
+          METRICS_IN_CODE=$(grep -o 'dyt_[a-zA-Z_]*' dytallix-lean-launch/node/src/metrics.rs | sort | uniq)
+          
+          # Check if all metrics are documented
+          for metric in $METRICS_IN_CODE; do
+            if ! grep -q "$metric" docs/OBSERVABILITY.md; then
+              echo "Warning: Metric '$metric' found in code but not documented in OBSERVABILITY.md"
+            fi
+          done
+          
+          # Check for required core metrics
+          REQUIRED_METRICS=(
+            "dyt_block_height"
+            "dyt_blocks_produced_total"
+            "dyt_blocks_per_second"
+            "dyt_transactions_in_block"
+            "dyt_tps"
+            "dyt_mempool_size"
+            "dyt_gas_used_per_block"
+            "dyt_oracle_update_latency_seconds"
+            "dyt_emission_pool_amount"
+            "dyt_validator_missed_blocks_total"
+            "dyt_validator_voting_power"
+          )
+          
+          for metric in "${REQUIRED_METRICS[@]}"; do
+            if ! grep -q "$metric" dytallix-lean-launch/node/src/metrics.rs; then
+              echo "Error: Required metric '$metric' not found in metrics.rs"
+              exit 1
+            fi
+            
+            if ! grep -q "$metric" docs/OBSERVABILITY.md; then
+              echo "Error: Required metric '$metric' not documented in OBSERVABILITY.md"
+              exit 1
+            fi
+          done
+
+      - name: Validate dashboard metric references
+        run: |
+          echo "Validating dashboard metric references..."
+          
+          # Check that dashboard queries reference valid metrics
+          for dashboard in observability/grafana/dashboards/*.json; do
+            echo "Checking metric references in $dashboard"
+            
+            # Extract prometheus queries from dashboard
+            QUERIES=$(jq -r '.dashboard.panels[]?.targets[]?.expr // empty' "$dashboard")
+            
+            if [ -n "$QUERIES" ]; then
+              while IFS= read -r query; do
+                # Extract metric names from queries (basic check)
+                METRICS_IN_QUERY=$(echo "$query" | grep -o 'dyt_[a-zA-Z_]*\|dytallix_[a-zA-Z_]*' || true)
+                
+                for metric in $METRICS_IN_QUERY; do
+                  if ! grep -q "$metric" dytallix-lean-launch/node/src/metrics.rs; then
+                    echo "Warning: Dashboard $dashboard references metric '$metric' which may not exist in code"
+                  fi
+                done
+              done <<< "$QUERIES"
+            fi
+          done
+
+      - name: Check alert rule metric references
+        run: |
+          echo "Checking alert rule metric references..."
+          
+          # Extract metric names from alert rules
+          ALERT_METRICS=$(yq eval '.groups[].rules[].expr' observability/prometheus/alerts/core-rules.yml | grep -o 'dyt_[a-zA-Z_]*\|dytallix_[a-zA-Z_]*' | sort | uniq || true)
+          
+          for metric in $ALERT_METRICS; do
+            if ! grep -q "$metric" dytallix-lean-launch/node/src/metrics.rs; then
+              echo "Warning: Alert rule references metric '$metric' which may not exist in code"
+            fi
+          done
+
+      - name: Validate documentation format
+        run: |
+          echo "Validating documentation format..."
+          
+          # Check for required sections in OBSERVABILITY.md
+          REQUIRED_SECTIONS=(
+            "## Overview"
+            "## Quick Start"
+            "## Metrics Inventory"
+            "## Setup Instructions"
+            "## Security Considerations"
+            "## Troubleshooting"
+          )
+          
+          for section in "${REQUIRED_SECTIONS[@]}"; do
+            if ! grep -q "$section" docs/OBSERVABILITY.md; then
+              echo "Error: Required section '$section' not found in OBSERVABILITY.md"
+              exit 1
+            fi
+          done
+
+      - name: Check for TODO/PLACEHOLDER items
+        run: |
+          echo "Checking for TODO/PLACEHOLDER items..."
+          
+          # Check for unresolved placeholders in templates
+          if grep -r "PLACEHOLDER" reports/soak/; then
+            echo "Info: Found PLACEHOLDER items in soak report template (expected)"
+          fi
+          
+          # Check for TODOs in documentation
+          if grep -i "TODO\|FIXME" docs/OBSERVABILITY.md; then
+            echo "Warning: Found TODO items in documentation"
+          fi
+
+      - name: Summary
+        run: |
+          echo "✅ Observability configuration validation completed successfully!"
+          echo ""
+          echo "Validated components:"
+          echo "  - Prometheus configuration and alert rules"
+          echo "  - Grafana datasource and dashboard configurations"  
+          echo "  - Dashboard JSON syntax and structure"
+          echo "  - Shell script syntax"
+          echo "  - Metric inventory completeness"
+          echo "  - Documentation structure and format"
+          echo ""
+          echo "All observability components are properly configured and ready for deployment."
