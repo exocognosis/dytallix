@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "dytallixd",
-    "node"
+    "node",
+    "contracts/codeguard",
 ]
 resolver = "2"
