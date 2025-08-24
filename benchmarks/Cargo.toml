@@ -9,6 +9,13 @@ serde_json = { workspace = true }
 tokio = { workspace = true }
 reqwest = { workspace = true }
 md5 = "0.7"
+# PQC benchmark dependencies
+dytallix-pqc = { path = "../pqc-crypto" }
+sha3 = "0.10"
+base64 = "0.21"
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+nix = { version = "0.27", features = ["resource"] }
 
 [[bin]]
 name = "osmosis_wasm_benchmark"
@@ -17,3 +24,11 @@ path = "osmosis_wasm_benchmarks.rs"
 [[bin]]
 name = "sepolia_evm_benchmark"
 path = "sepolia_evm_benchmarks.rs"
+
+[[bin]]
+name = "bench_pqc_tx"
+path = "bench_pqc_tx.rs"
+
+[[test]]
+name = "bench_tests"
+path = "bench_tests.rs"

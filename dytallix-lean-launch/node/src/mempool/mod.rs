@@ -6,15 +6,23 @@ use std::cmp::Ordering;
 use crate::state::State;
 use crate::storage::tx::Transaction;
 use crate::gas::{TxKind, GasSchedule, validate_gas_limit, intrinsic_gas};
+use crate::crypto::{ActivePQC, PQC, canonical_json, sha3_256};
+use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 #[cfg(test)]
 mod gas_tests;
+
+#[cfg(test)]
+mod pqc_tests;
 
 /// Configuration constants - can be overridden by environment variables
 pub const DEFAULT_MAX_TX_BYTES: usize = 1024 * 1024; // 1MB
 pub const DEFAULT_MIN_GAS_PRICE: u64 = 1000; // 1000 wei
 pub const DEFAULT_MEMPOOL_MAX_TXS: usize = 10000;
 pub const DEFAULT_MEMPOOL_MAX_BYTES: usize = 100 * 1024 * 1024; // 100MB
+
+/// Error code constants for external API responses
+pub const TX_INVALID_SIG: &str = "TX_INVALID_SIG";
 
 /// Rejection reasons for transactions
 #[derive(Debug, Clone, PartialEq)]
@@ -46,7 +54,7 @@ impl RejectionReason {
 impl std::fmt::Display for RejectionReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RejectionReason::InvalidSignature => write!(f, "invalid signature"),
+            RejectionReason::InvalidSignature => write!(f, "{}", TX_INVALID_SIG),
             RejectionReason::NonceGap { expected, got } => {
                 write!(f, "nonce gap: expected {}, got {}", expected, got)
             }
@@ -378,14 +386,42 @@ impl std::error::Error for MempoolError {}
 
 /// Verify transaction envelope (signature validation)
 fn verify_envelope(tx: &Transaction) -> bool {
-    match tx.signature.as_ref() {
-        Some(_) => {
-            // For the lean transaction type, we do basic signature validation
-            // In production, this would verify against the transaction signing message
-            true // TODO: Implement proper signature verification for lean Transaction type
+    match (&tx.signature, &tx.public_key) {
+        (Some(signature), Some(public_key)) => {
+            // Perform real PQC signature verification
+            match verify_pqc_signature(tx, signature, public_key) {
+                Ok(()) => true,
+                Err(_) => false,
+            }
         }
-        None => false, // No signature provided
+        _ => false, // No signature or public key provided
     }
+}
+
+/// Verify PQC signature for a transaction
+fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> Result<(), String> {
+    // 1. Decode base64 signature and public key
+    let sig_bytes = B64.decode(signature)
+        .map_err(|e| format!("invalid signature encoding: {}", e))?;
+    let pk_bytes = B64.decode(public_key)
+        .map_err(|e| format!("invalid public key encoding: {}", e))?;
+
+    // 2. Create canonical transaction for signing
+    let canonical_tx = tx.canonical_fields();
+    
+    // 3. Serialize to canonical JSON
+    let tx_bytes = canonical_json(&canonical_tx)
+        .map_err(|e| format!("failed to serialize transaction: {}", e))?;
+    
+    // 4. Hash with SHA3-256
+    let tx_hash = sha3_256(&tx_bytes);
+    
+    // 5. Verify signature using ActivePQC
+    if !ActivePQC::verify(&pk_bytes, &tx_hash, &sig_bytes) {
+        return Err("signature verification failed".to_string());
+    }
+    
+    Ok(())
 }
 
 /// Enhanced validation including gas validation (legacy function for backward compatibility)

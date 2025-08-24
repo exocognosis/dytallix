@@ -66,6 +66,11 @@ enum Commands {
         #[command(subcommand)]
         command: TransactionCommands,
     },
+    /// Key management commands
+    Keys {
+        #[command(subcommand)]
+        command: KeysCommands,
+    },
     /// Initialize configuration
     Init,
     /// Show configuration
@@ -246,6 +251,22 @@ enum TransactionCommands {
     },
 }
 
+#[derive(Subcommand)]
+enum KeysCommands {
+    /// Generate PQC keypair
+    PqcGen {
+        /// Algorithm to use (dilithium|falcon|sphincs)
+        #[arg(long, value_parser = ["dilithium", "falcon", "sphincs"])]
+        algo: String,
+        /// Keystore path (default: ~/.dyt/keystore)
+        #[arg(long)]
+        keystore: Option<String>,
+        /// Key label
+        #[arg(long)]
+        label: Option<String>,
+    },
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -296,6 +317,9 @@ async fn main() -> Result<()> {
         }
         Commands::Transaction { command } => {
             execute_transaction_command(command, &config).await?;
+        }
+        Commands::Keys { command } => {
+            execute_keys_command(command, &config).await?;
         }
         Commands::Init => {
             initialize_config(&config).await?;
@@ -379,6 +403,14 @@ async fn execute_transaction_command(command: TransactionCommands, config: &Conf
         TransactionCommands::Get { hash } => transaction::get_transaction(hash, config).await,
         TransactionCommands::List { account, limit } => {
             transaction::list_transactions(account, limit, config).await
+        }
+    }
+}
+
+async fn execute_keys_command(command: KeysCommands, config: &Config) -> Result<()> {
+    match command {
+        KeysCommands::PqcGen { algo, keystore, label } => {
+            keys::generate_pqc_keys(algo, keystore, label).await
         }
     }
 }
