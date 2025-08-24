@@ -757,6 +757,28 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                             serde_json::json!({"error": "Invalid parameters"})
                         }
                     }
+                    "staking_sync_accrued" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
+                            if params.len() >= 2 {
+                                handle_staking_sync_accrued(params, runtime.clone()).await
+                            } else {
+                                serde_json::json!({"error": "Invalid parameters"})
+                            }
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    "staking_get_accrued" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
+                            if params.len() >= 2 {
+                                handle_staking_get_accrued(params, runtime.clone()).await
+                            } else {
+                                serde_json::json!({"error": "Invalid parameters"})
+                            }
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
                     "staking_get_validator" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
                             if !params.is_empty() {
@@ -1240,6 +1262,46 @@ async fn handle_staking_claim_rewards(
         ).await {
             Ok(rewards) => serde_json::json!(rewards),
             Err(e) => serde_json::json!({"error": format!("Failed to claim rewards: {}", e)}),
+        }
+    } else {
+        serde_json::json!({"error": "Invalid parameters"})
+    }
+}
+
+async fn handle_staking_sync_accrued(
+    params: &[serde_json::Value],
+    runtime: Arc<crate::runtime::DytallixRuntime>,
+) -> serde_json::Value {
+    if let (Some(delegator), Some(validator)) = (
+        params[0].as_str(),
+        params[1].as_str(),
+    ) {
+        match runtime.sync_and_get_accrued_rewards(
+            &delegator.to_string(),
+            &validator.to_string(),
+        ).await {
+            Ok(accrued) => serde_json::json!({"accrued": accrued}),
+            Err(e) => serde_json::json!({"error": format!("Failed to sync accrued rewards: {}", e)}),
+        }
+    } else {
+        serde_json::json!({"error": "Invalid parameters"})
+    }
+}
+
+async fn handle_staking_get_accrued(
+    params: &[serde_json::Value],
+    runtime: Arc<crate::runtime::DytallixRuntime>,
+) -> serde_json::Value {
+    if let (Some(delegator), Some(validator)) = (
+        params[0].as_str(),
+        params[1].as_str(),
+    ) {
+        match runtime.get_accrued_rewards(
+            &delegator.to_string(),
+            &validator.to_string(),
+        ).await {
+            Ok(accrued) => serde_json::json!({"accrued": accrued}),
+            Err(e) => serde_json::json!({"error": format!("Failed to get accrued rewards: {}", e)}),
         }
     } else {
         serde_json::json!({"error": "Invalid parameters"})

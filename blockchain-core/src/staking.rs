@@ -59,6 +59,9 @@ pub struct Delegation {
     pub stake_amount: u128,
     /// Reward cursor - captures validator reward_index at last interaction
     pub reward_cursor_index: u128,
+    /// Accrued but unclaimed uDRT rewards (for backward compatibility, defaults to 0)
+    #[serde(default)]
+    pub accrued_rewards: u128,
 }
 
 /// Staking configuration parameters
@@ -301,6 +304,7 @@ impl StakingState {
             validator_address: validator.clone(),
             stake_amount: amount,
             reward_cursor_index: validator_entry.reward_index,
+            accrued_rewards: 0,
         };
 
         // Update validator total stake
@@ -642,6 +646,31 @@ impl StakingState {
         Ok(())
     }
 
+    /// Sync delegation rewards and return (pending_added, total_accrued_after)
+    pub fn sync_delegation_rewards(
+        &mut self,
+        delegator: &Address,
+        validator_address: &Address,
+    ) -> Result<(u128, u128), StakingError> {
+        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation = self.delegations.get_mut(&delegation_key)
+            .ok_or(StakingError::DelegationNotFound)?;
+
+        let validator = self.validators.get(validator_address)
+            .ok_or(StakingError::ValidatorNotFound)?;
+
+        // Calculate pending rewards: (current_index - cursor_index) * stake_amount / SCALE
+        let reward_diff = validator.reward_index.saturating_sub(delegation.reward_cursor_index);
+        let pending = (reward_diff * delegation.stake_amount) / REWARD_SCALE;
+
+        if pending > 0 {
+            delegation.accrued_rewards += pending;
+            delegation.reward_cursor_index = validator.reward_index;
+        }
+
+        Ok((pending, delegation.accrued_rewards))
+    }
+
     /// Calculate pending rewards for a delegation
     pub fn calculate_pending_rewards(
         &self,
@@ -668,24 +697,21 @@ impl StakingState {
         delegator: &Address,
         validator_address: &Address,
     ) -> Result<u128, StakingError> {
-        let pending_rewards = self.calculate_pending_rewards(delegator, validator_address)?;
+        // First sync delegation rewards
+        self.sync_delegation_rewards(delegator, validator_address)?;
 
-        if pending_rewards > 0 {
-            let delegation_key = format!("{}:{}", delegator, validator_address);
-            let delegation = self.delegations.get_mut(&delegation_key)
-                .ok_or(StakingError::DelegationNotFound)?;
+        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation = self.delegations.get_mut(&delegation_key)
+            .ok_or(StakingError::DelegationNotFound)?;
 
-            let validator = self.validators.get(validator_address)
-                .ok_or(StakingError::ValidatorNotFound)?;
-
-            // Update delegation reward cursor
-            delegation.reward_cursor_index = validator.reward_index;
-
-            // TODO: Actually credit DRT tokens to delegator account
-            // This requires integration with the token/balance system
+        let rewards_to_claim = delegation.accrued_rewards;
+        
+        if rewards_to_claim > 0 {
+            // Clear accrued rewards as they will be transferred to delegator
+            delegation.accrued_rewards = 0;
         }
 
-        Ok(pending_rewards)
+        Ok(rewards_to_claim)
     }
 
     /// Undelegate tokens (placeholder for future implementation)
