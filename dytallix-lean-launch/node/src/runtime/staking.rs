@@ -149,7 +149,11 @@ impl StakingModule {
         // First settle any pending rewards before changing stake
         self.settle_delegator_rewards(address);
         
+        let current_reward_index = self.reward_index;
         let mut record = self.load_delegator_record(address);
+        if record.last_reward_index == 0 {
+            record.last_reward_index = current_reward_index;
+        }
         let old_stake = record.stake_amount;
         record.stake_amount = new_stake;
         self.save_delegator_record(address, &record);
