@@ -1,0 +1,246 @@
+# Default values for pulsescan
+# This is a YAML-formatted file.
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# PulseScan Inference Service
+inference:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: dytallix/pulsescan-infer
+    pullPolicy: IfNotPresent
+    tag: "1.0.0"
+  
+  service:
+    type: ClusterIP
+    port: 9090
+    targetPort: 9090
+  
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  env:
+    - name: RUST_LOG
+      value: "info"
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: pulsescan-secrets
+          key: database-url
+    - name: REDIS_URL
+      valueFrom:
+        secretKeyRef:
+          name: pulsescan-secrets
+          key: redis-url
+    - name: BLOCKCHAIN_RPC_URL
+      value: "http://dytallix-node:26657"
+    - name: CONTRACT_ADDRESS
+      valueFrom:
+        configMapKeyRef:
+          name: pulsescan-config
+          key: contract-address
+  
+  configMap:
+    config.toml: |
+      database_url = "${DATABASE_URL}"
+      redis_url = "${REDIS_URL}"
+      blockchain_rpc_url = "${BLOCKCHAIN_RPC_URL}"
+      contract_address = "${CONTRACT_ADDRESS}"
+      min_anomaly_score = 0.7
+      auto_submit_findings = true
+      metrics_port = 9090
+      
+      [inference]
+      model_type = "ensemble"
+      batch_size = 32
+      confidence_threshold = 0.8
+      enable_ensemble = true
+      
+      [features]
+      enable_graph_features = true
+      enable_temporal_features = true
+      enable_behavioral_features = true
+      lookback_window_hours = 24
+      velocity_window_minutes = 60
+
+# PulseScan API Gateway
+api:
+  enabled: true
+  replicaCount: 3
+  
+  image:
+    repository: dytallix/pulsescan-api
+    pullPolicy: IfNotPresent
+    tag: "1.0.0"
+  
+  service:
+    type: ClusterIP
+    port: 3001
+    targetPort: 3001
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/rate-limit-rps: "10"
+    hosts:
+      - host: pulsescan-api.dytallix.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: pulsescan-api-tls
+        hosts:
+          - pulsescan-api.dytallix.com
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  env:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "3001"
+    - name: DB_HOST
+      valueFrom:
+        secretKeyRef:
+          name: pulsescan-secrets
+          key: db-host
+    - name: DB_NAME
+      value: "pulsescan"
+    - name: DB_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: pulsescan-secrets
+          key: db-username
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: pulsescan-secrets
+          key: db-password
+    - name: REDIS_URL
+      valueFrom:
+        secretKeyRef:
+          name: pulsescan-secrets
+          key: redis-url
+    - name: API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: pulsescan-secrets
+          key: api-key
+
+# PostgreSQL Database
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "postgres"
+    username: "pulsescan"
+    password: "pulsescan123"
+    database: "pulsescan"
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "fast-ssd"
+  metrics:
+    enabled: true
+
+# Redis Cache
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "redis123"
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+  metrics:
+    enabled: true
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: true
+
+# ConfigMaps and Secrets
+configMaps:
+  pulsescan-config:
+    contract-address: "dytallix1contractaddress..."
+    network-id: "dytallix-testnet"
+
+secrets:
+  pulsescan-secrets:
+    database-url: "postgresql://pulsescan:pulsescan123@pulsescan-postgresql:5432/pulsescan"
+    redis-url: "redis://:redis123@pulsescan-redis-master:6379"
+    db-host: "pulsescan-postgresql"
+    db-username: "pulsescan"
+    db-password: "pulsescan123"
+    api-key: "your-secure-api-key-here"
+
+# Autoscaling
+autoscaling:
+  inference:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  api:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+
+# Pod Disruption Budgets
+podDisruptionBudget:
+  inference:
+    enabled: true
+    minAvailable: 1
+  api:
+    enabled: true
+    minAvailable: 2
+
+# Network Policies
+networkPolicy:
+  enabled: true
+  
+# Security Context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000

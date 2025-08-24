@@ -1,0 +1,358 @@
+name: PulseScan CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'dytallix-lean-launch/contracts/pulsescan/**'
+      - 'dytallix-lean-launch/services/pulsescan-**/**'
+      - 'dytallix-lean-launch/migrations/pulsescan/**'
+      - 'dytallix-lean-launch/helm/pulsescan/**'
+      - 'dytallix-lean-launch/scripts/pulsescan/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'dytallix-lean-launch/contracts/pulsescan/**'
+      - 'dytallix-lean-launch/services/pulsescan-**/**'
+      - 'dytallix-lean-launch/migrations/pulsescan/**'
+      - 'dytallix-lean-launch/helm/pulsescan/**'
+      - 'dytallix-lean-launch/scripts/pulsescan/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: 1.70.0
+  NODE_VERSION: 18
+
+jobs:
+  test-contracts:
+    name: Test CosmWasm Contracts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dytallix-lean-launch/contracts/pulsescan
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ env.RUST_VERSION }}
+        targets: wasm32-unknown-unknown
+    
+    - name: Cache Cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-contracts-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Run tests
+      run: cargo test --verbose
+    
+    - name: Check formatting
+      run: cargo fmt -- --check
+    
+    - name: Run Clippy
+      run: cargo clippy -- -D warnings
+    
+    - name: Build WASM contract
+      run: cargo build --release --target wasm32-unknown-unknown
+    
+    - name: Optimize WASM (if wasm-opt available)
+      run: |
+        if command -v wasm-opt &> /dev/null; then
+          wasm-opt -Oz --output target/wasm32-unknown-unknown/release/pulsescan_optimized.wasm \
+                   target/wasm32-unknown-unknown/release/pulsescan.wasm
+        fi
+    
+    - name: Upload contract artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: pulsescan-contract
+        path: |
+          dytallix-lean-launch/contracts/pulsescan/target/wasm32-unknown-unknown/release/pulsescan.wasm
+          dytallix-lean-launch/contracts/pulsescan/target/wasm32-unknown-unknown/release/pulsescan_optimized.wasm
+
+  test-inference-service:
+    name: Test Inference Service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dytallix-lean-launch/services/pulsescan-infer
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pulsescan_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ env.RUST_VERSION }}
+    
+    - name: Cache Cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-inference-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Setup test database
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pulsescan_test
+      run: |
+        cargo install sqlx-cli --no-default-features --features postgres
+        sqlx database create
+        sqlx migrate run --source ../../migrations/pulsescan
+    
+    - name: Run tests
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pulsescan_test
+        REDIS_URL: redis://localhost:6379
+      run: cargo test --verbose
+    
+    - name: Check formatting
+      run: cargo fmt -- --check
+    
+    - name: Run Clippy
+      run: cargo clippy -- -D warnings
+    
+    - name: Build release
+      run: cargo build --release
+    
+    - name: Generate coverage report
+      run: |
+        cargo install cargo-tarpaulin
+        cargo tarpaulin --out xml --output-dir coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: dytallix-lean-launch/services/pulsescan-infer/coverage/cobertura.xml
+        flags: inference-service
+
+  test-api-service:
+    name: Test API Service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dytallix-lean-launch/services/pulsescan-api
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pulsescan_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: dytallix-lean-launch/services/pulsescan-api/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Setup test database
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pulsescan_test
+      run: |
+        npm install -g @sqltools/cli
+        psql -h localhost -U postgres -d pulsescan_test -f ../../migrations/pulsescan/001_initial_schema.sql
+      env:
+        PGPASSWORD: postgres
+    
+    - name: Run linter
+      run: npm run lint
+    
+    - name: Run tests
+      env:
+        NODE_ENV: test
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: pulsescan_test
+        DB_USERNAME: postgres
+        DB_PASSWORD: postgres
+        REDIS_URL: redis://localhost:6379
+        API_KEY: test-api-key
+      run: npm test
+    
+    - name: Build TypeScript
+      run: npm run build
+    
+    - name: Generate coverage report
+      env:
+        NODE_ENV: test
+      run: npm run test -- --coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: dytallix-lean-launch/services/pulsescan-api/coverage/lcov.info
+        flags: api-service
+
+  lint-helm:
+    name: Lint Helm Charts
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.12.0'
+    
+    - name: Lint Helm chart
+      run: |
+        helm lint dytallix-lean-launch/helm/pulsescan
+        helm template pulsescan dytallix-lean-launch/helm/pulsescan --validate
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: 'dytallix-lean-launch'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test-contracts, test-inference-service, test-api-service]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ghcr.io/${{ github.repository }}/pulsescan-infer
+          ghcr.io/${{ github.repository }}/pulsescan-api
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push inference service image
+      uses: docker/build-push-action@v5
+      with:
+        context: dytallix-lean-launch/services/pulsescan-infer
+        push: true
+        tags: ghcr.io/${{ github.repository }}/pulsescan-infer:${{ github.sha }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build and push API service image
+      uses: docker/build-push-action@v5
+      with:
+        context: dytallix-lean-launch/services/pulsescan-api
+        push: true
+        tags: ghcr.io/${{ github.repository }}/pulsescan-api:${{ github.sha }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-images]
+    environment: staging
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.12.0'
+    
+    - name: Deploy to staging
+      run: |
+        echo "Deploying PulseScan to staging environment"
+        # Add actual deployment steps here
+        # helm upgrade --install pulsescan-staging ./helm/pulsescan \
+        #   --namespace pulsescan-staging \
+        #   --set image.tag=${{ github.sha }} \
+        #   --set environment=staging
