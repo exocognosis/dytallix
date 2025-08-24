@@ -3,6 +3,8 @@
 ## Overview
 Successfully implemented real transaction handling for the Dytallix CLI, replacing the previous stub implementations with full HTTP client integration to communicate with the blockchain API.
 
+For **Post-Quantum Cryptography (PQC) signature enforcement**, see [PQC.md](PQC.md) for comprehensive documentation including key generation, signing workflows, verification processes, and performance benchmarking.
+
 ## Changes Made
 
 ### 1. HTTP Client Implementation (`developer-tools/src/client.rs`)

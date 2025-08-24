@@ -28,3 +28,7 @@ path = "sepolia_evm_benchmarks.rs"
 [[bin]]
 name = "bench_pqc_tx"
 path = "bench_pqc_tx.rs"
+
+[[test]]
+name = "bench_tests"
+path = "bench_tests.rs"

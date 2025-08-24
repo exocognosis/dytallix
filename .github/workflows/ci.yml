@@ -7,11 +7,14 @@ on:
     branches: [ main ]
     paths:
       - 'dytallix-lean-launch/**'
+      - 'developer-tools/**'
+      - 'pqc-crypto/**'
+      - 'benchmarks/**'
+      - 'docs/**'
       - '.github/workflows/ci.yml'
       - 'package.json'
       - 'package-lock.json'
       - 'Makefile'
-      - 'docs/**'
       - 'scripts/**'
       - 'tests/**'
       - 'Cargo.toml'
@@ -83,6 +86,51 @@ jobs:
       - name: Frontend unit tests
         working-directory: dytallix-lean-launch
         run: npm test -- --run || echo "Frontend tests failed but continuing with existing issues"
+
+  pqc-tests:
+    name: PQC Tests & Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      
+      - name: Run PQC unit tests
+        run: |
+          cargo test -p dytallix-lean-node pqc_tests
+          cargo test -p dytallix-cli keys
+          cargo test -p dytallix-sdk integration_tests
+      
+      - name: Run PQC benchmark smoke test
+        run: |
+          TX_COUNT=100 cargo run --bin bench_pqc_tx
+        env:
+          PQC_ALGO: dilithium
+      
+      - name: Run full PQC benchmark (if enabled)
+        if: env.RUN_BENCH == '1'
+        run: |
+          TX_COUNT=10000 cargo run --bin bench_pqc_tx
+        env:
+          PQC_ALGO: dilithium
+      
+      - name: Test CLI key generation
+        run: |
+          cargo run --bin dytallix-cli -- keys pqc-gen --algo dilithium --keystore /tmp/test-keystore --label ci-test
+          ls -la /tmp/test-keystore/
+          cat /tmp/test-keystore/*.json | jq .address
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pqc-benchmark-results
+          path: artifacts/bench_pqc.json
+          if-no-files-found: warn
 
   e2e-tests:
     name: E2E Tests (Cypress + Integration)
@@ -157,7 +205,7 @@ jobs:
   build:
     name: Build & Artifacts
     runs-on: ubuntu-latest
-    needs: [lint, unit-tests]
+    needs: [lint, unit-tests, pqc-tests]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
