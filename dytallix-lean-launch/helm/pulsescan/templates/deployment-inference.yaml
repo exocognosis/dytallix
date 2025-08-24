@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pulsescan.fullname" . }}-inference
+  labels:
+    {{- include "pulsescan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: inference
+spec:
+  {{- if not .Values.autoscaling.inference.enabled }}
+  replicas: {{ .Values.inference.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pulsescan.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: inference
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-inference.yaml") . | sha256sum }}
+      labels:
+        {{- include "pulsescan.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: inference
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      containers:
+        - name: inference
+          image: "{{ .Values.inference.image.repository }}:{{ .Values.inference.image.tag }}"
+          imagePullPolicy: {{ .Values.inference.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.inference.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- toYaml .Values.inference.env | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.toml
+              subPath: config.toml
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.inference.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "pulsescan.fullname" . }}-inference-config
+      {{- with .Values.inference.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.inference.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.inference.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
