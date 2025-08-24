@@ -1,4 +1,5 @@
 use crate::crypto::PQCManager;
+use base64::{Engine as _};
 use bytes; // add bytes crate usage
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info, warn};
@@ -723,6 +724,22 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                         handle_contract_list((storage.clone(), tx_pool.clone())).await
                     }
                     
+                    // WASM-specific endpoints (aliases for contract methods)
+                    "wasm_deploy" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
+                            handle_wasm_deploy(params.clone(), (storage.clone(), tx_pool.clone())).await
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    "wasm_execute" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
+                            handle_wasm_execute(params.clone(), (storage.clone(), tx_pool.clone())).await
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    
                     // Staking methods
                     "staking_register_validator" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
@@ -1184,6 +1201,104 @@ async fn handle_contract_list(
     }
     
     serde_json::json!([])
+}
+
+// WASM-specific handlers (aliases for contract handlers with different parameter formats)
+async fn handle_wasm_deploy(
+    params: serde_json::Value, 
+    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+) -> serde_json::Value {
+    let (_storage, _tx_pool) = ctx;
+    
+    // Extract deployment parameters from WASM-specific format
+    if let Some(code_base64) = params.get("code_base64").and_then(|c| c.as_str()) {
+        // Decode base64 WASM code
+        if let Ok(code) = base64::engine::general_purpose::STANDARD.decode(code_base64) {
+            // Validate WASM code
+            if code.len() < 8 || &code[0..4] != b"\x00asm" {
+                return serde_json::json!({"error": "Invalid WASM code"});
+            }
+            
+            // Create runtime and deploy contract
+            if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
+                let deployment = crate::contracts::ContractDeployment {
+                    code: code.clone(),
+                    metadata: serde_json::json!({}),
+                    deployer: "wasm_deployer".to_string(), // TODO: Extract from auth
+                    gas_limit: params.get("gas_limit").and_then(|g| g.as_u64()).unwrap_or(500_000),
+                    address: generate_contract_address(&blake3::hash(&code).as_bytes()),
+                    initial_state: vec![], // Empty initial state for WASM
+                    timestamp: chrono::Utc::now().timestamp() as u64,
+                    ai_audit_score: None,
+                };
+                
+                match runtime.deploy_contract(deployment).await {
+                    Ok(address) => {
+                        let code_hash = blake3::hash(&code);
+                        return serde_json::json!({
+                            "address": address,
+                            "code_hash": hex::encode(code_hash.as_bytes()),
+                            "gas_used": 50000 // TODO: Get actual gas used
+                        });
+                    }
+                    Err(e) => {
+                        return serde_json::json!({"error": format!("Deployment failed: {}", e)});
+                    }
+                }
+            } else {
+                return serde_json::json!({"error": "Failed to create contract runtime"});
+            }
+        } else {
+            return serde_json::json!({"error": "Failed to decode base64 WASM code"});
+        }
+    }
+    
+    serde_json::json!({"error": "Invalid WASM deployment parameters"})
+}
+
+async fn handle_wasm_execute(
+    params: serde_json::Value, 
+    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+) -> serde_json::Value {
+    let (_storage, _tx_pool) = ctx;
+    
+    // Extract execution parameters
+    if let (Some(address), Some(method)) = (
+        params.get("address").and_then(|a| a.as_str()),
+        params.get("method").and_then(|m| m.as_str())
+    ) {
+        // Create runtime and execute contract
+        if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
+            let call = crate::contracts::ContractCall {
+                contract_address: address.to_string(),
+                caller: "wasm_caller".to_string(), // TODO: Extract from auth
+                method: method.to_string(),
+                input_data: params.get("args_json")
+                    .and_then(|args| serde_json::to_vec(args).ok())
+                    .unwrap_or_default(),
+                gas_limit: params.get("gas_limit").and_then(|g| g.as_u64()).unwrap_or(20_000),
+                value: 0, // No value transfer for basic WASM calls
+                timestamp: chrono::Utc::now().timestamp() as u64,
+            };
+            
+            match runtime.call_contract(call).await {
+                Ok(result) => {
+                    return serde_json::json!({
+                        "result_json": result.return_value,
+                        "gas_used": result.gas_used,
+                        "height": 1 // TODO: Get actual block height
+                    });
+                }
+                Err(e) => {
+                    return serde_json::json!({"error": format!("Execution failed: {}", e)});
+                }
+            }
+        } else {
+            return serde_json::json!({"error": "Failed to create contract runtime"});
+        }
+    }
+    
+    serde_json::json!({"error": "Invalid WASM execution parameters"})
 }
 
 // Helper functions for address generation

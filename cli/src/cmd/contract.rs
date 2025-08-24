@@ -181,6 +181,12 @@ pub enum WasmCommand {
         #[arg(long, default_value = "20000")]
         gas: u64,
     },
+    
+    /// Query a WASM contract state  
+    Query {
+        /// Contract address
+        address: String,
+    },
 }
 
 impl ContractArgs {
@@ -479,6 +485,27 @@ impl ContractArgs {
                     println!("  Result: {}", result.get("result_json").unwrap_or(&Value::Null));
                     println!("  Gas Used: {}", result.get("gas_used").unwrap_or(&Value::Null));
                     println!("  Height: {}", result.get("height").unwrap_or(&Value::Null));
+                }
+            }
+            
+            WasmCommand::Query { address } => {
+                info!("Querying WASM contract state: {}", address);
+                
+                // Create query request for get() method (counter-specific)
+                let request = serde_json::json!({
+                    "address": address,
+                    "method": "get",
+                    "args_json": {},
+                    "gas_limit": 10000,
+                });
+                
+                // Submit to WASM execute endpoint (get is an execution)
+                let response = rpc_client.call("wasm_execute", &[request]).await?;
+                
+                if let Some(result) = response.as_object() {
+                    println!("WASM Contract State:");
+                    println!("  Contract: {}", address);
+                    println!("  Value: {}", result.get("result_json").unwrap_or(&Value::Null));
                 }
             }
         }
