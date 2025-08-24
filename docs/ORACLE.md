@@ -8,300 +8,434 @@ The Dytallix Oracle system provides a secure, scalable ingestion pipeline for ex
 
 ### Core Components
 
-1. **OracleStore** - Persistent storage layer using RocksDB
-2. **REST API** - HTTP endpoints for score submission  
-3. **CLI Interface** - Command-line tools for oracle operations
-4. **RPC Integration** - Risk scores exposed in transaction queries
-5. **Signature Verification** - Optional cryptographic validation
+1. **Runtime Oracle Module** - Rust-based deterministic risk score storage
+2. **REST API** - TypeScript HTTP endpoints for score submission with HMAC authentication
+3. **WebSocket Events** - Real-time oracle update notifications
+4. **Metrics Integration** - Prometheus metrics for monitoring oracle operations
+5. **Signature Verification** - Optional Ed25519 cryptographic validation
 
 ### Data Model
 
 ```rust
 pub struct AiRiskRecord {
     pub tx_hash: String,        // Transaction hash (hex format)
+    pub score_str: String,      // Original score string (deterministic)
     pub model_id: String,       // AI model identifier 
-    pub risk_score: f32,        // Risk score (0.0 to 1.0)
-    pub confidence: Option<f32>, // Confidence level (0.0 to 1.0)
-    pub signature: Option<String>, // Optional cryptographic signature
-    pub oracle_pubkey: Option<String>, // Oracle's public key
+    pub ingested_at: u64,       // Unix timestamp
+    pub source: String,         // Oracle source identifier
 }
 ```
 
+**Deterministic Design**: Original score strings are preserved exactly as submitted to avoid floating-point consensus issues.
+
 ## API Endpoints
+
+### Authentication
+
+All Oracle submission endpoints require HMAC-SHA256 authentication using the `X-Oracle-Signature` header:
+
+```
+X-Oracle-Signature: <hex-encoded-hmac-sha256-signature>
+```
+
+The signature is computed over the raw request body using the shared secret from `DLX_ORACLE_INGEST_SECRET`.
+
+Optional source identification via:
+```
+X-Oracle-Source: <oracle-identifier>
+```
 
 ### Single Risk Score Submission
 
-**Endpoint:** `POST /oracle/ai_risk`
+**POST** `/api/oracle/submit`
+
+Submit a single AI risk assessment for a transaction.
 
 **Request Body:**
 ```json
 {
-    "tx_hash": "0x1234567890abcdef...",
-    "model_id": "fraud-detector-v2.1",
-    "risk_score": 0.75,
-    "confidence": 0.92,
-    "signature": "base64-encoded-signature"
+  "tx_hash": "0x1234567890abcdef...",
+  "score": "0.75",
+  "model_id": "risk-v1",
+  "signature": "base64-encoded-ed25519-signature"
 }
 ```
 
-**Response:**
+**Response (Success):**
 ```json
 {
-    "ok": true
+  "success": true,
+  "message": "Oracle risk submitted successfully",
+  "data": {
+    "tx_hash": "0x1234567890abcdef...",
+    "processed": 1
+  }
+}
+```
+
+**Response (Error):**
+```json
+{
+  "success": false,
+  "error": "Submission failed",
+  "code": "SUBMISSION_FAILED",
+  "details": ["Score must be between 0.0 and 1.0"]
 }
 ```
 
 ### Batch Risk Score Submission
 
-**Endpoint:** `POST /oracle/ai_risk_batch`
+**POST** `/api/oracle/submit_batch`
+
+Submit multiple AI risk assessments in a single request (max 100).
 
 **Request Body:**
 ```json
 {
-    "records": [
-        {
-            "tx_hash": "0x1234...",
-            "model_id": "fraud-detector-v2.1", 
-            "risk_score": 0.75,
-            "confidence": 0.92,
-            "signature": "base64-signature"
-        },
-        {
-            "tx_hash": "0x5678...",
-            "model_id": "ml-risk-engine-v1.0",
-            "risk_score": 0.23,
-            "confidence": 0.88
-        }
-    ]
+  "submissions": [
+    {
+      "tx_hash": "0x1234567890abcdef...",
+      "score": "0.75",
+      "model_id": "risk-v1"
+    },
+    {
+      "tx_hash": "0xabcdef1234567890...",
+      "score": "0.25",
+      "model_id": "risk-v1"
+    }
+  ]
 }
 ```
 
 **Response:**
 ```json
 {
+  "success": true,
+  "message": "Batch processed: 2 succeeded, 0 failed",
+  "data": {
     "processed": 2,
     "failed": 0,
-    "failed_hashes": [],
-    "validation_errors": []
+    "total": 2,
+    "errors": []
+  }
+}
+```
+
+### Risk Score Lookup
+
+**GET** `/api/oracle/risk/:txHash`
+
+Retrieve Oracle risk assessment for a specific transaction.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "tx_hash": "0x1234567890abcdef...",
+    "score": "0.75",
+    "model_id": "risk-v1",
+    "ingested_at": 1640995200,
+    "source": "oracle-1"
+  }
 }
 ```
 
 ### Transaction Query with Risk Scores
 
-**Endpoint:** `GET /tx/{hash}`
+**GET** `/api/transactions/:hash`
 
-**Response includes risk data:**
+Enhanced transaction endpoint that includes Oracle risk data when available.
+
+**Response:**
 ```json
 {
-    "hash": "0x1234567890abcdef...",
-    "status": "success",
-    "from": "dyt1sender...",
-    "to": "dyt1recipient...",
-    "amount": 1000,
-    "ai_risk_score": 0.75,
-    "ai_model_id": "fraud-detector-v2.1",
-    "ai_confidence": 0.92
+  "hash": "0x1234567890abcdef...",
+  "status": "confirmed",
+  "block_height": 12345,
+  "ai_risk_score": "0.75",
+  "model_id": "risk-v1",
+  "ai_risk_ingested_at": 1640995200
 }
 ```
 
-## CLI Usage
+Fields are nullable if no Oracle assessment exists.
 
-### Install CLI
-```bash
-cargo install --path cli
+### Health Check
+
+**GET** `/api/oracle/health`
+
+Oracle service health and configuration status.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2023-12-01T12:00:00.000Z",
+  "websocket": {
+    "connected_clients": 5,
+    "total_events": 150
+  },
+  "config": {
+    "auth_enabled": true,
+    "model_id": "risk-v1",
+    "environment": "production"
+  }
+}
 ```
 
-### Submit Single Risk Score
-```bash
-dcli oracle submit \
-  --tx-hash 0x1234567890abcdef... \
-  --model-id fraud-detector-v2.1 \
-  --risk-score 0.75 \
-  --confidence 0.92
+## WebSocket Events
+
+### Real-time Oracle Updates
+
+Connect to WebSocket endpoint `/ws` to receive real-time oracle updates.
+
+**Event: oracle_risk_updated**
+```json
+{
+  "type": "oracle_risk_updated",
+  "data": {
+    "type": "oracle_risk_updated",
+    "txHash": "0x1234567890abcdef...",
+    "score": "0.75",
+    "modelId": "risk-v1",
+    "timestamp": "2023-12-01T12:00:00.000Z"
+  },
+  "timestamp": "2023-12-01T12:00:00.000Z"
+}
 ```
 
-### Submit Batch Risk Scores
-```bash
-# Create batch file
-cat > risk_scores.json << EOF
-[
-    {
-        "tx_hash": "0x1234...",
-        "model_id": "fraud-detector-v2.1",
-        "risk_score": 0.75,
-        "confidence": 0.92
-    },
-    {
-        "tx_hash": "0x5678...", 
-        "model_id": "ml-risk-engine-v1.0",
-        "risk_score": 0.23,
-        "confidence": 0.88
-    }
-]
-EOF
+### Client Messages
 
-# Submit batch
-dcli oracle submit-batch --file risk_scores.json
+**Ping/Pong:**
+```json
+// Send
+{ "type": "ping" }
+
+// Receive
+{
+  "type": "pong",
+  "data": { "timestamp": "2023-12-01T12:00:00.000Z" },
+  "timestamp": "2023-12-01T12:00:00.000Z"
+}
 ```
 
-### Query Risk Score
+## Environment Configuration
+
+### Required Variables
+
+- **`DLX_ORACLE_INGEST_SECRET`** - HMAC secret for API authentication (required in production, min 32 chars)
+
+### Optional Variables
+
+- **`DLX_ORACLE_MODEL_ID`** - Default model identifier (default: "risk-v1")
+- **`NODE_ENV`** - Environment mode (development/production)
+
+### Configuration Validation
+
 ```bash
-dcli oracle query 0x1234567890abcdef...
+# Validate configuration on startup
+curl http://localhost:3000/api/oracle/health
 ```
 
-## Security Features
+## Metrics
 
-### Optional Signature Verification
+### Prometheus Metrics
 
-Set environment variable to enable signature verification:
-```bash
-export AI_ORACLE_PUBKEY="base64-encoded-public-key"
+The Oracle system exposes the following metrics:
+
+**oracle_submit_total{status}** - Counter
+- Total oracle submissions
+- Labels: `status="ok"` or `status="error"`
+
+**oracle_latency_seconds** - Histogram  
+- Oracle ingest to persistence latency
+- Buckets: [0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0]
+
+Access metrics at `/metrics` endpoint.
+
+### Sample Metrics Output
+
 ```
+# HELP oracle_submit_total Total oracle submissions
+# TYPE oracle_submit_total counter
+oracle_submit_total{status="ok"} 1250
+oracle_submit_total{status="error"} 15
 
-When enabled, all submissions must include a valid signature. The signature is generated by signing the message `{tx_hash}:{risk_score}` with the oracle's private key.
-
-### Rate Limiting
-
-The oracle endpoints include built-in rate limiting to prevent abuse:
-- Single submissions: Limited by standard HTTP rate limiting
-- Batch submissions: Additional validation on batch size and content
-- Failed submissions are logged and monitored
-
-### Validation Rules
-
-1. **Transaction Hash**
-   - Must be hex format starting with "0x"
-   - Minimum length of 3 characters
-
-2. **Risk Score** 
-   - Must be between 0.0 and 1.0 (inclusive)
-   - Required field
-
-3. **Confidence**
-   - Must be between 0.0 and 1.0 (inclusive) 
-   - Optional field
-
-4. **Model ID**
-   - Cannot be empty or whitespace-only
-   - Required field
+# HELP oracle_latency_seconds Oracle ingest to persistence latency in seconds
+# TYPE oracle_latency_seconds histogram
+oracle_latency_seconds_bucket{le="0.05"} 800
+oracle_latency_seconds_bucket{le="0.1"} 1200
+oracle_latency_seconds_bucket{le="0.25"} 1250
+oracle_latency_seconds_bucket{le="0.5"} 1265
+oracle_latency_seconds_bucket{le="1"} 1265
+oracle_latency_seconds_bucket{le="2"} 1265
+oracle_latency_seconds_bucket{le="5"} 1265
+oracle_latency_seconds_bucket{le="+Inf"} 1265
+oracle_latency_seconds_sum 45.67
+oracle_latency_seconds_count 1265
+```
 
 ## Integration Examples
 
-### Python Integration
+### JavaScript/TypeScript Client
+
+```typescript
+import crypto from 'crypto';
+
+class OracleClient {
+  constructor(
+    private baseUrl: string,
+    private secret: string
+  ) {}
+
+  private createSignature(body: string): string {
+    return crypto
+      .createHmac('sha256', this.secret)
+      .update(body)
+      .digest('hex');
+  }
+
+  async submitRisk(txHash: string, score: string, modelId: string) {
+    const body = JSON.stringify({
+      tx_hash: txHash,
+      score: score,
+      model_id: modelId
+    });
+
+    const signature = this.createSignature(body);
+
+    const response = await fetch(`${this.baseUrl}/api/oracle/submit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Oracle-Signature': signature,
+        'X-Oracle-Source': 'my-oracle-client'
+      },
+      body: body
+    });
+
+    return await response.json();
+  }
+
+  async submitBatch(submissions: Array<{txHash: string, score: string, modelId: string}>) {
+    const body = JSON.stringify({
+      submissions: submissions.map(s => ({
+        tx_hash: s.txHash,
+        score: s.score,
+        model_id: s.modelId
+      }))
+    });
+
+    const signature = this.createSignature(body);
+
+    const response = await fetch(`${this.baseUrl}/api/oracle/submit_batch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Oracle-Signature': signature
+      },
+      body: body
+    });
+
+    return await response.json();
+  }
+}
+
+// Usage
+const client = new OracleClient(
+  'http://localhost:3000',
+  process.env.DLX_ORACLE_INGEST_SECRET!
+);
+
+await client.submitRisk(
+  '0x1234567890abcdef1234567890abcdef12345678',
+  '0.75',
+  'risk-v1'
+);
+```
+
+### Python Client
+
 ```python
-import requests
+import hmac
+import hashlib
 import json
+import requests
 
-def submit_risk_score(tx_hash, model_id, risk_score, confidence=None):
-    url = "http://localhost:3030/oracle/ai_risk"
-    payload = {
-        "tx_hash": tx_hash,
-        "model_id": model_id, 
-        "risk_score": risk_score,
-        "confidence": confidence
-    }
+class OracleClient:
+    def __init__(self, base_url: str, secret: str):
+        self.base_url = base_url
+        self.secret = secret.encode()
     
-    response = requests.post(url, json=payload)
-    return response.json()
-
-# Submit single score
-result = submit_risk_score(
-    tx_hash="0x1234567890abcdef...",
-    model_id="fraud-detector-v2.1",
-    risk_score=0.75,
-    confidence=0.92
-)
-print(result)
-```
-
-### JavaScript Integration
-```javascript
-async function submitRiskScore(txHash, modelId, riskScore, confidence) {
-    const response = await fetch('http://localhost:3030/oracle/ai_risk', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            tx_hash: txHash,
-            model_id: modelId,
-            risk_score: riskScore,
-            confidence: confidence
+    def _create_signature(self, body: str) -> str:
+        return hmac.new(
+            self.secret,
+            body.encode(),
+            hashlib.sha256
+        ).hexdigest()
+    
+    def submit_risk(self, tx_hash: str, score: str, model_id: str):
+        body = json.dumps({
+            "tx_hash": tx_hash,
+            "score": score,
+            "model_id": model_id
         })
-    });
-    
-    return await response.json();
-}
+        
+        signature = self._create_signature(body)
+        
+        response = requests.post(
+            f"{self.base_url}/api/oracle/submit",
+            headers={
+                "Content-Type": "application/json",
+                "X-Oracle-Signature": signature,
+                "X-Oracle-Source": "python-client"
+            },
+            data=body
+        )
+        
+        return response.json()
 
-// Submit batch scores
-async function submitBatchRiskScores(records) {
-    const response = await fetch('http://localhost:3030/oracle/ai_risk_batch', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ records })
-    });
-    
-    return await response.json();
-}
+# Usage
+client = OracleClient(
+    "http://localhost:3000",
+    os.environ["DLX_ORACLE_INGEST_SECRET"]
+)
+
+result = client.submit_risk(
+    "0x1234567890abcdef1234567890abcdef12345678",
+    "0.75",
+    "risk-v1"
+)
 ```
 
-## Deployment Configuration
+### Curl Examples
 
-### Environment Variables
+```bash
+# Create HMAC signature (requires OpenSSL)
+SECRET="your-secret-key"
+PAYLOAD='{"tx_hash":"0x123...","score":"0.75","model_id":"risk-v1"}'
+SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$SECRET" -hex | cut -d' ' -f2)
 
-- `AI_ORACLE_PUBKEY` - Base64-encoded public key for signature verification (optional)
-- `DYT_DATA_DIR` - Data directory for node storage (default: "./data")
-- `DYT_CHAIN_ID` - Chain identifier for the network
+# Submit single risk
+curl -X POST http://localhost:3000/api/oracle/submit \
+  -H "Content-Type: application/json" \
+  -H "X-Oracle-Signature: $SIGNATURE" \
+  -H "X-Oracle-Source: curl-client" \
+  -d "$PAYLOAD"
 
-### Database Storage
+# Submit batch
+BATCH_PAYLOAD='{"submissions":[{"tx_hash":"0x123...","score":"0.75","model_id":"risk-v1"}]}'
+BATCH_SIGNATURE=$(echo -n "$BATCH_PAYLOAD" | openssl dgst -sha256 -hmac "$SECRET" -hex | cut -d' ' -f2)
 
-Risk scores are stored in RocksDB with the key format:
+curl -X POST http://localhost:3000/api/oracle/submit_batch \
+  -H "Content-Type: application/json" \
+  -H "X-Oracle-Signature: $BATCH_SIGNATURE" \
+  -d "$BATCH_PAYLOAD"
+
+# Get risk assessment
+curl http://localhost:3000/api/oracle/risk/0x1234567890abcdef1234567890abcdef12345678
 ```
-oracle:ai:{tx_hash}
-```
-
-Data is persisted across node restarts and stored efficiently for fast retrieval.
-
-### Monitoring and Logging
-
-The oracle system provides comprehensive logging:
-- Submission successes and failures
-- Validation errors with specific details
-- Signature verification results
-- Batch processing statistics
-
-## Error Handling
-
-### Common Error Codes
-
-1. **Invalid Risk Score Range**
-   ```
-   risk_score must be between 0.0 and 1.0
-   ```
-
-2. **Invalid Transaction Hash**
-   ```
-   Invalid tx_hash format
-   ```
-
-3. **Signature Verification Failed**
-   ```
-   Invalid signature for submitted data
-   ```
-
-4. **Empty Model ID**
-   ```
-   model_id cannot be empty
-   ```
-
-### Batch Processing Errors
-
-Batch submissions use partial success semantics:
-- Valid records are stored successfully
-- Invalid records are skipped with detailed error reporting
-- Response includes counts and specific failure information
 
 ## Performance Considerations
 
@@ -309,88 +443,90 @@ Batch submissions use partial success semantics:
 
 - Single submissions: ~1000 req/sec
 - Batch submissions: Up to 100 records per batch
-- Database writes are optimized for high throughput
+- WebSocket events: Real-time with <100ms latency
 
 ### Storage
 
-- Each risk record requires ~200-500 bytes of storage
-- RocksDB provides efficient compression and indexing
-- Storage scales linearly with transaction volume
+- Each risk record: ~200-500 bytes
+- Deterministic string storage prevents consensus issues
+- Indexed by transaction hash for O(1) lookup
 
 ### Caching
 
-- Risk scores are cached in memory for fast retrieval
-- Transaction queries include risk data without additional database lookups
-- Cache is automatically invalidated on updates
+- Risk scores cached in memory for fast retrieval
+- Transaction endpoints include risk data without additional DB lookups
+- WebSocket events for real-time cache invalidation
 
-## Testing
+## Security Considerations
 
-### Unit Tests
-```bash
-cd dytallix-lean-launch/node
-cargo test oracle
-```
+### HMAC Authentication
 
-### Integration Tests
-```bash
-# Start local node
-cargo run
+- HMAC-SHA256 with timing-safe comparison
+- Minimum 32-character secrets in production
+- Raw body signature prevents tampering
 
-# Test API endpoints
-curl -X POST http://localhost:3030/oracle/ai_risk \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tx_hash": "0x1234567890abcdef",
-    "model_id": "test-model",
-    "risk_score": 0.5
-  }'
+### Input Validation
 
-# Test CLI
-dcli oracle submit --tx-hash 0x1234... --model-id test --risk-score 0.5
-```
+- Transaction hash format validation
+- Score range validation (0.0 to 1.0)
+- Model ID character restrictions
+- Rate limiting and size limits
+
+### Error Handling
+
+- No sensitive data in error responses
+- Detailed logging for security monitoring
+- Graceful degradation when services unavailable
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| `AUTH_REQUIRED` | Oracle authentication required |
+| `AUTH_CONFIG_MISSING` | Authentication not configured |
+| `MISSING_SIGNATURE` | X-Oracle-Signature header missing |
+| `INVALID_SIGNATURE_FORMAT` | Signature format invalid |
+| `SIGNATURE_MISMATCH` | HMAC signature verification failed |
+| `NO_RAW_BODY` | Raw body not available for verification |
+| `MISSING_FIELDS` | Required fields missing from request |
+| `INVALID_BATCH` | Batch format invalid |
+| `BATCH_TOO_LARGE` | Batch exceeds size limit |
+| `SUBMISSION_FAILED` | Risk submission validation failed |
+| `INVALID_TX_HASH` | Transaction hash format invalid |
+| `RISK_NOT_FOUND` | Oracle assessment not found |
+| `INTERNAL_ERROR` | Internal server error |
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **"Invalid signature" errors**
-   - Verify AI_ORACLE_PUBKEY is correctly set
-   - Check signature generation matches expected format
-   - Ensure message format is `{tx_hash}:{risk_score}`
+**Authentication Failures:**
+- Verify `DLX_ORACLE_INGEST_SECRET` is set correctly
+- Ensure HMAC signature computed over raw body
+- Check signature is 64-character hex string
 
-2. **"Transaction not found" in queries**
-   - Verify transaction hash exists in blockchain
-   - Check that risk score was successfully submitted
-   - Confirm proper hex formatting of hash
+**Submission Errors:**
+- Validate transaction hash starts with '0x'
+- Ensure score is valid decimal between 0.0 and 1.0
+- Check model ID contains only alphanumeric, underscore, hyphen
 
-3. **Batch submission partial failures**
-   - Review validation_errors in response
-   - Check individual record formatting
-   - Verify all required fields are present
+**Connection Issues:**
+- Verify Oracle service is running and healthy
+- Check WebSocket connection at `/ws` endpoint
+- Monitor metrics for service availability
 
-### Debug Mode
+### Debug Commands
 
-Enable debug logging:
 ```bash
-RUST_LOG=debug cargo run
+# Check Oracle service health
+curl http://localhost:3000/api/oracle/health
+
+# View metrics
+curl http://localhost:3000/metrics | grep oracle
+
+# Test WebSocket connection
+wscat -c ws://localhost:3000/ws
+
+# Validate environment
+node -e "console.log(require('./src/middleware/oracleAuth').validateOracleConfig())"
 ```
-
-## Future Enhancements
-
-### Planned Features
-
-1. **WebSocket Support** - Real-time risk score streaming
-2. **Advanced Rate Limiting** - Per-model and per-source limits  
-3. **Metrics Dashboard** - Oracle submission statistics and monitoring
-4. **Model Performance Tracking** - Accuracy metrics and A/B testing
-5. **Multi-Model Aggregation** - Combining scores from multiple AI models
-
-### API Versioning
-
-Future API versions will maintain backward compatibility:
-- `/v1/oracle/ai_risk` - Current API
-- `/v2/oracle/ai_risk` - Future enhanced API with additional features
-
----
-
-For additional support, please refer to the main Dytallix documentation or submit issues to the project repository.
