@@ -647,5 +647,58 @@ pub async fn stats_with_emission(
     })))
 }
 
+/// POST /api/staking/claim - Claim staking rewards for an address
+pub async fn staking_claim(
+    Extension(ctx): Extension<RpcContext>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let address = body
+        .get("address")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::BadRequest("Missing address field".to_string()))?;
+
+    let mut staking = ctx.staking.lock().unwrap();
+    let claimed = staking.claim_rewards(address);
+    
+    if claimed > 0 {
+        // Credit DRT tokens to the address
+        if let Ok(mut state) = ctx.state.lock() {
+            state.credit(address, "udrt", claimed);
+        }
+    }
+    
+    // Get current reward index and new balance for response
+    let reward_index = staking.get_stats().1;
+    drop(staking); // Release lock before getting balance
+    
+    let new_balance = if let Ok(state) = ctx.state.lock() {
+        state.get_balance(address, "udrt")
+    } else {
+        0
+    };
+
+    Ok(Json(json!({
+        "address": address,
+        "claimed": claimed.to_string(),
+        "new_balance": new_balance.to_string(),
+        "reward_index": reward_index.to_string(),
+    })))
+}
+
+/// GET /api/staking/accrued/:address - Get accrued rewards for an address
+pub async fn staking_get_accrued(
+    Extension(ctx): Extension<RpcContext>,
+    Path(address): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let staking = ctx.staking.lock().unwrap();
+    let accrued = staking.get_accrued_rewards(&address);
+    
+    Ok(Json(json!({
+        "address": address,
+        "accrued_rewards": accrued.to_string(),
+        "reward_index": staking.get_stats().1.to_string(),
+    })))
+}
+
 pub mod errors;
 pub mod oracle;
