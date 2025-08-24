@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "description": "CodeGuard Rules Configuration",
+  "lastUpdated": "2024-08-24T00:00:00.000Z",
+  "ruleSets": [
+    {
+      "name": "experimental",
+      "description": "Experimental security rules for testing",
+      "version": "0.1.0",
+      "rules": [
+        {
+          "id": "gas_efficiency_bonus",
+          "type": "gas_efficiency",
+          "description": "Reward gas-efficient contracts",
+          "severity": "low",
+          "bonus": 10,
+          "config": {
+            "maxGasUsage": 500000
+          }
+        }
+      ]
+    }
+  ]
+}

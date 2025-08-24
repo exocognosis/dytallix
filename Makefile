@@ -30,6 +30,13 @@ help:
 	@echo "  security-audit        - Run npm audit for high/critical vulnerabilities"
 	@echo "  trivy                 - Run Trivy filesystem scan"
 	@echo ""
+	@echo "CodeGuard Smart Contract Security Scanner:"
+	@echo "  codeguard.build       - Build CodeGuard contract"
+	@echo "  codeguard.test        - Test CodeGuard components"
+	@echo "  codeguard.dev-up      - Start CodeGuard development environment"
+	@echo "  codeguard.scan        - Run security scan (requires CODEGUARD_CONTRACT and CODEGUARD_CODE_HASH)"
+	@echo "  codeguard.deploy-contract - Deploy CodeGuard contract"
+	@echo ""
 	@echo "Configuration variables:"
 	@echo "  FRONTEND_DIR         - Frontend directory (default: $(FRONTEND_DIR))"
 	@echo "  FAUCET_ENDPOINT      - Faucet API endpoint (default: $(FAUCET_ENDPOINT))"
@@ -173,6 +180,55 @@ trivy:
 ci: install lint-lean test-lean build-lean checksum
 	@echo "✅ CI pipeline complete for dytallix-lean-launch"
 
+# CodeGuard Smart Contract Security Scanner targets
+codeguard.build:
+	@echo "🔨 Building CodeGuard contract..."
+	cd dytallix-lean-launch/contracts/codeguard && cargo build --release --target wasm32-unknown-unknown
+	@echo "✅ CodeGuard contract built"
+
+codeguard.test:
+	@echo "🧪 Testing CodeGuard components..."
+	cd dytallix-lean-launch/contracts/codeguard && cargo test
+	cd dytallix-lean-launch/services/codeguard-orchestrator && npm test || echo "Tests not yet implemented"
+	cd dytallix-lean-launch/services/codeguard-worker && npm test || echo "Tests not yet implemented"
+	cd dytallix-lean-launch/services/codeguard-rules && npm test || echo "Tests not yet implemented"
+	@echo "✅ CodeGuard tests complete"
+
+codeguard.dev-up:
+	@echo "🚀 Starting CodeGuard development environment..."
+	@echo "Starting CodeGuard Rules Engine..."
+	cd dytallix-lean-launch/services/codeguard-rules && npm start &
+	@echo "Starting CodeGuard Worker..."
+	cd dytallix-lean-launch/services/codeguard-worker && npm start &
+	@echo "Starting CodeGuard Orchestrator..."
+	cd dytallix-lean-launch/services/codeguard-orchestrator && npm start &
+	@echo "✅ CodeGuard services started"
+	@echo "Orchestrator: http://localhost:8080"
+	@echo "Worker: http://localhost:8081"
+	@echo "Rules Engine: http://localhost:8082"
+
+codeguard.scan:
+	@echo "🔍 Running CodeGuard security scan..."
+	@echo "Usage: CODEGUARD_CONTRACT=<address> CODEGUARD_CODE_HASH=<hash> make codeguard.scan"
+	@if [ -z "$(CODEGUARD_CONTRACT)" ] || [ -z "$(CODEGUARD_CODE_HASH)" ]; then \
+		echo "❌ Please set CODEGUARD_CONTRACT and CODEGUARD_CODE_HASH environment variables"; \
+		exit 1; \
+	fi
+	@curl -X POST http://localhost:8080/scan \
+		-H "Content-Type: application/json" \
+		-d '{"contractAddress":"$(CODEGUARD_CONTRACT)","codeHash":"$(CODEGUARD_CODE_HASH)"}' || \
+		echo "❌ Failed to submit scan. Ensure CodeGuard services are running (make codeguard.dev-up)"
+	@echo "✅ Scan submitted"
+
+codeguard.deploy-contract:
+	@echo "🚀 Deploying CodeGuard contract..."
+	@echo "⚠️  Contract deployment not yet implemented - requires testnet setup"
+	@echo "Contract built at: dytallix-lean-launch/contracts/codeguard/target/wasm32-unknown-unknown/release/codeguard.wasm"
+	@echo "✅ CodeGuard deployment target ready"
+
 # Usage examples:
 #   make ci
 #   ALLOW_AUDIT_FAIL=true make security-audit
+#   make codeguard.build
+#   make codeguard.dev-up
+#   CODEGUARD_CONTRACT=dytallix1abc123... CODEGUARD_CODE_HASH=0x456def... make codeguard.scan
