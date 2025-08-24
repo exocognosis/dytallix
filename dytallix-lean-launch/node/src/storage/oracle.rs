@@ -6,9 +6,12 @@ pub struct AiRiskRecord {
     pub tx_hash: String,
     pub model_id: String,
     pub risk_score: f32, // 0.0..1.0
+    pub score_str: String, // Original score string for determinism
     pub confidence: Option<f32>, // 0.0..1.0
     pub signature: Option<String>,
     pub oracle_pubkey: Option<String>,
+    pub ingested_at: u64, // Unix timestamp
+    pub source: String, // Oracle source identifier
 }
 
 pub struct OracleStore<'a> {
@@ -69,6 +72,16 @@ impl<'a> OracleStore<'a> {
         // Validate model_id is not empty
         if rec.model_id.trim().is_empty() {
             return Err(anyhow::anyhow!("model_id cannot be empty"));
+        }
+        
+        // Validate score_str is not empty
+        if rec.score_str.trim().is_empty() {
+            return Err(anyhow::anyhow!("score_str cannot be empty"));
+        }
+        
+        // Validate source is not empty
+        if rec.source.trim().is_empty() {
+            return Err(anyhow::anyhow!("source cannot be empty"));
         }
         
         Ok(())
