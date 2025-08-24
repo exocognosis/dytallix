@@ -1,0 +1,74 @@
+# Prometheus scrape configuration for Dytallix services
+# This configuration defines how Prometheus scrapes metrics from various services
+# TODO: Adjust scrape_intervals and timeouts based on your environment's requirements
+
+global:
+  scrape_interval: 15s  # Default scrape interval
+  evaluation_interval: 15s  # How often to evaluate rules
+  
+  # TODO: Add your own external labels if needed for federation or remote write
+  external_labels:
+    cluster: 'dytallix-testnet'
+    environment: 'development'  # TODO: Change to 'staging' or 'production' as needed
+
+# Load alerting rules from alerts.yml
+rule_files:
+  - "alerts.yml"
+
+# Scrape configurations for individual services
+scrape_configs:
+  # Faucet API metrics (Node.js service)
+  - job_name: 'dytallix-faucet'
+    static_configs:
+      - targets: ['localhost:3001']  # TODO: Update host/port for your deployment
+    metrics_path: '/metrics'
+    scrape_interval: 10s  # More frequent for API services
+    scrape_timeout: 5s
+    honor_labels: true
+    # TODO: Add authentication if metrics endpoint is secured
+    # basic_auth:
+    #   username: 'prometheus'
+    #   password: 'your_password'
+
+  # Blockchain Core API metrics (Rust service)  
+  - job_name: 'dytallix-blockchain-api'
+    static_configs:
+      - targets: ['localhost:8080']  # TODO: Update to match your blockchain API port
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    honor_labels: true
+    
+  # System metrics (if using node_exporter)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['localhost:9100']  # TODO: Configure if using node_exporter
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+# Alertmanager configuration
+# TODO: Configure alertmanager endpoints if using external alerting
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - localhost:9093  # TODO: Update alertmanager address
+
+# Storage configuration
+# TODO: Adjust retention and storage path for production use
+storage:
+  tsdb:
+    retention.time: 7d  # Keep metrics for 7 days
+    # retention.size: 10GB  # Uncomment and adjust for size-based retention
+    # path: /prometheus/data  # TODO: Set custom data path if needed
+
+# Web configuration
+# TODO: Configure authentication and TLS for production
+web:
+  # listen_address: :9090
+  # external_url: https://prometheus.yourdomain.com
+  # Enable admin API for debugging (disable in production)
+  enable_admin_api: true
+  # TODO: Configure authentication:
+  # basic_auth_users:
+  #   admin: $2b$12$hKFZ.../your_bcrypt_hash
