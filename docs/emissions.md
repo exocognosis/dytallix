@@ -26,12 +26,54 @@ Reward Index Update → Delegator Rewards
 
 ## Genesis Configuration
 
-### Parameters
+### Emission Schedule Modes
+
+The emission system supports three different schedule modes:
+
+#### 1. Static Emission
+Fixed amount per block, regardless of circulating supply.
+
+```rust
+EmissionSchedule::Static { 
+    per_block: 1_000_000  // 1 DRT per block (in uDRT)
+}
+```
+
+#### 2. Phased Emission
+Time-based phases with different emission rates for different block ranges.
+
+```rust
+EmissionSchedule::Phased { 
+    phases: vec![
+        EmissionPhase {
+            start_height: 1,
+            end_height: Some(1000),
+            per_block_amount: 2_000_000,  // 2 DRT per block for blocks 1-1000
+        },
+        EmissionPhase {
+            start_height: 1001,
+            end_height: None,  // Unlimited
+            per_block_amount: 1_000_000,  // 1 DRT per block for blocks 1001+
+        },
+    ]
+}
+```
+
+#### 3. Percentage-based Emission (Default)
+Annual inflation rate applied to circulating supply.
+
+```rust
+EmissionSchedule::Percentage { 
+    annual_inflation_rate: 500  // 5% annual inflation (basis points)
+}
+```
+
+### Configuration Structure
 
 ```rust
 pub struct EmissionConfig {
-    pub annual_inflation_rate: u16,  // Basis points (500 = 5%)
-    pub initial_supply: u128,        // Initial DRT supply (0 for bootstrap)
+    pub schedule: EmissionSchedule,      // Emission schedule mode
+    pub initial_supply: u128,            // Initial DRT supply (0 for bootstrap)
     pub emission_breakdown: EmissionBreakdown,
 }
 
@@ -45,9 +87,10 @@ pub struct EmissionBreakdown {
 
 ### Default Configuration
 
-- **Annual Inflation Rate**: 5% (500 basis points)
+- **Schedule Mode**: Percentage-based with 5% annual inflation (500 basis points)
 - **Initial Supply**: 0 DRT (bootstrap mode)
 - **Block Time**: ~6 seconds (5,256,000 blocks/year)
+- **Bootstrap Emission**: 1 DRT per block when supply is 0
 
 ## Emission Calculation
 

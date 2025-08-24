@@ -1,4 +1,4 @@
-use dytallix_lean_node::runtime::emission::{EmissionEngine, EmissionConfig, EmissionBreakdown};
+use dytallix_lean_node::runtime::emission::{EmissionEngine, EmissionConfig, EmissionBreakdown, EmissionSchedule};
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::state::Storage;
 use std::sync::{Arc, Mutex};
@@ -13,7 +13,7 @@ fn test_distribution_sum_matches_total() {
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     
     let config = EmissionConfig {
-        annual_inflation_rate: 500, // 5%
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 }, // 5%
         initial_supply: 0,
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,
@@ -44,7 +44,7 @@ fn test_remainder_allocation_stable() {
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     
     let config = EmissionConfig {
-        annual_inflation_rate: 500,
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 },
         initial_supply: 0,
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,
@@ -141,7 +141,7 @@ fn test_event_persistence_and_idempotency() {
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     
     let config = EmissionConfig {
-        annual_inflation_rate: 500,
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 },
         initial_supply: 0,
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,
@@ -189,7 +189,7 @@ fn test_circulating_supply_tracking() {
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     
     let config = EmissionConfig {
-        annual_inflation_rate: 500,
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 },
         initial_supply: 1_000_000_000_000, // 1M DRT initial supply
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,
@@ -222,7 +222,7 @@ fn test_bootstrap_emission_calculation() {
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     
     let config = EmissionConfig {
-        annual_inflation_rate: 500,
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 },
         initial_supply: 0, // Bootstrap case
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,

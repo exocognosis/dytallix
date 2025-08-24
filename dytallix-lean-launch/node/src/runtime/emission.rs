@@ -24,10 +24,29 @@ pub struct EmissionEvent {
     pub circulating_supply: u128,
 }
 
+/// Phase definition for phased emission schedule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmissionPhase {
+    pub start_height: u64,
+    pub end_height: Option<u64>, // None means unlimited
+    pub per_block_amount: u128,
+}
+
+/// Emission schedule modes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum EmissionSchedule {
+    /// Fixed amount per block
+    Static { per_block: u128 },
+    /// Time-based phases with different emission rates
+    Phased { phases: Vec<EmissionPhase> },
+    /// Percentage-based annual inflation (existing implementation)
+    Percentage { annual_inflation_rate: u16 }, // basis points (500 = 5%)
+}
+
 /// Genesis-based emission configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmissionConfig {
-    pub annual_inflation_rate: u16, // basis points (500 = 5%)
+    pub schedule: EmissionSchedule,
     pub initial_supply: u128,
     pub emission_breakdown: EmissionBreakdown,
 }
@@ -59,7 +78,7 @@ impl EmissionEngine {
     pub fn new(storage: Arc<Storage>, state: Arc<Mutex<State>>) -> Self {
         // Default configuration - in production this should come from genesis
         let config = EmissionConfig {
-            annual_inflation_rate: 500, // 5% in basis points
+            schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 }, // 5% in basis points
             initial_supply: 0,          // DRT starts with 0 supply
             emission_breakdown: EmissionBreakdown {
                 block_rewards: 60,
@@ -120,19 +139,35 @@ impl EmissionEngine {
         "emission:circulating_supply"
     }
 
-    /// Calculate per-block emission based on annual inflation rate
-    /// Formula: (annual_rate / 100) * circulating_supply / blocks_per_year
-    /// Assumes ~6 second blocks = 5,256,000 blocks per year
-    fn calculate_per_block_emission(&self) -> u128 {
-        const BLOCKS_PER_YEAR: u128 = 5_256_000; // ~6 second blocks
-        
-        if self.circulating_supply == 0 {
-            // Bootstrap emission when supply is 0 - use a small fixed amount
-            return 1_000_000; // 1 DRT in uDRT (micro denomination)
+    /// Calculate per-block emission based on the emission schedule
+    fn calculate_per_block_emission(&self, current_height: u64) -> u128 {
+        match &self.config.schedule {
+            EmissionSchedule::Static { per_block } => *per_block,
+            
+            EmissionSchedule::Phased { phases } => {
+                // Find the active phase for current height
+                for phase in phases {
+                    if current_height >= phase.start_height && 
+                       (phase.end_height.is_none() || current_height <= phase.end_height.unwrap()) {
+                        return phase.per_block_amount;
+                    }
+                }
+                // No active phase found, return 0
+                0
+            },
+            
+            EmissionSchedule::Percentage { annual_inflation_rate } => {
+                const BLOCKS_PER_YEAR: u128 = 5_256_000; // ~6 second blocks
+                
+                if self.circulating_supply == 0 {
+                    // Bootstrap emission when supply is 0 - use a small fixed amount
+                    return 1_000_000; // 1 DRT in uDRT (micro denomination)
+                }
+                
+                let annual_emission = (self.circulating_supply * (*annual_inflation_rate as u128)) / 10000;
+                annual_emission / BLOCKS_PER_YEAR
+            }
         }
-        
-        let annual_emission = (self.circulating_supply * self.config.annual_inflation_rate as u128) / 10000;
-        annual_emission / BLOCKS_PER_YEAR
     }
     
     /// Calculate per-block distribution across pools
@@ -228,7 +263,7 @@ impl EmissionEngine {
             h += 1;
             
             // Calculate emission for this block
-            let total_emission = self.calculate_per_block_emission();
+            let total_emission = self.calculate_per_block_emission(h);
             let pool_distributions = self.calculate_pool_distributions(total_emission);
             
             // Update pool amounts

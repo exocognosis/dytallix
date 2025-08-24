@@ -1,4 +1,4 @@
-use dytallix_lean_node::runtime::emission::{EmissionEngine, EmissionConfig, EmissionBreakdown};
+use dytallix_lean_node::runtime::emission::{EmissionEngine, EmissionConfig, EmissionBreakdown, EmissionSchedule};
 use dytallix_lean_node::runtime::staking::StakingModule;
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::state::Storage;
@@ -15,7 +15,7 @@ fn test_emission_staking_integration() {
     
     // Setup emission with deterministic config
     let config = EmissionConfig {
-        annual_inflation_rate: 500, // 5%
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 }, // 5%
         initial_supply: 0,
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,
@@ -92,7 +92,7 @@ fn test_zero_stake_then_delegation() {
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     
     let config = EmissionConfig {
-        annual_inflation_rate: 500,
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 },
         initial_supply: 0,
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,
@@ -155,7 +155,7 @@ fn test_multiple_stake_changes() {
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     
     let config = EmissionConfig {
-        annual_inflation_rate: 500,
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 },
         initial_supply: 0,
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,
@@ -209,7 +209,7 @@ fn test_emission_event_consistency() {
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     
     let config = EmissionConfig {
-        annual_inflation_rate: 500,
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 },
         initial_supply: 0,
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,
@@ -270,7 +270,7 @@ fn test_staking_rewards_precision() {
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     
     let config = EmissionConfig {
-        annual_inflation_rate: 500,
+        schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 },
         initial_supply: 100_000_000_000_000, // 100M DRT initial supply
         emission_breakdown: EmissionBreakdown {
             block_rewards: 60,
