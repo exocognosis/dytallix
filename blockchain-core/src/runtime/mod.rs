@@ -11,6 +11,8 @@ use dytallix_contracts::runtime::{
     ContractCall, ContractDeployment, ContractRuntime, ExecutionResult,
 };
 
+pub mod oracle;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RuntimeState {
     pub balances: HashMap<String, u64>,

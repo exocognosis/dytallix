@@ -6,6 +6,7 @@ use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine; // for new decode API
 use ed25519_dalek::{PublicKey, Signature, Verifier};
 use serde::Deserialize;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Deserialize)]
 pub struct OracleAiRiskInput {
@@ -21,18 +22,105 @@ pub struct OracleAiRiskBatchInput {
     pub records: Vec<OracleAiRiskInput>,
 }
 
-// Public for unit testing
-pub fn verify_sig(pubkey_b64: &str, tx_hash: &str, risk_score: f32, sig_b64: &str) -> bool {
-    if let (Ok(pk_bytes), Ok(sig_bytes)) = (B64.decode(pubkey_b64), B64.decode(sig_b64)) {
+/// Verify Ed25519 signature for oracle data
+/// 
+/// # Arguments
+/// * `payload` - The data that was signed
+/// * `signature` - Base64-encoded signature
+/// * `pubkey` - Base64-encoded public key
+/// 
+/// # Returns
+/// `true` if signature is valid, `false` otherwise
+pub fn verify_sig(payload: &str, signature: &str, pubkey: &str) -> bool {
+    if let (Ok(pk_bytes), Ok(sig_bytes)) = (B64.decode(pubkey), B64.decode(signature)) {
         if let (Ok(pk), Ok(sig)) = (
             PublicKey::from_bytes(&pk_bytes),
             Signature::from_bytes(&sig_bytes),
         ) {
-            let msg = format!("{}:{}", tx_hash, risk_score);
-            return pk.verify(msg.as_bytes(), &sig).is_ok();
+            return pk.verify(payload.as_bytes(), &sig).is_ok();
         }
     }
     false
+}
+
+/// Apply oracle risk assessment to transaction
+/// 
+/// # Arguments
+/// * `store` - Oracle store for persistence
+/// * `tx_hash` - Transaction hash (hex format with 0x prefix)
+/// * `score_str` - Original score string (preserved for determinism)
+/// * `model_id` - AI model identifier
+/// * `ingested_at` - Unix timestamp of ingestion
+/// * `source` - Oracle source identifier
+/// 
+/// # Returns
+/// `Ok(())` on success, error on failure
+pub fn apply_oracle_risk(
+    store: &OracleStore,
+    tx_hash: &str,
+    score_str: &str,
+    model_id: &str,
+    ingested_at: u64,
+    source: &str,
+) -> anyhow::Result<()> {
+    // Validate inputs
+    if !tx_hash.starts_with("0x") || tx_hash.len() < 3 {
+        return Err(anyhow::anyhow!("Invalid transaction hash format"));
+    }
+    
+    if score_str.trim().is_empty() {
+        return Err(anyhow::anyhow!("Score string cannot be empty"));
+    }
+    
+    if model_id.trim().is_empty() {
+        return Err(anyhow::anyhow!("Model ID cannot be empty"));
+    }
+    
+    if source.trim().is_empty() {
+        return Err(anyhow::anyhow!("Source cannot be empty"));
+    }
+    
+    // Parse score for storage (maintain original string)
+    let risk_score = score_str.parse::<f32>()
+        .map_err(|_| anyhow::anyhow!("Invalid score format"))?;
+    
+    if !(0.0..=1.0).contains(&risk_score) {
+        return Err(anyhow::anyhow!("Score must be between 0.0 and 1.0"));
+    }
+    
+    let record = AiRiskRecord {
+        tx_hash: tx_hash.to_string(),
+        model_id: model_id.to_string(),
+        risk_score,
+        score_str: score_str.to_string(), // Preserve original for determinism
+        confidence: None,
+        signature: None,
+        oracle_pubkey: None,
+        ingested_at,
+        source: source.to_string(),
+    };
+    
+    store.put_ai_risk(&record)
+}
+
+/// Get oracle risk assessment for transaction
+/// 
+/// # Arguments
+/// * `store` - Oracle store for lookup
+/// * `tx_hash` - Transaction hash to lookup
+/// 
+/// # Returns
+/// `Some(AiRiskRecord)` if found, `None` otherwise
+pub fn get_oracle_risk(store: &OracleStore, tx_hash: &str) -> Option<AiRiskRecord> {
+    store.get_ai_risk(tx_hash)
+}
+
+/// Get current Unix timestamp
+pub fn current_timestamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
 }
 
 #[axum::debug_handler]
@@ -43,31 +131,51 @@ pub async fn post_ai_risk(
     let start_time = std::time::SystemTime::now();
     
     if !(0.0..=1.0).contains(&inp.risk_score) {
+        ctx.metrics.record_oracle_submission("error");
         return Err(ApiError::Internal);
     }
+    
     let configured_pk = std::env::var("AI_ORACLE_PUBKEY").ok();
     if let Some(pk) = configured_pk.as_ref() {
-        let sig = inp.signature.as_ref().ok_or(ApiError::Internal)?;
-        if !verify_sig(pk, &inp.tx_hash, inp.risk_score, sig) {
+        let sig = inp.signature.as_ref().ok_or_else(|| {
+            ctx.metrics.record_oracle_submission("error");
+            ApiError::Internal
+        })?;
+        let payload = format!("{}:{}:{}", inp.tx_hash, inp.risk_score, inp.model_id);
+        if !verify_sig(&payload, sig, pk) {
+            ctx.metrics.record_oracle_submission("error");
             return Err(ApiError::Internal);
         }
     }
+    
     let store = OracleStore {
         db: &ctx.storage.db,
     };
-    let rec = AiRiskRecord {
-        tx_hash: inp.tx_hash.clone(),
-        model_id: inp.model_id,
-        risk_score: inp.risk_score,
-        confidence: inp.confidence,
-        signature: inp.signature.clone(),
-        oracle_pubkey: configured_pk,
-    };
-    store.put_ai_risk(&rec).map_err(|_| ApiError::Internal)?;
+    
+    let ingested_at = current_timestamp();
+    let source = std::env::var("DLX_ORACLE_MODEL_ID")
+        .unwrap_or_else(|_| "risk-v1".to_string());
+    
+    let score_str = inp.risk_score.to_string();
+    
+    // Use the new apply_oracle_risk function
+    if let Err(e) = apply_oracle_risk(
+        &store,
+        &inp.tx_hash,
+        &score_str,
+        &inp.model_id,
+        ingested_at,
+        &source,
+    ) {
+        eprintln!("Failed to apply oracle risk: {}", e);
+        ctx.metrics.record_oracle_submission("error");
+        return Err(ApiError::Internal);
+    }
     
     // Record oracle metrics
     if let Ok(latency) = start_time.elapsed() {
         ctx.metrics.record_oracle_update(latency);
+        ctx.metrics.record_oracle_submission("ok");
     }
     
     Ok(Json(serde_json::json!({"ok": true})))
@@ -87,6 +195,9 @@ pub async fn post_ai_risk_batch(
     
     let mut records = Vec::new();
     let mut errors = Vec::new();
+    let ingested_at = current_timestamp();
+    let source = std::env::var("DLX_ORACLE_MODEL_ID")
+        .unwrap_or_else(|_| "risk-v1".to_string());
     
     for (idx, risk_input) in inp.records.iter().enumerate() {
         // Validate each record
@@ -98,7 +209,8 @@ pub async fn post_ai_risk_batch(
         // Verify signature if required
         if let Some(pk) = configured_pk.as_ref() {
             if let Some(sig) = risk_input.signature.as_ref() {
-                if !verify_sig(pk, &risk_input.tx_hash, risk_input.risk_score, sig) {
+                let payload = format!("{}:{}:{}", risk_input.tx_hash, risk_input.risk_score, risk_input.model_id);
+                if !verify_sig(&payload, sig, pk) {
                     errors.push(format!("Record {}: invalid signature", idx));
                     continue;
                 }
@@ -108,28 +220,38 @@ pub async fn post_ai_risk_batch(
             }
         }
         
-        let rec = AiRiskRecord {
-            tx_hash: risk_input.tx_hash.clone(),
-            model_id: risk_input.model_id.clone(),
-            risk_score: risk_input.risk_score,
-            confidence: risk_input.confidence,
-            signature: risk_input.signature.clone(),
-            oracle_pubkey: configured_pk.clone(),
-        };
-        records.push(rec);
+        let score_str = risk_input.risk_score.to_string();
+        
+        // Apply oracle risk for each record
+        if let Err(e) = apply_oracle_risk(
+            &store,
+            &risk_input.tx_hash,
+            &score_str,
+            &risk_input.model_id,
+            ingested_at,
+            &source,
+        ) {
+            errors.push(format!("Record {}: {}", idx, e));
+            continue;
+        }
+        
+        records.push(risk_input.tx_hash.clone());
     }
-    
-    let failed_hashes = store.put_ai_risks_batch(&records).map_err(|_| ApiError::Internal)?;
     
     // Record oracle metrics for batch processing
     if let Ok(latency) = start_time.elapsed() {
         ctx.metrics.record_oracle_update(latency);
+        if errors.is_empty() {
+            ctx.metrics.record_oracle_submission("ok");
+        } else {
+            ctx.metrics.record_oracle_submission("error");
+        }
     }
     
     Ok(Json(serde_json::json!({
         "processed": records.len(),
-        "failed": failed_hashes.len(),
-        "failed_hashes": failed_hashes,
+        "failed": errors.len(),
+        "failed_hashes": Vec::<String>::new(), // For compatibility
         "validation_errors": errors
     })))
 }

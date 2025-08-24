@@ -178,6 +178,10 @@ pub struct Metrics {
     // Oracle metrics - new dyt_ prefixed
     pub dyt_oracle_update_latency_seconds: Histogram,
     
+    // Oracle metrics - enhanced
+    pub oracle_submit_total: prometheus::IntCounterVec,
+    pub oracle_latency_seconds: Histogram,
+    
     // Legacy oracle metrics
     pub oracle_latency: Histogram,
     pub last_oracle_update: IntGauge,
@@ -349,6 +353,25 @@ impl Metrics {
         ))?;
         registry.register(Box::new(dyt_oracle_update_latency_seconds.clone()))?;
         
+        // Oracle metrics - enhanced with specific requirements
+        let oracle_submit_total = prometheus::IntCounterVec::new(
+            Opts::new(
+                "oracle_submit_total",
+                "Total oracle submissions"
+            ),
+            &["status"]
+        )?;
+        registry.register(Box::new(oracle_submit_total.clone()))?;
+        
+        let oracle_latency_seconds = Histogram::with_opts(HistogramOpts {
+            common_opts: Opts::new(
+                "oracle_latency_seconds",
+                "Oracle ingest to persistence latency in seconds"
+            ),
+            buckets: vec![0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0],
+        })?;
+        registry.register(Box::new(oracle_latency_seconds.clone()))?;
+        
         // Legacy oracle metrics
         let oracle_latency = Histogram::with_opts(HistogramOpts::new(
             "dytallix_oracle_latency_seconds",
@@ -437,6 +460,9 @@ impl Metrics {
             mempool_gossip_duplicates_total,
             total_gas_used,
             current_block_gas,
+            // Oracle metrics
+            oracle_submit_total,
+            oracle_latency_seconds,
             oracle_latency,
             last_oracle_update,
             emission_pool_size,
@@ -495,11 +521,17 @@ impl Metrics {
     /// Record oracle update
     pub fn record_oracle_update(&self, latency: Duration) {
         self.oracle_latency.observe(latency.as_secs_f64());
+        self.oracle_latency_seconds.observe(latency.as_secs_f64());
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
         self.last_oracle_update.set(now as i64);
+    }
+    
+    /// Record oracle submission
+    pub fn record_oracle_submission(&self, status: &str) {
+        self.oracle_submit_total.with_label_values(&[status]).inc();
     }
     
     /// Update emission pool size
@@ -532,6 +564,7 @@ impl Metrics {
     pub fn record_gossip_duplicate(&self) {}
     pub fn record_transaction(&self, _processing_time: Duration) {}
     pub fn record_oracle_update(&self, _latency: Duration) {}
+    pub fn record_oracle_submission(&self, _status: &str) {}
     pub fn update_emission_pool(&self, _pool_size: f64) {}
     pub fn update_current_block_gas(&self, _gas: u64) {}
 }
