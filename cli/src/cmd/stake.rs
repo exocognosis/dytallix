@@ -55,6 +55,16 @@ pub enum StakeAction {
         #[arg(long)]
         validator: String,
     },
+    /// Claim staking rewards for an address (simplified version)
+    Claim {
+        #[arg(long)]
+        address: String,
+    },
+    /// Show accrued (unclaimed) staking rewards for an address
+    ShowRewards {
+        #[arg(long)]
+        address: String,
+    },
     /// Show staking statistics
     Stats,
 }
@@ -80,6 +90,12 @@ pub async fn run(rpc_url: &str, fmt: OutputFormat, cmd: StakeCmd) -> Result<()> 
         },
         StakeAction::ClaimRewards { delegator, validator } => {
             claim_rewards(&client, fmt, delegator, validator).await
+        },
+        StakeAction::Claim { address } => {
+            claim_simple(&client, fmt, address).await
+        },
+        StakeAction::ShowRewards { address } => {
+            show_rewards(&client, fmt, address).await
         },
         StakeAction::Stats => {
             show_stats(&client, fmt).await
@@ -315,6 +331,78 @@ async fn show_stats(
                 println!("{}", json!({"status": "error", "message": format!("Failed to get stats: {}", e)}));
             } else {
                 println!("✗ Failed to get staking stats: {}", e);
+            }
+        }
+    }
+    
+    Ok(())
+}
+
+/// Claim staking rewards (simplified version using our new endpoint)
+async fn claim_simple(
+    client: &RpcClient,
+    fmt: OutputFormat,
+    address: String,
+) -> Result<()> {
+    let payload = json!({
+        "address": address
+    });
+    
+    let result = client.post("/api/staking/claim", &payload).await;
+    
+    match result {
+        Ok(response) => {
+            if fmt.is_json() {
+                println!("{}", response);
+            } else {
+                if let (Some(claimed), Some(new_balance)) = (
+                    response.get("claimed").and_then(|v| v.as_str()),
+                    response.get("new_balance").and_then(|v| v.as_str())
+                ) {
+                    println!("✓ Successfully claimed {} uDRT", claimed);
+                    println!("  New DRT balance: {} uDRT", new_balance);
+                } else {
+                    println!("✓ Claim successful: {}", response);
+                }
+            }
+        },
+        Err(e) => {
+            if fmt.is_json() {
+                println!("{}", json!({"status": "error", "message": format!("Failed to claim rewards: {}", e)}));
+            } else {
+                println!("✗ Failed to claim rewards: {}", e);
+            }
+        }
+    }
+    
+    Ok(())
+}
+
+/// Show accrued staking rewards for an address
+async fn show_rewards(
+    client: &RpcClient,
+    fmt: OutputFormat,
+    address: String,
+) -> Result<()> {
+    let result = client.get(&format!("/api/staking/accrued/{}", address)).await;
+    
+    match result {
+        Ok(response) => {
+            if fmt.is_json() {
+                println!("{}", response);
+            } else {
+                if let Some(accrued) = response.get("accrued_rewards").and_then(|v| v.as_str()) {
+                    println!("Accrued rewards for {}: {} uDRT", address, accrued);
+                } else {
+                    println!("Accrued rewards: {}", response);
+                }
+            }
+        },
+        Err(e) => {
+            if fmt.is_json() {
+                println!("{}", json!({"status": "error", "message": format!("Failed to get accrued rewards: {}", e)}));
+            } else {
+                println!("✗ Failed to get accrued rewards: {}", e);
             }
         }
     }

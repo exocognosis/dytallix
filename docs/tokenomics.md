@@ -133,10 +133,97 @@ Each block's emission is distributed as follows:
 - **30%** → Staker rewards  
 - **30%** → Treasury/Development fund
 
+### Staking Reward System
+
+#### Governance vs Reward Token Distinction
+
+- **DGT (Governance Token)**: Used for staking delegation and governance voting. When users delegate DGT to validators, the tokens are locked but not spent.
+- **DRT (Reward Token)**: Earned as staking rewards. All staking emissions result in claimable DRT tokens, never DGT tokens.
+
+#### Reward Index Formula
+
+The staking system uses a global reward index to track proportional rewards:
+
+```
+reward_index += (staking_rewards * REWARD_SCALE) / total_stake
+```
+
+Where:
+- `staking_rewards`: 25% of block emission (in uDRT)
+- `REWARD_SCALE`: 1e12 (for precision)
+- `total_stake`: Total DGT staked across all validators (in uDGT)
+
+#### Accrual Calculation
+
+For a delegator with stake `S`, accrued rewards are calculated as:
+
+```
+newly_accrued = (S * (current_reward_index - last_reward_index)) / REWARD_SCALE
+total_accrued += newly_accrued
+```
+
+**Example walkthrough:**
+1. Initial state: `total_stake = 1,000,000 DGT`, `reward_index = 0`
+2. Delegator stakes `100,000 DGT` (10% of total)
+3. Block emission: `1 DRT` staking rewards → `reward_index += (1,000,000 * 1e12) / 1,000,000,000,000 = 1,000,000`
+4. Delegator's accrued: `(100,000,000,000 * 1,000,000) / 1e12 = 100,000 uDRT` (0.1 DRT)
+
+#### Zero-Stake Carry Logic
+
+When `total_stake = 0`:
+- Staking rewards accumulate in `pending_staking_emission`
+- When stake first becomes > 0, all pending rewards are applied to the reward index
+- Ensures no rewards are lost during network bootstrap
+
+### Claiming Process
+
+#### 1. Reward Accrual
+- Rewards accrue automatically as blocks are produced
+- Each delegator has a `last_reward_index` cursor to track their position
+- Accrued rewards are calculated lazily on interaction
+
+#### 2. Claim Workflow
+
+**API Example:**
+```bash
+# Check accrued rewards
+curl -X GET "http://localhost:3030/api/staking/accrued/dyt1delegator"
+
+# Claim rewards
+curl -X POST "http://localhost:3030/api/staking/claim" \
+  -H "Content-Type: application/json" \
+  -d '{"address": "dyt1delegator"}'
+```
+
+**CLI Example:**
+```bash
+# Show accrued rewards
+dyt stake show-rewards --address dyt1delegator
+
+# Claim rewards
+dyt stake claim --address dyt1delegator
+```
+
+**Response:**
+```json
+{
+  "address": "dyt1delegator",
+  "claimed": "100000",
+  "new_balance": "150000",
+  "reward_index": "2000000"
+}
+```
+
+#### 3. Edge Cases
+
+- **No stake during emission**: Emissions accumulate in pending pool until first stake
+- **Delegator with zero stake claiming**: Returns 0, updates last index to current
+- **Stake changes mid-stream**: Rewards are settled before stake amount changes to prevent leakage
+
 ### Claiming Process
 
 1. **Validators**: Claim rewards from validator pool based on block production
-2. **Stakers**: Claim rewards from staker pool based on stake amount and duration
+2. **Stakers**: Claim rewards from staker pool based on stake amount and duration  
 3. **Treasury**: Automatic allocation for development and ecosystem growth
 
 ## WASM Integration

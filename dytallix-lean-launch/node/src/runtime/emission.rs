@@ -315,9 +315,9 @@ impl EmissionEngine {
         }
         let new_amt = cur - amount;
         self.set_pool_amount(pool, new_amt);
-        // credit account
+        // credit account with DRT tokens (reward token), not DGT (governance token)
         if let Ok(mut st) = self.state.lock() {
-            st.credit(to, "udgt", amount);
+            st.credit(to, "udrt", amount);
         }
         Ok(new_amt)
     }

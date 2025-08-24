@@ -281,6 +281,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/gov/proposal/:id", get(rpc::gov_get_proposal))
         .route("/gov/tally/:id", get(rpc::gov_tally))
         .route("/gov/config", get(rpc::gov_get_config))
+        .route("/api/staking/claim", post(rpc::staking_claim))
+        .route("/api/staking/accrued/:address", get(rpc::staking_get_accrued))
         .layer(Extension(ctx));
     if ws_enabled {
         app = app.route("/ws", get(ws_handler).layer(Extension(ws_hub)));
