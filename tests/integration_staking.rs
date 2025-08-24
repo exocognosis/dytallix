@@ -471,3 +471,74 @@ fn test_staking_stats() {
     assert_eq!(staking.validators.len(), 2);
     assert_eq!(staking.get_active_validators().len(), 1); // Only validator1 has enough self-stake
 }
+
+#[test]
+fn test_accrued_rewards_functionality() {
+    let mut staking = StakingState::new();
+    
+    // Set up validator and delegation
+    let validator_addr = "validator1".to_string();
+    let delegator_addr = "delegator1".to_string();
+    
+    staking.register_validator(validator_addr.clone(), vec![1, 2, 3, 4], 500).unwrap();
+    staking.delegate(validator_addr.clone(), validator_addr.clone(), 1_000_000_000_000u128).unwrap();
+    staking.delegate(delegator_addr.clone(), validator_addr.clone(), 500_000_000_000u128).unwrap();
+    
+    // Initially no accrued rewards
+    let delegation_key = format!("{}:{}", delegator_addr, validator_addr);
+    let delegation = &staking.delegations[&delegation_key];
+    assert_eq!(delegation.accrued_rewards, 0);
+    
+    // Process block rewards to generate reward index
+    staking.process_block_rewards(1).unwrap();
+    
+    // Test sync_delegation_rewards
+    let (pending_added, total_accrued) = staking.sync_delegation_rewards(&delegator_addr, &validator_addr).unwrap();
+    assert!(pending_added > 0);
+    assert_eq!(total_accrued, pending_added);
+    
+    // Check that accrued rewards were stored
+    let delegation = &staking.delegations[&delegation_key];
+    assert_eq!(delegation.accrued_rewards, total_accrued);
+    
+    // Test second sync - should add no new rewards since cursor is updated
+    let (pending_added2, total_accrued2) = staking.sync_delegation_rewards(&delegator_addr, &validator_addr).unwrap();
+    assert_eq!(pending_added2, 0);
+    assert_eq!(total_accrued2, total_accrued);
+    
+    // Process another block and sync again
+    staking.process_block_rewards(2).unwrap();
+    let (pending_added3, total_accrued3) = staking.sync_delegation_rewards(&delegator_addr, &validator_addr).unwrap();
+    assert!(pending_added3 > 0);
+    assert_eq!(total_accrued3, total_accrued + pending_added3);
+    
+    // Test claim_rewards - should return accrued amount and reset to zero
+    let claimed = staking.claim_rewards(&delegator_addr, &validator_addr).unwrap();
+    assert_eq!(claimed, total_accrued3);
+    
+    // Check that accrued rewards were reset
+    let delegation = &staking.delegations[&delegation_key];
+    assert_eq!(delegation.accrued_rewards, 0);
+    
+    // Test claiming again - should be zero
+    let claimed2 = staking.claim_rewards(&delegator_addr, &validator_addr).unwrap();
+    assert_eq!(claimed2, 0);
+}
+
+#[test]
+fn test_backward_compatibility() {
+    use serde_json;
+    
+    // Test that old delegation JSON (without accrued_rewards) can be deserialized
+    let old_delegation_json = r#"{
+        "delegator_address": "delegator1",
+        "validator_address": "validator1", 
+        "stake_amount": 1000000000000,
+        "reward_cursor_index": 123456
+    }"#;
+    
+    let delegation: blockchain_core::staking::Delegation = serde_json::from_str(old_delegation_json).unwrap();
+    assert_eq!(delegation.accrued_rewards, 0); // Should default to 0
+    assert_eq!(delegation.stake_amount, 1000000000000);
+    assert_eq!(delegation.reward_cursor_index, 123456);
+}

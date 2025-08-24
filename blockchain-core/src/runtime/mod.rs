@@ -423,6 +423,30 @@ impl DytallixRuntime {
         state.staking.calculate_pending_rewards(delegator, validator)
     }
 
+    /// Sync delegation rewards and return current accrued amount
+    pub async fn sync_and_get_accrued_rewards(
+        &self,
+        delegator: &Address,
+        validator: &Address,
+    ) -> Result<u128, StakingError> {
+        let mut state = self.state.write().await;
+        let (_, total_accrued) = state.staking.sync_delegation_rewards(delegator, validator)?;
+        Ok(total_accrued)
+    }
+
+    /// Get current accrued rewards without recomputation
+    pub async fn get_accrued_rewards(
+        &self,
+        delegator: &Address,
+        validator: &Address,
+    ) -> Result<u128, StakingError> {
+        let state = self.state.read().await;
+        let delegation_key = format!("{}:{}", delegator, validator);
+        let delegation = state.staking.delegations.get(&delegation_key)
+            .ok_or(StakingError::DelegationNotFound)?;
+        Ok(delegation.accrued_rewards)
+    }
+
     /// Claim rewards for a delegation
     pub async fn claim_rewards(
         &self,
