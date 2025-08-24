@@ -80,7 +80,8 @@ pub async fn run(rpc_url: &str, fmt: OutputFormat, cmd: StakeCmd) -> Result<()> 
             delegate(&client, fmt, from, validator, amount).await
         },
         StakeAction::Undelegate { .. } => {
-            out(fmt, "Undelegate not implemented yet (TODO)")
+            out(fmt, "Undelegate not implemented yet (TODO)");
+            Ok(())
         },
         StakeAction::Show { address } => {
             show_stake(&client, fmt, address).await

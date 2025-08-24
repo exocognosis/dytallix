@@ -18,13 +18,13 @@ use base64::Engine;
 use crate::rpc::RpcClient;
 use crate::output::OutputFormat;
 
-#[derive(Debug, Args)]
+#[derive(Debug, Clone, Args)]
 pub struct ContractArgs {
     #[command(subcommand)]
     pub command: ContractCommand,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Clone, Subcommand)]
 pub enum ContractCommand {
     /// Deploy a WASM contract from a file
     Deploy {
@@ -112,7 +112,7 @@ pub enum ContractCommand {
     },
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Clone, Subcommand)]
 pub enum QueryCommand {
     /// Get contract code by hash
     Code {
@@ -157,7 +157,7 @@ pub enum QueryCommand {
     },
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Clone, Subcommand)]
 pub enum WasmCommand {
     /// Deploy a WASM contract 
     Deploy {

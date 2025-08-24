@@ -80,5 +80,31 @@ impl RpcClient {
     }
 }
 
+pub async fn post_json(base_url: &str, path: &str, payload: &serde_json::Value) -> Result<String> {
+    let client = reqwest::Client::new();
+    let url = format!("{}/{}", base_url.trim_end_matches('/'), path.trim_start_matches('/'));
+    
+    let resp = client.post(&url).json(payload).send().await?;
+    
+    if !resp.status().is_success() {
+        return Err(anyhow!(format!("HTTP {} {}: {}", resp.status(), url, resp.text().await.unwrap_or_default())));
+    }
+    
+    Ok(resp.text().await?)
+}
+
+pub async fn get_json(base_url: &str, path: &str) -> Result<String> {
+    let client = reqwest::Client::new();
+    let url = format!("{}/{}", base_url.trim_end_matches('/'), path.trim_start_matches('/'));
+    
+    let resp = client.get(&url).send().await?;
+    
+    if !resp.status().is_success() {
+        return Err(anyhow!(format!("HTTP {} {}: {}", resp.status(), url, resp.text().await.unwrap_or_default())));
+    }
+    
+    Ok(resp.text().await?)
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BroadcastResponse { pub hash: String, pub status: String }
