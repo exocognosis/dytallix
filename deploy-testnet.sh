@@ -194,18 +194,21 @@ version: '3.8'
 services:
   dytallix-node-1:
     build: ../../
-    container_name: dytallix-node-1
+    container_name: dyt-validator-0
     environment:
       DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: node-1
+      DYTALLIX_NODE_ID: validator-0
       DYTALLIX_PORT: 3030
       DYTALLIX_P2P_PORT: 30303
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
       DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
     ports:
       - "3030:3030"
-      - "9090:9090"
+      - "9464:9464"
       - "8081:8081"
       - "30303:30303"
     volumes:
@@ -217,18 +220,21 @@ services:
 
   dytallix-node-2:
     build: ../../
-    container_name: dytallix-node-2
+    container_name: dyt-validator-1
     environment:
       DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: node-2
+      DYTALLIX_NODE_ID: validator-1
       DYTALLIX_PORT: 3032
       DYTALLIX_P2P_PORT: 30304
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
       DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
     ports:
       - "3032:3030"
-      - "9091:9090"
+      - "9465:9464"
       - "8083:8081"
       - "30304:30303"
     volumes:
@@ -240,18 +246,21 @@ services:
 
   dytallix-node-3:
     build: ../../
-    container_name: dytallix-node-3
+    container_name: dyt-validator-2
     environment:
       DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: node-3
+      DYTALLIX_NODE_ID: validator-2
       DYTALLIX_PORT: 3034
       DYTALLIX_P2P_PORT: 30305
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
       DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
     ports:
       - "3034:3030"
-      - "9092:9090"
+      - "9466:9464"
       - "8085:8081"
       - "30305:30303"
     volumes:
@@ -261,91 +270,183 @@ services:
     networks:
       - dytallix_testnet
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: dytallix-prometheus
-    ports:
-      - "9093:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-    networks:
-      - dytallix_testnet
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: dytallix-grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+  dytallix-node-4:
+    build: ../../
+    container_name: dyt-validator-3
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: dytallix_testnet_admin
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: validator-3
+      DYTALLIX_PORT: 3036
+      DYTALLIX_P2P_PORT: 30306
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
+    ports:
+      - "3036:3030"
+      - "9467:9464"
+      - "8087:8081"
+      - "30306:30303"
+    volumes:
+      - node4_data:/var/lib/dytallix
+      - node4_logs:/var/log/dytallix
+      - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
 
+  dytallix-node-5:
+    build: ../../
+    container_name: dyt-validator-4
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: validator-4
+      DYTALLIX_PORT: 3038
+      DYTALLIX_P2P_PORT: 30307
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
+    ports:
+      - "3038:3030"
+      - "9468:9464"
+      - "8089:8081"
+      - "30307:30303"
+    volumes:
+      - node5_data:/var/lib/dytallix
+      - node5_logs:/var/log/dytallix
+      - ./secrets:/etc/dytallix/keys:ro
+    networks:
+      - dytallix_testnet
 volumes:
   node1_data:
   node2_data:
   node3_data:
+  node4_data:
+  node5_data:
   node1_logs:
   node2_logs:
   node3_logs:
-  prometheus_data:
-  grafana_data:
+  node4_logs:
+  node5_logs:
 
 networks:
   dytallix_testnet:
     driver: bridge
+    external: false
 EOF
 
-    # Generate Prometheus configuration
-    mkdir -p "$DEPLOYMENT_DIR/monitoring"
+    # Update prometheus config to use our observability directory structure
     mkdir -p "$DEPLOYMENT_DIR/docker/monitoring"
-    cat > "$DEPLOYMENT_DIR/monitoring/prometheus.yml" << 'EOF'
+    if [ ! -f "observability/prometheus/prometheus.yml" ]; then
+        log_warn "Observability prometheus config not found, creating basic config"
+        mkdir -p "observability/prometheus"
+        cat > "observability/prometheus/prometheus.yml" << 'BASIC_EOF'
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'dytallix-nodes'
-    static_configs:
-      - targets: 
-        - 'dytallix-node-1:9090'
-        - 'dytallix-node-2:9090'
-        - 'dytallix-node-3:9090'
-    metrics_path: '/metrics'
-    scrape_interval: 5s
-
-  - job_name: 'dytallix-health'
+  - job_name: 'dyt-validator'
     static_configs:
       - targets:
-        - 'dytallix-node-1:8081'
-        - 'dytallix-node-2:8081'
-        - 'dytallix-node-3:8081'
-    metrics_path: '/health'
-    scrape_interval: 10s
-
-rule_files:
-  - "alert_rules.yml"
-
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          - alertmanager:9093
-EOF
-
-    # Copy prometheus config to docker directory for mounting
-    cp "$DEPLOYMENT_DIR/monitoring/prometheus.yml" "$DEPLOYMENT_DIR/docker/monitoring/prometheus.yml"
+        - 'dyt-validator-0:9464'
+        - 'dyt-validator-1:9464'
+        - 'dyt-validator-2:9464'
+        - 'dyt-validator-3:9464'
+        - 'dyt-validator-4:9464'
+    scrape_interval: 15s
+    metrics_path: /metrics
+BASIC_EOF
+    fi
+    
+    # Copy observability configs to deployment directory
+    cp -r observability/* "$DEPLOYMENT_DIR/docker/monitoring/" || log_warn "Could not copy observability configs"
 
     log_info "Deployment configurations generated successfully"
+}
+
+# Start observability stack if enabled
+start_observability_stack() {
+    if [[ "${ENABLE_OBSERVABILITY:-0}" != "1" ]]; then
+        log_info "Observability disabled (ENABLE_OBSERVABILITY != 1)"
+        return 0
+    fi
+    
+    log_step "Starting observability stack..."
+    
+    # Check if observability stack script exists
+    if [ ! -f "scripts/run_observability_stack.sh" ]; then
+        log_error "Observability stack script not found: scripts/run_observability_stack.sh"
+        return 1
+    fi
+    
+    # Start the observability stack
+    export ENABLE_OBSERVABILITY=1
+    if ./scripts/run_observability_stack.sh start; then
+        log_info "Observability stack started successfully"
+        log_info "  - Prometheus: http://localhost:9090"
+        log_info "  - Grafana: http://localhost:3000 (admin/dytallix123)"
+    else
+        log_warn "Failed to start observability stack, continuing without monitoring"
+        return 1
+    fi
+}
+
+# Health check for metrics endpoints
+check_metrics_endpoints() {
+    if [[ "${ENABLE_OBSERVABILITY:-0}" != "1" ]]; then
+        log_info "Observability disabled, skipping metrics endpoint checks"
+        return 0
+    fi
+    
+    log_step "Checking metrics endpoints health..."
+    
+    local ports=(9464 9465 9466 9467 9468)
+    local max_attempts=30
+    local healthy_endpoints=0
+    
+    for i in "${!ports[@]}"; do
+        local port="${ports[$i]}"
+        local validator_name="validator-$i"
+        local attempt=1
+        local endpoint_healthy=false
+        
+        log_info "Checking $validator_name metrics endpoint on port $port..."
+        
+        while [ $attempt -le $max_attempts ]; do
+            if curl -s -f "http://localhost:$port/metrics" > /dev/null 2>&1; then
+                log_info "✅ $validator_name metrics endpoint healthy"
+                endpoint_healthy=true
+                ((healthy_endpoints++))
+                break
+            fi
+            
+            if [ $attempt -eq 1 ]; then
+                log_info "Waiting for $validator_name metrics endpoint..."
+            fi
+            
+            sleep 2
+            ((attempt++))
+        done
+        
+        if [ "$endpoint_healthy" = false ]; then
+            log_warn "❌ $validator_name metrics endpoint not responding after ${max_attempts} attempts"
+        fi
+    done
+    
+    log_info "Metrics endpoints health check: $healthy_endpoints/5 endpoints healthy"
+    
+    if [ $healthy_endpoints -ge 3 ]; then
+        log_info "✅ Sufficient metrics endpoints are healthy for monitoring"
+        return 0
+    else
+        log_warn "⚠️  Less than 3 metrics endpoints are healthy, monitoring may be limited"
+        return 1
+    fi
 }
 
 # Setup secrets for testnet
@@ -384,10 +485,13 @@ build_testnet_image() {
 run_integration_tests() {
     log_step "Running end-to-end integration tests..."
     
+    # Start the observability stack if enabled
+    start_observability_stack
+    
     # Start the testnet
     if [ -d "$DEPLOYMENT_DIR/docker" ]; then
         cd "$DEPLOYMENT_DIR/docker"
-        docker-compose -f docker-compose.testnet.yml up -d
+        ENABLE_OBSERVABILITY="${ENABLE_OBSERVABILITY:-0}" docker-compose -f docker-compose.testnet.yml up -d
         cd - > /dev/null
     else
         log_error "Docker deployment directory not found"
@@ -400,7 +504,7 @@ run_integration_tests() {
     
     # Test API endpoints
     log_info "Testing API endpoints..."
-    for port in 3030 3032 3034; do
+    for port in 3030 3032 3034 3036 3038; do
         if curl -f "http://localhost:${port}/health" > /dev/null 2>&1; then
             log_info "Node on port $port is healthy"
         else
@@ -408,6 +512,9 @@ run_integration_tests() {
             return 1
         fi
     done
+    
+    # Check metrics endpoints health if observability is enabled
+    check_metrics_endpoints
     
     # Test smart contract deployment
     log_info "Testing smart contract deployment..."
@@ -546,6 +653,12 @@ run_performance_tests() {
 # Cleanup function
 cleanup() {
     log_step "Cleaning up test deployment..."
+    
+    # Stop observability stack if running
+    if [[ "${ENABLE_OBSERVABILITY:-0}" == "1" ]] && [ -f "scripts/run_observability_stack.sh" ]; then
+        log_info "Stopping observability stack..."
+        ./scripts/run_observability_stack.sh stop || log_warn "Failed to stop observability stack cleanly"
+    fi
     
     if [ -d "$DEPLOYMENT_DIR/docker" ]; then
         cd "$DEPLOYMENT_DIR/docker"

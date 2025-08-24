@@ -140,33 +140,56 @@ impl Default for MetricsConfig {
 pub struct Metrics {
     registry: Registry,
     
-    // Block metrics
+    // Block metrics - new dyt_ prefixed metrics
+    pub dyt_block_height: IntGauge,
+    pub dyt_blocks_produced_total: prometheus::IntCounterVec,
+    pub dyt_blocks_per_second: Gauge,
+    pub dyt_transactions_in_block: Histogram,
+    pub dyt_tps: Gauge,
+    
+    // Legacy block metrics
     pub total_blocks: IntCounter,
     pub current_block_height: IntGauge,
     pub block_processing_time: Histogram,
     
     // Transaction metrics  
     pub total_transactions: IntCounter,
-    pub mempool_size: IntGauge,
-    pub mempool_bytes: IntGauge,
     pub transaction_processing_time: Histogram,
     
-    // Mempool-specific metrics
+    // Mempool metrics - new dyt_ prefixed
+    pub dyt_mempool_size: IntGauge,
+    
+    // Legacy mempool metrics
+    pub mempool_size: IntGauge,
+    pub mempool_bytes: IntGauge,
     pub mempool_admitted_total: IntCounter,
     pub mempool_rejected_total: prometheus::IntCounterVec,
     pub mempool_evicted_total: prometheus::IntCounterVec,
     pub mempool_current_min_gas_price: IntGauge,
     pub mempool_gossip_duplicates_total: IntCounter,
     
-    // Gas metrics
+    // Gas metrics - new dyt_ prefixed
+    pub dyt_gas_used_per_block: Histogram,
+    
+    // Legacy gas metrics
     pub total_gas_used: IntCounter,
     pub current_block_gas: IntGauge,
     
-    // Oracle metrics
+    // Oracle metrics - new dyt_ prefixed
+    pub dyt_oracle_update_latency_seconds: Histogram,
+    
+    // Legacy oracle metrics
     pub oracle_latency: Histogram,
     pub last_oracle_update: IntGauge,
     
-    // Emission metrics
+    // Emission metrics - new dyt_ prefixed
+    pub dyt_emission_pool_amount: prometheus::GaugeVec,
+    
+    // Validator metrics - new dyt_ prefixed
+    pub dyt_validator_missed_blocks_total: prometheus::IntCounterVec,
+    pub dyt_validator_voting_power: prometheus::GaugeVec,
+    
+    // Legacy emission metrics
     pub emission_pool_size: Gauge,
     
     // System metrics
@@ -178,7 +201,47 @@ impl Metrics {
     pub fn new() -> anyhow::Result<Self> {
         let registry = Registry::new();
         
-        // Block metrics
+        // Block metrics - using dyt_ prefix as per spec
+        let dyt_block_height = IntGauge::with_opts(Opts::new(
+            "dyt_block_height", 
+            "Current blockchain height"
+        ))?;
+        registry.register(Box::new(dyt_block_height.clone()))?;
+        
+        let dyt_blocks_produced_total = prometheus::IntCounterVec::new(
+            Opts::new(
+                "dyt_blocks_produced_total",
+                "Total number of blocks produced by validator"
+            ),
+            &["validator"]
+        )?;
+        registry.register(Box::new(dyt_blocks_produced_total.clone()))?;
+        
+        let dyt_blocks_per_second = Gauge::with_opts(Opts::new(
+            "dyt_blocks_per_second",
+            "Current blocks per second rate"
+        ))?;
+        registry.register(Box::new(dyt_blocks_per_second.clone()))?;
+        
+        let dyt_transactions_in_block = Histogram::with_opts(HistogramOpts::new(
+            "dyt_transactions_in_block",
+            "Number of transactions per block"
+        ))?;
+        registry.register(Box::new(dyt_transactions_in_block.clone()))?;
+        
+        let dyt_tps = Gauge::with_opts(Opts::new(
+            "dyt_tps",
+            "Transactions per second - rolling 1m average"
+        ))?;
+        registry.register(Box::new(dyt_tps.clone()))?;
+        
+        let block_processing_time = Histogram::with_opts(HistogramOpts::new(
+            "dytallix_block_processing_seconds",
+            "Time spent processing blocks"
+        ))?;
+        registry.register(Box::new(block_processing_time.clone()))?;
+        
+        // Legacy block metrics
         let total_blocks = IntCounter::with_opts(Opts::new(
             "dytallix_total_blocks",
             "Total number of blocks produced"
@@ -191,12 +254,6 @@ impl Metrics {
         ))?;
         registry.register(Box::new(current_block_height.clone()))?;
         
-        let block_processing_time = Histogram::with_opts(HistogramOpts::new(
-            "dytallix_block_processing_seconds",
-            "Time spent processing blocks"
-        ))?;
-        registry.register(Box::new(block_processing_time.clone()))?;
-        
         // Transaction metrics
         let total_transactions = IntCounter::with_opts(Opts::new(
             "dytallix_total_transactions",
@@ -204,6 +261,13 @@ impl Metrics {
         ))?;
         registry.register(Box::new(total_transactions.clone()))?;
         
+        let dyt_mempool_size = IntGauge::with_opts(Opts::new(
+            "dyt_mempool_size",
+            "Current number of pending transactions in mempool"
+        ))?;
+        registry.register(Box::new(dyt_mempool_size.clone()))?;
+        
+        // Legacy mempool size metric
         let mempool_size = IntGauge::with_opts(Opts::new(
             "dytallix_mempool_size",
             "Current number of pending transactions in mempool"
@@ -259,7 +323,13 @@ impl Metrics {
         ))?;
         registry.register(Box::new(mempool_gossip_duplicates_total.clone()))?;
         
-        // Gas metrics
+        // Gas metrics - using dyt_ prefix
+        let dyt_gas_used_per_block = Histogram::with_opts(HistogramOpts::new(
+            "dyt_gas_used_per_block",
+            "Gas used per block"
+        ))?;
+        registry.register(Box::new(dyt_gas_used_per_block.clone()))?;
+        
         let total_gas_used = IntCounter::with_opts(Opts::new(
             "dytallix_total_gas_used",
             "Total gas consumed by all transactions"
@@ -272,7 +342,14 @@ impl Metrics {
         ))?;
         registry.register(Box::new(current_block_gas.clone()))?;
         
-        // Oracle metrics
+        // Oracle metrics - using dyt_ prefix
+        let dyt_oracle_update_latency_seconds = Histogram::with_opts(HistogramOpts::new(
+            "dyt_oracle_update_latency_seconds",
+            "Latency of oracle data updates in seconds"
+        ))?;
+        registry.register(Box::new(dyt_oracle_update_latency_seconds.clone()))?;
+        
+        // Legacy oracle metrics
         let oracle_latency = Histogram::with_opts(HistogramOpts::new(
             "dytallix_oracle_latency_seconds",
             "Latency of oracle data updates"
@@ -285,7 +362,36 @@ impl Metrics {
         ))?;
         registry.register(Box::new(last_oracle_update.clone()))?;
         
-        // Emission metrics
+        // Emission metrics - using dyt_ prefix
+        let dyt_emission_pool_amount = prometheus::GaugeVec::new(
+            Opts::new(
+                "dyt_emission_pool_amount",
+                "Current amount in emission pools by pool type"
+            ),
+            &["pool_type"]
+        )?;
+        registry.register(Box::new(dyt_emission_pool_amount.clone()))?;
+        
+        // Validator metrics - using dyt_ prefix
+        let dyt_validator_missed_blocks_total = prometheus::IntCounterVec::new(
+            Opts::new(
+                "dyt_validator_missed_blocks_total",
+                "Total number of blocks missed by validator"
+            ),
+            &["validator"]
+        )?;
+        registry.register(Box::new(dyt_validator_missed_blocks_total.clone()))?;
+        
+        let dyt_validator_voting_power = prometheus::GaugeVec::new(
+            Opts::new(
+                "dyt_validator_voting_power",
+                "Current voting power of validators"
+            ),
+            &["validator"]
+        )?;
+        registry.register(Box::new(dyt_validator_voting_power.clone()))?;
+        
+        // Legacy emission metric
         let emission_pool_size = Gauge::with_opts(Opts::new(
             "dytallix_emission_pool_size",
             "Current size of the emission/reward pool"
@@ -304,6 +410,19 @@ impl Metrics {
         
         Ok(Self {
             registry,
+            // New dyt_ prefixed metrics
+            dyt_block_height,
+            dyt_blocks_produced_total,
+            dyt_blocks_per_second,
+            dyt_transactions_in_block,
+            dyt_tps,
+            dyt_mempool_size,
+            dyt_gas_used_per_block,
+            dyt_oracle_update_latency_seconds,
+            dyt_emission_pool_amount,
+            dyt_validator_missed_blocks_total,
+            dyt_validator_voting_power,
+            // Legacy metrics
             total_blocks,
             current_block_height,
             block_processing_time,
