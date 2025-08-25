@@ -120,7 +120,7 @@ impl StakingModule {
     }
 
     /// Load delegator reward record from storage
-    fn load_delegator_record(&self, address: &str) -> DelegatorRewardRecord {
+    pub fn load_delegator_record(&self, address: &str) -> DelegatorRewardRecord {
         let key = format!("staking:delegator:{}", address);
         self.storage
             .db

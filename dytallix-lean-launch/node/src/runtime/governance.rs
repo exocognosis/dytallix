@@ -68,6 +68,7 @@ pub enum ProposalStatus {
     Rejected,
     Failed,  // For expired deposits without reaching minimum
     Executed,
+    FailedExecution,  // For proposals that passed but failed to execute
 }
 
 /// Vote on a proposal
@@ -347,6 +348,8 @@ impl GovernanceModule {
                                 self.emit_event(GovernanceEvent::ProposalExecuted { id: proposal_id });
                             }
                             Err(e) => {
+                                proposal.status = ProposalStatus::FailedExecution;
+                                self.store_proposal(&proposal)?;
                                 // Refund deposits for failed execution (not the proposer's fault)
                                 self.refund_deposits(proposal_id)?;
                                 self.emit_event(GovernanceEvent::ExecutionFailed { 
