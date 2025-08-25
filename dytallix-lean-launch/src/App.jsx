@@ -26,6 +26,10 @@ import CodeShield from './pages/CodeShield.jsx'
 import ToasterProvider from './components/common/Toaster.jsx'
 import GovernanceList from './pages/governance/GovernanceList.jsx'
 import GovernanceDetail from './pages/governance/GovernanceDetail.jsx'
+import ContractsPage from './pages/contracts/ContractsPage.jsx'
+import StakingPage from './pages/staking/StakingPage.jsx'
+import TransactionsPage from './pages/transactions/TransactionsPage.jsx'
+import AccountsPage from './pages/accounts/AccountsPage.jsx'
 
 function App() {
   // Validate configuration on app load
@@ -61,6 +65,12 @@ function App() {
             {/* Enhanced Explorer Routes */}
             <Route path="/governance" element={<GovernanceList />} />
             <Route path="/governance/:proposalId" element={<GovernanceDetail />} />
+            <Route path="/contracts" element={<ContractsPage />} />
+            <Route path="/contracts/:contractAddress" element={<ContractsPage />} />
+            <Route path="/staking" element={<StakingPage />} />
+            <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/accounts/:address" element={<AccountsPage />} />
+            <Route path="/accounts" element={<AccountsPage />} />
             
             {/* Updated module routes */}
             <Route path="/pulseguard" element={<PulseGuard />} />
