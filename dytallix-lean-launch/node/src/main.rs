@@ -112,6 +112,8 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(not(feature = "metrics"))]
     let mut alerts_engine = AlertsEngine::new(alerts_config.clone())?;
 
+    let staking_module = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
+    
     let ctx = RpcContext {
         storage: storage.clone(),
         mempool: mempool.clone(),
@@ -119,8 +121,8 @@ async fn main() -> anyhow::Result<()> {
         ws: ws_hub.clone(),
         tps: tps_window.clone(),
         emission: Arc::new(Mutex::new(EmissionEngine::new(storage.clone(), state.clone()))),
-        governance: Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone()))),
-        staking: Arc::new(Mutex::new(StakingModule::new(storage.clone()))),
+        governance: Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone(), staking_module.clone()))),
+        staking: staking_module,
         metrics: metrics.clone(),
     };
 
@@ -281,6 +283,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/gov/proposal/:id", get(rpc::gov_get_proposal))
         .route("/gov/tally/:id", get(rpc::gov_tally))
         .route("/gov/config", get(rpc::gov_get_config))
+        .route("/api/governance/proposals", get(rpc::gov_list_proposals))
+        .route("/api/governance/proposals/:id/votes", get(rpc::gov_get_proposal_votes))
+        .route("/api/governance/voting-power/:address", get(rpc::gov_get_voting_power))
+        .route("/api/governance/total-voting-power", get(rpc::gov_get_total_voting_power))
         .route("/api/staking/claim", post(rpc::staking_claim))
         .route("/api/staking/accrued/:address", get(rpc::staking_get_accrued))
         .layer(Extension(ctx));

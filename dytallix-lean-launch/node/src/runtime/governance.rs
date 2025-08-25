@@ -1,6 +1,7 @@
 use crate::{
     state::{State, AccountState},
     storage::state::Storage,
+    runtime::staking::StakingModule,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -107,21 +108,24 @@ pub enum GovernanceEvent {
     ProposalRejected { id: u64, reason: Option<String> },
     ProposalExecuted { id: u64 },
     ExecutionFailed { id: u64, error: String },
+    ParameterChanged { key: String, old_value: String, new_value: String },
 }
 
 pub struct GovernanceModule {
     storage: Arc<Storage>,
     state: Arc<Mutex<State>>,
+    staking: Arc<Mutex<StakingModule>>,
     config: GovernanceConfig,
     events: Vec<GovernanceEvent>,
 }
 
 impl GovernanceModule {
-    pub fn new(storage: Arc<Storage>, state: Arc<Mutex<State>>) -> Self {
+    pub fn new(storage: Arc<Storage>, state: Arc<Mutex<State>>, staking: Arc<Mutex<StakingModule>>) -> Self {
         let config = GovernanceConfig::default();
         Self {
             storage,
             state,
+            staking,
             config,
             events: Vec::new(),
         }
@@ -130,11 +134,13 @@ impl GovernanceModule {
     pub fn new_with_config(
         storage: Arc<Storage>, 
         state: Arc<Mutex<State>>, 
+        staking: Arc<Mutex<StakingModule>>,
         config: GovernanceConfig
     ) -> Self {
         Self {
             storage,
             state,
+            staking,
             config,
             events: Vec::new(),
         }
@@ -238,12 +244,8 @@ impl GovernanceModule {
             return Err("Voter has already voted on this proposal".to_string());
         }
 
-        // Get voter's DGT balance as voting weight
-        let weight = {
-            let mut state = self.state.lock().unwrap();
-            let account = state.get_account(voter);
-            account.balance_of("udgt")
-        };
+        // Get voter's voting power from staking (delegations + validator self-stake)
+        let weight = self.voting_power(voter)?;
 
         let vote = Vote {
             proposal_id,
@@ -335,7 +337,7 @@ impl GovernanceModule {
 
     /// Tally votes for a proposal
     pub fn tally(&self, proposal_id: u64) -> Result<TallyResult, String> {
-        let votes = self.get_proposal_votes(proposal_id)?;
+        let votes = self._get_proposal_votes(proposal_id)?;
         
         let mut yes = 0u128;
         let mut no = 0u128;
@@ -389,16 +391,39 @@ impl GovernanceModule {
         Ok(tally.yes >= threshold_required)
     }
 
-    /// Get total staking power for quorum calculation
-    fn get_total_staking_power(&self) -> Result<u128, String> {
-        // For MVP, we'll use total DGT supply as a proxy for staking power
-        // In a full implementation, this would query the staking module
-        let state = self.state.lock().unwrap();
-        let mut total_power = 0u128;
+    /// Get voting power for a specific address (derived from delegations and validator self-bond)
+    pub fn voting_power(&self, address: &str) -> Result<u128, String> {
+        let staking = self.staking.lock().unwrap();
         
-        for (_, account) in &state.accounts {
-            total_power += account.balance_of("udgt");
-        }
+        // Get delegator stake amount
+        let delegator_record = staking.load_delegator_record(address);
+        let mut total_power = delegator_record.stake_amount;
+        
+        // If the address is a validator, add self-stake (validator power)
+        // Note: We need to check if the address is registered as a validator
+        // For now, we'll aggregate all delegator stake power since the staking module
+        // tracks delegations which include validator self-stake
+        
+        Ok(total_power)
+    }
+    
+    /// Get total voting power across all eligible stakers
+    pub fn total_voting_power(&self) -> Result<u128, String> {
+        let staking = self.staking.lock().unwrap();
+        Ok(staking.total_stake)
+    }
+    
+    /// Get active set voting power (currently same as total for MVP)
+    pub fn active_set_voting_power(&self) -> Result<u128, String> {
+        // For MVP, active set is same as total staking power
+        // In future this would filter to only active validators
+        self.total_voting_power()
+    }
+
+    /// Get total staking power for quorum calculation (updated to use staking module)
+    fn get_total_staking_power(&self) -> Result<u128, String> {
+        // Use the new total_voting_power function
+        let total_power = self.total_voting_power()?;
         
         // Minimum total power to avoid division by zero
         Ok(total_power.max(1))
@@ -422,14 +447,24 @@ impl GovernanceModule {
         Ok(())
     }
 
-    /// Apply parameter changes
+    /// Apply parameter changes with enhanced governance event emission
     fn apply_parameter_change(&mut self, key: &str, value: &str) -> Result<(), String> {
+        // Validate that the parameter is allowed to be changed
+        let old_value = self.get_parameter_value(key)?;
+        
         match key {
             "gas_limit" => {
                 let gas_limit: u64 = value.parse()
                     .map_err(|_| "Invalid gas_limit value".to_string())?;
                 self.config.gas_limit = gas_limit;
                 self.store_config()?;
+                
+                // Emit parameter change event
+                self.emit_event(GovernanceEvent::ParameterChanged { 
+                    key: key.to_string(),
+                    old_value,
+                    new_value: value.to_string(),
+                });
                 Ok(())
             }
             "consensus.max_gas_per_block" => {
@@ -437,10 +472,34 @@ impl GovernanceModule {
                     .map_err(|_| "Invalid consensus.max_gas_per_block value".to_string())?;
                 self.config.max_gas_per_block = max_gas_per_block;
                 self.store_config()?;
+                
+                // Emit parameter change event  
+                self.emit_event(GovernanceEvent::ParameterChanged {
+                    key: key.to_string(),
+                    old_value,
+                    new_value: value.to_string(),
+                });
                 Ok(())
             }
+            _ => Err(format!("Parameter '{}' is not governable", key))
+        }
+    }
+    
+    /// Get current value of a governance parameter
+    fn get_parameter_value(&self, key: &str) -> Result<String, String> {
+        match key {
+            "gas_limit" => Ok(self.config.gas_limit.to_string()),
+            "consensus.max_gas_per_block" => Ok(self.config.max_gas_per_block.to_string()),
             _ => Err(format!("Unknown parameter: {}", key))
         }
+    }
+    
+    /// Get list of governable parameters
+    pub fn get_governable_parameters(&self) -> Vec<String> {
+        vec![
+            "gas_limit".to_string(),
+            "consensus.max_gas_per_block".to_string(),
+        ]
     }
 
     /// Get current governance configuration
@@ -461,6 +520,29 @@ impl GovernanceModule {
     /// Public method to get proposal (exposed for RPC)
     pub fn get_proposal(&self, proposal_id: u64) -> Result<Option<Proposal>, String> {
         self._get_proposal(proposal_id)
+    }
+    
+    /// Get all proposals (for API endpoint)
+    pub fn get_all_proposals(&self) -> Result<Vec<Proposal>, String> {
+        let last_id = self.storage.db
+            .get("gov:last_proposal_id".to_string())
+            .ok()
+            .flatten()
+            .and_then(|b| bincode::deserialize::<u64>(&b).ok())
+            .unwrap_or(0);
+        
+        let mut proposals = Vec::new();
+        for id in 1..=last_id {
+            if let Some(proposal) = self._get_proposal(id)? {
+                proposals.push(proposal);
+            }
+        }
+        Ok(proposals)
+    }
+    
+    /// Get votes for a proposal (exposed for RPC)
+    pub fn get_proposal_votes(&self, proposal_id: u64) -> Result<Vec<Vote>, String> {
+        self._get_proposal_votes(proposal_id)
     }
 
     // Storage helper methods
@@ -517,7 +599,7 @@ impl GovernanceModule {
             .is_some())
     }
 
-    fn get_proposal_votes(&self, proposal_id: u64) -> Result<Vec<Vote>, String> {
+    fn _get_proposal_votes(&self, proposal_id: u64) -> Result<Vec<Vote>, String> {
         let prefix = format!("gov:vote:{}:", proposal_id);
         let mut votes = Vec::new();
         

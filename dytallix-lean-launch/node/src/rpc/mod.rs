@@ -20,7 +20,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::storage::oracle::OracleStore;
 use crate::runtime::bridge;
 use crate::runtime::emission::EmissionEngine;
-use crate::runtime::governance::GovernanceModule;
+use crate::runtime::governance::{GovernanceModule, ProposalType};
 use crate::runtime::staking::StakingModule;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
@@ -519,6 +519,140 @@ pub async fn gov_get_config(
         governance.get_config().clone()
     };
     Ok(Json(serde_json::to_value(config).unwrap()))
+}
+
+/// GET /api/governance/proposals - List all governance proposals
+pub async fn gov_list_proposals(
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let governance = ctx.governance.lock().unwrap();
+    
+    match governance.get_all_proposals() {
+        Ok(proposals) => {
+            let mut proposal_list = Vec::new();
+            
+            for proposal in proposals {
+                // Get current tally for each proposal
+                let current_tally = governance.tally(proposal.id).ok();
+                let total_voting_power = governance.total_voting_power().unwrap_or(1);
+                
+                let participating_voting_power = current_tally.as_ref()
+                    .map(|t| t.total_voting_power)
+                    .unwrap_or(0);
+                    
+                let quorum_met = if total_voting_power > 0 {
+                    let quorum_required = (total_voting_power * governance.get_config().quorum) / 10000;
+                    participating_voting_power >= quorum_required
+                } else {
+                    false
+                };
+
+                let proposal_summary = json!({
+                    "id": proposal.id,
+                    "type": match &proposal.proposal_type {
+                        ProposalType::ParameterChange { key, .. } => format!("ParameterChange({})", key)
+                    },
+                    "title": proposal.title,
+                    "status": proposal.status,
+                    "submit_time": proposal.submit_height, // In a real impl, convert to timestamp
+                    "deposit_end": proposal.deposit_end_height,
+                    "voting_end": proposal.voting_end_height,
+                    "current_tally": current_tally.as_ref().map(|tally| json!({
+                        "yes": tally.yes.to_string(),
+                        "no": tally.no.to_string(),
+                        "abstain": tally.abstain.to_string(),
+                        "no_with_veto": tally.no_with_veto.to_string(),
+                        "total_voting_power": total_voting_power.to_string(),
+                        "participating_voting_power": participating_voting_power.to_string(),
+                        "quorum_met": quorum_met
+                    }))
+                });
+                
+                proposal_list.push(proposal_summary);
+            }
+            
+            Ok(Json(json!({
+                "proposals": proposal_list
+            })))
+        }
+        Err(e) => {
+            eprintln!("Failed to get proposals: {}", e);
+            Err(ApiError::Internal)
+        }
+    }
+}
+
+/// GET /api/governance/proposals/{id}/votes - Get votes for a specific proposal
+pub async fn gov_get_proposal_votes(
+    Extension(ctx): Extension<RpcContext>,
+    Path(proposal_id): Path<u64>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let governance = ctx.governance.lock().unwrap();
+    
+    match governance.get_proposal_votes(proposal_id) {
+        Ok(votes) => {
+            let vote_list: Vec<_> = votes.into_iter().map(|vote| {
+                json!({
+                    "voter": vote.voter,
+                    "option": vote.option,
+                    "voting_power": vote.weight.to_string(),
+                    "timestamp": null // TODO: add timestamp to Vote struct
+                })
+            }).collect();
+            
+            Ok(Json(json!({
+                "proposal_id": proposal_id,
+                "votes": vote_list
+            })))
+        }
+        Err(e) => {
+            eprintln!("Failed to get proposal votes: {}", e);
+            Err(ApiError::Internal)
+        }
+    }
+}
+
+/// GET /api/governance/voting-power/{address} - Get voting power for specific address
+pub async fn gov_get_voting_power(
+    Extension(ctx): Extension<RpcContext>,
+    Path(address): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let governance = ctx.governance.lock().unwrap();
+    
+    match governance.voting_power(&address) {
+        Ok(voting_power) => {
+            Ok(Json(json!({
+                "address": address,
+                "voting_power": voting_power.to_string()
+            })))
+        }
+        Err(e) => {
+            eprintln!("Failed to get voting power for {}: {}", address, e);
+            Err(ApiError::Internal)
+        }
+    }
+}
+
+/// GET /api/governance/total-voting-power - Get total voting power
+pub async fn gov_get_total_voting_power(
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let governance = ctx.governance.lock().unwrap();
+    
+    match governance.total_voting_power() {
+        Ok(total_power) => {
+            let active_power = governance.active_set_voting_power().unwrap_or(total_power);
+            
+            Ok(Json(json!({
+                "total_voting_power": total_power.to_string(),
+                "active_set_voting_power": active_power.to_string()
+            })))
+        }
+        Err(e) => {
+            eprintln!("Failed to get total voting power: {}", e);
+            Err(ApiError::Internal)
+        }
+    }
 }
 
 // Rewards API endpoints
