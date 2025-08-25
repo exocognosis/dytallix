@@ -3,13 +3,15 @@ use tempfile::TempDir;
 use crate::storage::state::Storage;
 use crate::state::State;
 use crate::runtime::governance::*;
+use crate::runtime::staking::StakingModule;
 
 fn setup_test_governance() -> (GovernanceModule, TempDir) {
     let temp_dir = TempDir::new().unwrap();
     let storage = Arc::new(Storage::open(temp_dir.path().join("test.db")).unwrap());
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
+    let staking = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
     
-    let governance = GovernanceModule::new(storage, state);
+    let governance = GovernanceModule::new(storage, state, staking);
     (governance, temp_dir)
 }
 

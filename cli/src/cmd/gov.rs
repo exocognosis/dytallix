@@ -50,6 +50,16 @@ pub enum GovAction {
         #[arg(long)]
         proposal: u64,
     },
+    Proposals,  // List all proposals
+    Votes {
+        #[arg(long)]
+        proposal: u64,
+    },
+    VotingPower {
+        #[arg(long)]
+        address: String,
+    },
+    TotalVotingPower,
     Config,
 }
 
@@ -129,6 +139,30 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
             match crate::rpc::get_json(rpc, "gov/config").await {
                 Ok(response) => emit(fmt, &format!("Governance config: {}", response)),
                 Err(e) => emit(fmt, &format!("Error getting config: {}", e)),
+            }
+        },
+        GovAction::Proposals => {
+            match crate::rpc::get_json(rpc, "api/governance/proposals").await {
+                Ok(response) => emit(fmt, &format!("All proposals: {}", response)),
+                Err(e) => emit(fmt, &format!("Error getting proposals: {}", e)),
+            }
+        },
+        GovAction::Votes { proposal } => {
+            match crate::rpc::get_json(rpc, &format!("api/governance/proposals/{}/votes", proposal)).await {
+                Ok(response) => emit(fmt, &format!("Proposal votes: {}", response)),
+                Err(e) => emit(fmt, &format!("Error getting votes: {}", e)),
+            }
+        },
+        GovAction::VotingPower { address } => {
+            match crate::rpc::get_json(rpc, &format!("api/governance/voting-power/{}", address)).await {
+                Ok(response) => emit(fmt, &format!("Voting power: {}", response)),
+                Err(e) => emit(fmt, &format!("Error getting voting power: {}", e)),
+            }
+        },
+        GovAction::TotalVotingPower => {
+            match crate::rpc::get_json(rpc, "api/governance/total-voting-power").await {
+                Ok(response) => emit(fmt, &format!("Total voting power: {}", response)),
+                Err(e) => emit(fmt, &format!("Error getting total voting power: {}", e)),
             }
         },
     }
