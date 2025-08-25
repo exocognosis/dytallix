@@ -9,7 +9,7 @@ echo
 
 # Configuration
 NODE_URL="http://localhost:8545"
-CLI_CMD="cargo run --bin dyt"
+CLI_CMD="cargo run --bin dcli"
 TEST_DIR="/tmp/governance_e2e_test"
 DGT_AMOUNT="1000000000"  # 1000 DGT in micro units
 
@@ -106,6 +106,10 @@ setup_accounts_and_staking() {
     # Display staking state
     log_info "Current staking state:"
     run_cli query validators
+    
+    # Check voting power distribution
+    log_info "Voting power distribution:"
+    run_cli gov total-voting-power
 }
 
 # Step 2: Submit proposal with insufficient initial deposit
@@ -185,9 +189,13 @@ cast_votes() {
         --option "yes"
     check_success "Delegator 1 vote"
     
-    # Show current tally
+    # Show current tally with voting power details
     log_info "Current vote tally:"
     run_cli gov tally --proposal "$PROPOSAL_ID"
+    
+    # Show detailed votes with voting power
+    log_info "Detailed votes:"
+    run_cli gov votes --proposal "$PROPOSAL_ID"
 }
 
 # Step 5: Wait for voting period to end and check execution
@@ -227,15 +235,15 @@ verify_stake_weighting() {
     log_info "Voting power breakdown:"
     
     # Check validator 1 voting power (self-stake + delegations)
-    VALIDATOR1_POWER=$(run_cli query voting-power --address "$VALIDATOR1" 2>&1 || echo "N/A")
+    VALIDATOR1_POWER=$(run_cli gov voting-power --address "$VALIDATOR1" 2>&1 || echo "N/A")
     log_info "Validator 1 voting power: $VALIDATOR1_POWER"
     
     # Check validator 2 voting power
-    VALIDATOR2_POWER=$(run_cli query voting-power --address "$VALIDATOR2" 2>&1 || echo "N/A")
+    VALIDATOR2_POWER=$(run_cli gov voting-power --address "$VALIDATOR2" 2>&1 || echo "N/A")
     log_info "Validator 2 voting power: $VALIDATOR2_POWER"
     
     # Check total voting power
-    TOTAL_VOTING_POWER=$(run_cli query total-voting-power 2>&1 || echo "N/A")
+    TOTAL_VOTING_POWER=$(run_cli gov total-voting-power 2>&1 || echo "N/A")
     log_info "Total voting power in system: $TOTAL_VOTING_POWER"
     
     # Analysis
@@ -253,6 +261,10 @@ test_summary() {
     echo
     echo "=== GOVERNANCE E2E TEST SUMMARY ==="
     echo
+    
+    # List all proposals
+    log_info "All proposals in system:"
+    run_cli gov proposals
     
     # Get final proposal state
     FINAL_STATUS=$(run_cli gov show --proposal "$PROPOSAL_ID" 2>&1)
