@@ -14,15 +14,17 @@ pub struct GovCmd {
 pub enum GovAction { 
     Submit { 
         #[arg(long)] 
-        title: String, 
+        title: Option<String>,
         #[arg(long)] 
-        description: String,
-        #[arg(long, name = "param-key")]
+        description: Option<String>,
+        #[arg(long, name = "type")]
+        proposal_type: String,  // "param-change"
+        #[arg(long, name = "key")]
         param_key: String,
-        #[arg(long, name = "new-value")]
-        new_value: String,
+        #[arg(long, name = "value")]
+        param_value: String,
         #[arg(long)]
-        deposit: u64,
+        deposit: Option<u64>,
         #[arg(long)] 
         from: String, 
     }, 
@@ -65,13 +67,23 @@ pub enum GovAction {
 
 pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
     match cmd.action {
-        GovAction::Submit { title, description, param_key, new_value, deposit, from } => {
+        GovAction::Submit { title, description, proposal_type, param_key, param_value, deposit, from } => {
+            // Validate proposal type
+            if proposal_type != "param-change" {
+                emit(fmt, "Error: Only 'param-change' proposal type is currently supported");
+                return Ok(());
+            }
+
+            // Use default title and description if not provided
+            let final_title = title.unwrap_or_else(|| format!("Parameter Change: {}", param_key));
+            let final_description = description.unwrap_or_else(|| format!("Change {} to {}", param_key, param_value));
+
             // First submit the proposal
             let submit_payload = json!({
-                "title": title,
-                "description": description,
+                "title": final_title,
+                "description": final_description,
                 "key": param_key,
-                "value": new_value
+                "value": param_value
             });
             
             match post_json(rpc, "gov/submit", &submit_payload).await {
@@ -79,18 +91,20 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
                     emit(fmt, &format!("Proposal submitted: {}", response));
                     
                     // If there's an initial deposit, try to parse the proposal ID and make a deposit
-                    if deposit > 0 {
-                        if let Ok(resp_obj) = serde_json::from_str::<serde_json::Value>(&response) {
-                            if let Some(proposal_id) = resp_obj.get("proposal_id").and_then(|v| v.as_u64()) {
-                                let deposit_payload = json!({
-                                    "depositor": from,
-                                    "proposal_id": proposal_id,
-                                    "amount": deposit
-                                });
-                                
-                                match post_json(rpc, "gov/deposit", &deposit_payload).await {
-                                    Ok(deposit_response) => emit(fmt, &format!("Initial deposit made: {}", deposit_response)),
-                                    Err(e) => emit(fmt, &format!("Warning: Could not make initial deposit: {}", e)),
+                    if let Some(deposit_amount) = deposit {
+                        if deposit_amount > 0 {
+                            if let Ok(resp_obj) = serde_json::from_str::<serde_json::Value>(&response) {
+                                if let Some(proposal_id) = resp_obj.get("proposal_id").and_then(|v| v.as_u64()) {
+                                    let deposit_payload = json!({
+                                        "depositor": from,
+                                        "proposal_id": proposal_id,
+                                        "amount": deposit_amount
+                                    });
+                                    
+                                    match post_json(rpc, "gov/deposit", &deposit_payload).await {
+                                        Ok(deposit_response) => emit(fmt, &format!("Initial deposit made: {}", deposit_response)),
+                                        Err(e) => emit(fmt, &format!("Warning: Could not make initial deposit: {}", e)),
+                                    }
                                 }
                             }
                         }
