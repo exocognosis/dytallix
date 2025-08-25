@@ -68,6 +68,7 @@ pub enum ProposalStatus {
     Rejected,
     Failed,  // For expired deposits without reaching minimum
     Executed,
+    FailedExecution,  // For proposals that passed but failed to execute
 }
 
 /// Vote on a proposal
@@ -77,6 +78,15 @@ pub struct Vote {
     pub voter: String,
     pub option: VoteOption,
     pub weight: u128, // DGT balance at time of vote
+}
+
+/// Deposit on a proposal (for tracking individual deposits)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Deposit {
+    pub proposal_id: u64,
+    pub depositor: String,
+    pub amount: u128,
+    pub denom: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,6 +119,8 @@ pub enum GovernanceEvent {
     ProposalExecuted { id: u64 },
     ExecutionFailed { id: u64, error: String },
     ParameterChanged { key: String, old_value: String, new_value: String },
+    DepositBurned { proposal_id: u64, depositor: String, amount: u128 },
+}
 }
 
 pub struct GovernanceModule {
@@ -205,6 +217,15 @@ impl GovernanceModule {
             let _ = state.storage.set_balances_db(depositor, &account.balances);
         }
 
+        // Store individual deposit for refund/burn tracking
+        let deposit = Deposit {
+            proposal_id,
+            depositor: depositor.to_string(),
+            amount,
+            denom: denom.to_string(),
+        };
+        self.store_deposit(&deposit)?;
+
         // Update proposal deposit
         proposal.total_deposit += amount;
 
@@ -274,6 +295,8 @@ impl GovernanceModule {
                             // Deposit period ended without reaching min deposit
                             proposal.status = ProposalStatus::Failed;
                             self.store_proposal(&proposal)?;
+                            // Burn deposits for failed proposals (insufficient deposits)
+                            self.burn_deposits(proposal_id)?;
                             self.emit_event(GovernanceEvent::ProposalRejected { 
                                 id: proposal_id, 
                                 reason: Some("Insufficient deposits - proposal failed".to_string()) 
@@ -297,6 +320,8 @@ impl GovernanceModule {
                                 });
                             } else {
                                 proposal.status = ProposalStatus::Rejected;
+                                // Burn deposits for rejected proposals
+                                self.burn_deposits(proposal_id)?;
                                 let reason = if tally.total_voting_power < (self.get_total_staking_power()? * self.config.quorum) / 10000 {
                                     "Quorum not met"
                                 } else if tally.no_with_veto >= (tally.total_voting_power * self.config.veto_threshold) / 10000 {
@@ -318,9 +343,15 @@ impl GovernanceModule {
                             Ok(_) => {
                                 proposal.status = ProposalStatus::Executed;
                                 self.store_proposal(&proposal)?;
+                                // Refund deposits for successfully executed proposals
+                                self.refund_deposits(proposal_id)?;
                                 self.emit_event(GovernanceEvent::ProposalExecuted { id: proposal_id });
                             }
                             Err(e) => {
+                                proposal.status = ProposalStatus::FailedExecution;
+                                self.store_proposal(&proposal)?;
+                                // Refund deposits for failed execution (not the proposer's fault)
+                                self.refund_deposits(proposal_id)?;
                                 self.emit_event(GovernanceEvent::ExecutionFailed { 
                                     id: proposal_id, 
                                     error: e 
@@ -455,7 +486,13 @@ impl GovernanceModule {
         match key {
             "gas_limit" => {
                 let gas_limit: u64 = value.parse()
-                    .map_err(|_| "Invalid gas_limit value".to_string())?;
+                    .map_err(|_| "Invalid gas_limit value: must be a valid u64".to_string())?;
+                
+                // Validation: gas limit should be reasonable (between 1K and 100M)
+                if gas_limit < 1_000 || gas_limit > 100_000_000 {
+                    return Err("gas_limit must be between 1,000 and 100,000,000".to_string());
+                }
+                
                 self.config.gas_limit = gas_limit;
                 self.store_config()?;
                 
@@ -469,7 +506,13 @@ impl GovernanceModule {
             }
             "consensus.max_gas_per_block" => {
                 let max_gas_per_block: u64 = value.parse()
-                    .map_err(|_| "Invalid consensus.max_gas_per_block value".to_string())?;
+                    .map_err(|_| "Invalid consensus.max_gas_per_block value: must be a valid u64".to_string())?;
+                
+                // Validation: max gas per block should be reasonable (between 1M and 1B)
+                if max_gas_per_block < 1_000_000 || max_gas_per_block > 1_000_000_000 {
+                    return Err("consensus.max_gas_per_block must be between 1,000,000 and 1,000,000,000".to_string());
+                }
+                
                 self.config.max_gas_per_block = max_gas_per_block;
                 self.store_config()?;
                 
@@ -481,7 +524,8 @@ impl GovernanceModule {
                 });
                 Ok(())
             }
-            _ => Err(format!("Parameter '{}' is not governable", key))
+            _ => Err(format!("Parameter '{}' is not governable. Allowed parameters: {:?}", 
+                           key, self.get_governable_parameters()))
         }
     }
     
@@ -642,6 +686,70 @@ impl GovernanceModule {
 
     fn emit_event(&mut self, event: GovernanceEvent) {
         self.events.push(event);
+    }
+
+    // Deposit storage and retrieval functions
+
+    fn store_deposit(&self, deposit: &Deposit) -> Result<(), String> {
+        let key = format!("gov:deposit:{}:{}", deposit.proposal_id, deposit.depositor);
+        let data = bincode::serialize(deposit)
+            .map_err(|e| format!("Failed to serialize deposit: {}", e))?;
+        self.storage.db.put(key, data)
+            .map_err(|e| format!("Failed to store deposit: {}", e))?;
+        Ok(())
+    }
+
+    fn get_proposal_deposits(&self, proposal_id: u64) -> Result<Vec<Deposit>, String> {
+        let mut deposits = Vec::new();
+        
+        // Get all accounts to check for deposits (similar to vote retrieval)
+        let state = self.state.lock().unwrap();
+        for (depositor_addr, _) in &state.accounts {
+            let deposit_key = format!("gov:deposit:{}:{}", proposal_id, depositor_addr);
+            if let Ok(Some(data)) = self.storage.db.get(deposit_key) {
+                if let Ok(deposit) = bincode::deserialize::<Deposit>(&data) {
+                    deposits.push(deposit);
+                }
+            }
+        }
+        
+        Ok(deposits)
+    }
+
+    /// Refund deposits to depositors (for successful or failed execution)
+    fn refund_deposits(&mut self, proposal_id: u64) -> Result<(), String> {
+        let deposits = self.get_proposal_deposits(proposal_id)?;
+        
+        {
+            let mut state = self.state.lock().unwrap();
+            for deposit in deposits {
+                let mut account = state.get_account(&deposit.depositor);
+                account.add_balance(&deposit.denom, deposit.amount);
+                state.accounts.insert(deposit.depositor.clone(), account);
+                let _ = state.storage.set_balances_db(&deposit.depositor, &account.balances);
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Burn deposits (for rejected or failed proposals)
+    fn burn_deposits(&mut self, proposal_id: u64) -> Result<(), String> {
+        let deposits = self.get_proposal_deposits(proposal_id)?;
+        
+        // Deposits are already deducted from accounts, so burning means not refunding them
+        // In a production system, you might want to emit specific burn events or track burned amounts
+        
+        // Emit events for each burned deposit
+        for deposit in deposits {
+            self.emit_event(GovernanceEvent::DepositBurned { 
+                proposal_id,
+                depositor: deposit.depositor,
+                amount: deposit.amount 
+            });
+        }
+        
+        Ok(())
     }
 }
 
