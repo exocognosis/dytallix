@@ -23,48 +23,68 @@ import FlowRate from './pages/FlowRate.jsx'
 import StakeBalancer from './pages/StakeBalancer.jsx'
 import NetFlux from './pages/NetFlux.jsx'
 import CodeShield from './pages/CodeShield.jsx'
+import ToasterProvider from './components/common/Toaster.jsx'
+import GovernanceList from './pages/governance/GovernanceList.jsx'
+import GovernanceDetail from './pages/governance/GovernanceDetail.jsx'
+import ContractsPage from './pages/contracts/ContractsPage.jsx'
+import StakingPage from './pages/staking/StakingPage.jsx'
+import TransactionsPage from './pages/transactions/TransactionsPage.jsx'
+import AccountsPage from './pages/accounts/AccountsPage.jsx'
 
 function App() {
   // Validate configuration on app load
   useEffect(() => { validateConfig() }, [])
 
   return (
-    <div className="app">
-      <QuantumBackground className="quantum-bg" />
-      <Navbar />
-      <main className="main-content">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/faucet" element={<Faucet />} />
-          <Route path="/deploy" element={<Deploy />} />
-          <Route path="/explorer" element={<Explorer />} />
-          <Route path="/explorer/tx/:hash" element={<Explorer />} />
-          <Route path="/explorer/address/:addr" element={<Explorer />} />
-          <Route path="/explorer/contract/:addr" element={<Explorer />} />
-          <Route path="/status" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/analytics" element={<Dashboard />} />
-          <Route path="/tech-stack" element={<TechStack />} />
-          <Route path="/tech-specs" element={<TechStack />} />
-          <Route path="/techspecs" element={<TechStack />} />
-          <Route path="/modules" element={<Modules />} />
-          <Route path="/roadmap" element={<Roadmap />} />
-          <Route path="/dev-resources" element={<DevResources />} />
-          <Route path="/docs" element={<Documentation />} />
-          <Route path="/changelog" element={<Changelog />} />
-          {/* Updated module routes */}
-          <Route path="/pulseguard" element={<PulseGuard />} />
-          <Route path="/flowrate" element={<FlowRate />} />
-          <Route path="/stakebalancer" element={<StakeBalancer />} />
-          <Route path="/netflux" element={<NetFlux />} />
-          <Route path="/codeshield" element={<CodeShield />} />
-          {/* 404 catch-all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
+    <ToasterProvider>
+      <div className="app">
+        <QuantumBackground className="quantum-bg" />
+        <Navbar />
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/faucet" element={<Faucet />} />
+            <Route path="/deploy" element={<Deploy />} />
+            <Route path="/explorer" element={<Explorer />} />
+            <Route path="/explorer/tx/:hash" element={<Explorer />} />
+            <Route path="/explorer/address/:addr" element={<Explorer />} />
+            <Route path="/explorer/contract/:addr" element={<Explorer />} />
+            <Route path="/status" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/analytics" element={<Dashboard />} />
+            <Route path="/tech-stack" element={<TechStack />} />
+            <Route path="/tech-specs" element={<TechStack />} />
+            <Route path="/techspecs" element={<TechStack />} />
+            <Route path="/modules" element={<Modules />} />
+            <Route path="/roadmap" element={<Roadmap />} />
+            <Route path="/dev-resources" element={<DevResources />} />
+            <Route path="/docs" element={<Documentation />} />
+            <Route path="/changelog" element={<Changelog />} />
+            
+            {/* Enhanced Explorer Routes */}
+            <Route path="/governance" element={<GovernanceList />} />
+            <Route path="/governance/:proposalId" element={<GovernanceDetail />} />
+            <Route path="/contracts" element={<ContractsPage />} />
+            <Route path="/contracts/:contractAddress" element={<ContractsPage />} />
+            <Route path="/staking" element={<StakingPage />} />
+            <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/accounts/:address" element={<AccountsPage />} />
+            <Route path="/accounts" element={<AccountsPage />} />
+            
+            {/* Updated module routes */}
+            <Route path="/pulseguard" element={<PulseGuard />} />
+            <Route path="/flowrate" element={<FlowRate />} />
+            <Route path="/stakebalancer" element={<StakeBalancer />} />
+            <Route path="/netflux" element={<NetFlux />} />
+            <Route path="/codeshield" element={<CodeShield />} />
+            {/* 404 catch-all route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </ToasterProvider>
   )
 }
 

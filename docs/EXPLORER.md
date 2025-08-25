@@ -1,4 +1,319 @@
-# Dytallix Explorer
+# Enhanced Dytallix Explorer Frontend
+
+## Overview
+
+The Enhanced Dytallix Explorer frontend provides comprehensive functionality for interacting with the Dytallix blockchain, including governance participation, smart contract management, staking operations, account monitoring, and AI-powered transaction risk analysis.
+
+## Features
+
+### 🏛️ Governance Module
+
+**List Page (`/governance`)**
+- View all governance proposals with real-time tally updates
+- Filter by proposal status (active, passed, rejected)
+- Live voting statistics with 5-second polling updates
+- Quick stats dashboard showing active/passed/rejected counts
+
+**Detail Page (`/governance/:proposalId`)**
+- Full proposal details with Markdown description support
+- Real-time vote tally visualization with progress bars
+- Interactive voting panel for connected wallets
+- Proposal metadata and execution logs
+- Live updates without page reload
+
+**Key Components:**
+- Live tally subscription via polling (WebSocket ready)
+- Wallet integration for voting
+- Toast notifications for transaction feedback
+
+### ⚡ Smart Contracts Module
+
+**Main Page (`/contracts`)**
+- Tabbed interface: Deploy, Execute, Query, Browse
+- Contract deployment with WASM file validation
+- Interactive contract execution with gas estimation
+- Read-only contract querying with JSON syntax highlighting
+- Contract browser with recent deployments
+
+**Deploy Tab:**
+- File upload with .wasm validation (100KB limit)
+- JSON initialization message editor
+- Real-time deployment feedback with contract address
+
+**Execute Tab:**
+- Contract selection with autocomplete
+- Method name and JSON arguments input
+- Gas estimation and fee preview
+- Transaction result display with events
+
+**Query Tab:**
+- Read-only contract state queries
+- JSON result formatting with syntax highlighting
+- Common query examples and templates
+
+**Browse Tab:**
+- List of deployed contracts with creator info
+- Quick action buttons for execute/view
+- Contract activity metrics
+
+### 🏦 Staking Module
+
+**Main Page (`/staking`)**
+- Validators list with voting power and commission rates
+- My delegations overview with pending rewards
+- Rewards claiming interface
+
+**Validators Tab:**
+- Complete validator information including uptime
+- Voting power percentages and raw amounts
+- Commission rates and validator status
+- One-click delegation interface
+
+**Delegations Tab:**
+- Active delegations with validator names
+- Pending rewards per delegation
+- Undelegation interface with unbonding period info
+
+**Rewards Tab:**
+- Total pending rewards display
+- Per-validator reward breakdown
+- Claim all or individual rewards
+- Real-time reward accrual simulation
+
+### 📊 Accounts Module
+
+**Account Page (`/accounts/:address`)**
+- Comprehensive account overview with portfolio value
+- Token balances for DGT/DRT with fiat estimates
+- Transaction history with filtering
+- Staking positions and governance participation
+- AI risk assessment integration
+
+**Features:**
+- Portfolio value calculation with USD estimates
+- Responsive tabbed interface (Overview, Transactions, Staking, Governance)
+- Deep-linked transaction and contract interactions
+- Risk scoring display with explanations
+
+### 🔍 Enhanced Transactions Module
+
+**Transactions Page (`/transactions`)**
+- AI risk badge integration (Low/Medium/High)
+- Advanced filtering by type, risk level, address
+- Gas usage visualization with progress bars
+- Comprehensive transaction search
+
+**AI Risk Integration:**
+- Real-time risk scoring (0-1 scale mapped to levels)
+- Risk rationale tooltips
+- Graceful handling of missing risk data (404 fallback)
+- Bulk risk assessment for transaction lists
+
+## Components Library
+
+### Core Components
+
+**RiskBadge**
+```jsx
+<RiskBadge 
+  level="high" 
+  score={0.85} 
+  rationale="Unusual transaction pattern detected" 
+/>
+```
+- Color-coded risk levels (green/yellow/red)
+- Accessible tooltips with score and rationale
+- ARIA labels for screen readers
+
+**Amount**
+```jsx
+<Amount 
+  value={1000000} 
+  denom="DGT" 
+  showFiat={true} 
+/>
+```
+- Automatic decimal formatting (6 decimals default)
+- Thousand separators and adaptive display
+- Optional fiat conversion display
+
+**GasTag**
+```jsx
+<GasTag 
+  gasUsed={45000} 
+  gasLimit={100000} 
+/>
+```
+- Gas usage display with percentage bars
+- Color-coded efficiency indicators
+- Responsive design for mobile
+
+**Table**
+- Responsive design with mobile card stacking
+- Dark mode support
+- Sortable columns and row click handlers
+- Loading and empty states
+
+**Card**
+- Consistent styling with dark mode
+- Title, subtitle, and action areas
+- Flexible content layout
+
+**Toaster**
+- Success, error, loading, and info notifications
+- Auto-dismiss with configurable timing
+- Loading state management for transactions
+- Toast update capabilities
+
+## API Integration
+
+### Service Modules
+
+**Governance Service (`/services/governance/`)**
+- `listProposals(options)` - Get proposal list with filtering
+- `getProposal(id)` - Get detailed proposal information
+- `getProposalTally(id)` - Get current vote tallies
+- `submitVote(id, option, voter)` - Submit governance vote
+- `subscribeTallies(id, callback)` - Live tally updates
+
+**Contracts Service (`/services/contracts/`)**
+- `deployWasm(file, initMsg, deployer)` - Deploy WASM contract
+- `execute(address, method, args, sender)` - Execute contract method
+- `query(address, method, args)` - Query contract state
+- `listContracts(options)` - Browse deployed contracts
+- `estimateGas(address, method, args, sender)` - Gas estimation
+
+**Staking Service (`/services/staking/`)**
+- `listValidators(options)` - Get validator list
+- `delegate(validator, amount, delegator)` - Delegate tokens
+- `undelegate(validator, amount, delegator)` - Undelegate tokens
+- `getRewards(address)` - Get pending rewards
+- `claimRewards(address, validators)` - Claim staking rewards
+
+**Accounts Service (`/services/accounts/`)**
+- `getAccountOverview(address)` - Comprehensive account data
+- `getBalances(address)` - Token balances
+- `getAccountTxs(address, options)` - Transaction history
+- `getStakingPositions(address)` - Delegations and rewards
+
+**AI Risk Service (`/services/ai/`)**
+- `getTxRisk(txHash)` - Get transaction risk assessment
+- `getBulkTxRisk(txHashes)` - Bulk risk assessment
+- `getAccountRisk(address)` - Account risk profile
+- `getContractRisk(address)` - Contract risk analysis
+
+### Error Handling
+
+All services implement:
+- Centralized error mapping
+- Retry logic for idempotent operations
+- Graceful degradation for missing data
+- TypeScript type safety
+
+## User Experience
+
+### Dark Mode Support
+- System preference detection (`prefers-color-scheme`)
+- localStorage persistence
+- Smooth transitions between themes
+- All components support dark mode styling
+
+### Responsive Design
+- Mobile-first approach
+- Breakpoint-based layouts:
+  - Mobile (< 768px): Stacked cards
+  - Tablet (768px - 1024px): Responsive grids
+  - Desktop (> 1024px): Full table layouts
+
+### Loading States
+- Skeleton loading for critical content
+- Shimmer effects for data tables
+- Progressive loading with fallbacks
+- Loading state management in Toaster
+
+### Accessibility
+- ARIA labels and descriptions
+- Screen reader support
+- Keyboard navigation
+- Focus management for modals
+- Color contrast compliance
+
+## Keyboard Shortcuts
+
+Navigate quickly using these hotkeys:
+
+- `g g` - Governance proposals list
+- `g c` - Smart contracts interface
+- `g s` - Staking dashboard
+- `g a` - Account search/overview
+- `g t` - Enhanced transactions view
+
+*Implementation: Add event listeners for key combinations in main app component*
+
+## Navigation Structure
+
+```
+Enhanced Explorer
+├── Governance (/governance)
+│   ├── Proposals List
+│   └── Proposal Detail (/governance/:id)
+├── Contracts (/contracts)
+│   ├── Deploy Tab
+│   ├── Execute Tab
+│   ├── Query Tab
+│   └── Browse Tab
+├── Staking (/staking)
+│   ├── Validators Tab
+│   ├── My Delegations Tab
+│   └── Rewards Tab
+├── Transactions (/transactions)
+│   └── Enhanced list with AI risk
+└── Accounts (/accounts/:address)
+    ├── Overview Tab
+    ├── Transactions Tab
+    ├── Staking Tab
+    └── Governance Tab
+```
+
+## Development Setup
+
+### Prerequisites
+- Node.js 18+
+- npm 8+
+- Vite 4+
+
+### Installation
+```bash
+cd dytallix-lean-launch
+npm install
+npm run dev
+```
+
+### Build
+```bash
+npm run build
+npm run preview
+```
+
+### Testing
+```bash
+# Unit tests
+npm test
+
+# E2E tests
+npm run test:e2e
+
+# Accessibility tests  
+npm run test:a11y
+```
+
+---
+
+## Legacy Explorer Documentation
+
+The original minimal block and transaction explorer documentation follows below for reference:
+
+# Dytallix Explorer (Legacy)
 
 A minimal block and transaction explorer for the Dytallix blockchain, consisting of an indexer service, API service, and web UI.
 
