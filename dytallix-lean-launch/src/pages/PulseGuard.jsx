@@ -1,4 +1,5 @@
 import React from 'react'
+import AnomalyPanel from '../components/AnomalyPanel.jsx'
 import '../styles/global.css'
 
 const PulseGuard = () => {
@@ -120,6 +121,13 @@ const PulseGuard = () => {
               </a>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Live Anomaly Detection Panel */}
+      <section className="section">
+        <div className="container" style={{ maxWidth: 1200 }}>
+          <AnomalyPanel />
         </div>
       </section>
     </div>

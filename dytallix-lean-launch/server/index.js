@@ -490,14 +490,7 @@ app.get('/anomaly', (req, res, next) => {
       ok: true,
       timestamp,
       anomalies,
-      status,
-      summary: {
-        total: anomalies.length,
-        critical: criticalCount,
-        high: anomalies.filter(a => a.severity === 'high').length,
-        medium: anomalies.filter(a => a.severity === 'medium').length,
-        low: anomalies.filter(a => a.severity === 'low').length
-      }
+      status
     })
   } catch (e) {
     next(e)
