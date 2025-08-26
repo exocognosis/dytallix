@@ -3,7 +3,7 @@ import styles from '../styles/FaucetForm.module.css'
 import dgtIcon from '../assets/dgt.svg'
 import drtIcon from '../assets/drt.svg'
 import { requestFaucet } from '../lib/api.js'
-import { useWalletState, useWalletActions } from '../state/walletStore.js'
+import { useWalletState, useWalletActions } from '../state/walletStore.ts'
 import { ConnectDytallixWalletModal } from './ConnectDytallixWalletModal.tsx'
 
 const FaucetForm = () => {
