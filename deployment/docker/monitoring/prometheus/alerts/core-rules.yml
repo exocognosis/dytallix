@@ -1,0 +1,66 @@
+groups:
+  - name: dytallix-core-alerts
+    rules:
+      - alert: BlockProductionStall
+        expr: increase(dyt_block_height[2m]) == 0
+        for: 120s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Block production has stalled"
+          description: "No block height increase detected for over 120 seconds on instance {{ $labels.instance }}"
+
+      - alert: HighProcessMemory
+        expr: process_memory_bytes / on(instance) (node_memory_MemTotal_bytes * 0.85) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High process memory usage"
+          description: "Process memory usage is above 85% of container limit on {{ $labels.instance }}"
+
+      - alert: ValidatorMissedBlocks
+        expr: increase(dyt_validator_missed_blocks_total[10m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Validator missing blocks"
+          description: "Validator {{ $labels.validator }} has missed more than 5 blocks in the last 10 minutes"
+
+      - alert: ValidatorDown
+        expr: up{job="dyt-validator"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Validator node is down"
+          description: "Validator instance {{ $labels.instance }} has been down for more than 2 minutes"
+
+      # Commented out by default - tune threshold as needed
+      # - alert: LowTPS
+      #   expr: avg_over_time(dyt_tps[10m]) < 1
+      #   for: 5m
+      #   labels:
+      #     severity: warning
+      #   annotations:
+      #     summary: "Low transaction throughput"
+      #     description: "Average TPS over last 10 minutes is below threshold on {{ $labels.instance }}"
+
+      - alert: OracleUpdateLatencyHigh
+        expr: histogram_quantile(0.95, rate(dyt_oracle_update_latency_seconds_bucket[5m])) > 10
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High oracle update latency"
+          description: "95th percentile oracle update latency is above 10 seconds on {{ $labels.instance }}"
+
+      - alert: MempoolSizeHigh
+        expr: dyt_mempool_size > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mempool size is high"
+          description: "Mempool contains more than 10,000 transactions on {{ $labels.instance }}"

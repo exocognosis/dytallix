@@ -3,18 +3,21 @@ version: '3.8'
 services:
   dytallix-node-1:
     build: ../../
-    container_name: dytallix-node-1
+    container_name: dyt-validator-0
     environment:
       DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: node-1
+      DYTALLIX_NODE_ID: validator-0
       DYTALLIX_PORT: 3030
       DYTALLIX_P2P_PORT: 30303
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
       DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
     ports:
       - "3030:3030"
-      - "9090:9090"
+      - "9464:9464"
       - "8081:8081"
       - "30303:30303"
     volumes:
@@ -26,18 +29,21 @@ services:
 
   dytallix-node-2:
     build: ../../
-    container_name: dytallix-node-2
+    container_name: dyt-validator-1
     environment:
       DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: node-2
+      DYTALLIX_NODE_ID: validator-1
       DYTALLIX_PORT: 3032
       DYTALLIX_P2P_PORT: 30304
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
       DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
     ports:
       - "3032:3030"
-      - "9091:9090"
+      - "9465:9464"
       - "8083:8081"
       - "30304:30303"
     volumes:
@@ -49,18 +55,21 @@ services:
 
   dytallix-node-3:
     build: ../../
-    container_name: dytallix-node-3
+    container_name: dyt-validator-2
     environment:
       DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: node-3
+      DYTALLIX_NODE_ID: validator-2
       DYTALLIX_PORT: 3034
       DYTALLIX_P2P_PORT: 30305
       DYTALLIX_VALIDATOR: "true"
       DYTALLIX_LOG_LEVEL: info
       DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
     ports:
       - "3034:3030"
-      - "9092:9090"
+      - "9466:9464"
       - "8085:8081"
       - "30305:30303"
     volumes:
@@ -70,45 +79,70 @@ services:
     networks:
       - dytallix_testnet
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: dytallix-prometheus
-    ports:
-      - "9093:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-    networks:
-      - dytallix_testnet
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: dytallix-grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+  dytallix-node-4:
+    build: ../../
+    container_name: dyt-validator-3
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: dytallix_testnet_admin
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: validator-3
+      DYTALLIX_PORT: 3036
+      DYTALLIX_P2P_PORT: 30306
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
+    ports:
+      - "3036:3030"
+      - "9467:9464"
+      - "8087:8081"
+      - "30306:30303"
+    volumes:
+      - node4_data:/var/lib/dytallix
+      - node4_logs:/var/log/dytallix
+      - ./secrets:/etc/dytallix/keys:ro
     networks:
       - dytallix_testnet
 
+  dytallix-node-5:
+    build: ../../
+    container_name: dyt-validator-4
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: validator-4
+      DYTALLIX_PORT: 3038
+      DYTALLIX_P2P_PORT: 30307
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+      ENABLE_OBSERVABILITY: "${ENABLE_OBSERVABILITY:-0}"
+    ports:
+      - "3038:3030"
+      - "9468:9464"
+      - "8089:8081"
+      - "30307:30303"
+    volumes:
+      - node5_data:/var/lib/dytallix
+      - node5_logs:/var/log/dytallix
+      - ./secrets:/etc/dytallix/keys:ro
+    networks:
+      - dytallix_testnet
 volumes:
   node1_data:
   node2_data:
   node3_data:
+  node4_data:
+  node5_data:
   node1_logs:
   node2_logs:
   node3_logs:
-  prometheus_data:
-  grafana_data:
+  node4_logs:
+  node5_logs:
 
 networks:
   dytallix_testnet:
     driver: bridge
+    external: false

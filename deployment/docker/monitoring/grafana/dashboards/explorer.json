@@ -1,0 +1,92 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "explorer-dashboard",
+    "title": "Dytallix Block Explorer",
+    "tags": ["dytallix", "blockchain", "explorer"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Current Block Height",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dyt_block_height",
+            "legendFormat": "Height"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {"steps": [{"color": "green", "value": null}]}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Blocks Per Second",
+        "type": "stat", 
+        "targets": [
+          {
+            "expr": "dyt_blocks_per_second",
+            "legendFormat": "BPS"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {"steps": [{"color": "green", "value": null}]}
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Block Height Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dyt_block_height",
+            "legendFormat": "Block Height"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Blocks Produced by Validator",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(dyt_blocks_produced_total[5m])",
+            "legendFormat": "Validator {{validator}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Transactions in Block Distribution",
+        "type": "histogram",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(dyt_transactions_in_block_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(dyt_transactions_in_block_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}
