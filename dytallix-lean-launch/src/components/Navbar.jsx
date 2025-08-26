@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import styles from '../styles/Navbar.module.css'
-import DarkModeToggle from './DarkModeToggle.jsx'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -52,8 +51,6 @@ const Navbar = () => {
               )
             })}
           </div>
-
-          <DarkModeToggle />
 
           <button
             className={styles.menuButton}
