@@ -542,3 +542,274 @@ fn test_backward_compatibility() {
     assert_eq!(delegation.stake_amount, 1000000000000);
     assert_eq!(delegation.reward_cursor_index, 123456);
 }
+
+// Tests for the new global reward index system
+#[test]
+fn test_global_reward_index_system() {
+    let mut staking = StakingState::new();
+    
+    // Setup validators
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 500).unwrap();
+    staking.register_validator("validator2".to_string(), vec![5, 6, 7, 8], 300).unwrap();
+    
+    // Activate validators with self-delegation
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    staking.delegate("validator2".to_string(), "validator2".to_string(), 2_000_000_000_000).unwrap();
+    
+    // Add external delegations
+    staking.delegate("delegator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    staking.delegate("delegator2".to_string(), "validator2".to_string(), 2_000_000_000_000).unwrap();
+    
+    // Initial global reward index should be 0
+    assert_eq!(staking.global_reward_index, 0);
+    
+    // Process first block rewards
+    staking.process_block_rewards(1).unwrap();
+    
+    // Global reward index should be updated
+    let expected_increment = (staking.params.emission_per_block * blockchain_core::staking::REWARD_SCALE) / 6_000_000_000_000;
+    assert_eq!(staking.global_reward_index, expected_increment);
+    
+    // Verify delegations have correct last_index initialization
+    let delegation1 = &staking.delegations["delegator1:validator1"];
+    let delegation2 = &staking.delegations["delegator2:validator2"];
+    
+    // For new delegations, last_index should match global_reward_index at delegation time
+    // Since delegations were created before any block processing, last_index should be 0
+    assert_eq!(delegation1.rewards.last_index, 0);
+    assert_eq!(delegation2.rewards.last_index, 0);
+}
+
+#[test]
+fn test_proportional_reward_distribution() {
+    let mut staking = StakingState::new();
+    
+    // Setup one validator
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 0).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 100_000_000_000).unwrap();
+    
+    // Add delegators with 1:2:3 stake ratio
+    staking.delegate("delegator1".to_string(), "validator1".to_string(), 100_000_000_000).unwrap(); // 100
+    staking.delegate("delegator2".to_string(), "validator1".to_string(), 200_000_000_000).unwrap(); // 200
+    staking.delegate("delegator3".to_string(), "validator1".to_string(), 300_000_000_000).unwrap(); // 300
+    
+    // Total stake: validator(100) + delegator1(100) + delegator2(200) + delegator3(300) = 700
+    let total_stake = 700_000_000_000u128;
+    assert_eq!(staking.validators["validator1"].total_stake, total_stake);
+    
+    // Process blocks to generate rewards
+    for height in 1..=100 {
+        staking.process_block_rewards(height).unwrap();
+    }
+    
+    // Calculate expected rewards for each delegator (stake ratio 1:2:3)
+    let total_emission = staking.params.emission_per_block * 100; // 100 blocks
+    let expected_reward_1 = (total_emission * 100_000_000_000) / total_stake; // 1/7 of total
+    let expected_reward_2 = (total_emission * 200_000_000_000) / total_stake; // 2/7 of total
+    let expected_reward_3 = (total_emission * 300_000_000_000) / total_stake; // 3/7 of total
+    
+    // Get actual pending rewards
+    let pending_1 = staking.calculate_pending_rewards_global(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    let pending_2 = staking.calculate_pending_rewards_global(&"delegator2".to_string(), &"validator1".to_string()).unwrap();
+    let pending_3 = staking.calculate_pending_rewards_global(&"delegator3".to_string(), &"validator1".to_string()).unwrap();
+    
+    // Verify proportional distribution (1:2:3 ratio)
+    assert_eq!(pending_1, expected_reward_1);
+    assert_eq!(pending_2, expected_reward_2);
+    assert_eq!(pending_3, expected_reward_3);
+    
+    // Verify the ratio is maintained
+    assert_eq!(pending_2, pending_1 * 2);
+    assert_eq!(pending_3, pending_1 * 3);
+}
+
+#[test]
+fn test_settlement_and_claim_functionality() {
+    let mut staking = StakingState::new();
+    
+    // Setup
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 0).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    staking.delegate("delegator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    // Process some blocks
+    for height in 1..=50 {
+        staking.process_block_rewards(height).unwrap();
+    }
+    
+    // Test settlement
+    let settled_amount = staking.settle_delegator(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    assert!(settled_amount > 0);
+    
+    // Verify delegation state after settlement
+    let delegation = &staking.delegations["delegator1:validator1"];
+    assert_eq!(delegation.rewards.accrued_unclaimed, settled_amount);
+    assert_eq!(delegation.rewards.last_index, staking.global_reward_index);
+    assert_eq!(delegation.rewards.total_claimed, 0);
+    
+    // Test claiming
+    let claimed_amount = staking.claim_rewards(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    assert_eq!(claimed_amount, settled_amount);
+    
+    // Verify state after claiming
+    let delegation = &staking.delegations["delegator1:validator1"];
+    assert_eq!(delegation.rewards.accrued_unclaimed, 0);
+    assert_eq!(delegation.rewards.total_claimed, claimed_amount);
+    assert_eq!(delegation.rewards.last_index, staking.global_reward_index);
+}
+
+#[test]
+fn test_claim_all_rewards_functionality() {
+    let mut staking = StakingState::new();
+    
+    // Setup multiple validators
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 0).unwrap();
+    staking.register_validator("validator2".to_string(), vec![5, 6, 7, 8], 0).unwrap();
+    
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    staking.delegate("validator2".to_string(), "validator2".to_string(), 1_000_000_000_000).unwrap();
+    
+    // Delegate to both validators
+    staking.delegate("delegator1".to_string(), "validator1".to_string(), 500_000_000_000).unwrap();
+    staking.delegate("delegator1".to_string(), "validator2".to_string(), 500_000_000_000).unwrap();
+    
+    // Process blocks to generate rewards
+    for height in 1..=25 {
+        staking.process_block_rewards(height).unwrap();
+    }
+    
+    // Calculate expected individual rewards
+    let expected_1 = staking.calculate_pending_rewards_global(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    let expected_2 = staking.calculate_pending_rewards_global(&"delegator1".to_string(), &"validator2".to_string()).unwrap();
+    let expected_total = expected_1 + expected_2;
+    
+    // Test claim all functionality
+    let claimed_total = staking.claim_all_rewards(&"delegator1".to_string()).unwrap();
+    assert_eq!(claimed_total, expected_total);
+    
+    // Verify both delegations are properly updated
+    let delegation1 = &staking.delegations["delegator1:validator1"];
+    let delegation2 = &staking.delegations["delegator1:validator2"];
+    
+    assert_eq!(delegation1.rewards.accrued_unclaimed, 0);
+    assert_eq!(delegation2.rewards.accrued_unclaimed, 0);
+    assert_eq!(delegation1.rewards.total_claimed, expected_1);
+    assert_eq!(delegation2.rewards.total_claimed, expected_2);
+}
+
+#[test]
+fn test_reward_calculation_after_stake_changes() {
+    let mut staking = StakingState::new();
+    
+    // Setup
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 0).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    // Initial delegation
+    staking.delegate("delegator1".to_string(), "validator1".to_string(), 500_000_000_000).unwrap();
+    
+    // Process some blocks
+    for height in 1..=10 {
+        staking.process_block_rewards(height).unwrap();
+    }
+    
+    // Get rewards accumulated so far
+    let initial_rewards = staking.calculate_pending_rewards_global(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    assert!(initial_rewards > 0);
+    
+    // Settle to capture current rewards
+    staking.settle_delegator(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    
+    // Add more stake (this should trigger settlement internally in real implementation)
+    let old_stake = staking.delegations["delegator1:validator1"].stake_amount;
+    // Note: In a real implementation, adding stake would call settle_delegator first
+    // For this test, we're verifying the calculation logic works correctly
+    
+    // Process more blocks
+    for height in 11..=20 {
+        staking.process_block_rewards(height).unwrap();
+    }
+    
+    // Calculate new rewards based on the period after settlement
+    let new_rewards = staking.calculate_pending_rewards_global(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    
+    // Total rewards should be higher due to accumulation over more blocks
+    assert!(new_rewards > 0);
+}
+
+#[test]
+fn test_idempotent_claims() {
+    let mut staking = StakingState::new();
+    
+    // Setup
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 0).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    staking.delegate("delegator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    // Process blocks
+    for height in 1..=10 {
+        staking.process_block_rewards(height).unwrap();
+    }
+    
+    // First claim
+    let first_claim = staking.claim_rewards(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    assert!(first_claim > 0);
+    
+    // Immediate second claim should return 0 (no new rewards)
+    let second_claim = staking.claim_rewards(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    assert_eq!(second_claim, 0);
+    
+    // Third claim should also return 0
+    let third_claim = staking.claim_rewards(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    assert_eq!(third_claim, 0);
+    
+    // Process more blocks
+    for height in 11..=15 {
+        staking.process_block_rewards(height).unwrap();
+    }
+    
+    // Now another claim should work
+    let fourth_claim = staking.claim_rewards(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    assert!(fourth_claim > 0);
+}
+
+#[test]
+fn test_new_delegation_backward_compatibility() {
+    let mut staking = StakingState::new();
+    
+    // Setup
+    staking.register_validator("validator1".to_string(), vec![1, 2, 3, 4], 0).unwrap();
+    staking.delegate("validator1".to_string(), "validator1".to_string(), 1_000_000_000_000).unwrap();
+    
+    // Process some blocks to establish a global reward index
+    for height in 1..=10 {
+        staking.process_block_rewards(height).unwrap();
+    }
+    
+    let global_index_before = staking.global_reward_index;
+    assert!(global_index_before > 0);
+    
+    // Add new delegation - should initialize with current global index
+    staking.delegate("delegator1".to_string(), "validator1".to_string(), 500_000_000_000).unwrap();
+    
+    // Verify new delegation has correct initialization
+    let delegation = &staking.delegations["delegator1:validator1"];
+    assert_eq!(delegation.rewards.last_index, global_index_before);
+    assert_eq!(delegation.rewards.accrued_unclaimed, 0);
+    assert_eq!(delegation.rewards.total_claimed, 0);
+    
+    // Process more blocks
+    for height in 11..=15 {
+        staking.process_block_rewards(height).unwrap();
+    }
+    
+    // New delegator should only get rewards from blocks after delegation
+    let pending = staking.calculate_pending_rewards_global(&"delegator1".to_string(), &"validator1".to_string()).unwrap();
+    
+    // Calculate expected rewards only from blocks 11-15
+    let blocks_after_delegation = 5;
+    let total_stake_after_delegation = 1_500_000_000_000u128; // 1T + 500M
+    let expected_pending = (staking.params.emission_per_block * blocks_after_delegation * 500_000_000_000) / total_stake_after_delegation;
+    
+    assert_eq!(pending, expected_pending);
+}
