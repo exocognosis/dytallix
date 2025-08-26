@@ -114,3 +114,8 @@ terraform.tfstate*
 .pids/
 # Allow committing audit artifacts
 !dytallix-lean-launch/artifacts/hardhat_audit/
+
+# Telemetry archives
+# Ignore generated telemetry tarballs
+# (User requested not to push dytallix-telemetry-202508231754.tgz)
+dytallix-telemetry-*.tgz
