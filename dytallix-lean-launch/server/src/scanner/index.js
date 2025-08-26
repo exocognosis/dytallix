@@ -1,5 +1,6 @@
 import { SlitherAnalyzer } from './slither.js'
 import { MythrilAnalyzer } from './mythril.js'
+import { MockSlitherAnalyzer, MockMythrilAnalyzer } from './mock.js'
 import { classifyVulnerability } from './classify.js'
 import { annotateSource } from './annotate.js'
 // Simple UUID v4 generator
@@ -19,13 +20,22 @@ function uuidv4() {
  */
 export class ContractScanner {
   constructor(options = {}) {
-    this.slither = new SlitherAnalyzer(options.slither || {})
-    this.mythril = new MythrilAnalyzer(options.mythril || {})
+    // Initialize analyzers with fallback to mocks
     this.options = {
       timeout: options.timeout || 30000, // 30 seconds default
       maxConcurrency: options.maxConcurrency || 3,
+      useMocks: options.useMocks || false,
       ...options
     }
+    
+    if (this.options.useMocks) {
+      this.slither = new MockSlitherAnalyzer()
+      this.mythril = new MockMythrilAnalyzer()
+    } else {
+      this.slither = new SlitherAnalyzer(options.slither || {})
+      this.mythril = new MythrilAnalyzer(options.mythril || {})
+    }
+    
     this.activeScanCount = 0
   }
 

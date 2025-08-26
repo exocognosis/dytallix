@@ -39,7 +39,8 @@ const BECH32_PREFIX = process.env.CHAIN_PREFIX || process.env.BECH32_PREFIX || '
 // Initialize contract scanner
 const contractScanner = new ContractScanner({
   timeout: 30000,
-  maxConcurrency: 3
+  maxConcurrency: 3,
+  useMocks: true // Use mocks for now until tools are installed
 })
 
 // Load tokenomics metadata (non-fatal if missing)
