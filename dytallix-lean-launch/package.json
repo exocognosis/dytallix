@@ -54,6 +54,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.0",
     "redis": "^5.8.2",
+    "uuid": "^11.1.0",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

@@ -6,6 +6,7 @@ import { assertNotLimited, markGranted } from './rateLimit.js'
 import { transfer, getMaxFor } from './transfer.js'
 import { register, rateLimitHitsTotal, faucetRequestsTotal } from './metrics.js'
 import { ContractScanner } from './src/scanner/index.js'
+import { AnomalyDetectionEngine } from '../backend/pulsescan/anomaly_engine.js'
 import fs from 'fs'
 
 /*
@@ -41,6 +42,56 @@ const contractScanner = new ContractScanner({
   timeout: 30000,
   maxConcurrency: 3,
   useMocks: true // Use mocks for now until tools are installed
+})
+
+// Initialize anomaly detection engine
+const anomalyEngine = new AnomalyDetectionEngine({
+  configPath: null, // Skip YAML loading for now
+  storage: {
+    type: 'memory',
+    maxPoints: 5000, // Reduced for demo
+    retentionMs: 4 * 60 * 60 * 1000 // 4 hours
+  },
+  detectors: {
+    tx_spike: {
+      enabled: true,
+      windowSize: 60, // 1 minute window for demo
+      zThreshold: 3.0, // Lower threshold for demo
+      minRate: 5
+    },
+    validator_downtime: {
+      enabled: true,
+      missThreshold: 2, // Lower threshold for demo
+      criticalMissThreshold: 5
+    },
+    double_sign: {
+      enabled: true
+    }
+  },
+  collectors: {
+    mempool: {
+      enabled: true,
+      pollInterval: 2000 // 2 seconds for demo
+    },
+    block: {
+      enabled: true,
+      pollInterval: 6000 // 6 seconds for demo
+    }
+  },
+  alerts: {
+    minSeverity: 'medium',
+    webhook: {
+      enabled: false
+    },
+    slack: {
+      enabled: false
+    }
+  }
+})
+
+// Start anomaly detection engine
+anomalyEngine.start().catch(err => {
+  logError('Failed to start anomaly detection engine', err)
 })
 
 // Load tokenomics metadata (non-fatal if missing)
@@ -417,12 +468,109 @@ app.post('/api/ai/anomaly', (req,res,next)=>{ try { const ip=req.socket.remoteAd
 app.get('/anomaly', (req, res, next) => {
   try {
     const timestamp = new Date().toISOString()
-    const anomalies = [] // Empty for normal operations
+    
+    // Extract query parameters
+    const since = req.query.since ? parseInt(req.query.since) : undefined
+    const limit = req.query.limit ? parseInt(req.query.limit) : 100
+    const type = req.query.type
+    const severity = req.query.severity
+    
+    // Get anomalies from detection engine
+    const anomalies = anomalyEngine.getRecentAnomalies({
+      since,
+      limit,
+      type,
+      severity
+    })
+    
+    // Determine overall status
+    const criticalCount = anomalies.filter(a => a.severity === 'critical').length
+    const highCount = anomalies.filter(a => a.severity === 'high').length
+    
+    let status = 'healthy'
+    if (criticalCount > 0) {
+      status = 'critical'
+    } else if (highCount > 0) {
+      status = 'warning'
+    } else if (anomalies.length > 0) {
+      status = 'degraded'
+    }
+    
     res.json({
       ok: true,
       timestamp,
       anomalies,
-      status: 'healthy'
+      status
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// POST endpoint to force anomaly detection
+app.post('/api/anomaly/run', (req, res, next) => {
+  try {
+    // Trigger force detection
+    anomalyEngine.forceDetection()
+      .then(anomalies => {
+        res.json({
+          ok: true,
+          timestamp: new Date().toISOString(),
+          triggered: true,
+          anomalies: anomalies.length,
+          message: `Force detection completed: ${anomalies.length} anomalies found`
+        })
+      })
+      .catch(err => {
+        res.status(500).json({
+          ok: false,
+          error: 'DETECTION_FAILED',
+          message: err.message
+        })
+      })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// Anomaly engine status endpoint
+app.get('/api/anomaly/status', (req, res, next) => {
+  try {
+    const stats = anomalyEngine.getStats()
+    res.json({
+      ok: true,
+      timestamp: new Date().toISOString(),
+      stats
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// Test alerting system
+app.post('/api/anomaly/test-alerts', async (req, res, next) => {
+  try {
+    const results = await anomalyEngine.testAlerting()
+    res.json({
+      ok: true,
+      timestamp: new Date().toISOString(),
+      results,
+      message: 'Alerting test completed'
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// Send test alert
+app.post('/api/anomaly/send-test-alert', async (req, res, next) => {
+  try {
+    const results = await anomalyEngine.sendTestAlert()
+    res.json({
+      ok: true,
+      timestamp: new Date().toISOString(),
+      results,
+      message: 'Test alert sent'
     })
   } catch (e) {
     next(e)
