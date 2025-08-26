@@ -10,7 +10,7 @@ import ReceiveModal from '../components/wallet/ReceiveModal.jsx'
 import ActivityFeed from '../components/ActivityFeed.jsx'
 import SettingsCard from '../components/wallet/SettingsCard.jsx'
 import Unlock from '../components/Auth/Unlock.jsx'
-import { TOKENS as TOKENOMICS } from '../tokenomics'
+import { TOKENS as TOKENOMICS } from '../tokenomics.js'
 
 // Helper: sleep
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms))
