@@ -95,6 +95,14 @@ coverage/
 .coverage
 htmlcov/
 
+# Stability soak test artifacts (generated during test runs)
+artifacts/stability.log
+reports/plots/*.png
+reports/test-*.md
+
+# Keep sample files for reference
+!artifacts/stability.log.sample
+
 # Documentation build
 docs/_build/
 docs/site/tests/stress_test_report_*.json

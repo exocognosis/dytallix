@@ -1,0 +1,43 @@
+name: Stability Soak (Short)
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # nightly UTC
+  workflow_dispatch: {}
+
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build image
+        run: docker build -t dytallix:testnet .
+      - name: Run 60m soak
+        env:
+          ENABLE_OBSERVABILITY: 0
+          SOAK_DURATION_MINUTES: 60
+        run: |
+          chmod +x deploy-testnet.sh scripts/collect_stability_metrics.sh scripts/generate_stability_report.py || true
+          ./deploy-testnet.sh soak 60 || true
+      - name: Basic success check
+        run: |
+          echo "Parsing stability.log..."
+          total_lines=$(grep -c '"heights"' artifacts/stability.log || echo 0)
+          if [ $total_lines -lt 3 ]; then echo "Insufficient log lines"; exit 1; fi
+          # crude missed block ratio check
+          missed=$(awk -F'missed":\[' '{print $2}' artifacts/stability.log | awk -F']' '{print $1}' | tr ',' '\n' | awk '{s+=$1} END{print s+0}')
+          produced=$(awk -F'heights":\[' '{print $2}' artifacts/stability.log | awk -F']' '{print $1}' | head -n 1 | tr ',' '\n' | wc -l)
+          if [ ${missed:-0} -gt 5 ]; then echo "Too many missed blocks: $missed"; exit 1; fi
+          echo "Missed blocks: $missed (PASS)"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stability-soak-results
+          path: |
+            artifacts/stability.log
+            reports/stability-report.md
+            reports/plots
+          if-no-files-found: ignore

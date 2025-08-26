@@ -11,6 +11,8 @@ DEPLOYMENT_DIR="./deployment"
 SECRETS_DIR="./secrets"
 BACKUP_DIR="./backups"
 LOG_DIR="./logs"
+ARTIFACTS_DIR="./artifacts"
+REPORTS_DIR="./reports"
 
 # Colors for output
 RED='\033[0;31m'
@@ -44,6 +46,9 @@ setup_directories() {
     mkdir -p "$SECRETS_DIR"
     mkdir -p "$BACKUP_DIR"
     mkdir -p "$LOG_DIR"
+    mkdir -p "$ARTIFACTS_DIR"
+    mkdir -p "$REPORTS_DIR"
+    mkdir -p "$REPORTS_DIR/plots"
     mkdir -p "$DEPLOYMENT_DIR/kubernetes"
     mkdir -p "$DEPLOYMENT_DIR/docker"
     mkdir -p "$DEPLOYMENT_DIR/monitoring"
@@ -663,12 +668,168 @@ cleanup() {
     if [ -d "$DEPLOYMENT_DIR/docker" ]; then
         cd "$DEPLOYMENT_DIR/docker"
         docker-compose -f docker-compose.testnet.yml down -v 2>/dev/null || true
+        docker compose -f docker-compose.stability.yml down -v 2>/dev/null || true
         cd - > /dev/null
     else
         log_warn "Docker deployment directory not found, skipping docker cleanup"
     fi
     
     log_info "Cleanup completed"
+}
+
+# --- NEW: generate docker compose for stability soak ---
+generate_stability_compose(){
+  log_step "Generating stability (soak) docker-compose file..."
+  mkdir -p "$DEPLOYMENT_DIR/docker"
+  cat > "$DEPLOYMENT_DIR/docker/docker-compose.stability.yml" <<'EOF'
+services:
+  dyt-stability-validator-0:
+    image: dytallix:testnet
+    container_name: dyt-stability-validator-0
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: stability-validator-0
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+    ports:
+      - "3100:3030"
+      - "9564:9464"
+    networks: [dytallix_stability]
+  dyt-stability-validator-1:
+    image: dytallix:testnet
+    container_name: dyt-stability-validator-1
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: stability-validator-1
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+    ports:
+      - "3102:3030"
+      - "9565:9464"
+    networks: [dytallix_stability]
+  dyt-stability-validator-2:
+    image: dytallix:testnet
+    container_name: dyt-stability-validator-2
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: stability-validator-2
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+    ports:
+      - "3104:3030"
+      - "9566:9464"
+    networks: [dytallix_stability]
+  dyt-stability-rpc-0:
+    image: dytallix:testnet
+    container_name: dyt-stability-rpc-0
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: stability-rpc-0
+      DYTALLIX_VALIDATOR: "false"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+    ports:
+      - "3110:3030"
+      - "9570:9464"
+    networks: [dytallix_stability]
+networks:
+  dytallix_stability: { driver: bridge }
+EOF
+  log_info "Stability compose created at $DEPLOYMENT_DIR/docker/docker-compose.stability.yml"
+}
+
+# --- NEW: failure drill ---
+failure_drill(){
+  local outage_seconds=${FAILURE_OUTAGE_SECONDS:-120}
+  log_step "Initiating failure drill: stopping validator-1 for ${outage_seconds}s"
+  if docker ps --format '{{.Names}}' | grep -q dyt-stability-validator-1; then
+    docker stop dyt-stability-validator-1 || log_warn "Could not stop validator-1"
+    sleep "$outage_seconds"
+    docker start dyt-stability-validator-1 || log_warn "Could not restart validator-1"
+    log_info "Validator-1 restarted after simulated outage"
+  else
+    log_warn "Validator-1 container not found; skipping failure drill"
+  fi
+
+  if [[ "${ENABLE_OBSERVABILITY:-0}" == "1" ]]; then
+    if curl -s "http://localhost:9090/api/v1/alerts" | grep -qi 'Validator'; then
+      log_info "Alert detected in Prometheus API response (contains 'Validator')."
+    else
+      log_warn "No validator-related alert detected (ensure alert rules are configured)."
+    fi
+  else
+    log_info "Observability disabled; alert confirmation skipped."
+  fi
+}
+
+# --- NEW: run stability soak ---
+run_stability_soak(){
+  local duration_minutes=${1:-${SOAK_DURATION_MINUTES:-2880}} # default 48h
+  log_step "Starting stability soak test for ${duration_minutes} minutes"
+  mkdir -p "$ARTIFACTS_DIR" "$REPORTS_DIR" "$REPORTS_DIR/plots"
+  generate_stability_compose
+
+  # Start environment
+  pushd "$DEPLOYMENT_DIR/docker" >/dev/null
+  docker compose -f docker-compose.stability.yml up -d
+  popd >/dev/null
+
+  # Start metrics collector (tmux if available)
+  if command -v tmux >/dev/null 2>&1; then
+    tmux new-session -d -s dyt_stability "bash scripts/collect_stability_metrics.sh $duration_minutes" || log_warn "Failed to start tmux session"
+  else
+    nohup bash scripts/collect_stability_metrics.sh "$duration_minutes" >> "$ARTIFACTS_DIR/stability.log" 2>&1 &
+    log_info "Metrics collector started in background (PID $!)."
+  fi
+
+  # Convert duration to seconds, handling decimal values
+  if [[ "$duration_minutes" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    duration_seconds=$(python3 -c "print(int(${duration_minutes} * 60))")
+    half_minutes=$(python3 -c "print(${duration_minutes} / 2)")
+  else
+    duration_seconds=$((duration_minutes * 60))
+    half_minutes=$((duration_minutes / 2))
+  fi
+  local end_time=$(( $(date +%s) + duration_seconds ))
+  local drill_done=0
+
+  while true; do
+    local now=$(date +%s)
+    if (( now >= end_time )); then
+      log_info "Soak duration complete."; break
+    fi
+    local elapsed_seconds=$(($(date +%s) - (end_time - duration_seconds)))
+    local elapsed_minutes=$(python3 -c "print(${elapsed_seconds} / 60)" 2>/dev/null || echo "0")
+    if (( drill_done == 0 )) && python3 -c "exit(0 if ${elapsed_minutes} >= ${half_minutes} else 1)" 2>/dev/null; then
+      failure_drill
+      drill_done=1
+    fi
+    sleep 30
+  done
+
+  # Generate report
+  if command -v python3 >/dev/null 2>&1; then
+    if python3 scripts/generate_stability_report.py "$ARTIFACTS_DIR/stability.log" "$REPORTS_DIR/stability-report.md"; then
+      log_info "Stability report generated at $REPORTS_DIR/stability-report.md"
+    else
+      log_warn "Report generation script failed; see logs."
+    fi
+  else
+    log_warn "python3 not found; cannot generate graphical report."
+  fi
+
+  log_info "Stability soak test completed."
 }
 
 # Main deployment function
@@ -696,6 +857,10 @@ main() {
         "perf")
             run_performance_tests
             ;;
+        "soak")
+            shift || true
+            run_stability_soak "${1:-}"
+            ;;
         "full")
             setup_directories
             generate_deployment_configs
@@ -709,16 +874,17 @@ main() {
             cleanup
             ;;
         *)
-            echo "Usage: $0 [setup|build|test|monitor|perf|full|clean]"
+            echo "Usage: $0 [setup|build|test|monitor|perf|soak [minutes]|full|clean]"
             echo ""
             echo "Commands:"
-            echo "  setup   - Setup directories and configurations"
-            echo "  build   - Build Docker images"
-            echo "  test    - Run integration tests"
-            echo "  monitor - Setup monitoring"
-            echo "  perf    - Run performance tests"
-            echo "  full    - Run complete deployment (default)"
-            echo "  clean   - Cleanup test deployment"
+            echo "  setup         - Setup directories and configurations"
+            echo "  build         - Build Docker images"
+            echo "  test          - Run integration tests"
+            echo "  monitor       - Setup monitoring"
+            echo "  perf          - Run performance tests"
+            echo "  soak [minutes]- Run stability soak test (default 2880 min = 48h)"
+            echo "  full          - Run complete deployment (default)"
+            echo "  clean         - Cleanup test deployment"
             exit 1
             ;;
     esac

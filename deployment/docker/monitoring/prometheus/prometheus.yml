@@ -1,0 +1,45 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  - job_name: 'dyt-validator'
+    static_configs:
+      - targets:
+        - 'dyt-validator-0:9464'
+        - 'dyt-validator-1:9465'
+        - 'dyt-validator-2:9466'
+        - 'dyt-validator-3:9467'
+        - 'dyt-validator-4:9468'
+    scrape_interval: 15s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: ${__param_target}
+      - source_labels: [__meta_docker_container_name]
+        target_label: validator
+      - source_labels: [__address__]
+        regex: '.*:(\d+)'
+        target_label: validator_index
+        replacement: '${1}'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
