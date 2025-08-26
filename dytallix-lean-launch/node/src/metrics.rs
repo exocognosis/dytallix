@@ -130,7 +130,7 @@ impl Default for MetricsConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            listen_addr: "0.0.0.0:9464".parse().unwrap(),
+            listen_addr: "0.0.0.0:26680".parse().unwrap(),
         }
     }
 }
@@ -146,6 +146,9 @@ pub struct Metrics {
     pub dyt_blocks_per_second: Gauge,
     pub dyt_transactions_in_block: Histogram,
     pub dyt_tps: Gauge,
+    pub dyt_block_time_seconds: Histogram,
+    pub dyt_block_last_time_seconds: Gauge,
+    pub dyt_txs_processed_total: IntCounter,
     
     // Legacy block metrics
     pub total_blocks: IntCounter,
@@ -177,6 +180,7 @@ pub struct Metrics {
     
     // Oracle metrics - new dyt_ prefixed
     pub dyt_oracle_update_latency_seconds: Histogram,
+    pub dyt_oracle_request_latency_seconds: Histogram,
     
     // Oracle metrics - enhanced
     pub oracle_submit_total: prometheus::IntCounterVec,
@@ -188,6 +192,7 @@ pub struct Metrics {
     
     // Emission metrics - new dyt_ prefixed
     pub dyt_emission_pool_amount: prometheus::GaugeVec,
+    pub dyt_emission_pool_balance: prometheus::GaugeVec,
     
     // Validator metrics - new dyt_ prefixed
     pub dyt_validator_missed_blocks_total: prometheus::IntCounterVec,
@@ -238,6 +243,24 @@ impl Metrics {
             "Transactions per second - rolling 1m average"
         ))?;
         registry.register(Box::new(dyt_tps.clone()))?;
+        
+        let dyt_block_time_seconds = Histogram::with_opts(HistogramOpts::new(
+            "dyt_block_time_seconds",
+            "Block processing time in seconds"
+        ).buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]))?;
+        registry.register(Box::new(dyt_block_time_seconds.clone()))?;
+        
+        let dyt_block_last_time_seconds = Gauge::with_opts(Opts::new(
+            "dyt_block_last_time_seconds",
+            "Unix timestamp of last block"
+        ))?;
+        registry.register(Box::new(dyt_block_last_time_seconds.clone()))?;
+        
+        let dyt_txs_processed_total = IntCounter::with_opts(Opts::new(
+            "dyt_txs_processed_total",
+            "Total number of transactions processed"
+        ))?;
+        registry.register(Box::new(dyt_txs_processed_total.clone()))?;
         
         let block_processing_time = Histogram::with_opts(HistogramOpts::new(
             "dytallix_block_processing_seconds",
@@ -353,6 +376,12 @@ impl Metrics {
         ))?;
         registry.register(Box::new(dyt_oracle_update_latency_seconds.clone()))?;
         
+        let dyt_oracle_request_latency_seconds = Histogram::with_opts(HistogramOpts::new(
+            "dyt_oracle_request_latency_seconds",
+            "Oracle request latency in seconds"
+        ).buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0]))?;
+        registry.register(Box::new(dyt_oracle_request_latency_seconds.clone()))?;
+        
         // Oracle metrics - enhanced with specific requirements
         let oracle_submit_total = prometheus::IntCounterVec::new(
             Opts::new(
@@ -394,6 +423,15 @@ impl Metrics {
             &["pool_type"]
         )?;
         registry.register(Box::new(dyt_emission_pool_amount.clone()))?;
+        
+        let dyt_emission_pool_balance = prometheus::GaugeVec::new(
+            Opts::new(
+                "dyt_emission_pool_balance",
+                "Current balance in emission pools by pool"
+            ),
+            &["pool"]
+        )?;
+        registry.register(Box::new(dyt_emission_pool_balance.clone()))?;
         
         // Validator metrics - using dyt_ prefix
         let dyt_validator_missed_blocks_total = prometheus::IntCounterVec::new(
@@ -439,10 +477,15 @@ impl Metrics {
             dyt_blocks_per_second,
             dyt_transactions_in_block,
             dyt_tps,
+            dyt_block_time_seconds,
+            dyt_block_last_time_seconds,
+            dyt_txs_processed_total,
             dyt_mempool_size,
             dyt_gas_used_per_block,
             dyt_oracle_update_latency_seconds,
+            dyt_oracle_request_latency_seconds,
             dyt_emission_pool_amount,
+            dyt_emission_pool_balance,
             dyt_validator_missed_blocks_total,
             dyt_validator_voting_power,
             // Legacy metrics

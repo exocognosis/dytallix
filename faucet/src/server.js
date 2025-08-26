@@ -10,6 +10,57 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { validateRequest } = require('./middleware/validation');
 const rateLimitMiddleware = require('./middleware/rateLimit');
 
+// Metrics setup
+let metricsEnabled = false;
+let metricsApp = null;
+let prometheus = null;
+let faucetMetrics = {};
+
+if (process.env.ENABLE_METRICS === 'true') {
+  metricsEnabled = true;
+  prometheus = require('prom-client');
+  
+  // Create metrics registry
+  const register = new prometheus.Registry();
+  prometheus.collectDefaultMetrics({ register });
+  
+  // Faucet-specific metrics with dyt_ prefix
+  faucetMetrics = {
+    requestsTotal: new prometheus.Counter({
+      name: 'dyt_faucet_requests_total',
+      help: 'Total number of faucet requests',
+      labelNames: ['status', 'token_type'],
+      registers: [register]
+    }),
+    
+    txLatency: new prometheus.Histogram({
+      name: 'dyt_faucet_tx_latency_seconds',
+      help: 'Faucet transaction processing latency',
+      buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
+      registers: [register]
+    }),
+    
+    apiRequestDuration: new prometheus.Histogram({
+      name: 'dyt_api_request_duration_seconds',
+      help: 'API request duration',
+      labelNames: ['route', 'method', 'status'],
+      buckets: [0.01, 0.05, 0.1, 0.5, 1, 5],
+      registers: [register]
+    })
+  };
+  
+  // Create separate metrics server
+  metricsApp = express();
+  metricsApp.get('/metrics', async (req, res) => {
+    try {
+      res.set('Content-Type', register.contentType);
+      res.end(await register.metrics());
+    } catch (err) {
+      res.status(500).end(err);
+    }
+  });
+}
+
 // Load environment variables
 dotenv.config();
 
@@ -53,13 +104,26 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-// Request logging middleware
+// Request logging and metrics middleware
 app.use((req, res, next) => {
+  const start = Date.now();
+  
   logger.info(`${req.method} ${req.path}`, {
     ip: req.ip,
     userAgent: req.get('User-Agent'),
     timestamp: new Date().toISOString()
   });
+  
+  // Metrics collection
+  if (metricsEnabled) {
+    res.on('finish', () => {
+      const duration = (Date.now() - start) / 1000;
+      faucetMetrics.apiRequestDuration
+        .labels(req.route?.path || req.path, req.method, res.statusCode.toString())
+        .observe(duration);
+    });
+  }
+  
   next();
 });
 
@@ -133,5 +197,18 @@ app.listen(PORT, () => {
     chainId: process.env.CHAIN_ID || 'dytallix-testnet-1'
   });
 });
+
+// Start metrics server if enabled
+if (metricsEnabled && metricsApp) {
+  const metricsPort = process.env.METRICS_PORT || 9101;
+  metricsApp.listen(metricsPort, () => {
+    logger.info(`Faucet metrics server running on port ${metricsPort}`);
+  });
+}
+
+// Export metrics for use in controllers
+if (metricsEnabled) {
+  module.exports.metrics = faucetMetrics;
+}
 
 module.exports = app;

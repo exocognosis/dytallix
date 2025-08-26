@@ -9,6 +9,58 @@ const dotenv = require('dotenv');
 const explorerController = require('./controllers/explorerController');
 const blockchainService = require('./services/blockchainService');
 
+// Metrics setup
+let metricsEnabled = false;
+let metricsApp = null;
+let prometheus = null;
+let explorerMetrics = {};
+
+if (process.env.ENABLE_METRICS === 'true') {
+  metricsEnabled = true;
+  prometheus = require('prom-client');
+  
+  // Create metrics registry
+  const register = new prometheus.Registry();
+  prometheus.collectDefaultMetrics({ register });
+  
+  // Explorer-specific metrics with dyt_ prefix
+  explorerMetrics = {
+    apiRequestDuration: new prometheus.Histogram({
+      name: 'dyt_api_request_duration_seconds',
+      help: 'API request duration',
+      labelNames: ['route', 'method', 'status'],
+      buckets: [0.01, 0.05, 0.1, 0.5, 1, 5],
+      registers: [register]
+    }),
+    
+    oracleRequestLatency: new prometheus.Histogram({
+      name: 'dyt_oracle_request_latency_seconds',
+      help: 'Oracle request latency',
+      labelNames: ['source'],
+      buckets: [0.1, 0.5, 1, 2, 5, 10],
+      registers: [register]
+    }),
+    
+    explorerRequestsTotal: new prometheus.Counter({
+      name: 'dyt_explorer_requests_total',
+      help: 'Total explorer requests',
+      labelNames: ['endpoint', 'status'],
+      registers: [register]
+    })
+  };
+  
+  // Create separate metrics server
+  metricsApp = express();
+  metricsApp.get('/metrics', async (req, res) => {
+    try {
+      res.set('Content-Type', register.contentType);
+      res.end(await register.metrics());
+    } catch (err) {
+      res.status(500).end(err);
+    }
+  });
+}
+
 // Load environment variables
 dotenv.config();
 
@@ -61,12 +113,29 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Request logging
+// Request logging and metrics middleware
 app.use((req, res, next) => {
+  const start = Date.now();
+  
   logger.info(`${req.method} ${req.path}`, {
     ip: req.ip,
     userAgent: req.get('User-Agent')
   });
+  
+  // Metrics collection
+  if (metricsEnabled) {
+    res.on('finish', () => {
+      const duration = (Date.now() - start) / 1000;
+      explorerMetrics.apiRequestDuration
+        .labels(req.route?.path || req.path, req.method, res.statusCode.toString())
+        .observe(duration);
+        
+      explorerMetrics.explorerRequestsTotal
+        .labels(req.path, res.statusCode.toString())
+        .inc();
+    });
+  }
+  
   next();
 });
 
@@ -151,9 +220,22 @@ blockchainService.initialize().then(() => {
       environment: process.env.NODE_ENV || 'development'
     });
   });
+  
+  // Start metrics server if enabled
+  if (metricsEnabled && metricsApp) {
+    const metricsPort = process.env.METRICS_PORT || 9102;
+    metricsApp.listen(metricsPort, () => {
+      logger.info(`Explorer metrics server running on port ${metricsPort}`);
+    });
+  }
 }).catch(err => {
   logger.error('Failed to initialize blockchain service', { error: err.message });
   process.exit(1);
 });
+
+// Export metrics for use in controllers and services
+if (metricsEnabled) {
+  module.exports.metrics = explorerMetrics;
+}
 
 module.exports = app;

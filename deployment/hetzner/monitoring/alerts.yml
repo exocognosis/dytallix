@@ -1,0 +1,74 @@
+groups:
+  - name: dytallix_blockchain_alerts
+    rules:
+      - alert: BlockProductionStall
+        expr: time() - max(dyt_block_last_time_seconds) > 30
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dytallix blockchain has stopped producing blocks"
+          description: "No new blocks have been produced for more than 30 seconds. Last block time: {{ $value }}"
+
+      - alert: ValidatorOffline
+        expr: increase(dyt_validator_missed_blocks_total[60s]) > 0
+        for: 60s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Validator {{ $labels.validator }} may be offline"
+          description: "Validator {{ $labels.validator }} has missed blocks in the last 60 seconds"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_Active_bytes / node_memory_MemTotal_bytes) > 0.85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% for more than 2 minutes. Current usage: {{ $value | humanizePercentage }}"
+
+      - alert: OracleLatencyHigh
+        expr: histogram_quantile(0.95, rate(dyt_oracle_request_latency_seconds_bucket[5m])) > 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Oracle request latency is high"
+          description: "95th percentile oracle latency is {{ $value }}s, which is above the 1s threshold"
+
+      - alert: MempoolSizeHigh
+        expr: dyt_mempool_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mempool size is high"
+          description: "Mempool has {{ $value }} pending transactions, which may indicate network congestion"
+
+      - alert: LowBlockProductionRate
+        expr: rate(dyt_blocks_produced_total[5m]) < 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Block production rate is low"
+          description: "Block production rate is {{ $value }} blocks/second, which is below expected"
+
+      - alert: FaucetRequestFailureHigh
+        expr: rate(dyt_faucet_requests_total{status="error"}[5m]) / rate(dyt_faucet_requests_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High faucet request failure rate"
+          description: "Faucet error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+      - alert: APILatencyHigh
+        expr: histogram_quantile(0.95, rate(dyt_api_request_duration_seconds_bucket[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API request latency is high"
+          description: "95th percentile API latency is {{ $value }}s for {{ $labels.route }}"
