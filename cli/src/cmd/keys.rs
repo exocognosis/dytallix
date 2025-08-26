@@ -24,7 +24,14 @@ pub enum KeyAction {
 
 #[derive(clap::ValueEnum, Debug, Clone)]
 pub enum AlgorithmChoice {
+    /// Use Post-Quantum Cryptography (default: Dilithium5)
     Pqc,
+    /// Use Dilithium5 algorithm specifically
+    Dilithium5,
+    /// Use Falcon1024 algorithm specifically  
+    Falcon1024,
+    /// Use SPHINCS+ algorithm specifically
+    SphincsSha256128s,
     #[clap(hide = true)] // Hide legacy option but still allow it
     Secp256k1,
 }
@@ -47,7 +54,10 @@ pub async fn handle(cli_home: &str, fmt: OutputFormat, kc: KeysCmd) -> Result<()
                 ("secp256k1", true)
             } else {
                 match algo {
-                    AlgorithmChoice::Pqc => ("pqc", false),
+                    AlgorithmChoice::Pqc => ("dilithium5", false), // Default PQC to Dilithium5
+                    AlgorithmChoice::Dilithium5 => ("dilithium5", false),
+                    AlgorithmChoice::Falcon1024 => ("falcon1024", false),
+                    AlgorithmChoice::SphincsSha256128s => ("sphincssha256128s", false),
                     AlgorithmChoice::Secp256k1 => {
                         warn!("Using deprecated secp256k1 algorithm");
                         ("secp256k1", true)

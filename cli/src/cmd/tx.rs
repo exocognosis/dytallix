@@ -62,7 +62,21 @@ pub async fn handle_transfer(rpc_url: &str, chain_id: &str, _home: &str, c: Tran
     
     let stx = SignedTx::sign(tx, &sk_clone, &pk_clone, gas_limit, c.gas_price)?;
     let br = client.submit(&stx).await?;
-    if fmt.is_json() { print_json(&serde_json::json!({"hash": br.hash, "status": br.status}))?; } else { println!("hash={} status={}", br.hash, br.status); }
+    
+    // Get algorithm information from keystore
+    let algorithm = keystore::with_secret(&c.from, |u| Ok(u.algorithm.clone()))?;
+    
+    if fmt.is_json() { 
+        print_json(&serde_json::json!({
+            "hash": br.hash, 
+            "status": br.status,
+            "algorithm": algorithm,
+            "gas_limit": gas_limit,
+            "gas_price": c.gas_price
+        }))?; 
+    } else { 
+        println!("hash={} status={} algorithm={}", br.hash, br.status, algorithm.cyan()); 
+    }
     Ok(())
 }
 

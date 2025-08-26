@@ -4,6 +4,7 @@
 //! existing Dytallix components.
 
 use crate::secrets::{SecretManager, SecretResult, SecretError};
+use crate::policy::SignaturePolicy;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn, debug};
 
@@ -36,6 +37,9 @@ pub struct NodeConfig {
     // PQC configuration
     pub pqc_keys_path: String,
     pub pqc_algorithm: String,
+    
+    // Signature Policy configuration
+    pub signature_policy: SignaturePolicy,
 }
 
 impl Default for NodeConfig {
@@ -56,6 +60,7 @@ impl Default for NodeConfig {
             audit_logging: true,
             pqc_keys_path: "./pqc_keys.json".to_string(),
             pqc_algorithm: "Dilithium5".to_string(),
+            signature_policy: SignaturePolicy::default(),
         }
     }
 }
@@ -181,6 +186,37 @@ impl NodeConfig {
         config.pqc_algorithm = secret_manager
             .get_secret_or_default("PREFERRED_SIGNATURE_ALGORITHM", &config.pqc_algorithm)
             .await;
+        
+        // Signature Policy configuration
+        if let Ok(reject_legacy_str) = secret_manager.get_secret("SIGNATURE_POLICY_REJECT_LEGACY").await {
+            config.signature_policy.reject_legacy = reject_legacy_str.parse::<bool>().unwrap_or(true);
+        }
+        
+        if let Ok(enforce_mempool_str) = secret_manager.get_secret("SIGNATURE_POLICY_ENFORCE_MEMPOOL").await {
+            config.signature_policy.enforce_at_mempool = enforce_mempool_str.parse::<bool>().unwrap_or(true);
+        }
+        
+        if let Ok(enforce_consensus_str) = secret_manager.get_secret("SIGNATURE_POLICY_ENFORCE_CONSENSUS").await {
+            config.signature_policy.enforce_at_consensus = enforce_consensus_str.parse::<bool>().unwrap_or(true);
+        }
+        
+        // Parse allowed algorithms from comma-separated list
+        if let Ok(allowed_algs_str) = secret_manager.get_secret("SIGNATURE_POLICY_ALLOWED_ALGORITHMS").await {
+            use dytallix_pqc::SignatureAlgorithm;
+            use std::collections::HashSet;
+            
+            let mut allowed = HashSet::new();
+            for alg_name in allowed_algs_str.split(',') {
+                let alg_name = alg_name.trim();
+                match config.signature_policy.validate_algorithm_name(alg_name) {
+                    Ok(alg) => { allowed.insert(alg); },
+                    Err(e) => warn!("Invalid algorithm in config '{}': {}", alg_name, e),
+                }
+            }
+            if !allowed.is_empty() {
+                config.signature_policy.allowed_algorithms = allowed;
+            }
+        }
         
         info!("Node configuration loaded successfully");
         debug!("Configuration: {:?}", config);

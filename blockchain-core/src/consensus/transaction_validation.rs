@@ -19,6 +19,7 @@ use crate::consensus::high_risk_queue::{HighRiskQueue, ReviewPriority};
 use crate::consensus::performance_optimizer::PerformanceOptimizer;
 use crate::consensus::types::AIServiceType;
 use crate::consensus::SignedAIOracleResponse;
+use crate::policy::{PolicyManager, PolicyError};
 use crate::types::{AIRequestTransaction, Transaction, TransferTransaction};
 
 /// Transaction validation result
@@ -109,6 +110,7 @@ pub struct TransactionValidator {
     high_risk_queue: Arc<HighRiskQueue>,
     audit_trail: Arc<AuditTrailManager>,
     performance_optimizer: Arc<PerformanceOptimizer>,
+    policy_manager: Arc<PolicyManager>,
 }
 
 impl TransactionValidator {
@@ -119,6 +121,7 @@ impl TransactionValidator {
         high_risk_queue: Arc<HighRiskQueue>,
         audit_trail: Arc<AuditTrailManager>,
         performance_optimizer: Arc<PerformanceOptimizer>,
+        policy_manager: Arc<PolicyManager>,
     ) -> Self {
         Self {
             ai_client,
@@ -126,6 +129,7 @@ impl TransactionValidator {
             high_risk_queue,
             audit_trail,
             performance_optimizer,
+            policy_manager,
         }
     }
 
@@ -304,6 +308,12 @@ impl TransactionValidator {
 
     /// Basic transaction validation without AI
     fn validate_basic_transaction(&self, tx: &Transaction) -> Result<()> {
+        // 1. Signature policy validation (if enforcement is enabled)
+        if self.policy_manager.policy().should_enforce_at_consensus() {
+            self.validate_signature_policy(tx)?;
+        }
+        
+        // 2. Transaction type-specific validation
         match tx {
             Transaction::Transfer(transfer_tx) => self.validate_transfer_transaction(transfer_tx),
             Transaction::AIRequest(ai_tx) => self.validate_ai_request_transaction(ai_tx),
@@ -358,6 +368,19 @@ impl TransactionValidator {
         }
 
         // Additional AI request validation logic
+        Ok(())
+    }
+    
+    /// Validate transaction signature algorithm against policy
+    fn validate_signature_policy(&self, tx: &Transaction) -> Result<()> {
+        // This will need to be implemented based on the actual transaction type structure
+        // For now, assume all transactions use Dilithium5 (this should be extracted from actual signature)
+        let signature_algorithm = dytallix_pqc::SignatureAlgorithm::Dilithium5;
+        
+        self.policy_manager
+            .validate_transaction_algorithm(&signature_algorithm)
+            .map_err(|e| anyhow!("Signature policy violation: {}", e))?;
+        
         Ok(())
     }
 
