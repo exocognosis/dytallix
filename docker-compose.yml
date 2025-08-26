@@ -6,6 +6,7 @@ services:
     container_name: dytallix-faucet
     ports:
       - "3001:3001"
+      - "9101:9101"  # Metrics port
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -17,6 +18,8 @@ services:
       - RATE_LIMIT_MAX_REQUESTS=5
       - IP_COOLDOWN_MS=1800000
       - CORS_ORIGIN=http://localhost:3002,http://localhost:3000
+      - ENABLE_METRICS=true
+      - METRICS_PORT=9101
     volumes:
       - faucet_logs:/app/logs
     restart: unless-stopped
@@ -32,6 +35,7 @@ services:
     container_name: dytallix-explorer
     ports:
       - "3002:3002"
+      - "9102:9102"  # Metrics port
     environment:
       - NODE_ENV=production
       - PORT=3002
@@ -39,6 +43,8 @@ services:
       - RPC_ENDPOINT=http://dytallix-node:26657
       - GRPC_ENDPOINT=http://dytallix-node:9090
       - CORS_ORIGIN=http://localhost:3001,http://localhost:3000
+      - ENABLE_METRICS=true
+      - METRICS_PORT=9102
     volumes:
       - explorer_logs:/app/logs
     restart: unless-stopped
@@ -62,9 +68,84 @@ services:
       - explorer
     restart: unless-stopped
 
+  # Observability Stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: dytallix-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dytallix-grafana
+    ports:
+      - "3003:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=dytallix123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: dytallix-node-exporter
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:latest
+    container_name: dytallix-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+    restart: unless-stopped
+
 volumes:
   faucet_logs:
   explorer_logs:
+  prometheus_data:
+  grafana_data:
+  loki_data:
 
 networks:
   default:

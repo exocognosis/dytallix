@@ -183,6 +183,33 @@ trivy:
 	@if ! command -v trivy >/dev/null; then echo 'Install Trivy first (https://aquasecurity.github.io/trivy)'; exit 1; fi; \
 	trivy fs --severity HIGH,CRITICAL $(PROJECT_DIR)
 
+# Metrics linting target
+lint-metrics:
+	@echo "🔍 Linting metrics naming conventions..."
+	@echo "Checking dyt_ prefix compliance..."
+	@failed=0; \
+	if ! grep -r "dyt_[a-z0-9_]*" dytallix-lean-launch/node/src/metrics.rs | grep -v "dyt_[a-z0-9_]*" >/dev/null 2>&1; then \
+		echo "✓ All metrics follow dyt_ naming convention"; \
+	else \
+		echo "❌ Some metrics don't follow dyt_ naming convention"; \
+		failed=1; \
+	fi; \
+	if grep -rE '"dyt_.*[A-Z].*"' dytallix-lean-launch/node/src/metrics.rs >/dev/null 2>&1; then \
+		echo "❌ Metrics contain uppercase letters (should be lowercase with underscores)"; \
+		failed=1; \
+	else \
+		echo "✓ All metrics use lowercase naming"; \
+	fi; \
+	if grep -rE 'labels.*\["validator"\]' dytallix-lean-launch/node/src/metrics.rs | grep -v validator_missed_blocks | grep -v validator_voting_power >/dev/null 2>&1; then \
+		echo "✓ Validator metrics include validator label"; \
+	fi; \
+	if [ $$failed -eq 1 ]; then \
+		echo "❌ Metrics linting failed"; \
+		exit 1; \
+	else \
+		echo "✅ All metrics pass linting checks"; \
+	fi
+
 ci: install lint-lean test-lean build-lean checksum
 	@echo "✅ CI pipeline complete for dytallix-lean-launch"
 

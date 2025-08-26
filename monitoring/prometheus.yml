@@ -45,8 +45,3 @@ scrape_configs:
       - targets: ['loki:3100']
     scrape_interval: 15s
     metrics_path: /metrics
-
-  - job_name: 'traefik'
-    static_configs:
-      - targets: ['traefik:8080']
-    metrics_path: /metrics

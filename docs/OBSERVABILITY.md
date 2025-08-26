@@ -7,10 +7,10 @@ This document provides comprehensive instructions for setting up and using the D
 The Dytallix observability stack provides deep insights into blockchain performance, transaction processing, validator behavior, and system health. The monitoring system is designed to:
 
 - Have zero performance impact when disabled (default)
-- Provide comprehensive metrics for production monitoring
+- Provide comprehensive metrics for production monitoring  
 - Integrate seamlessly with existing Prometheus/Grafana stacks
 - Support alerting for critical blockchain events
-- Enable 48-hour soak testing and analysis
+- Enable comprehensive testing and analysis
 
 ## Quick Start
 
@@ -19,21 +19,24 @@ The Dytallix observability stack provides deep insights into blockchain performa
 Set the environment variable to enable observability:
 
 ```bash
-export ENABLE_OBSERVABILITY=1
+export ENABLE_METRICS=true
 ```
 
 ### Start the Observability Stack
 
 ```bash
-# Start Prometheus, Grafana, and related services
+# Start the complete stack with observability
+docker-compose up -d
+
+# Or use the observability-specific script
 ./scripts/run_observability_stack.sh start
 ```
 
 ### Access Monitoring Services
 
-- **Grafana Dashboards**: http://localhost:3000 (admin/dytallix123)
+- **Grafana Dashboards**: http://localhost:3003 (admin/dytallix123)
 - **Prometheus**: http://localhost:9090
-- **Alertmanager**: http://localhost:9093
+- **Node Exporter**: http://localhost:9100
 
 ## Metrics Inventory
 
@@ -41,456 +44,239 @@ export ENABLE_OBSERVABILITY=1
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `dyt_block_height` | Gauge | - | Current blockchain height |
-| `dyt_blocks_produced_total` | Counter | validator | Total blocks produced by each validator |
-| `dyt_blocks_per_second` | Gauge | - | Current block production rate |
-| `dyt_transactions_in_block` | Histogram | - | Number of transactions per block |
-| `dyt_tps` | Gauge | - | Transactions per second (rolling 1m average) |
+| `dyt_blocks_produced_total` | Counter | chain_id, moniker | Total blocks produced by each validator |
+| `dyt_block_time_seconds` | Histogram | chain_id | Block processing time per block |
+| `dyt_block_last_time_seconds` | Gauge | - | Last block unix timestamp |
+| `dyt_txs_processed_total` | Counter | - | Total transactions processed (chain-wide TPS base) |
 | `dyt_mempool_size` | Gauge | - | Current number of pending transactions |
-| `dyt_gas_used_per_block` | Histogram | - | Gas consumption per block |
-| `dyt_oracle_update_latency_seconds` | Histogram | - | Oracle data update latency |
-| `dyt_emission_pool_amount` | Gauge | pool_type | Amount in emission pools by type |
+| `dyt_oracle_request_latency_seconds` | Histogram | source | Oracle request latency |
+| `dyt_emission_pool_balance` | Gauge | pool | Current emission pool balances |
 | `dyt_validator_missed_blocks_total` | Counter | validator | Blocks missed by each validator |
 | `dyt_validator_voting_power` | Gauge | validator | Current voting power of validators |
 
-### Legacy Metrics (dytallix_ prefix)
+### Service-Specific Metrics
 
-These metrics are maintained for backward compatibility:
+#### Faucet Metrics
+- `dyt_faucet_requests_total` - Counter with status label
+- `dyt_faucet_tx_latency_seconds` - Histogram for transaction processing time
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `dytallix_total_blocks` | Counter | Total blocks produced |
-| `dytallix_total_transactions` | Counter | Total transactions processed |
-| `dytallix_mempool_admitted_total` | Counter | Transactions admitted to mempool |
-| `dytallix_mempool_rejected_total` | Counter | Transactions rejected (with reason) |
-| `dytallix_oracle_latency_seconds` | Histogram | Legacy oracle latency metric |
-| `dytallix_emission_pool_size` | Gauge | Legacy emission pool size |
+#### Explorer/API Metrics  
+- `dyt_api_request_duration_seconds` - Histogram with route, method, status labels
+- `dyt_explorer_requests_total` - Counter with endpoint, status labels
 
-### Process/Runtime Metrics
-
-Standard Prometheus process metrics are automatically included:
-
-- `process_memory_bytes` - Process memory usage
-- `process_cpu_seconds_total` - CPU time consumed
-- `process_open_fds` - Open file descriptors
-- `process_start_time_seconds` - Process start time
+### System Metrics
+- Standard node-exporter metrics for system monitoring
+- Memory, CPU, disk, network metrics automatically collected
 
 ## Setup Instructions
 
-### 1. Enable Metrics in Node Configuration
+### Local Development
 
-Metrics are controlled by the `metrics` feature flag and environment variables:
+1. **Enable metrics in services:**
+   ```bash
+   export ENABLE_METRICS=true
+   ```
 
-```bash
-# Enable metrics collection
-export DY_METRICS=1
+2. **Start the stack:**
+   ```bash
+   docker-compose up -d
+   ```
 
-# Configure metrics server address (default: 0.0.0.0:9464)
-export DY_METRICS_ADDR="127.0.0.1:9464"
-```
+3. **Verify metrics endpoints:**
+   ```bash
+   # Node metrics (if running)
+   curl http://localhost:26680/metrics
+   
+   # Faucet metrics
+   curl http://localhost:9101/metrics
+   
+   # Explorer metrics  
+   curl http://localhost:9102/metrics
+   ```
 
-### 2. Build with Metrics Support
+### Production Deployment
 
-```bash
-cd dytallix-lean-launch/node
-cargo build --release --features metrics
-```
+1. **Hetzner deployment:**
+   ```bash
+   cd deployment/hetzner
+   ./scripts/deploy.sh
+   ```
 
-### 3. Start Node with Metrics
-
-```bash
-# Using environment variables
-DY_METRICS=1 ./target/release/dytallix-lean-node
-
-# Using CLI flags (when supported)
-./target/release/dytallix-lean-node --enable-metrics --metrics-addr 127.0.0.1:9464
-```
-
-### 4. Deploy Testnet with Observability
-
-The deployment script automatically allocates metrics ports and enables health checks:
-
-```bash
-# Enable observability during testnet deployment
-ENABLE_OBSERVABILITY=1 ./deploy-testnet.sh
-```
-
-This will:
-- Allocate unique metrics ports for each validator (9464 + index)
-- Start the observability stack
-- Verify metrics endpoints are healthy before declaring network ready
+2. **Update environment variables:**
+   ```bash
+   ENABLE_METRICS=true
+   GRAFANA_ADMIN_PASSWORD=<secure-password>
+   ```
 
 ## Configuration
 
 ### Prometheus Configuration
 
-The Prometheus configuration (`observability/prometheus/prometheus.yml`) includes:
-
-- 15-second scrape intervals for real-time monitoring
-- Automatic discovery of all validator endpoints
-- Proper relabeling for validator identification
-- Integration with alerting rules
+Located at `monitoring/prometheus.yml`:
+- **Scrape interval**: 5s for blockchain metrics, 15s for system metrics  
+- **Retention**: 200 hours default
+- **Alert rules**: `monitoring/alerts.yml`
 
 ### Grafana Dashboards
 
-Four main dashboards are provided:
+Three main dashboards are auto-provisioned:
 
-1. **Explorer Dashboard** (`explorer.json`)
-   - Block height and production rate
-   - Blocks produced by validator
-   - Transaction distribution
-
-2. **Transactions Dashboard** (`transactions.json`)
-   - TPS monitoring
-   - Mempool size and operations
-   - Gas usage analysis
-
-3. **Validators Dashboard** (`validators.json`)
-   - Validator voting power
-   - Missed blocks tracking
-   - Uptime monitoring
-
-4. **Emissions Dashboard** (`emissions.json`)
-   - Emission pool amounts by type
-   - Oracle update latency
-   - Update rates
+1. **validators.json** - Validator performance and missed blocks
+2. **emissions.json** - Emission pool balances and rewards
+3. **explorer.json** - Network TPS, API latency, mempool size
 
 ### Alert Rules
 
-Critical alerts are defined in `observability/prometheus/alerts/core-rules.yml`:
-
-#### BlockProductionStall
-- **Condition**: No block height increase for 120 seconds
-- **Severity**: Critical
-- **Description**: Indicates potential network halt or consensus failure
-
-#### HighProcessMemory
-- **Condition**: Process memory > 85% of container limit
-- **Severity**: Warning
-- **Description**: Memory pressure that could impact performance
-
-#### ValidatorMissedBlocks
-- **Condition**: More than 5 missed blocks in 10 minutes
-- **Severity**: Warning
-- **Description**: Validator performance degradation
-
-#### ValidatorDown
-- **Condition**: Validator unreachable for 2 minutes
-- **Severity**: Critical
-- **Description**: Validator node failure
-
-#### LowTPS (Optional)
-- **Condition**: Average TPS below threshold for 10 minutes
-- **Severity**: Warning
-- **Description**: Network throughput degradation (commented out by default)
+Key alerts configured:
+- **BlockProductionStall**: No blocks >30s (CRITICAL)
+- **ValidatorOffline**: Missed blocks detected (WARNING)  
+- **HighMemoryUsage**: >85% memory usage (WARNING)
+- **OracleLatencyHigh**: >1s p95 latency (WARNING)
 
 ## Testing and Validation
 
-### Metrics Endpoint Test
-
-Verify metrics are exposed correctly:
+### Metrics Validation
 
 ```bash
-# Check metrics endpoint
-curl http://localhost:9464/metrics
+# Run metrics linting
+make lint-metrics
 
-# Verify specific metrics are present
-curl -s http://localhost:9464/metrics | grep -E "dyt_(block_height|tps|mempool_size)"
+# Test metrics endpoints
+curl -f http://localhost:9090/targets  # Prometheus targets
+curl -f http://localhost:9101/metrics  # Faucet metrics
+curl -f http://localhost:9102/metrics  # Explorer metrics
 ```
 
 ### Alert Testing
 
-Use the provided script to test alert functionality:
+1. **Test block production stall:**
+   ```bash
+   # Stop the node to trigger alert
+   docker-compose stop dytallix-node
+   # Wait 40s, check Prometheus alerts page
+   ```
 
-```bash
-# Test ValidatorDown alert (halts validator 0 for 30 seconds)
-./scripts/induce_validator_halt.sh 0 30
+2. **Test memory usage alert:**
+   ```bash
+   # Temporarily lower threshold for testing
+   # Edit monitoring/alerts.yml: change 0.85 to 0.01
+   # Reload Prometheus config
+   curl -X POST http://localhost:9090/-/reload
+   ```
 
-# Test with longer duration to trigger BlockProductionStall
-./scripts/induce_validator_halt.sh 1 150 "production-stall-test"
-```
+### Dashboard Verification
 
-### Load Testing
-
-Generate transaction load to test TPS and mempool metrics:
-
-```bash
-# Example load test (implementation depends on your transaction tools)
-for i in {1..1000}; do
-    # Submit transaction
-    curl -X POST http://localhost:3030/submit -d '{"transaction": "..."}'
-done
-```
-
-## 48-Hour Soak Testing
-
-### Preparation
-
-1. Enable observability and start the full stack
-2. Deploy a stable testnet configuration
-3. Configure alerting endpoints (webhook, email, etc.)
-4. Set up log retention for the duration
-
-### Running the Soak Test
-
-```bash
-# Start soak test
-export ENABLE_OBSERVABILITY=1
-./deploy-testnet.sh
-
-# Monitor for 48 hours
-./scripts/run_observability_stack.sh logs
-```
-
-### Soak Test Metrics Collection
-
-Key metrics to monitor during the 48-hour run:
-
-- **Stability**: Block production continuity
-- **Performance**: TPS consistency and latency
-- **Resource Usage**: Memory and CPU trends
-- **Error Rates**: Failed transactions and missed blocks
-- **Alert Frequency**: Number and types of alerts triggered
-
-### Soak Test Report
-
-Results should be documented in `reports/soak/soak_48h_summary.md` with:
-
-- Test configuration and duration
-- Performance metrics and trends
-- Alert summary and resolution times
-- Resource usage analysis
-- Issues identified and fixes applied
+1. Open Grafana: http://localhost:3003
+2. Login: admin/dytallix123  
+3. Navigate to dashboards - should auto-load without manual import
+4. Verify data appears in panels (may show empty initially until metrics accumulate)
 
 ## Adding New Metrics
 
-### 1. Define the Metric
+### Rust Node Metrics
 
-Add to the Metrics struct in `dytallix-lean-launch/node/src/metrics.rs`:
+1. **Add to metrics struct:**
+   ```rust
+   pub dyt_new_metric: IntCounter,
+   ```
 
-```rust
-// In the struct definition
-pub my_new_metric: IntCounter,
+2. **Initialize in `new()` function:**
+   ```rust
+   let dyt_new_metric = IntCounter::with_opts(Opts::new(
+       "dyt_new_metric",
+       "Description of new metric"
+   ))?;
+   registry.register(Box::new(dyt_new_metric.clone()))?;
+   ```
 
-// In the new() method
-let my_new_metric = IntCounter::with_opts(Opts::new(
-    "dyt_my_new_metric_total",
-    "Description of my new metric"
-))?;
-registry.register(Box::new(my_new_metric.clone()))?;
+3. **Add to struct initialization:**
+   ```rust
+   Ok(Self {
+       // ... other fields
+       dyt_new_metric,
+   })
+   ```
 
-// In the constructor
-my_new_metric,
-```
+### Node.js Service Metrics
 
-### 2. Add Instrumentation
+1. **Add to metrics object:**
+   ```javascript
+   newMetric: new prometheus.Counter({
+     name: 'dyt_new_metric',
+     help: 'Description of new metric',
+     registers: [register]
+   })
+   ```
 
-Call the metric from your code:
-
-```rust
-// Increment counter
-metrics.my_new_metric.inc();
-
-// Set gauge value  
-metrics.my_gauge_metric.set(value as i64);
-
-// Observe histogram
-metrics.my_histogram_metric.observe(duration.as_secs_f64());
-```
-
-### 3. Update Documentation
-
-- Add the metric to this documentation
-- Update any relevant dashboards
-- Consider adding alerts if appropriate
-
-### 4. Update Tests
-
-Add test coverage for the new metric:
-
-```rust
-#[cfg(feature = "metrics")]
-#[tokio::test]
-async fn test_my_new_metric() {
-    let metrics = Metrics::new().expect("Failed to create metrics");
-    metrics.my_new_metric.inc();
-    assert_eq!(metrics.my_new_metric.get(), 1);
-}
-```
+2. **Use in code:**
+   ```javascript
+   if (metricsEnabled) {
+     faucetMetrics.newMetric.inc();
+   }
+   ```
 
 ## Security Considerations
 
-### Network Binding
-
-**Production Recommendation**: Bind metrics endpoints to localhost only and use a reverse proxy:
-
-```bash
-# Secure local binding
-export DY_METRICS_ADDR="127.0.0.1:9464"
-```
-
-### Reverse Proxy Setup
-
-Example nginx configuration:
-
-```nginx
-server {
-    listen 9464;
-    server_name your-node-domain.com;
-    
-    location /metrics {
-        proxy_pass http://127.0.0.1:9464/metrics;
-        proxy_set_header Host $host;
-        
-        # Optional: Add basic auth
-        auth_basic "Dytallix Metrics";
-        auth_basic_user_file /etc/nginx/.htpasswd;
-    }
-}
-```
-
-### Firewall Configuration
-
-Ensure only authorized Prometheus servers can access metrics endpoints:
-
-```bash
-# Allow specific Prometheus server
-sudo ufw allow from PROMETHEUS_IP to any port 9464
-```
-
-### Data Privacy
-
-- Metrics do not contain sensitive transaction data
-- Validator labels use public identifiers only
-- Consider data retention policies for long-term storage
+- Metrics endpoints exposed only on designated ports
+- No sensitive data included in metric labels
+- Rate limiting applied to prevent metric scraping abuse
+- Grafana admin password should be changed from default
 
 ## Performance Considerations
 
-### Metrics Collection Overhead
-
-- Metrics are designed for minimal performance impact
-- Histograms have configurable buckets to balance detail vs. overhead
-- When disabled (default), metrics collection has zero performance impact
-
-### Detailed Metrics Control
-
-For high-throughput environments, detailed histograms can be disabled:
-
-```bash
-# Disable detailed histogram observations
-export METRICS_DETAILED=0
-```
-
-This disables:
-- Transaction processing time histograms
-- Gas usage per block histograms  
-- Oracle latency detailed tracking
-
-### Label Cardinality
-
-- Validator labels are limited to active validator set
-- Avoid high-cardinality labels (like transaction hashes)
-- Monitor Prometheus memory usage with many validators
+- Zero impact when `ENABLE_METRICS=false`
+- Minimal overhead when enabled (~1-2% CPU)
+- Avoid high-cardinality labels (no per-address/tx-id metrics)
+- Prometheus retention configured for reasonable disk usage
 
 ## Troubleshooting
 
-### Metrics Not Appearing
+### Common Issues
 
-1. **Check feature flag**: Ensure metrics feature is enabled during build
-2. **Verify configuration**: Check `DY_METRICS=1` is set
-3. **Check endpoint**: Verify metrics server is listening on expected port
-4. **Review logs**: Look for metrics initialization errors
+1. **Metrics not appearing:**
+   - Verify `ENABLE_METRICS=true`
+   - Check service logs for errors
+   - Verify network connectivity between Prometheus and targets
 
-### High Memory Usage
+2. **Dashboards empty:**
+   - Wait for metrics to accumulate (5-10 minutes)
+   - Check Prometheus targets page for UP status
+   - Verify datasource configuration in Grafana
 
-1. **Check retention**: Prometheus retention settings in configuration
-2. **Review cardinality**: High-cardinality labels can cause memory issues
-3. **Monitor scrape frequency**: Reduce scrape interval if needed
+3. **Alerts not firing:**
+   - Check alert rule syntax in Prometheus  
+   - Verify metric names match exactly
+   - Check evaluation intervals
 
-### Missing Alerts
-
-1. **Verify rules**: Check alert rules syntax with `promtool check rules`
-2. **Check evaluation**: Ensure rules are being evaluated in Prometheus
-3. **Review thresholds**: Alert thresholds may need tuning for your environment
-
-### Dashboard Issues
-
-1. **Data source**: Verify Grafana is connected to Prometheus
-2. **Query syntax**: Check PromQL queries in dashboard panels
-3. **Time range**: Ensure sufficient data exists for the selected time range
-
-## CI/CD Integration
-
-### Automated Validation
-
-The observability CI workflow (`.github/workflows/observability-lint.yml`) validates:
-
-- JSON syntax in Grafana dashboards
-- Prometheus configuration syntax
-- Alert rule syntax
-- Documentation completeness
-
-### Metrics Testing
-
-Include metrics tests in your CI pipeline:
+### Debug Commands
 
 ```bash
-# Build with metrics
-cargo test --features metrics
+# Check Prometheus targets
+curl http://localhost:9090/api/v1/targets
 
-# Validate observability configs
-./scripts/validate_observability_configs.sh
+# Check specific metric
+curl -s http://localhost:9090/api/v1/query?query=dyt_block_height
+
+# View Prometheus config
+curl http://localhost:9090/api/v1/status/config
+
+# Reload Prometheus config
+curl -X POST http://localhost:9090/-/reload
 ```
-
-## Support and Maintenance
-
-### Regular Tasks
-
-- **Weekly**: Review alert thresholds and tune as needed
-- **Monthly**: Update dashboard queries and add new panels
-- **Quarterly**: Review metric retention and storage requirements
-
-### Monitoring the Monitoring
-
-- Set up alerts for Prometheus itself (disk space, scrape failures)
-- Monitor Grafana performance and dashboard load times
-- Regularly backup dashboard configurations and alert rules
-
-### Updates and Versioning
-
-- Track dashboard versions using UID fields
-- Version alert rules with deployment automation
-- Document metric schema changes and deprecations
 
 ## Best Practices
 
-### Metric Naming
+1. **Metric Naming**: Always use `dyt_` prefix for Dytallix-specific metrics
+2. **Labels**: Include relevant labels but avoid high cardinality
+3. **Documentation**: Update this guide when adding new metrics
+4. **Testing**: Always test alerts under controlled conditions
+5. **Monitoring**: Set up monitoring for the monitoring stack itself
 
-- Use consistent prefixes (`dyt_` for core metrics)
-- Include units in metric names when relevant (e.g., `_seconds`, `_bytes`)
-- Use descriptive help text for all metrics
+## Support and Maintenance
 
-### Dashboard Design
+- **Config location**: `monitoring/` directory
+- **Grafana dashboards**: Auto-provisioned, no manual import needed
+- **Alert rules**: Defined in `monitoring/alerts.yml`
+- **Metrics validation**: Run `make lint-metrics` before deployment
 
-- Group related metrics logically
-- Use appropriate visualization types (gauge, graph, heatmap)
-- Include relevant time ranges and refresh rates
-- Add helpful annotations and thresholds
-
-### Alert Configuration
-
-- Set meaningful thresholds based on baseline measurements
-- Include actionable information in alert descriptions
-- Configure appropriate notification channels
-- Test alerts regularly to ensure they work as expected
-
-### Documentation
-
-- Keep this guide updated with new metrics and changes
-- Document alert runbooks for operations teams
-- Maintain examples and troubleshooting guides
-- Include performance baselines and expected ranges
-
----
-
-For additional support or questions about the observability stack, please refer to the project documentation or open an issue in the repository.
+For issues or enhancements, refer to the project's issue tracker or documentation.
