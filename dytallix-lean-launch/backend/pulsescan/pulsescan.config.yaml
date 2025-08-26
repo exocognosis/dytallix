@@ -1,0 +1,100 @@
+# PulseScan Anomaly Detection Configuration
+# Real-time blockchain network health monitoring
+
+# Storage configuration
+storage:
+  type: memory                    # memory | influx
+  maxPoints: 10000               # Maximum data points per metric type
+  retentionMs: 86400000          # 24 hours retention
+
+  # InfluxDB configuration (when type: influx)
+  influx:
+    url: "http://localhost:8086"
+    token: "${INFLUX_TOKEN}"
+    org: "dytallix"
+    bucket: "pulsescan-metrics"
+
+# Detector configurations
+detectors:
+  tx_spike:
+    enabled: true
+    windowSize: 300               # 5 minutes of 1-second samples
+    zThreshold: 4.0              # Z-score threshold for anomaly
+    ewmaAlpha: 0.1               # EWMA smoothing factor
+    ewmaDeltaThreshold: 0.5      # EWMA deviation threshold (50%)
+    minRate: 10                  # Minimum tx rate to consider
+    cooldownMs: 60000            # 1 minute cooldown between alerts
+
+  validator_downtime:
+    enabled: true
+    missThreshold: 3             # Consecutive misses for medium alert
+    criticalMissThreshold: 10    # Critical threshold for jailing
+    blockWindow: 100             # Number of recent blocks to track
+    cooldownMs: 300000           # 5 minute cooldown per validator
+
+  double_sign:
+    enabled: true
+    lookbackBlocks: 1000         # Blocks to keep in memory
+    slashingWindow: 100          # Blocks to look back for evidence
+
+# Data collection configuration
+collectors:
+  mempool:
+    enabled: true
+    pollInterval: 1000           # 1 second polling
+    batchSize: 100               # Events per batch
+    flushInterval: 5000          # 5 second flush
+    rpcUrl: "http://localhost:26657"
+
+  block:
+    enabled: true
+    pollInterval: 5000           # 5 second polling (block time)
+    batchSize: 50                # Events per batch
+    flushInterval: 10000         # 10 second flush
+    rpcUrl: "http://localhost:26657"
+
+# Anomaly persistence
+anomalies:
+  maxRecent: 1000               # Max recent anomalies in memory
+  retentionMs: 86400000         # 24 hours retention
+
+# Alerting configuration
+alerts:
+  minSeverity: "medium"         # Minimum severity to alert: low|medium|high|critical
+  
+  webhook:
+    enabled: false
+    url: "${WEBHOOK_URL}"
+    timeout: 5000               # Request timeout in ms
+    headers:
+      Authorization: "Bearer ${WEBHOOK_TOKEN}"
+      Content-Type: "application/json"
+  
+  slack:
+    enabled: false
+    webhookUrl: "${SLACK_WEBHOOK_URL}"
+    channel: "#alerts"
+    username: "PulseScan"
+    timeout: 5000
+
+# Severity mapping for alerting
+severityMapping:
+  tx_spike:
+    low: 0.3                    # Low severity threshold
+    medium: 0.6                 # Medium severity threshold  
+    high: 0.8                   # High severity threshold
+    critical: 1.0               # Critical severity threshold
+  
+  validator_downtime:
+    medium: 3                   # Consecutive misses for medium
+    high: 7                     # Consecutive misses for high
+    critical: 10                # Consecutive misses for critical
+  
+  double_sign:
+    critical: 1                 # Any double sign is critical
+
+# Performance tuning
+performance:
+  maxConcurrentDetectors: 3     # Max parallel detector processes
+  detectionBatchSize: 100       # Metrics per detection batch
+  queueMaxSize: 1000           # Max queue size before backpressure

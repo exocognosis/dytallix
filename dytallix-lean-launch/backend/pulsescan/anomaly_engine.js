@@ -9,66 +9,25 @@ import { MemoryTimeSeriesWriter } from './storage/memory_storage.js';
 import { TxSpikeDetector } from './anomaly/tx_spike_detector.js';
 import { ValidatorDowntimeDetector } from './anomaly/validator_downtime_detector.js';
 import { DoubleSignDetector } from './anomaly/double_sign_detector.js';
+import { ConfigLoader } from './config_loader.js';
+import { AlertingManager } from './alerting/alerting_manager.js';
 
 class AnomalyDetectionEngine {
   constructor(config = {}) {
-    this.config = {
-      // Storage configuration
-      storage: {
-        type: 'memory',
-        maxPoints: 10000,
-        retentionMs: 24 * 60 * 60 * 1000, // 24 hours
-        ...config.storage
-      },
-      // Detector configurations
-      detectors: {
-        tx_spike: {
-          enabled: true,
-          windowSize: 300,
-          zThreshold: 4.0,
-          ewmaDeltaThreshold: 0.5,
-          minRate: 10,
-          ...config.detectors?.tx_spike
-        },
-        validator_downtime: {
-          enabled: true,
-          missThreshold: 3,
-          criticalMissThreshold: 10,
-          blockWindow: 100,
-          ...config.detectors?.validator_downtime
-        },
-        double_sign: {
-          enabled: true,
-          lookbackBlocks: 1000,
-          slashingWindow: 100,
-          ...config.detectors?.double_sign
-        }
-      },
-      // Collector configurations
-      collectors: {
-        mempool: {
-          enabled: true,
-          pollInterval: 1000,
-          batchSize: 100,
-          flushInterval: 5000,
-          ...config.collectors?.mempool
-        },
-        block: {
-          enabled: true,
-          pollInterval: 5000,
-          batchSize: 50,
-          flushInterval: 10000,
-          ...config.collectors?.block
-        }
-      },
-      // Anomaly persistence
-      anomalies: {
-        maxRecent: 1000,
-        retentionMs: 24 * 60 * 60 * 1000, // 24 hours
-        ...config.anomalies
-      },
-      ...config
-    };
+    // Load configuration using ConfigLoader only if configPath is provided
+    if (config.configPath) {
+      const configLoader = new ConfigLoader();
+      this.config = configLoader.load(config.configPath);
+      
+      // Override with any provided config
+      if (Object.keys(config).length > 1) { // More than just configPath
+        this.config = this.deepMerge(this.config, config);
+      }
+    } else {
+      // Use provided config directly
+      const configLoader = new ConfigLoader();
+      this.config = this.deepMerge(configLoader.defaults, config);
+    }
 
     this.isRunning = false;
     this.recentAnomalies = []; // Store recent anomalies in memory
@@ -83,6 +42,7 @@ class AnomalyDetectionEngine {
     this.storage = new MemoryTimeSeriesWriter(this.config.storage);
     this.collectors = this.initializeCollectors();
     this.detectors = this.initializeDetectors();
+    this.alertingManager = new AlertingManager(this.config.alerts);
   }
 
   /**
@@ -246,6 +206,13 @@ class AnomalyDetectionEngine {
       this.stats.anomaliesBySeverity[anomaly.severity] = (this.stats.anomaliesBySeverity[anomaly.severity] || 0) + 1;
 
       console.log(`[AnomalyDetectionEngine] Anomaly detected: ${anomaly.type} (${anomaly.severity}) - ${anomaly.explanation}`);
+
+      // Send alert if configured
+      try {
+        await this.alertingManager.sendAlert(anomaly);
+      } catch (error) {
+        console.error('[AnomalyDetectionEngine] Error sending alert:', error);
+      }
     }
 
     // Maintain anomaly storage limits
@@ -325,9 +292,41 @@ class AnomalyDetectionEngine {
       storage: this.storage.getStats(),
       collectors: collectorStats,
       detectors: detectorStats,
+      alerting: this.alertingManager.getStats(),
       recentAnomaliesCount: this.recentAnomalies.length,
       config: this.config
     };
+  }
+
+  /**
+   * Test alerting system
+   */
+  async testAlerting() {
+    return this.alertingManager.testNotifiers();
+  }
+
+  /**
+   * Send test alert
+   */
+  async sendTestAlert() {
+    return this.alertingManager.sendTestAlert();
+  }
+
+  /**
+   * Deep merge utility
+   */
+  deepMerge(target, source) {
+    const result = { ...target };
+    
+    for (const key in source) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        result[key] = this.deepMerge(target[key] || {}, source[key]);
+      } else {
+        result[key] = source[key];
+      }
+    }
+    
+    return result;
   }
 
   /**

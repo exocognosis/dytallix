@@ -46,6 +46,7 @@ const contractScanner = new ContractScanner({
 
 // Initialize anomaly detection engine
 const anomalyEngine = new AnomalyDetectionEngine({
+  configPath: null, // Skip YAML loading for now
   storage: {
     type: 'memory',
     maxPoints: 5000, // Reduced for demo
@@ -75,6 +76,15 @@ const anomalyEngine = new AnomalyDetectionEngine({
     block: {
       enabled: true,
       pollInterval: 6000 // 6 seconds for demo
+    }
+  },
+  alerts: {
+    minSeverity: 'medium',
+    webhook: {
+      enabled: false
+    },
+    slack: {
+      enabled: false
     }
   }
 })
@@ -531,6 +541,36 @@ app.get('/api/anomaly/status', (req, res, next) => {
       ok: true,
       timestamp: new Date().toISOString(),
       stats
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// Test alerting system
+app.post('/api/anomaly/test-alerts', async (req, res, next) => {
+  try {
+    const results = await anomalyEngine.testAlerting()
+    res.json({
+      ok: true,
+      timestamp: new Date().toISOString(),
+      results,
+      message: 'Alerting test completed'
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// Send test alert
+app.post('/api/anomaly/send-test-alert', async (req, res, next) => {
+  try {
+    const results = await anomalyEngine.sendTestAlert()
+    res.json({
+      ok: true,
+      timestamp: new Date().toISOString(),
+      results,
+      message: 'Test alert sent'
     })
   } catch (e) {
     next(e)
