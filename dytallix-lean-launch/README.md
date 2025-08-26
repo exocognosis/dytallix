@@ -90,7 +90,21 @@ Never commit real mnemonics or secrets. `.env`, `.env.staging`, production secre
 - Cosmos integration via CosmJS (LCD / RPC / WebSocket placeholders)
 - PQC WASM integrity manifest & facade (`src/crypto/pqc`)
 - **Gas accounting system** with deterministic fee calculation and CLI support
+- **Smart Contract Security Scanner** with Slither + Mythril integration
 - Responsive UI with modular component structure
+
+## Smart Contract Security Scanner
+
+The integrated security scanner provides comprehensive analysis of Solidity smart contracts:
+
+- **Static Analysis**: Slither integration for AST-based vulnerability detection
+- **Symbolic Execution**: Mythril integration for runtime vulnerability discovery
+- **Vulnerability Classification**: Automatic severity classification (critical/high/medium/low)
+- **Source Annotation**: Line-level vulnerability mapping with inline markers
+- **API Endpoint**: `/api/contract/scan` with rate limiting and validation
+- **Security Hardening**: Input validation, timeouts, concurrency limits
+
+For detailed documentation, see [`docs/security-scanner.md`](docs/security-scanner.md).
 
 ## Gas System Overview
 

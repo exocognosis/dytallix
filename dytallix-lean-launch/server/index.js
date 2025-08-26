@@ -5,6 +5,7 @@ import { requestLogger, logError, logInfo } from './logger.js'
 import { assertNotLimited, markGranted } from './rateLimit.js'
 import { transfer, getMaxFor } from './transfer.js'
 import { register, rateLimitHitsTotal, faucetRequestsTotal } from './metrics.js'
+import { ContractScanner } from './src/scanner/index.js'
 import fs from 'fs'
 
 /*
@@ -34,6 +35,13 @@ const COOLDOWN_MIN = parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10)
 const ENABLE_SEC_HEADERS = process.env.ENABLE_SEC_HEADERS === '1'
 const ENABLE_CSP = process.env.ENABLE_CSP === '1' || ENABLE_SEC_HEADERS
 const BECH32_PREFIX = process.env.CHAIN_PREFIX || process.env.BECH32_PREFIX || 'dytallix'
+
+// Initialize contract scanner
+const contractScanner = new ContractScanner({
+  timeout: 30000,
+  maxConcurrency: 3,
+  useMocks: true // Use mocks for now until tools are installed
+})
 
 // Load tokenomics metadata (non-fatal if missing)
 let tokenomicsMeta = null
@@ -418,6 +426,66 @@ app.get('/anomaly', (req, res, next) => {
     })
   } catch (e) {
     next(e)
+  }
+})
+
+// --- Contract Security Scanner API ---
+app.post('/api/contract/scan', async (req, res, next) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
+  
+  try {
+    // Rate limiting for scanner endpoint
+    aiRateCheck(ip, 'scan')
+    
+    const { code } = req.body || {}
+    
+    // Validate input
+    if (typeof code !== 'string') {
+      const e = new Error('INVALID_CODE')
+      e.status = 400
+      throw e
+    }
+    
+    if (!code.trim()) {
+      const e = new Error('CODE_REQUIRED')
+      e.status = 400
+      throw e
+    }
+    
+    // Check size limit (100KB)
+    const sizeBytes = new TextEncoder().encode(code).length
+    if (sizeBytes > 100 * 1024) {
+      const e = new Error('CODE_TOO_LARGE')
+      e.status = 413
+      throw e
+    }
+
+    logInfo('Contract scan initiated', { ip, sizeBytes })
+    
+    // Run the scan
+    const result = await contractScanner.scanContract(code)
+    
+    // Update performance metrics
+    if (result.summary && result.summary.performance) {
+      result.summary.performance.seconds = result.meta.durationMs / 1000
+    }
+    
+    logInfo('Contract scan completed', { 
+      scanId: result.meta.scanId, 
+      duration: result.meta.durationMs,
+      findings: result.summary.total
+    })
+    
+    res.json(result)
+    
+  } catch (err) {
+    if (err.message === 'SCANNER_BUSY') {
+      err.status = 503
+      err.message = 'Scanner is busy, please try again later'
+    }
+    
+    logError('Contract scan failed', { ip, error: err.message })
+    next(err)
   }
 })
 
