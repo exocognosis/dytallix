@@ -22,7 +22,7 @@
 - **docker-compose.yml**: Added dual token environment variables
 
 #### Frontend Components
-- **config.ts**: MetaMask nativeCurrency changed from DYT to DGT (6 decimals)
+- **config.ts**: Browser wallet native currency context changed from DYT to DGT (6 decimals)
 - **Wallet.tsx**: Updated balance displays, send forms, and UI labels
   - Balance display: `DYT` → `DGT`
   - Send button: "Send DYT" → "Send DGT"
@@ -106,7 +106,7 @@
 ### Frontend Files  
 | File | Changes | Context |
 |------|---------|---------|
-| `frontend/src/services/config.ts` | 2 changes | MetaMask currency |
+| `frontend/src/services/config.ts` | 2 changes | Browser wallet currency |
 | `frontend/src/pages/Wallet.tsx` | 6 changes | UI labels, balances |
 
 ### Backend Files

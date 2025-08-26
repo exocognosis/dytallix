@@ -36,7 +36,7 @@
       "classification": "governance",
       "confidence": "high",
       "review": false,
-      "context": "MetaMask nativeCurrency"
+      "context": "Browser wallet native currency context"
     },
     {
       "file": "frontend/src/services/config.ts",
@@ -46,7 +46,7 @@
       "classification": "governance",
       "confidence": "high",
       "review": false,
-      "context": "MetaMask nativeCurrency decimals"
+      "context": "Browser wallet native currency decimals"
     },
     {
       "file": "frontend/src/pages/Wallet.tsx",
