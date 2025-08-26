@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   dyt-stability-validator-0:
     image: dytallix:testnet

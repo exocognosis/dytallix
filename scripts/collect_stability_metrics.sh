@@ -4,7 +4,14 @@ DURATION_MINUTES=${1:-${SOAK_DURATION_MINUTES:-2880}}
 INTERVAL_SECONDS=${INTERVAL_SECONDS:-10}
 LOG_FILE="artifacts/stability.log"
 mkdir -p artifacts
-end_time=$(( $(date +%s) + DURATION_MINUTES*60 ))
+
+# Convert duration to seconds, handling decimal values
+if [[ "$DURATION_MINUTES" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+  duration_seconds=$(python3 -c "print(int(${DURATION_MINUTES} * 60))")
+else
+  duration_seconds=$((DURATION_MINUTES * 60))
+fi
+end_time=$(( $(date +%s) + duration_seconds ))
 
 log(){ echo "$(date -Is) $1" >&2; }
 

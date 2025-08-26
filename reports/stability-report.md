@@ -65,3 +65,22 @@ Missed Blocks (per validator): [0, 0, 0]
 Average TPS: 0.60 | Peak TPS: 0.90
 
 ---
+## Summary Metrics
+Validators: 3
+
+Average Block Time (s): 10.000
+
+Median Block Time (s): 10.000
+
+Missed Blocks (per validator): [0, 0, 0]
+
+Average TPS: 0.45 | Peak TPS: 0.90
+
+### Plots
+![](plots/block_height.png)
+
+![](plots/tps.png)
+
+![](plots/missed_blocks.png)
+
+---

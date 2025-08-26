@@ -682,7 +682,6 @@ generate_stability_compose(){
   log_step "Generating stability (soak) docker-compose file..."
   mkdir -p "$DEPLOYMENT_DIR/docker"
   cat > "$DEPLOYMENT_DIR/docker/docker-compose.stability.yml" <<'EOF'
-version: '3.8'
 services:
   dyt-stability-validator-0:
     image: dytallix:testnet
@@ -794,8 +793,15 @@ run_stability_soak(){
     log_info "Metrics collector started in background (PID $!)."
   fi
 
-  local half=$(( duration_minutes / 2 ))
-  local end_time=$(( $(date +%s) + duration_minutes*60 ))
+  # Convert duration to seconds, handling decimal values
+  if [[ "$duration_minutes" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    duration_seconds=$(python3 -c "print(int(${duration_minutes} * 60))")
+    half_minutes=$(python3 -c "print(${duration_minutes} / 2)")
+  else
+    duration_seconds=$((duration_minutes * 60))
+    half_minutes=$((duration_minutes / 2))
+  fi
+  local end_time=$(( $(date +%s) + duration_seconds ))
   local drill_done=0
 
   while true; do
@@ -803,8 +809,9 @@ run_stability_soak(){
     if (( now >= end_time )); then
       log_info "Soak duration complete."; break
     fi
-    local elapsed_minutes=$(( (duration_minutes*60 - (end_time - now)) / 60 ))
-    if (( drill_done == 0 && elapsed_minutes >= half )); then
+    local elapsed_seconds=$(($(date +%s) - (end_time - duration_seconds)))
+    local elapsed_minutes=$(python3 -c "print(${elapsed_seconds} / 60)" 2>/dev/null || echo "0")
+    if (( drill_done == 0 )) && python3 -c "exit(0 if ${elapsed_minutes} >= ${half_minutes} else 1)" 2>/dev/null; then
       failure_drill
       drill_done=1
     fi
