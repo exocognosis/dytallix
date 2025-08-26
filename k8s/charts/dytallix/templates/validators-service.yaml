@@ -1,0 +1,16 @@
+{{- if .Values.validators.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dytallix.fullname" . }}-validators
+spec:
+  clusterIP: None
+  selector:
+    component: validators
+    app: {{ include "dytallix.fullname" . }}
+  ports:
+    - name: p2p
+      port: 26656
+    - name: rpc
+      port: 26657
+{{- end }}

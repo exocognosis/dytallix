@@ -37,6 +37,12 @@ help:
 	@echo "  codeguard.scan        - Run security scan (requires CODEGUARD_CONTRACT and CODEGUARD_CODE_HASH)"
 	@echo "  codeguard.deploy-contract - Deploy CodeGuard contract"
 	@echo ""
+	@echo "Kubernetes deployment targets:"
+	@echo "  deploy-staging        - Deploy staging environment to Kubernetes"
+	@echo "  deploy-prod           - Deploy production environment to Kubernetes"
+	@echo "  helm-lint             - Lint Helm chart"
+	@echo "  preflight-secrets     - Run preflight secrets scan"
+	@echo ""
 	@echo "Configuration variables:"
 	@echo "  FRONTEND_DIR         - Frontend directory (default: $(FRONTEND_DIR))"
 	@echo "  FAUCET_ENDPOINT      - Faucet API endpoint (default: $(FAUCET_ENDPOINT))"
@@ -225,6 +231,39 @@ codeguard.deploy-contract:
 	@echo "⚠️  Contract deployment not yet implemented - requires testnet setup"
 	@echo "Contract built at: dytallix-lean-launch/contracts/codeguard/target/wasm32-unknown-unknown/release/codeguard.wasm"
 	@echo "✅ CodeGuard deployment target ready"
+
+# Kubernetes / Helm deployment targets
+
+HELM_RELEASE?=dytallix
+HELM_CHART_PATH?=k8s/charts/dytallix
+KUBE_NAMESPACE?=default
+STAGING_VALUES?=k8s/charts/dytallix/values-staging.yaml
+PROD_VALUES?=k8s/charts/dytallix/values-prod.yaml
+
+.deploy-image-tag:
+	@echo sha-$$(git rev-parse --short HEAD)
+
+deploy-staging: ## Deploy staging environment (validators + rpc + faucet + explorer)
+	@echo "🚀 Deploying staging to namespace $(KUBE_NAMESPACE)"
+	helm upgrade --install $(HELM_RELEASE)-staging $(HELM_CHART_PATH) \
+		--namespace $(KUBE_NAMESPACE) \
+		--create-namespace \
+		-f $(STAGING_VALUES) \
+		--set global.image.tag=$$(make -s .deploy-image-tag)
+
+deploy-prod: ## Deploy production environment
+	@echo "🚀 Deploying prod to namespace $(KUBE_NAMESPACE)"
+	helm upgrade --install $(HELM_RELEASE)-prod $(HELM_CHART_PATH) \
+		--namespace $(KUBE_NAMESPACE) \
+		--create-namespace \
+		-f $(PROD_VALUES) \
+		--set global.image.tag=$$(make -s .deploy-image-tag)
+
+helm-lint:
+	helm lint $(HELM_CHART_PATH)
+
+preflight-secrets:
+	bash scripts/preflight_secrets.sh
 
 # Usage examples:
 #   make ci

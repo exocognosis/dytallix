@@ -1,0 +1,104 @@
+global:
+  image:
+    repository: ghcr.io/hismadrealm/dytallix
+    tag: "sha-<git-sha>"  # Overwritten by CI with exact tag (sha-<shortsha>)
+    pullPolicy: IfNotPresent
+  chain:
+    id: dytallix-testnet
+    network: testnet
+  vault:
+    enabled: true
+    address: http://vault.vault:8200
+    role: dytallix-app
+    namespace: ""
+  resources:
+    defaultRequest:
+      cpu: 100m
+      memory: 256Mi
+    defaultLimit:
+      cpu: 500m
+      memory: 512Mi
+
+validators:
+  enabled: true
+  replicas: 3
+  image:
+    repository: ghcr.io/hismadrealm/dytallix-validator
+    tag: "sha-<git-sha>"
+  storage:
+    size: 20Gi
+    className: standard
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  vault:
+    secretPathPrefix: kv/dytallix/validators
+  podAnnotations: {}
+  extraEnv: []
+
+rpc:
+  enabled: true
+  replicas: 2
+  image:
+    repository: ghcr.io/hismadrealm/dytallix-rpc
+    tag: "sha-<git-sha>"
+  service:
+    type: ClusterIP
+    port: 26657
+  ingress:
+    enabled: true
+    className: nginx
+    host: rpc.dytallix.local
+    tls:
+      enabled: false
+      secretName: ""
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  resources: {}
+
+faucet:
+  enabled: true
+  image:
+    repository: ghcr.io/hismadrealm/dytallix-faucet
+    tag: "sha-<git-sha>"
+  service:
+    port: 8787
+  vault:
+    secretPath: kv/dytallix/faucet
+  resources: {}
+
+explorer:
+  enabled: true
+  image:
+    repository: ghcr.io/hismadrealm/dytallix-explorer
+    tag: "sha-<git-sha>"
+  service:
+    port: 5173
+  env:
+    VITE_API_URL: "http://rpc.dytallix.local"
+    VITE_FAUCET_URL: "http://faucet.dytallix.local/api/faucet"
+  resources: {}
+
+config:
+  extraEnv: []
+  public:
+    CHAIN_ID: "dytallix-testnet"
+
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: true
+
+networkPolicy:
+  enabled: true
+
+imagePullSecrets: []

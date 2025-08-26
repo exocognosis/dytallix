@@ -1,0 +1,15 @@
+{{- if .Values.rpc.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dytallix.fullname" . }}-rpc
+spec:
+  selector:
+    component: rpc
+    app: {{ include "dytallix.fullname" . }}
+  ports:
+    - name: rpc
+      port: {{ .Values.rpc.service.port }}
+      targetPort: {{ .Values.rpc.service.port }}
+  type: {{ .Values.rpc.service.type }}
+{{- end }}

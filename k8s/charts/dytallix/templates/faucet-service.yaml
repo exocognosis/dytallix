@@ -1,0 +1,14 @@
+{{- if .Values.faucet.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dytallix.fullname" . }}-faucet
+spec:
+  selector:
+    component: faucet
+    app: {{ include "dytallix.fullname" . }}
+  ports:
+    - name: http
+      port: {{ .Values.faucet.service.port }}
+      targetPort: {{ .Values.faucet.service.port }}
+{{- end }}

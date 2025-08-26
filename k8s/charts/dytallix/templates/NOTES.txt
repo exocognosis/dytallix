@@ -1,0 +1,8 @@
+Dytallix chart deployed.
+
+Validators: StatefulSet {{ include "dytallix.fullname" . }}-validators
+RPC Service: {{ include "dytallix.fullname" . }}-rpc (port {{ .Values.rpc.service.port }})
+Faucet Service: {{ include "dytallix.fullname" . }}-faucet
+Explorer Service: {{ include "dytallix.fullname" . }}-explorer
+
+If ingress enabled for RPC, access via host: {{ .Values.rpc.ingress.host }}

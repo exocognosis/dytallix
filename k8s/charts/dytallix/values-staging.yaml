@@ -1,0 +1,10 @@
+global:
+  chain:
+    id: dytallix-staging
+rpc:
+  ingress:
+    host: rpc.staging.dytallix.example
+explorer:
+  env:
+    VITE_API_URL: "https://rpc.staging.dytallix.example"
+    VITE_FAUCET_URL: "https://faucet.staging.dytallix.example/api/faucet"

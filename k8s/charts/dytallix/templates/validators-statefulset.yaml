@@ -1,0 +1,82 @@
+{{- if .Values.validators.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "dytallix.fullname" . }}-validators
+  labels:
+    component: validators
+    {{- include "dytallix.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "dytallix.fullname" . }}-validators
+  replicas: {{ .Values.validators.replicas }}
+  selector:
+    matchLabels:
+      component: validators
+      app: {{ include "dytallix.fullname" . }}
+  template:
+    metadata:
+      labels:
+        component: validators
+        app: {{ include "dytallix.fullname" . }}
+      annotations:
+        {{- if .Values.global.vault.enabled }}
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: {{ .Values.global.vault.role | quote }}
+        {{- if .Values.global.vault.namespace }}
+        vault.hashicorp.com/namespace: {{ .Values.global.vault.namespace | quote }}
+        {{- end }}
+        vault.hashicorp.com/agent-inject-secret-validator_key: "{{ .Values.validators.vault.secretPathPrefix }}/0"
+        vault.hashicorp.com/agent-inject-template-validator_key: |
+          {{`{{- with secret "`}}{{ .Values.validators.vault.secretPathPrefix }}/0{{`" -}}`}}
+          {{`{{ .Data.data.private_key }}`}}
+          {{`{{- end }}`}}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ if .Values.serviceAccount.create }}{{ include "dytallix.fullname" . }}{{ else }}{{ default "default" .Values.serviceAccount.name }}{{ end }}
+      containers:
+        - name: validator
+          image: "{{ .Values.validators.image.repository }}:{{ .Values.validators.image.tag }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          env:
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dytallix.fullname" . }}-config
+                  key: CHAIN_ID
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/dytallix
+            {{- if .Values.global.vault.enabled }}
+            - name: vault-secrets
+              mountPath: /secrets
+              readOnly: true
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.validators.resources | nindent 12 }}
+      {{- if .Values.global.vault.enabled }}
+      volumes:
+        - name: vault-secrets
+          emptyDir: {}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.validators.storage.size }}
+        {{- if .Values.validators.storage.className }}
+        storageClassName: {{ .Values.validators.storage.className }}
+        {{- end }}
+{{- end }}

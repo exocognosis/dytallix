@@ -1,0 +1,32 @@
+{{- if .Values.rpc.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dytallix.fullname" . }}-rpc
+spec:
+  replicas: {{ .Values.rpc.replicas }}
+  selector:
+    matchLabels:
+      component: rpc
+      app: {{ include "dytallix.fullname" . }}
+  template:
+    metadata:
+      labels:
+        component: rpc
+        app: {{ include "dytallix.fullname" . }}
+    spec:
+      containers:
+        - name: rpc
+          image: "{{ .Values.rpc.image.repository }}:{{ .Values.rpc.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.rpc.service.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dytallix.fullname" . }}-config
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.rpc.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+{{- end }}
