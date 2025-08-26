@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dytallix.fullname" . }}-config
+  labels:
+    {{- include "dytallix.labels" . | nindent 4 }}
+data:
+  CHAIN_ID: {{ .Values.config.public.CHAIN_ID | quote }}
+  {{- range $k, $v := .Values.explorer.env }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}

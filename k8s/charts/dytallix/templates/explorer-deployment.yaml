@@ -1,0 +1,26 @@
+{{- if .Values.explorer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dytallix.fullname" . }}-explorer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: explorer
+      app: {{ include "dytallix.fullname" . }}
+  template:
+    metadata:
+      labels:
+        component: explorer
+        app: {{ include "dytallix.fullname" . }}
+    spec:
+      containers:
+        - name: explorer
+          image: "{{ .Values.explorer.image.repository }}:{{ .Values.explorer.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.explorer.service.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dytallix.fullname" . }}-config
+{{- end }}

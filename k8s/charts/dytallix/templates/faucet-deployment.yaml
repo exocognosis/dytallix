@@ -1,0 +1,39 @@
+{{- if .Values.faucet.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dytallix.fullname" . }}-faucet
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: faucet
+      app: {{ include "dytallix.fullname" . }}
+  template:
+    metadata:
+      labels:
+        component: faucet
+        app: {{ include "dytallix.fullname" . }}
+      annotations:
+        {{- if .Values.global.vault.enabled }}
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: {{ .Values.global.vault.role | quote }}
+        vault.hashicorp.com/agent-inject-secret-faucet_key: "{{ .Values.faucet.vault.secretPath }}"
+        vault.hashicorp.com/agent-inject-template-faucet_key: |
+          {{`{{- with secret "`}}{{ .Values.faucet.vault.secretPath }}{{`" -}}`}}
+          {{`{{ .Data.data.private_key }}`}}
+          {{`{{- end }}`}}
+        {{- end }}
+    spec:
+      containers:
+        - name: faucet
+          image: "{{ .Values.faucet.image.repository }}:{{ .Values.faucet.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.faucet.service.port }}
+          env:
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dytallix.fullname" . }}-config
+                  key: CHAIN_ID
+{{- end }}

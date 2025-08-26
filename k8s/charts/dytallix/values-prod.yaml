@@ -1,0 +1,17 @@
+global:
+  chain:
+    id: dytallix
+rpc:
+  replicas: 3
+  ingress:
+    host: rpc.dytallix.example
+    tls:
+      enabled: true
+      secretName: dytallix-rpc-tls
+explorer:
+  env:
+    VITE_API_URL: "https://rpc.dytallix.example"
+    VITE_FAUCET_URL: "https://faucet.dytallix.example/api/faucet"
+validators:
+  storage:
+    size: 200Gi

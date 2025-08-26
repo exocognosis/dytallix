@@ -1,0 +1,13 @@
+{{- if and .Values.rbac.create .Values.serviceAccount.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "dytallix.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "dytallix.fullname" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "dytallix.fullname" . }}
+{{- end }}
