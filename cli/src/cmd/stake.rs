@@ -55,12 +55,23 @@ pub enum StakeAction {
         #[arg(long)]
         validator: String,
     },
-    /// Claim staking rewards for an address (simplified version)
+    /// Claim staking rewards (enhanced with all/validator options)
     Claim {
         #[arg(long)]
-        address: String,
+        delegator: String,
+        #[arg(long)]
+        validator: Option<String>,
+        #[arg(long)]
+        all: bool,
     },
-    /// Show accrued (unclaimed) staking rewards for an address
+    /// Show comprehensive staking rewards for a delegator
+    Rewards {
+        #[arg(long)]
+        delegator: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Show accrued (unclaimed) staking rewards for an address (legacy)
     ShowRewards {
         #[arg(long)]
         address: String,
@@ -92,8 +103,23 @@ pub async fn run(rpc_url: &str, fmt: OutputFormat, cmd: StakeCmd) -> Result<()> 
         StakeAction::ClaimRewards { delegator, validator } => {
             claim_rewards(&client, fmt, delegator, validator).await
         },
-        StakeAction::Claim { address } => {
-            claim_simple(&client, fmt, address).await
+        StakeAction::Claim { delegator, validator, all } => {
+            if all {
+                claim_all_rewards(&client, fmt, delegator).await
+            } else if let Some(validator) = validator {
+                claim_rewards(&client, fmt, delegator, validator).await
+            } else {
+                if fmt.is_json() {
+                    println!("{}", json!({"status": "error", "message": "Either --validator or --all must be specified"}));
+                } else {
+                    println!("✗ Either --validator or --all must be specified");
+                }
+                Ok(())
+            }
+        },
+        StakeAction::Rewards { delegator, json } => {
+            let output_fmt = if json { OutputFormat::Json } else { fmt };
+            show_comprehensive_rewards(&client, output_fmt, delegator).await
         },
         StakeAction::ShowRewards { address } => {
             show_rewards(&client, fmt, address).await
@@ -404,6 +430,88 @@ async fn show_rewards(
                 println!("{}", json!({"status": "error", "message": format!("Failed to get accrued rewards: {}", e)}));
             } else {
                 println!("✗ Failed to get accrued rewards: {}", e);
+            }
+        }
+    }
+    
+    Ok(())
+}
+
+/// Claim rewards from all validators for a delegator
+async fn claim_all_rewards(
+    client: &RpcClient,
+    fmt: OutputFormat,
+    delegator: String,
+) -> Result<()> {
+    let result = client.call("staking_claim_all_rewards", &[
+        json!(delegator),
+    ]).await;
+    
+    match result {
+        Ok(response) => {
+            if fmt.is_json() {
+                println!("{}", response);
+            } else {
+                if let Some(amount) = response.get("total_claimed").and_then(|v| v.as_str()) {
+                    println!("✓ Claimed {} uDRT total rewards for {}", amount, delegator);
+                } else {
+                    println!("✓ All rewards claimed: {}", response);
+                }
+            }
+        },
+        Err(e) => {
+            if fmt.is_json() {
+                println!("{}", json!({"status": "error", "message": format!("Failed to claim all rewards: {}", e)}));
+            } else {
+                println!("✗ Failed to claim all rewards: {}", e);
+            }
+        }
+    }
+    
+    Ok(())
+}
+
+/// Show comprehensive reward information for a delegator
+async fn show_comprehensive_rewards(
+    client: &RpcClient,
+    fmt: OutputFormat,
+    delegator: String,
+) -> Result<()> {
+    let result = client.get(&format!("/staking/rewards/{}", delegator)).await;
+    
+    match result {
+        Ok(response) => {
+            if fmt.is_json() {
+                println!("{}", response);
+            } else {
+                // Pretty print the comprehensive reward information
+                if let Some(summary) = response.get("summary") {
+                    println!("Rewards Summary for {}:", delegator);
+                    println!("  Total Stake: {} uDGT", summary.get("total_stake").and_then(|v| v.as_str()).unwrap_or("0"));
+                    println!("  Pending Rewards: {} uDRT", summary.get("pending_rewards").and_then(|v| v.as_str()).unwrap_or("0"));
+                    println!("  Unclaimed Rewards: {} uDRT", summary.get("accrued_unclaimed").and_then(|v| v.as_str()).unwrap_or("0"));
+                    println!("  Total Claimed: {} uDRT", summary.get("total_claimed").and_then(|v| v.as_str()).unwrap_or("0"));
+                    
+                    if let Some(positions) = response.get("positions").and_then(|v| v.as_array()) {
+                        println!("\nPositions:");
+                        for (i, position) in positions.iter().enumerate() {
+                            println!("  {}. Validator: {}", i + 1, position.get("validator").and_then(|v| v.as_str()).unwrap_or("unknown"));
+                            println!("     Stake: {} uDGT", position.get("stake").and_then(|v| v.as_str()).unwrap_or("0"));
+                            println!("     Pending: {} uDRT", position.get("pending").and_then(|v| v.as_str()).unwrap_or("0"));
+                            println!("     Unclaimed: {} uDRT", position.get("accrued_unclaimed").and_then(|v| v.as_str()).unwrap_or("0"));
+                            println!();
+                        }
+                    }
+                } else {
+                    println!("Rewards info: {}", response);
+                }
+            }
+        },
+        Err(e) => {
+            if fmt.is_json() {
+                println!("{}", json!({"status": "error", "message": format!("Failed to get reward information: {}", e)}));
+            } else {
+                println!("✗ Failed to get reward information: {}", e);
             }
         }
     }

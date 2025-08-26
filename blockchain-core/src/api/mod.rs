@@ -774,6 +774,17 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                             serde_json::json!({"error": "Invalid parameters"})
                         }
                     }
+                    "staking_claim_all_rewards" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
+                            if params.len() >= 1 {
+                                handle_staking_claim_all_rewards(params, runtime.clone()).await
+                            } else {
+                                serde_json::json!({"error": "Invalid parameters"})
+                            }
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
                     "staking_sync_accrued" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
                             if params.len() >= 2 {
@@ -891,6 +902,84 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         })
         .boxed();
 
+    // GET /staking/rewards/{delegator} - comprehensive reward information
+    let staking_rewards_runtime = runtime.clone();
+    let staking_rewards = warp::path!("staking" / "rewards" / String)
+        .and(warp::get())
+        .and(warp::any().map(move || staking_rewards_runtime.clone()))
+        .and_then(|delegator: String, runtime: Arc<crate::runtime::DytallixRuntime>| async move {
+            let summary = runtime.get_delegator_rewards_summary(&delegator).await;
+            Ok::<_, warp::Rejection>(
+                warp::reply::with_status(
+                    warp::reply::json(&summary),
+                    warp::http::StatusCode::OK,
+                )
+                .into_response()
+            )
+        })
+        .boxed();
+
+    // POST /staking/claim - claim rewards
+    let staking_claim_runtime = runtime.clone();
+    let staking_claim = warp::path!("staking" / "claim")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(warp::any().map(move || staking_claim_runtime.clone()))
+        .and_then(|claim_request: serde_json::Value, runtime: Arc<crate::runtime::DytallixRuntime>| async move {
+            if let Some(delegator) = claim_request.get("delegator").and_then(|v| v.as_str()) {
+                let result = if let Some(validator) = claim_request.get("validator").and_then(|v| v.as_str()) {
+                    // Claim from specific validator
+                    runtime.claim_rewards(&delegator.to_string(), &validator.to_string()).await
+                } else {
+                    // Claim from all validators
+                    runtime.claim_all_rewards(&delegator.to_string()).await
+                };
+                
+                match result {
+                    Ok(claimed) => {
+                        let new_balance = runtime.get_drt_balance(delegator).await;
+                        let response = serde_json::json!({
+                            "delegator": delegator,
+                            "claimed": claimed.to_string(),
+                            "new_balance": new_balance.to_string(),
+                            "height": runtime.get_current_height().await.unwrap_or(0)
+                        });
+                        Ok::<_, warp::Rejection>(
+                            warp::reply::with_status(
+                                warp::reply::json(&response),
+                                warp::http::StatusCode::OK,
+                            )
+                            .into_response()
+                        )
+                    }
+                    Err(e) => {
+                        let response = serde_json::json!({
+                            "error": format!("Failed to claim rewards: {}", e)
+                        });
+                        Ok::<_, warp::Rejection>(
+                            warp::reply::with_status(
+                                warp::reply::json(&response),
+                                warp::http::StatusCode::BAD_REQUEST,
+                            )
+                            .into_response()
+                        )
+                    }
+                }
+            } else {
+                let response = serde_json::json!({
+                    "error": "Missing required field: delegator"
+                });
+                Ok::<_, warp::Rejection>(
+                    warp::reply::with_status(
+                        warp::reply::json(&response),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    )
+                    .into_response()
+                )
+            }
+        })
+        .boxed();
+
     // CORS
     let cors = {
         let origin = std::env::var("FRONTEND_ORIGIN").ok();
@@ -915,6 +1004,8 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .or(stats)
         .or(staking_stats)
         .or(staking_validators)
+        .or(staking_rewards)
+        .or(staking_claim)
         .or(contract_rpc)
         .with(cors)
         .with(warp::log("api"));
@@ -1377,6 +1468,20 @@ async fn handle_staking_claim_rewards(
         ).await {
             Ok(rewards) => serde_json::json!(rewards),
             Err(e) => serde_json::json!({"error": format!("Failed to claim rewards: {}", e)}),
+        }
+    } else {
+        serde_json::json!({"error": "Invalid parameters"})
+    }
+}
+
+async fn handle_staking_claim_all_rewards(
+    params: &[serde_json::Value],
+    runtime: Arc<crate::runtime::DytallixRuntime>,
+) -> serde_json::Value {
+    if let Some(delegator) = params[0].as_str() {
+        match runtime.claim_all_rewards(&delegator.to_string()).await {
+            Ok(total_claimed) => serde_json::json!({"total_claimed": total_claimed}),
+            Err(e) => serde_json::json!({"error": format!("Failed to claim all rewards: {}", e)}),
         }
     } else {
         serde_json::json!({"error": "Invalid parameters"})
