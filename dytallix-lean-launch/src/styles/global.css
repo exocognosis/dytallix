@@ -369,4 +369,115 @@ body {
 .network-config-note p { margin: 0; font-size: 0.9rem; color: #FCD34D; font-weight: 600; }
 .network-config-note code { background: rgba(255,255,255,0.07); border: 1px solid var(--surface-border); padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; }
 
+/* Staking Rewards Dashboard Styles */
+.staking-rewards-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.metric-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.metric-value.pending {
+  color: var(--primary-400);
+}
+
+.metric-value.unclaimed {
+  color: var(--accent-400);
+}
+
+.metric-value.claimed {
+  color: var(--success-500);
+}
+
+.position-card {
+  transition: all 0.2s ease;
+}
+
+.position-card:hover {
+  border-color: var(--surface-glow);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+}
+
+.validator-address {
+  background: rgba(255,255,255,0.05);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--primary-300);
+  border: 1px solid var(--surface-border);
+}
+
+.positions-section .label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.positions-section .value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.positions-section .value.pending {
+  color: var(--primary-400);
+}
+
+.positions-section .value.unclaimed {
+  color: var(--accent-400);
+}
+
+.error-card {
+  border-color: var(--danger-500);
+  background: linear-gradient(180deg, rgba(239,68,68,0.1), rgba(239,68,68,0.05));
+}
+
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+.alert-error {
+  background: rgba(239,68,68,0.1);
+  border-color: var(--danger-500);
+  color: #FCA5A5;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--surface-border);
+  border-top: 2px solid var(--primary-500);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) { .network-config-title { font-size: 1.6rem; } .network-config-item-header { flex-direction: column; align-items: flex-start; } .network-config-item code { max-width: 100%; } }
