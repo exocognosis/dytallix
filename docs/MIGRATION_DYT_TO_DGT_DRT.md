@@ -22,7 +22,7 @@ The Dytallix tokenomics have evolved into a dual-token model to better serve dif
 - Wallet balance displays
 - Faucet distribution (10 DGT per request, 50 DGT limit)
 - Bridging operations (Wrapped DGT)
-- MetaMask nativeCurrency
+- Browser wallet native currency context
 - Explorer fee displays
 - Minimum gas prices
 - Validator funding
@@ -48,7 +48,7 @@ The Dytallix tokenomics have evolved into a dual-token model to better serve dif
 
 ### Frontend (TypeScript/React)
 - `frontend/src/lib/tokens.ts`: New centralized token definitions with helper functions
-- `frontend/src/services/config.ts`: MetaMask nativeCurrency changed to DGT with 6 decimals
+- `frontend/src/services/config.ts`: Browser wallet native currency context changed to DGT with 6 decimals
 - `frontend/src/pages/Wallet.tsx`: Updated balance displays, send forms, and UI labels
 
 ### Backend Services (Node.js)

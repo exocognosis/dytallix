@@ -16,10 +16,10 @@ Legend:
 | deployments/ | deploy records | REMOVE | Purge deployments folder |
 | package.json hardhat scripts (test) | script | MIGRATE | Switched test to vitest |
 | package.json deps: hardhat, @nomicfoundation/* | dep | REMOVE | Removed from devDependencies |
-| package.json deps: ethers | dep | MIGRATE | Server faucet now uses CosmJS instead of ethers |
-| server/index.js ethers checksum | code | MIGRATE | Replaced with bech32 prefix validation |
-| server/transfer.js (ethers) | code | MIGRATE | Rewrote using CosmJS sendTokens |
-| src/components/FaucetForm.jsx (window.ethereum) | code | MIGRATE | Autofill from local PQC wallet; bech32 validation |
+| package.json deps: legacy blockchain lib | dep | MIGRATE | Server faucet now uses CosmJS instead of legacy libraries |
+| server/index.js legacy checksum | code | MIGRATE | Replaced with bech32 prefix validation |
+| server/transfer.js (legacy blockchain lib) | code | MIGRATE | Rewrote using CosmJS sendTokens |
+| src/components/FaucetForm.jsx (injected provider) | code | MIGRATE | Autofill from local PQC wallet; bech32 validation |
 | .env hardhat references | config | REMOVE | Prefer VITE_* Cosmos vars |
 | vitest.config.js exclude hardhat.config.* | config | KEEP | Exclude pattern left harmless |
 | README.md EVM mentions | docs | MIGRATE | Update to Cosmos-only instructions (pending) |

@@ -43,7 +43,7 @@ DAY 2 — FAUCET FUNCTIONALITY
 ----------------------------
 
 Tasks:
-- Add wallet connect via MetaMask or PQC wallet interface
+- Add native PQC wallet connect interface
 - Build basic faucet UI (request tokens + confirm receipt)
 - Set rate limits or simple anti-spam (e.g. IP delay or Discord auth)
 
@@ -53,7 +53,7 @@ Deliverables:
 
 AI Agent Prompt:
 ----------------
-Implement a faucet page that allows users to connect their wallet (MetaMask or testnet PQC wallet), input an address, and request a fixed amount of tokens. Include a basic rate limit (e.g. 1 request per IP per hour). Connect the faucet backend to the existing Dytallix testnet endpoint and confirm tokens are successfully sent.
+Implement a faucet page that allows users to connect their PQC wallet, input an address, and request a fixed amount of tokens. Include a basic rate limit (e.g. 1 request per IP per hour). Connect the faucet backend to the existing Dytallix testnet endpoint and confirm tokens are successfully sent.
 
 ---
 

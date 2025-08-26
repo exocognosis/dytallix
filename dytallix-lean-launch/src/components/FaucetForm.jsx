@@ -3,7 +3,8 @@ import styles from '../styles/FaucetForm.module.css'
 import dgtIcon from '../assets/dgt.svg'
 import drtIcon from '../assets/drt.svg'
 import { requestFaucet } from '../lib/api.js'
-import { loadMeta } from '../wallet/Keystore'
+import { useWalletState, useWalletActions } from '../state/walletStore.ts'
+import { ConnectDytallixWalletModal } from './ConnectDytallixWalletModal.tsx'
 
 const FaucetForm = () => {
   const [address, setAddress] = useState('')
@@ -12,7 +13,10 @@ const FaucetForm = () => {
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('') // 'success' or 'error'
   const [cooldowns, setCooldowns] = useState({ DGT: 0, DRT: 0 })
-  const [connected, setConnected] = useState(false)
+  const [showWalletModal, setShowWalletModal] = useState(false)
+
+  const { isUnlocked, currentAccount } = useWalletState()
+  const { init } = useWalletActions()
 
   // Token configurations (display copy only)
   const tokenConfig = {
@@ -34,8 +38,10 @@ const FaucetForm = () => {
     }
   }
 
-  // Load cooldowns and token preference
+  // Initialize wallet provider and load cooldowns
   useEffect(() => {
+    init()
+    
     const savedCooldowns = localStorage.getItem('dytallix-faucet-cooldowns')
     if (savedCooldowns) {
       try {
@@ -48,22 +54,18 @@ const FaucetForm = () => {
     }
     const savedToken = localStorage.getItem('dytallix-faucet-selected-token')
     if (savedToken && tokenConfig[savedToken]) setSelectedToken(savedToken)
-  }, [])
+  }, [init])
 
   useEffect(() => { localStorage.setItem('dytallix-faucet-selected-token', selectedToken) }, [selectedToken])
 
-  // Wallet autofill (local PQC wallet)
+  // Auto-populate wallet address from connected PQC wallet
   useEffect(() => {
-    try {
-      const meta = loadMeta()
-      if (meta?.address) {
-        setAddress(meta.address)
-        setConnected(true)
-        return
-      }
-    } catch {}
-    setConnected(false)
-  }, [])
+    if (isUnlocked && currentAccount?.address) {
+      setAddress(currentAccount.address)
+    } else {
+      setAddress('')
+    }
+  }, [isUnlocked, currentAccount])
 
   const isOnCooldown = (token) => cooldowns[token] && cooldowns[token] > Date.now()
   const getCooldownMinutes = (token) => {
@@ -135,8 +137,40 @@ const FaucetForm = () => {
       </div>
 
       <div className={styles.inputGroup}>
-        <label htmlFor="wallet-address" className={styles.label}>Wallet Address {connected ? '(Auto-filled)' : '(Paste bech32 address)'}</label>
-        <input id="wallet-address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="dytallix1..." className={styles.input} disabled={isLoading} />
+        <label htmlFor="wallet-address" className={styles.label}>
+          Wallet Address 
+          {isUnlocked && currentAccount ? ' (Auto-filled from connected wallet)' : ' (Connect wallet or paste bech32 address)'}
+        </label>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <input 
+            id="wallet-address" 
+            type="text" 
+            value={address} 
+            onChange={(e) => setAddress(e.target.value)} 
+            placeholder="dytallix1..." 
+            className={styles.input} 
+            disabled={isLoading}
+            style={{ flex: 1 }}
+          />
+          {!isUnlocked && (
+            <button
+              type="button"
+              onClick={() => setShowWalletModal(true)}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                fontSize: '14px'
+              }}
+            >
+              Connect Wallet
+            </button>
+          )}
+        </div>
       </div>
 
       <button type="submit" disabled={isLoading || !address.trim() || isOnCooldown(selectedToken)} className={`${styles.submitButton} ${isLoading ? styles.loading : ''}`}>
@@ -163,6 +197,12 @@ const FaucetForm = () => {
       <div className={styles.info}>
         <p><strong>Note:</strong> This is a testnet faucet. Tokens have no real value and are only for testing purposes.</p>
       </div>
+
+      <ConnectDytallixWalletModal 
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onSuccess={() => setShowWalletModal(false)}
+      />
     </form>
   )
 }

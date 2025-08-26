@@ -47,6 +47,15 @@ See `reports/CHANGELOG.md` for mv-testnet scoped changes.
 - PQC WASM integrity manifest validated on load (see `src/crypto/pqc`).
 - Security headers opt-in via env flags. See `server/` README (future) for details.
 
+## Wallet Integration
+- **Native PQC Wallet**: Integrated post-quantum cryptographic wallet with encrypted vault storage
+- **Auto-Lock Security**: 10-minute inactivity timeout with secure memory clearing
+- **Algorithm Support**: Dilithium5, Falcon1024, and SPHINCS+ for quantum-resistant signatures
+- **Storage**: Encrypted vault in localStorage (`dyt-vault:v1`) using AES-GCM + PBKDF2
+- **No External Dependencies**: No MetaMask or browser extension requirements
+- **Accessibility**: Fully accessible modal interface with keyboard navigation
+- See `docs/wallet-migration.md` for detailed migration guide and API reference
+
 ## Next Steps
 - Gradually relocate `server/` → `faucet/` + `node/` split.
 - Migrate `src/` dashboard into `web/` package with isolated build if multi-app emerges.
