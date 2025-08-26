@@ -468,6 +468,40 @@ impl DytallixRuntime {
         Ok(rewards)
     }
 
+    /// Claim rewards for all delegations of a delegator  
+    pub async fn claim_all_rewards(&self, delegator: &Address) -> Result<u128, StakingError> {
+        let mut state = self.state.write().await;
+        let total_rewards = state.staking.claim_all_rewards(delegator)?;
+        
+        if total_rewards > 0 {
+            // Credit DRT tokens to delegator
+            let current_drt = state.drt_balances.get(delegator).copied().unwrap_or(0);
+            state.drt_balances.insert(delegator.clone(), current_drt + total_rewards);
+            debug!("Credited {} uDRT total rewards to {}", total_rewards, delegator);
+        }
+        
+        Ok(total_rewards)
+    }
+
+    /// Get comprehensive delegator reward information
+    pub async fn get_delegator_rewards_summary(
+        &self,
+        delegator: &Address,
+    ) -> crate::staking::DelegatorRewardsSummary {
+        let state = self.state.read().await;
+        state.staking.get_delegator_rewards_summary(delegator)
+    }
+
+    /// Get delegator rewards for a specific validator
+    pub async fn get_delegator_validator_rewards(
+        &self,
+        delegator: &Address,
+        validator: &Address,
+    ) -> Result<crate::staking::DelegatorValidatorRewards, StakingError> {
+        let state = self.state.read().await;
+        state.staking.get_delegator_validator_rewards(delegator, validator)
+    }
+
     /// Process block rewards (called during block processing)
     pub async fn process_block_rewards(&self, block_height: BlockNumber) -> Result<(), StakingError> {
         let mut state = self.state.write().await;
@@ -478,6 +512,12 @@ impl DytallixRuntime {
     pub async fn get_drt_balance(&self, address: &str) -> u128 {
         let state = self.state.read().await;
         state.drt_balances.get(address).copied().unwrap_or(0)
+    }
+
+    /// Get current block height
+    pub async fn get_current_height(&self) -> Result<BlockNumber, Box<dyn std::error::Error>> {
+        let state = self.state.read().await;
+        Ok(state.staking.current_height)
     }
 
     /// Get staking statistics

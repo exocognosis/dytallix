@@ -48,6 +48,27 @@ pub struct Validator {
     pub total_slashed: u128,
 }
 
+/// Per-delegator reward tracking for comprehensive reward management
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DelegatorRewards {
+    /// Accrued but unclaimed uDRT rewards
+    pub accrued_unclaimed: u128,
+    /// Total lifetime uDRT claimed
+    pub total_claimed: u128,
+    /// Last global reward_index snapshot for this delegator
+    pub last_index: u128,
+}
+
+impl Default for DelegatorRewards {
+    fn default() -> Self {
+        Self {
+            accrued_unclaimed: 0,
+            total_claimed: 0,
+            last_index: 0,
+        }
+    }
+}
+
 /// Delegation record for a specific delegator-validator pair
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Delegation {
@@ -57,11 +78,14 @@ pub struct Delegation {
     pub validator_address: Address,
     /// Amount of DGT staked (in uDGT)
     pub stake_amount: u128,
-    /// Reward cursor - captures validator reward_index at last interaction
+    /// Reward cursor - captures validator reward_index at last interaction (legacy)
     pub reward_cursor_index: u128,
-    /// Accrued but unclaimed uDRT rewards (for backward compatibility, defaults to 0)
+    /// Accrued but unclaimed uDRT rewards (legacy, for backward compatibility)
     #[serde(default)]
     pub accrued_rewards: u128,
+    /// Enhanced reward tracking using global index system
+    #[serde(default)]
+    pub rewards: DelegatorRewards,
 }
 
 /// Staking configuration parameters
@@ -117,6 +141,9 @@ pub struct StakingState {
     pub pending_events: Vec<ValidatorEvent>,
     /// Pending staking emission when no stake exists (carries over until stake > 0)
     pub pending_staking_emission: u128,
+    /// Global reward index (scaled by REWARD_SCALE) for per-delegator reward calculation
+    #[serde(default)]
+    pub global_reward_index: u128,
 }
 
 impl Default for StakingState {
@@ -129,6 +156,7 @@ impl Default for StakingState {
             current_height: 0,
             pending_events: Vec::new(),
             pending_staking_emission: 0,
+            global_reward_index: 0,
         }
     }
 }
@@ -305,6 +333,11 @@ impl StakingState {
             stake_amount: amount,
             reward_cursor_index: validator_entry.reward_index,
             accrued_rewards: 0,
+            rewards: DelegatorRewards {
+                accrued_unclaimed: 0,
+                total_claimed: 0,
+                last_index: self.global_reward_index, // Initialize with current global index
+            },
         };
 
         // Update validator total stake
@@ -630,45 +663,92 @@ impl StakingState {
             .sum();
 
         if total_active_stake == 0 {
-            return Ok(()); // No active stake, no rewards to distribute
+            // No active stake, accumulate emission for later distribution
+            self.pending_staking_emission += self.params.emission_per_block;
+            return Ok(());
         }
 
-        // Calculate rewards per unit of stake
-        let reward_per_stake = (self.params.emission_per_block * REWARD_SCALE) / total_active_stake;
+        // Calculate total emission including any pending
+        let total_emission = self.params.emission_per_block + self.pending_staking_emission;
+        self.pending_staking_emission = 0; // Reset pending emission
 
-        // Update reward index for all active validators
+        // Update global reward index: reward_index += (block_staking_emission * SCALE) / total_stake
+        let reward_increment = (total_emission * REWARD_SCALE) / total_active_stake;
+        self.global_reward_index = self.global_reward_index.saturating_add(reward_increment);
+
+        // Update per-validator reward indices for legacy compatibility
         for validator in self.validators.values_mut() {
             if validator.status == ValidatorStatus::Active && validator.total_stake > 0 {
-                validator.reward_index += reward_per_stake;
+                validator.reward_index += reward_increment;
             }
         }
 
         Ok(())
     }
 
+    /// Settle delegator rewards using global reward index (lazy settlement)
+    /// Should be called before any stake mutation or claim
+    pub fn settle_delegator(
+        &mut self,
+        delegator: &Address,
+        validator_address: &Address,
+    ) -> Result<u128, StakingError> {
+        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation = self.delegations.get_mut(&delegation_key)
+            .ok_or(StakingError::DelegationNotFound)?;
+
+        // Calculate pending rewards using global index:
+        // pending = stake * (global_reward_index - last_index) / REWARD_SCALE
+        let index_diff = self.global_reward_index.saturating_sub(delegation.rewards.last_index);
+        let pending = (index_diff * delegation.stake_amount) / REWARD_SCALE;
+
+        if pending > 0 {
+            delegation.rewards.accrued_unclaimed = delegation.rewards.accrued_unclaimed.saturating_add(pending);
+            delegation.rewards.last_index = self.global_reward_index;
+        }
+
+        Ok(delegation.rewards.accrued_unclaimed)
+    }
+
     /// Sync delegation rewards and return (pending_added, total_accrued_after)
+    /// This maintains backward compatibility while using the new global index system
     pub fn sync_delegation_rewards(
         &mut self,
         delegator: &Address,
         validator_address: &Address,
     ) -> Result<(u128, u128), StakingError> {
         let delegation_key = format!("{}:{}", delegator, validator_address);
+        
+        // Use new global index settlement
+        let pending = self.calculate_pending_rewards_global(delegator, validator_address)?;
+        self.settle_delegator(delegator, validator_address)?;
+        
         let delegation = self.delegations.get_mut(&delegation_key)
             .ok_or(StakingError::DelegationNotFound)?;
 
-        let validator = self.validators.get(validator_address)
-            .ok_or(StakingError::ValidatorNotFound)?;
-
-        // Calculate pending rewards: (current_index - cursor_index) * stake_amount / SCALE
-        let reward_diff = validator.reward_index.saturating_sub(delegation.reward_cursor_index);
-        let pending = (reward_diff * delegation.stake_amount) / REWARD_SCALE;
-
+        // Update legacy accrued_rewards for backward compatibility
         if pending > 0 {
-            delegation.accrued_rewards += pending;
-            delegation.reward_cursor_index = validator.reward_index;
+            delegation.accrued_rewards = delegation.accrued_rewards.saturating_add(pending);
         }
 
-        Ok((pending, delegation.accrued_rewards))
+        Ok((pending, delegation.rewards.accrued_unclaimed))
+    }
+
+    /// Calculate pending rewards using global index system
+    pub fn calculate_pending_rewards_global(
+        &self,
+        delegator: &Address,
+        validator_address: &Address,
+    ) -> Result<u128, StakingError> {
+        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation = self.delegations.get(&delegation_key)
+            .ok_or(StakingError::DelegationNotFound)?;
+
+        // Calculate rewards using global index: (global_index - last_index) * stake_amount / SCALE
+        let index_diff = self.global_reward_index.saturating_sub(delegation.rewards.last_index);
+        let pending = (index_diff * delegation.stake_amount) / REWARD_SCALE;
+
+        Ok(pending)
     }
 
     /// Calculate pending rewards for a delegation
@@ -691,27 +771,54 @@ impl StakingState {
         Ok(pending_rewards)
     }
 
-    /// Claim rewards for a delegation
+    /// Claim rewards for a delegation using new global index system
     pub fn claim_rewards(
         &mut self,
         delegator: &Address,
         validator_address: &Address,
     ) -> Result<u128, StakingError> {
-        // First sync delegation rewards
-        self.sync_delegation_rewards(delegator, validator_address)?;
+        // First settle all pending rewards
+        self.settle_delegator(delegator, validator_address)?;
 
         let delegation_key = format!("{}:{}", delegator, validator_address);
         let delegation = self.delegations.get_mut(&delegation_key)
             .ok_or(StakingError::DelegationNotFound)?;
 
-        let rewards_to_claim = delegation.accrued_rewards;
+        let rewards_to_claim = delegation.rewards.accrued_unclaimed;
         
         if rewards_to_claim > 0 {
-            // Clear accrued rewards as they will be transferred to delegator
+            // Update tracking: increment total claimed and zero unclaimed
+            delegation.rewards.total_claimed = delegation.rewards.total_claimed.saturating_add(rewards_to_claim);
+            delegation.rewards.accrued_unclaimed = 0;
+            
+            // Update legacy field for backward compatibility
             delegation.accrued_rewards = 0;
         }
 
         Ok(rewards_to_claim)
+    }
+
+    /// Claim rewards for all delegations of a delegator (new functionality)
+    pub fn claim_all_rewards(&mut self, delegator: &Address) -> Result<u128, StakingError> {
+        let mut total_claimed = 0u128;
+        
+        // Find all delegations for this delegator
+        let delegator_delegations: Vec<String> = self.delegations
+            .keys()
+            .filter(|key| key.starts_with(&format!("{}:", delegator)))
+            .cloned()
+            .collect();
+        
+        for delegation_key in delegator_delegations {
+            let parts: Vec<&str> = delegation_key.split(':').collect();
+            if parts.len() == 2 {
+                let validator_address = parts[1].to_string();
+                let claimed = self.claim_rewards(delegator, &validator_address)?;
+                total_claimed = total_claimed.saturating_add(claimed);
+            }
+        }
+        
+        Ok(total_claimed)
     }
 
     /// Undelegate tokens (placeholder for future implementation)
@@ -848,8 +955,107 @@ impl StakingState {
             0
         };
         
-        (avg_reward_index, self.pending_staking_emission)
+        (self.global_reward_index, self.pending_staking_emission)
     }
+
+    /// Get comprehensive delegator reward information for a specific validator
+    pub fn get_delegator_validator_rewards(
+        &self,
+        delegator: &Address,
+        validator_address: &Address,
+    ) -> Result<DelegatorValidatorRewards, StakingError> {
+        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation = self.delegations.get(&delegation_key)
+            .ok_or(StakingError::DelegationNotFound)?;
+
+        // Calculate current pending rewards
+        let pending = self.calculate_pending_rewards_global(delegator, validator_address)?;
+
+        Ok(DelegatorValidatorRewards {
+            validator: validator_address.clone(),
+            stake: delegation.stake_amount,
+            pending: pending,
+            accrued_unclaimed: delegation.rewards.accrued_unclaimed,
+            total_claimed: delegation.rewards.total_claimed,
+            last_index: delegation.rewards.last_index,
+        })
+    }
+
+    /// Get comprehensive reward summary for a delegator across all validators
+    pub fn get_delegator_rewards_summary(&self, delegator: &Address) -> DelegatorRewardsSummary {
+        let mut positions = Vec::new();
+        let mut total_stake = 0u128;
+        let mut total_pending = 0u128;
+        let mut total_accrued_unclaimed = 0u128;
+        let mut total_claimed = 0u128;
+
+        // Find all delegations for this delegator
+        for (delegation_key, delegation) in &self.delegations {
+            if delegation_key.starts_with(&format!("{}:", delegator)) {
+                let validator_address = &delegation.validator_address;
+                
+                // Calculate pending rewards for this position
+                if let Ok(pending) = self.calculate_pending_rewards_global(delegator, validator_address) {
+                    positions.push(DelegatorValidatorRewards {
+                        validator: validator_address.clone(),
+                        stake: delegation.stake_amount,
+                        pending,
+                        accrued_unclaimed: delegation.rewards.accrued_unclaimed,
+                        total_claimed: delegation.rewards.total_claimed,
+                        last_index: delegation.rewards.last_index,
+                    });
+
+                    total_stake += delegation.stake_amount;
+                    total_pending += pending;
+                    total_accrued_unclaimed += delegation.rewards.accrued_unclaimed;
+                    total_claimed += delegation.rewards.total_claimed;
+                }
+            }
+        }
+
+        DelegatorRewardsSummary {
+            delegator: delegator.clone(),
+            height: self.current_height,
+            global_reward_index: self.global_reward_index,
+            summary: RewardsSummary {
+                total_stake,
+                pending_rewards: total_pending,
+                accrued_unclaimed: total_accrued_unclaimed,
+                total_claimed,
+            },
+            positions,
+        }
+    }
+}
+
+/// Per-validator reward information for a delegator
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DelegatorValidatorRewards {
+    pub validator: Address,
+    pub stake: u128,
+    pub pending: u128,
+    pub accrued_unclaimed: u128,
+    pub total_claimed: u128,
+    pub last_index: u128,
+}
+
+/// Summary of rewards across all positions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RewardsSummary {
+    pub total_stake: u128,
+    pub pending_rewards: u128,
+    pub accrued_unclaimed: u128,
+    pub total_claimed: u128,
+}
+
+/// Comprehensive delegator rewards summary across all validators
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DelegatorRewardsSummary {
+    pub delegator: Address,
+    pub height: BlockNumber,
+    pub global_reward_index: u128,
+    pub summary: RewardsSummary,
+    pub positions: Vec<DelegatorValidatorRewards>,
 }
 
 /// Validator statistics for queries

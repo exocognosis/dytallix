@@ -65,7 +65,64 @@ pub struct Delegation {
 - `undelegate()` - Placeholder for token unlocking (TODO)
 - Prevention of duplicate delegations per delegator-validator pair
 
-#### 3. Reward Accrual Engine
+#### 3. Enhanced Reward Accrual Engine
+
+**NEW: Global Reward Index System (v2.0)**
+
+The staking system now implements a global cumulative reward index for more efficient and accurate per-delegator reward tracking:
+
+**Core Concept:**
+```rust
+pub struct StakingState {
+    // ... existing fields
+    pub global_reward_index: u128,  // Scaled by REWARD_SCALE (1e12)
+}
+
+pub struct DelegatorRewards {
+    pub accrued_unclaimed: u128,     // uDRT rewards ready to claim
+    pub total_claimed: u128,         // Lifetime uDRT claimed
+    pub last_index: u128,            // Last global reward_index snapshot
+}
+```
+
+**Global Index Update (per block):**
+```rust
+reward_index += (block_staking_emission * REWARD_SCALE) / total_active_stake
+```
+
+**Lazy Settlement (before stake changes or claims):**
+```rust
+pending = stake * (global_reward_index - last_index) / REWARD_SCALE
+accrued_unclaimed += pending
+last_index = global_reward_index
+```
+
+**Key Advantages:**
+- **O(1) Reward Calculation**: Constant time complexity regardless of delegation count
+- **Precise Tracking**: Eliminates rounding errors from per-validator calculations
+- **Lazy Settlement**: Rewards computed only when needed (claims/stake changes)
+- **Multi-Validator Support**: Efficient claiming across all validator positions
+- **Backward Compatibility**: Existing delegations migrate seamlessly
+
+**Per-Block Processing:**
+```rust
+pub fn process_block_rewards(&mut self, block_height: BlockNumber) -> Result<(), StakingError>
+```
+
+**Reward Calculation Functions:**
+- `settle_delegator()` - Lazy reward settlement before stake mutations
+- `calculate_pending_rewards_global()` - Compute current pending rewards
+- `claim_rewards()` - Claim from specific validator with uDRT credit
+- `claim_all_rewards()` - Claim from all validators in single operation
+- `get_delegator_rewards_summary()` - Comprehensive reward overview
+
+**Reward Lifecycle:**
+1. **Delegation Created** → `last_index = current_global_index`
+2. **Blocks Processed** → `global_index` increments proportionally
+3. **Settlement Triggered** → Pending rewards → `accrued_unclaimed`
+4. **Claim Executed** → `accrued_unclaimed` → user balance, increment `total_claimed`
+
+#### 3. Legacy Reward Accrual Engine
 
 **Per-Block Processing:**
 ```rust
@@ -154,11 +211,14 @@ pub struct RuntimeState {
 }
 ```
 
-**New Runtime Methods:**
+**Enhanced Runtime Methods (v2.0):**
 - `register_validator()` - Validator registration
 - `validator_leave()` - Initiate validator exit
 - `delegate()` - DGT delegation with balance locking
-- `claim_rewards()` - DRT reward claiming
+- `claim_rewards()` - DRT reward claiming (specific validator)
+- `claim_all_rewards()` - DRT reward claiming (all validators)
+- `get_delegator_rewards_summary()` - Comprehensive reward overview
+- `get_delegator_validator_rewards()` - Per-validator reward details
 - `process_block_rewards()` - Called during block processing
 - `get_active_validators()` - Query active validator set
 - `record_missed_block()` - Track validator downtime
@@ -169,14 +229,25 @@ pub struct RuntimeState {
 
 ### CLI Integration (`cli/src/cmd/stake.rs`)
 
-**New Commands:**
+**Enhanced Commands (v2.0):**
 ```bash
+# Validator operations
 dcli stake register-validator --address <addr> --pubkey <key> --commission <rate> --self-stake <amount>
 dcli stake delegate --from <delegator> --validator <validator> --amount <amount>
 dcli stake leave --validator <validator>
 dcli stake show --address <address>
 dcli stake validators [--status <active|pending|jailed|slashed>]
+
+# NEW: Enhanced reward operations
+dcli stake rewards --delegator <addr> [--json]         # Comprehensive reward summary
+dcli stake claim --delegator <addr> --validator <val>  # Claim from specific validator
+dcli stake claim --delegator <addr> --all              # Claim from all validators
+
+# Legacy commands (maintained for compatibility)
 dcli stake claim-rewards --delegator <addr> --validator <addr>
+dcli stake show-rewards --address <addr>
+
+# Administrative operations
 dcli stake stats
 dcli stake unjail --validator <validator>
 dcli stake slash --validator <validator> --type <double-sign|downtime>
@@ -184,13 +255,58 @@ dcli stake slash --validator <validator> --type <double-sign|downtime>
 
 ### API Integration (`blockchain-core/src/api/mod.rs`)
 
-**New RPC Methods:**
+**Enhanced RPC Methods (v2.0):**
 - `staking_register_validator`
 - `staking_validator_leave`
 - `staking_delegate`
+- `staking_claim_rewards` (specific validator)
+- `staking_claim_all_rewards` (NEW: all validators)
 - `staking_get_validator`
 - `staking_get_validators`
 - `staking_get_validator_stats`
+
+**NEW: REST Endpoints:**
+```http
+GET /staking/rewards/{delegator}    # Comprehensive reward summary
+POST /staking/claim                 # Claim rewards (validator optional)
+```
+
+**Example API Responses:**
+
+*GET /staking/rewards/dyt1delegator...*
+```json
+{
+  "delegator": "dyt1delegator...",
+  "height": 12345,
+  "global_reward_index": "456789012345",
+  "summary": {
+    "total_stake": "600000000000", 
+    "pending_rewards": "150000",
+    "accrued_unclaimed": "150000",
+    "total_claimed": "5000000"
+  },
+  "positions": [
+    {
+      "validator": "dyt1validator...", 
+      "stake": "100000000000", 
+      "pending": "25000", 
+      "accrued_unclaimed": "25000",
+      "total_claimed": "1000000",
+      "last_index": "456789000000"
+    }
+  ]
+}
+```
+
+*POST /staking/claim {"delegator": "dyt1..."}*
+```json
+{
+  "delegator": "dyt1delegator...",
+  "claimed": "150000",
+  "new_balance": "51500000",
+  "height": 12345
+}
+```
 - `staking_claim_rewards`
 - `staking_get_stats`
 - `staking_record_missed_block`
