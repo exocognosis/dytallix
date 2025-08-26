@@ -7,6 +7,7 @@ use crate::state::State;
 use crate::storage::tx::Transaction;
 use crate::gas::{TxKind, GasSchedule, validate_gas_limit, intrinsic_gas};
 use crate::crypto::{ActivePQC, PQC, canonical_json, sha3_256};
+use blockchain_core::policy::{PolicyManager, PolicyError};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 #[cfg(test)]
@@ -33,6 +34,7 @@ pub enum RejectionReason {
     UnderpricedGas { min: u64, got: u64 },
     OversizedTx { max: usize, got: usize },
     Duplicate,
+    PolicyViolation(String),
     InternalError(String),
 }
 
@@ -46,6 +48,7 @@ impl RejectionReason {
             RejectionReason::UnderpricedGas { .. } => "underpriced_gas",
             RejectionReason::OversizedTx { .. } => "oversized_tx",
             RejectionReason::Duplicate => "duplicate",
+            RejectionReason::PolicyViolation(_) => "policy_violation",
             RejectionReason::InternalError(_) => "internal_error",
         }
     }
@@ -162,6 +165,8 @@ impl PendingTx {
 /// Production-grade mempool with admission rules, ordering, and bounded capacity
 pub struct Mempool {
     config: MempoolConfig,
+    /// Policy manager for signature algorithm enforcement
+    policy_manager: PolicyManager,
     /// Priority-ordered transactions (BTreeSet for deterministic ordering)
     ordered_txs: BTreeSet<TxPriorityKey>,
     /// Hash to transaction mapping for O(1) lookup
@@ -192,6 +197,11 @@ impl Mempool {
         // 1. Signature verification
         if !verify_envelope(&tx) {
             return Err(RejectionReason::InvalidSignature);
+        }
+        
+        // 1.5. Policy enforcement - validate signature algorithm if policy is configured
+        if let Err(policy_error) = self.validate_signature_policy(&tx) {
+            return Err(RejectionReason::PolicyViolation(policy_error.to_string()));
         }
 
         // 2. Duplicate check
@@ -470,4 +480,26 @@ fn estimate_tx_size(tx: &Transaction) -> usize {
     tx.signature.as_ref().map_or(0, |s| s.len()) +
     8 +  // gas_limit (u64)
     8    // gas_price (u64)
+}
+
+impl Mempool {
+    /// Validate transaction signature algorithm against policy
+    fn validate_signature_policy(&self, tx: &Transaction) -> Result<(), PolicyError> {
+        // For now, create a default policy manager since we haven't updated constructors
+        // In production, this would use self.policy_manager
+        let policy_manager = PolicyManager::default();
+        
+        // Extract signature algorithm from transaction
+        let signature_algorithm = match tx.signature_algorithm() {
+            Some(alg) => alg,
+            None => return Err(PolicyError::UnknownAlgorithm("No algorithm specified".to_string())),
+        };
+        
+        // Check if policy should be enforced at mempool level
+        if policy_manager.policy().should_enforce_at_mempool() {
+            policy_manager.validate_transaction_algorithm(&signature_algorithm)?;
+        }
+        
+        Ok(())
+    }
 }

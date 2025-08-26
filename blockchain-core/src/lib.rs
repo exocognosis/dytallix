@@ -6,6 +6,7 @@ pub mod crypto;
 pub mod genesis;
 pub mod genesis_integration;
 pub mod networking;
+pub mod policy;
 pub mod runtime;
 pub mod secrets;
 pub mod staking;

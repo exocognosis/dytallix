@@ -118,6 +118,19 @@ impl Transaction {
             memo: self.memo.clone(),
         }
     }
+    
+    /// Extract the signature algorithm from the transaction
+    /// For now, we assume all transactions use Dilithium5 as the default
+    /// In a full implementation, this would be stored in the transaction metadata
+    pub fn signature_algorithm(&self) -> Option<dytallix_pqc::SignatureAlgorithm> {
+        // TODO: Store algorithm in transaction metadata  
+        // For now, default to Dilithium5 if a signature is present
+        if self.signature.is_some() {
+            Some(dytallix_pqc::SignatureAlgorithm::Dilithium5)
+        } else {
+            None
+        }
+    }
 }
 
 /// Canonical transaction structure for signature verification
