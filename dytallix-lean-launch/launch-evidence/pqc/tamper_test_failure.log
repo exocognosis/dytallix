@@ -1,0 +1,30 @@
+=== PQC Tamper Test Execution Log ===
+Test started at: 2025-08-27T03:34:14+00:00
+Test purpose: Verify fail-closed behavior on manifest hash mismatch
+
+Step 1: Reading current manifest...
+Manifest contains 0 files
+
+Step 2: Setting up tamper test scenario...
+Created test file: /home/runner/work/dytallix/dytallix/vendor/pqclean/test_tamper_file.txt
+Original file hash: aeabfc6a2f41877495e8ba7e4c784b5706142f5a415ec0c36e4b4f4dce92cfb2
+
+Step 3: Inducing tamper (modifying file)...
+Tampered file hash: 8e40f6453bf0c5530999f6400e175940304c22381a96db7c1446eb5cc445fbc5
+
+Step 4: Running security self-test to detect tamper...
+{"level":"info","component":"startup-self-test","msg":"All security self-tests passed","pqc":{"adapter":"placeholder-pqc","publicKeyLength":32,"signatureLength":32},"manifestFiles":0}
+WARNING: Self-test passed when it should have failed (no tampering detected)
+
+Step 5: Restoring original file...
+Test file removed
+
+Step 6: Verifying restoration...
+{"level":"info","component":"startup-self-test","msg":"All security self-tests passed","pqc":{"adapter":"placeholder-pqc","publicKeyLength":32,"signatureLength":32},"manifestFiles":0}
+SUCCESS: Self-test passed after restoration
+
+=== Test Results Summary ===
+Tamper detection result: UNEXPECTED_PASS
+Restoration result: RESTORED_OK
+Test completed at: 2025-08-27T03:34:14+00:00
+Overall result: PARTIAL - Some aspects may need investigation
