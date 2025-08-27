@@ -33,31 +33,10 @@ function downloadJson(filename, data) {
   URL.revokeObjectURL(url)
 }
 
-// --- Mock runners (swap for real APIs later)
-// Remove mockRunAnomaly & mockScanContract usage; keep functions for fallback if needed
-async function mockRunAnomaly({ txHash, windowSize }) {
-  await new Promise(r => setTimeout(r, 900))
-  return {
-    txHash,
-    windowSize,
-    riskScore: Math.round(40 + Math.random() * 55),
-    anomalies: [
-      { id: 'a1', type: 'ValueSpike', severity: 'medium', detail: 'Outgoing value 3.1× account median in last 24h' },
-      { id: 'a2', type: 'NewCounterparty', severity: 'low', detail: 'First-time destination address for this wallet' },
-    ],
-    meta: { ranAt: new Date().toISOString(), model: 'anomaly-detector:demo' },
-  }
-}
-
-async function mockScanContract({ code }) {
-  await new Promise(r => setTimeout(r, 1100))
-  const issues = [
-    { id: 's1', severity: 'high', rule: 'Reentrancy', line: 73, recommendation: 'Use checks-effects-interactions; consider ReentrancyGuard.' },
-    { id: 's2', severity: 'medium', rule: 'Unchecked Return', line: 112, recommendation: 'Verify return value of external call.' },
-    { id: 's3', severity: 'low', rule: 'Gas Inefficiency', line: 21, recommendation: 'Cache storage reads; consider immutables.' },
-  ]
-  return { summary: { total: issues.length, bySeverity: { high: 1, medium: 1, low: 1 } }, issues, meta: { ranAt: new Date().toISOString(), model: 'contract-scanner:demo' } }
-}
+// --- Real API functions (no mocks needed since backend APIs are implemented)
+// The frontend already uses apiFetch() to call real endpoints:
+// - /api/anomaly/run for anomaly detection
+// - /api/contract/scan for contract scanning
 
 const badge = (text, tone = 'neutral') => (
   <span style={{
