@@ -401,5 +401,16 @@ For migration details, see `FAUCET_CONSOLIDATION_MIGRATION.md`.
 - Implement explorer indexing & UI expansion
 - Extend AI module integrations (anomaly detection, transaction classification)
 
+## Launch Evidence Pack
+
+The [launch-evidence](launch-evidence) directory provides a centralized audit-friendly "proof binder" that aggregates launch evidence artifacts across all critical system components. This evidence pack contains placeholder files organized by domain (governance, staking, contracts, AI risk, monitoring, PQC, rollback, onboarding, wallet, security) that can be populated with actual audit artifacts as they are generated during the launch process.
+
+To regenerate or initialize the evidence pack structure, run:
+```bash
+scripts/init-launch-evidence.sh
+```
+
+The script is idempotent and will not overwrite existing evidence files, making it safe to run multiple times. All files start as placeholders and should be replaced with actual evidence during the launch preparation process.
+
 ## Changelog
 See `CHANGELOG.md` for unified history (mv-testnet + releases).

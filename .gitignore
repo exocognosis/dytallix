@@ -119,3 +119,6 @@ terraform.tfstate*
 # Ignore generated telemetry tarballs
 # (User requested not to push dytallix-telemetry-202508231754.tgz)
 dytallix-telemetry-*.tgz
+
+# Telemetry analysis artifacts
+telemetry_analysis/output/
