@@ -53,7 +53,7 @@ const FaucetForm = () => {
 
   useEffect(() => { localStorage.setItem('dytallix-faucet-selected-option', selectedOption) }, [selectedOption])
 
-  // Auto-populate wallet address from connected wallet
+  // Auto-populate wallet address from PQC wallet
   useEffect(() => {
     try {
       const meta = loadMeta()
@@ -65,47 +65,8 @@ const FaucetForm = () => {
       }
     } catch {}
     
-    // Try to get address from injected provider (MetaMask, etc.)
-    if (typeof window !== 'undefined' && window.ethereum && !walletAutoFilled) {
-      checkInjectedProvider()
-    }
-    
     setConnected(false)
   }, [walletAutoFilled])
-
-  const checkInjectedProvider = async () => {
-    try {
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' })
-        if (accounts.length > 0) {
-          // For Ethereum addresses, we'd need to convert to Cosmos format
-          // For now, just indicate connection detected
-          setConnected(true)
-          console.log('Injected provider detected with accounts:', accounts)
-        }
-      }
-    } catch (err) {
-      console.log('No injected provider or access denied:', err.message)
-    }
-  }
-
-  const connectWallet = async () => {
-    try {
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
-        if (accounts.length > 0) {
-          setConnected(true)
-          // Note: In production, you'd convert ETH address to Cosmos format
-          console.log('Connected to wallet:', accounts[0])
-          showMessage('Wallet connected! Please enter your Dytallix address manually.', 'info')
-        }
-      } else {
-        showMessage('No wallet detected. Please install MetaMask or use a Cosmos wallet.', 'error')
-      }
-    } catch (err) {
-      showMessage('Failed to connect wallet: ' + err.message, 'error')
-    }
-  }
 
   const isOnCooldown = (token) => cooldowns[token] && cooldowns[token] > Date.now()
   const getCooldownMinutes = (token) => { if (!cooldowns[token]) return 0; const remaining = cooldowns[token] - Date.now(); return Math.max(0, Math.ceil(remaining / (1000 * 60))) }
@@ -272,17 +233,7 @@ const FaucetForm = () => {
       <div className={styles.inputGroup}>
         <label htmlFor="wallet-address" className={styles.label}>
           Wallet Address 
-          {connected ? '(Auto-detected)' : '(Paste bech32 address)'}
-          {!connected && (
-            <button 
-              type="button" 
-              onClick={connectWallet} 
-              className={styles.connectButton}
-              data-test="wallet-connect"
-            >
-              Connect Wallet
-            </button>
-          )}
+          {connected ? '(Auto-detected from PQC wallet)' : '(Enter your dytallix1... address)'}
         </label>
         <input 
           id="wallet-address" 

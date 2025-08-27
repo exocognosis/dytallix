@@ -1,0 +1,45 @@
+{
+  "transaction": {
+    "hash": "0xabc123def456789012345678901234567890abcdef123456789012345678901234",
+    "block_height": 123456,
+    "timestamp": "2025-08-27T11:25:00Z",
+    "gas_used": 50000,
+    "gas_wanted": 60000,
+    "status": "success"
+  },
+  "payload": {
+    "type": "transfer",
+    "body": {
+      "from": "dytallix1sender123456789012345678901234567890",
+      "to": "dytallix1recipient123456789012345678901234567890",
+      "amount": "1500000",
+      "denom": "udgt",
+      "memo": "PQC wallet system test transaction"
+    }
+  },
+  "signature": {
+    "algorithm": "dilithium",
+    "public_key": "mock_dilithium_public_key_data_32_bytes_hex_encoded",
+    "signature": "mock_dilithium_signature_data_4627_bytes_base64_encoded",
+    "verification": "passed"
+  },
+  "network": {
+    "chain_id": "dytallix-testnet-1",
+    "rpc_endpoint": "https://rpc-testnet.dytallix.com",
+    "consensus_height": 123456,
+    "validator_set_hash": "0xvalidator_set_hash_32_bytes",
+    "app_hash": "0xapp_state_hash_32_bytes"
+  },
+  "fees": {
+    "amount": "5000",
+    "denom": "udgt",
+    "gas_price": "0.1"
+  },
+  "evidence": {
+    "cli_version": "dytx 1.0.0",
+    "broadcast_time": "2025-08-27T11:25:00.123Z",
+    "response_time_ms": 1250,
+    "confirmation_blocks": 1,
+    "final_confirmation": "2025-08-27T11:25:06.789Z"
+  }
+}

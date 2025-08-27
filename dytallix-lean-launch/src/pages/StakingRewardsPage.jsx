@@ -9,10 +9,10 @@ const StakingRewardsPage = () => {
   const [delegatorAddress, setDelegatorAddress] = useState('')
   const [isConnected, setIsConnected] = useState(false)
 
-  // Mock wallet connection - replace with actual wallet integration
+  // Mock wallet connection - replace with actual PQC wallet integration
   const connectWallet = async () => {
-    // This would be replaced with actual wallet connection logic
-    // e.g., using MetaMask, Keplr, or other wallet providers
+    // This would be replaced with actual PQC wallet connection logic
+    // using the Dytallix PQC wallet provider
     try {
       // Simulate wallet connection
       const mockAddress = 'dyt1example123456789abcdefghijklmnopqrstuvwxyz'

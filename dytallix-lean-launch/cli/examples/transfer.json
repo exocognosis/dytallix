@@ -1,0 +1,10 @@
+{
+  "type": "transfer",
+  "body": {
+    "from": "dytallix1sender123456789012345678901234567890",
+    "to": "dytallix1recipient123456789012345678901234567890",
+    "amount": "1000000",
+    "denom": "udgt",
+    "memo": "Test transfer transaction"
+  }
+}
