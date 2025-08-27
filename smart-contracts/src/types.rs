@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
 use scale::{Decode, Encode};
+use serde::{Deserialize, Serialize};
 
 /// Address type for contracts and accounts
 pub type Address = String;

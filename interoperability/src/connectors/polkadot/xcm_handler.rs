@@ -122,7 +122,7 @@ impl XcmHandler {
             current_para_id: para_id,
         }
     }
-    
+
     /// Create XCM message for asset transfer
     pub fn create_transfer_message(
         &self,
@@ -130,20 +130,25 @@ impl XcmHandler {
         dest_address: &str,
         dest_para_id: Option<u32>,
     ) -> Result<XcmMessage, BridgeError> {
-        println!("📨 Creating XCM transfer message for {} {}", asset.amount, asset.id);
-        
+        println!(
+            "📨 Creating XCM transfer message for {} {}",
+            asset.amount, asset.id
+        );
+
         // Parse destination address
         let beneficiary = self.parse_address(dest_address, dest_para_id)?;
-        
+
         // Create asset representation
         let multi_asset = MultiAsset {
             id: AssetId::Concrete(MultiLocation {
                 parents: 0,
-                interior: InteriorMultiLocation::X1(Junction::GeneralKey(asset.id.as_bytes().to_vec())),
+                interior: InteriorMultiLocation::X1(Junction::GeneralKey(
+                    asset.id.as_bytes().to_vec(),
+                )),
             }),
             fun: Fungibility::Fungible(asset.amount as u128),
         };
-        
+
         // Create XCM instructions
         let instructions = vec![
             XcmInstruction::WithdrawAsset(multi_asset.clone()),
@@ -153,13 +158,13 @@ impl XcmHandler {
                 beneficiary,
             },
         ];
-        
+
         Ok(XcmMessage {
             version: 3, // XCM v3
             instructions,
         })
     }
-    
+
     /// Create XCM message for teleporting assets
     pub fn create_teleport_message(
         &self,
@@ -167,10 +172,13 @@ impl XcmHandler {
         dest_address: &str,
         dest_para_id: Option<u32>,
     ) -> Result<XcmMessage, BridgeError> {
-        println!("📡 Creating XCM teleport message for {} {}", asset.amount, asset.id);
-        
+        println!(
+            "📡 Creating XCM teleport message for {} {}",
+            asset.amount, asset.id
+        );
+
         let beneficiary = self.parse_address(dest_address, dest_para_id)?;
-        
+
         let multi_asset = MultiAsset {
             id: AssetId::Concrete(MultiLocation {
                 parents: 1, // Parent chain
@@ -178,7 +186,7 @@ impl XcmHandler {
             }),
             fun: Fungibility::Fungible(asset.amount as u128),
         };
-        
+
         let instructions = vec![
             XcmInstruction::ReceiveTeleportedAsset(multi_asset.clone()),
             XcmInstruction::DepositAsset {
@@ -187,73 +195,83 @@ impl XcmHandler {
                 beneficiary,
             },
         ];
-        
+
         Ok(XcmMessage {
             version: 3,
             instructions,
         })
     }
-    
+
     /// Execute XCM message instructions
-    pub async fn execute_message(&self, message: &XcmMessage) -> Result<PolkadotTxHash, BridgeError> {
-        println!("⚡ Executing XCM message with {} instructions", message.instructions.len());
-        
+    pub async fn execute_message(
+        &self,
+        message: &XcmMessage,
+    ) -> Result<PolkadotTxHash, BridgeError> {
+        println!(
+            "⚡ Executing XCM message with {} instructions",
+            message.instructions.len()
+        );
+
         // In production, this would:
         // 1. Validate message format
         // 2. Execute each instruction in order
         // 3. Handle asset transfers and state changes
         // 4. Return execution result
-        
+
         for (i, instruction) in message.instructions.iter().enumerate() {
             match instruction {
                 XcmInstruction::WithdrawAsset(_asset) => {
                     println!("  #{}: WithdrawAsset", i + 1);
-                },
+                }
                 XcmInstruction::DepositAsset { .. } => {
                     println!("  #{}: DepositAsset to beneficiary", i + 1);
-                },
+                }
                 XcmInstruction::ReserveAssetDeposited(_asset) => {
                     println!("  #{}: ReserveAssetDeposited", i + 1);
-                },
+                }
                 XcmInstruction::ReceiveTeleportedAsset(_asset) => {
                     println!("  #{}: ReceiveTeleportedAsset", i + 1);
-                },
+                }
                 XcmInstruction::Transact { call, .. } => {
                     println!("  #{}: Transact with {} bytes", i + 1, call.len());
-                },
+                }
                 _ => {
                     println!("  #{}: Other instruction", i + 1);
-                },
+                }
             }
         }
-        
+
         let tx_hash = format!("0x{:x}", rand::random::<u64>());
-        
+
         Ok(PolkadotTxHash(tx_hash))
     }
-    
+
     /// Parse address string to MultiLocation
-    fn parse_address(&self, address: &str, para_id: Option<u32>) -> Result<MultiLocation, BridgeError> {
+    fn parse_address(
+        &self,
+        address: &str,
+        para_id: Option<u32>,
+    ) -> Result<MultiLocation, BridgeError> {
         // Simple address parsing - in production would handle various formats
         if address.starts_with("0x") && address.len() == 42 {
             // Ethereum-style address
             let mut key = [0u8; 20];
             hex::decode_to_slice(&address[2..], &mut key)
                 .map_err(|e| BridgeError::InvalidTransaction(e.to_string()))?;
-            
+
             Ok(MultiLocation {
                 parents: 1,
                 interior: if let Some(para_id) = para_id {
                     InteriorMultiLocation::X2(
                         Junction::Parachain(para_id),
-                        Junction::AccountKey20 { 
-                            network: NetworkId::Any, 
+                        Junction::AccountKey20 {
+                            network: NetworkId::Any,
                             key,
                         },
                     )
                 } else {
-                    InteriorMultiLocation::X1(Junction::AccountKey20 { 
-                        network: NetworkId::Any, 
+                    InteriorMultiLocation::X1(Junction::AccountKey20 {
+                        network: NetworkId::Any,
                         key,
                     })
                 },
@@ -263,35 +281,38 @@ impl XcmHandler {
             let mut id = [0u8; 32];
             // In production, would properly decode SS58
             id[..address.len().min(32)].copy_from_slice(address.as_bytes());
-            
+
             Ok(MultiLocation {
                 parents: 1,
                 interior: if let Some(para_id) = para_id {
                     InteriorMultiLocation::X2(
                         Junction::Parachain(para_id),
-                        Junction::AccountId32 { 
-                            network: NetworkId::Any, 
+                        Junction::AccountId32 {
+                            network: NetworkId::Any,
                             id,
                         },
                     )
                 } else {
-                    InteriorMultiLocation::X1(Junction::AccountId32 { 
-                        network: NetworkId::Any, 
+                    InteriorMultiLocation::X1(Junction::AccountId32 {
+                        network: NetworkId::Any,
                         id,
                     })
                 },
             })
         } else {
-            Err(BridgeError::InvalidTransaction(format!("Invalid address format: {}", address)))
+            Err(BridgeError::InvalidTransaction(format!(
+                "Invalid address format: {}",
+                address
+            )))
         }
     }
-    
+
     /// Estimate XCM execution weight
     pub fn estimate_weight(&self, message: &XcmMessage) -> u64 {
         // Simple weight estimation - in production would be more sophisticated
         let base_weight = 100_000_000; // 0.1 seconds
         let instruction_weight = 50_000_000; // 0.05 seconds per instruction
-        
+
         base_weight + (message.instructions.len() as u64 * instruction_weight)
     }
 }
@@ -300,20 +321,20 @@ impl XcmHandler {
 mod tests {
     use super::*;
     use crate::AssetMetadata;
-    
+
     #[test]
     fn test_xcm_handler_creation() {
         let handler = XcmHandler::new(Some(1000));
         assert_eq!(handler.current_para_id, Some(1000));
-        
+
         let handler = XcmHandler::new(None);
         assert_eq!(handler.current_para_id, None);
     }
-    
+
     #[test]
     fn test_create_transfer_message() {
         let handler = XcmHandler::new(Some(1000));
-        
+
         let asset = Asset {
             id: "DOT".to_string(),
             amount: 1000000000000, // 1 DOT
@@ -325,63 +346,65 @@ mod tests {
                 icon_url: None,
             },
         };
-        
-        let message = handler.create_transfer_message(
-            &asset,
-            "1FRMM8PEiWXYax7rpS6X4XZX1aAAxSWx1CrKTyrVYhV24fg",
-            Some(2000),
-        ).unwrap();
-        
+
+        let message = handler
+            .create_transfer_message(
+                &asset,
+                "1FRMM8PEiWXYax7rpS6X4XZX1aAAxSWx1CrKTyrVYhV24fg",
+                Some(2000),
+            )
+            .unwrap();
+
         assert_eq!(message.version, 3);
         assert_eq!(message.instructions.len(), 2);
     }
-    
+
     #[test]
     fn test_parse_ethereum_address() {
         let handler = XcmHandler::new(Some(1000));
-        
-        let location = handler.parse_address(
-            "0x1234567890123456789012345678901234567890",
-            Some(2000),
-        ).unwrap();
-        
+
+        let location = handler
+            .parse_address("0x1234567890123456789012345678901234567890", Some(2000))
+            .unwrap();
+
         assert_eq!(location.parents, 1);
         match location.interior {
-            InteriorMultiLocation::X2(Junction::Parachain(para_id), Junction::AccountKey20 { .. }) => {
+            InteriorMultiLocation::X2(
+                Junction::Parachain(para_id),
+                Junction::AccountKey20 { .. },
+            ) => {
                 assert_eq!(para_id, 2000);
-            },
+            }
             _ => panic!("Unexpected interior location"),
         }
     }
-    
+
     #[tokio::test]
     async fn test_execute_message() {
         let handler = XcmHandler::new(Some(1000));
-        
+
         let message = XcmMessage {
             version: 3,
-            instructions: vec![
-                XcmInstruction::WithdrawAsset(MultiAsset {
-                    id: AssetId::Concrete(MultiLocation {
-                        parents: 0,
-                        interior: InteriorMultiLocation::Here,
-                    }),
-                    fun: Fungibility::Fungible(1000000000000),
+            instructions: vec![XcmInstruction::WithdrawAsset(MultiAsset {
+                id: AssetId::Concrete(MultiLocation {
+                    parents: 0,
+                    interior: InteriorMultiLocation::Here,
                 }),
-            ],
+                fun: Fungibility::Fungible(1000000000000),
+            })],
         };
-        
+
         let result = handler.execute_message(&message).await;
         assert!(result.is_ok());
-        
+
         let tx_hash = result.unwrap();
         assert!(tx_hash.0.starts_with("0x"));
     }
-    
+
     #[test]
     fn test_estimate_weight() {
         let handler = XcmHandler::new(Some(1000));
-        
+
         let message = XcmMessage {
             version: 3,
             instructions: vec![
@@ -408,7 +431,7 @@ mod tests {
                 },
             ],
         };
-        
+
         let weight = handler.estimate_weight(&message);
         assert_eq!(weight, 200_000_000); // Base + 2 instructions
     }

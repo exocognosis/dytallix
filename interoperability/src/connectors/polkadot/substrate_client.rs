@@ -2,15 +2,15 @@
 //!
 //! Production-ready Substrate client with real subxt integration for live chain interaction.
 
-use crate::BridgeError;
 use super::{PolkadotBlock, PolkadotTxHash, XcmMessage};
+use crate::BridgeError;
+use std::str::FromStr;
 use subxt::{
-    OnlineClient, PolkadotConfig, 
+    ext::sp_core::{crypto::Ss58Codec, sr25519::Pair, Pair as PairTrait},
     tx::PairSigner,
     utils::{AccountId32, H256},
-    ext::sp_core::{sr25519::Pair, Pair as PairTrait, crypto::Ss58Codec},
+    OnlineClient, PolkadotConfig,
 };
-use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub struct SubstrateConfig {
@@ -39,30 +39,33 @@ impl Clone for SubstrateClient {
 impl SubstrateClient {
     pub async fn new(config: SubstrateConfig) -> Result<Self, BridgeError> {
         // Connect to the Substrate node
-        let client = OnlineClient::<PolkadotConfig>::from_url(&config.ws_url).await
-            .map_err(|e| BridgeError::InvalidChain(format!("Failed to connect to Substrate: {}", e)))?;
-        
+        let client = OnlineClient::<PolkadotConfig>::from_url(&config.ws_url)
+            .await
+            .map_err(|e| {
+                BridgeError::InvalidChain(format!("Failed to connect to Substrate: {}", e))
+            })?;
+
         println!("✅ Connected to Substrate network: {}", config.ws_url);
-        
+
         Ok(Self {
             config,
             client: Some(client),
             signer: None,
         })
     }
-    
+
     /// Set signing keypair for transaction submission
     pub fn set_signer(&mut self, seed_phrase: &str) -> Result<(), BridgeError> {
         let pair = Pair::from_string(seed_phrase, None)
             .map_err(|e| BridgeError::InvalidKey(format!("Invalid seed phrase: {}", e)))?;
-        
+
         let signer = PairSigner::new(pair);
         self.signer = Some(signer);
-        
+
         println!("🔑 Substrate signer configured");
         Ok(())
     }
-    
+
     /// Submit an extrinsic to the chain
     pub async fn submit_extrinsic(
         &self,
@@ -70,43 +73,53 @@ impl SubstrateClient {
         call: &str,
         args: Vec<String>,
     ) -> Result<PolkadotTxHash, BridgeError> {
-        let _client = self.client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Client not initialized".to_string()))?;
-        
-        let _signer = self.signer.as_ref()
+        let _client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Client not initialized".to_string(),
+        ))?;
+
+        let _signer = self
+            .signer
+            .as_ref()
             .ok_or(BridgeError::InvalidKey("Signer not set".to_string()))?;
-        
-        println!("📤 Submitting extrinsic to Substrate chain: {}::{}", pallet, call);
+
+        println!(
+            "📤 Submitting extrinsic to Substrate chain: {}::{}",
+            pallet, call
+        );
         println!("📦 Args: {:?}", args);
-        
+
         // For now, simulate the transaction submission
         // In a full implementation, this would construct and submit the actual extrinsic
         match (pallet, call) {
             ("balances", "transfer") => {
                 if args.len() != 2 {
-                    return Err(BridgeError::InvalidArguments("Balances transfer requires 2 args: dest, amount".to_string()));
+                    return Err(BridgeError::InvalidArguments(
+                        "Balances transfer requires 2 args: dest, amount".to_string(),
+                    ));
                 }
-                
-                let _dest = AccountId32::from_str(&args[0])
-                    .map_err(|e| BridgeError::InvalidAddress(format!("Invalid destination address: {}", e)))?;
-                
-                let _amount: u128 = args[1].parse()
+
+                let _dest = AccountId32::from_str(&args[0]).map_err(|e| {
+                    BridgeError::InvalidAddress(format!("Invalid destination address: {}", e))
+                })?;
+
+                let _amount: u128 = args[1]
+                    .parse()
                     .map_err(|e| BridgeError::InvalidArguments(format!("Invalid amount: {}", e)))?;
-                
+
                 // Simulate successful transaction
                 let tx_hash = format!("0x{:064x}", rand::random::<u64>());
                 println!("✅ Balance transfer prepared (hash: {})", tx_hash);
                 Ok(PolkadotTxHash(tx_hash))
-            },
-            
+            }
+
             ("xcmpQueue", "send_xcm_message") | ("xcmPallet", "send") => {
                 // XCM message submission
                 println!("📤 Preparing XCM message submission");
                 let tx_hash = format!("0x{:064x}", rand::random::<u64>());
                 println!("✅ XCM message prepared (hash: {})", tx_hash);
                 Ok(PolkadotTxHash(tx_hash))
-            },
-            
+            }
+
             _ => {
                 println!("⚠️ Unsupported extrinsic: {}::{} (simulated)", pallet, call);
                 let tx_hash = format!("0x{:064x}", rand::random::<u64>());
@@ -114,23 +127,29 @@ impl SubstrateClient {
             }
         }
     }
-    
+
     /// Submit XCM message
     pub async fn submit_xcm(
         &self,
         destination: u32,
         message: XcmMessage,
     ) -> Result<PolkadotTxHash, BridgeError> {
-        let _client = self.client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Client not initialized".to_string()))?;
-        
-        let _signer = self.signer.as_ref()
+        let _client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Client not initialized".to_string(),
+        ))?;
+
+        let _signer = self
+            .signer
+            .as_ref()
             .ok_or(BridgeError::InvalidKey("Signer not set".to_string()))?;
-        
+
         println!("📤 Submitting XCM message to parachain {}", destination);
-        
+
         match message {
-            XcmMessage { version: _, instructions } => {
+            XcmMessage {
+                version: _,
+                instructions,
+            } => {
                 println!("💸 XCM Message with {} instructions", instructions.len());
                 for (i, instruction) in instructions.iter().enumerate() {
                     match instruction {
@@ -147,19 +166,22 @@ impl SubstrateClient {
                 }
             }
         }
-        
+
         // Simulate XCM message submission
         let tx_hash = format!("0x{:064x}", rand::random::<u64>());
         println!("✅ XCM message submitted with hash: {}", tx_hash);
         Ok(PolkadotTxHash(tx_hash))
     }
-    
+
     /// Send XCM message
-    pub async fn send_xcm_message(&self, message: XcmMessage) -> Result<PolkadotTxHash, BridgeError> {
+    pub async fn send_xcm_message(
+        &self,
+        message: XcmMessage,
+    ) -> Result<PolkadotTxHash, BridgeError> {
         // Delegate to submit_xcm with default parachain
         self.submit_xcm(1000, message).await
     }
-    
+
     /// Transfer tokens
     pub async fn transfer(
         &self,
@@ -167,93 +189,107 @@ impl SubstrateClient {
         amount: u128,
         asset_id: Option<u32>,
     ) -> Result<PolkadotTxHash, BridgeError> {
-        let _client = self.client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Client not initialized".to_string()))?;
-        
-        let _signer = self.signer.as_ref()
+        let _client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Client not initialized".to_string(),
+        ))?;
+
+        let _signer = self
+            .signer
+            .as_ref()
             .ok_or(BridgeError::InvalidKey("Signer not set".to_string()))?;
-        
+
         println!("💸 Initiating transfer: {} to {}", amount, to);
-        
-        let _dest = AccountId32::from_str(to)
-            .map_err(|e| BridgeError::InvalidAddress(format!("Invalid destination address: {}", e)))?;
-        
+
+        let _dest = AccountId32::from_str(to).map_err(|e| {
+            BridgeError::InvalidAddress(format!("Invalid destination address: {}", e))
+        })?;
+
         match asset_id {
             Some(asset_id) => {
                 println!("💎 Asset {} transfer of {} units", asset_id, amount);
-            },
+            }
             None => {
                 println!("🪙 Native token transfer of {} units", amount);
             }
         }
-        
+
         // Simulate transaction submission
         let tx_hash = format!("0x{:064x}", rand::random::<u64>());
         println!("✅ Transfer submitted with hash: {}", tx_hash);
         Ok(PolkadotTxHash(tx_hash))
     }
-    
+
     /// Query account balance
-    pub async fn query_balance(&self, address: &str, asset_id: Option<u32>) -> Result<u64, BridgeError> {
+    pub async fn query_balance(
+        &self,
+        address: &str,
+        asset_id: Option<u32>,
+    ) -> Result<u64, BridgeError> {
         if let Some(asset_id) = asset_id {
             self.query_asset_balance(address, asset_id).await
         } else {
             self.query_native_balance(address).await
         }
     }
-    
+
     /// Query native token balance
     async fn query_native_balance(&self, address: &str) -> Result<u64, BridgeError> {
-        let client = self.client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Client not initialized".to_string()))?;
-        
+        let client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Client not initialized".to_string(),
+        ))?;
+
         let _account = AccountId32::from_str(address)
             .map_err(|e| BridgeError::InvalidAddress(format!("Invalid address: {}", e)))?;
-        
+
         println!("🔍 Querying native balance for account: {}", address);
-        
+
         // For now, simulate balance query
         // In full implementation, this would query the system.account storage
         let balance = 1000000000000u64; // 1 DOT (12 decimals)
         println!("✅ Native balance: {}", balance);
         Ok(balance)
     }
-    
+
     /// Query asset balance
     async fn query_asset_balance(&self, address: &str, asset_id: u32) -> Result<u64, BridgeError> {
-        let client = self.client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Client not initialized".to_string()))?;
-        
+        let client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Client not initialized".to_string(),
+        ))?;
+
         let _account = AccountId32::from_str(address)
             .map_err(|e| BridgeError::InvalidAddress(format!("Invalid address: {}", e)))?;
-        
-        println!("🔍 Querying asset {} balance for account: {}", asset_id, address);
-        
+
+        println!(
+            "🔍 Querying asset {} balance for account: {}",
+            asset_id, address
+        );
+
         // Simulate asset balance query
         let balance = 1000000u64;
         println!("✅ Asset {} balance: {}", asset_id, balance);
         Ok(balance)
     }
-    
+
     /// Get latest block information
     pub async fn get_latest_block(&self) -> Result<PolkadotBlock, BridgeError> {
-        let client = self.client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Client not initialized".to_string()))?;
-        
-        let latest_block = client.blocks()
-            .at_latest()
-            .await
-            .map_err(|e| BridgeError::InvalidChain(format!("Failed to get latest block: {}", e)))?;
-        
+        let client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Client not initialized".to_string(),
+        ))?;
+
+        let latest_block =
+            client.blocks().at_latest().await.map_err(|e| {
+                BridgeError::InvalidChain(format!("Failed to get latest block: {}", e))
+            })?;
+
         let block_number = latest_block.number();
         let block_hash = latest_block.hash();
-        
+
         // Get current timestamp
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         Ok(PolkadotBlock {
             number: block_number as u64,
             hash: format!("{:?}", block_hash),
@@ -261,27 +297,28 @@ impl SubstrateClient {
             para_id: None,
         })
     }
-    
+
     /// Verify transaction by hash
     pub async fn verify_transaction(&self, tx_hash: &PolkadotTxHash) -> Result<bool, BridgeError> {
-        let client = self.client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Client not initialized".to_string()))?;
-        
+        let client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Client not initialized".to_string(),
+        ))?;
+
         // Parse the hash
         let hash = H256::from_str(&tx_hash.0)
             .map_err(|e| BridgeError::InvalidTxHash(format!("Invalid hash format: {}", e)))?;
-        
+
         println!("✅ Verifying Polkadot transaction: {}", tx_hash.0);
-        
+
         // Try to get the block that contains this transaction
         // Note: This simplified check just validates the hash format
         // In production, would use proper RPC methods to verify transaction inclusion
-        
+
         match hash.as_bytes().len() {
             32 => {
                 println!("✅ Transaction hash format valid");
                 Ok(true)
-            },
+            }
             _ => {
                 println!("❌ Invalid transaction hash format");
                 Ok(false)

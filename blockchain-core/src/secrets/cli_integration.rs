@@ -1,10 +1,10 @@
 //! Secrets management commands for the CLI
-//! 
+//!
 //! This demonstrates how the secrets system can be integrated into
 //! the existing CLI tooling.
 
-use clap::{Subcommand, Args};
 use anyhow::Result;
+use clap::{Args, Subcommand};
 use serde_json;
 use std::collections::HashMap;
 
@@ -79,10 +79,10 @@ pub async fn handle_secrets_cmd(cmd: SecretsCmd) -> Result<()> {
 async fn handle_get_secret(args: GetSecretArgs) -> Result<()> {
     // In real implementation, this would use the SecretManager
     println!("Getting secret: {}", args.name);
-    
+
     // Simulate secret retrieval
     let mock_secrets = get_mock_secrets();
-    
+
     match mock_secrets.get(&args.name) {
         Some(value) => {
             if args.value_only {
@@ -96,7 +96,10 @@ async fn handle_get_secret(args: GetSecretArgs) -> Result<()> {
                 if args.value_only {
                     println!("{}", default);
                 } else {
-                    println!("Secret '{}' not found, using default: {}", args.name, default);
+                    println!(
+                        "Secret '{}' not found, using default: {}",
+                        args.name, default
+                    );
                 }
             } else {
                 eprintln!("Secret '{}' not found", args.name);
@@ -104,16 +107,16 @@ async fn handle_get_secret(args: GetSecretArgs) -> Result<()> {
             }
         }
     }
-    
+
     Ok(())
 }
 
 async fn handle_list_secrets(args: ListSecretsArgs) -> Result<()> {
     println!("Available secrets:");
-    
+
     let secret_names = vec![
         "database/host",
-        "database/port", 
+        "database/port",
         "database/username",
         "database/password",
         "api/api_key",
@@ -121,7 +124,7 @@ async fn handle_list_secrets(args: ListSecretsArgs) -> Result<()> {
         "config/log_level",
         "config/debug_mode",
     ];
-    
+
     for name in secret_names {
         if let Some(pattern) = &args.pattern {
             if name.contains(pattern) {
@@ -131,23 +134,24 @@ async fn handle_list_secrets(args: ListSecretsArgs) -> Result<()> {
             println!("  {}", name);
         }
     }
-    
+
     Ok(())
 }
 
 async fn handle_health_check(args: HealthArgs) -> Result<()> {
     println!("Checking secret provider health...");
-    
+
     // Simulate health check
-    let health_results = vec![
-        ("environment", true),
-        ("vault", true),
-    ];
-    
+    let health_results = vec![("environment", true), ("vault", true)];
+
     for (provider, healthy) in health_results {
-        let status = if healthy { "✓ Healthy" } else { "✗ Unhealthy" };
+        let status = if healthy {
+            "✓ Healthy"
+        } else {
+            "✗ Unhealthy"
+        };
         println!("  {}: {}", provider, status);
-        
+
         if args.verbose && healthy {
             match provider {
                 "environment" => {
@@ -165,35 +169,41 @@ async fn handle_health_check(args: HealthArgs) -> Result<()> {
             }
         }
     }
-    
+
     Ok(())
 }
 
 async fn handle_info(args: InfoArgs) -> Result<()> {
     println!("Secret provider information:");
-    
+
     let provider_info = vec![
-        ("environment", vec![
-            ("type", "environment"),
-            ("prefix", "DYTALLIX_"),
-            ("case_sensitive", "false"),
-        ]),
-        ("vault", vec![
-            ("type", "vault_stub"),
-            ("url", "http://localhost:8200"),
-            ("mount_path", "secret"),
-            ("environment", "dev"),
-            ("initialized", "true"),
-        ]),
+        (
+            "environment",
+            vec![
+                ("type", "environment"),
+                ("prefix", "DYTALLIX_"),
+                ("case_sensitive", "false"),
+            ],
+        ),
+        (
+            "vault",
+            vec![
+                ("type", "vault_stub"),
+                ("url", "http://localhost:8200"),
+                ("mount_path", "secret"),
+                ("environment", "dev"),
+                ("initialized", "true"),
+            ],
+        ),
     ];
-    
+
     for (provider_name, info) in provider_info {
         println!("\n{}:", provider_name);
         for (key, value) in info {
             println!("  {}: {}", key, value);
         }
     }
-    
+
     if args.show_config {
         println!("\nConfiguration:");
         println!("  Provider order: vault, environment");
@@ -201,22 +211,22 @@ async fn handle_info(args: InfoArgs) -> Result<()> {
         println!("  Caching: disabled");
         println!("  Cache TTL: 300 seconds");
     }
-    
+
     Ok(())
 }
 
 async fn handle_test(args: TestArgs) -> Result<()> {
     println!("Testing secret configuration...");
-    
+
     // Basic tests
     println!("✓ Configuration validation passed");
     println!("✓ Provider initialization successful");
     println!("✓ Environment provider accessible");
     println!("✓ Vault provider accessible (stub mode)");
-    
+
     if args.comprehensive {
         println!("\nRunning comprehensive tests...");
-        
+
         // Test secret retrieval
         let test_secrets = vec![
             ("database/host", true),
@@ -224,7 +234,7 @@ async fn handle_test(args: TestArgs) -> Result<()> {
             ("api/api_key", true),
             ("nonexistent_secret", false),
         ];
-        
+
         for (secret_name, should_exist) in test_secrets {
             if should_exist {
                 println!("✓ Secret '{}' found", secret_name);
@@ -232,16 +242,16 @@ async fn handle_test(args: TestArgs) -> Result<()> {
                 println!("✓ Secret '{}' correctly not found", secret_name);
             }
         }
-        
+
         // Test with defaults
         println!("✓ Default value fallback working");
-        
+
         // Test performance
         println!("✓ Secret retrieval performance acceptable");
-        
+
         println!("\nAll tests passed!");
     }
-    
+
     Ok(())
 }
 
@@ -250,9 +260,18 @@ fn get_mock_secrets() -> HashMap<String, String> {
     secrets.insert("database/host".to_string(), "localhost".to_string());
     secrets.insert("database/port".to_string(), "5432".to_string());
     secrets.insert("database/username".to_string(), "dytallix_dev".to_string());
-    secrets.insert("database/password".to_string(), "stub_db_password_replace_in_prod".to_string());
-    secrets.insert("api/api_key".to_string(), "stub_api_key_replace_in_prod".to_string());
-    secrets.insert("api/jwt_secret".to_string(), "stub_jwt_secret_replace_in_prod".to_string());
+    secrets.insert(
+        "database/password".to_string(),
+        "stub_db_password_replace_in_prod".to_string(),
+    );
+    secrets.insert(
+        "api/api_key".to_string(),
+        "stub_api_key_replace_in_prod".to_string(),
+    );
+    secrets.insert(
+        "api/jwt_secret".to_string(),
+        "stub_jwt_secret_replace_in_prod".to_string(),
+    );
     secrets.insert("config/log_level".to_string(), "debug".to_string());
     secrets.insert("config/debug_mode".to_string(), "true".to_string());
     secrets
@@ -261,20 +280,20 @@ fn get_mock_secrets() -> HashMap<String, String> {
 /// Integration example showing how to use secrets in CLI context
 pub async fn demonstrate_cli_integration() -> Result<()> {
     println!("=== CLI Secrets Integration Demo ===\n");
-    
+
     // Simulate loading node configuration with secrets
     println!("Loading node configuration with secrets...");
-    
+
     // In real implementation, this would be:
     // let config_loader = ConfigLoader::new().await?;
     // let node_config = config_loader.load_node_config().await?;
-    
+
     println!("✓ Database configuration loaded from vault");
     println!("✓ API keys loaded from vault");
     println!("✓ TLS configuration loaded from environment");
     println!("✓ PQC settings loaded from environment");
-    
+
     println!("\nConfiguration ready for node startup");
-    
+
     Ok(())
 }

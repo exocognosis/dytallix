@@ -3,14 +3,14 @@
 //! This module implements the Cosmos side of the cross-chain bridge,
 //! handling token minting/burning with IBC integration and AI-enhanced validation.
 
-use std::collections::HashMap;
-use std::str::FromStr;
-use serde::{Deserialize, Serialize};
 use cosmwasm_std::{
-    entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
-    Uint128, Addr, WasmMsg, CosmosMsg, BankMsg, Coin, StdError,
+    entry_point, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
+    MessageInfo, Response, StdError, StdResult, Uint128, WasmMsg,
 };
 use cw_storage_plus::{Item, Map};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::str::FromStr;
 use thiserror::Error;
 
 /// Contract error types
@@ -18,34 +18,34 @@ use thiserror::Error;
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
-    
+
     #[error("Unauthorized")]
     Unauthorized {},
-    
+
     #[error("Invalid bridge transaction")]
     InvalidBridgeTransaction {},
-    
+
     #[error("Bridge transaction already processed")]
     AlreadyProcessed {},
-    
+
     #[error("Insufficient balance")]
     InsufficientBalance {},
-    
+
     #[error("Token not supported")]
     TokenNotSupported {},
-    
+
     #[error("AI fraud detection triggered")]
     AIFraudDetected {},
-    
+
     #[error("Invalid IBC packet")]
     InvalidIBCPacket {},
-    
+
     #[error("Bridge paused")]
     BridgePaused {},
-    
+
     #[error("Amount below minimum")]
     AmountBelowMinimum {},
-    
+
     #[error("Amount above maximum")]
     AmountAboveMaximum {},
 }
@@ -137,7 +137,7 @@ pub enum ExecuteMsg {
         recipient: String,
         ethereum_sender: String,
     },
-    
+
     /// Burn tokens for Ethereum unlock
     BurnTokens {
         bridge_id: String,
@@ -145,19 +145,16 @@ pub enum ExecuteMsg {
         amount: Uint128,
         ethereum_recipient: String,
     },
-    
+
     /// Validator confirmation for bridge transaction
     ConfirmBridge {
         bridge_id: String,
         signature: String,
     },
-    
+
     /// Complete bridge transaction
-    CompleteBridge {
-        bridge_id: String,
-        success: bool,
-    },
-    
+    CompleteBridge { bridge_id: String, success: bool },
+
     /// Add supported token
     AddSupportedToken {
         denom: String,
@@ -165,34 +162,25 @@ pub enum ExecuteMsg {
         decimals: u8,
         mint_cap: Option<Uint128>,
     },
-    
+
     /// Remove supported token
-    RemoveSupportedToken {
-        denom: String,
-    },
-    
+    RemoveSupportedToken { denom: String },
+
     /// Add validator
-    AddValidator {
-        validator: String,
-    },
-    
+    AddValidator { validator: String },
+
     /// Remove validator
-    RemoveValidator {
-        validator: String,
-    },
-    
+    RemoveValidator { validator: String },
+
     /// Update AI risk score
-    UpdateAIRiskScore {
-        bridge_id: String,
-        risk_score: u8,
-    },
-    
+    UpdateAIRiskScore { bridge_id: String, risk_score: u8 },
+
     /// Pause bridge operations
     Pause {},
-    
+
     /// Unpause bridge operations
     Unpause {},
-    
+
     /// Update bridge parameters
     UpdateBridgeParams {
         bridge_fee: Option<Uint128>,
@@ -200,12 +188,9 @@ pub enum ExecuteMsg {
         max_bridge_amount: Option<Uint128>,
         min_validators: Option<u32>,
     },
-    
+
     /// Emergency burn recovery
-    EmergencyRecovery {
-        bridge_id: String,
-        reason: String,
-    },
+    EmergencyRecovery { bridge_id: String, reason: String },
 }
 
 /// Contract query messages
@@ -214,30 +199,24 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     /// Get contract state
     GetState {},
-    
+
     /// Get bridge transaction
-    GetBridgeTransaction {
-        bridge_id: String,
-    },
-    
+    GetBridgeTransaction { bridge_id: String },
+
     /// Get supported token
-    GetSupportedToken {
-        denom: String,
-    },
-    
+    GetSupportedToken { denom: String },
+
     /// List all supported tokens
     ListSupportedTokens {},
-    
+
     /// Get validator list
     GetValidators {},
-    
+
     /// Get bridge statistics
     GetBridgeStats {},
-    
+
     /// Get AI risk assessment
-    GetAIRiskScore {
-        bridge_id: String,
-    },
+    GetAIRiskScore { bridge_id: String },
 }
 
 /// Contract instantiation message
@@ -267,13 +246,14 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     let admin = deps.api.addr_validate(&msg.admin)?;
     let ai_oracle = deps.api.addr_validate(&msg.ai_oracle)?;
-    
-    let validators: Result<Vec<Addr>, _> = msg.validators
+
+    let validators: Result<Vec<Addr>, _> = msg
+        .validators
         .iter()
         .map(|v| deps.api.addr_validate(v))
         .collect();
     let validators = validators?;
-    
+
     let state = State {
         admin,
         ethereum_channel: msg.ethereum_channel,
@@ -286,9 +266,9 @@ pub fn instantiate(
         ai_oracle,
         ai_confidence_threshold: 80,
     };
-    
+
     STATE.save(deps.storage, &state)?;
-    
+
     Ok(Response::new()
         .add_attribute("method", "instantiate")
         .add_attribute("admin", info.sender))
@@ -326,10 +306,19 @@ pub fn execute(
             token_denom,
             amount,
             ethereum_recipient,
-        } => execute_burn_tokens(deps, env, info, bridge_id, token_denom, amount, ethereum_recipient),
-        ExecuteMsg::ConfirmBridge { bridge_id, signature } => {
-            execute_confirm_bridge(deps, env, info, bridge_id, signature)
-        }
+        } => execute_burn_tokens(
+            deps,
+            env,
+            info,
+            bridge_id,
+            token_denom,
+            amount,
+            ethereum_recipient,
+        ),
+        ExecuteMsg::ConfirmBridge {
+            bridge_id,
+            signature,
+        } => execute_confirm_bridge(deps, env, info, bridge_id, signature),
         ExecuteMsg::CompleteBridge { bridge_id, success } => {
             execute_complete_bridge(deps, env, info, bridge_id, success)
         }
@@ -338,7 +327,15 @@ pub fn execute(
             ethereum_address,
             decimals,
             mint_cap,
-        } => execute_add_supported_token(deps, env, info, denom, ethereum_address, decimals, mint_cap),
+        } => execute_add_supported_token(
+            deps,
+            env,
+            info,
+            denom,
+            ethereum_address,
+            decimals,
+            mint_cap,
+        ),
         ExecuteMsg::RemoveSupportedToken { denom } => {
             execute_remove_supported_token(deps, env, info, denom)
         }
@@ -346,9 +343,10 @@ pub fn execute(
         ExecuteMsg::RemoveValidator { validator } => {
             execute_remove_validator(deps, env, info, validator)
         }
-        ExecuteMsg::UpdateAIRiskScore { bridge_id, risk_score } => {
-            execute_update_ai_risk_score(deps, env, info, bridge_id, risk_score)
-        }
+        ExecuteMsg::UpdateAIRiskScore {
+            bridge_id,
+            risk_score,
+        } => execute_update_ai_risk_score(deps, env, info, bridge_id, risk_score),
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::UpdateBridgeParams {
@@ -384,26 +382,26 @@ pub fn execute_mint_tokens(
     ethereum_sender: String,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     // Check if bridge is paused
     if state.is_paused {
         return Err(ContractError::BridgePaused {});
     }
-    
+
     // Validate sender is a validator
     if !state.validators.contains(&info.sender) {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     // Check if token is supported
     let token_config = SUPPORTED_TOKENS
         .may_load(deps.storage, &token_denom)?
         .ok_or(ContractError::TokenNotSupported {})?;
-    
+
     if !token_config.is_active {
         return Err(ContractError::TokenNotSupported {});
     }
-    
+
     // Validate amount
     if amount < state.min_bridge_amount {
         return Err(ContractError::AmountBelowMinimum {});
@@ -411,21 +409,21 @@ pub fn execute_mint_tokens(
     if amount > state.max_bridge_amount {
         return Err(ContractError::AmountAboveMaximum {});
     }
-    
+
     // Check mint cap
     if let Some(mint_cap) = token_config.mint_cap {
         if token_config.total_minted + amount > mint_cap {
             return Err(ContractError::InsufficientBalance {});
         }
     }
-    
+
     let recipient_addr = deps.api.addr_validate(&recipient)?;
-    
+
     // Check if bridge transaction already exists
     if BRIDGE_TRANSACTIONS.has(deps.storage, &bridge_id) {
         return Err(ContractError::AlreadyProcessed {});
     }
-    
+
     // Create bridge transaction
     let bridge_tx = BridgeTransaction {
         bridge_id: bridge_id.clone(),
@@ -439,25 +437,25 @@ pub fn execute_mint_tokens(
         validator_confirmations: 1,
         ai_risk_score: 0, // Will be updated by AI oracle
     };
-    
+
     BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
     VALIDATOR_CONFIRMATIONS.save(deps.storage, (&bridge_id, info.sender.as_str()), &true)?;
-    
+
     // Check if enough confirmations
     if bridge_tx.validator_confirmations >= state.min_validators {
         // Execute mint
         let mint_msg = execute_mint(&token_denom, amount, recipient_addr)?;
-        
+
         // Update token config
         let mut updated_token_config = token_config;
         updated_token_config.total_minted += amount;
         SUPPORTED_TOKENS.save(deps.storage, &token_denom, &updated_token_config)?;
-        
+
         // Update bridge transaction status
         let mut updated_bridge_tx = bridge_tx;
         updated_bridge_tx.status = BridgeStatus::Minted;
         BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &updated_bridge_tx)?;
-        
+
         Ok(Response::new()
             .add_message(mint_msg)
             .add_attribute("method", "mint_tokens")
@@ -468,7 +466,10 @@ pub fn execute_mint_tokens(
         Ok(Response::new()
             .add_attribute("method", "mint_tokens_pending")
             .add_attribute("bridge_id", bridge_id)
-            .add_attribute("confirmations", bridge_tx.validator_confirmations.to_string()))
+            .add_attribute(
+                "confirmations",
+                bridge_tx.validator_confirmations.to_string(),
+            ))
     }
 }
 
@@ -483,21 +484,21 @@ pub fn execute_burn_tokens(
     ethereum_recipient: String,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     // Check if bridge is paused
     if state.is_paused {
         return Err(ContractError::BridgePaused {});
     }
-    
+
     // Check if token is supported
     let token_config = SUPPORTED_TOKENS
         .may_load(deps.storage, &token_denom)?
         .ok_or(ContractError::TokenNotSupported {})?;
-    
+
     if !token_config.is_active {
         return Err(ContractError::TokenNotSupported {});
     }
-    
+
     // Validate amount
     if amount < state.min_bridge_amount {
         return Err(ContractError::AmountBelowMinimum {});
@@ -505,12 +506,12 @@ pub fn execute_burn_tokens(
     if amount > state.max_bridge_amount {
         return Err(ContractError::AmountAboveMaximum {});
     }
-    
+
     // Check if bridge transaction already exists
     if BRIDGE_TRANSACTIONS.has(deps.storage, &bridge_id) {
         return Err(ContractError::AlreadyProcessed {});
     }
-    
+
     // Create bridge transaction
     let bridge_tx = BridgeTransaction {
         bridge_id: bridge_id.clone(),
@@ -524,22 +525,22 @@ pub fn execute_burn_tokens(
         validator_confirmations: 0,
         ai_risk_score: 0,
     };
-    
+
     BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
-    
+
     // Execute burn
     let burn_msg = execute_burn(&token_denom, amount, info.sender.clone())?;
-    
+
     // Update token config
     let mut updated_token_config = token_config;
     updated_token_config.total_burned += amount;
     SUPPORTED_TOKENS.save(deps.storage, &token_denom, &updated_token_config)?;
-    
+
     // Update bridge transaction status
     let mut updated_bridge_tx = bridge_tx;
     updated_bridge_tx.status = BridgeStatus::Burned;
     BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &updated_bridge_tx)?;
-    
+
     Ok(Response::new()
         .add_message(burn_msg)
         .add_attribute("method", "burn_tokens")
@@ -557,33 +558,36 @@ pub fn execute_confirm_bridge(
     _signature: String,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     // Validate sender is a validator
     if !state.validators.contains(&info.sender) {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     // Check if already confirmed by this validator
     if VALIDATOR_CONFIRMATIONS.has(deps.storage, (&bridge_id, info.sender.as_str())) {
         return Ok(Response::new().add_attribute("method", "already_confirmed"));
     }
-    
+
     // Load bridge transaction
     let mut bridge_tx = BRIDGE_TRANSACTIONS
         .may_load(deps.storage, &bridge_id)?
         .ok_or(ContractError::InvalidBridgeTransaction {})?;
-    
+
     // Record confirmation
     VALIDATOR_CONFIRMATIONS.save(deps.storage, (&bridge_id, info.sender.as_str()), &true)?;
     bridge_tx.validator_confirmations += 1;
-    
+
     // Save updated transaction
     BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
-    
+
     Ok(Response::new()
         .add_attribute("method", "confirm_bridge")
         .add_attribute("bridge_id", bridge_id)
-        .add_attribute("confirmations", bridge_tx.validator_confirmations.to_string()))
+        .add_attribute(
+            "confirmations",
+            bridge_tx.validator_confirmations.to_string(),
+        ))
 }
 
 /// Complete bridge transaction
@@ -595,26 +599,26 @@ pub fn execute_complete_bridge(
     success: bool,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     // Validate sender is a validator
     if !state.validators.contains(&info.sender) {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     // Load bridge transaction
     let mut bridge_tx = BRIDGE_TRANSACTIONS
         .may_load(deps.storage, &bridge_id)?
         .ok_or(ContractError::InvalidBridgeTransaction {})?;
-    
+
     // Update status
     bridge_tx.status = if success {
         BridgeStatus::Completed
     } else {
         BridgeStatus::Failed
     };
-    
+
     BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
-    
+
     Ok(Response::new()
         .add_attribute("method", "complete_bridge")
         .add_attribute("bridge_id", bridge_id)
@@ -635,9 +639,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::ListSupportedTokens {} => to_binary(&query_list_supported_tokens(deps)?),
         QueryMsg::GetValidators {} => to_binary(&query_validators(deps)?),
         QueryMsg::GetBridgeStats {} => to_binary(&query_bridge_stats(deps)?),
-        QueryMsg::GetAIRiskScore { bridge_id } => {
-            to_binary(&query_ai_risk_score(deps, bridge_id)?)
-        }
+        QueryMsg::GetAIRiskScore { bridge_id } => to_binary(&query_ai_risk_score(deps, bridge_id)?),
     }
 }
 
@@ -676,10 +678,10 @@ pub fn query_bridge_stats(deps: Deps) -> StdResult<BridgeStats> {
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .map(|item| item.map(|(_, token)| token))
         .collect::<StdResult<Vec<_>>>()?;
-    
+
     let total_minted = tokens.iter().map(|t| t.total_minted).sum::<Uint128>();
     let total_burned = tokens.iter().map(|t| t.total_burned).sum::<Uint128>();
-    
+
     Ok(BridgeStats {
         total_tokens: tokens.len() as u32,
         total_minted,
@@ -748,12 +750,12 @@ pub fn execute_add_supported_token(
     mint_cap: Option<Uint128>,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     // Only admin can add tokens
     if info.sender != state.admin {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     let token_config = TokenConfig {
         denom: denom.clone(),
         ethereum_address,
@@ -763,9 +765,9 @@ pub fn execute_add_supported_token(
         total_minted: Uint128::zero(),
         total_burned: Uint128::zero(),
     };
-    
+
     SUPPORTED_TOKENS.save(deps.storage, &denom, &token_config)?;
-    
+
     Ok(Response::new()
         .add_attribute("method", "add_supported_token")
         .add_attribute("denom", denom))
@@ -810,19 +812,19 @@ pub fn execute_update_ai_risk_score(
     risk_score: u8,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     // Only AI oracle can update risk scores
     if info.sender != state.ai_oracle {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     let mut bridge_tx = BRIDGE_TRANSACTIONS
         .may_load(deps.storage, &bridge_id)?
         .ok_or(ContractError::InvalidBridgeTransaction {})?;
-    
+
     bridge_tx.ai_risk_score = risk_score;
     BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
-    
+
     Ok(Response::new()
         .add_attribute("method", "update_ai_risk_score")
         .add_attribute("bridge_id", bridge_id)
@@ -880,7 +882,7 @@ mod tests {
     #[test]
     fn proper_initialization() {
         let mut deps = mock_dependencies();
-        
+
         let msg = InstantiateMsg {
             admin: "admin".to_string(),
             ethereum_channel: "channel-0".to_string(),
@@ -889,7 +891,7 @@ mod tests {
             bridge_fee: Uint128::from(1000u128),
             ai_oracle: "ai_oracle".to_string(),
         };
-        
+
         let info = mock_info("creator", &coins(1000, "earth"));
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
@@ -898,7 +900,7 @@ mod tests {
     #[test]
     fn test_query_state() {
         let mut deps = mock_dependencies();
-        
+
         let msg = InstantiateMsg {
             admin: "admin".to_string(),
             ethereum_channel: "channel-0".to_string(),
@@ -907,10 +909,10 @@ mod tests {
             bridge_fee: Uint128::from(1000u128),
             ai_oracle: "ai_oracle".to_string(),
         };
-        
+
         let info = mock_info("creator", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        
+
         let res = query(deps.as_ref(), mock_env(), QueryMsg::GetState {}).unwrap();
         let state: State = from_binary(&res).unwrap();
         assert_eq!(state.admin, "admin");

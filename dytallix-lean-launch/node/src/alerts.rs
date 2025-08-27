@@ -1,5 +1,5 @@
 //! Threshold-based alerting subsystem for Dytallix node
-//! 
+//!
 //! This module implements an MVP alerting system to detect and surface reliability
 //! issues such as TPS drops, oracle timeouts, and validator offline conditions.
 //! The system is designed to be lightweight, non-blocking, and configurable.
@@ -9,9 +9,9 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use serde::{Deserialize, Serialize};
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use tokio::time::{interval, sleep};
 
 #[cfg(feature = "alerts")]
@@ -26,11 +26,11 @@ use crate::storage::blocks::TpsWindow;
 pub trait MetricsGatherer: Send + Sync {
     /// Get the current transactions per second over a sliding window
     fn get_current_tps(&self) -> f64;
-    
+
     /// Get the 95th percentile oracle response latency in milliseconds
     /// Falls back to max latency if p95 is not available
     fn get_oracle_latency_p95_ms(&self) -> Option<f64>;
-    
+
     /// Get a map of validator ID to last seen timestamp in seconds since UNIX epoch
     fn get_validator_heartbeats(&self) -> HashMap<String, u64>;
 }
@@ -44,9 +44,7 @@ pub struct NodeMetricsGatherer {
 
 impl NodeMetricsGatherer {
     pub fn new(tps_window: Arc<Mutex<TpsWindow>>) -> Self {
-        Self {
-            tps_window,
-        }
+        Self { tps_window }
     }
 }
 
@@ -56,16 +54,16 @@ impl MetricsGatherer for NodeMetricsGatherer {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-        
+
         self.tps_window.lock().unwrap().rolling_tps(now)
     }
-    
+
     fn get_oracle_latency_p95_ms(&self) -> Option<f64> {
         // TODO: Implement when oracle latency tracking is available
         // For now, return None to indicate no oracle data available
         None
     }
-    
+
     fn get_validator_heartbeats(&self) -> HashMap<String, u64> {
         // TODO: Implement when validator/consensus tracking is available
         // For now, return empty map (no validators to track)
@@ -115,8 +113,12 @@ pub struct TpsDropConfig {
     pub consecutive: u32,
 }
 
-fn default_tps_threshold() -> f64 { 1500.0 }
-fn default_consecutive() -> u32 { 3 }
+fn default_tps_threshold() -> f64 {
+    1500.0
+}
+fn default_consecutive() -> u32 {
+    3
+}
 
 /// Configuration for oracle timeout alert rule
 #[derive(Debug, Clone, Deserialize)]
@@ -128,8 +130,12 @@ pub struct OracleTimeoutConfig {
     pub consecutive: u32,
 }
 
-fn default_oracle_threshold_ms() -> f64 { 800.0 }
-fn default_oracle_consecutive() -> u32 { 2 }
+fn default_oracle_threshold_ms() -> f64 {
+    800.0
+}
+fn default_oracle_consecutive() -> u32 {
+    2
+}
 
 /// Configuration for validator offline alert rule
 #[derive(Debug, Clone, Deserialize)]
@@ -141,8 +147,12 @@ pub struct ValidatorOfflineConfig {
     pub consecutive: u32,
 }
 
-fn default_offline_secs() -> u64 { 30 }
-fn default_validator_consecutive() -> u32 { 1 }
+fn default_offline_secs() -> u64 {
+    30
+}
+fn default_validator_consecutive() -> u32 {
+    1
+}
 
 /// Rule-specific configurations
 #[derive(Debug, Clone, Deserialize)]
@@ -209,9 +219,15 @@ pub struct AlertsConfig {
     pub rules: RulesConfig,
 }
 
-fn default_enabled() -> bool { true }
-fn default_evaluation_interval_secs() -> u64 { 5 }
-fn default_log_on_fire() -> bool { true }
+fn default_enabled() -> bool {
+    true
+}
+fn default_evaluation_interval_secs() -> u64 {
+    5
+}
+fn default_log_on_fire() -> bool {
+    true
+}
 
 impl Default for AlertsConfig {
     fn default() -> Self {
@@ -238,18 +254,18 @@ impl AlertMetrics {
         let alert_rule_firing = IntGaugeVec::new(
             Opts::new(
                 "dytallix_alert_rule_firing",
-                "Whether an alert rule is currently firing (1) or not (0)"
+                "Whether an alert rule is currently firing (1) or not (0)",
             ),
-            &["rule"]
+            &["rule"],
         )?;
         registry.register(Box::new(alert_rule_firing.clone()))?;
 
         let alert_events_total = IntCounterVec::new(
             Opts::new(
                 "dytallix_alert_events_total",
-                "Total number of alert events (firing or recovery)"
+                "Total number of alert events (firing or recovery)",
             ),
-            &["rule", "event_type"]
+            &["rule", "event_type"],
         )?;
         registry.register(Box::new(alert_events_total.clone()))?;
 
@@ -258,13 +274,17 @@ impl AlertMetrics {
             alert_events_total,
         })
     }
-    
+
     pub fn set_rule_firing(&self, rule: &str, firing: bool) {
-        self.alert_rule_firing.with_label_values(&[rule]).set(if firing { 1 } else { 0 });
+        self.alert_rule_firing
+            .with_label_values(&[rule])
+            .set(if firing { 1 } else { 0 });
     }
-    
+
     pub fn inc_alert_event(&self, rule: &str, event_type: &str) {
-        self.alert_events_total.with_label_values(&[rule, event_type]).inc();
+        self.alert_events_total
+            .with_label_values(&[rule, event_type])
+            .inc();
     }
 }
 
@@ -276,7 +296,7 @@ impl AlertMetrics {
     pub fn new(_registry: &()) -> Result<Self> {
         Ok(Self)
     }
-    
+
     pub fn set_rule_firing(&self, _rule: &str, _firing: bool) {}
     pub fn inc_alert_event(&self, _rule: &str, _event_type: &str) {}
 }
@@ -296,7 +316,7 @@ impl AlertsEngine {
     #[cfg(feature = "metrics")]
     pub fn new(config: AlertsConfig, registry: &Registry) -> Result<Self> {
         let metrics = AlertMetrics::new(registry)?;
-        
+
         #[cfg(feature = "alerts")]
         let client = if config.webhook_url.is_some() {
             Some(Client::new())
@@ -316,7 +336,7 @@ impl AlertsEngine {
     #[cfg(not(feature = "metrics"))]
     pub fn new(config: AlertsConfig) -> Result<Self> {
         let metrics = AlertMetrics::new(&())?;
-        
+
         #[cfg(feature = "alerts")]
         let client = if config.webhook_url.is_some() {
             Some(Client::new())
@@ -343,10 +363,13 @@ impl AlertsEngine {
             return Ok(());
         }
 
-        tracing::info!("Starting alerting engine with {}s evaluation interval", 
-                      self.config.evaluation_interval_secs);
+        tracing::info!(
+            "Starting alerting engine with {}s evaluation interval",
+            self.config.evaluation_interval_secs
+        );
 
-        let mut interval_timer = interval(Duration::from_secs(self.config.evaluation_interval_secs));
+        let mut interval_timer =
+            interval(Duration::from_secs(self.config.evaluation_interval_secs));
 
         loop {
             interval_timer.tick().await;
@@ -370,8 +393,9 @@ impl AlertsEngine {
                 serde_json::json!({
                     "current_tps": current_tps,
                     "threshold": self.config.rules.tps_drop.threshold
-                })
-            ).await?;
+                }),
+            )
+            .await?;
         }
 
         // Evaluate oracle timeout rule
@@ -385,8 +409,9 @@ impl AlertsEngine {
                     serde_json::json!({
                         "current_latency_ms": latency_ms,
                         "threshold_ms": self.config.rules.oracle_timeout.threshold_ms
-                    })
-                ).await?;
+                    }),
+                )
+                .await?;
             }
         }
 
@@ -397,15 +422,16 @@ impl AlertsEngine {
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs();
-            
+
             // Check if any validator is offline
             let mut offline_validators = Vec::new();
             for (validator_id, last_seen) in validator_heartbeats {
-                if now.saturating_sub(last_seen) > self.config.rules.validator_offline.offline_secs {
+                if now.saturating_sub(last_seen) > self.config.rules.validator_offline.offline_secs
+                {
                     offline_validators.push(validator_id);
                 }
             }
-            
+
             let threshold_violated = !offline_validators.is_empty();
             self.handle_rule_evaluation(
                 AlertKind::ValidatorOffline,
@@ -414,8 +440,9 @@ impl AlertsEngine {
                 serde_json::json!({
                     "offline_validators": offline_validators,
                     "offline_threshold_secs": self.config.rules.validator_offline.offline_secs
-                })
-            ).await?;
+                }),
+            )
+            .await?;
         }
 
         Ok(())
@@ -433,11 +460,12 @@ impl AlertsEngine {
 
         if threshold_violated {
             state.consecutive_failures += 1;
-            
+
             // Check if we should transition to firing state
             if !state.firing && state.consecutive_failures >= consecutive_required {
                 state.firing = true;
-                self.emit_alert_event(alert_kind.clone(), details, "firing").await?;
+                self.emit_alert_event(alert_kind.clone(), details, "firing")
+                    .await?;
             }
         } else {
             // Threshold not violated - reset consecutive failures
@@ -445,7 +473,8 @@ impl AlertsEngine {
                 // Transition from firing to normal - emit recovery event
                 state.firing = false;
                 state.consecutive_failures = 0;
-                self.emit_alert_event(alert_kind.clone(), details, "recovery").await?;
+                self.emit_alert_event(alert_kind.clone(), details, "recovery")
+                    .await?;
             } else {
                 // Just reset the failure count
                 state.consecutive_failures = 0;
@@ -470,7 +499,8 @@ impl AlertsEngine {
 
         // Update metrics
         let rule_name = format!("{:?}", alert_kind).to_lowercase();
-        self.metrics.set_rule_firing(&rule_name, event_type == "firing");
+        self.metrics
+            .set_rule_firing(&rule_name, event_type == "firing");
         self.metrics.inc_alert_event(&rule_name, event_type);
 
         // Log the alert if configured
@@ -540,10 +570,10 @@ pub fn load_alerts_config(path: &Path) -> Result<AlertsConfig> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::sync::Mutex;
     use tempfile::NamedTempFile;
-    use std::io::Write;
 
     /// Mock metrics gatherer for testing
     struct MockMetricsGatherer {
@@ -570,7 +600,10 @@ mod tests {
         }
 
         fn set_validator_heartbeat(&self, validator_id: String, timestamp: u64) {
-            self.validator_heartbeats.lock().unwrap().insert(validator_id, timestamp);
+            self.validator_heartbeats
+                .lock()
+                .unwrap()
+                .insert(validator_id, timestamp);
         }
     }
 
@@ -621,22 +654,26 @@ rules:
     offline_secs: 60
     consecutive: 1
 "#
-        ).unwrap();
+        )
+        .unwrap();
 
         let config = load_alerts_config(temp_file.path()).unwrap();
         assert!(!config.enabled);
         assert_eq!(config.evaluation_interval_secs, 10);
-        assert_eq!(config.webhook_url, Some("https://test.example.com/webhook".to_string()));
+        assert_eq!(
+            config.webhook_url,
+            Some("https://test.example.com/webhook".to_string())
+        );
         assert!(!config.log_on_fire);
-        
+
         assert!(config.rules.tps_drop.enabled);
         assert_eq!(config.rules.tps_drop.threshold, 1000.0);
         assert_eq!(config.rules.tps_drop.consecutive, 2);
-        
+
         assert!(!config.rules.oracle_timeout.enabled);
         assert_eq!(config.rules.oracle_timeout.threshold_ms, 1000.0);
         assert_eq!(config.rules.oracle_timeout.consecutive, 3);
-        
+
         assert!(config.rules.validator_offline.enabled);
         assert_eq!(config.rules.validator_offline.offline_secs, 60);
         assert_eq!(config.rules.validator_offline.consecutive, 1);
@@ -655,8 +692,14 @@ rules:
                     threshold: 1500.0,
                     consecutive: 2,
                 },
-                oracle_timeout: OracleTimeoutConfig { enabled: false, ..Default::default() },
-                validator_offline: ValidatorOfflineConfig { enabled: false, ..Default::default() },
+                oracle_timeout: OracleTimeoutConfig {
+                    enabled: false,
+                    ..Default::default()
+                },
+                validator_offline: ValidatorOfflineConfig {
+                    enabled: false,
+                    ..Default::default()
+                },
             },
         };
 
@@ -668,25 +711,46 @@ rules:
         let mut engine = AlertsEngine::new(config).unwrap();
 
         let gatherer = Arc::new(MockMetricsGatherer::new());
-        
+
         // Set TPS below threshold
         gatherer.set_tps(1000);
-        
+
         // First evaluation - should not fire yet (consecutive = 2)
         engine.evaluate_rules(&*gatherer).await.unwrap();
         assert!(!engine.state.get(&AlertKind::TPSDrop).unwrap().firing);
-        assert_eq!(engine.state.get(&AlertKind::TPSDrop).unwrap().consecutive_failures, 1);
-        
+        assert_eq!(
+            engine
+                .state
+                .get(&AlertKind::TPSDrop)
+                .unwrap()
+                .consecutive_failures,
+            1
+        );
+
         // Second evaluation - should fire now
         engine.evaluate_rules(&*gatherer).await.unwrap();
         assert!(engine.state.get(&AlertKind::TPSDrop).unwrap().firing);
-        assert_eq!(engine.state.get(&AlertKind::TPSDrop).unwrap().consecutive_failures, 2);
-        
+        assert_eq!(
+            engine
+                .state
+                .get(&AlertKind::TPSDrop)
+                .unwrap()
+                .consecutive_failures,
+            2
+        );
+
         // Set TPS above threshold - should recover
         gatherer.set_tps(2000);
         engine.evaluate_rules(&*gatherer).await.unwrap();
         assert!(!engine.state.get(&AlertKind::TPSDrop).unwrap().firing);
-        assert_eq!(engine.state.get(&AlertKind::TPSDrop).unwrap().consecutive_failures, 0);
+        assert_eq!(
+            engine
+                .state
+                .get(&AlertKind::TPSDrop)
+                .unwrap()
+                .consecutive_failures,
+            0
+        );
     }
 
     #[tokio::test]
@@ -697,8 +761,14 @@ rules:
             webhook_url: None,
             log_on_fire: true,
             rules: RulesConfig {
-                tps_drop: TpsDropConfig { enabled: false, ..Default::default() },
-                oracle_timeout: OracleTimeoutConfig { enabled: false, ..Default::default() },
+                tps_drop: TpsDropConfig {
+                    enabled: false,
+                    ..Default::default()
+                },
+                oracle_timeout: OracleTimeoutConfig {
+                    enabled: false,
+                    ..Default::default()
+                },
                 validator_offline: ValidatorOfflineConfig {
                     enabled: true,
                     offline_secs: 30,
@@ -715,23 +785,35 @@ rules:
         let mut engine = AlertsEngine::new(config).unwrap();
 
         let gatherer = Arc::new(MockMetricsGatherer::new());
-        
+
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         // Set validator heartbeat to 40 seconds ago (offline)
         gatherer.set_validator_heartbeat("validator1".to_string(), now - 40);
-        
+
         // Should fire immediately (consecutive = 1)
         engine.evaluate_rules(&*gatherer).await.unwrap();
-        assert!(engine.state.get(&AlertKind::ValidatorOffline).unwrap().firing);
-        
+        assert!(
+            engine
+                .state
+                .get(&AlertKind::ValidatorOffline)
+                .unwrap()
+                .firing
+        );
+
         // Update heartbeat to recent (online)
         gatherer.set_validator_heartbeat("validator1".to_string(), now - 10);
         engine.evaluate_rules(&*gatherer).await.unwrap();
-        assert!(!engine.state.get(&AlertKind::ValidatorOffline).unwrap().firing);
+        assert!(
+            !engine
+                .state
+                .get(&AlertKind::ValidatorOffline)
+                .unwrap()
+                .firing
+        );
     }
 
     #[tokio::test]
@@ -749,18 +831,15 @@ rules:
         let mut engine = AlertsEngine::new(config).unwrap();
 
         let gatherer = Arc::new(MockMetricsGatherer::new());
-        
+
         // Measure time for evaluation when disabled
         let start = std::time::Instant::now();
-        
+
         // This should return immediately since alerts are disabled
-        let result = tokio::time::timeout(
-            Duration::from_millis(50),
-            engine.start(gatherer)
-        ).await;
-        
+        let result = tokio::time::timeout(Duration::from_millis(50), engine.start(gatherer)).await;
+
         let elapsed = start.elapsed();
-        
+
         // Should complete very quickly when disabled
         assert!(elapsed < Duration::from_millis(10));
         assert!(result.is_ok());
@@ -768,24 +847,29 @@ rules:
 
     #[tokio::test]
     async fn test_node_metrics_gatherer_integration() {
-        let tps_window = Arc::new(Mutex::new(super::super::storage::blocks::TpsWindow::new(60)));
+        let tps_window = Arc::new(Mutex::new(super::super::storage::blocks::TpsWindow::new(
+            60,
+        )));
         let gatherer = super::NodeMetricsGatherer::new(tps_window.clone());
-        
+
         // Add some test data
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
         {
             let mut window = tps_window.lock().unwrap();
             window.record_block(now - 10, 100);
             window.record_block(now - 5, 150);
             window.record_block(now, 200);
         }
-        
+
         let tps = gatherer.get_current_tps();
         assert!(tps > 0.0);
-        
+
         // Oracle latency should return None (not implemented yet)
         assert_eq!(gatherer.get_oracle_latency_p95_ms(), None);
-        
+
         // Validator heartbeats should return empty (not implemented yet)
         assert!(gatherer.get_validator_heartbeats().is_empty());
     }
@@ -804,8 +888,14 @@ rules:
                     threshold: 500.0,
                     consecutive: 2,
                 },
-                oracle_timeout: OracleTimeoutConfig { enabled: false, ..Default::default() },
-                validator_offline: ValidatorOfflineConfig { enabled: false, ..Default::default() },
+                oracle_timeout: OracleTimeoutConfig {
+                    enabled: false,
+                    ..Default::default()
+                },
+                validator_offline: ValidatorOfflineConfig {
+                    enabled: false,
+                    ..Default::default()
+                },
             },
         };
 
@@ -817,24 +907,45 @@ rules:
         let mut engine = AlertsEngine::new(config).unwrap();
 
         let gatherer = Arc::new(MockMetricsGatherer::new());
-        
+
         // Set TPS below threshold
         gatherer.set_tps(400); // Below 500 threshold
-        
+
         // First evaluation - should not fire yet (consecutive = 2)
         engine.evaluate_rules(&*gatherer).await.unwrap();
         assert!(!engine.state.get(&AlertKind::TPSDrop).unwrap().firing);
-        assert_eq!(engine.state.get(&AlertKind::TPSDrop).unwrap().consecutive_failures, 1);
-        
+        assert_eq!(
+            engine
+                .state
+                .get(&AlertKind::TPSDrop)
+                .unwrap()
+                .consecutive_failures,
+            1
+        );
+
         // Second evaluation - should fire now
         engine.evaluate_rules(&*gatherer).await.unwrap();
         assert!(engine.state.get(&AlertKind::TPSDrop).unwrap().firing);
-        assert_eq!(engine.state.get(&AlertKind::TPSDrop).unwrap().consecutive_failures, 2);
-        
+        assert_eq!(
+            engine
+                .state
+                .get(&AlertKind::TPSDrop)
+                .unwrap()
+                .consecutive_failures,
+            2
+        );
+
         // Recover - set TPS above threshold
         gatherer.set_tps(600); // Above 500 threshold
         engine.evaluate_rules(&*gatherer).await.unwrap();
         assert!(!engine.state.get(&AlertKind::TPSDrop).unwrap().firing);
-        assert_eq!(engine.state.get(&AlertKind::TPSDrop).unwrap().consecutive_failures, 0);
+        assert_eq!(
+            engine
+                .state
+                .get(&AlertKind::TPSDrop)
+                .unwrap()
+                .consecutive_failures,
+            0
+        );
     }
 }

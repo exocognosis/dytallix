@@ -1,14 +1,16 @@
 use super::PQC;
+use once_cell::sync::Lazy;
 use pqcrypto_dilithium::dilithium5;
 use pqcrypto_traits::sign::{PublicKey as _, SecretKey as _, SignedMessage as _};
-use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::RwLock;
 
 // In-memory registry mapping serialized key bytes to strong key objects so we can
 // reconstruct functionality without exposing crate-internal constructors.
-static SK_REGISTRY: Lazy<RwLock<HashMap<Vec<u8>, dilithium5::SecretKey>>> = Lazy::new(|| RwLock::new(HashMap::new()));
-static PK_REGISTRY: Lazy<RwLock<HashMap<Vec<u8>, dilithium5::PublicKey>>> = Lazy::new(|| RwLock::new(HashMap::new()));
+static SK_REGISTRY: Lazy<RwLock<HashMap<Vec<u8>, dilithium5::SecretKey>>> =
+    Lazy::new(|| RwLock::new(HashMap::new()));
+static PK_REGISTRY: Lazy<RwLock<HashMap<Vec<u8>, dilithium5::PublicKey>>> =
+    Lazy::new(|| RwLock::new(HashMap::new()));
 
 pub struct Dilithium;
 
@@ -34,7 +36,9 @@ impl PQC for Dilithium {
     fn verify(pk: &[u8], msg: &[u8], sig: &[u8]) -> bool {
         if let Some(pk_obj) = PK_REGISTRY.read().unwrap().get(pk) {
             if let Ok(sm) = dilithium5::SignedMessage::from_bytes(sig) {
-                return dilithium5::open(&sm, pk_obj).map(|opened| opened == msg).unwrap_or(false);
+                return dilithium5::open(&sm, pk_obj)
+                    .map(|opened| opened == msg)
+                    .unwrap_or(false);
             }
         }
         false

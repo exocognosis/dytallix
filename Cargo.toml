@@ -19,6 +19,11 @@ resolver = "2"
 name = "dytallix"
 version = "0.1.0"
 edition = "2021"
+publish = false
+
+[lib]
+name = "dytallix"
+path = "src/lib.rs"
 
 [dependencies]
 blake3 = { workspace = true }

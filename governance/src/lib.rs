@@ -2,15 +2,15 @@
 //!
 //! Provides DAO voting, proposal system, and compliance hooks.
 
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc};
 
 // Re-export tokenomics types for governance integration
 pub use dytallix_contracts::tokenomics::{
-    TokenomicsProposal, EmissionParameters, EmissionRate, Balance as TokenBalance
+    Balance as TokenBalance, EmissionParameters, EmissionRate, TokenomicsProposal,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -86,14 +86,28 @@ pub struct VoteResult {
 }
 
 pub trait DaoGovernance {
-    fn propose(&mut self, title: String, description: String, voting_duration_hours: u64) -> Result<u64, GovernanceError>;
-    fn propose_tokenomics(&mut self, title: String, description: String, voting_duration_hours: u64, tokenomics_proposal: TokenomicsProposal) -> Result<u64, GovernanceError>;
+    fn propose(
+        &mut self,
+        title: String,
+        description: String,
+        voting_duration_hours: u64,
+    ) -> Result<u64, GovernanceError>;
+    fn propose_tokenomics(
+        &mut self,
+        title: String,
+        description: String,
+        voting_duration_hours: u64,
+        tokenomics_proposal: TokenomicsProposal,
+    ) -> Result<u64, GovernanceError>;
     fn vote(&mut self, proposal_id: u64, ballot: Ballot) -> Result<(), GovernanceError>;
     fn tally(&self, proposal_id: u64) -> Result<VoteResult, GovernanceError>;
     fn get_proposal(&self, proposal_id: u64) -> Result<Option<Proposal>, GovernanceError>;
     fn list_proposals(&self) -> Result<Vec<Proposal>, GovernanceError>;
     fn get_votes(&self, proposal_id: u64) -> Result<Vec<Ballot>, GovernanceError>;
-    fn execute_tokenomics_proposal(&mut self, proposal_id: u64) -> Result<Option<TokenomicsProposal>, GovernanceError>;
+    fn execute_tokenomics_proposal(
+        &mut self,
+        proposal_id: u64,
+    ) -> Result<Option<TokenomicsProposal>, GovernanceError>;
 }
 
 /// File-based governance implementation with persistence
@@ -108,7 +122,10 @@ impl FileBasedGovernance {
     pub fn new(data_dir: PathBuf) -> Result<Self, GovernanceError> {
         // Ensure data directory exists
         if let Err(e) = fs::create_dir_all(&data_dir) {
-            return Err(GovernanceError::StorageError(format!("Failed to create data directory: {}", e)));
+            return Err(GovernanceError::StorageError(format!(
+                "Failed to create data directory: {}",
+                e
+            )));
         }
 
         let mut governance = Self {
@@ -134,12 +151,15 @@ impl FileBasedGovernance {
     fn load_data(&mut self) -> Result<(), GovernanceError> {
         // Load proposals
         if self.proposals_file().exists() {
-            let content = fs::read_to_string(self.proposals_file())
-                .map_err(|e| GovernanceError::StorageError(format!("Failed to read proposals: {}", e)))?;
-            
-            let proposals: HashMap<u64, Proposal> = serde_json::from_str(&content)
-                .map_err(|e| GovernanceError::StorageError(format!("Failed to parse proposals: {}", e)))?;
-            
+            let content = fs::read_to_string(self.proposals_file()).map_err(|e| {
+                GovernanceError::StorageError(format!("Failed to read proposals: {}", e))
+            })?;
+
+            let proposals: HashMap<u64, Proposal> =
+                serde_json::from_str(&content).map_err(|e| {
+                    GovernanceError::StorageError(format!("Failed to parse proposals: {}", e))
+                })?;
+
             // Find the next proposal ID
             self.next_proposal_id = proposals.keys().max().unwrap_or(&0) + 1;
             self.proposals = proposals;
@@ -147,11 +167,13 @@ impl FileBasedGovernance {
 
         // Load votes
         if self.votes_file().exists() {
-            let content = fs::read_to_string(self.votes_file())
-                .map_err(|e| GovernanceError::StorageError(format!("Failed to read votes: {}", e)))?;
-            
-            self.votes = serde_json::from_str(&content)
-                .map_err(|e| GovernanceError::StorageError(format!("Failed to parse votes: {}", e)))?;
+            let content = fs::read_to_string(self.votes_file()).map_err(|e| {
+                GovernanceError::StorageError(format!("Failed to read votes: {}", e))
+            })?;
+
+            self.votes = serde_json::from_str(&content).map_err(|e| {
+                GovernanceError::StorageError(format!("Failed to parse votes: {}", e))
+            })?;
         }
 
         Ok(())
@@ -159,16 +181,19 @@ impl FileBasedGovernance {
 
     fn save_data(&self) -> Result<(), GovernanceError> {
         // Save proposals
-        let proposals_json = serde_json::to_string_pretty(&self.proposals)
-            .map_err(|e| GovernanceError::StorageError(format!("Failed to serialize proposals: {}", e)))?;
-        
-        fs::write(self.proposals_file(), proposals_json)
-            .map_err(|e| GovernanceError::StorageError(format!("Failed to write proposals: {}", e)))?;
+        let proposals_json = serde_json::to_string_pretty(&self.proposals).map_err(|e| {
+            GovernanceError::StorageError(format!("Failed to serialize proposals: {}", e))
+        })?;
+
+        fs::write(self.proposals_file(), proposals_json).map_err(|e| {
+            GovernanceError::StorageError(format!("Failed to write proposals: {}", e))
+        })?;
 
         // Save votes
-        let votes_json = serde_json::to_string_pretty(&self.votes)
-            .map_err(|e| GovernanceError::StorageError(format!("Failed to serialize votes: {}", e)))?;
-        
+        let votes_json = serde_json::to_string_pretty(&self.votes).map_err(|e| {
+            GovernanceError::StorageError(format!("Failed to serialize votes: {}", e))
+        })?;
+
         fs::write(self.votes_file(), votes_json)
             .map_err(|e| GovernanceError::StorageError(format!("Failed to write votes: {}", e)))?;
 
@@ -183,7 +208,7 @@ impl FileBasedGovernance {
         } else {
             false
         };
-        
+
         if expired {
             let vote_result = self.calculate_votes(proposal_id)?;
             if let Some(proposal) = self.proposals.get_mut(&proposal_id) {
@@ -204,7 +229,9 @@ impl FileBasedGovernance {
         let no_votes = votes.iter().filter(|b| !b.vote).count() as u64;
         let total_votes = yes_votes + no_votes;
 
-        let proposal = self.proposals.get(&proposal_id)
+        let proposal = self
+            .proposals
+            .get(&proposal_id)
             .ok_or(GovernanceError::ProposalNotFound)?;
 
         let status = if Utc::now() > proposal.voting_deadline {
@@ -228,7 +255,12 @@ impl FileBasedGovernance {
 }
 
 impl DaoGovernance for FileBasedGovernance {
-    fn propose(&mut self, title: String, description: String, voting_duration_hours: u64) -> Result<u64, GovernanceError> {
+    fn propose(
+        &mut self,
+        title: String,
+        description: String,
+        voting_duration_hours: u64,
+    ) -> Result<u64, GovernanceError> {
         let proposal_id = self.next_proposal_id;
         self.next_proposal_id += 1;
 
@@ -249,7 +281,13 @@ impl DaoGovernance for FileBasedGovernance {
         Ok(proposal_id)
     }
 
-    fn propose_tokenomics(&mut self, title: String, description: String, voting_duration_hours: u64, tokenomics_proposal: TokenomicsProposal) -> Result<u64, GovernanceError> {
+    fn propose_tokenomics(
+        &mut self,
+        title: String,
+        description: String,
+        voting_duration_hours: u64,
+        tokenomics_proposal: TokenomicsProposal,
+    ) -> Result<u64, GovernanceError> {
         let proposal_id = self.next_proposal_id;
         self.next_proposal_id += 1;
 
@@ -271,7 +309,9 @@ impl DaoGovernance for FileBasedGovernance {
     }
 
     fn vote(&mut self, proposal_id: u64, ballot: Ballot) -> Result<(), GovernanceError> {
-        let proposal = self.proposals.get(&proposal_id)
+        let proposal = self
+            .proposals
+            .get(&proposal_id)
             .ok_or(GovernanceError::ProposalNotFound)?;
 
         // Check if voting is still open
@@ -320,9 +360,14 @@ impl DaoGovernance for FileBasedGovernance {
         Ok(self.votes.get(&proposal_id).cloned().unwrap_or_default())
     }
 
-    fn execute_tokenomics_proposal(&mut self, proposal_id: u64) -> Result<Option<TokenomicsProposal>, GovernanceError> {
+    fn execute_tokenomics_proposal(
+        &mut self,
+        proposal_id: u64,
+    ) -> Result<Option<TokenomicsProposal>, GovernanceError> {
         // Check if proposal exists and is passed
-        let proposal = self.proposals.get(&proposal_id)
+        let proposal = self
+            .proposals
+            .get(&proposal_id)
             .ok_or(GovernanceError::ProposalNotFound)?;
 
         if !matches!(proposal.status, ProposalStatus::Passed) {
@@ -331,9 +376,7 @@ impl DaoGovernance for FileBasedGovernance {
 
         // Extract tokenomics proposal if it exists
         match &proposal.proposal_type {
-            ProposalType::Tokenomics(tokenomics_proposal) => {
-                Ok(Some(tokenomics_proposal.clone()))
-            },
+            ProposalType::Tokenomics(tokenomics_proposal) => Ok(Some(tokenomics_proposal.clone())),
             ProposalType::Standard => Ok(None),
         }
     }
@@ -362,7 +405,9 @@ impl InMemoryGovernance {
         let no_votes = votes.iter().filter(|b| !b.vote).count() as u64;
         let total_votes = yes_votes + no_votes;
 
-        let proposal = self.proposals.get(&proposal_id)
+        let proposal = self
+            .proposals
+            .get(&proposal_id)
             .ok_or(GovernanceError::ProposalNotFound)?;
 
         let status = if Utc::now() > proposal.voting_deadline {
@@ -386,7 +431,12 @@ impl InMemoryGovernance {
 }
 
 impl DaoGovernance for InMemoryGovernance {
-    fn propose(&mut self, title: String, description: String, voting_duration_hours: u64) -> Result<u64, GovernanceError> {
+    fn propose(
+        &mut self,
+        title: String,
+        description: String,
+        voting_duration_hours: u64,
+    ) -> Result<u64, GovernanceError> {
         let proposal_id = self.next_proposal_id;
         self.next_proposal_id += 1;
 
@@ -406,7 +456,13 @@ impl DaoGovernance for InMemoryGovernance {
         Ok(proposal_id)
     }
 
-    fn propose_tokenomics(&mut self, title: String, description: String, voting_duration_hours: u64, tokenomics_proposal: TokenomicsProposal) -> Result<u64, GovernanceError> {
+    fn propose_tokenomics(
+        &mut self,
+        title: String,
+        description: String,
+        voting_duration_hours: u64,
+        tokenomics_proposal: TokenomicsProposal,
+    ) -> Result<u64, GovernanceError> {
         let proposal_id = self.next_proposal_id;
         self.next_proposal_id += 1;
 
@@ -427,7 +483,9 @@ impl DaoGovernance for InMemoryGovernance {
     }
 
     fn vote(&mut self, proposal_id: u64, ballot: Ballot) -> Result<(), GovernanceError> {
-        let proposal = self.proposals.get(&proposal_id)
+        let proposal = self
+            .proposals
+            .get(&proposal_id)
             .ok_or(GovernanceError::ProposalNotFound)?;
 
         // Check if voting is still open
@@ -475,9 +533,14 @@ impl DaoGovernance for InMemoryGovernance {
         Ok(self.votes.get(&proposal_id).cloned().unwrap_or_default())
     }
 
-    fn execute_tokenomics_proposal(&mut self, proposal_id: u64) -> Result<Option<TokenomicsProposal>, GovernanceError> {
+    fn execute_tokenomics_proposal(
+        &mut self,
+        proposal_id: u64,
+    ) -> Result<Option<TokenomicsProposal>, GovernanceError> {
         // Check if proposal exists and is passed
-        let proposal = self.proposals.get(&proposal_id)
+        let proposal = self
+            .proposals
+            .get(&proposal_id)
             .ok_or(GovernanceError::ProposalNotFound)?;
 
         if !matches!(proposal.status, ProposalStatus::Passed) {
@@ -486,9 +549,7 @@ impl DaoGovernance for InMemoryGovernance {
 
         // Extract tokenomics proposal if it exists
         match &proposal.proposal_type {
-            ProposalType::Tokenomics(tokenomics_proposal) => {
-                Ok(Some(tokenomics_proposal.clone()))
-            },
+            ProposalType::Tokenomics(tokenomics_proposal) => Ok(Some(tokenomics_proposal.clone())),
             ProposalType::Standard => Ok(None),
         }
     }
@@ -498,13 +559,24 @@ impl DaoGovernance for InMemoryGovernance {
 pub struct DummyGovernance;
 
 impl DaoGovernance for DummyGovernance {
-    fn propose(&mut self, title: String, description: String, _voting_duration_hours: u64) -> Result<u64, GovernanceError> {
+    fn propose(
+        &mut self,
+        title: String,
+        description: String,
+        _voting_duration_hours: u64,
+    ) -> Result<u64, GovernanceError> {
         // Generate a mock proposal ID
         let proposal_id = title.len() as u64 + description.len() as u64;
         Ok(proposal_id)
     }
 
-    fn propose_tokenomics(&mut self, title: String, description: String, _voting_duration_hours: u64, _tokenomics_proposal: TokenomicsProposal) -> Result<u64, GovernanceError> {
+    fn propose_tokenomics(
+        &mut self,
+        title: String,
+        description: String,
+        _voting_duration_hours: u64,
+        _tokenomics_proposal: TokenomicsProposal,
+    ) -> Result<u64, GovernanceError> {
         // Generate a mock proposal ID
         let proposal_id = title.len() as u64 + description.len() as u64;
         Ok(proposal_id)
@@ -536,7 +608,10 @@ impl DaoGovernance for DummyGovernance {
         Ok(vec![])
     }
 
-    fn execute_tokenomics_proposal(&mut self, _proposal_id: u64) -> Result<Option<TokenomicsProposal>, GovernanceError> {
+    fn execute_tokenomics_proposal(
+        &mut self,
+        _proposal_id: u64,
+    ) -> Result<Option<TokenomicsProposal>, GovernanceError> {
         Ok(None)
     }
 }
@@ -561,55 +636,57 @@ impl ComplianceModule for DummyCompliance {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use std::thread;
     use std::time::Duration;
+    use tempfile::TempDir;
 
     #[test]
     fn test_in_memory_governance_basic_flow() {
         let mut governance = InMemoryGovernance::new();
-        
+
         // Create a proposal
-        let proposal_id = governance.propose(
-            "Test Proposal".to_string(),
-            "This is a test proposal".to_string(),
-            24
-        ).unwrap();
-        
+        let proposal_id = governance
+            .propose(
+                "Test Proposal".to_string(),
+                "This is a test proposal".to_string(),
+                24,
+            )
+            .unwrap();
+
         assert_eq!(proposal_id, 1);
-        
+
         // Get the proposal
         let proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
         assert_eq!(proposal.title, "Test Proposal");
         assert_eq!(proposal.description, "This is a test proposal");
         assert!(matches!(proposal.status, ProposalStatus::Active));
-        
+
         // Vote on the proposal
         let ballot1 = Ballot {
             voter: "voter1".to_string(),
             vote: true,
             timestamp: Utc::now(),
         };
-        
+
         let ballot2 = Ballot {
             voter: "voter2".to_string(),
             vote: false,
             timestamp: Utc::now(),
         };
-        
+
         governance.vote(proposal_id, ballot1).unwrap();
         governance.vote(proposal_id, ballot2).unwrap();
-        
+
         // Tally votes
         let result = governance.tally(proposal_id).unwrap();
         assert_eq!(result.yes_votes, 1);
         assert_eq!(result.no_votes, 1);
         assert_eq!(result.total_votes, 2);
-        
+
         // List proposals
         let proposals = governance.list_proposals().unwrap();
         assert_eq!(proposals.len(), 1);
-        
+
         // Get votes
         let votes = governance.get_votes(proposal_id).unwrap();
         assert_eq!(votes.len(), 2);
@@ -619,41 +696,43 @@ mod tests {
     fn test_file_based_governance_persistence() {
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
-        
+
         let proposal_id = {
             let mut governance = FileBasedGovernance::new(data_dir.clone()).unwrap();
-            
+
             // Create a proposal
-            let proposal_id = governance.propose(
-                "Persistent Proposal".to_string(),
-                "This proposal should persist".to_string(),
-                48
-            ).unwrap();
-            
+            let proposal_id = governance
+                .propose(
+                    "Persistent Proposal".to_string(),
+                    "This proposal should persist".to_string(),
+                    48,
+                )
+                .unwrap();
+
             // Vote on it
             let ballot = Ballot {
                 voter: "persistent_voter".to_string(),
                 vote: true,
                 timestamp: Utc::now(),
             };
-            
+
             governance.vote(proposal_id, ballot).unwrap();
             proposal_id
         };
-        
+
         // Create a new governance instance and verify data persisted
         {
             let governance = FileBasedGovernance::new(data_dir.clone()).unwrap();
-            
+
             let proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
             assert_eq!(proposal.title, "Persistent Proposal");
             assert_eq!(proposal.description, "This proposal should persist");
-            
+
             let votes = governance.get_votes(proposal_id).unwrap();
             assert_eq!(votes.len(), 1);
             assert_eq!(votes[0].voter, "persistent_voter");
             assert_eq!(votes[0].vote, true);
-            
+
             let result = governance.tally(proposal_id).unwrap();
             assert_eq!(result.yes_votes, 1);
             assert_eq!(result.no_votes, 0);
@@ -664,28 +743,30 @@ mod tests {
     #[test]
     fn test_duplicate_voting_prevention() {
         let mut governance = InMemoryGovernance::new();
-        
-        let proposal_id = governance.propose(
-            "No Double Voting".to_string(),
-            "Test duplicate vote prevention".to_string(),
-            24
-        ).unwrap();
-        
+
+        let proposal_id = governance
+            .propose(
+                "No Double Voting".to_string(),
+                "Test duplicate vote prevention".to_string(),
+                24,
+            )
+            .unwrap();
+
         let ballot1 = Ballot {
             voter: "voter1".to_string(),
             vote: true,
             timestamp: Utc::now(),
         };
-        
+
         let ballot2 = Ballot {
             voter: "voter1".to_string(), // Same voter
             vote: false,
             timestamp: Utc::now(),
         };
-        
+
         // First vote should succeed
         governance.vote(proposal_id, ballot1).unwrap();
-        
+
         // Second vote from same voter should fail
         let result = governance.vote(proposal_id, ballot2);
         assert!(matches!(result, Err(GovernanceError::AlreadyVoted)));
@@ -694,13 +775,13 @@ mod tests {
     #[test]
     fn test_voting_on_nonexistent_proposal() {
         let mut governance = InMemoryGovernance::new();
-        
+
         let ballot = Ballot {
             voter: "voter1".to_string(),
             vote: true,
             timestamp: Utc::now(),
         };
-        
+
         let result = governance.vote(999, ballot);
         assert!(matches!(result, Err(GovernanceError::ProposalNotFound)));
     }
@@ -708,23 +789,25 @@ mod tests {
     #[test]
     fn test_proposal_expiration() {
         let mut governance = InMemoryGovernance::new();
-        
+
         // Create a proposal with very short duration
-        let proposal_id = governance.propose(
-            "Quick Expiry".to_string(),
-            "This expires quickly".to_string(),
-            0 // 0 hours duration
-        ).unwrap();
-        
+        let proposal_id = governance
+            .propose(
+                "Quick Expiry".to_string(),
+                "This expires quickly".to_string(),
+                0, // 0 hours duration
+            )
+            .unwrap();
+
         // Wait a moment to ensure expiration
         thread::sleep(Duration::from_millis(10));
-        
+
         let ballot = Ballot {
             voter: "late_voter".to_string(),
             vote: true,
             timestamp: Utc::now(),
         };
-        
+
         // Voting should fail on expired proposal
         let result = governance.vote(proposal_id, ballot);
         assert!(matches!(result, Err(GovernanceError::VotingClosed)));
@@ -733,30 +816,24 @@ mod tests {
     #[test]
     fn test_proposal_listing_order() {
         let mut governance = InMemoryGovernance::new();
-        
+
         // Create multiple proposals
-        let _id1 = governance.propose(
-            "First Proposal".to_string(),
-            "First".to_string(),
-            24
-        ).unwrap();
-        
+        let _id1 = governance
+            .propose("First Proposal".to_string(), "First".to_string(), 24)
+            .unwrap();
+
         thread::sleep(Duration::from_millis(1));
-        
-        let _id2 = governance.propose(
-            "Second Proposal".to_string(),
-            "Second".to_string(),
-            24
-        ).unwrap();
-        
+
+        let _id2 = governance
+            .propose("Second Proposal".to_string(), "Second".to_string(), 24)
+            .unwrap();
+
         thread::sleep(Duration::from_millis(1));
-        
-        let _id3 = governance.propose(
-            "Third Proposal".to_string(),
-            "Third".to_string(),
-            24
-        ).unwrap();
-        
+
+        let _id3 = governance
+            .propose("Third Proposal".to_string(), "Third".to_string(), 24)
+            .unwrap();
+
         // Proposals should be listed in reverse chronological order (newest first)
         let proposals = governance.list_proposals().unwrap();
         assert_eq!(proposals.len(), 3);

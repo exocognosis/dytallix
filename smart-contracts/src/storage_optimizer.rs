@@ -3,10 +3,10 @@
 //! This module provides optimized storage access patterns, key compression,
 //! and efficient data serialization to reduce storage costs and improve performance.
 
-use std::collections::{HashMap, BTreeMap};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use cosmwasm_std::{Storage, StdResult, StdError, Addr, Uint128};
-use cw_storage_plus::{Item, Map, Bound, PrimaryKey};
+use cosmwasm_std::{Addr, StdError, StdResult, Storage, Uint128};
+use cw_storage_plus::{Bound, Item, Map, PrimaryKey};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::collections::{BTreeMap, HashMap};
 
 /// Storage access pattern metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,7 +52,7 @@ impl OptimizedStorage {
     /// Create optimized storage with custom configuration
     pub fn with_config(cache_size_limit: usize, compression_enabled: bool) -> Self {
         let mut key_prefix_compression = HashMap::new();
-        
+
         // Common prefix mappings for key compression
         key_prefix_compression.insert("bridge_transactions".to_string(), 0x01);
         key_prefix_compression.insert("supported_tokens".to_string(), 0x02);
@@ -102,7 +102,7 @@ impl OptimizedStorage {
     /// Optimized write with caching
     pub fn optimized_write(&mut self, storage: &mut dyn Storage, key: &[u8], value: &[u8]) {
         storage.set(key, value);
-        
+
         self.metrics.writes += 1;
         self.metrics.key_size_total += key.len() as u64;
         self.metrics.value_size_total += value.len() as u64;
@@ -146,7 +146,7 @@ impl OptimizedStorage {
         }
 
         let prefix_code = compressed_key[0];
-        
+
         // Find prefix for this code
         for (prefix, code) in &self.key_prefix_compression {
             if *code == prefix_code {
@@ -238,22 +238,26 @@ pub struct SerializationOptimizer;
 impl SerializationOptimizer {
     /// Serialize with binary encoding for compact storage
     pub fn serialize_compact<T: Serialize>(value: &T) -> StdResult<Vec<u8>> {
-        bincode::serialize(value).map_err(|e| StdError::generic_err(format!("Serialization error: {}", e)))
+        bincode::serialize(value)
+            .map_err(|e| StdError::generic_err(format!("Serialization error: {}", e)))
     }
 
     /// Deserialize from binary encoding
     pub fn deserialize_compact<T: DeserializeOwned>(data: &[u8]) -> StdResult<T> {
-        bincode::deserialize(data).map_err(|e| StdError::generic_err(format!("Deserialization error: {}", e)))
+        bincode::deserialize(data)
+            .map_err(|e| StdError::generic_err(format!("Deserialization error: {}", e)))
     }
 
     /// Serialize with JSON for debugging (less efficient)
     pub fn serialize_json<T: Serialize>(value: &T) -> StdResult<Vec<u8>> {
-        serde_json::to_vec(value).map_err(|e| StdError::generic_err(format!("JSON serialization error: {}", e)))
+        serde_json::to_vec(value)
+            .map_err(|e| StdError::generic_err(format!("JSON serialization error: {}", e)))
     }
 
     /// Deserialize from JSON
     pub fn deserialize_json<T: DeserializeOwned>(data: &[u8]) -> StdResult<T> {
-        serde_json::from_slice(data).map_err(|e| StdError::generic_err(format!("JSON deserialization error: {}", e)))
+        serde_json::from_slice(data)
+            .map_err(|e| StdError::generic_err(format!("JSON deserialization error: {}", e)))
     }
 
     /// Calculate size difference between JSON and binary
@@ -299,24 +303,33 @@ impl StorageAnalyzer {
     }
 
     /// Record a storage access
-    pub fn record_access(&mut self, key: &str, operation: StorageOperation, key_size: usize, value_size: usize) {
+    pub fn record_access(
+        &mut self,
+        key: &str,
+        operation: StorageOperation,
+        key_size: usize,
+        value_size: usize,
+    ) {
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
 
-        let pattern = self.access_patterns.entry(key.to_string()).or_insert(AccessPattern {
-            reads: 0,
-            writes: 0,
-            last_access: timestamp,
-            access_frequency: 0.0,
-            size_pattern: SizePattern {
-                avg_key_size: key_size as f64,
-                avg_value_size: value_size as f64,
-                max_value_size: value_size,
-                min_value_size: value_size,
-            },
-        });
+        let pattern = self
+            .access_patterns
+            .entry(key.to_string())
+            .or_insert(AccessPattern {
+                reads: 0,
+                writes: 0,
+                last_access: timestamp,
+                access_frequency: 0.0,
+                size_pattern: SizePattern {
+                    avg_key_size: key_size as f64,
+                    avg_value_size: value_size as f64,
+                    max_value_size: value_size,
+                    min_value_size: value_size,
+                },
+            });
 
         match operation {
             StorageOperation::Read => pattern.reads += 1,
@@ -325,10 +338,12 @@ impl StorageAnalyzer {
 
         // Update size patterns
         let total_accesses = pattern.reads + pattern.writes;
-        pattern.size_pattern.avg_key_size = 
-            (pattern.size_pattern.avg_key_size * (total_accesses - 1) as f64 + key_size as f64) / total_accesses as f64;
-        pattern.size_pattern.avg_value_size = 
-            (pattern.size_pattern.avg_value_size * (total_accesses - 1) as f64 + value_size as f64) / total_accesses as f64;
+        pattern.size_pattern.avg_key_size =
+            (pattern.size_pattern.avg_key_size * (total_accesses - 1) as f64 + key_size as f64)
+                / total_accesses as f64;
+        pattern.size_pattern.avg_value_size =
+            (pattern.size_pattern.avg_value_size * (total_accesses - 1) as f64 + value_size as f64)
+                / total_accesses as f64;
         pattern.size_pattern.max_value_size = pattern.size_pattern.max_value_size.max(value_size);
         pattern.size_pattern.min_value_size = pattern.size_pattern.min_value_size.min(value_size);
 
@@ -350,7 +365,8 @@ impl StorageAnalyzer {
                 recommendations.push(StorageRecommendation {
                     key_pattern: key.clone(),
                     recommendation_type: RecommendationType::EnableCaching,
-                    description: "High read frequency suggests caching would be beneficial".to_string(),
+                    description: "High read frequency suggests caching would be beneficial"
+                        .to_string(),
                     estimated_gas_savings: (pattern.reads * 100) as u64, // Estimated savings
                 });
             }
@@ -360,7 +376,8 @@ impl StorageAnalyzer {
                 recommendations.push(StorageRecommendation {
                     key_pattern: key.clone(),
                     recommendation_type: RecommendationType::BatchWrites,
-                    description: "High write frequency suggests batching would reduce gas costs".to_string(),
+                    description: "High write frequency suggests batching would reduce gas costs"
+                        .to_string(),
                     estimated_gas_savings: (pattern.writes * 50) as u64,
                 });
             }
@@ -370,7 +387,8 @@ impl StorageAnalyzer {
                 recommendations.push(StorageRecommendation {
                     key_pattern: key.clone(),
                     recommendation_type: RecommendationType::CompressValues,
-                    description: "Large average value size suggests compression would save storage".to_string(),
+                    description: "Large average value size suggests compression would save storage"
+                        .to_string(),
                     estimated_gas_savings: (pattern.size_pattern.avg_value_size * 0.3) as u64,
                 });
             }
@@ -385,15 +403,23 @@ impl StorageAnalyzer {
         let total_keys = self.access_patterns.len();
         let total_reads: u64 = self.access_patterns.values().map(|p| p.reads).sum();
         let total_writes: u64 = self.access_patterns.values().map(|p| p.writes).sum();
-        
+
         let avg_key_size = if total_keys > 0 {
-            self.access_patterns.values().map(|p| p.size_pattern.avg_key_size).sum::<f64>() / total_keys as f64
+            self.access_patterns
+                .values()
+                .map(|p| p.size_pattern.avg_key_size)
+                .sum::<f64>()
+                / total_keys as f64
         } else {
             0.0
         };
 
         let avg_value_size = if total_keys > 0 {
-            self.access_patterns.values().map(|p| p.size_pattern.avg_value_size).sum::<f64>() / total_keys as f64
+            self.access_patterns
+                .values()
+                .map(|p| p.size_pattern.avg_value_size)
+                .sum::<f64>()
+                / total_keys as f64
         } else {
             0.0
         };
@@ -404,7 +430,11 @@ impl StorageAnalyzer {
             total_writes,
             avg_key_size,
             avg_value_size,
-            read_write_ratio: if total_writes > 0 { total_reads as f64 / total_writes as f64 } else { 0.0 },
+            read_write_ratio: if total_writes > 0 {
+                total_reads as f64 / total_writes as f64
+            } else {
+                0.0
+            },
         }
     }
 }
@@ -466,7 +496,7 @@ where
         K: AsRef<[u8]>,
     {
         let key_bytes = key.as_ref();
-        
+
         if let Some(cached_data) = self.optimizer.optimized_read(storage, key_bytes) {
             return SerializationOptimizer::deserialize_compact(&cached_data);
         }
@@ -480,7 +510,8 @@ where
         K: AsRef<[u8]>,
     {
         let serialized = SerializationOptimizer::serialize_compact(value)?;
-        self.optimizer.optimized_write(storage, key.as_ref(), &serialized);
+        self.optimizer
+            .optimized_write(storage, key.as_ref(), &serialized);
         self.inner.save(storage, key, value)
     }
 
@@ -490,19 +521,19 @@ where
         K: AsRef<[u8]>,
     {
         let mut operations = Vec::new();
-        
+
         for (key, value) in &items {
             let serialized = SerializationOptimizer::serialize_compact(value)?;
             operations.push((key.as_ref().to_vec(), serialized));
         }
-        
+
         self.optimizer.batch_write(storage, operations);
-        
+
         // Also save through the inner map
         for (key, value) in items {
             self.inner.save(storage, key, &value)?;
         }
-        
+
         Ok(())
     }
 
@@ -557,8 +588,8 @@ mod tests {
         let bridge_key = BridgeKeyGenerator::bridge_transaction_key("bridge_123");
         let token_key = BridgeKeyGenerator::token_config_key("uosmo");
         let validator_key = BridgeKeyGenerator::validator_confirmation_key(
-            "bridge_123", 
-            &Addr::unchecked("validator1")
+            "bridge_123",
+            &Addr::unchecked("validator1"),
         );
 
         assert!(!bridge_key.is_empty());
@@ -625,10 +656,11 @@ mod tests {
 
         let recommendations = analyzer.get_recommendations();
         assert!(!recommendations.is_empty());
-        
+
         // Should recommend caching for frequently read bridge_tx_1
         let caching_rec = recommendations.iter().find(|r| {
-            r.key_pattern == "bridge_tx_1" && matches!(r.recommendation_type, RecommendationType::EnableCaching)
+            r.key_pattern == "bridge_tx_1"
+                && matches!(r.recommendation_type, RecommendationType::EnableCaching)
         });
         assert!(caching_rec.is_some());
     }
@@ -648,8 +680,17 @@ mod tests {
         assert_eq!(opt_storage.get_metrics().writes, 3);
 
         // Verify all values were written
-        assert_eq!(opt_storage.optimized_read(&storage, b"key1"), Some(b"value1".to_vec()));
-        assert_eq!(opt_storage.optimized_read(&storage, b"key2"), Some(b"value2".to_vec()));
-        assert_eq!(opt_storage.optimized_read(&storage, b"key3"), Some(b"value3".to_vec()));
+        assert_eq!(
+            opt_storage.optimized_read(&storage, b"key1"),
+            Some(b"value1".to_vec())
+        );
+        assert_eq!(
+            opt_storage.optimized_read(&storage, b"key2"),
+            Some(b"value2".to_vec())
+        );
+        assert_eq!(
+            opt_storage.optimized_read(&storage, b"key3"),
+            Some(b"value3".to_vec())
+        );
     }
 }

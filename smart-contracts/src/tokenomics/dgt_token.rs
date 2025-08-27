@@ -9,11 +9,11 @@ Key features:
 - WASM-compatible exports
 */
 
-use std::collections::BTreeMap;
-use scale::{Decode, Encode};
-use serde::{Serialize, Deserialize};
-use crate::types::Address;
 use super::types::{Balance, TokenomicsError, TokenomicsResult};
+use crate::types::Address;
+use scale::{Decode, Encode};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// DGT Token contract state
 #[derive(Debug, Clone, Encode, Decode, Serialize, Deserialize)]
@@ -61,7 +61,12 @@ impl DGTToken {
     }
 
     /// Transfer tokens between addresses
-    pub fn transfer(&mut self, from: Address, to: Address, amount: Balance) -> TokenomicsResult<()> {
+    pub fn transfer(
+        &mut self,
+        from: Address,
+        to: Address,
+        amount: Balance,
+    ) -> TokenomicsResult<()> {
         if from == to {
             return Err(TokenomicsError::TransferToSelf);
         }
@@ -84,19 +89,31 @@ impl DGTToken {
     }
 
     /// Approve spending allowance
-    pub fn approve(&mut self, owner: Address, spender: Address, amount: Balance) -> TokenomicsResult<()> {
+    pub fn approve(
+        &mut self,
+        owner: Address,
+        spender: Address,
+        amount: Balance,
+    ) -> TokenomicsResult<()> {
         self.allowances
             .entry(owner)
             .or_default()
             .insert(spender, amount);
-        
+
         Ok(())
     }
 
     /// Transfer from allowance
-    pub fn transfer_from(&mut self, owner: Address, spender: Address, to: Address, amount: Balance) -> TokenomicsResult<()> {
+    pub fn transfer_from(
+        &mut self,
+        owner: Address,
+        spender: Address,
+        to: Address,
+        amount: Balance,
+    ) -> TokenomicsResult<()> {
         // Check allowance
-        let allowance = self.allowances
+        let allowance = self
+            .allowances
             .get(&owner)
             .and_then(|allowances| allowances.get(&spender))
             .copied()
@@ -140,19 +157,23 @@ impl DGTToken {
 
 // WASM-compatible exports for DGT token functions
 #[no_mangle]
-pub extern "C" fn dgt_balance_of(token_ptr: *const DGTToken, address_ptr: *const u8, address_len: usize) -> u64 {
+pub extern "C" fn dgt_balance_of(
+    token_ptr: *const DGTToken,
+    address_ptr: *const u8,
+    address_len: usize,
+) -> u64 {
     // Safety: This would be properly handled in a real WASM environment
     0 // Placeholder implementation
 }
 
 #[no_mangle]
 pub extern "C" fn dgt_transfer(
-    token_ptr: *mut DGTToken, 
-    from_ptr: *const u8, 
+    token_ptr: *mut DGTToken,
+    from_ptr: *const u8,
     from_len: usize,
     to_ptr: *const u8,
     to_len: usize,
-    amount: u64
+    amount: u64,
 ) -> i32 {
     // Safety: This would be properly handled in a real WASM environment
     0 // Placeholder implementation
@@ -165,7 +186,7 @@ pub extern "C" fn dgt_approve(
     owner_len: usize,
     spender_ptr: *const u8,
     spender_len: usize,
-    amount: u64
+    amount: u64,
 ) -> i32 {
     // Safety: This would be properly handled in a real WASM environment
     0 // Placeholder implementation
@@ -178,7 +199,11 @@ pub extern "C" fn dgt_total_supply(token_ptr: *const DGTToken) -> u64 {
 }
 
 #[no_mangle]
-pub extern "C" fn dgt_voting_power(token_ptr: *const DGTToken, address_ptr: *const u8, address_len: usize) -> u64 {
+pub extern "C" fn dgt_voting_power(
+    token_ptr: *const DGTToken,
+    address_ptr: *const u8,
+    address_len: usize,
+) -> u64 {
     // Safety: This would be properly handled in a real WASM environment
     0 // Placeholder implementation
 }
@@ -191,7 +216,7 @@ mod tests {
     fn test_dgt_creation() {
         let owner = "dyt1owner".to_string();
         let token = DGTToken::new(owner.clone());
-        
+
         assert_eq!(token.total_supply, 0);
         assert_eq!(token.owner, owner);
         assert!(!token.initial_mint_complete);
@@ -202,11 +227,11 @@ mod tests {
         let owner = "dyt1owner".to_string();
         let recipient = "dyt1recipient".to_string();
         let mut token = DGTToken::new(owner.clone());
-        
+
         let amount = 1_000_000;
         let result = token.mint_initial_supply(recipient.clone(), amount);
         assert!(result.is_ok());
-        
+
         assert_eq!(token.total_supply(), amount);
         assert_eq!(token.balance_of(&recipient), amount);
         assert!(token.initial_mint_complete);
@@ -218,14 +243,14 @@ mod tests {
         let from = "dyt1from".to_string();
         let to = "dyt1to".to_string();
         let mut token = DGTToken::new(owner);
-        
+
         // Mint initial supply to 'from'
         token.mint_initial_supply(from.clone(), 1000).unwrap();
-        
+
         // Transfer tokens
         let result = token.transfer(from.clone(), to.clone(), 300);
         assert!(result.is_ok());
-        
+
         assert_eq!(token.balance_of(&from), 700);
         assert_eq!(token.balance_of(&to), 300);
     }
@@ -236,7 +261,7 @@ mod tests {
         let from = "dyt1from".to_string();
         let to = "dyt1to".to_string();
         let mut token = DGTToken::new(owner);
-        
+
         // Try to transfer without balance
         let result = token.transfer(from, to, 100);
         assert!(matches!(result, Err(TokenomicsError::InsufficientBalance)));
@@ -248,18 +273,18 @@ mod tests {
         let spender = "dyt1spender".to_string();
         let recipient = "dyt1recipient".to_string();
         let mut token = DGTToken::new(owner.clone());
-        
+
         // Mint initial supply
         token.mint_initial_supply(owner.clone(), 1000).unwrap();
-        
+
         // Approve allowance
         token.approve(owner.clone(), spender.clone(), 200).unwrap();
         assert_eq!(token.allowance(&owner, &spender), 200);
-        
+
         // Transfer from allowance
         let result = token.transfer_from(owner.clone(), spender.clone(), recipient.clone(), 150);
         assert!(result.is_ok());
-        
+
         assert_eq!(token.balance_of(&owner), 850);
         assert_eq!(token.balance_of(&recipient), 150);
         assert_eq!(token.allowance(&owner, &spender), 50);
@@ -270,10 +295,10 @@ mod tests {
         let owner = "dyt1owner".to_string();
         let voter = "dyt1voter".to_string();
         let mut token = DGTToken::new(owner);
-        
+
         // Mint tokens
         token.mint_initial_supply(voter.clone(), 500).unwrap();
-        
+
         // Voting power should equal balance
         assert_eq!(token.voting_power(&voter), 500);
     }

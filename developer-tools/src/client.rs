@@ -15,76 +15,91 @@ impl BlockchainClient {
             base_url,
         }
     }
-    
+
     pub async fn get_health(&self) -> Result<ApiResponse<String>> {
         let url = format!("{}/health", self.base_url);
         let response = self.client.get(&url).send().await?;
         let result = response.json::<ApiResponse<String>>().await?;
         Ok(result)
     }
-    
+
     pub async fn get_balance(&self, address: &str) -> Result<ApiResponse<u64>> {
         let url = format!("{}/balance/{}", self.base_url, address);
         let response = self.client.get(&url).send().await?;
         let result = response.json::<ApiResponse<u64>>().await?;
         Ok(result)
     }
-    
-    pub async fn submit_transaction(&self, tx_request: TransactionRequest) -> Result<ApiResponse<TransactionResponse>> {
+
+    pub async fn submit_transaction(
+        &self,
+        tx_request: TransactionRequest,
+    ) -> Result<ApiResponse<TransactionResponse>> {
         let url = format!("{}/submit", self.base_url);
         let response = self.client.post(&url).json(&tx_request).send().await?;
         let result = response.json::<ApiResponse<TransactionResponse>>().await?;
         Ok(result)
     }
-    
+
     pub async fn get_transaction(&self, hash: &str) -> Result<ApiResponse<TransactionDetails>> {
         let url = format!("{}/transaction/{}", self.base_url, hash);
         let response = self.client.get(&url).send().await?;
         let result = response.json::<ApiResponse<TransactionDetails>>().await?;
         Ok(result)
     }
-    
-    pub async fn list_transactions(&self, account: Option<String>, limit: u64) -> Result<ApiResponse<Vec<TransactionDetails>>> {
+
+    pub async fn list_transactions(
+        &self,
+        account: Option<String>,
+        limit: u64,
+    ) -> Result<ApiResponse<Vec<TransactionDetails>>> {
         let mut url = format!("{}/transactions", self.base_url);
         let mut params = Vec::new();
-        
+
         if let Some(acc) = account {
             params.push(format!("account={}", acc));
         }
         params.push(format!("limit={}", limit));
-        
+
         if !params.is_empty() {
             url = format!("{}?{}", url, params.join("&"));
         }
-        
+
         let response = self.client.get(&url).send().await?;
-        let result = response.json::<ApiResponse<Vec<TransactionDetails>>>().await?;
+        let result = response
+            .json::<ApiResponse<Vec<TransactionDetails>>>()
+            .await?;
         Ok(result)
     }
-    
+
     pub async fn get_stats(&self) -> Result<ApiResponse<BlockchainStats>> {
         let url = format!("{}/stats", self.base_url);
         let response = self.client.get(&url).send().await?;
         let result = response.json::<ApiResponse<BlockchainStats>>().await?;
         Ok(result)
     }
-    
+
     // Smart contract methods
-    pub async fn deploy_smart_contract(&self, deployment_data: &DeploymentData) -> Result<serde_json::Value> {
+    pub async fn deploy_smart_contract(
+        &self,
+        deployment_data: &DeploymentData,
+    ) -> Result<serde_json::Value> {
         let url = format!("{}/contract/deploy", self.base_url);
         let response = self.client.post(&url).json(deployment_data).send().await?;
         let result = response.json::<serde_json::Value>().await?;
         Ok(result)
     }
-    
+
     pub async fn get_contract_info(&self, address: &str) -> Result<serde_json::Value> {
         let url = format!("{}/contract/{}", self.base_url, address);
         let response = self.client.get(&url).send().await?;
         let result = response.json::<serde_json::Value>().await?;
         Ok(result)
     }
-    
-    pub async fn call_contract_method(&self, call_data: &ContractCallData) -> Result<serde_json::Value> {
+
+    pub async fn call_contract_method(
+        &self,
+        call_data: &ContractCallData,
+    ) -> Result<serde_json::Value> {
         let url = format!("{}/contract/call", self.base_url);
         let response = self.client.post(&url).json(call_data).send().await?;
         let result = response.json::<serde_json::Value>().await?;
@@ -142,7 +157,7 @@ pub struct BlockchainStats {
 // Smart contract data structures
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeploymentData {
-    pub code: String,  // Base64 encoded WASM
+    pub code: String, // Base64 encoded WASM
     pub constructor_params: Option<serde_json::Value>,
     pub gas_limit: u64,
 }

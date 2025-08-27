@@ -37,12 +37,10 @@ fn create_mock_state() -> State {
 fn test_reject_invalid_signature() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
-    
-    let mut tx = create_test_transaction(
-        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000
-    );
+
+    let mut tx = create_test_transaction("hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000);
     tx.signature = None; // Invalid signature
-    
+
     let result = mempool.add_transaction(&state, tx);
     assert!(matches!(result, Err(RejectionReason::InvalidSignature)));
 }
@@ -51,24 +49,30 @@ fn test_reject_invalid_signature() {
 fn test_reject_nonce_gap() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
-    
+
     let tx = create_test_transaction(
-        "hash1", "sender1", "receiver", 1000, 100, 5, 21000, 1000 // Wrong nonce (should be 0)
+        "hash1", "sender1", "receiver", 1000, 100, 5, 21000, 1000, // Wrong nonce (should be 0)
     );
-    
+
     let result = mempool.add_transaction(&state, tx);
-    assert!(matches!(result, Err(RejectionReason::NonceGap { expected: 0, got: 5 })));
+    assert!(matches!(
+        result,
+        Err(RejectionReason::NonceGap {
+            expected: 0,
+            got: 5
+        })
+    ));
 }
 
 #[test]
 fn test_reject_insufficient_funds() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
-    
+
     let tx = create_test_transaction(
-        "hash1", "sender1", "receiver", 2000000, 100, 0, 21000, 1000 // Amount > balance
+        "hash1", "sender1", "receiver", 2000000, 100, 0, 21000, 1000, // Amount > balance
     );
-    
+
     let result = mempool.add_transaction(&state, tx);
     assert!(matches!(result, Err(RejectionReason::InsufficientFunds)));
 }
@@ -77,13 +81,19 @@ fn test_reject_insufficient_funds() {
 fn test_reject_underpriced_gas() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
-    
+
     let tx = create_test_transaction(
-        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 500 // Gas price below minimum
+        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 500, // Gas price below minimum
     );
-    
+
     let result = mempool.add_transaction(&state, tx);
-    assert!(matches!(result, Err(RejectionReason::UnderpricedGas { min: 1000, got: 500 })));
+    assert!(matches!(
+        result,
+        Err(RejectionReason::UnderpricedGas {
+            min: 1000,
+            got: 500
+        })
+    ));
 }
 
 #[test]
@@ -94,30 +104,29 @@ fn test_reject_oversized_tx() {
     };
     let mut mempool = Mempool::with_config(config);
     let state = create_mock_state();
-    
-    let tx = create_test_transaction(
-        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000
-    );
-    
+
+    let tx = create_test_transaction("hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000);
+
     let result = mempool.add_transaction(&state, tx);
-    assert!(matches!(result, Err(RejectionReason::OversizedTx { max: 100, got: _ })));
+    assert!(matches!(
+        result,
+        Err(RejectionReason::OversizedTx { max: 100, got: _ })
+    ));
 }
 
 #[test]
 fn test_dedup_same_hash() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
-    
-    let tx1 = create_test_transaction(
-        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000
-    );
+
+    let tx1 = create_test_transaction("hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000);
     let tx2 = create_test_transaction(
-        "hash1", "sender2", "receiver", 2000, 200, 0, 21000, 1000 // Same hash
+        "hash1", "sender2", "receiver", 2000, 200, 0, 21000, 1000, // Same hash
     );
-    
+
     // First transaction should succeed
     assert!(mempool.add_transaction(&state, tx1).is_ok());
-    
+
     // Second transaction with same hash should be rejected as duplicate
     let result = mempool.add_transaction(&state, tx2);
     assert!(matches!(result, Err(RejectionReason::Duplicate)));
@@ -127,26 +136,27 @@ fn test_dedup_same_hash() {
 fn test_ordering_by_price_then_nonce() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
-    
+
     // Add transactions with different gas prices and nonces
     let tx1 = create_test_transaction(
-        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 2000 // High gas price
+        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 2000, // High gas price
     );
     let tx2 = create_test_transaction(
-        "hash2", "sender2", "receiver", 1000, 100, 0, 21000, 1000 // Low gas price
+        "hash2", "sender2", "receiver", 1000, 100, 0, 21000, 1000, // Low gas price
     );
     let tx3 = create_test_transaction(
-        "hash3", "sender1", "receiver", 1000, 100, 1, 21000, 2000 // High gas price, higher nonce
+        "hash3", "sender1", "receiver", 1000, 100, 1, 21000,
+        2000, // High gas price, higher nonce
     );
-    
+
     assert!(mempool.add_transaction(&state, tx2).is_ok());
     assert!(mempool.add_transaction(&state, tx1).is_ok());
     assert!(mempool.add_transaction(&state, tx3).is_ok());
-    
+
     // Get snapshot and verify ordering
     let snapshot = mempool.take_snapshot(3);
     assert_eq!(snapshot.len(), 3);
-    
+
     // Should be ordered by gas price desc, then nonce asc
     assert_eq!(snapshot[0].hash, "hash1"); // gas_price 2000, nonce 0
     assert_eq!(snapshot[1].hash, "hash3"); // gas_price 2000, nonce 1
@@ -161,27 +171,27 @@ fn test_eviction_policy_evicts_lowest_priority() {
     };
     let mut mempool = Mempool::with_config(config);
     let state = create_mock_state();
-    
+
     // Add transactions with different priorities
     let tx1 = create_test_transaction(
-        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000 // Low priority
+        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000, // Low priority
     );
     let tx2 = create_test_transaction(
-        "hash2", "sender2", "receiver", 1000, 100, 0, 21000, 2000 // High priority
+        "hash2", "sender2", "receiver", 1000, 100, 0, 21000, 2000, // High priority
     );
     let tx3 = create_test_transaction(
-        "hash3", "sender1", "receiver", 1000, 100, 1, 21000, 3000 // Highest priority
+        "hash3", "sender1", "receiver", 1000, 100, 1, 21000, 3000, // Highest priority
     );
-    
+
     // Add first two transactions
     assert!(mempool.add_transaction(&state, tx1).is_ok());
     assert!(mempool.add_transaction(&state, tx2).is_ok());
     assert_eq!(mempool.len(), 2);
-    
+
     // Adding third transaction should evict the lowest priority (tx1)
     assert!(mempool.add_transaction(&state, tx3).is_ok());
     assert_eq!(mempool.len(), 2);
-    
+
     // Check that tx1 was evicted (lowest priority)
     assert!(!mempool.contains("hash1"));
     assert!(mempool.contains("hash2"));
@@ -191,25 +201,25 @@ fn test_eviction_policy_evicts_lowest_priority() {
 #[test]
 fn test_priority_key_ordering() {
     let tx1 = PendingTx::new(create_test_transaction(
-        "hash1", "sender", "receiver", 1000, 100, 0, 21000, 2000
+        "hash1", "sender", "receiver", 1000, 100, 0, 21000, 2000,
     ));
     let tx2 = PendingTx::new(create_test_transaction(
-        "hash2", "sender", "receiver", 1000, 100, 0, 21000, 1000
+        "hash2", "sender", "receiver", 1000, 100, 0, 21000, 1000,
     ));
     let tx3 = PendingTx::new(create_test_transaction(
-        "hash3", "sender", "receiver", 1000, 100, 1, 21000, 2000
+        "hash3", "sender", "receiver", 1000, 100, 1, 21000, 2000,
     ));
-    
+
     let key1 = tx1.priority_key();
     let key2 = tx2.priority_key();
     let key3 = tx3.priority_key();
-    
+
     // Higher gas price should come first (lower in ordering)
     assert!(key1 < key2);
-    
+
     // Same gas price, lower nonce should come first
     assert!(key1 < key3);
-    
+
     // Lower gas price should come last
     assert!(key3 < key2);
 }
@@ -218,17 +228,15 @@ fn test_priority_key_ordering() {
 fn test_mempool_statistics() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
-    
+
     assert_eq!(mempool.len(), 0);
     assert_eq!(mempool.total_bytes(), 0);
     assert!(!mempool.is_full());
-    
-    let tx = create_test_transaction(
-        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000
-    );
-    
+
+    let tx = create_test_transaction("hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000);
+
     assert!(mempool.add_transaction(&state, tx).is_ok());
-    
+
     assert_eq!(mempool.len(), 1);
     assert!(mempool.total_bytes() > 0);
     assert_eq!(mempool.current_min_gas_price(), 1000);
@@ -238,21 +246,17 @@ fn test_mempool_statistics() {
 fn test_drop_hashes() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
-    
-    let tx1 = create_test_transaction(
-        "hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000
-    );
-    let tx2 = create_test_transaction(
-        "hash2", "sender2", "receiver", 1000, 100, 0, 21000, 2000
-    );
-    
+
+    let tx1 = create_test_transaction("hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000);
+    let tx2 = create_test_transaction("hash2", "sender2", "receiver", 1000, 100, 0, 21000, 2000);
+
     assert!(mempool.add_transaction(&state, tx1).is_ok());
     assert!(mempool.add_transaction(&state, tx2).is_ok());
     assert_eq!(mempool.len(), 2);
-    
+
     // Remove one transaction
     mempool.drop_hashes(&["hash1".to_string()]);
-    
+
     assert_eq!(mempool.len(), 1);
     assert!(!mempool.contains("hash1"));
     assert!(mempool.contains("hash2"));

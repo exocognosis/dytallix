@@ -11,21 +11,21 @@ mod tests {
     fn test_verify_envelope_valid_signature() {
         // Generate test keypair
         let (sk, pk) = ActivePQC::keypair();
-        
+
         // Create test transaction
         let mut tx = Transaction::with_pqc(
             "test_hash".to_string(),
             "dyt1alice".to_string(),
             "dyt1bob".to_string(),
-            1000000, // 1 DYT
-            1000,    // fee
-            42,      // nonce
-            None,    // signature (to be set)
-            None,    // public key (to be set)
+            1000000,                        // 1 DYT
+            1000,                           // fee
+            42,                             // nonce
+            None,                           // signature (to be set)
+            None,                           // public key (to be set)
             "dytallix-testnet".to_string(), // chain_id
             "test memo".to_string(),        // memo
-            21000,   // gas_limit
-            1000,    // gas_price
+            21000,                          // gas_limit
+            1000,                           // gas_price
         );
 
         // Sign the transaction
@@ -39,28 +39,31 @@ mod tests {
         tx.public_key = Some(B64.encode(&pk));
 
         // Verify signature
-        assert!(verify_envelope(&tx), "Valid signature should pass verification");
+        assert!(
+            verify_envelope(&tx),
+            "Valid signature should pass verification"
+        );
     }
 
     #[test]
     fn test_verify_envelope_invalid_signature() {
         // Generate test keypair
         let (sk, pk) = ActivePQC::keypair();
-        
+
         // Create test transaction
         let mut tx = Transaction::with_pqc(
             "test_hash".to_string(),
             "dyt1alice".to_string(),
             "dyt1bob".to_string(),
-            1000000, // 1 DYT
-            1000,    // fee
-            42,      // nonce
-            None,    // signature (to be set)
-            None,    // public key (to be set)
+            1000000,                        // 1 DYT
+            1000,                           // fee
+            42,                             // nonce
+            None,                           // signature (to be set)
+            None,                           // public key (to be set)
             "dytallix-testnet".to_string(), // chain_id
             "test memo".to_string(),        // memo
-            21000,   // gas_limit
-            1000,    // gas_price
+            21000,                          // gas_limit
+            1000,                           // gas_price
         );
 
         // Sign the transaction
@@ -79,7 +82,10 @@ mod tests {
         tx.public_key = Some(B64.encode(&pk));
 
         // Verify signature
-        assert!(!verify_envelope(&tx), "Tampered signature should fail verification");
+        assert!(
+            !verify_envelope(&tx),
+            "Tampered signature should fail verification"
+        );
     }
 
     #[test]
@@ -89,50 +95,56 @@ mod tests {
             "test_hash".to_string(),
             "dyt1alice".to_string(),
             "dyt1bob".to_string(),
-            1000000, // 1 DYT
-            1000,    // fee
-            42,      // nonce
-            None,    // no signature
-            None,    // no public key
+            1000000,                        // 1 DYT
+            1000,                           // fee
+            42,                             // nonce
+            None,                           // no signature
+            None,                           // no public key
             "dytallix-testnet".to_string(), // chain_id
             "test memo".to_string(),        // memo
-            21000,   // gas_limit
-            1000,    // gas_price
+            21000,                          // gas_limit
+            1000,                           // gas_price
         );
 
         // Verify should fail
-        assert!(!verify_envelope(&tx), "Transaction without signature should fail verification");
+        assert!(
+            !verify_envelope(&tx),
+            "Transaction without signature should fail verification"
+        );
     }
 
     #[test]
     fn test_mempool_rejects_invalid_signature() {
         use crate::state::State;
-        
+
         // Create test state and mempool
         let state = State::new();
         let mut mempool = Mempool::new();
-        
+
         // Create transaction with invalid signature
         let tx = Transaction::with_pqc(
             "test_hash".to_string(),
             "dyt1alice".to_string(),
             "dyt1bob".to_string(),
-            1000000, // 1 DYT
-            1000,    // fee
-            42,      // nonce
-            Some("invalid_signature".to_string()), // invalid signature
+            1000000,                                // 1 DYT
+            1000,                                   // fee
+            42,                                     // nonce
+            Some("invalid_signature".to_string()),  // invalid signature
             Some("invalid_public_key".to_string()), // invalid public key
-            "dytallix-testnet".to_string(), // chain_id
-            "test memo".to_string(),        // memo
-            21000,   // gas_limit
-            1000,    // gas_price
+            "dytallix-testnet".to_string(),         // chain_id
+            "test memo".to_string(),                // memo
+            21000,                                  // gas_limit
+            1000,                                   // gas_price
         );
 
         // Attempt to add transaction should fail with InvalidSignature
         match mempool.add_transaction(&state, tx) {
             Err(RejectionReason::InvalidSignature) => {
                 // Expected result
-                assert_eq!(RejectionReason::InvalidSignature.to_string(), TX_INVALID_SIG);
+                assert_eq!(
+                    RejectionReason::InvalidSignature.to_string(),
+                    TX_INVALID_SIG
+                );
             }
             _ => panic!("Expected InvalidSignature rejection"),
         }

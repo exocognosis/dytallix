@@ -1,7 +1,7 @@
 use crate::storage::state::Storage;
-use serde::{Serialize, Deserialize};
-use std::sync::Arc;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Fixed-point scale for reward calculations (1e12 for precision)
 pub const REWARD_SCALE: u128 = 1_000_000_000_000;
@@ -28,7 +28,7 @@ impl Default for DelegatorRewardRecord {
 }
 
 /// Simplified staking state for lean-launch node
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct StakingModule {
     pub storage: Arc<Storage>,
     /// Total stake across all validators (in uDGT)
@@ -82,15 +82,16 @@ impl StakingModule {
             // Update reward index proportionally
             let reward_per_unit = (amount * REWARD_SCALE) / self.total_stake;
             self.reward_index = self.reward_index.saturating_add(reward_per_unit);
-            
+
             // Apply any pending emission too
             if self.pending_staking_emission > 0 {
-                let pending_reward_per_unit = (self.pending_staking_emission * REWARD_SCALE) / self.total_stake;
+                let pending_reward_per_unit =
+                    (self.pending_staking_emission * REWARD_SCALE) / self.total_stake;
                 self.reward_index = self.reward_index.saturating_add(pending_reward_per_unit);
                 self.pending_staking_emission = 0;
                 self.save_pending_emission();
             }
-            
+
             self.save_reward_index();
         } else {
             // No stake yet, accumulate for later distribution
@@ -116,7 +117,11 @@ impl StakingModule {
 
     /// Get current reward statistics
     pub fn get_stats(&self) -> (u128, u128, u128) {
-        (self.total_stake, self.reward_index, self.pending_staking_emission)
+        (
+            self.total_stake,
+            self.reward_index,
+            self.pending_staking_emission,
+        )
     }
 
     /// Load delegator reward record from storage
@@ -141,14 +146,17 @@ impl StakingModule {
     /// Save delegator reward record to storage
     fn save_delegator_record(&self, address: &str, record: &DelegatorRewardRecord) {
         let key = format!("staking:delegator:{}", address);
-        let _ = self.storage.db.put(&key, bincode::serialize(record).unwrap());
+        let _ = self
+            .storage
+            .db
+            .put(&key, bincode::serialize(record).unwrap());
     }
 
     /// Update stake amount for a delegator (used when delegation changes)
     pub fn update_delegator_stake(&mut self, address: &str, new_stake: u128) {
         // First settle any pending rewards before changing stake
         self.settle_delegator_rewards(address);
-        
+
         let current_reward_index = self.reward_index;
         let mut record = self.load_delegator_record(address);
         if record.last_reward_index == 0 {
@@ -157,16 +165,19 @@ impl StakingModule {
         let old_stake = record.stake_amount;
         record.stake_amount = new_stake;
         self.save_delegator_record(address, &record);
-        
+
         // Update total stake
-        self.total_stake = self.total_stake.saturating_sub(old_stake).saturating_add(new_stake);
+        self.total_stake = self
+            .total_stake
+            .saturating_sub(old_stake)
+            .saturating_add(new_stake);
         self.save_total_stake();
     }
 
     /// Settle (accrue) rewards for a delegator based on current reward index
     pub fn settle_delegator_rewards(&mut self, address: &str) -> u128 {
         let mut record = self.load_delegator_record(address);
-        
+
         if record.stake_amount > 0 && self.reward_index > record.last_reward_index {
             let delta_index = self.reward_index - record.last_reward_index;
             let newly_accrued = (record.stake_amount * delta_index) / REWARD_SCALE;
@@ -188,14 +199,14 @@ impl StakingModule {
     pub fn get_accrued_rewards(&self, address: &str) -> u128 {
         let record = self.load_delegator_record(address);
         let mut accrued = record.accrued_rewards;
-        
+
         // Add pending rewards since last settlement
         if record.stake_amount > 0 && self.reward_index > record.last_reward_index {
             let delta_index = self.reward_index - record.last_reward_index;
             let pending = (record.stake_amount * delta_index) / REWARD_SCALE;
             accrued = accrued.saturating_add(pending);
         }
-        
+
         accrued
     }
 
@@ -204,29 +215,38 @@ impl StakingModule {
     pub fn claim_rewards(&mut self, address: &str) -> u128 {
         // First settle any pending rewards
         self.settle_delegator_rewards(address);
-        
+
         let mut record = self.load_delegator_record(address);
         let claimed_amount = record.accrued_rewards;
-        
+
         if claimed_amount > 0 {
             record.accrued_rewards = 0;
             self.save_delegator_record(address, &record);
         }
-        
+
         claimed_amount
     }
 
     // Private storage methods
     fn save_total_stake(&self) {
-        let _ = self.storage.db.put("staking:total_stake", bincode::serialize(&self.total_stake).unwrap());
+        let _ = self.storage.db.put(
+            "staking:total_stake",
+            bincode::serialize(&self.total_stake).unwrap(),
+        );
     }
 
     fn save_reward_index(&self) {
-        let _ = self.storage.db.put("staking:reward_index", bincode::serialize(&self.reward_index).unwrap());
+        let _ = self.storage.db.put(
+            "staking:reward_index",
+            bincode::serialize(&self.reward_index).unwrap(),
+        );
     }
 
     fn save_pending_emission(&self) {
-        let _ = self.storage.db.put("staking:pending_emission", bincode::serialize(&self.pending_staking_emission).unwrap());
+        let _ = self.storage.db.put(
+            "staking:pending_emission",
+            bincode::serialize(&self.pending_staking_emission).unwrap(),
+        );
     }
 }
 
@@ -271,7 +291,10 @@ mod tests {
         // Add new emission with stake
         staking.apply_external_emission(2000);
         let additional_reward = (2000 * REWARD_SCALE) / 1_000_000;
-        assert_eq!(staking.reward_index, expected_reward_index + additional_reward);
+        assert_eq!(
+            staking.reward_index,
+            expected_reward_index + additional_reward
+        );
     }
 
     #[test]
@@ -308,7 +331,10 @@ mod tests {
         // Apply another emission
         staking.apply_external_emission(2_000_000); // 2 DRT in uDRT
         let additional_reward = (2_000_000 * REWARD_SCALE) / 1_000_000_000_000;
-        assert_eq!(staking.reward_index, expected_reward_index + additional_reward);
+        assert_eq!(
+            staking.reward_index,
+            expected_reward_index + additional_reward
+        );
 
         // Check delegator's accrued rewards
         let accrued = staking.get_accrued_rewards("delegator1");

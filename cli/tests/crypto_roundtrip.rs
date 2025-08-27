@@ -1,5 +1,5 @@
-use dcli::crypto::{ActivePQC, PQC}; // ensure trait in scope
 use dcli::addr;
+use dcli::crypto::{ActivePQC, PQC}; // ensure trait in scope
 
 #[test]
 fn keygen_sign_verify_roundtrip() {

@@ -48,13 +48,13 @@ impl std::error::Error for PolicyError {}
 pub struct SignaturePolicy {
     /// Set of allowed PQC algorithms
     pub allowed_algorithms: HashSet<SignatureAlgorithm>,
-    
+
     /// Whether to explicitly reject legacy algorithms (ECDSA, RSA, etc.)
     pub reject_legacy: bool,
-    
+
     /// Whether to enforce policy at mempool level
     pub enforce_at_mempool: bool,
-    
+
     /// Whether to enforce policy at consensus level
     pub enforce_at_consensus: bool,
 }
@@ -66,10 +66,10 @@ impl Default for SignaturePolicy {
         allowed.insert(SignatureAlgorithm::Dilithium5);
         allowed.insert(SignatureAlgorithm::Falcon1024);
         allowed.insert(SignatureAlgorithm::SphincsSha256128s);
-        
+
         Self {
             allowed_algorithms: allowed,
-            reject_legacy: true,  // Default to strict PQC-only mode
+            reject_legacy: true, // Default to strict PQC-only mode
             enforce_at_mempool: true,
             enforce_at_consensus: true,
         }
@@ -84,19 +84,19 @@ impl SignaturePolicy {
             ..Default::default()
         }
     }
-    
+
     /// Create a policy that allows all PQC algorithms
     pub fn allow_all_pqc() -> Self {
         Default::default()
     }
-    
+
     /// Create a strict policy that only allows Dilithium5
     pub fn dilithium_only() -> Self {
         let mut allowed = HashSet::new();
         allowed.insert(SignatureAlgorithm::Dilithium5);
         Self::new(allowed)
     }
-    
+
     /// Validate if an algorithm is allowed by this policy
     pub fn validate_algorithm(&self, algorithm: &SignatureAlgorithm) -> Result<(), PolicyError> {
         if !self.allowed_algorithms.contains(algorithm) {
@@ -104,7 +104,7 @@ impl SignaturePolicy {
         }
         Ok(())
     }
-    
+
     /// Check if algorithm name represents a legacy (non-PQC) algorithm
     pub fn is_legacy_algorithm(algorithm_name: &str) -> bool {
         matches!(
@@ -112,14 +112,19 @@ impl SignaturePolicy {
             "ecdsa" | "rsa" | "ed25519" | "secp256k1" | "p256" | "p384" | "p521"
         )
     }
-    
+
     /// Validate algorithm by name, checking both allowlist and legacy rejection
-    pub fn validate_algorithm_name(&self, algorithm_name: &str) -> Result<SignatureAlgorithm, PolicyError> {
+    pub fn validate_algorithm_name(
+        &self,
+        algorithm_name: &str,
+    ) -> Result<SignatureAlgorithm, PolicyError> {
         // Check for legacy algorithms first if rejection is enabled
         if self.reject_legacy && Self::is_legacy_algorithm(algorithm_name) {
-            return Err(PolicyError::LegacyAlgorithmRejected(algorithm_name.to_string()));
+            return Err(PolicyError::LegacyAlgorithmRejected(
+                algorithm_name.to_string(),
+            ));
         }
-        
+
         // Try to parse the algorithm name to known PQC algorithms
         let algorithm = match algorithm_name.to_lowercase().as_str() {
             "dilithium5" | "dilithium" => SignatureAlgorithm::Dilithium5,
@@ -127,12 +132,12 @@ impl SignaturePolicy {
             "sphincs+" | "sphincssha256128s" | "sphincs" => SignatureAlgorithm::SphincsSha256128s,
             _ => return Err(PolicyError::UnknownAlgorithm(algorithm_name.to_string())),
         };
-        
+
         // Validate against allowlist
         self.validate_algorithm(&algorithm)?;
         Ok(algorithm)
     }
-    
+
     /// Get list of allowed algorithm names for display/config
     pub fn allowed_algorithm_names(&self) -> Vec<String> {
         self.allowed_algorithms
@@ -140,12 +145,12 @@ impl SignaturePolicy {
             .map(|alg| format!("{:?}", alg))
             .collect()
     }
-    
+
     /// Check if policy should be enforced at mempool level
     pub fn should_enforce_at_mempool(&self) -> bool {
         self.enforce_at_mempool
     }
-    
+
     /// Check if policy should be enforced at consensus level  
     pub fn should_enforce_at_consensus(&self) -> bool {
         self.enforce_at_consensus
@@ -165,24 +170,27 @@ impl PolicyManager {
             policy: Arc::new(policy),
         }
     }
-    
+
     /// Create with default policy
     pub fn default() -> Self {
         Self::new(SignaturePolicy::default())
     }
-    
+
     /// Get the current policy
     pub fn policy(&self) -> &SignaturePolicy {
         &self.policy
     }
-    
+
     /// Update the policy (creates new Arc)
     pub fn update_policy(&mut self, new_policy: SignaturePolicy) {
         self.policy = Arc::new(new_policy);
     }
-    
+
     /// Validate a transaction signature algorithm
-    pub fn validate_transaction_algorithm(&self, algorithm: &SignatureAlgorithm) -> Result<(), PolicyError> {
+    pub fn validate_transaction_algorithm(
+        &self,
+        algorithm: &SignatureAlgorithm,
+    ) -> Result<(), PolicyError> {
         self.policy.validate_algorithm(algorithm)
     }
 }
@@ -194,21 +202,33 @@ mod tests {
     #[test]
     fn test_default_policy_allows_all_pqc() {
         let policy = SignaturePolicy::default();
-        
-        assert!(policy.validate_algorithm(&SignatureAlgorithm::Dilithium5).is_ok());
-        assert!(policy.validate_algorithm(&SignatureAlgorithm::Falcon1024).is_ok());
-        assert!(policy.validate_algorithm(&SignatureAlgorithm::SphincsSha256128s).is_ok());
+
+        assert!(policy
+            .validate_algorithm(&SignatureAlgorithm::Dilithium5)
+            .is_ok());
+        assert!(policy
+            .validate_algorithm(&SignatureAlgorithm::Falcon1024)
+            .is_ok());
+        assert!(policy
+            .validate_algorithm(&SignatureAlgorithm::SphincsSha256128s)
+            .is_ok());
     }
-    
+
     #[test]
     fn test_dilithium_only_policy() {
         let policy = SignaturePolicy::dilithium_only();
-        
-        assert!(policy.validate_algorithm(&SignatureAlgorithm::Dilithium5).is_ok());
-        assert!(policy.validate_algorithm(&SignatureAlgorithm::Falcon1024).is_err());
-        assert!(policy.validate_algorithm(&SignatureAlgorithm::SphincsSha256128s).is_err());
+
+        assert!(policy
+            .validate_algorithm(&SignatureAlgorithm::Dilithium5)
+            .is_ok());
+        assert!(policy
+            .validate_algorithm(&SignatureAlgorithm::Falcon1024)
+            .is_err());
+        assert!(policy
+            .validate_algorithm(&SignatureAlgorithm::SphincsSha256128s)
+            .is_err());
     }
-    
+
     #[test]
     fn test_legacy_algorithm_detection() {
         assert!(SignaturePolicy::is_legacy_algorithm("ecdsa"));
@@ -217,26 +237,26 @@ mod tests {
         assert!(!SignaturePolicy::is_legacy_algorithm("dilithium5"));
         assert!(!SignaturePolicy::is_legacy_algorithm("falcon1024"));
     }
-    
+
     #[test]
     fn test_legacy_rejection() {
         let policy = SignaturePolicy::default();
-        
+
         assert!(matches!(
             policy.validate_algorithm_name("ecdsa"),
             Err(PolicyError::LegacyAlgorithmRejected(_))
         ));
-        
+
         assert!(matches!(
             policy.validate_algorithm_name("rsa"),
             Err(PolicyError::LegacyAlgorithmRejected(_))
         ));
     }
-    
+
     #[test]
     fn test_algorithm_name_parsing() {
         let policy = SignaturePolicy::default();
-        
+
         assert_eq!(
             policy.validate_algorithm_name("dilithium5").unwrap(),
             SignatureAlgorithm::Dilithium5
@@ -250,16 +270,22 @@ mod tests {
             SignatureAlgorithm::SphincsSha256128s
         );
     }
-    
+
     #[test]
     fn test_policy_manager() {
         let mut manager = PolicyManager::default();
-        
-        assert!(manager.validate_transaction_algorithm(&SignatureAlgorithm::Dilithium5).is_ok());
-        
+
+        assert!(manager
+            .validate_transaction_algorithm(&SignatureAlgorithm::Dilithium5)
+            .is_ok());
+
         // Update to dilithium-only policy
         manager.update_policy(SignaturePolicy::dilithium_only());
-        assert!(manager.validate_transaction_algorithm(&SignatureAlgorithm::Dilithium5).is_ok());
-        assert!(manager.validate_transaction_algorithm(&SignatureAlgorithm::Falcon1024).is_err());
+        assert!(manager
+            .validate_transaction_algorithm(&SignatureAlgorithm::Dilithium5)
+            .is_ok());
+        assert!(manager
+            .validate_transaction_algorithm(&SignatureAlgorithm::Falcon1024)
+            .is_err());
     }
 }

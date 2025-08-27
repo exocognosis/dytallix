@@ -3,10 +3,10 @@
 //! This module implements comprehensive fuzz testing capabilities to discover
 //! edge cases, vulnerabilities, and abnormal behaviors in smart contracts.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use crate::runtime::{ContractDeployment, ContractCall, ExecutionResult};
 use super::{SecurityFinding, Severity, VulnerabilityCategory};
+use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Fuzz tester for discovering edge cases and vulnerabilities
 pub struct FuzzTester {
@@ -94,7 +94,10 @@ impl FuzzTester {
     }
 
     /// Test a contract deployment with fuzz testing
-    pub async fn test_deployment(&mut self, deployment: &ContractDeployment) -> Vec<SecurityFinding> {
+    pub async fn test_deployment(
+        &mut self,
+        deployment: &ContractDeployment,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
         self.test_count += 1;
 
@@ -111,15 +114,21 @@ impl FuzzTester {
     }
 
     /// Fuzz test deployment parameters
-    async fn fuzz_deployment_parameters(&self, deployment: &ContractDeployment) -> Vec<SecurityFinding> {
+    async fn fuzz_deployment_parameters(
+        &self,
+        deployment: &ContractDeployment,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         // Test with mutated initial state
         for strategy in &self.mutation_strategies {
             let mutated_states = self.mutate_data(&deployment.initial_state, strategy);
-            
+
             for mutated_state in mutated_states {
-                if let Some(finding) = self.test_mutated_deployment(deployment, &mutated_state).await {
+                if let Some(finding) = self
+                    .test_mutated_deployment(deployment, &mutated_state)
+                    .await
+                {
                     findings.push(finding);
                 }
             }
@@ -129,14 +138,20 @@ impl FuzzTester {
     }
 
     /// Test contract initialization with various inputs
-    async fn fuzz_contract_initialization(&self, deployment: &ContractDeployment) -> Vec<SecurityFinding> {
+    async fn fuzz_contract_initialization(
+        &self,
+        deployment: &ContractDeployment,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         // Generate various initialization scenarios
         let test_scenarios = self.generate_initialization_scenarios();
 
         for scenario in test_scenarios {
-            if let Some(finding) = self.test_initialization_scenario(deployment, &scenario).await {
+            if let Some(finding) = self
+                .test_initialization_scenario(deployment, &scenario)
+                .await
+            {
                 findings.push(finding);
             }
         }
@@ -152,9 +167,12 @@ impl FuzzTester {
         for generator in &self.generators {
             for iteration in 0..self.max_iterations {
                 let inputs = generator.generate_inputs(iteration);
-                
+
                 for input in inputs {
-                    if let Some(finding) = self.test_edge_case_input(deployment, &input, generator.get_generator_name()).await {
+                    if let Some(finding) = self
+                        .test_edge_case_input(deployment, &input, generator.get_generator_name())
+                        .await
+                    {
                         findings.push(finding);
                     }
                 }
@@ -165,7 +183,11 @@ impl FuzzTester {
     }
 
     /// Test deployment with mutated state
-    async fn test_mutated_deployment(&self, deployment: &ContractDeployment, mutated_state: &[u8]) -> Option<SecurityFinding> {
+    async fn test_mutated_deployment(
+        &self,
+        deployment: &ContractDeployment,
+        mutated_state: &[u8],
+    ) -> Option<SecurityFinding> {
         // In a real implementation, this would deploy and test the contract
         // For now, we'll simulate testing and detect potential issues
 
@@ -174,7 +196,8 @@ impl FuzzTester {
             return Some(SecurityFinding {
                 id: format!("FUZZ-STATE-SIZE-{}", self.generate_id()),
                 title: "Large State DoS Vulnerability".to_string(),
-                description: "Fuzz testing revealed that large initial states can cause DoS".to_string(),
+                description: "Fuzz testing revealed that large initial states can cause DoS"
+                    .to_string(),
                 severity: Severity::Medium,
                 category: VulnerabilityCategory::DoS,
                 location: Some(deployment.address.clone()),
@@ -197,7 +220,9 @@ impl FuzzTester {
                 return Some(SecurityFinding {
                     id: format!("FUZZ-NULL-INJECT-{}", self.generate_id()),
                     title: "Null Byte Injection Vulnerability".to_string(),
-                    description: "Fuzz testing revealed potential null byte injection vulnerability".to_string(),
+                    description:
+                        "Fuzz testing revealed potential null byte injection vulnerability"
+                            .to_string(),
                     severity: Severity::Medium,
                     category: VulnerabilityCategory::LogicFlaws,
                     location: Some(deployment.address.clone()),
@@ -218,7 +243,11 @@ impl FuzzTester {
     }
 
     /// Test initialization scenario
-    async fn test_initialization_scenario(&self, deployment: &ContractDeployment, scenario: &InitializationScenario) -> Option<SecurityFinding> {
+    async fn test_initialization_scenario(
+        &self,
+        deployment: &ContractDeployment,
+        scenario: &InitializationScenario,
+    ) -> Option<SecurityFinding> {
         match scenario {
             InitializationScenario::EmptyState => {
                 // Test with completely empty state
@@ -227,7 +256,8 @@ impl FuzzTester {
                     return Some(SecurityFinding {
                         id: format!("FUZZ-EMPTY-STATE-{}", self.generate_id()),
                         title: "Empty State Initialization Issue".to_string(),
-                        description: "Contract may not handle empty initial state properly".to_string(),
+                        description: "Contract may not handle empty initial state properly"
+                            .to_string(),
                         severity: Severity::Low,
                         category: VulnerabilityCategory::LogicFlaws,
                         location: Some(deployment.address.clone()),
@@ -246,7 +276,8 @@ impl FuzzTester {
                     return Some(SecurityFinding {
                         id: format!("FUZZ-MAX-STATE-{}", self.generate_id()),
                         title: "Maximum State Size Vulnerability".to_string(),
-                        description: "Contract should handle maximum state sizes gracefully".to_string(),
+                        description: "Contract should handle maximum state sizes gracefully"
+                            .to_string(),
                         severity: Severity::Low,
                         category: VulnerabilityCategory::GasOptimization,
                         location: Some(deployment.address.clone()),
@@ -264,7 +295,8 @@ impl FuzzTester {
                 return Some(SecurityFinding {
                     id: format!("FUZZ-CORRUPT-STATE-{}", self.generate_id()),
                     title: "Corrupted State Handling Issue".to_string(),
-                    description: "Contract may not handle corrupted state data properly".to_string(),
+                    description: "Contract may not handle corrupted state data properly"
+                        .to_string(),
                     severity: Severity::Medium,
                     category: VulnerabilityCategory::LogicFlaws,
                     location: Some(deployment.address.clone()),
@@ -282,15 +314,23 @@ impl FuzzTester {
     }
 
     /// Test edge case input
-    async fn test_edge_case_input(&self, deployment: &ContractDeployment, input: &[u8], generator_name: &str) -> Option<SecurityFinding> {
+    async fn test_edge_case_input(
+        &self,
+        deployment: &ContractDeployment,
+        input: &[u8],
+        generator_name: &str,
+    ) -> Option<SecurityFinding> {
         // Simulate contract execution with edge case input
-        
+
         // Check for buffer overflow patterns
         if input.len() > 10_000 {
             return Some(SecurityFinding {
                 id: format!("FUZZ-BUFFER-{}", self.generate_id()),
                 title: "Buffer Overflow Vulnerability".to_string(),
-                description: format!("Fuzz testing with {} generator revealed potential buffer overflow", generator_name),
+                description: format!(
+                    "Fuzz testing with {} generator revealed potential buffer overflow",
+                    generator_name
+                ),
                 severity: Severity::High,
                 category: VulnerabilityCategory::LogicFlaws,
                 location: Some(deployment.address.clone()),
@@ -311,13 +351,18 @@ impl FuzzTester {
             return Some(SecurityFinding {
                 id: format!("FUZZ-OVERFLOW-{}", self.generate_id()),
                 title: "Integer Overflow Vulnerability".to_string(),
-                description: "Fuzz testing revealed potential integer overflow with arithmetic edge cases".to_string(),
+                description:
+                    "Fuzz testing revealed potential integer overflow with arithmetic edge cases"
+                        .to_string(),
                 severity: Severity::High,
                 category: VulnerabilityCategory::IntegerOverflow,
                 location: Some(deployment.address.clone()),
                 evidence: vec![
                     "Arithmetic edge case test".to_string(),
-                    format!("Input pattern: {:?}", &input[..std::cmp::min(20, input.len())]),
+                    format!(
+                        "Input pattern: {:?}",
+                        &input[..std::cmp::min(20, input.len())]
+                    ),
                 ],
                 recommendations: vec![
                     "Use safe arithmetic operations".to_string(),
@@ -348,8 +393,12 @@ impl FuzzTester {
             MutationStrategy::ByteInsert { max_bytes } => {
                 let mut mutated = data.to_vec();
                 let insert_count = (random_u64() as usize % *max_bytes) + 1;
-                let insert_pos = if data.is_empty() { 0 } else { (random_u64() as usize) % data.len() };
-                
+                let insert_pos = if data.is_empty() {
+                    0
+                } else {
+                    (random_u64() as usize) % data.len()
+                };
+
                 for _ in 0..insert_count {
                     mutated.insert(insert_pos, random_u8());
                 }
@@ -360,7 +409,7 @@ impl FuzzTester {
                     let mut mutated = data.to_vec();
                     let max_del = std::cmp::min(*max_bytes, mutated.len());
                     let delete_count = (random_u64() as usize % max_del) + 1;
-                    
+
                     for _ in 0..delete_count {
                         if !mutated.is_empty() {
                             let pos = (random_u64() as usize) % mutated.len();
@@ -399,7 +448,8 @@ impl FuzzTester {
                 mutations.push(Self::u64_to_bytes(u64::MAX)); // Max value
                 mutations.push(Self::u64_to_bytes(u64::MAX - 1)); // Max - 1
                 mutations.push(Self::u64_to_bytes(i64::MAX as u64)); // Signed max
-                mutations.push(Self::u64_to_bytes((i64::MIN as u64).wrapping_add(1))); // Signed min + 1
+                mutations.push(Self::u64_to_bytes((i64::MIN as u64).wrapping_add(1)));
+                // Signed min + 1
             }
         }
 
@@ -437,7 +487,8 @@ impl FuzzTester {
     }
 
     fn generate_id(&self) -> String {
-        format!("{:08x}", 
+        format!(
+            "{:08x}",
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
@@ -471,12 +522,12 @@ impl FuzzInputGenerator for RandomDataGenerator {
     fn generate_inputs(&self, iteration: u32) -> Vec<Vec<u8>> {
         let mut inputs = Vec::new();
         let size = (iteration % 1000) as usize + 1;
-        
+
         let mut data = vec![0u8; size];
         for byte in &mut data {
             *byte = random_u8();
         }
-        
+
         inputs.push(data);
         inputs
     }
@@ -498,19 +549,19 @@ impl BoundaryValueGenerator {
 impl FuzzInputGenerator for BoundaryValueGenerator {
     fn generate_inputs(&self, iteration: u32) -> Vec<Vec<u8>> {
         let mut inputs = Vec::new();
-        
+
         match iteration % 8 {
-            0 => inputs.push(vec![]), // Empty
-            1 => inputs.push(vec![0]), // Single zero
-            2 => inputs.push(vec![0xFF]), // Single max
-            3 => inputs.push(vec![0; 1024]), // Page of zeros
-            4 => inputs.push(vec![0xFF; 1024]), // Page of max
-            5 => inputs.push(vec![0x00, 0xFF, 0x00, 0xFF]), // Alternating
-            6 => inputs.push((0..256).map(|i| i as u8).collect()), // Sequential
+            0 => inputs.push(vec![]),                                    // Empty
+            1 => inputs.push(vec![0]),                                   // Single zero
+            2 => inputs.push(vec![0xFF]),                                // Single max
+            3 => inputs.push(vec![0; 1024]),                             // Page of zeros
+            4 => inputs.push(vec![0xFF; 1024]),                          // Page of max
+            5 => inputs.push(vec![0x00, 0xFF, 0x00, 0xFF]),              // Alternating
+            6 => inputs.push((0..256).map(|i| i as u8).collect()),       // Sequential
             7 => inputs.push((0..256).rev().map(|i| i as u8).collect()), // Reverse sequential
             _ => {}
         }
-        
+
         inputs
     }
 
@@ -531,7 +582,7 @@ impl ArithmeticGenerator {
 impl FuzzInputGenerator for ArithmeticGenerator {
     fn generate_inputs(&self, iteration: u32) -> Vec<Vec<u8>> {
         let mut inputs = Vec::new();
-        
+
         let values = [
             0u64,
             1,
@@ -542,12 +593,12 @@ impl FuzzInputGenerator for ArithmeticGenerator {
             u64::MAX,
             (iteration as u64).wrapping_mul(0x123456789ABCDEF),
         ];
-        
+
         for &value in &values {
             inputs.push(value.to_le_bytes().to_vec());
             inputs.push(value.to_be_bytes().to_vec());
         }
-        
+
         inputs
     }
 
@@ -568,33 +619,33 @@ impl StringFuzzGenerator {
 impl FuzzInputGenerator for StringFuzzGenerator {
     fn generate_inputs(&self, iteration: u32) -> Vec<Vec<u8>> {
         let mut inputs = Vec::new();
-        
+
         let patterns = [
-            "%s%s%s%s", // Format string attack
-            "../../../etc/passwd", // Path traversal
+            "%s%s%s%s",                      // Format string attack
+            "../../../etc/passwd",           // Path traversal
             "<script>alert('xss')</script>", // XSS (if applicable)
-            "'; DROP TABLE users; --", // SQL injection (if applicable)
-            "\x00\x00\x00\x00", // Null bytes
+            "'; DROP TABLE users; --",       // SQL injection (if applicable)
+            "\x00\x00\x00\x00",              // Null bytes
             // long string pattern
             // using owned String then borrowing as bytes below
             // ensure &str type for array
-            "LONG_AAAA", 
+            "LONG_AAAA",
         ];
-        
-        let pattern = if patterns[patterns.len()-1] == "LONG_AAAA" {
-            if iteration % 6 == 5 { 
+
+        let pattern = if patterns[patterns.len() - 1] == "LONG_AAAA" {
+            if iteration % 6 == 5 {
                 // generate long string separately
-                let long = "AAAA".repeat(1000); 
+                let long = "AAAA".repeat(1000);
                 inputs.push(long.as_bytes().to_vec());
             } else {
-                let p = &patterns[iteration as usize % (patterns.len()-1)];
+                let p = &patterns[iteration as usize % (patterns.len() - 1)];
                 inputs.push(p.as_bytes().to_vec());
             }
         } else {
             let p = &patterns[iteration as usize % patterns.len()];
             inputs.push(p.as_bytes().to_vec());
         };
-        
+
         inputs
     }
 
@@ -615,9 +666,13 @@ mod rand {
     }
 }
 
-fn random_u64() -> u64 { rand::next_u64() }
-fn random_u8() -> u8 { (rand::next_u64() & 0xFF) as u8 }
-fn random_f64() -> f64 { 
+fn random_u64() -> u64 {
+    rand::next_u64()
+}
+fn random_u8() -> u8 {
+    (rand::next_u64() & 0xFF) as u8
+}
+fn random_f64() -> f64 {
     // scale to [0,1)
     let v = rand::next_u64();
     (v as f64) / (u64::MAX as f64 + 1.0)
@@ -640,19 +695,19 @@ mod tests {
     fn test_mutation_strategies() {
         let tester = FuzzTester::new();
         let data = b"hello world".to_vec();
-        
+
         // Test bit flip mutation
         let strategy = MutationStrategy::BitFlip { probability: 1.0 };
         let mutations = tester.mutate_data(&data, &strategy);
         assert!(!mutations.is_empty());
         assert_eq!(mutations[0].len(), data.len());
-        
+
         // Test byte insert mutation
         let strategy = MutationStrategy::ByteInsert { max_bytes: 5 };
         let mutations = tester.mutate_data(&data, &strategy);
         assert!(!mutations.is_empty());
         assert!(mutations[0].len() > data.len());
-        
+
         // Test boundary values
         let strategy = MutationStrategy::BoundaryValues;
         let mutations = tester.mutate_data(&data, &strategy);
@@ -666,11 +721,11 @@ mod tests {
         let inputs = random_gen.generate_inputs(42);
         assert!(!inputs.is_empty());
         assert_eq!(random_gen.get_generator_name(), "RandomDataGenerator");
-        
+
         let boundary_gen = BoundaryValueGenerator::new();
         let inputs = boundary_gen.generate_inputs(0);
         assert!(!inputs.is_empty());
-        
+
         let arith_gen = ArithmeticGenerator::new();
         let inputs = arith_gen.generate_inputs(0);
         assert!(!inputs.is_empty());
@@ -679,17 +734,17 @@ mod tests {
     #[test]
     fn test_overflow_pattern_detection() {
         let tester = FuzzTester::new();
-        
+
         // Test with large value that might overflow
         let large_value = u64::MAX;
         let input = large_value.to_le_bytes().to_vec();
         assert!(tester.has_overflow_pattern(&input));
-        
+
         // Test with small value
         let small_value = 100u64;
         let input = small_value.to_le_bytes().to_vec();
         assert!(!tester.has_overflow_pattern(&input));
-        
+
         // Test with too short input
         let short_input = vec![1, 2, 3];
         assert!(!tester.has_overflow_pattern(&short_input));
@@ -698,7 +753,7 @@ mod tests {
     #[tokio::test]
     async fn test_fuzz_deployment() {
         let mut tester = FuzzTester::new();
-        
+
         let deployment = ContractDeployment {
             address: "test".to_string(),
             code: b"\x00asm\x01\x00\x00\x00".to_vec(),

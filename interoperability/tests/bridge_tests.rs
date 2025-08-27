@@ -1,14 +1,14 @@
 //! Comprehensive test suite for Dytallix cross-chain bridge functionality
 
 use dytallix_interoperability::{
-    Asset, AssetMetadata, BridgeTxId, DytallixBridge, DytallixIBC, PQCBridge, IBCModule,
-    IBCPacket, BridgeValidator, BridgeStatus, BridgeError, ChannelState, WrappedAsset
+    Asset, AssetMetadata, BridgeError, BridgeStatus, BridgeTxId, BridgeValidator, ChannelState,
+    DytallixBridge, DytallixIBC, IBCModule, IBCPacket, PQCBridge, WrappedAsset,
 };
 
 #[tokio::test]
 async fn test_bridge_asset_locking() {
     let bridge = DytallixBridge::new();
-    
+
     let asset = Asset {
         id: "DYT".to_string(),
         amount: 1000,
@@ -20,9 +20,13 @@ async fn test_bridge_asset_locking() {
             icon_url: Some("https://dytallix.io/icon.png".to_string()),
         },
     };
-    
-    let result = bridge.lock_asset(asset, "ethereum", "0x1234567890123456789012345678901234567890");
-    
+
+    let result = bridge.lock_asset(
+        asset,
+        "ethereum",
+        "0x1234567890123456789012345678901234567890",
+    );
+
     assert!(result.is_ok());
     let tx_id = result.unwrap();
     assert!(tx_id.0.contains("DYT"));
@@ -32,7 +36,7 @@ async fn test_bridge_asset_locking() {
 #[tokio::test]
 async fn test_bridge_wrapped_asset_minting() {
     let bridge = DytallixBridge::new();
-    
+
     let asset = Asset {
         id: "ETH".to_string(),
         amount: 5000,
@@ -44,9 +48,9 @@ async fn test_bridge_wrapped_asset_minting() {
             icon_url: Some("https://ethereum.org/icon.png".to_string()),
         },
     };
-    
+
     let result = bridge.mint_wrapped(asset, "ethereum", "dyt1destination123456789");
-    
+
     assert!(result.is_ok());
     let wrapped_asset = result.unwrap();
     assert_eq!(wrapped_asset.original_asset_id, "ETH");
@@ -57,9 +61,9 @@ async fn test_bridge_wrapped_asset_minting() {
 #[tokio::test]
 async fn test_bridge_supported_chains() {
     let bridge = DytallixBridge::new();
-    
+
     let chains = bridge.get_supported_chains();
-    
+
     assert!(chains.contains(&"ethereum".to_string()));
     assert!(chains.contains(&"polkadot".to_string()));
     assert!(chains.contains(&"cosmos".to_string()));
@@ -70,16 +74,22 @@ async fn test_bridge_supported_chains() {
 #[tokio::test]
 async fn test_bridge_validators() {
     let bridge = DytallixBridge::new();
-    
+
     let validators = bridge.get_bridge_validators();
-    
+
     assert_eq!(validators.len(), 3);
-    
+
     // Check default validators
-    assert!(validators.iter().any(|v| v.id == "validator_1" && v.algorithm == "dilithium"));
-    assert!(validators.iter().any(|v| v.id == "validator_2" && v.algorithm == "falcon"));
-    assert!(validators.iter().any(|v| v.id == "validator_3" && v.algorithm == "sphincs+"));
-    
+    assert!(validators
+        .iter()
+        .any(|v| v.id == "validator_1" && v.algorithm == "dilithium"));
+    assert!(validators
+        .iter()
+        .any(|v| v.id == "validator_2" && v.algorithm == "falcon"));
+    assert!(validators
+        .iter()
+        .any(|v| v.id == "validator_3" && v.algorithm == "sphincs+"));
+
     // All validators should be active
     assert!(validators.iter().all(|v| v.is_active));
 }
@@ -87,7 +97,7 @@ async fn test_bridge_validators() {
 #[tokio::test]
 async fn test_bridge_unsupported_chain() {
     let bridge = DytallixBridge::new();
-    
+
     let asset = Asset {
         id: "TEST".to_string(),
         amount: 100,
@@ -99,9 +109,9 @@ async fn test_bridge_unsupported_chain() {
             icon_url: None,
         },
     };
-    
+
     let result = bridge.lock_asset(asset, "unsupported_chain", "address123");
-    
+
     assert!(result.is_err());
     match result.unwrap_err() {
         BridgeError::ChainNotSupported(chain) => {
@@ -114,10 +124,10 @@ async fn test_bridge_unsupported_chain() {
 #[tokio::test]
 async fn test_bridge_emergency_halt() {
     let bridge = DytallixBridge::new();
-    
+
     let result = bridge.emergency_halt("Security incident detected");
     assert!(result.is_ok());
-    
+
     // Test that bridge operations are halted
     let asset = Asset {
         id: "DYT".to_string(),
@@ -130,7 +140,7 @@ async fn test_bridge_emergency_halt() {
             icon_url: None,
         },
     };
-    
+
     // This should fail because bridge is halted
     // Note: In actual implementation, bridge.is_halted would be set to true
     // For now, this test documents the expected behavior
@@ -149,7 +159,7 @@ async fn test_ibc_packet_creation() {
         timeout_timestamp: 0,
         pqc_signature: None,
     };
-    
+
     assert_eq!(packet.sequence, 1);
     assert_eq!(packet.source_port, "transfer");
     assert_eq!(packet.source_channel, "channel-0");
@@ -159,9 +169,9 @@ async fn test_ibc_packet_creation() {
 #[tokio::test]
 async fn test_ibc_channel_creation() {
     let ibc = DytallixIBC::new();
-    
+
     let result = ibc.create_channel("transfer".to_string(), "transfer".to_string());
-    
+
     assert!(result.is_ok());
     let channel = result.unwrap();
     assert_eq!(channel.port, "transfer");
@@ -173,11 +183,11 @@ async fn test_ibc_channel_creation() {
 #[tokio::test]
 async fn test_ibc_packet_send() {
     let ibc = DytallixIBC::new();
-    
+
     // First create a channel
     let channel_result = ibc.create_channel("transfer".to_string(), "transfer".to_string());
     assert!(channel_result.is_ok());
-    
+
     let packet = IBCPacket {
         sequence: 1,
         source_port: "transfer".to_string(),
@@ -189,16 +199,17 @@ async fn test_ibc_packet_send() {
             "denom": "DYT",
             "receiver": "cosmos1receiver123",
             "sender": "dyt1sender123"
-        })).unwrap(),
+        }))
+        .unwrap(),
         timeout_height: 0,
         timeout_timestamp: 0,
         pqc_signature: None,
     };
-    
+
     // Note: This test would fail in the current implementation because
     // the channel doesn't exist in the channels map. In a full implementation,
     // we would need to properly store and manage channel state.
-    
+
     // let result = ibc.send_packet(packet);
     // assert!(result.is_ok());
 }
@@ -206,7 +217,7 @@ async fn test_ibc_packet_send() {
 #[tokio::test]
 async fn test_ibc_packet_receive() {
     let ibc = DytallixIBC::new();
-    
+
     let packet = IBCPacket {
         sequence: 1,
         source_port: "transfer".to_string(),
@@ -218,7 +229,7 @@ async fn test_ibc_packet_receive() {
         timeout_timestamp: 0,
         pqc_signature: None,
     };
-    
+
     // Note: Similar to send_packet, this would fail without proper channel setup
     // let result = ibc.receive_packet(packet);
     // assert!(result.is_ok());
@@ -227,11 +238,11 @@ async fn test_ibc_packet_receive() {
 #[tokio::test]
 async fn test_bridge_transaction_status() {
     let bridge = DytallixBridge::new();
-    
+
     // Test with non-existent transaction
     let tx_id = BridgeTxId("non_existent_tx".to_string());
     let result = bridge.get_bridge_status(&tx_id);
-    
+
     assert!(result.is_err());
     match result.unwrap_err() {
         BridgeError::UnknownError(msg) => {
@@ -249,7 +260,7 @@ async fn test_asset_metadata() {
         description: "The native token of the Dytallix quantum-safe blockchain".to_string(),
         icon_url: Some("https://dytallix.io/assets/dyt-icon.png".to_string()),
     };
-    
+
     assert_eq!(metadata.name, "Dytallix Token");
     assert_eq!(metadata.symbol, "DYT");
     assert!(metadata.description.contains("quantum-safe"));
@@ -266,7 +277,7 @@ async fn test_bridge_validator_properties() {
         reputation: 0.95,
         is_active: true,
     };
-    
+
     assert_eq!(validator.id, "test_validator");
     assert_eq!(validator.algorithm, "dilithium");
     assert_eq!(validator.stake, 1000000);
@@ -288,7 +299,7 @@ async fn test_wrapped_asset_properties() {
             icon_url: Some("https://centre.io/usdc-icon.png".to_string()),
         },
     };
-    
+
     let wrapped_asset = WrappedAsset {
         original_asset_id: original_asset.id.clone(),
         original_chain: "ethereum".to_string(),
@@ -296,7 +307,7 @@ async fn test_wrapped_asset_properties() {
         amount: original_asset.amount,
         wrapping_timestamp: 0,
     };
-    
+
     assert_eq!(wrapped_asset.original_asset_id, "USDC");
     assert_eq!(wrapped_asset.amount, 1000000);
     assert_eq!(wrapped_asset.original_chain, "ethereum");
@@ -309,9 +320,9 @@ async fn test_wrapped_asset_properties() {
 #[tokio::test]
 async fn test_bridge_concurrent_operations() {
     let bridge = DytallixBridge::new();
-    
+
     let mut handles = vec![];
-    
+
     for i in 0..10 {
         let bridge_clone = bridge.clone(); // Note: This would require Clone implementation
         let handle = tokio::spawn(async move {
@@ -326,13 +337,13 @@ async fn test_bridge_concurrent_operations() {
                     icon_url: None,
                 },
             };
-            
+
             // This would test concurrent bridge operations
             // bridge_clone.lock_asset(asset, "ethereum", &format!("0x{:040x}", i))
         });
         handles.push(handle);
     }
-    
+
     // Wait for all operations to complete
     for handle in handles {
         let _ = handle.await;
@@ -352,9 +363,9 @@ async fn test_ibc_packet_timeout() {
         timeout_timestamp: 1, // Set to past timestamp to trigger timeout
         pqc_signature: None,
     };
-    
+
     let ibc = DytallixIBC::new();
-    
+
     // Test timeout packet functionality
     let result = ibc.timeout_packet(packet);
     assert!(result.is_ok());
@@ -365,7 +376,7 @@ async fn test_ibc_packet_timeout() {
 #[tokio::test]
 async fn test_bridge_error_scenarios() {
     let bridge = DytallixBridge::new();
-    
+
     // Test with zero amount
     let zero_asset = Asset {
         id: "ZERO".to_string(),
@@ -378,11 +389,11 @@ async fn test_bridge_error_scenarios() {
             icon_url: None,
         },
     };
-    
+
     // This should potentially fail or warn about zero amounts
     let result = bridge.lock_asset(zero_asset, "ethereum", "0x123");
     // In a full implementation, we might want to reject zero amounts
-    
+
     // Test with invalid destination address format
     let asset = Asset {
         id: "TEST".to_string(),
@@ -395,7 +406,7 @@ async fn test_bridge_error_scenarios() {
             icon_url: None,
         },
     };
-    
+
     // Invalid Ethereum address (too short)
     let result = bridge.lock_asset(asset, "ethereum", "0x123");
     // In a full implementation, we would validate address formats
@@ -412,19 +423,19 @@ async fn test_bridge_status_enum_serialization() {
         BridgeStatus::Failed,
         BridgeStatus::Reversed,
     ];
-    
+
     for status in statuses {
         let serialized = serde_json::to_string(&status).unwrap();
         let deserialized: BridgeStatus = serde_json::from_str(&serialized).unwrap();
-        
+
         // Basic check that serialization roundtrip works
         match (&status, &deserialized) {
-            (BridgeStatus::Pending, BridgeStatus::Pending) => {},
-            (BridgeStatus::Locked, BridgeStatus::Locked) => {},
-            (BridgeStatus::Minted, BridgeStatus::Minted) => {},
-            (BridgeStatus::Completed, BridgeStatus::Completed) => {},
-            (BridgeStatus::Failed, BridgeStatus::Failed) => {},
-            (BridgeStatus::Reversed, BridgeStatus::Reversed) => {},
+            (BridgeStatus::Pending, BridgeStatus::Pending) => {}
+            (BridgeStatus::Locked, BridgeStatus::Locked) => {}
+            (BridgeStatus::Minted, BridgeStatus::Minted) => {}
+            (BridgeStatus::Completed, BridgeStatus::Completed) => {}
+            (BridgeStatus::Failed, BridgeStatus::Failed) => {}
+            (BridgeStatus::Reversed, BridgeStatus::Reversed) => {}
             _ => panic!("Serialization/deserialization mismatch"),
         }
     }

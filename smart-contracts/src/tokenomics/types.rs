@@ -2,9 +2,9 @@
 Common types for the Dytallix tokenomics system
 */
 
-use scale::{Decode, Encode};
-use serde::{Serialize, Deserialize};
 use crate::types::{Address, Amount};
+use scale::{Decode, Encode};
+use serde::{Deserialize, Serialize};
 
 /// Token balance type
 pub type Balance = Amount;
@@ -90,20 +90,10 @@ impl Default for EmissionParameters {
 /// Governance proposal types for tokenomics
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode, Serialize, Deserialize)]
 pub enum TokenomicsProposal {
-    ChangeEmissionRate {
-        new_rate: EmissionRate,
-    },
-    UpdateEmissionParameters {
-        new_params: EmissionParameters,
-    },
-    MintDGT {
-        to: Address,
-        amount: Balance,
-    },
-    BurnDRT {
-        from: Address,
-        amount: Balance,
-    },
+    ChangeEmissionRate { new_rate: EmissionRate },
+    UpdateEmissionParameters { new_params: EmissionParameters },
+    MintDGT { to: Address, amount: Balance },
+    BurnDRT { from: Address, amount: Balance },
 }
 
 /// Result type for tokenomics operations

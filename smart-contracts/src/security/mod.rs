@@ -3,19 +3,19 @@
 //! This module provides comprehensive security auditing capabilities for WASM-based
 //! smart contracts, including vulnerability detection, automated testing, and report generation.
 
-pub mod vulnerability_scanner;
-pub mod gas_attack_analyzer;
 pub mod audit_report;
 pub mod fuzz_tester;
+pub mod gas_attack_analyzer;
+pub mod vulnerability_scanner;
 
-pub use vulnerability_scanner::*;
-pub use gas_attack_analyzer::*;
 pub use audit_report::*;
 pub use fuzz_tester::*;
+pub use gas_attack_analyzer::*;
+pub use vulnerability_scanner::*;
 
-use serde::{Deserialize, Serialize};
+use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult};
 use crate::types::*;
-use crate::runtime::{ContractDeployment, ContractCall, ExecutionResult};
+use serde::{Deserialize, Serialize};
 
 /// Security audit severity levels
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ impl Severity {
     pub fn as_str(&self) -> &'static str {
         match self {
             Severity::Critical => "Critical",
-            Severity::High => "High", 
+            Severity::High => "High",
             Severity::Medium => "Medium",
             Severity::Low => "Low",
         }
@@ -139,7 +139,11 @@ impl SecurityAuditor {
     }
 
     /// Perform runtime security analysis during contract execution
-    pub async fn analyze_execution(&mut self, call: &ContractCall, result: &ExecutionResult) -> Vec<SecurityFinding> {
+    pub async fn analyze_execution(
+        &mut self,
+        call: &ContractCall,
+        result: &ExecutionResult,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         // Analyze gas usage patterns for attacks
@@ -147,7 +151,9 @@ impl SecurityAuditor {
         findings.extend(gas_findings);
 
         // Check for reentrancy patterns in execution
-        let reentrancy_findings = self.vulnerability_scanner.check_reentrancy_execution(call, result);
+        let reentrancy_findings = self
+            .vulnerability_scanner
+            .check_reentrancy_execution(call, result);
         findings.extend(reentrancy_findings);
 
         findings
@@ -177,12 +183,16 @@ pub struct SecurityAuditResult {
 impl SecurityAuditResult {
     /// Get findings by severity level
     pub fn findings_by_severity(&self, severity: Severity) -> Vec<&SecurityFinding> {
-        self.findings.iter().filter(|f| f.severity == severity).collect()
+        self.findings
+            .iter()
+            .filter(|f| f.severity == severity)
+            .collect()
     }
 
     /// Get the highest severity level found
     pub fn max_severity(&self) -> Option<Severity> {
-        self.findings.iter()
+        self.findings
+            .iter()
             .map(|f| f.severity)
             .max_by_key(|s| s.priority_score())
     }
@@ -193,7 +203,9 @@ impl SecurityAuditResult {
             return 100;
         }
 
-        let total_impact: u32 = self.findings.iter()
+        let total_impact: u32 = self
+            .findings
+            .iter()
             .map(|f| 100 - f.severity.priority_score())
             .sum();
 
@@ -207,7 +219,10 @@ impl SecurityAuditResult {
 
     /// Check if the contract passes basic security requirements
     pub fn passes_security_check(&self) -> bool {
-        !self.findings.iter().any(|f| matches!(f.severity, Severity::Critical))
+        !self
+            .findings
+            .iter()
+            .any(|f| matches!(f.severity, Severity::Critical))
     }
 }
 
@@ -282,7 +297,7 @@ mod tests {
     async fn test_auditor_creation() {
         let auditor = SecurityAuditor::new();
         let stats = auditor.get_statistics();
-        
+
         assert_eq!(stats.contracts_audited, 0);
         assert_eq!(stats.vulnerabilities_found, 0);
     }

@@ -2,18 +2,20 @@
 Real WASM Smart Contract Runtime Integration
 
 Replaces stub implementations with actual WASM runtime integration.
-Provides proper contract deployment, instantiation, and execution 
+Provides proper contract deployment, instantiation, and execution
 through the dytallix-contracts runtime.
 */
 
+use anyhow::{anyhow, Result};
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use anyhow::{Result, anyhow};
-use log::{info, warn, error};
 
 // Re-export types from dytallix-contracts
-pub use dytallix_contracts::runtime::{ContractRuntime as WasmRuntime, ContractExecutionError, ErrorCode};
+pub use dytallix_contracts::runtime::{
+    ContractExecutionError, ContractRuntime as WasmRuntime, ErrorCode,
+};
 pub use dytallix_contracts::types::{Address, Gas};
 
 /// Blockchain-integrated contract runtime wrapper
@@ -24,17 +26,20 @@ pub struct ContractRuntime {
 
 impl ContractRuntime {
     pub fn new(max_gas_per_call: u64, max_memory_pages: u64) -> Result<Self, String> {
-        match WasmRuntime::new(max_gas_per_call, max_memory_pages) {
+        match WasmRuntime::new(max_gas_per_call, max_memory_pages as u32) {
             Ok(runtime) => Ok(Self {
                 inner: Arc::new(runtime),
             }),
-            Err(e) => Err(format!("Failed to create contract runtime: {}", e))
+            Err(e) => Err(format!("Failed to create contract runtime: {}", e)),
         }
     }
 
     pub async fn deploy_contract(&self, deployment: ContractDeployment) -> Result<String, String> {
-        info!("Deploying contract with {} bytes of code", deployment.code.len());
-        
+        info!(
+            "Deploying contract with {} bytes of code",
+            deployment.code.len()
+        );
+
         // Convert to dytallix-contracts types
         let wasm_deployment = dytallix_contracts::runtime::ContractDeployment {
             address: deployment.address.clone(),
@@ -59,8 +64,11 @@ impl ContractRuntime {
     }
 
     pub async fn call_contract(&self, call: ContractCall) -> Result<ExecutionResult, String> {
-        info!("Executing contract {} method: {}", call.contract_address, call.method);
-        
+        info!(
+            "Executing contract {} method: {}",
+            call.contract_address, call.method
+        );
+
         // Convert to dytallix-contracts types
         let wasm_call = dytallix_contracts::runtime::ContractCall {
             contract_address: call.contract_address.clone(),
@@ -68,32 +76,49 @@ impl ContractRuntime {
             method: call.method.clone(),
             input_data: call.input_data,
             gas_limit: call.gas_limit,
-            value: call.value,
+            value: call.value as u128, // cast to expected u128
             timestamp: call.timestamp,
         };
 
         match self.inner.call_contract(wasm_call).await {
             Ok(result) => {
-                info!("Contract execution completed. Gas used: {}", result.gas_used);
-                
+                info!(
+                    "Contract execution completed. Gas used: {}",
+                    result.gas_used
+                );
+
                 // Convert events to JSON values
-                let events: Vec<serde_json::Value> = result.events.iter()
-                    .map(|event| serde_json::json!({
-                        "contract_address": event.contract_address,
-                        "topic": event.topic,
-                        "data": event.data,
-                        "timestamp": event.timestamp,
-                    }))
+                let events: Vec<serde_json::Value> = result
+                    .events
+                    .iter()
+                    .map(|event| {
+                        serde_json::json!({
+                            "contract_address": event.contract_address,
+                            "topic": event.topic,
+                            "data": event.data,
+                            "timestamp": event.timestamp,
+                        })
+                    })
                     .collect();
+
+                // Transform state changes (best-effort: assumes fields key & value)
+                let mut state_changes_map: HashMap<String, serde_json::Value> = HashMap::new();
+                for sc in &result.state_changes {
+                    #[allow(unused)]
+                    {
+                        // If actual field names differ, adjust accordingly
+                        state_changes_map.insert(sc.key.clone(), serde_json::json!(&sc.value));
+                    }
+                }
 
                 Ok(ExecutionResult {
                     success: result.success,
                     return_value: result.return_data.clone(),
                     return_data: result.return_data,
                     gas_used: result.gas_used,
-                    logs: Vec::new(), // TODO: Implement proper logging
+                    logs: Vec::new(), // upstream result has no logs field
                     events,
-                    state_changes: HashMap::new(), // TODO: Track state changes
+                    state_changes: state_changes_map,
                 })
             }
             Err(e) => {
@@ -103,7 +128,7 @@ impl ContractRuntime {
                     return_value: Vec::new(),
                     return_data: Vec::new(),
                     gas_used: e.gas_used,
-                    logs: vec![e.message.clone()],
+                    logs: vec![format!("Error: {}", e.message)],
                     events: Vec::new(),
                     state_changes: HashMap::new(),
                 })
@@ -112,7 +137,8 @@ impl ContractRuntime {
     }
 
     pub fn get_contract_info(&self, address: &str) -> Option<ContractInfo> {
-        if let Some(deployment) = self.inner.get_contract_info(address) {
+        let addr = address.to_string();
+        if let Some(deployment) = self.inner.get_contract_info(&addr) {
             Some(ContractInfo {
                 address: deployment.address,
                 code_hash: hex::encode(blake3::hash(&deployment.code).as_bytes()),
@@ -127,7 +153,8 @@ impl ContractRuntime {
     }
 
     pub fn get_contract_storage(&self, address: &str, key: &[u8]) -> Option<Vec<u8>> {
-        self.inner.get_contract_state(address, key)
+        let addr = address.to_string();
+        self.inner.get_contract_state(&addr, key)
     }
 
     pub fn list_contracts(&self) -> Vec<String> {

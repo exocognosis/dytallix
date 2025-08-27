@@ -1,16 +1,16 @@
 //! PQC key management commands
 
-use anyhow::{Result, anyhow};
-use colored::*;
-use serde::{Serialize, Deserialize};
-use std::path::PathBuf;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
+use colored::*;
 use dirs::home_dir;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 // Import PQC functionality
-use dytallix_pqc::{SignatureAlgorithm, KeyPair};
-use sha3::{Digest, Sha3_256};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use dytallix_pqc::{KeyPair, SignatureAlgorithm};
+use sha3::{Digest, Sha3_256};
 
 // Direct PQC imports for keypair generation
 use pqcrypto_traits::sign::{PublicKey, SecretKey};
@@ -40,7 +40,12 @@ pub async fn generate_pqc_keys(
         "dilithium" => SignatureAlgorithm::Dilithium5,
         "falcon" => SignatureAlgorithm::Falcon1024,
         "sphincs" => SignatureAlgorithm::SphincsSha256128s,
-        _ => return Err(anyhow!("Unsupported algorithm: {}. Use dilithium, falcon, or sphincs", algo)),
+        _ => {
+            return Err(anyhow!(
+                "Unsupported algorithm: {}. Use dilithium, falcon, or sphincs",
+                algo
+            ))
+        }
     };
 
     // Generate keypair directly using the lower-level functions
@@ -72,10 +77,7 @@ pub async fn generate_pqc_keys(
     };
 
     // Generate filename
-    let filename = format!("{}-{}.json", 
-        address, 
-        entry.created.format("%Y%m%d-%H%M%S")
-    );
+    let filename = format!("{}-{}.json", address, entry.created.format("%Y%m%d-%H%M%S"));
     let file_path = keystore_path.join(&filename);
 
     // Save to file
@@ -83,7 +85,10 @@ pub async fn generate_pqc_keys(
     tokio::fs::write(&file_path, json).await?;
 
     // Print results
-    println!("{}", "✅ PQC keypair generated successfully!".bright_green());
+    println!(
+        "{}",
+        "✅ PQC keypair generated successfully!".bright_green()
+    );
     println!("{}     {}", "Algorithm:".bold(), algo);
     println!("{}      {}", "Address:".bold(), address.bright_blue());
     println!("{}   {}", "Public Key:".bold(), entry.public_key_b64);
@@ -92,8 +97,14 @@ pub async fn generate_pqc_keys(
     }
     println!("{}    {}", "Keystore:".bold(), file_path.display());
     println!();
-    println!("{}", "⚠️  WARNING: Secret key is stored unencrypted!".bright_yellow());
-    println!("{}", "TODO: Implement encryption at rest for production use.".yellow());
+    println!(
+        "{}",
+        "⚠️  WARNING: Secret key is stored unencrypted!".bright_yellow()
+    );
+    println!(
+        "{}",
+        "TODO: Implement encryption at rest for production use.".yellow()
+    );
 
     Ok(())
 }
@@ -104,7 +115,7 @@ fn generate_signature_keypair(algorithm: &SignatureAlgorithm) -> Result<KeyPair,
         SignatureAlgorithm::Dilithium5 => {
             use pqcrypto_dilithium::dilithium5;
             use pqcrypto_traits::sign::{PublicKey, SecretKey};
-            
+
             let (pk, sk) = dilithium5::keypair();
             Ok(KeyPair {
                 public_key: pk.as_bytes().to_vec(),
@@ -115,7 +126,7 @@ fn generate_signature_keypair(algorithm: &SignatureAlgorithm) -> Result<KeyPair,
         SignatureAlgorithm::Falcon1024 => {
             use pqcrypto_falcon::falcon1024;
             use pqcrypto_traits::sign::{PublicKey, SecretKey};
-            
+
             let (pk, sk) = falcon1024::keypair();
             Ok(KeyPair {
                 public_key: pk.as_bytes().to_vec(),
@@ -124,10 +135,10 @@ fn generate_signature_keypair(algorithm: &SignatureAlgorithm) -> Result<KeyPair,
             })
         }
         SignatureAlgorithm::SphincsSha256128s => {
-            use pqcrypto_sphincsplus::sphincssha2128ssimple;
+            use pqcrypto_sphincsplus::sphincssha256128ssimple; // corrected module name
             use pqcrypto_traits::sign::{PublicKey, SecretKey};
-            
-            let (pk, sk) = sphincssha2128ssimple::keypair();
+
+            let (pk, sk) = sphincssha256128ssimple::keypair();
             Ok(KeyPair {
                 public_key: pk.as_bytes().to_vec(),
                 secret_key: sk.as_bytes().to_vec(),
@@ -143,11 +154,11 @@ fn derive_address(public_key: &[u8]) -> String {
     let mut hasher = Sha3_256::new();
     hasher.update(public_key);
     let hash = hasher.finalize();
-    
+
     // Take first 20 bytes and encode as hex
     let addr_bytes = &hash[..20];
     let hex_addr = hex::encode(addr_bytes);
-    
+
     format!("dyt1{}", hex_addr)
 }
 
@@ -158,21 +169,28 @@ mod tests {
     #[test]
     fn test_address_derivation() {
         // Test address derivation with a known public key
-        let test_pubkey = b"test_public_key_for_address_derivation_testing_123456789012345678901234567890";
+        let test_pubkey =
+            b"test_public_key_for_address_derivation_testing_123456789012345678901234567890";
         let address = derive_address(test_pubkey);
-        
+
         // Address should start with dyt1 and be 44 characters total (dyt1 + 40 hex chars)
-        assert!(address.starts_with("dyt1"), "Address should start with dyt1");
+        assert!(
+            address.starts_with("dyt1"),
+            "Address should start with dyt1"
+        );
         assert_eq!(address.len(), 44, "Address should be 44 characters long");
-        
+
         // Should be consistent
         let address2 = derive_address(test_pubkey);
-        assert_eq!(address, address2, "Address derivation should be deterministic");
-        
+        assert_eq!(
+            address, address2,
+            "Address derivation should be deterministic"
+        );
+
         println!("Test address: {}", address);
     }
 
-    #[test] 
+    #[test]
     fn test_keystore_entry_serialization() {
         let entry = KeystoreEntry {
             address: "dyt1test123456789012345678901234567890ab".to_string(),
@@ -188,12 +206,12 @@ mod tests {
         assert!(json.contains("dyt1test123"));
         assert!(json.contains("Dilithium5"));
         assert!(json.contains("test-key"));
-        
+
         // Test deserialization
         let parsed: KeystoreEntry = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.address, entry.address);
         assert_eq!(parsed.algorithm, entry.algorithm);
-        
+
         println!("Keystore entry JSON:\n{}", json);
     }
 }

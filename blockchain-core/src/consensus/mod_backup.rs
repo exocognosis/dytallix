@@ -263,7 +263,7 @@ impl ConsensusEngine {
 
         let (d_pk, d_sk) = dilithium5::keypair();
         let (f_pk, f_sk) = falcon1024::keypair();
-        let (s_pk, s_sk) = sphincssha256128ssimple::keypair();
+        let (s_pk, s_sk) = sphincssha2128ssimple::keypair();
 
         let store = NodeKeyStore {
             dilithium: StoredKeyPair {

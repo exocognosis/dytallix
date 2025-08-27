@@ -66,9 +66,9 @@ metrics-prometheus = { version = "0.6", optional = true }
 config = "0.13"
 toml = "0.8"
 
-# AI/ML dependencies (optional, for optimization features)
-candle-core = { version = "0.3", optional = true }
-candle-nn = { version = "0.3", optional = true }
+# AI/ML dependencies (optional, for optimization features) - upgraded to 0.9.1 for rand compatibility
+candle-core = { version = "0.9.1", optional = true }
+candle-nn = { version = "0.9.1", optional = true }
 
 [dev-dependencies]
 tokio-test = "0.4"

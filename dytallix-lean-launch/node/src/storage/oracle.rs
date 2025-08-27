@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 pub struct AiRiskRecord {
     pub tx_hash: String,
     pub model_id: String,
-    pub risk_score: f32, // 0.0..1.0
-    pub score_str: String, // Original score string for determinism
+    pub risk_score: f32,         // 0.0..1.0
+    pub score_str: String,       // Original score string for determinism
     pub confidence: Option<f32>, // 0.0..1.0
     pub signature: Option<String>,
     pub oracle_pubkey: Option<String>,
     pub ingested_at: u64, // Unix timestamp
-    pub source: String, // Oracle source identifier
+    pub source: String,   // Oracle source identifier
 }
 
 pub struct OracleStore<'a> {
@@ -32,14 +32,14 @@ impl<'a> OracleStore<'a> {
 
     pub fn put_ai_risks_batch(&self, records: &[AiRiskRecord]) -> anyhow::Result<Vec<String>> {
         let mut failed_hashes = Vec::new();
-        
+
         for record in records {
             if let Err(e) = self.put_ai_risk(record) {
                 eprintln!("Failed to store record for {}: {}", record.tx_hash, e);
                 failed_hashes.push(record.tx_hash.clone());
             }
         }
-        
+
         Ok(failed_hashes)
     }
 
@@ -56,34 +56,34 @@ impl<'a> OracleStore<'a> {
         if !rec.tx_hash.starts_with("0x") || rec.tx_hash.len() < 3 {
             return Err(anyhow::anyhow!("Invalid tx_hash format"));
         }
-        
+
         // Validate risk_score range
         if !(0.0..=1.0).contains(&rec.risk_score) {
             return Err(anyhow::anyhow!("risk_score must be between 0.0 and 1.0"));
         }
-        
+
         // Validate confidence range if present
         if let Some(confidence) = rec.confidence {
             if !(0.0..=1.0).contains(&confidence) {
                 return Err(anyhow::anyhow!("confidence must be between 0.0 and 1.0"));
             }
         }
-        
+
         // Validate model_id is not empty
         if rec.model_id.trim().is_empty() {
             return Err(anyhow::anyhow!("model_id cannot be empty"));
         }
-        
+
         // Validate score_str is not empty
         if rec.score_str.trim().is_empty() {
             return Err(anyhow::anyhow!("score_str cannot be empty"));
         }
-        
+
         // Validate source is not empty
         if rec.source.trim().is_empty() {
             return Err(anyhow::anyhow!("source cannot be empty"));
         }
-        
+
         Ok(())
     }
 }

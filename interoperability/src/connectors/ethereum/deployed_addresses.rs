@@ -154,7 +154,7 @@ mod tests {
     fn test_deployment_info() {
         let sepolia_info = get_deployment_info(11155111);
         assert!(sepolia_info.is_some());
-        
+
         let info = sepolia_info.unwrap();
         assert_eq!(info.network_name, "Sepolia Testnet");
         assert_eq!(info.chain_id, 11155111);
@@ -163,7 +163,7 @@ mod tests {
 
         let mainnet_info = get_deployment_info(1);
         assert!(mainnet_info.is_some());
-        
+
         let info = mainnet_info.unwrap();
         assert_eq!(info.network_name, "Ethereum Mainnet");
         assert_eq!(info.chain_id, 1);

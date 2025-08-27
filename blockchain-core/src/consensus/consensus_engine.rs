@@ -135,12 +135,14 @@ impl ConsensusEngine {
         };
 
         // Initialize transaction validator
+        let policy_manager = Arc::new(crate::policy::PolicyManager::default());
         let transaction_validator = Arc::new(TransactionValidator::new(
             ai_client.clone(),
             ai_integration.clone(),
             high_risk_queue.clone(),
             audit_trail.clone(),
             performance_optimizer.clone(),
+            policy_manager.clone(),
         ));
 
         // Initialize block processor

@@ -1,5 +1,5 @@
 use dcli::batch::{Batch, BatchMsg};
-use dcli::tx::{NonceSpec};
+use dcli::tx::NonceSpec;
 use serde_json::json;
 
 #[test]
@@ -25,6 +25,14 @@ fn batch_ok() {
         "chain_id":"dyt-localnet","from":"alice","nonce":"auto","fee":"10","messages":[{"type":"send","to":"addr2","denom":"DGT","amount":"1"}]});
     let mut b: Batch = serde_json::from_value(data).unwrap();
     b.validate().unwrap();
-    match b.nonce { NonceSpec::Auto => {}, _ => panic!("nonce") }
-    if let BatchMsg::Send { denom, amount, .. } = &b.messages[0] { assert_eq!(denom, "DGT"); assert_eq!(*amount, 1); } else { panic!() }
+    match b.nonce {
+        NonceSpec::Auto => {}
+        _ => panic!("nonce"),
+    }
+    if let BatchMsg::Send { denom, amount, .. } = &b.messages[0] {
+        assert_eq!(denom, "DGT");
+        assert_eq!(*amount, 1);
+    } else {
+        panic!()
+    }
 }

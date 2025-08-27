@@ -114,7 +114,10 @@ impl BlockProcessor {
 
         // Process staking rewards for this block
         if let Err(e) = self.runtime.process_block_rewards(block_number).await {
-            warn!("Failed to process staking rewards for block {}: {}", block_number, e);
+            warn!(
+                "Failed to process staking rewards for block {}: {}",
+                block_number, e
+            );
         } else {
             info!("Processed staking rewards for block {}", block_number);
         }
@@ -152,7 +155,10 @@ impl BlockProcessor {
         // Get active validator set and compute validator set hash
         let active_validators = self.runtime.get_active_validators().await;
         let validator_set_hash = self.calculate_validator_set_hash(&active_validators);
-        info!("Block {} validator set hash: {}", block_number, validator_set_hash);
+        info!(
+            "Block {} validator set hash: {}",
+            block_number, validator_set_hash
+        );
 
         // Get current block for previous hash
         let previous_hash = if let Some(block) = current_block.as_ref() {
@@ -380,10 +386,10 @@ impl BlockProcessor {
                 validator.status
             ));
         }
-        
+
         // Sort to ensure deterministic ordering
         validator_data.sort();
-        
+
         // Calculate hash
         let combined = validator_data.join("|");
         let mut hasher = Sha256::new();

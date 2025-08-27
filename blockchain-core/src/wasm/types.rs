@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub type Address = [u8; 32];
 pub type CodeHash = [u8; 32];

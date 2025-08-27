@@ -1,6 +1,6 @@
+use dytallix_lean_node::runtime::oracle::{OracleAiRiskBatchInput, OracleAiRiskInput};
 use dytallix_lean_node::storage::oracle::{AiRiskRecord, OracleStore};
 use dytallix_lean_node::storage::state::Storage;
-use dytallix_lean_node::runtime::oracle::{OracleAiRiskInput, OracleAiRiskBatchInput};
 use serde_json::json;
 use tempfile::tempdir;
 
@@ -35,7 +35,7 @@ async fn test_oracle_integration_single_submission() {
     // Verify retrieval
     let retrieved = oracle_store.get_ai_risk(&input.tx_hash);
     assert!(retrieved.is_some());
-    
+
     let retrieved = retrieved.unwrap();
     assert_eq!(retrieved.tx_hash, input.tx_hash);
     assert_eq!(retrieved.model_id, input.model_id);
@@ -92,7 +92,7 @@ async fn test_oracle_integration_batch_submission() {
 
     // Process batch
     let failed_hashes = oracle_store.put_ai_risks_batch(&records).unwrap();
-    
+
     // One record should have failed (invalid risk_score)
     assert_eq!(failed_hashes.len(), 1);
     assert_eq!(failed_hashes[0], "0x333");
@@ -177,7 +177,7 @@ async fn test_oracle_validation_edge_cases() {
     assert!(oracle_store.get_ai_risk("0x000").is_some());
     assert!(oracle_store.get_ai_risk("0x111").is_some());
     assert!(oracle_store.get_ai_risk("0x1").is_some());
-    
+
     // Verify invalid records were not stored
     assert!(oracle_store.get_ai_risk("0x222").is_none());
     assert!(oracle_store.get_ai_risk("0x333").is_none());
@@ -198,10 +198,14 @@ fn test_oracle_json_serialization() {
     // Test serialization
     let json_str = serde_json::to_string(&record).unwrap();
     let expected_fields = [
-        "tx_hash", "model_id", "risk_score", "confidence", 
-        "signature", "oracle_pubkey"
+        "tx_hash",
+        "model_id",
+        "risk_score",
+        "confidence",
+        "signature",
+        "oracle_pubkey",
     ];
-    
+
     for field in &expected_fields {
         assert!(json_str.contains(field));
     }

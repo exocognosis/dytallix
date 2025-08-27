@@ -1,6 +1,6 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use anyhow::Result;
 use tokio::fs;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,22 +89,22 @@ impl Default for AiConfig {
 
 pub async fn create_default_config(config_dir: &Path) -> Result<()> {
     let config = Config::default();
-    
+
     let config_content = toml::to_string_pretty(&config)?;
-    
+
     let config_file = config_dir.join("config.toml");
     fs::write(config_file, config_content).await?;
-    
+
     println!("Created default configuration file");
     println!("Location: {}", config_dir.join("config.toml").display());
-    
+
     Ok(())
 }
 
 pub async fn load_config() -> Result<Config> {
     let config_dir = get_config_dir()?;
     let config_file = config_dir.join("config.toml");
-    
+
     if config_file.exists() {
         let content = fs::read_to_string(&config_file).await?;
         let config: Config = toml::from_str(&content)?;
@@ -117,11 +117,11 @@ pub async fn load_config() -> Result<Config> {
 pub async fn save_config(config: &Config) -> Result<()> {
     let config_dir = get_config_dir()?;
     fs::create_dir_all(&config_dir).await?;
-    
+
     let config_file = config_dir.join("config.toml");
     let content = toml::to_string_pretty(config)?;
     fs::write(config_file, content).await?;
-    
+
     Ok(())
 }
 
@@ -129,7 +129,7 @@ pub fn get_config_dir() -> Result<PathBuf> {
     let config_dir = dirs::config_dir()
         .ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?
         .join("dytallix");
-    
+
     Ok(config_dir)
 }
 
@@ -137,6 +137,6 @@ pub fn get_data_dir() -> Result<PathBuf> {
     let data_dir = dirs::data_dir()
         .ok_or_else(|| anyhow::anyhow!("Could not find data directory"))?
         .join("dytallix");
-    
+
     Ok(data_dir)
 }

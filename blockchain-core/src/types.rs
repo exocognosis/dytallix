@@ -462,6 +462,12 @@ pub struct TxReceipt {
     pub index: u32,
     /// Optional execution error (present if status == failed)
     pub error: Option<String>,
+    /// Optional contract address (for deploy or call)
+    pub contract_address: Option<String>,
+    /// Execution logs captured from WASM host env
+    pub logs: Vec<String>,
+    /// Optional return data from contract call
+    pub return_data: Option<Vec<u8>>,
 }
 
 /// Transaction Pool for managing pending transactions
@@ -715,6 +721,36 @@ impl BlockHeader {
         }
 
         level[0].clone()
+    }
+
+    pub fn calculate_transactions_root(txs: &[Transaction]) -> String {
+        use blake3::Hasher;
+        if txs.is_empty() {
+            return hex::encode(blake3::hash(b"DYTALLIX/EMPTY_TXS"));
+        }
+        let mut leaves: Vec<[u8; 32]> = txs
+            .iter()
+            .map(|t| {
+                let mut h = Hasher::new();
+                h.update(t.hash().as_bytes());
+                *h.finalize().as_bytes()
+            })
+            .collect();
+        while leaves.len() > 1 {
+            let mut next = Vec::with_capacity((leaves.len() + 1) / 2);
+            for chunk in leaves.chunks(2) {
+                if chunk.len() == 1 {
+                    next.push(chunk[0]);
+                } else {
+                    let mut h = Hasher::new();
+                    h.update(&chunk[0]);
+                    h.update(&chunk[1]);
+                    next.push(*h.finalize().as_bytes());
+                }
+            }
+            leaves = next;
+        }
+        hex::encode(leaves[0])
     }
 }
 
@@ -1032,6 +1068,9 @@ mod tests {
             timestamp: 111,
             index: 0,
             error: None,
+            contract_address: Some("0xcontract".into()),
+            logs: vec!["log1".into(), "log2".into()],
+            return_data: Some(vec![1, 2, 3]),
         };
         let json = serde_json::to_string(&r).unwrap();
         let back: TxReceipt = serde_json::from_str(&json).unwrap();

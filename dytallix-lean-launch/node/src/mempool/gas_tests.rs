@@ -1,6 +1,6 @@
 use super::*;
-use crate::storage::tx::Transaction;
 use crate::state::State;
+use crate::storage::tx::Transaction;
 
 #[cfg(test)]
 mod mempool_gas_tests {
@@ -52,7 +52,7 @@ mod mempool_gas_tests {
     fn test_estimate_tx_size() {
         let tx = create_test_transaction(25000, 1000);
         let size = estimate_tx_size(&tx);
-        
+
         // Should be reasonable size for a transaction
         assert!(size > 50);
         assert!(size < 1000);
@@ -79,7 +79,7 @@ mod mempool_gas_tests {
             1,
             Some("legacy_signature".to_string()),
         );
-        
+
         // Should not trigger gas validation (gas_limit = 0)
         assert_eq!(legacy_tx.gas_limit, 0);
         assert_eq!(legacy_tx.gas_price, 0);
@@ -89,10 +89,10 @@ mod mempool_gas_tests {
     fn test_deterministic_gas_validation() {
         let tx1 = create_test_transaction(25000, 1000);
         let tx2 = create_test_transaction(25000, 1000);
-        
+
         let result1 = validate_gas(&tx1);
         let result2 = validate_gas(&tx2);
-        
+
         // Same inputs should produce same results
         assert_eq!(result1.is_ok(), result2.is_ok());
     }

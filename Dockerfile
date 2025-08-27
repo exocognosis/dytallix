@@ -21,13 +21,21 @@ RUN groupadd -r appuser && useradd -r -g appuser -u 1000 appuser
 # Copy workspace Cargo.toml first for better layer caching
 COPY Cargo.toml ./
 
-# Copy all project directories
+# Copy all project directories (core crates + lean launch)
+# Existing copies
 COPY blockchain-core/ blockchain-core/
 COPY developer-tools/ developer-tools/
 COPY pqc-crypto/ pqc-crypto/
 COPY smart-contracts/ smart-contracts/
 COPY governance/ governance/
 COPY interoperability/ interoperability/
+COPY dytallix-lean-launch/node/ dytallix-lean-launch/node/
+COPY cli/ cli/
+COPY sdk/ sdk/
+COPY explorer/indexer/ explorer/indexer/
+COPY explorer/api/ explorer/api/
+# Added: full lean launch workspace so web build & scripts are available
+COPY dytallix-lean-launch/ dytallix-lean-launch/
 
 # Generate lock file and build the workspace
 RUN RUSTFLAGS="--cfg tokio_unstable" cargo generate-lockfile && \
@@ -42,8 +50,11 @@ RUN chown -R appuser:appuser /app
 # Switch to non-root user
 USER appuser
 
-# Expose the default port for the blockchain node
-EXPOSE 8545 30303
+# Expose the default ports (RPC + P2P)
+EXPOSE 3030 8545 30303
 
-# Start the blockchain node
-CMD ["./target/release/dytallix-node"]
+# Set default working directory for node runtime
+WORKDIR /app/dytallix-lean-launch
+
+# Start the lean launch node binary (adjust path)
+CMD ["/app/target/release/dytallix-lean-node"]

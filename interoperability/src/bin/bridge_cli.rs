@@ -1,27 +1,26 @@
 #!/usr/bin/env cargo run --bin bridge-cli --
 
 //! Dytallix Cross-Chain Bridge CLI Tool
-//! 
+//!
 //! A command-line interface for managing cross-chain bridges and IBC operations.
 
+use dytallix_interoperability::{
+    Asset, AssetMetadata, BridgeTxId, DytallixBridge, DytallixIBC, IBCModule, IBCPacket, PQCBridge,
+};
 use std::env;
 use std::process;
-use dytallix_interoperability::{
-    Asset, AssetMetadata, DytallixBridge, DytallixIBC, PQCBridge, IBCModule, 
-    IBCPacket, BridgeTxId
-};
 
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() < 2 {
         print_usage();
         process::exit(1);
     }
-    
+
     let command = &args[1];
-    
+
     match command.as_str() {
         "bridge" => handle_bridge_commands(&args[2..]).await,
         "ibc" => handle_ibc_commands(&args[2..]).await,
@@ -84,16 +83,18 @@ async fn handle_bridge_commands(args: &[String]) {
         println!("Error: Bridge command required");
         return;
     }
-    
+
     let bridge = DytallixBridge::new();
-    
+
     match args[0].as_str() {
         "lock" => {
             if args.len() != 5 {
-                println!("Error: Usage: bridge lock <asset-id> <amount> <dest-chain> <dest-address>");
+                println!(
+                    "Error: Usage: bridge lock <asset-id> <amount> <dest-chain> <dest-address>"
+                );
                 return;
             }
-            
+
             let asset_id = &args[1];
             let amount: u64 = match args[2].parse() {
                 Ok(a) => a,
@@ -104,7 +105,7 @@ async fn handle_bridge_commands(args: &[String]) {
             };
             let dest_chain = &args[3];
             let dest_address = &args[4];
-            
+
             let asset = Asset {
                 id: asset_id.clone(),
                 amount,
@@ -116,7 +117,7 @@ async fn handle_bridge_commands(args: &[String]) {
                     icon_url: Some("https://dytallix.io/assets/token-icon.png".to_string()),
                 },
             };
-            
+
             match bridge.lock_asset(asset, dest_chain, dest_address) {
                 Ok(tx_id) => {
                     println!("✅ Asset locked successfully!");
@@ -130,13 +131,15 @@ async fn handle_bridge_commands(args: &[String]) {
                 }
             }
         }
-        
+
         "mint" => {
             if args.len() != 5 {
-                println!("Error: Usage: bridge mint <asset-id> <amount> <origin-chain> <dest-address>");
+                println!(
+                    "Error: Usage: bridge mint <asset-id> <amount> <origin-chain> <dest-address>"
+                );
                 return;
             }
-            
+
             let asset_id = &args[1];
             let amount: u64 = match args[2].parse() {
                 Ok(a) => a,
@@ -147,7 +150,7 @@ async fn handle_bridge_commands(args: &[String]) {
             };
             let origin_chain = &args[3];
             let dest_address = &args[4];
-            
+
             let asset = Asset {
                 id: asset_id.clone(),
                 amount,
@@ -159,7 +162,7 @@ async fn handle_bridge_commands(args: &[String]) {
                     icon_url: Some("https://dytallix.io/assets/wrapped-token-icon.png".to_string()),
                 },
             };
-            
+
             match bridge.mint_wrapped(asset, origin_chain, dest_address) {
                 Ok(wrapped_asset) => {
                     println!("✅ Wrapped asset minted successfully!");
@@ -174,13 +177,13 @@ async fn handle_bridge_commands(args: &[String]) {
                 }
             }
         }
-        
+
         "verify" => {
             if args.len() != 2 {
                 println!("Error: Usage: bridge verify <tx-id>");
                 return;
             }
-            
+
             let tx_id = BridgeTxId(args[1].clone());
             match bridge.get_bridge_status(&tx_id) {
                 Ok(status) => {
@@ -193,13 +196,13 @@ async fn handle_bridge_commands(args: &[String]) {
                 }
             }
         }
-        
+
         "emergency-halt" => {
             if args.len() != 2 {
                 println!("Error: Usage: bridge emergency-halt <reason>");
                 return;
             }
-            
+
             let reason = &args[1];
             match bridge.emergency_halt(reason) {
                 Ok(_) => {
@@ -212,18 +215,16 @@ async fn handle_bridge_commands(args: &[String]) {
                 }
             }
         }
-        
-        "resume" => {
-            match bridge.resume_bridge() {
-                Ok(_) => {
-                    println!("✅ Bridge operations resumed");
-                }
-                Err(e) => {
-                    println!("❌ Failed to resume bridge: {:?}", e);
-                }
+
+        "resume" => match bridge.resume_bridge() {
+            Ok(_) => {
+                println!("✅ Bridge operations resumed");
             }
-        }
-        
+            Err(e) => {
+                println!("❌ Failed to resume bridge: {:?}", e);
+            }
+        },
+
         _ => {
             println!("Error: Unknown bridge command '{}'", args[0]);
         }
@@ -235,16 +236,16 @@ async fn handle_ibc_commands(args: &[String]) {
         println!("Error: IBC command required");
         return;
     }
-    
+
     let ibc = DytallixIBC::new();
-    
+
     match args[0].as_str() {
         "send" => {
             if args.len() != 6 {
                 println!("Error: Usage: ibc send <source-port> <source-channel> <dest-port> <dest-channel> <data>");
                 return;
             }
-            
+
             let packet = IBCPacket {
                 sequence: 1,
                 source_port: args[1].clone(),
@@ -256,11 +257,14 @@ async fn handle_ibc_commands(args: &[String]) {
                 timeout_timestamp: 0,
                 pqc_signature: None,
             };
-            
+
             match ibc.send_packet(packet) {
                 Ok(_) => {
                     println!("✅ IBC packet sent successfully!");
-                    println!("Route: {} ({}) -> {} ({})", args[1], args[2], args[3], args[4]);
+                    println!(
+                        "Route: {} ({}) -> {} ({})",
+                        args[1], args[2], args[3], args[4]
+                    );
                     println!("Data: {}", args[5]);
                 }
                 Err(e) => {
@@ -268,13 +272,13 @@ async fn handle_ibc_commands(args: &[String]) {
                 }
             }
         }
-        
+
         "create-channel" => {
             if args.len() != 3 {
                 println!("Error: Usage: ibc create-channel <port> <counterparty-port>");
                 return;
             }
-            
+
             match ibc.create_channel(args[1].clone(), args[2].clone()) {
                 Ok(channel) => {
                     println!("✅ IBC channel created successfully!");
@@ -288,13 +292,13 @@ async fn handle_ibc_commands(args: &[String]) {
                 }
             }
         }
-        
+
         "close-channel" => {
             if args.len() != 2 {
                 println!("Error: Usage: ibc close-channel <channel-id>");
                 return;
             }
-            
+
             match ibc.close_channel(args[1].clone()) {
                 Ok(_) => {
                     println!("✅ IBC channel closed successfully!");
@@ -305,7 +309,7 @@ async fn handle_ibc_commands(args: &[String]) {
                 }
             }
         }
-        
+
         _ => {
             println!("Error: Unknown IBC command '{}'", args[0]);
         }
@@ -317,26 +321,29 @@ async fn handle_status_commands(args: &[String]) {
         println!("Error: Status command required");
         return;
     }
-    
+
     let bridge = DytallixBridge::new();
-    
+
     match args[0].as_str() {
         "bridge" => {
             println!("🌉 Dytallix Bridge Status");
             println!("========================");
             println!("Status: Operational");
             println!("Supported Chains: {:?}", bridge.get_supported_chains());
-            println!("Active Validators: {}", bridge.get_bridge_validators().len());
+            println!(
+                "Active Validators: {}",
+                bridge.get_bridge_validators().len()
+            );
             println!("Version: v0.9.3");
             println!("PQC Algorithms: Dilithium, Falcon, SPHINCS+");
         }
-        
+
         "transaction" => {
             if args.len() != 2 {
                 println!("Error: Usage: status transaction <tx-id>");
                 return;
             }
-            
+
             let tx_id = BridgeTxId(args[1].clone());
             match bridge.get_bridge_status(&tx_id) {
                 Ok(status) => {
@@ -350,7 +357,7 @@ async fn handle_status_commands(args: &[String]) {
                 }
             }
         }
-        
+
         "chains" => {
             println!("🔗 Supported Chains");
             println!("==================");
@@ -358,7 +365,7 @@ async fn handle_status_commands(args: &[String]) {
                 println!("• {}", chain);
             }
         }
-        
+
         _ => {
             println!("Error: Unknown status command '{}'", args[0]);
         }
@@ -370,54 +377,61 @@ async fn handle_validator_commands(args: &[String]) {
         println!("Error: Validator command required");
         return;
     }
-    
+
     let bridge = DytallixBridge::new();
-    
+
     match args[0].as_str() {
         "list" => {
             println!("👥 Bridge Validators");
             println!("==================");
-            
+
             let validators = bridge.get_bridge_validators();
             if validators.is_empty() {
                 println!("No validators found");
                 return;
             }
-            
+
             for validator in validators {
                 println!("ID: {}", validator.id);
                 println!("Algorithm: {}", validator.algorithm);
                 println!("Stake: {} DYT", validator.stake);
                 println!("Reputation: {:.2}%", validator.reputation * 100.0);
-                println!("Status: {}", if validator.is_active { "Active" } else { "Inactive" });
+                println!(
+                    "Status: {}",
+                    if validator.is_active {
+                        "Active"
+                    } else {
+                        "Inactive"
+                    }
+                );
                 println!("---");
             }
         }
-        
+
         "add" => {
             if args.len() != 5 {
                 println!("Error: Usage: validators add <id> <public-key> <algorithm> <stake>");
                 return;
             }
-            
+
             println!("⚠️  Adding validators requires admin privileges");
             println!("Validator ID: {}", args[1]);
             println!("Algorithm: {}", args[3]);
             println!("Stake: {} DYT", args[4]);
             println!("This would normally require multi-sig approval from existing validators");
         }
-        
+
         "remove" => {
             if args.len() != 2 {
                 println!("Error: Usage: validators remove <id>");
                 return;
             }
-            
+
             println!("⚠️  Removing validators requires admin privileges");
             println!("Validator ID: {}", args[1]);
             println!("This would normally require multi-sig approval from existing validators");
         }
-        
+
         _ => {
             println!("Error: Unknown validator command '{}'", args[0]);
         }

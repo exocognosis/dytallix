@@ -1,4 +1,4 @@
-/*! 
+/*!
 Dytallix Tokenomics Module
 
 Implements a dual-token system:
@@ -14,10 +14,10 @@ pub mod drt_token;
 pub mod emission_controller;
 pub mod types;
 
-pub use types::*;
 pub use dgt_token::DGTToken;
 pub use drt_token::DRTToken;
 pub use emission_controller::EmissionController;
+pub use types::*;
 
 // Re-export for WASM compatibility
 pub use dgt_token::*;

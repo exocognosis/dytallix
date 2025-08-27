@@ -3,15 +3,15 @@
 //! Provides deterministic Argon2id-based key derivation, Dilithium5 signing,
 //! and standardized address format for post-quantum cryptography wallets.
 
-use anyhow::{Result, anyhow};
-use argon2::{Argon2, Algorithm, Version, Params};
-use sha2::{Sha256, Digest};
-use ripemd::{Ripemd160, Digest as RipemdDigest};
+use anyhow::{anyhow, Result};
+use argon2::{Algorithm, Argon2, Params, Version};
+use ripemd::{Digest as RipemdDigest, Ripemd160};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, ZeroizeOnDrop};
-use serde::{Serialize, Deserialize};
 
 // Re-export PQC types from the existing pqc-crypto crate
-pub use dytallix_pqc::{PQCManager, SignatureAlgorithm, KeyPair, Signature, PQCError};
+pub use dytallix_pqc::{KeyPair, PQCError, PQCManager, Signature, SignatureAlgorithm};
 
 /// Default Argon2id parameters for key derivation
 const DEFAULT_MEMORY_COST: u32 = 64 * 1024; // 64 MiB
@@ -21,8 +21,7 @@ const DEFAULT_PARALLELISM: u32 = 1;
 /// Fixed domain-separated salt for deterministic mode
 /// Uses sha256("dytallix|v1|root")[0..16]
 const DETERMINISTIC_SALT: [u8; 16] = [
-    0x8c, 0x4f, 0x2e, 0x1d, 0x9a, 0x7b, 0x6c, 0x3e,
-    0x5f, 0x0e, 0x8d, 0x2c, 0x4b, 0x9a, 0x1e, 0x7f
+    0x8c, 0x4f, 0x2e, 0x1d, 0x9a, 0x7b, 0x6c, 0x3e, 0x5f, 0x0e, 0x8d, 0x2c, 0x4b, 0x9a, 0x1e, 0x7f,
 ];
 
 /// Argon2id parameters for key derivation
@@ -60,7 +59,7 @@ struct MasterSeed {
 
 impl PQCWallet {
     /// Create a new wallet with deterministic key derivation
-    /// 
+    ///
     /// Uses fixed salt for reproducible keypairs from the same passphrase.
     /// WARNING: This reduces security if passphrase is weak.
     pub fn new_deterministic(passphrase: &str) -> Result<Self> {
@@ -76,15 +75,11 @@ impl PQCWallet {
     }
 
     /// Create wallet with specific parameters
-    pub fn new_with_params(
-        passphrase: &str, 
-        salt: &[u8], 
-        params: &Argon2Params
-    ) -> Result<Self> {
+    pub fn new_with_params(passphrase: &str, salt: &[u8], params: &Argon2Params) -> Result<Self> {
         let master_seed = derive_master_seed(passphrase, salt, params)?;
         let keypair = generate_dilithium5_keypair(&master_seed.seed)?;
         let address = derive_address(&keypair.public_key)?;
-        
+
         Ok(Self {
             keypair,
             address,
@@ -110,13 +105,16 @@ impl PQCWallet {
     /// Sign transaction bytes
     pub fn sign_transaction(&self, tx_bytes: &[u8]) -> Result<Signature> {
         let manager = create_manager_from_keypair(&self.keypair)?;
-        manager.sign(tx_bytes).map_err(|e| anyhow!("Signing failed: {}", e))
+        manager
+            .sign(tx_bytes)
+            .map_err(|e| anyhow!("Signing failed: {}", e))
     }
 
     /// Verify a signature against transaction bytes
     pub fn verify_signature(&self, tx_bytes: &[u8], signature: &Signature) -> Result<bool> {
         let manager = create_manager_from_keypair(&self.keypair)?;
-        manager.verify(tx_bytes, signature, &self.keypair.public_key)
+        manager
+            .verify(tx_bytes, signature, &self.keypair.public_key)
             .map_err(|e| anyhow!("Verification failed: {}", e))
     }
 
@@ -145,15 +143,17 @@ fn derive_master_seed(passphrase: &str, salt: &[u8], params: &Argon2Params) -> R
         params.memory_cost,
         params.time_cost,
         params.parallelism,
-        Some(32)
-    ).map_err(|e| anyhow!("Invalid Argon2 params: {}", e))?;
+        Some(32),
+    )
+    .map_err(|e| anyhow!("Invalid Argon2 params: {}", e))?;
 
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, argon2_params);
     let mut seed = [0u8; 32];
-    
-    argon2.hash_password_into(passphrase.as_bytes(), salt, &mut seed)
+
+    argon2
+        .hash_password_into(passphrase.as_bytes(), salt, &mut seed)
         .map_err(|e| anyhow!("Key derivation failed: {}", e))?;
-    
+
     Ok(MasterSeed { seed })
 }
 
@@ -165,11 +165,13 @@ fn generate_dilithium5_keypair(seed: &[u8]) -> Result<KeyPair> {
     let manager = PQCManager::new_with_algorithms(
         SignatureAlgorithm::Dilithium5,
         dytallix_pqc::KeyExchangeAlgorithm::Kyber1024,
-    ).map_err(|e| anyhow!("Failed to create PQC manager: {}", e))?;
-    
+    )
+    .map_err(|e| anyhow!("Failed to create PQC manager: {}", e))?;
+
     // For deterministic generation, we should use the seed with the PQC library
     // This is a placeholder - real implementation would integrate seed into key generation
-    manager.generate_keypair(&SignatureAlgorithm::Dilithium5)
+    manager
+        .generate_keypair(&SignatureAlgorithm::Dilithium5)
         .map_err(|e| anyhow!("Failed to generate keypair: {}", e))
 }
 
@@ -180,12 +182,12 @@ fn derive_address(public_key: &[u8]) -> Result<String> {
     let mut hasher = Sha256::new();
     hasher.update(public_key);
     let sha256_hash = hasher.finalize();
-    
+
     // Step 2: RIPEMD160 hash of SHA256 result
     let mut ripemd_hasher = Ripemd160::new();
     ripemd_hasher.update(&sha256_hash);
     let ripemd_hash = ripemd_hasher.finalize();
-    
+
     // Step 3: Encode with bech32 using "dytallix" prefix
     encode_bech32("dytallix", &ripemd_hash)
 }
@@ -197,7 +199,8 @@ fn create_manager_from_keypair(keypair: &KeyPair) -> Result<PQCManager> {
     PQCManager::new_with_algorithms(
         SignatureAlgorithm::Dilithium5,
         dytallix_pqc::KeyExchangeAlgorithm::Kyber1024,
-    ).map_err(|e| anyhow!("Failed to create manager: {}", e))
+    )
+    .map_err(|e| anyhow!("Failed to create manager: {}", e))
 }
 
 /// Encode bytes as bech32 with given prefix
@@ -217,10 +220,10 @@ pub mod utils {
         let passphrase = "test passphrase";
         let wallet1 = PQCWallet::new_deterministic(passphrase)?;
         let wallet2 = PQCWallet::new_deterministic(passphrase)?;
-        
+
         assert_eq!(wallet1.address(), wallet2.address());
         assert_eq!(wallet1.public_key(), wallet2.public_key());
-        
+
         Ok(())
     }
 
@@ -228,10 +231,10 @@ pub mod utils {
     pub fn test_vector_divergent() -> Result<()> {
         let wallet1 = PQCWallet::new_deterministic("passphrase1")?;
         let wallet2 = PQCWallet::new_deterministic("passphrase2")?;
-        
+
         assert_ne!(wallet1.address(), wallet2.address());
         assert_ne!(wallet1.public_key(), wallet2.public_key());
-        
+
         Ok(())
     }
 
@@ -239,10 +242,10 @@ pub mod utils {
     pub fn test_address_format() -> Result<()> {
         let wallet = PQCWallet::new_deterministic("test")?;
         let address = wallet.address();
-        
+
         assert!(address.starts_with("dytallix"));
         assert!(address.len() > 8); // Basic sanity check
-        
+
         Ok(())
     }
 }
@@ -279,10 +282,10 @@ mod tests {
         let passphrase = "test passphrase";
         let salt = &DETERMINISTIC_SALT;
         let params = &Argon2Params::default();
-        
+
         let seed1 = derive_master_seed(passphrase, salt, params).unwrap();
         let seed2 = derive_master_seed(passphrase, salt, params).unwrap();
-        
+
         assert_eq!(seed1.seed, seed2.seed);
     }
 
@@ -290,10 +293,10 @@ mod tests {
     fn test_signature_round_trip() {
         let wallet = PQCWallet::new_deterministic("test passphrase").unwrap();
         let message = b"test transaction bytes";
-        
+
         let signature = wallet.sign_transaction(message).unwrap();
         let is_valid = wallet.verify_signature(message, &signature).unwrap();
-        
+
         assert!(is_valid);
     }
 }

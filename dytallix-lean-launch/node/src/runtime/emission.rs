@@ -1,7 +1,7 @@
 use crate::{state::State, storage::state::Storage};
-use serde::{Serialize, Deserialize};
-use std::sync::{Arc, Mutex};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // Deterministic emission engine with per-block event tracking
@@ -54,15 +54,19 @@ pub struct EmissionConfig {
 /// Emission distribution breakdown
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmissionBreakdown {
-    pub block_rewards: u8,      // percentage (60)
-    pub staking_rewards: u8,    // percentage (25)
+    pub block_rewards: u8,        // percentage (60)
+    pub staking_rewards: u8,      // percentage (25)
     pub ai_module_incentives: u8, // percentage (10)
-    pub bridge_operations: u8,  // percentage (5)
+    pub bridge_operations: u8,    // percentage (5)
 }
 
 impl EmissionBreakdown {
     pub fn is_valid(&self) -> bool {
-        self.block_rewards + self.staking_rewards + self.ai_module_incentives + self.bridge_operations == 100
+        self.block_rewards
+            + self.staking_rewards
+            + self.ai_module_incentives
+            + self.bridge_operations
+            == 100
     }
 }
 
@@ -78,8 +82,10 @@ impl EmissionEngine {
     pub fn new(storage: Arc<Storage>, state: Arc<Mutex<State>>) -> Self {
         // Default configuration - in production this should come from genesis
         let config = EmissionConfig {
-            schedule: EmissionSchedule::Percentage { annual_inflation_rate: 500 }, // 5% in basis points
-            initial_supply: 0,          // DRT starts with 0 supply
+            schedule: EmissionSchedule::Percentage {
+                annual_inflation_rate: 500,
+            }, // 5% in basis points
+            initial_supply: 0, // DRT starts with 0 supply
             emission_breakdown: EmissionBreakdown {
                 block_rewards: 60,
                 staking_rewards: 25,
@@ -87,7 +93,7 @@ impl EmissionEngine {
                 bridge_operations: 5,
             },
         };
-        
+
         // Load existing circulating supply from storage
         let circulating_supply = storage
             .db
@@ -96,7 +102,7 @@ impl EmissionEngine {
             .flatten()
             .and_then(|v| bincode::deserialize::<u128>(&v).ok())
             .unwrap_or(0);
-        
+
         Self {
             storage,
             state,
@@ -104,8 +110,12 @@ impl EmissionEngine {
             circulating_supply,
         }
     }
-    
-    pub fn new_with_config(storage: Arc<Storage>, state: Arc<Mutex<State>>, config: EmissionConfig) -> Self {
+
+    pub fn new_with_config(
+        storage: Arc<Storage>,
+        state: Arc<Mutex<State>>,
+        config: EmissionConfig,
+    ) -> Self {
         // Load existing circulating supply from storage
         let circulating_supply = storage
             .db
@@ -114,7 +124,7 @@ impl EmissionEngine {
             .flatten()
             .and_then(|v| bincode::deserialize::<u128>(&v).ok())
             .unwrap_or(config.initial_supply);
-        
+
         Self {
             storage,
             state,
@@ -122,19 +132,19 @@ impl EmissionEngine {
             circulating_supply,
         }
     }
-    
+
     fn pool_key(pool: &str) -> String {
         format!("emission:pool:{}", pool)
     }
-    
+
     fn height_key() -> &'static str {
         "emission:last_height"
     }
-    
+
     fn event_key(height: u64) -> String {
         format!("emission:event:{}", height)
     }
-    
+
     fn circulating_supply_key() -> &'static str {
         "emission:circulating_supply"
     }
@@ -143,52 +153,57 @@ impl EmissionEngine {
     fn calculate_per_block_emission(&self, current_height: u64) -> u128 {
         match &self.config.schedule {
             EmissionSchedule::Static { per_block } => *per_block,
-            
+
             EmissionSchedule::Phased { phases } => {
                 // Find the active phase for current height
                 for phase in phases {
-                    if current_height >= phase.start_height && 
-                       (phase.end_height.is_none() || current_height <= phase.end_height.unwrap()) {
+                    if current_height >= phase.start_height
+                        && (phase.end_height.is_none()
+                            || current_height <= phase.end_height.unwrap())
+                    {
                         return phase.per_block_amount;
                     }
                 }
                 // No active phase found, return 0
                 0
-            },
-            
-            EmissionSchedule::Percentage { annual_inflation_rate } => {
+            }
+
+            EmissionSchedule::Percentage {
+                annual_inflation_rate,
+            } => {
                 const BLOCKS_PER_YEAR: u128 = 5_256_000; // ~6 second blocks
-                
+
                 if self.circulating_supply == 0 {
                     // Bootstrap emission when supply is 0 - use a small fixed amount
                     return 1_000_000; // 1 DRT in uDRT (micro denomination)
                 }
-                
-                let annual_emission = (self.circulating_supply * (*annual_inflation_rate as u128)) / 10000;
+
+                let annual_emission =
+                    (self.circulating_supply * (*annual_inflation_rate as u128)) / 10000;
                 annual_emission / BLOCKS_PER_YEAR
             }
         }
     }
-    
+
     /// Calculate per-block distribution across pools
     fn calculate_pool_distributions(&self, total_emission: u128) -> HashMap<String, u128> {
         let mut pools = HashMap::new();
         let breakdown = &self.config.emission_breakdown;
-        
+
         // Calculate amounts with proper rounding
         let block_rewards = (total_emission * breakdown.block_rewards as u128) / 100;
         let staking_rewards = (total_emission * breakdown.staking_rewards as u128) / 100;
         let ai_module_incentives = (total_emission * breakdown.ai_module_incentives as u128) / 100;
-        
+
         // Allocate remainder to bridge_operations to ensure no loss
         let allocated = block_rewards + staking_rewards + ai_module_incentives;
         let bridge_operations = total_emission.saturating_sub(allocated);
-        
+
         pools.insert("block_rewards".to_string(), block_rewards);
         pools.insert("staking_rewards".to_string(), staking_rewards);
         pools.insert("ai_module_incentives".to_string(), ai_module_incentives);
         pools.insert("bridge_operations".to_string(), bridge_operations);
-        
+
         pools
     }
 
@@ -201,19 +216,19 @@ impl EmissionEngine {
             .and_then(|v| bincode::deserialize::<u128>(&v).ok())
             .unwrap_or(0)
     }
-    
+
     fn set_pool_amount(&self, pool: &str, amt: u128) {
         let _ = self
             .storage
             .db
             .put(Self::pool_key(pool), bincode::serialize(&amt).unwrap());
     }
-    
+
     fn set_circulating_supply(&self, supply: u128) {
-        let _ = self
-            .storage
-            .db
-            .put(Self::circulating_supply_key(), bincode::serialize(&supply).unwrap());
+        let _ = self.storage.db.put(
+            Self::circulating_supply_key(),
+            bincode::serialize(&supply).unwrap(),
+        );
     }
 
     pub fn last_accounted_height(&self) -> u64 {
@@ -233,11 +248,11 @@ impl EmissionEngine {
             })
             .unwrap_or(0)
     }
-    
+
     fn set_last_height(&self, h: u64) {
         let _ = self.storage.db.put(Self::height_key(), h.to_be_bytes());
     }
-    
+
     /// Get emission event for a specific height
     pub fn get_event(&self, height: u64) -> Option<EmissionEvent> {
         self.storage
@@ -247,41 +262,41 @@ impl EmissionEngine {
             .flatten()
             .and_then(|v| bincode::deserialize::<EmissionEvent>(&v).ok())
     }
-    
+
     /// Store emission event
     fn store_event(&self, event: &EmissionEvent) {
-        let _ = self
-            .storage
-            .db
-            .put(Self::event_key(event.height), bincode::serialize(event).unwrap());
+        let _ = self.storage.db.put(
+            Self::event_key(event.height),
+            bincode::serialize(event).unwrap(),
+        );
     }
 
     pub fn apply_until(&mut self, target_height: u64) {
         let mut h = self.last_accounted_height();
-        
+
         while h < target_height {
             h += 1;
-            
+
             // Calculate emission for this block
             let total_emission = self.calculate_per_block_emission(h);
             let pool_distributions = self.calculate_pool_distributions(total_emission);
-            
+
             // Update pool amounts
             for (pool, amount) in &pool_distributions {
                 let current = self.pool_amount(pool);
                 self.set_pool_amount(pool, current.saturating_add(*amount));
             }
-            
+
             // Update circulating supply
             self.circulating_supply = self.circulating_supply.saturating_add(total_emission);
             self.set_circulating_supply(self.circulating_supply);
-            
+
             // Create and store emission event
             let timestamp = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs();
-            
+
             let event = EmissionEvent {
                 height: h,
                 timestamp,
@@ -290,15 +305,15 @@ impl EmissionEngine {
                 reward_index_after: None, // Will be set by staking module if needed
                 circulating_supply: self.circulating_supply,
             };
-            
+
             self.store_event(&event);
         }
-        
+
         if h >= target_height {
             self.set_last_height(target_height);
         }
     }
-    
+
     /// Get the staking rewards amount for the latest block
     pub fn get_latest_staking_rewards(&self) -> u128 {
         let latest_height = self.last_accounted_height();
@@ -323,13 +338,18 @@ impl EmissionEngine {
     }
     pub fn snapshot(&self) -> EmissionSnapshot {
         let mut pools = std::collections::HashMap::new();
-        
+
         // Use current pool names from emission breakdown
-        let pool_names = ["block_rewards", "staking_rewards", "ai_module_incentives", "bridge_operations"];
+        let pool_names = [
+            "block_rewards",
+            "staking_rewards",
+            "ai_module_incentives",
+            "bridge_operations",
+        ];
         for pool in pool_names.iter() {
             pools.insert(pool.to_string(), self.pool_amount(pool));
         }
-        
+
         EmissionSnapshot {
             height: self.last_accounted_height(),
             pools,

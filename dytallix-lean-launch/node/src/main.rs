@@ -17,25 +17,25 @@ mod rpc;
 mod runtime {
     pub mod bridge;
     pub mod emission;
-    pub mod oracle;
     pub mod governance;
+    pub mod oracle;
     pub mod staking;
 } // added emission, governance, and staking modules
+mod alerts; // alerting subsystem
+mod execution;
+mod gas; // gas accounting system
+mod metrics; // observability module
 mod state;
 mod storage;
-mod ws;
 mod util; // added util module declaration
-mod metrics; // observability module
-mod alerts; // alerting subsystem  
-mod gas; // gas accounting system
-mod execution; // deterministic execution engine
+mod ws; // deterministic execution engine
+use crate::alerts::{load_alerts_config, AlertsEngine, NodeMetricsGatherer};
+use crate::execution::execute_transaction;
+use crate::gas::GasSchedule;
+use crate::metrics::{parse_metrics_config, MetricsServer};
 use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::GovernanceModule;
 use crate::runtime::staking::StakingModule;
-use crate::gas::GasSchedule;
-use crate::execution::execute_transaction;
-use crate::metrics::{MetricsServer, parse_metrics_config};
-use crate::alerts::{load_alerts_config, AlertsEngine, NodeMetricsGatherer};
 use mempool::Mempool;
 use rpc::RpcContext;
 use state::State;
@@ -98,30 +98,37 @@ async fn main() -> anyhow::Result<()> {
     let (metrics_server, metrics) = MetricsServer::new(metrics_config.clone())?;
 
     // Initialize alerting system
-    let alerts_config_path = std::env::var("DYT_ALERTS_CONFIG")
-        .unwrap_or_else(|_| "./configs/alerts.yaml".to_string());
+    let alerts_config_path =
+        std::env::var("DYT_ALERTS_CONFIG").unwrap_or_else(|_| "./configs/alerts.yaml".to_string());
     let alerts_config = load_alerts_config(std::path::Path::new(&alerts_config_path))?;
-    
+
     #[cfg(feature = "metrics")]
     let mut alerts_engine = {
         // Create a dummy registry for now - in a real implementation this would be shared
         let alerts_registry = prometheus::Registry::new();
         AlertsEngine::new(alerts_config.clone(), &alerts_registry)?
     };
-    
+
     #[cfg(not(feature = "metrics"))]
     let mut alerts_engine = AlertsEngine::new(alerts_config.clone())?;
 
     let staking_module = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
-    
+
     let ctx = RpcContext {
         storage: storage.clone(),
         mempool: mempool.clone(),
         state: state.clone(),
         ws: ws_hub.clone(),
         tps: tps_window.clone(),
-        emission: Arc::new(Mutex::new(EmissionEngine::new(storage.clone(), state.clone()))),
-        governance: Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone(), staking_module.clone()))),
+        emission: Arc::new(Mutex::new(EmissionEngine::new(
+            storage.clone(),
+            state.clone(),
+        ))),
+        governance: Arc::new(Mutex::new(GovernanceModule::new(
+            storage.clone(),
+            state.clone(),
+            staking_module.clone(),
+        ))),
         staking: staking_module,
         metrics: metrics.clone(),
     };
@@ -136,28 +143,40 @@ async fn main() -> anyhow::Result<()> {
         loop {
             ticker.tick().await;
             let block_start_time = SystemTime::now();
-            
+
             // Update mempool size metric
             let mempool_size = { producer_ctx.mempool.lock().unwrap().len() };
             producer_ctx.metrics.update_mempool_size(mempool_size);
-            
+
             // advance emission pools to new height (height+1)
             let next_height = producer_ctx.storage.height() + 1;
-            producer_ctx.emission.lock().unwrap().apply_until(next_height);
-            
+            producer_ctx
+                .emission
+                .lock()
+                .unwrap()
+                .apply_until(next_height);
+
             // Apply staking rewards from emission
-            let staking_rewards = producer_ctx.emission.lock().unwrap().get_latest_staking_rewards();
+            let staking_rewards = producer_ctx
+                .emission
+                .lock()
+                .unwrap()
+                .get_latest_staking_rewards();
             if staking_rewards > 0 {
-                producer_ctx.staking.lock().unwrap().apply_external_emission(staking_rewards);
+                producer_ctx
+                    .staking
+                    .lock()
+                    .unwrap()
+                    .apply_external_emission(staking_rewards);
             }
             let snapshot = { producer_ctx.mempool.lock().unwrap().take_snapshot(max_txs) };
             if snapshot.is_empty() && !empty_blocks {
                 continue;
             }
-            
+
             let mut total_gas_used = 0u64;
             let gas_schedule = GasSchedule::default();
-            
+
             // Execute transactions using deterministic execution engine
             let mut receipts: Vec<TxReceipt> = vec![];
             let mut applied: Vec<storage::tx::Transaction> = vec![];
@@ -165,18 +184,24 @@ async fn main() -> anyhow::Result<()> {
                 let mut st = producer_ctx.state.lock().unwrap();
                 for (tx_index, tx) in snapshot.iter().enumerate() {
                     let tx_start_time = SystemTime::now();
-                    
+
                     // Use deterministic execution engine
-                    let result = execute_transaction(tx, &mut st, next_height, tx_index as u32, &gas_schedule);
-                    
+                    let result = execute_transaction(
+                        tx,
+                        &mut st,
+                        next_height,
+                        tx_index as u32,
+                        &gas_schedule,
+                    );
+
                     total_gas_used += result.gas_used;
                     receipts.push(result.receipt);
-                    
+
                     // Only include successful transactions in the block
                     if result.success {
                         applied.push(tx.clone());
                     }
-                    
+
                     // Record transaction processing time
                     if let Ok(elapsed) = tx_start_time.elapsed() {
                         producer_ctx.metrics.record_transaction(elapsed);
@@ -212,28 +237,32 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             let _ = producer_ctx.storage.put_block(&block, &receipts);
-            
+
             // Record metrics
             if let Ok(block_processing_time) = block_start_time.elapsed() {
                 producer_ctx.metrics.record_block(
                     height,
                     success_txs.len(),
                     total_gas_used,
-                    block_processing_time
+                    block_processing_time,
                 );
             }
-            producer_ctx.metrics.update_current_block_gas(total_gas_used);
-            
+            producer_ctx
+                .metrics
+                .update_current_block_gas(total_gas_used);
+
             // Update emission pool metrics
             let emission_snapshot = producer_ctx.emission.snapshot();
             let total_emission_pool: u128 = emission_snapshot.pools.values().sum();
-            producer_ctx.metrics.update_emission_pool(total_emission_pool as f64);
-            
+            producer_ctx
+                .metrics
+                .update_emission_pool(total_emission_pool as f64);
+
             // Process governance end block
             if let Err(e) = producer_ctx.governance.lock().unwrap().end_block(height) {
                 eprintln!("Governance end_block error at height {}: {}", height, e);
             }
-            
+
             producer_ctx
                 .tps
                 .lock()
@@ -267,8 +296,14 @@ async fn main() -> anyhow::Result<()> {
         .route("/stats", get(rpc::stats))
         .route("/peers", get(rpc::peers))
         .route("/oracle/ai_risk", post(rpc::oracle::submit_ai_risk))
-        .route("/oracle/ai_risk_batch", post(rpc::oracle::submit_ai_risk_batch))
-        .route("/oracle/ai_risk_query_batch", post(rpc::oracle::get_ai_risk_batch))
+        .route(
+            "/oracle/ai_risk_batch",
+            post(rpc::oracle::submit_ai_risk_batch),
+        )
+        .route(
+            "/oracle/ai_risk_query_batch",
+            post(rpc::oracle::get_ai_risk_batch),
+        )
         .route("/oracle/stats", get(rpc::oracle::oracle_stats))
         .route("/bridge/ingest", post(rpc::bridge_ingest))
         .route("/bridge/halt", post(rpc::bridge_halt))
@@ -284,11 +319,23 @@ async fn main() -> anyhow::Result<()> {
         .route("/gov/tally/:id", get(rpc::gov_tally))
         .route("/gov/config", get(rpc::gov_get_config))
         .route("/api/governance/proposals", get(rpc::gov_list_proposals))
-        .route("/api/governance/proposals/:id/votes", get(rpc::gov_get_proposal_votes))
-        .route("/api/governance/voting-power/:address", get(rpc::gov_get_voting_power))
-        .route("/api/governance/total-voting-power", get(rpc::gov_get_total_voting_power))
+        .route(
+            "/api/governance/proposals/:id/votes",
+            get(rpc::gov_get_proposal_votes),
+        )
+        .route(
+            "/api/governance/voting-power/:address",
+            get(rpc::gov_get_voting_power),
+        )
+        .route(
+            "/api/governance/total-voting-power",
+            get(rpc::gov_get_total_voting_power),
+        )
         .route("/api/staking/claim", post(rpc::staking_claim))
-        .route("/api/staking/accrued/:address", get(rpc::staking_get_accrued))
+        .route(
+            "/api/staking/accrued/:address",
+            get(rpc::staking_get_accrued),
+        )
         .layer(Extension(ctx));
     if ws_enabled {
         app = app.route("/ws", get(ws_handler).layer(Extension(ws_hub)));
@@ -301,7 +348,7 @@ async fn main() -> anyhow::Result<()> {
                 eprintln!("Metrics server error: {}", e);
             }
         });
-        
+
         // Don't wait for metrics server, let it run in background
         std::mem::forget(metrics_server_task);
     }
@@ -314,8 +361,8 @@ async fn main() -> anyhow::Result<()> {
                 eprintln!("Alerts engine error: {}", e);
             }
         });
-        
-        // Don't wait for alerts engine, let it run in background  
+
+        // Don't wait for alerts engine, let it run in background
         std::mem::forget(alerts_task);
     }
 

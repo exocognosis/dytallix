@@ -1,12 +1,12 @@
-pub mod runtime;
-pub mod oracle_simple;
-pub mod types;
-pub mod tokenomics;
 pub mod cosmos_bridge;
 pub mod cosmos_bridge_optimized;
 pub mod gas_optimizer;
-pub mod storage_optimizer;
+pub mod oracle_simple;
+pub mod runtime;
 pub mod security;
+pub mod storage_optimizer;
+pub mod tokenomics;
+pub mod types;
 
 // Re-export oracle_simple as oracle for compatibility
 pub use oracle_simple as oracle;
@@ -29,10 +29,10 @@ pub enum ContractError {
 
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
 pub struct AIAnalysisResult {
-    pub risk_score: u8,      // 0-100
+    pub risk_score: u8, // 0-100
     pub is_fraudulent: bool,
-    pub confidence: u8,      // 0-100
-    pub factors: Vec<u8>,    // Encoded risk factors
+    pub confidence: u8,   // 0-100
+    pub factors: Vec<u8>, // Encoded risk factors
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]

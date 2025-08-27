@@ -52,9 +52,8 @@ pub struct EthereumBridgeContract {
 
 impl EthereumBridgeContract {
     pub fn new(contract_address: String) -> Self {
-        let address: Address = contract_address.parse()
-            .unwrap_or_else(|_| Address::zero());
-        
+        let address: Address = contract_address.parse().unwrap_or_else(|_| Address::zero());
+
         Self {
             contract_address: address,
             http_client: None,
@@ -82,14 +81,16 @@ impl EthereumBridgeContract {
         dest_chain: &str,
         dest_address: &str,
     ) -> Result<H256, BridgeError> {
-        let client = self.http_client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Contract not initialized".to_string()))?;
+        let client = self.http_client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Contract not initialized".to_string(),
+        ))?;
 
         let contract = DytallixBridge::new(self.contract_address, client.clone());
 
-        let asset_addr: Address = asset_address.parse()
+        let asset_addr: Address = asset_address
+            .parse()
             .map_err(|_| BridgeError::InvalidAddress(asset_address.to_string()))?;
-        
+
         let call = contract.lock_asset(
             asset_addr,
             U256::from(amount),
@@ -97,7 +98,9 @@ impl EthereumBridgeContract {
             dest_address.to_string(),
         );
 
-        let tx = call.send().await
+        let tx = call
+            .send()
+            .await
             .map_err(|e| BridgeError::TransactionFailed(format!("Lock asset failed: {}", e)))?;
 
         Ok(tx.tx_hash())
@@ -111,15 +114,18 @@ impl EthereumBridgeContract {
         recipient: &str,
         bridge_tx_id: &str,
     ) -> Result<H256, BridgeError> {
-        let client = self.http_client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Contract not initialized".to_string()))?;
+        let client = self.http_client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Contract not initialized".to_string(),
+        ))?;
 
         let contract = DytallixBridge::new(self.contract_address, client.clone());
 
-        let token_addr: Address = wrapped_token_address.parse()
+        let token_addr: Address = wrapped_token_address
+            .parse()
             .map_err(|_| BridgeError::InvalidAddress(wrapped_token_address.to_string()))?;
-        
-        let recipient_addr: Address = recipient.parse()
+
+        let recipient_addr: Address = recipient
+            .parse()
             .map_err(|_| BridgeError::InvalidAddress(recipient.to_string()))?;
 
         let call = contract.release_asset(
@@ -129,7 +135,9 @@ impl EthereumBridgeContract {
             bridge_tx_id.to_string(),
         );
 
-        let tx = call.send().await
+        let tx = call
+            .send()
+            .await
             .map_err(|e| BridgeError::TransactionFailed(format!("Release asset failed: {}", e)))?;
 
         Ok(tx.tx_hash())
@@ -142,40 +150,41 @@ impl EthereumBridgeContract {
         amount: u64,
         recipient: &str,
     ) -> Result<H256, BridgeError> {
-        let client = self.http_client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Contract not initialized".to_string()))?;
+        let client = self.http_client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Contract not initialized".to_string(),
+        ))?;
 
         let contract = DytallixBridge::new(self.contract_address, client.clone());
 
-        let token_addr: Address = wrapped_token_address.parse()
+        let token_addr: Address = wrapped_token_address
+            .parse()
             .map_err(|_| BridgeError::InvalidAddress(wrapped_token_address.to_string()))?;
-        
-        let recipient_addr: Address = recipient.parse()
+
+        let recipient_addr: Address = recipient
+            .parse()
             .map_err(|_| BridgeError::InvalidAddress(recipient.to_string()))?;
 
-        let call = contract.mint_wrapped_token(
-            token_addr,
-            U256::from(amount),
-            recipient_addr,
-        );
+        let call = contract.mint_wrapped_token(token_addr, U256::from(amount), recipient_addr);
 
-        let tx = call.send().await
-            .map_err(|e| BridgeError::TransactionFailed(format!("Mint wrapped token failed: {}", e)))?;
+        let tx = call.send().await.map_err(|e| {
+            BridgeError::TransactionFailed(format!("Mint wrapped token failed: {}", e))
+        })?;
 
         Ok(tx.tx_hash())
     }
 
     /// Monitor bridge events
-    pub async fn monitor_events(
-        &self,
-        _from_block: Option<u64>,
-    ) -> Result<(), BridgeError> {
-        let _ws_client = self.ws_client.as_ref()
-            .ok_or(BridgeError::InvalidChain("WebSocket client not initialized".to_string()))?;
+    pub async fn monitor_events(&self, _from_block: Option<u64>) -> Result<(), BridgeError> {
+        let _ws_client = self.ws_client.as_ref().ok_or(BridgeError::InvalidChain(
+            "WebSocket client not initialized".to_string(),
+        ))?;
 
         // For now, just validate the WebSocket connection is available
         // In production, this would set up event streaming
-        println!("🔄 Event monitoring initialized for contract at {:?}", self.contract_address);
+        println!(
+            "🔄 Event monitoring initialized for contract at {:?}",
+            self.contract_address
+        );
         Ok(())
     }
 
@@ -185,13 +194,13 @@ impl EthereumBridgeContract {
         from_block: u64,
         to_block: Option<u64>,
     ) -> Result<Vec<AssetLockedFilter>, BridgeError> {
-        let client = self.http_client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Contract not initialized".to_string()))?;
+        let client = self.http_client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Contract not initialized".to_string(),
+        ))?;
 
         let contract = DytallixBridge::new(self.contract_address, client.clone());
 
-        let filter = contract.asset_locked_filter()
-            .from_block(from_block);
+        let filter = contract.asset_locked_filter().from_block(from_block);
 
         let filter = if let Some(to) = to_block {
             filter.to_block(to)
@@ -199,8 +208,9 @@ impl EthereumBridgeContract {
             filter
         };
 
-        let events = filter.query().await
-            .map_err(|e| BridgeError::TransactionFailed(format!("Query lock events failed: {}", e)))?;
+        let events = filter.query().await.map_err(|e| {
+            BridgeError::TransactionFailed(format!("Query lock events failed: {}", e))
+        })?;
 
         Ok(events)
     }
@@ -211,13 +221,13 @@ impl EthereumBridgeContract {
         from_block: u64,
         to_block: Option<u64>,
     ) -> Result<Vec<AssetReleasedFilter>, BridgeError> {
-        let client = self.http_client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Contract not initialized".to_string()))?;
+        let client = self.http_client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Contract not initialized".to_string(),
+        ))?;
 
         let contract = DytallixBridge::new(self.contract_address, client.clone());
 
-        let filter = contract.asset_released_filter()
-            .from_block(from_block);
+        let filter = contract.asset_released_filter().from_block(from_block);
 
         let filter = if let Some(to) = to_block {
             filter.to_block(to)
@@ -225,23 +235,29 @@ impl EthereumBridgeContract {
             filter
         };
 
-        let events = filter.query().await
-            .map_err(|e| BridgeError::TransactionFailed(format!("Query release events failed: {}", e)))?;
+        let events = filter.query().await.map_err(|e| {
+            BridgeError::TransactionFailed(format!("Query release events failed: {}", e))
+        })?;
 
         Ok(events)
     }
 
     /// Get contract balance for a specific asset
     pub async fn get_asset_balance(&self, asset_address: &str) -> Result<U256, BridgeError> {
-        let client = self.http_client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Contract not initialized".to_string()))?;
+        let client = self.http_client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Contract not initialized".to_string(),
+        ))?;
 
         let contract = DytallixBridge::new(self.contract_address, client.clone());
 
-        let asset_addr: Address = asset_address.parse()
+        let asset_addr: Address = asset_address
+            .parse()
             .map_err(|_| BridgeError::InvalidAddress(asset_address.to_string()))?;
 
-        let balance = contract.get_asset_balance(asset_addr).call().await
+        let balance = contract
+            .get_asset_balance(asset_addr)
+            .call()
+            .await
             .map_err(|e| BridgeError::TransactionFailed(format!("Get balance failed: {}", e)))?;
 
         Ok(balance)
@@ -249,13 +265,19 @@ impl EthereumBridgeContract {
 
     /// Check if bridge transaction was processed
     pub async fn is_transaction_processed(&self, bridge_tx_id: &str) -> Result<bool, BridgeError> {
-        let client = self.http_client.as_ref()
-            .ok_or(BridgeError::InvalidChain("Contract not initialized".to_string()))?;
+        let client = self.http_client.as_ref().ok_or(BridgeError::InvalidChain(
+            "Contract not initialized".to_string(),
+        ))?;
 
         let contract = DytallixBridge::new(self.contract_address, client.clone());
 
-        let processed = contract.processed_transactions(bridge_tx_id.to_string()).call().await
-            .map_err(|e| BridgeError::TransactionFailed(format!("Check transaction failed: {}", e)))?;
+        let processed = contract
+            .processed_transactions(bridge_tx_id.to_string())
+            .call()
+            .await
+            .map_err(|e| {
+                BridgeError::TransactionFailed(format!("Check transaction failed: {}", e))
+            })?;
 
         Ok(processed)
     }
@@ -290,7 +312,10 @@ impl EthereumBridgeContract {
         bridge_tx_id: &str,
     ) -> BridgeContractCall {
         let mut parameters = HashMap::new();
-        parameters.insert("wrapped_token_address".to_string(), wrapped_token_address.to_string());
+        parameters.insert(
+            "wrapped_token_address".to_string(),
+            wrapped_token_address.to_string(),
+        );
         parameters.insert("amount".to_string(), amount.to_string());
         parameters.insert("recipient".to_string(), recipient.to_string());
         parameters.insert("bridge_tx_id".to_string(), bridge_tx_id.to_string());
@@ -310,26 +335,29 @@ mod tests {
 
     #[test]
     fn test_bridge_contract_creation() {
-        let contract = EthereumBridgeContract::new(
-            "0x1234567890123456789012345678901234567890".to_string()
+        let contract =
+            EthereumBridgeContract::new("0x1234567890123456789012345678901234567890".to_string());
+
+        assert_eq!(
+            contract.contract_address,
+            "0x1234567890123456789012345678901234567890"
+                .parse::<Address>()
+                .unwrap()
         );
-        
-        assert_eq!(contract.contract_address, "0x1234567890123456789012345678901234567890".parse::<Address>().unwrap());
     }
 
     #[test]
     fn test_prepare_lock_asset_call() {
-        let contract = EthereumBridgeContract::new(
-            "0x1234567890123456789012345678901234567890".to_string()
-        );
-        
+        let contract =
+            EthereumBridgeContract::new("0x1234567890123456789012345678901234567890".to_string());
+
         let call = contract.prepare_lock_asset_call(
             "0xA0b86a33E6441E5A4C5C3BD1C6B06B65a80D8a7b",
             1000000000000000000,
             "dytallix",
-            "dyt1test"
+            "dyt1test",
         );
-        
+
         assert_eq!(call.function_name, "lockAsset");
         assert_eq!(call.parameters.len(), 4);
         assert_eq!(call.gas_limit, U256::from(200000));

@@ -13,7 +13,10 @@ use std::sync::Arc;
 struct MockAIAnalyzer;
 
 impl ContractAIAnalyzer for MockAIAnalyzer {
-    fn analyze_deployment(&self, _contract: &ContractDeployment) -> Result<AIAnalysisResult, String> {
+    fn analyze_deployment(
+        &self,
+        _contract: &ContractDeployment,
+    ) -> Result<AIAnalysisResult, String> {
         Ok(AIAnalysisResult {
             security_score: 0.85,
             gas_efficiency: 0.9,
@@ -22,7 +25,11 @@ impl ContractAIAnalyzer for MockAIAnalyzer {
         })
     }
 
-    fn analyze_execution(&self, _call: &ContractCall, _result: &ExecutionResult) -> Result<AIAnalysisResult, String> {
+    fn analyze_execution(
+        &self,
+        _call: &ContractCall,
+        _result: &ExecutionResult,
+    ) -> Result<AIAnalysisResult, String> {
         Ok(AIAnalysisResult {
             security_score: 0.8,
             gas_efficiency: 0.85,
@@ -79,7 +86,9 @@ async fn test_complete_contract_lifecycle() {
     assert!(!state_data.is_empty());
 
     // Test state restoration
-    runtime.restore_contract_state(&contract_address, &state_data).unwrap();
+    runtime
+        .restore_contract_state(&contract_address, &state_data)
+        .unwrap();
 
     // Test gas estimation
     let test_call = ContractCall {
@@ -132,7 +141,10 @@ async fn test_ai_validation_failure() {
     // Create analyzer that always rejects contracts
     struct RejectingAnalyzer;
     impl ContractAIAnalyzer for RejectingAnalyzer {
-        fn analyze_deployment(&self, _contract: &ContractDeployment) -> Result<AIAnalysisResult, String> {
+        fn analyze_deployment(
+            &self,
+            _contract: &ContractDeployment,
+        ) -> Result<AIAnalysisResult, String> {
             Ok(AIAnalysisResult {
                 security_score: 0.3, // Low score should cause rejection
                 gas_efficiency: 0.5,
@@ -140,8 +152,12 @@ async fn test_ai_validation_failure() {
                 risk_assessment: "High risk".to_string(),
             })
         }
-        
-        fn analyze_execution(&self, _call: &ContractCall, _result: &ExecutionResult) -> Result<AIAnalysisResult, String> {
+
+        fn analyze_execution(
+            &self,
+            _call: &ContractCall,
+            _result: &ExecutionResult,
+        ) -> Result<AIAnalysisResult, String> {
             Ok(AIAnalysisResult {
                 security_score: 0.3,
                 gas_efficiency: 0.5,
@@ -149,7 +165,7 @@ async fn test_ai_validation_failure() {
                 risk_assessment: "High risk".to_string(),
             })
         }
-        
+
         fn validate_state_change(&self, _change: &StateChange) -> Result<bool, String> {
             Ok(false)
         }

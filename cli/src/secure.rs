@@ -1,8 +1,8 @@
+use crate::keystore;
 use anyhow::{anyhow, Result};
 use rpassword::read_password;
-use std::{thread, time::Duration};
 use std::sync::Once;
-use crate::keystore;
+use std::{thread, time::Duration};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{info, warn};
 use zeroize::Zeroize;
@@ -39,7 +39,7 @@ pub fn prompt_passphrase_with_retry<F>(
     confirm: bool,
     mut max_retries: u8,
     backoff_ms: u64,
-    verify_fn: F
+    verify_fn: F,
 ) -> Result<String>
 where
     F: Fn(&str) -> bool,
@@ -51,9 +51,14 @@ where
         print_prompt("Enter passphrase: ")?;
         let mut pass = read_password().map_err(|e| anyhow!(e))?;
         if !verify_fn(&pass) {
-            warn!("event=passphrase_verify_failed attempt={} max={}", attempt, max_retries);
+            warn!(
+                "event=passphrase_verify_failed attempt={} max={}",
+                attempt, max_retries
+            );
             pass.zeroize();
-            if attempt >= max_retries { return Err(anyhow!("passphrase verification failed")); }
+            if attempt >= max_retries {
+                return Err(anyhow!("passphrase verification failed"));
+            }
             backoff(backoff_ms);
             continue;
         }
@@ -61,20 +66,38 @@ where
             print_prompt("Confirm passphrase: ")?;
             let confirm_v = read_password().map_err(|e| anyhow!(e))?;
             if confirm_v != pass {
-                warn!("event=passphrase_mismatch attempt={} max={}", attempt, max_retries);
-                let mut c = confirm_v; c.zeroize();
+                warn!(
+                    "event=passphrase_mismatch attempt={} max={}",
+                    attempt, max_retries
+                );
+                let mut c = confirm_v;
+                c.zeroize();
                 pass.zeroize();
-                if attempt >= max_retries { return Err(anyhow!("passphrase mismatch")); }
+                if attempt >= max_retries {
+                    return Err(anyhow!("passphrase mismatch"));
+                }
                 backoff(backoff_ms);
                 continue;
             } else {
-                let mut c = confirm_v; c.zeroize();
+                let mut c = confirm_v;
+                c.zeroize();
             }
         }
-        info!("event=passphrase_accepted attempts={} confirm={} hidden=1", attempt, confirm as i32);
+        info!(
+            "event=passphrase_accepted attempts={} confirm={} hidden=1",
+            attempt, confirm as i32
+        );
         return Ok(pass); // caller must zeroize after use
     }
 }
 
-fn backoff(ms: u64) { if ms>0 { thread::sleep(Duration::from_millis(ms)); } }
-fn print_prompt(s: &str) -> Result<()> { use std::io::Write; print!("{}", s); std::io::stdout().flush().map_err(|e| anyhow!(e)) }
+fn backoff(ms: u64) {
+    if ms > 0 {
+        thread::sleep(Duration::from_millis(ms));
+    }
+}
+fn print_prompt(s: &str) -> Result<()> {
+    use std::io::Write;
+    print!("{}", s);
+    std::io::stdout().flush().map_err(|e| anyhow!(e))
+}

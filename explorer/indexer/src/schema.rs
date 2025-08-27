@@ -1,5 +1,5 @@
-use rusqlite::{Connection, Result};
 use anyhow::anyhow;
+use rusqlite::{Connection, Result};
 
 pub fn create_schema(conn: &Connection) -> Result<()> {
     // Create blocks table
@@ -40,15 +40,11 @@ pub fn create_schema(conn: &Connection) -> Result<()> {
         [],
     )?;
 
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_txs_hash ON txs(hash)",
-        [],
-    )?;
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_txs_hash ON txs(hash)", [])?;
 
     Ok(())
 }
 
 pub fn apply_migrations(conn: &Connection) -> anyhow::Result<()> {
-    create_schema(conn)
-        .map_err(|e| anyhow!("Failed to apply migrations: {}", e))
+    create_schema(conn).map_err(|e| anyhow!("Failed to apply migrations: {}", e))
 }

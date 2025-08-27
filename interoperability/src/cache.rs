@@ -6,12 +6,12 @@
 use serde::{Deserialize, Serialize};
 // remove unused Duration import
 // use std::time::Duration;
-use std::sync::Arc;
-use std::fmt;
+use crate::{AssetMetadata, BridgeStatus, BridgeTx, BridgeTxId, PQCSignature};
 use deadpool_redis::{Config, Pool, Runtime};
-use redis::{AsyncCommands};
-use tracing::{info, warn, error, debug};
-use crate::{BridgeTx, BridgeTxId, BridgeStatus, PQCSignature, AssetMetadata};
+use redis::AsyncCommands;
+use std::fmt;
+use std::sync::Arc;
+use tracing::{debug, error, info, warn};
 
 #[derive(Debug, Clone)]
 pub struct CacheConfig {
@@ -28,7 +28,7 @@ impl Default for CacheConfig {
         Self {
             redis_url: "redis://localhost:6379".to_string(),
             max_connections: 20,
-            default_ttl_seconds: 3600, // 1 hour
+            default_ttl_seconds: 3600,      // 1 hour
             high_priority_ttl_seconds: 300, // 5 minutes
             enable_compression: true,
             cache_key_prefix: "dytallix:bridge".to_string(),
@@ -136,20 +136,41 @@ impl BridgeCache {
     pub async fn new(config: CacheConfig) -> Result<Self, redis::RedisError> {
         info!("Initializing Redis cache with URL: {}", config.redis_url);
         let pool_config = Config::from_url(&config.redis_url);
-        let pool = pool_config.create_pool(Some(Runtime::Tokio1)).map_err(|e| {
-            redis::RedisError::from((redis::ErrorKind::IoError, "Pool creation failed", e.to_string()))
-        })?;
+        let pool = pool_config
+            .create_pool(Some(Runtime::Tokio1))
+            .map_err(|e| {
+                redis::RedisError::from((
+                    redis::ErrorKind::IoError,
+                    "Pool creation failed",
+                    e.to_string(),
+                ))
+            })?;
         {
             let mut conn = pool.get().await.map_err(|e| {
-                redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+                redis::RedisError::from((
+                    redis::ErrorKind::IoError,
+                    "Pool get failed",
+                    e.to_string(),
+                ))
             })?;
             // Use explicit command invocation for PING
-            let _: () = redis::cmd("PING").query_async(&mut *conn).await.map_err(|e| {
-                redis::RedisError::from((redis::ErrorKind::IoError, "PING failed", e.to_string()))
-            })?;
+            let _: () = redis::cmd("PING")
+                .query_async(&mut *conn)
+                .await
+                .map_err(|e| {
+                    redis::RedisError::from((
+                        redis::ErrorKind::IoError,
+                        "PING failed",
+                        e.to_string(),
+                    ))
+                })?;
             info!("Redis connection established successfully");
         }
-        let cache = Self { pool, config, metrics: Arc::new(tokio::sync::RwLock::new(CacheMetrics::default())) };
+        let cache = Self {
+            pool,
+            config,
+            metrics: Arc::new(tokio::sync::RwLock::new(CacheMetrics::default())),
+        };
         cache.setup_cache_monitoring().await?;
         Ok(cache)
     }
@@ -159,10 +180,32 @@ impl BridgeCache {
             redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
         })?;
         // CONFIG SET via explicit command (not available as method on connection wrapper)
-        let _: () = redis::cmd("CONFIG").arg("SET").arg("maxmemory-policy").arg("allkeys-lru")
-            .query_async(&mut *conn).await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "CONFIG SET maxmemory-policy failed", e.to_string())))?;
-        let _: () = redis::cmd("CONFIG").arg("SET").arg("timeout").arg("300")
-            .query_async(&mut *conn).await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "CONFIG SET timeout failed", e.to_string())))?;
+        let _: () = redis::cmd("CONFIG")
+            .arg("SET")
+            .arg("maxmemory-policy")
+            .arg("allkeys-lru")
+            .query_async(&mut *conn)
+            .await
+            .map_err(|e| {
+                redis::RedisError::from((
+                    redis::ErrorKind::IoError,
+                    "CONFIG SET maxmemory-policy failed",
+                    e.to_string(),
+                ))
+            })?;
+        let _: () = redis::cmd("CONFIG")
+            .arg("SET")
+            .arg("timeout")
+            .arg("300")
+            .query_async(&mut *conn)
+            .await
+            .map_err(|e| {
+                redis::RedisError::from((
+                    redis::ErrorKind::IoError,
+                    "CONFIG SET timeout failed",
+                    e.to_string(),
+                ))
+            })?;
         info!("Cache monitoring and configuration initialized");
         Ok(())
     }
@@ -174,29 +217,36 @@ impl BridgeCache {
         priority: CachePriority,
     ) -> Result<(), redis::RedisError> {
         let start_time = std::time::Instant::now();
-        
+
         let cached_tx = CachedBridgeTransaction {
             bridge_tx: bridge_tx.clone(),
             cached_at: chrono::Utc::now().timestamp() as u64,
             access_count: 0,
             priority: priority.clone(),
         };
-        
+
         let key = CacheKey::BridgeTransaction(bridge_tx.id.0.clone())
             .to_string(&self.config.cache_key_prefix);
-        
+
         let serialized = if self.config.enable_compression {
             self.compress_serialize(&cached_tx)?
         } else {
-            serde_json::to_vec(&cached_tx)
-                .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Serialization failed", e.to_string())))?
+            serde_json::to_vec(&cached_tx).map_err(|e| {
+                redis::RedisError::from((
+                    redis::ErrorKind::TypeError,
+                    "Serialization failed",
+                    e.to_string(),
+                ))
+            })?
         };
-        
+
         let ttl = priority.ttl_seconds(&self.config);
-        
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
         let _: () = conn.set_ex(&key, serialized, ttl as usize).await?;
-        
+
         // Update metrics
         {
             let mut metrics = self.metrics.write().await;
@@ -208,30 +258,43 @@ impl BridgeCache {
                 metrics.total_operations,
             );
         }
-        
-        debug!("Cached bridge transaction {} with TTL {}s", bridge_tx.id.0, ttl);
+
+        debug!(
+            "Cached bridge transaction {} with TTL {}s",
+            bridge_tx.id.0, ttl
+        );
         Ok(())
     }
 
     /// Retrieve cached bridge transaction
-    pub async fn get_bridge_transaction(&self, tx_id: &BridgeTxId) -> Result<Option<BridgeTx>, redis::RedisError> {
+    pub async fn get_bridge_transaction(
+        &self,
+        tx_id: &BridgeTxId,
+    ) -> Result<Option<BridgeTx>, redis::RedisError> {
         let start_time = std::time::Instant::now();
-        let key = CacheKey::BridgeTransaction(tx_id.0.clone())
-            .to_string(&self.config.cache_key_prefix);
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+        let key =
+            CacheKey::BridgeTransaction(tx_id.0.clone()).to_string(&self.config.cache_key_prefix);
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
         let cached_data: Option<Vec<u8>> = conn.get(&key).await?;
-        
+
         let result = if let Some(data) = cached_data {
             let cached_tx: CachedBridgeTransaction = if self.config.enable_compression {
                 self.decompress_deserialize(&data)?
             } else {
-                serde_json::from_slice(&data)
-                    .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Deserialization failed", e.to_string())))?
+                serde_json::from_slice(&data).map_err(|e| {
+                    redis::RedisError::from((
+                        redis::ErrorKind::TypeError,
+                        "Deserialization failed",
+                        e.to_string(),
+                    ))
+                })?
             };
-            
+
             // Update access count
             self.increment_access_count(&key).await?;
-            
+
             // Update metrics - cache hit
             {
                 let mut metrics = self.metrics.write().await;
@@ -244,7 +307,7 @@ impl BridgeCache {
                     metrics.total_operations,
                 );
             }
-            
+
             debug!("Cache hit for bridge transaction {}", tx_id.0);
             Some(cached_tx.bridge_tx)
         } else {
@@ -260,11 +323,11 @@ impl BridgeCache {
                     metrics.total_operations,
                 );
             }
-            
+
             debug!("Cache miss for bridge transaction {}", tx_id.0);
             None
         };
-        
+
         Ok(result)
     }
 
@@ -274,31 +337,58 @@ impl BridgeCache {
         tx_id: &BridgeTxId,
         signatures: &[PQCSignature],
     ) -> Result<(), redis::RedisError> {
-        let key = CacheKey::ValidatorSignatures(tx_id.0.clone())
-            .to_string(&self.config.cache_key_prefix);
-        
-        let serialized = serde_json::to_vec(signatures)
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Serialization failed", e.to_string())))?;
-        
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
-        let _: () = conn.set_ex(&key, serialized, self.config.default_ttl_seconds as usize).await?;
-        
-        debug!("Cached {} validator signatures for transaction {}", signatures.len(), tx_id.0);
+        let key =
+            CacheKey::ValidatorSignatures(tx_id.0.clone()).to_string(&self.config.cache_key_prefix);
+
+        let serialized = serde_json::to_vec(signatures).map_err(|e| {
+            redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "Serialization failed",
+                e.to_string(),
+            ))
+        })?;
+
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
+        let _: () = conn
+            .set_ex(&key, serialized, self.config.default_ttl_seconds as usize)
+            .await?;
+
+        debug!(
+            "Cached {} validator signatures for transaction {}",
+            signatures.len(),
+            tx_id.0
+        );
         Ok(())
     }
 
     /// Get cached validator signatures
-    pub async fn get_validator_signatures(&self, tx_id: &BridgeTxId) -> Result<Option<Vec<PQCSignature>>, redis::RedisError> {
-        let key = CacheKey::ValidatorSignatures(tx_id.0.clone())
-            .to_string(&self.config.cache_key_prefix);
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+    pub async fn get_validator_signatures(
+        &self,
+        tx_id: &BridgeTxId,
+    ) -> Result<Option<Vec<PQCSignature>>, redis::RedisError> {
+        let key =
+            CacheKey::ValidatorSignatures(tx_id.0.clone()).to_string(&self.config.cache_key_prefix);
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
         let cached_data: Option<Vec<u8>> = conn.get(&key).await?;
-        
+
         if let Some(data) = cached_data {
-            let signatures: Vec<PQCSignature> = serde_json::from_slice(&data)
-                .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Deserialization failed", e.to_string())))?;
-            
-            debug!("Retrieved {} cached validator signatures for transaction {}", signatures.len(), tx_id.0);
+            let signatures: Vec<PQCSignature> = serde_json::from_slice(&data).map_err(|e| {
+                redis::RedisError::from((
+                    redis::ErrorKind::TypeError,
+                    "Deserialization failed",
+                    e.to_string(),
+                ))
+            })?;
+
+            debug!(
+                "Retrieved {} cached validator signatures for transaction {}",
+                signatures.len(),
+                tx_id.0
+            );
             Ok(Some(signatures))
         } else {
             Ok(None)
@@ -312,15 +402,22 @@ impl BridgeCache {
         result: &T,
         ttl_seconds: Option<u64>,
     ) -> Result<(), redis::RedisError> {
-        let key = CacheKey::QueryResult(query_hash.to_string())
-            .to_string(&self.config.cache_key_prefix);
-        
-        let serialized = serde_json::to_vec(result)
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Serialization failed", e.to_string())))?;
-        
+        let key =
+            CacheKey::QueryResult(query_hash.to_string()).to_string(&self.config.cache_key_prefix);
+
+        let serialized = serde_json::to_vec(result).map_err(|e| {
+            redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "Serialization failed",
+                e.to_string(),
+            ))
+        })?;
+
         let ttl = ttl_seconds.unwrap_or(self.config.default_ttl_seconds);
-        
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
         let _: () = conn.set_ex(&key, serialized, ttl as usize).await?;
         Ok(())
     }
@@ -330,15 +427,22 @@ impl BridgeCache {
         &self,
         query_hash: &str,
     ) -> Result<Option<T>, redis::RedisError> {
-        let key = CacheKey::QueryResult(query_hash.to_string())
-            .to_string(&self.config.cache_key_prefix);
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+        let key =
+            CacheKey::QueryResult(query_hash.to_string()).to_string(&self.config.cache_key_prefix);
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
         let cached_data: Option<Vec<u8>> = conn.get(&key).await?;
-        
+
         if let Some(data) = cached_data {
-            let result: T = serde_json::from_slice(&data)
-                .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Deserialization failed", e.to_string())))?;
-            
+            let result: T = serde_json::from_slice(&data).map_err(|e| {
+                redis::RedisError::from((
+                    redis::ErrorKind::TypeError,
+                    "Deserialization failed",
+                    e.to_string(),
+                ))
+            })?;
+
             Ok(Some(result))
         } else {
             Ok(None)
@@ -351,28 +455,51 @@ impl BridgeCache {
         asset_id: &str,
         metadata: &AssetMetadata,
     ) -> Result<(), redis::RedisError> {
-        let key = CacheKey::AssetMetadata(asset_id.to_string())
-            .to_string(&self.config.cache_key_prefix);
-        
-        let serialized = serde_json::to_vec(metadata)
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Serialization failed", e.to_string())))?;
-        
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
-        let _: () = conn.set_ex(&key, serialized, self.config.default_ttl_seconds as usize * 2).await?;
+        let key =
+            CacheKey::AssetMetadata(asset_id.to_string()).to_string(&self.config.cache_key_prefix);
+
+        let serialized = serde_json::to_vec(metadata).map_err(|e| {
+            redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "Serialization failed",
+                e.to_string(),
+            ))
+        })?;
+
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
+        let _: () = conn
+            .set_ex(
+                &key,
+                serialized,
+                self.config.default_ttl_seconds as usize * 2,
+            )
+            .await?;
         Ok(())
     }
 
     /// Get cached asset metadata
-    pub async fn get_asset_metadata(&self, asset_id: &str) -> Result<Option<AssetMetadata>, redis::RedisError> {
-        let key = CacheKey::AssetMetadata(asset_id.to_string())
-            .to_string(&self.config.cache_key_prefix);
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+    pub async fn get_asset_metadata(
+        &self,
+        asset_id: &str,
+    ) -> Result<Option<AssetMetadata>, redis::RedisError> {
+        let key =
+            CacheKey::AssetMetadata(asset_id.to_string()).to_string(&self.config.cache_key_prefix);
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
         let cached_data: Option<Vec<u8>> = conn.get(&key).await?;
-        
+
         if let Some(data) = cached_data {
-            let metadata: AssetMetadata = serde_json::from_slice(&data)
-                .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Deserialization failed", e.to_string())))?;
-            
+            let metadata: AssetMetadata = serde_json::from_slice(&data).map_err(|e| {
+                redis::RedisError::from((
+                    redis::ErrorKind::TypeError,
+                    "Deserialization failed",
+                    e.to_string(),
+                ))
+            })?;
+
             Ok(Some(metadata))
         } else {
             Ok(None)
@@ -380,38 +507,48 @@ impl BridgeCache {
     }
 
     /// Invalidate cache for bridge transaction and related data
-    pub async fn invalidate_bridge_transaction(&self, tx_id: &BridgeTxId) -> Result<(), redis::RedisError> {
-        let tx_key = CacheKey::BridgeTransaction(tx_id.0.clone())
-            .to_string(&self.config.cache_key_prefix);
-        let sig_key = CacheKey::ValidatorSignatures(tx_id.0.clone())
-            .to_string(&self.config.cache_key_prefix);
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+    pub async fn invalidate_bridge_transaction(
+        &self,
+        tx_id: &BridgeTxId,
+    ) -> Result<(), redis::RedisError> {
+        let tx_key =
+            CacheKey::BridgeTransaction(tx_id.0.clone()).to_string(&self.config.cache_key_prefix);
+        let sig_key =
+            CacheKey::ValidatorSignatures(tx_id.0.clone()).to_string(&self.config.cache_key_prefix);
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
         let deleted: u32 = conn.del(&[&tx_key, &sig_key]).await?;
-        
+
         // Update metrics
         {
             let mut metrics = self.metrics.write().await;
             metrics.deletions += deleted as u64;
         }
-        
-        debug!("Invalidated {} cache entries for transaction {}", deleted, tx_id.0);
+
+        debug!(
+            "Invalidated {} cache entries for transaction {}",
+            deleted, tx_id.0
+        );
         Ok(())
     }
 
     /// Invalidate all caches (use carefully)
     pub async fn invalidate_all(&self) -> Result<(), redis::RedisError> {
         let pattern = format!("{}:*", self.config.cache_key_prefix);
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
         let keys: Vec<String> = conn.keys(&pattern).await?;
         if !keys.is_empty() {
             let deleted: u32 = conn.del(&keys).await?;
-            
+
             // Update metrics
             {
                 let mut metrics = self.metrics.write().await;
                 metrics.deletions += deleted as u64;
             }
-            
+
             info!("Invalidated {} cache entries", deleted);
         }
         Ok(())
@@ -431,8 +568,15 @@ impl BridgeCache {
 
     /// Health check for cache system
     pub async fn health_check(&self) -> Result<bool, redis::RedisError> {
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
-        let _: () = redis::cmd("PING").query_async(&mut *conn).await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "PING failed", e.to_string())))?;
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
+        let _: () = redis::cmd("PING")
+            .query_async(&mut *conn)
+            .await
+            .map_err(|e| {
+                redis::RedisError::from((redis::ErrorKind::IoError, "PING failed", e.to_string()))
+            })?;
         let key = CacheKey::HealthCheck.to_string(&self.config.cache_key_prefix);
         let health_data = serde_json::json!({
             "status": "healthy",
@@ -444,9 +588,12 @@ impl BridgeCache {
     }
 
     /// Warm up cache with frequently accessed data
-    pub async fn warmup_cache(&self, bridge_transactions: &[BridgeTx]) -> Result<u32, redis::RedisError> {
+    pub async fn warmup_cache(
+        &self,
+        bridge_transactions: &[BridgeTx],
+    ) -> Result<u32, redis::RedisError> {
         let mut cached_count = 0;
-        
+
         for tx in bridge_transactions {
             // Prioritize based on transaction status
             let priority = match tx.status {
@@ -455,14 +602,14 @@ impl BridgeCache {
                 BridgeStatus::Completed => CachePriority::Low,
                 BridgeStatus::Failed | BridgeStatus::Reversed => CachePriority::Low,
             };
-            
+
             if let Err(e) = self.cache_bridge_transaction(tx, priority).await {
                 warn!("Failed to warm up cache for transaction {}: {}", tx.id.0, e);
             } else {
                 cached_count += 1;
             }
         }
-        
+
         info!("Cache warmed up with {} transactions", cached_count);
         Ok(cached_count)
     }
@@ -477,9 +624,13 @@ impl BridgeCache {
     /// Helper methods
     async fn increment_access_count(&self, key: &str) -> Result<(), redis::RedisError> {
         let access_key = format!("{}:access", key);
-        let mut conn = self.pool.get().await.map_err(|e| redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string())))?;
+        let mut conn = self.pool.get().await.map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
+        })?;
         let _: () = conn.incr(&access_key, 1).await?;
-        let _: () = conn.expire(&access_key, self.config.default_ttl_seconds as usize).await?;
+        let _: () = conn
+            .expire(&access_key, self.config.default_ttl_seconds as usize)
+            .await?;
         Ok(())
     }
 
@@ -492,32 +643,60 @@ impl BridgeCache {
     }
 
     fn compress_serialize<T: Serialize>(&self, data: &T) -> Result<Vec<u8>, redis::RedisError> {
-        let serialized = serde_json::to_vec(data)
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Serialization failed", e.to_string())))?;
-        
+        let serialized = serde_json::to_vec(data).map_err(|e| {
+            redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "Serialization failed",
+                e.to_string(),
+            ))
+        })?;
+
         // Simple compression using zlib (you could use other compression algorithms)
-        use std::io::prelude::*;
-        use flate2::Compression;
         use flate2::write::ZlibEncoder;
-        
+        use flate2::Compression;
+        use std::io::prelude::*;
+
         let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(&serialized)
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Compression failed", e.to_string())))?;
-        encoder.finish()
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Compression finish failed", e.to_string())))
+        encoder.write_all(&serialized).map_err(|e| {
+            redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "Compression failed",
+                e.to_string(),
+            ))
+        })?;
+        encoder.finish().map_err(|e| {
+            redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "Compression finish failed",
+                e.to_string(),
+            ))
+        })
     }
 
-    fn decompress_deserialize<T: for<'de> Deserialize<'de>>(&self, data: &[u8]) -> Result<T, redis::RedisError> {
-        use std::io::prelude::*;
+    fn decompress_deserialize<T: for<'de> Deserialize<'de>>(
+        &self,
+        data: &[u8],
+    ) -> Result<T, redis::RedisError> {
         use flate2::read::ZlibDecoder;
-        
+        use std::io::prelude::*;
+
         let mut decoder = ZlibDecoder::new(data);
         let mut decompressed = Vec::new();
-        decoder.read_to_end(&mut decompressed)
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Decompression failed", e.to_string())))?;
-        
-        serde_json::from_slice(&decompressed)
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "Deserialization failed", e.to_string())))
+        decoder.read_to_end(&mut decompressed).map_err(|e| {
+            redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "Decompression failed",
+                e.to_string(),
+            ))
+        })?;
+
+        serde_json::from_slice(&decompressed).map_err(|e| {
+            redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "Deserialization failed",
+                e.to_string(),
+            ))
+        })
     }
 }
 
@@ -531,7 +710,7 @@ mod tests {
     async fn test_bridge_cache_operations() {
         let config = CacheConfig::default();
         let cache = BridgeCache::new(config).await.unwrap();
-        
+
         // Create test bridge transaction
         let bridge_tx = BridgeTx {
             id: BridgeTxId("test_cache_tx".to_string()),
@@ -554,22 +733,28 @@ mod tests {
             validator_signatures: Vec::new(),
             status: BridgeStatus::Pending,
         };
-        
+
         // Test caching
-        cache.cache_bridge_transaction(&bridge_tx, CachePriority::High).await.unwrap();
-        
+        cache
+            .cache_bridge_transaction(&bridge_tx, CachePriority::High)
+            .await
+            .unwrap();
+
         // Test retrieval
         let cached_tx = cache.get_bridge_transaction(&bridge_tx.id).await.unwrap();
         assert!(cached_tx.is_some());
         assert_eq!(cached_tx.unwrap().id.0, bridge_tx.id.0);
-        
+
         // Test invalidation
-        cache.invalidate_bridge_transaction(&bridge_tx.id).await.unwrap();
-        
+        cache
+            .invalidate_bridge_transaction(&bridge_tx.id)
+            .await
+            .unwrap();
+
         // Verify invalidation
         let cached_tx_after = cache.get_bridge_transaction(&bridge_tx.id).await.unwrap();
         assert!(cached_tx_after.is_none());
-        
+
         // Test metrics
         let metrics = cache.get_metrics().await;
         assert!(metrics.total_operations > 0);

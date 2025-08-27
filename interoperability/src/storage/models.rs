@@ -2,9 +2,9 @@
 //!
 //! Defines the database models and structures for bridge persistence.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct BridgeTransactionModel {

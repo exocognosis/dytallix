@@ -266,7 +266,7 @@ mod tests {
         let signature = AIResponseSignature::new(
             SignatureAlgorithm::Dilithium5,
             vec![1, 2, 3, 4],
-            vec![5, 6, 7, 8]
+            vec![5, 6, 7, 8],
         );
 
         let oracle_identity = OracleIdentity::new(
@@ -417,7 +417,7 @@ mod tests {
         let mut signature = AIResponseSignature::new(
             SignatureAlgorithm::Dilithium5,
             vec![1, 2, 3, 4],
-            vec![5, 6, 7, 8]
+            vec![5, 6, 7, 8],
         );
 
         // Set timestamp to 10 minutes ago

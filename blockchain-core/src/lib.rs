@@ -10,6 +10,7 @@ pub mod policy;
 pub mod runtime;
 pub mod secrets;
 pub mod staking;
+pub mod state_commitment;
 pub mod storage;
 pub mod types;
 pub mod wasm;

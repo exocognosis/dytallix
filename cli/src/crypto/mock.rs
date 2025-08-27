@@ -15,7 +15,11 @@ impl PQC for MockPQC {
     fn keypair() -> (Vec<u8>, Vec<u8>) {
         // Deterministic but unique-ish: derive from a counter stored in thread local
         thread_local! { static COUNTER: std::cell::RefCell<u64> = std::cell::RefCell::new(0); }
-        let ctr = COUNTER.with(|c| { let mut v = c.borrow_mut(); *v += 1; *v });
+        let ctr = COUNTER.with(|c| {
+            let mut v = c.borrow_mut();
+            *v += 1;
+            *v
+        });
         let mut sk = [0u8; SK_LEN];
         // Fill sk deterministically from counter via blake3(expand)
         let derived = blake3::derive_key("dyt-mock-sk", &ctr.to_le_bytes());
@@ -34,7 +38,12 @@ impl PQC for MockPQC {
 
     fn verify(pk: &[u8], msg: &[u8], sig: &[u8]) -> bool {
         // Find sk corresponding to pk
-        if let Some((sk, _)) = REGISTRY.read().unwrap().iter().find(|(s, p)| blake3::hash(s).as_bytes() == pk && p == &pk) {
+        if let Some((sk, _)) = REGISTRY
+            .read()
+            .unwrap()
+            .iter()
+            .find(|(s, p)| blake3::hash(s).as_bytes() == pk && p == &pk)
+        {
             let mut h = Hasher::new();
             h.update(sk);
             h.update(msg);

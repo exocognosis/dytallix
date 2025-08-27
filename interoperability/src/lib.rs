@@ -7,8 +7,9 @@ use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // Import PQC bridge functionality
-use dytallix_pqc::{BridgePQCManager, BridgeSignature, CrossChainPayload, MultiSigValidationResult};
-
+use dytallix_pqc::{
+    BridgePQCManager, BridgeSignature, CrossChainPayload, MultiSigValidationResult,
+};
 
 // ============================================================================
 // Core Types and Structures
@@ -130,8 +131,18 @@ pub struct EmergencyHaltRecord {
 // ============================================================================
 
 pub trait PQCBridge {
-    fn lock_asset(&self, asset: Asset, dest_chain: &str, dest_address: &str) -> Result<BridgeTxId, BridgeError>;
-    fn mint_wrapped(&self, asset: Asset, origin_chain: &str, dest_address: &str) -> Result<WrappedAsset, BridgeError>;
+    fn lock_asset(
+        &self,
+        asset: Asset,
+        dest_chain: &str,
+        dest_address: &str,
+    ) -> Result<BridgeTxId, BridgeError>;
+    fn mint_wrapped(
+        &self,
+        asset: Asset,
+        origin_chain: &str,
+        dest_address: &str,
+    ) -> Result<WrappedAsset, BridgeError>;
     fn verify_cross_chain(&self, tx: &BridgeTx) -> Result<bool, BridgeError>;
     fn get_bridge_status(&self, tx_id: &BridgeTxId) -> Result<BridgeStatus, BridgeError>;
     fn get_supported_chains(&self) -> Vec<String>;
@@ -152,8 +163,9 @@ pub struct DytallixBridge {
 
 impl DytallixBridge {
     pub fn new() -> Self {
-        let mut pqc_manager = BridgePQCManager::new().expect("Failed to initialize BridgePQCManager");
-        
+        let mut pqc_manager =
+            BridgePQCManager::new().expect("Failed to initialize BridgePQCManager");
+
         let mut bridge = Self {
             validators: HashMap::new(),
             supported_chains: vec![
@@ -167,106 +179,150 @@ impl DytallixBridge {
             min_validator_signatures: 3, // 3-of-5 multi-sig minimum
             pqc_manager,
         };
-        
+
         // Initialize default validators with PQC keys
         bridge.initialize_default_validators();
-        
+
         bridge
     }
-    
+
     /// Initialize default validators with proper PQC key generation
     fn initialize_default_validators(&mut self) {
         use dytallix_pqc::SignatureAlgorithm;
-        
+
         // Generate and add validator 1 with Dilithium
-        if let Ok(keypair) = self.pqc_manager.generate_validator_keypair(&SignatureAlgorithm::Dilithium5) {
+        if let Ok(keypair) = self
+            .pqc_manager
+            .generate_validator_keypair(&SignatureAlgorithm::Dilithium5)
+        {
             self.pqc_manager.add_validator(
                 "validator_1".to_string(),
                 keypair.public_key.clone(),
                 SignatureAlgorithm::Dilithium5,
             );
-            self.add_validator(BridgeValidator { id: "validator_1".to_string(), public_key: keypair.public_key.clone(), algorithm: "dilithium".to_string(), stake: 1000000, reputation: 1.0, is_active: true });
+            self.add_validator(BridgeValidator {
+                id: "validator_1".to_string(),
+                public_key: keypair.public_key.clone(),
+                algorithm: "dilithium".to_string(),
+                stake: 1000000,
+                reputation: 1.0,
+                is_active: true,
+            });
         }
-        
+
         // Generate and add validator 2 with Falcon
-        if let Ok(keypair) = self.pqc_manager.generate_validator_keypair(&SignatureAlgorithm::Falcon1024) {
+        if let Ok(keypair) = self
+            .pqc_manager
+            .generate_validator_keypair(&SignatureAlgorithm::Falcon1024)
+        {
             self.pqc_manager.add_validator(
                 "validator_2".to_string(),
                 keypair.public_key.clone(),
                 SignatureAlgorithm::Falcon1024,
             );
-            self.add_validator(BridgeValidator { id: "validator_2".to_string(), public_key: keypair.public_key.clone(), algorithm: "falcon".to_string(), stake: 950000, reputation: 0.98, is_active: true });
+            self.add_validator(BridgeValidator {
+                id: "validator_2".to_string(),
+                public_key: keypair.public_key.clone(),
+                algorithm: "falcon".to_string(),
+                stake: 950000,
+                reputation: 0.98,
+                is_active: true,
+            });
         }
-        
+
         // Generate and add validator 3 with SPHINCS+
-        if let Ok(keypair) = self.pqc_manager.generate_validator_keypair(&SignatureAlgorithm::SphincsSha256128s) {
+        if let Ok(keypair) = self
+            .pqc_manager
+            .generate_validator_keypair(&SignatureAlgorithm::SphincsSha256128s)
+        {
             self.pqc_manager.add_validator(
                 "validator_3".to_string(),
                 keypair.public_key.clone(),
                 SignatureAlgorithm::SphincsSha256128s,
             );
-            self.add_validator(BridgeValidator { id: "validator_3".to_string(), public_key: keypair.public_key.clone(), algorithm: "sphincs+".to_string(), stake: 800000, reputation: 0.95, is_active: true });
+            self.add_validator(BridgeValidator {
+                id: "validator_3".to_string(),
+                public_key: keypair.public_key.clone(),
+                algorithm: "sphincs+".to_string(),
+                stake: 800000,
+                reputation: 0.95,
+                is_active: true,
+            });
         }
     }
-    
+
     pub fn add_validator(&mut self, validator: BridgeValidator) {
         self.validators.insert(validator.id.clone(), validator);
     }
-    
+
     fn generate_tx_id(&self, asset: &Asset, dest_chain: &str) -> BridgeTxId {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        BridgeTxId(format!("bridge_{}_{}_{}_{}", asset.id, dest_chain, timestamp, 
-                          rand::random::<u32>()))
+        BridgeTxId(format!(
+            "bridge_{}_{}_{}_{}",
+            asset.id,
+            dest_chain,
+            timestamp,
+            rand::random::<u32>()
+        ))
     }
-    
+
     fn verify_validator_signatures(&self, tx: &BridgeTx) -> Result<bool, BridgeError> {
         if tx.validator_signatures.len() < self.min_validator_signatures {
-            return Err(BridgeError::ValidatorSignatureFailed(
-                format!("Insufficient signatures: {} < {}", 
-                       tx.validator_signatures.len(), self.min_validator_signatures)
-            ));
+            return Err(BridgeError::ValidatorSignatureFailed(format!(
+                "Insufficient signatures: {} < {}",
+                tx.validator_signatures.len(),
+                self.min_validator_signatures
+            )));
         }
-        
+
         // Convert bridge transaction to CrossChainPayload for PQC verification
         let payload = self.bridge_tx_to_payload(tx)?;
-        
+
         // Collect enhanced signatures for verification
         let mut bridge_signatures = Vec::new();
-        
+
         for sig in &tx.validator_signatures {
             if let Some(validator) = self.validators.get(&sig.validator_id) {
                 if !validator.is_active {
-                    return Err(BridgeError::ValidatorSignatureFailed(
-                        format!("Validator {} is not active", sig.validator_id)
-                    ));
+                    return Err(BridgeError::ValidatorSignatureFailed(format!(
+                        "Validator {} is not active",
+                        sig.validator_id
+                    )));
                 }
-                
+
                 // Convert legacy signature to bridge signature format
                 let bridge_sig = self.convert_legacy_to_bridge_signature(sig, &payload)?;
                 bridge_signatures.push(bridge_sig);
             } else {
-                return Err(BridgeError::ValidatorSignatureFailed(
-                    format!("Unknown validator: {}", sig.validator_id)
-                ));
+                return Err(BridgeError::ValidatorSignatureFailed(format!(
+                    "Unknown validator: {}",
+                    sig.validator_id
+                )));
             }
         }
-        
+
         // Use PQC manager for multi-signature verification
-        match self.pqc_manager.verify_multi_signature(&bridge_signatures, &payload) {
+        match self
+            .pqc_manager
+            .verify_multi_signature(&bridge_signatures, &payload)
+        {
             Ok(result) => Ok(result.consensus_reached),
-            Err(e) => Err(BridgeError::PQCVerificationFailed(format!("PQC verification failed: {:?}", e))),
+            Err(e) => Err(BridgeError::PQCVerificationFailed(format!(
+                "PQC verification failed: {:?}",
+                e
+            ))),
         }
     }
-    
+
     /// Convert a bridge transaction to a cross-chain payload for PQC verification
     fn bridge_tx_to_payload(&self, tx: &BridgeTx) -> Result<CrossChainPayload, BridgeError> {
         let mut metadata = HashMap::new();
         metadata.insert("bridge_tx_id".to_string(), tx.id.0.clone());
         metadata.insert("timestamp".to_string(), tx.timestamp.to_string());
-        
+
         Ok(CrossChainPayload::GenericBridgePayload {
             asset_id: tx.asset.id.clone(),
             amount: tx.asset.amount,
@@ -277,186 +333,244 @@ impl DytallixBridge {
             metadata,
         })
     }
-    
+
     /// Convert legacy PQC signature to bridge signature format
-    fn convert_legacy_to_bridge_signature(&self, legacy_sig: &PQCSignature, payload: &CrossChainPayload) -> Result<BridgeSignature, BridgeError> {
+    fn convert_legacy_to_bridge_signature(
+        &self,
+        legacy_sig: &PQCSignature,
+        payload: &CrossChainPayload,
+    ) -> Result<BridgeSignature, BridgeError> {
         use dytallix_pqc::{Signature, SignatureAlgorithm};
-        
+
         // Convert algorithm string to enum
         let algorithm = match legacy_sig.algorithm.as_str() {
             "dilithium" => SignatureAlgorithm::Dilithium5,
             "falcon" => SignatureAlgorithm::Falcon1024,
             "sphincs+" => SignatureAlgorithm::SphincsSha256128s,
-            _ => return Err(BridgeError::PQCVerificationFailed(format!("Unsupported algorithm: {}", legacy_sig.algorithm))),
+            _ => {
+                return Err(BridgeError::PQCVerificationFailed(format!(
+                    "Unsupported algorithm: {}",
+                    legacy_sig.algorithm
+                )))
+            }
         };
-        
+
         let signature = Signature {
             data: legacy_sig.signature.clone(),
             algorithm,
         };
-        
+
         // Calculate payload hash for verification
-        let payload_hash = serde_json::to_vec(payload)
-            .map_err(|e| BridgeError::SerializationError(format!("Payload serialization error: {}", e)))?;
+        let payload_hash = serde_json::to_vec(payload).map_err(|e| {
+            BridgeError::SerializationError(format!("Payload serialization error: {}", e))
+        })?;
         let hash = blake3::hash(&payload_hash);
-        
+
         Ok(BridgeSignature {
             signature,
             chain_id: "dytallix".to_string(), // Default chain for bridge operations
             payload_hash: hash.as_bytes().to_vec(),
             timestamp: legacy_sig.timestamp,
             validator_id: legacy_sig.validator_id.clone(),
-            nonce: 0, // TODO: supply real nonce if available
+            nonce: 0,    // TODO: supply real nonce if available
             sequence: 0, // TODO: supply real sequence if available
         })
     }
-    
+
     // Bridge asset management implementation
     fn execute_asset_lock(&self, asset: &Asset, bridge_tx: &BridgeTx) -> Result<(), BridgeError> {
         // In production, this would interact with smart contracts on the source chain
-        println!("🔒 Locking asset {} (amount: {}) for bridge transaction {}", 
-                 asset.id, asset.amount, bridge_tx.id.0);
-        
+        println!(
+            "🔒 Locking asset {} (amount: {}) for bridge transaction {}",
+            asset.id, asset.amount, bridge_tx.id.0
+        );
+
         // Validate asset exists and user has sufficient balance
         if asset.amount == 0 {
-            return Err(BridgeError::InvalidAsset("Asset amount cannot be zero".to_string()));
+            return Err(BridgeError::InvalidAsset(
+                "Asset amount cannot be zero".to_string(),
+            ));
         }
-        
+
         // Lock asset in escrow contract
         self.call_escrow_contract("lock", asset, &bridge_tx.source_address)?;
-        
+
         // Emit bridge lock event
         self.emit_bridge_event("AssetLocked", &bridge_tx.id)?;
-        
+
         Ok(())
     }
-    
-    fn collect_validator_signatures(&self, bridge_tx: &BridgeTx) -> Result<Vec<PQCSignature>, BridgeError> {
+
+    fn collect_validator_signatures(
+        &self,
+        bridge_tx: &BridgeTx,
+    ) -> Result<Vec<PQCSignature>, BridgeError> {
         let mut signatures = Vec::new();
-        
+
         // Convert bridge transaction to payload for signing
         let payload = self.bridge_tx_to_payload(bridge_tx)?;
-        
+
         // Collect signatures from active validators using PQC
         for (validator_id, validator) in &self.validators {
             if !validator.is_active {
                 continue;
             }
-            
+
             // Generate PQC signature using the bridge manager
-            match self.pqc_manager.sign_bridge_payload(&payload, &bridge_tx.dest_chain, validator_id) {
+            match self.pqc_manager.sign_bridge_payload(
+                &payload,
+                &bridge_tx.dest_chain,
+                validator_id,
+            ) {
                 Ok(bridge_signature) => {
                     // Convert bridge signature back to legacy format for compatibility
                     let legacy_signature = PQCSignature {
                         validator_id: bridge_signature.validator_id.clone(),
-                        algorithm: format!("{:?}", bridge_signature.signature.algorithm).to_lowercase(),
+                        algorithm: format!("{:?}", bridge_signature.signature.algorithm)
+                            .to_lowercase(),
                         signature: bridge_signature.signature.data.clone(),
-                        public_key: self.pqc_manager.get_validator_public_key(validator_id)
-                            .unwrap_or(&vec![]).clone(),
+                        public_key: self
+                            .pqc_manager
+                            .get_validator_public_key(validator_id)
+                            .unwrap_or(&vec![])
+                            .clone(),
                         timestamp: bridge_signature.timestamp,
                     };
-                    
+
                     signatures.push(legacy_signature);
-                    
+
                     // Once we have enough signatures, we can proceed
                     if signatures.len() >= self.min_validator_signatures {
                         break;
                     }
                 }
                 Err(e) => {
-                    println!("Warning: Failed to get signature from validator {}: {:?}", validator_id, e);
+                    println!(
+                        "Warning: Failed to get signature from validator {}: {:?}",
+                        validator_id, e
+                    );
                     continue;
                 }
             }
         }
-        
+
         if signatures.len() < self.min_validator_signatures {
-            return Err(BridgeError::ValidatorSignatureFailed(
-                format!("Could not collect enough signatures: {} < {}", 
-                        signatures.len(), self.min_validator_signatures)
-            ));
+            return Err(BridgeError::ValidatorSignatureFailed(format!(
+                "Could not collect enough signatures: {} < {}",
+                signatures.len(),
+                self.min_validator_signatures
+            )));
         }
-        
+
         Ok(signatures)
     }
-    
-    fn store_bridge_transaction(&self, bridge_tx: &BridgeTx, signatures: Vec<PQCSignature>) -> Result<(), BridgeError> {
+
+    fn store_bridge_transaction(
+        &self,
+        bridge_tx: &BridgeTx,
+        signatures: Vec<PQCSignature>,
+    ) -> Result<(), BridgeError> {
         // Create transaction with collected signatures
         let mut tx_with_sigs = bridge_tx.clone();
         tx_with_sigs.validator_signatures = signatures;
         tx_with_sigs.status = BridgeStatus::Locked;
-        
+
         // Store in database/persistent storage
-        println!("💾 Storing bridge transaction {} with {} signatures", 
-                 bridge_tx.id.0, tx_with_sigs.validator_signatures.len());
-        
+        println!(
+            "💾 Storing bridge transaction {} with {} signatures",
+            bridge_tx.id.0,
+            tx_with_sigs.validator_signatures.len()
+        );
+
         // In production, this would store to a database like PostgreSQL or RocksDB
         self.persist_to_storage("bridge_transactions", &bridge_tx.id.0, &tx_with_sigs)?;
-        
+
         Ok(())
     }
-    
-    fn execute_wrapped_asset_mint(&self, wrapped_asset: &WrappedAsset, dest_address: &str) -> Result<(), BridgeError> {
-        println!("🪙 Minting wrapped asset {} on destination chain for address {}", 
-                 wrapped_asset.wrapped_contract, dest_address);
-        
+
+    fn execute_wrapped_asset_mint(
+        &self,
+        wrapped_asset: &WrappedAsset,
+        dest_address: &str,
+    ) -> Result<(), BridgeError> {
+        println!(
+            "🪙 Minting wrapped asset {} on destination chain for address {}",
+            wrapped_asset.wrapped_contract, dest_address
+        );
+
         // Deploy wrapped token contract if it doesn't exist
         self.deploy_wrapped_token_contract_if_needed(wrapped_asset)?;
-        
+
         // Mint wrapped tokens to destination address
         self.call_wrapped_contract("mint", &wrapped_asset.original_asset_id, dest_address)?;
-        
+
         // Update wrapped asset registry
         self.update_wrapped_asset_registry(wrapped_asset)?;
-        
+
         Ok(())
     }
-    
-    fn update_bridge_state_for_wrap(&self, wrapped_asset: &WrappedAsset) -> Result<(), BridgeError> {
-        println!("📝 Updating bridge state for wrapped asset {}", wrapped_asset.wrapped_contract);
-        
+
+    fn update_bridge_state_for_wrap(
+        &self,
+        wrapped_asset: &WrappedAsset,
+    ) -> Result<(), BridgeError> {
+        println!(
+            "📝 Updating bridge state for wrapped asset {}",
+            wrapped_asset.wrapped_contract
+        );
+
         // Store wrapped asset mapping
-        self.persist_to_storage("wrapped_assets", &wrapped_asset.wrapped_contract, wrapped_asset)?;
-        
+        self.persist_to_storage(
+            "wrapped_assets",
+            &wrapped_asset.wrapped_contract,
+            wrapped_asset,
+        )?;
+
         // Update total value locked (TVL) metrics
         self.update_tvl_metrics(&wrapped_asset.original_asset_id)?;
-        
+
         Ok(())
     }
-    
+
     // Emergency management implementation
-    fn notify_validators_of_halt(&self, halt_record: &EmergencyHaltRecord) -> Result<(), BridgeError> {
-        println!("📢 Notifying {} validators of emergency halt", self.validators.len());
-        
+    fn notify_validators_of_halt(
+        &self,
+        halt_record: &EmergencyHaltRecord,
+    ) -> Result<(), BridgeError> {
+        println!(
+            "📢 Notifying {} validators of emergency halt",
+            self.validators.len()
+        );
+
         for (validator_id, validator) in &self.validators {
             if validator.is_active {
                 // In production, this would send notifications via the p2p network
                 self.send_validator_notification(validator_id, "emergency_halt", halt_record)?;
             }
         }
-        
+
         Ok(())
     }
-    
+
     fn set_bridge_halted_state(&self, halted: bool) -> Result<(), BridgeError> {
         // In production, this would update the bridge contract state
         println!("⚡ Setting bridge halted state to: {}", halted);
-        
+
         // Update bridge state in smart contract
         self.update_bridge_contract_state("halted", &halted.to_string())?;
-        
+
         // Persist state change
         self.persist_to_storage("bridge_state", "halted", &halted)?;
-        
+
         Ok(())
     }
-    
+
     fn verify_resume_consensus(&self) -> Result<bool, BridgeError> {
         println!("🗳️ Verifying validator consensus for bridge resume");
-        
+
         let mut resume_votes = 0;
         let total_active_validators = self.validators.values().filter(|v| v.is_active).count();
-        
+
         // In production, this would query validators for their resume vote
         for (validator_id, validator) in &self.validators {
             if validator.is_active {
@@ -466,23 +580,25 @@ impl DytallixBridge {
                 }
             }
         }
-        
+
         // Require 2/3 majority for resume
         let required_votes = (total_active_validators * 2) / 3 + 1;
         let consensus_reached = resume_votes >= required_votes;
-        
-        println!("Resume votes: {}/{}, required: {}, consensus: {}", 
-                 resume_votes, total_active_validators, required_votes, consensus_reached);
-        
+
+        println!(
+            "Resume votes: {}/{}, required: {}, consensus: {}",
+            resume_votes, total_active_validators, required_votes, consensus_reached
+        );
+
         Ok(consensus_reached)
     }
-    
+
     fn resume_pending_transactions(&self) -> Result<(), BridgeError> {
         println!("🔄 Resuming pending bridge transactions");
-        
+
         // Load pending transactions from storage
         let pending_txs = self.load_pending_transactions()?;
-        
+
         for tx in pending_txs {
             match tx.status {
                 BridgeStatus::Pending | BridgeStatus::Locked => {
@@ -492,99 +608,151 @@ impl DytallixBridge {
                 _ => continue,
             }
         }
-        
+
         Ok(())
     }
-    
+
     // Helper methods for bridge operations
     fn calculate_bridge_tx_hash(&self, bridge_tx: &BridgeTx) -> Result<Vec<u8>, BridgeError> {
         let serialized = serde_json::to_vec(bridge_tx)
             .map_err(|e| BridgeError::UnknownError(format!("Serialization error: {}", e)))?;
         Ok(blake3::hash(&serialized).as_bytes().to_vec())
     }
-    
-    fn request_validator_signature(&self, validator_id: &str, tx_hash: &[u8]) -> Result<PQCSignature, BridgeError> {
+
+    fn request_validator_signature(
+        &self,
+        validator_id: &str,
+        tx_hash: &[u8],
+    ) -> Result<PQCSignature, BridgeError> {
         // In production, this would make an API call to the validator
-        let validator = self.validators.get(validator_id)
-            .ok_or_else(|| BridgeError::ValidatorSignatureFailed(format!("Validator {} not found", validator_id)))?;
-        
+        let validator = self.validators.get(validator_id).ok_or_else(|| {
+            BridgeError::ValidatorSignatureFailed(format!("Validator {} not found", validator_id))
+        })?;
+
         // Simulate signature generation
         let signature = PQCSignature {
             validator_id: validator_id.to_string(),
             algorithm: validator.algorithm.clone(),
             signature: tx_hash.to_vec(), // In production, this would be actual signature
             public_key: validator.public_key.clone(),
-            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
         };
-        
+
         Ok(signature)
     }
-    
-    fn call_escrow_contract(&self, method: &str, asset: &Asset, address: &str) -> Result<(), BridgeError> {
+
+    fn call_escrow_contract(
+        &self,
+        method: &str,
+        asset: &Asset,
+        address: &str,
+    ) -> Result<(), BridgeError> {
         // In production, this would call the actual escrow smart contract
-        println!("📞 Calling escrow contract: {}({}, {})", method, asset.id, address);
+        println!(
+            "📞 Calling escrow contract: {}({}, {})",
+            method, asset.id, address
+        );
         Ok(())
     }
-    
+
     fn emit_bridge_event(&self, event_type: &str, tx_id: &BridgeTxId) -> Result<(), BridgeError> {
         // In production, this would emit blockchain events
-        println!("📨 Emitting bridge event: {} for tx {}", event_type, tx_id.0);
+        println!(
+            "📨 Emitting bridge event: {} for tx {}",
+            event_type, tx_id.0
+        );
         Ok(())
     }
-    
-    fn persist_to_storage<T: Serialize>(&self, table: &str, key: &str, _value: &T) -> Result<(), BridgeError> {
+
+    fn persist_to_storage<T: Serialize>(
+        &self,
+        table: &str,
+        key: &str,
+        _value: &T,
+    ) -> Result<(), BridgeError> {
         // In production, this would persist to database
         println!("💾 Persisting to {}.{}: serialized data", table, key);
         Ok(())
     }
-    
-    fn deploy_wrapped_token_contract_if_needed(&self, wrapped_asset: &WrappedAsset) -> Result<(), BridgeError> {
+
+    fn deploy_wrapped_token_contract_if_needed(
+        &self,
+        wrapped_asset: &WrappedAsset,
+    ) -> Result<(), BridgeError> {
         // In production, this would check if contract exists and deploy if needed
-        println!("🚀 Ensuring wrapped token contract exists for {}", wrapped_asset.original_chain);
+        println!(
+            "🚀 Ensuring wrapped token contract exists for {}",
+            wrapped_asset.original_chain
+        );
         Ok(())
     }
-    
-    fn call_wrapped_contract(&self, method: &str, asset_id: &str, address: &str) -> Result<(), BridgeError> {
+
+    fn call_wrapped_contract(
+        &self,
+        method: &str,
+        asset_id: &str,
+        address: &str,
+    ) -> Result<(), BridgeError> {
         // In production, this would call the wrapped token contract
-        println!("📞 Calling wrapped contract: {}({}, {})", method, asset_id, address);
+        println!(
+            "📞 Calling wrapped contract: {}({}, {})",
+            method, asset_id, address
+        );
         Ok(())
     }
-    
-    fn update_wrapped_asset_registry(&self, wrapped_asset: &WrappedAsset) -> Result<(), BridgeError> {
+
+    fn update_wrapped_asset_registry(
+        &self,
+        wrapped_asset: &WrappedAsset,
+    ) -> Result<(), BridgeError> {
         // In production, this would update the registry contract
-        println!("📋 Updating wrapped asset registry for {}", wrapped_asset.wrapped_contract);
+        println!(
+            "📋 Updating wrapped asset registry for {}",
+            wrapped_asset.wrapped_contract
+        );
         Ok(())
     }
-    
+
     fn update_tvl_metrics(&self, asset_id: &str) -> Result<(), BridgeError> {
         // In production, this would update TVL metrics for monitoring
         println!("📊 Updating TVL metrics for asset: {}", asset_id);
         Ok(())
     }
-    
-    fn send_validator_notification<T: Serialize>(&self, validator_id: &str, msg_type: &str, _data: &T) -> Result<(), BridgeError> {
+
+    fn send_validator_notification<T: Serialize>(
+        &self,
+        validator_id: &str,
+        msg_type: &str,
+        _data: &T,
+    ) -> Result<(), BridgeError> {
         // In production, this would send P2P messages to validators
-        println!("📡 Sending {} notification to validator {}", msg_type, validator_id);
+        println!(
+            "📡 Sending {} notification to validator {}",
+            msg_type, validator_id
+        );
         Ok(())
     }
-    
+
     fn update_bridge_contract_state(&self, key: &str, value: &str) -> Result<(), BridgeError> {
         // In production, this would update bridge contract state
         println!("⚙️ Updating bridge contract state: {} = {}", key, value);
         Ok(())
     }
-    
+
     fn get_validator_resume_vote(&self, validator_id: &str) -> Result<bool, BridgeError> {
         // In production, this would query validator for their vote
         println!("🗳️ Getting resume vote from validator {}", validator_id);
         Ok(true) // Simulate positive vote for demo
     }
-    
+
     fn load_pending_transactions(&self) -> Result<Vec<BridgeTx>, BridgeError> {
         // In production, this would load from persistent storage
         Ok(Vec::new()) // Return empty for demo
     }
-    
+
     fn process_bridge_transaction(&self, tx: &BridgeTx) -> Result<(), BridgeError> {
         // In production, this would continue processing the transaction
         println!("🔄 Processing bridge transaction {}", tx.id.0);
@@ -593,17 +761,22 @@ impl DytallixBridge {
 }
 
 impl PQCBridge for DytallixBridge {
-    fn lock_asset(&self, asset: Asset, dest_chain: &str, dest_address: &str) -> Result<BridgeTxId, BridgeError> {
+    fn lock_asset(
+        &self,
+        asset: Asset,
+        dest_chain: &str,
+        dest_address: &str,
+    ) -> Result<BridgeTxId, BridgeError> {
         if self.is_halted {
             return Err(BridgeError::NetworkError("Bridge is halted".to_string()));
         }
-        
+
         if !self.supported_chains.contains(&dest_chain.to_string()) {
             return Err(BridgeError::ChainNotSupported(dest_chain.to_string()));
         }
-        
+
         let tx_id = self.generate_tx_id(&asset, dest_chain);
-        
+
         // Create bridge transaction
         let bridge_tx = BridgeTx {
             id: tx_id.clone(),
@@ -612,105 +785,124 @@ impl PQCBridge for DytallixBridge {
             dest_chain: dest_chain.to_string(),
             source_address: "source_address_placeholder".to_string(), // Would be actual source
             dest_address: dest_address.to_string(),
-            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
             validator_signatures: Vec::new(), // Would be populated by validators
             status: BridgeStatus::Pending,
         };
-        
+
         // Implement actual asset locking in bridge contract
         self.execute_asset_lock(&asset, &bridge_tx)?;
-        
+
         // Request validator signatures for bridge transaction
         let validator_signatures = self.collect_validator_signatures(&bridge_tx)?;
-        
+
         // Store transaction state in bridge database
         self.store_bridge_transaction(&bridge_tx, validator_signatures)?;
-        
+
         Ok(tx_id)
     }
-    
-    fn mint_wrapped(&self, asset: Asset, origin_chain: &str, dest_address: &str) -> Result<WrappedAsset, BridgeError> {
+
+    fn mint_wrapped(
+        &self,
+        asset: Asset,
+        origin_chain: &str,
+        dest_address: &str,
+    ) -> Result<WrappedAsset, BridgeError> {
         if self.is_halted {
             return Err(BridgeError::NetworkError("Bridge is halted".to_string()));
         }
-        
+
         if !self.supported_chains.contains(&origin_chain.to_string()) {
             return Err(BridgeError::ChainNotSupported(origin_chain.to_string()));
         }
-        
+
         let wrapped_asset = WrappedAsset {
             original_asset_id: asset.id,
             original_chain: origin_chain.to_string(),
             wrapped_contract: format!("wrapped_{}_{}", origin_chain, dest_address),
             amount: asset.amount,
-            wrapping_timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            wrapping_timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
         };
-        
+
         // Execute wrapped asset minting on destination chain
         self.execute_wrapped_asset_mint(&wrapped_asset, dest_address)?;
-        
+
         // Update bridge state with new wrapped asset
         self.update_bridge_state_for_wrap(&wrapped_asset)?;
-        
+
         Ok(wrapped_asset)
     }
-    
+
     fn verify_cross_chain(&self, tx: &BridgeTx) -> Result<bool, BridgeError> {
         self.verify_validator_signatures(tx)
     }
-    
+
     fn get_bridge_status(&self, tx_id: &BridgeTxId) -> Result<BridgeStatus, BridgeError> {
         if let Some(tx) = self.pending_transactions.get(&tx_id.0) {
             Ok(tx.status.clone())
         } else {
-            Err(BridgeError::UnknownError(format!("Transaction {} not found", tx_id.0)))
+            Err(BridgeError::UnknownError(format!(
+                "Transaction {} not found",
+                tx_id.0
+            )))
         }
     }
-    
+
     fn get_supported_chains(&self) -> Vec<String> {
         self.supported_chains.clone()
     }
-    
+
     fn get_bridge_validators(&self) -> Vec<BridgeValidator> {
         self.validators.values().cloned().collect()
     }
-    
+
     fn emergency_halt(&self, reason: &str) -> Result<(), BridgeError> {
         // Implement emergency halt mechanism with validator consensus
         println!("🚨 EMERGENCY HALT INITIATED: {}", reason);
-        
+
         // Log halt reason and timestamp
         let halt_record = EmergencyHaltRecord {
             reason: reason.to_string(),
-            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
             initiator: "system".to_string(), // In real implementation, would be validator address
         };
-        
+
         // Notify all validators of emergency halt
         self.notify_validators_of_halt(&halt_record)?;
-        
+
         // Set bridge state to halted
         self.set_bridge_halted_state(true)?;
-        
+
         Ok(())
     }
-    
+
     fn resume_bridge(&self) -> Result<(), BridgeError> {
         // Implement bridge resume mechanism with validator consensus
         println!("🔄 BRIDGE RESUME INITIATED");
-        
+
         // Verify validator consensus for resume
         let resume_consensus = self.verify_resume_consensus()?;
         if !resume_consensus {
-            return Err(BridgeError::ValidatorSignatureFailed("Insufficient consensus for bridge resume".to_string()));
+            return Err(BridgeError::ValidatorSignatureFailed(
+                "Insufficient consensus for bridge resume".to_string(),
+            ));
         }
-        
+
         // Clear halted state
         self.set_bridge_halted_state(false)?;
-        
+
         // Resume pending transactions
         self.resume_pending_transactions()?;
-        
+
         println!("✅ Bridge operations resumed");
         Ok(())
     }
@@ -762,7 +954,7 @@ pub enum ChannelState {
 }
 
 // ============================================================================
-// Real IBC Integration Components  
+// Real IBC Integration Components
 // ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -819,30 +1011,32 @@ impl PerformanceMonitor {
 
     pub fn record_transaction(&mut self, latency_ms: u64, success: bool) {
         self.metrics.transaction_count += 1;
-        
+
         if success {
             self.latency_samples.push(latency_ms);
-            
+
             // Keep only last 1000 samples for rolling average
             if self.latency_samples.len() > 1000 {
                 self.latency_samples.remove(0);
             }
-            
+
             // Update average latency
-            self.metrics.average_latency_ms = self.latency_samples.iter().sum::<u64>() as f64 / self.latency_samples.len() as f64;
+            self.metrics.average_latency_ms =
+                self.latency_samples.iter().sum::<u64>() as f64 / self.latency_samples.len() as f64;
         } else {
             self.error_count += 1;
         }
-        
+
         // Update error rate
         self.metrics.error_rate = self.error_count as f64 / self.metrics.transaction_count as f64;
-        
+
         // Update throughput (transactions per hour)
         let elapsed_hours = self.start_time.elapsed().unwrap_or_default().as_secs_f64() / 3600.0;
         if elapsed_hours > 0.0 {
-            self.metrics.throughput_per_hour = self.metrics.transaction_count as f64 / elapsed_hours;
+            self.metrics.throughput_per_hour =
+                self.metrics.transaction_count as f64 / elapsed_hours;
         }
-        
+
         self.metrics.last_update = SystemTime::now();
     }
 
@@ -853,7 +1047,7 @@ impl PerformanceMonitor {
     pub fn should_trigger_alert(&self) -> bool {
         self.metrics.average_latency_ms > 35000.0 || // >35 seconds
         self.metrics.throughput_per_hour < 400.0 ||   // <400 tx/hour
-        self.metrics.error_rate > 0.015               // >1.5% error rate
+        self.metrics.error_rate > 0.015 // >1.5% error rate
     }
 }
 
@@ -870,33 +1064,51 @@ impl CosmosClient {
     pub async fn send_ibc_packet(&self, packet: &IBCPacket) -> Result<String, IBCError> {
         // Real IBC packet submission using CosmJS
         let start_time = std::time::Instant::now();
-        
+
         // In production, this would use actual CosmJS calls
         println!("🚀 Sending IBC packet to Cosmos chain: {}", self.chain_id);
         println!("   RPC Endpoint: {}", self.rpc_endpoint);
-        println!("   Packet: {} -> {}", packet.source_channel, packet.dest_channel);
-        
+        println!(
+            "   Packet: {} -> {}",
+            packet.source_channel, packet.dest_channel
+        );
+
         // Simulate real network call with realistic timing
-        tokio::time::sleep(tokio::time::Duration::from_millis(2000 + rand::random::<u64>() % 3000)).await;
-        
+        tokio::time::sleep(tokio::time::Duration::from_millis(
+            2000 + rand::random::<u64>() % 3000,
+        ))
+        .await;
+
         let tx_hash = format!("cosmos_tx_{}", hex::encode(&rand::random::<[u8; 16]>()));
         let elapsed = start_time.elapsed().as_millis() as u64;
-        
-        println!("✅ IBC packet sent successfully in {}ms, tx: {}", elapsed, tx_hash);
+
+        println!(
+            "✅ IBC packet sent successfully in {}ms, tx: {}",
+            elapsed, tx_hash
+        );
         Ok(tx_hash)
     }
 
-    pub async fn query_packet_acknowledgment(&self, packet_commitment: &str) -> Result<Option<Vec<u8>>, IBCError> {
+    pub async fn query_packet_acknowledgment(
+        &self,
+        packet_commitment: &str,
+    ) -> Result<Option<Vec<u8>>, IBCError> {
         // Real acknowledgment query using CosmJS
         println!("🔍 Querying packet acknowledgment: {}", packet_commitment);
-        
+
         // Simulate real query with network delay
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000 + rand::random::<u64>() % 2000)).await;
-        
+        tokio::time::sleep(tokio::time::Duration::from_millis(
+            1000 + rand::random::<u64>() % 2000,
+        ))
+        .await;
+
         // Simulate 95% success rate
         if rand::random::<f64>() < 0.95 {
             let ack = b"success".to_vec();
-            println!("✅ Acknowledgment received: {}", String::from_utf8_lossy(&ack));
+            println!(
+                "✅ Acknowledgment received: {}",
+                String::from_utf8_lossy(&ack)
+            );
             Ok(Some(ack))
         } else {
             Ok(None)
@@ -947,7 +1159,11 @@ pub trait IBCModule {
     fn receive_packet(&self, packet: IBCPacket) -> Result<(), IBCError>;
     fn acknowledge_packet(&self, packet: IBCPacket, ack: Vec<u8>) -> Result<(), IBCError>;
     fn timeout_packet(&self, packet: IBCPacket) -> Result<(), IBCError>;
-    fn create_channel(&self, port: String, counterparty_port: String) -> Result<IBCChannel, IBCError>;
+    fn create_channel(
+        &self,
+        port: String,
+        counterparty_port: String,
+    ) -> Result<IBCChannel, IBCError>;
     fn close_channel(&self, channel_id: String) -> Result<(), IBCError>;
 }
 
@@ -966,7 +1182,7 @@ pub struct DytallixIBC {
 impl DytallixIBC {
     pub fn new() -> Self {
         let pqc_manager = BridgePQCManager::new().expect("Failed to initialize IBC PQC manager");
-        
+
         Self {
             channels: HashMap::new(),
             packet_commitments: HashMap::new(),
@@ -992,37 +1208,50 @@ impl DytallixIBC {
     pub fn get_performance_metrics(&self) -> &PerformanceMetrics {
         self.performance_monitor.get_metrics()
     }
-    
+
     /// Apply AI optimization recommendations to relayer configuration
-    pub fn apply_optimization(&mut self, batch_size: usize, concurrent_connections: usize, polling_interval_ms: u64) {
+    pub fn apply_optimization(
+        &mut self,
+        batch_size: usize,
+        concurrent_connections: usize,
+        polling_interval_ms: u64,
+    ) {
         self.relayer_config.batch_size = batch_size;
         self.relayer_config.max_concurrent_connections = concurrent_connections;
         self.relayer_config.base_polling_interval_ms = polling_interval_ms;
-        
-        println!("🤖 Applied AI optimization: batch_size={}, connections={}, interval={}ms", 
-                 batch_size, concurrent_connections, polling_interval_ms);
+
+        println!(
+            "🤖 Applied AI optimization: batch_size={}, connections={}, interval={}ms",
+            batch_size, concurrent_connections, polling_interval_ms
+        );
     }
-    
+
     /// Enable or disable AI optimization
     pub fn set_ai_optimization(&mut self, enabled: bool) {
         self.relayer_config.ai_optimization_enabled = enabled;
-        println!("🤖 AI optimization {}", if enabled { "enabled" } else { "disabled" });
+        println!(
+            "🤖 AI optimization {}",
+            if enabled { "enabled" } else { "disabled" }
+        );
     }
-    
+
     /// Get current relayer configuration
     pub fn get_relayer_config(&self) -> &RelayerConfig {
         &self.relayer_config
     }
-    
+
     /// Emergency circuit breaker - halt operations if performance degrades
     pub fn emergency_circuit_breaker(&self) -> bool {
         self.performance_monitor.should_trigger_alert()
     }
-    
+
     fn commitment_key(&self, packet: &IBCPacket) -> String {
-        format!("{}_{}_seq_{}", packet.source_port, packet.source_channel, packet.sequence)
+        format!(
+            "{}_{}_seq_{}",
+            packet.source_port, packet.source_channel, packet.sequence
+        )
     }
-    
+
     fn verify_packet_pqc_signature(&self, packet: &IBCPacket) -> Result<bool, IBCError> {
         if let Some(signature) = &packet.pqc_signature {
             // Convert IBC packet to cross-chain payload
@@ -1036,190 +1265,252 @@ impl DytallixIBC {
                 timeout_height: packet.timeout_height,
                 timeout_timestamp: packet.timeout_timestamp,
             };
-            
+
             // Convert legacy signature to bridge signature format
             let bridge_signature = self.convert_pqc_signature_to_bridge(signature, &payload)?;
-            
+
             // Verify using the PQC manager
-            match self.pqc_manager.verify_bridge_signature(&bridge_signature, &payload) {
+            match self
+                .pqc_manager
+                .verify_bridge_signature(&bridge_signature, &payload)
+            {
                 Ok(is_valid) => Ok(is_valid),
-                Err(e) => Err(IBCError::PQCVerificationFailed(format!("PQC verification failed: {:?}", e))),
+                Err(e) => Err(IBCError::PQCVerificationFailed(format!(
+                    "PQC verification failed: {:?}",
+                    e
+                ))),
             }
         } else {
             // Allow packets without signatures for backwards compatibility
             Ok(true)
         }
     }
-    
+
     /// Convert legacy PQC signature to bridge signature format for IBC
-    fn convert_pqc_signature_to_bridge(&self, pqc_sig: &PQCSignature, payload: &CrossChainPayload) -> Result<BridgeSignature, IBCError> {
+    fn convert_pqc_signature_to_bridge(
+        &self,
+        pqc_sig: &PQCSignature,
+        payload: &CrossChainPayload,
+    ) -> Result<BridgeSignature, IBCError> {
         use dytallix_pqc::{Signature, SignatureAlgorithm};
-        
+
         // Convert algorithm string to enum
         let algorithm = match pqc_sig.algorithm.as_str() {
             "dilithium5" => SignatureAlgorithm::Dilithium5,
             "falcon1024" => SignatureAlgorithm::Falcon1024,
             "sphincs+" => SignatureAlgorithm::SphincsSha256128s,
-            _ => return Err(IBCError::PQCVerificationFailed(format!("Unsupported algorithm: {}", pqc_sig.algorithm))),
+            _ => {
+                return Err(IBCError::PQCVerificationFailed(format!(
+                    "Unsupported algorithm: {}",
+                    pqc_sig.algorithm
+                )))
+            }
         };
-        
+
         let signature = Signature {
             data: pqc_sig.signature.clone(),
             algorithm,
         };
-        
+
         // Calculate payload hash
         let payload_hash = serde_json::to_vec(payload)
             .map_err(|e| IBCError::UnknownError(format!("Payload serialization error: {}", e)))?;
         let hash = blake3::hash(&payload_hash);
-        
+
         Ok(BridgeSignature {
             signature,
             chain_id: "cosmos".to_string(), // IBC packets use cosmos chain format
             payload_hash: hash.as_bytes().to_vec(),
             timestamp: pqc_sig.timestamp,
             validator_id: pqc_sig.validator_id.clone(),
-            nonce: 0, // TODO: real nonce
+            nonce: 0,    // TODO: real nonce
             sequence: 0, // TODO: real sequence
         })
     }
-    
+
     // PQC signature verification implementations
-    fn verify_dilithium_signature(&self, packet: &IBCPacket, signature: &PQCSignature) -> Result<bool, IBCError> {
+    fn verify_dilithium_signature(
+        &self,
+        packet: &IBCPacket,
+        signature: &PQCSignature,
+    ) -> Result<bool, IBCError> {
         // In production, this would use actual Dilithium verification
-        println!("🔐 Verifying Dilithium signature for packet seq {}", packet.sequence);
-        
+        println!(
+            "🔐 Verifying Dilithium signature for packet seq {}",
+            packet.sequence
+        );
+
         // Verify signature format and length
         if signature.signature.len() < 64 {
-            return Err(IBCError::PQCVerificationFailed("Invalid Dilithium signature length".to_string()));
+            return Err(IBCError::PQCVerificationFailed(
+                "Invalid Dilithium signature length".to_string(),
+            ));
         }
-        
+
         // Verify public key format
         if signature.public_key.len() != 64 {
-            return Err(IBCError::PQCVerificationFailed("Invalid Dilithium public key length".to_string()));
+            return Err(IBCError::PQCVerificationFailed(
+                "Invalid Dilithium public key length".to_string(),
+            ));
         }
-        
+
         // In production: use dilithium crate for actual verification
         // let verified = dilithium::verify(&signature.public_key, &packet_hash, &signature.signature);
-        
+
         Ok(true) // Simulate successful verification for demo
     }
-    
-    fn verify_falcon_signature(&self, packet: &IBCPacket, signature: &PQCSignature) -> Result<bool, IBCError> {
+
+    fn verify_falcon_signature(
+        &self,
+        packet: &IBCPacket,
+        signature: &PQCSignature,
+    ) -> Result<bool, IBCError> {
         // In production, this would use actual Falcon verification
-        println!("🦅 Verifying Falcon signature for packet seq {}", packet.sequence);
-        
+        println!(
+            "🦅 Verifying Falcon signature for packet seq {}",
+            packet.sequence
+        );
+
         // Verify signature format and length
         if signature.signature.len() < 128 {
-            return Err(IBCError::PQCVerificationFailed("Invalid Falcon signature length".to_string()));
+            return Err(IBCError::PQCVerificationFailed(
+                "Invalid Falcon signature length".to_string(),
+            ));
         }
-        
+
         // In production: use falcon crate for actual verification
         Ok(true) // Simulate successful verification for demo
     }
-    
-    fn verify_sphincs_signature(&self, packet: &IBCPacket, signature: &PQCSignature) -> Result<bool, IBCError> {
+
+    fn verify_sphincs_signature(
+        &self,
+        packet: &IBCPacket,
+        signature: &PQCSignature,
+    ) -> Result<bool, IBCError> {
         // In production, this would use actual SPHINCS+ verification
-        println!("🏺 Verifying SPHINCS+ signature for packet seq {}", packet.sequence);
-        
+        println!(
+            "🏺 Verifying SPHINCS+ signature for packet seq {}",
+            packet.sequence
+        );
+
         // Verify signature format and length
         if signature.signature.len() < 256 {
-            return Err(IBCError::PQCVerificationFailed("Invalid SPHINCS+ signature length".to_string()));
+            return Err(IBCError::PQCVerificationFailed(
+                "Invalid SPHINCS+ signature length".to_string(),
+            ));
         }
-        
+
         // In production: use sphincsplus crate for actual verification
         Ok(true) // Simulate successful verification for demo
     }
-    
+
     // IBC packet processing implementations
     fn calculate_packet_commitment(&self, packet: &IBCPacket) -> Result<Vec<u8>, IBCError> {
         // Calculate commitment hash according to ICS-04 specification
-        let commitment_data = format!("{}:{}:{}:{}:{}", 
+        let commitment_data = format!(
+            "{}:{}:{}:{}:{}",
             packet.timeout_timestamp,
             packet.timeout_height,
             hex::encode(&packet.data),
             packet.dest_port,
             packet.dest_channel
         );
-        
+
         let hash = blake3::hash(commitment_data.as_bytes());
         Ok(hash.as_bytes().to_vec())
     }
-    
+
     fn store_packet_commitment(&self, key: &str, commitment: &[u8]) -> Result<(), IBCError> {
         // In production, this would store in persistent storage
-        println!("💾 Storing packet commitment: {} -> {}", key, hex::encode(commitment));
-        
+        println!(
+            "💾 Storing packet commitment: {} -> {}",
+            key,
+            hex::encode(commitment)
+        );
+
         // Store commitment in database/chain state
         // self.packet_commitments.insert(key.to_string(), commitment.to_vec());
-        
+
         Ok(())
     }
-    
+
     fn transmit_packet_to_counterparty(&self, packet: &IBCPacket) -> Result<(), IBCError> {
         // Enhanced transmission with performance monitoring
         let start_time = std::time::Instant::now();
-        
+
         // Use real Cosmos client if available
         if let Some(cosmos_client) = &self.cosmos_client {
             // Real IBC packet transmission using CosmJS integration
-            println!("📡 Transmitting IBC packet via Cosmos client: {} -> {}", 
-                    packet.source_channel, packet.dest_channel);
-            
+            println!(
+                "📡 Transmitting IBC packet via Cosmos client: {} -> {}",
+                packet.source_channel, packet.dest_channel
+            );
+
             // In production, this would be an async call to CosmJS
             // For now, simulate with realistic timing
             let network_delay_ms = 2000 + rand::random::<u64>() % 3000;
             std::thread::sleep(std::time::Duration::from_millis(network_delay_ms));
-            
+
             // Record performance metrics
             let mut monitor = self.performance_monitor.clone();
             let latency_ms = start_time.elapsed().as_millis() as u64;
             let success = rand::random::<f64>() < 0.95; // 95% success rate simulation
-            
+
             // This would be called from an async context in real implementation
             // monitor.record_transaction(latency_ms, success);
-            
+
             if success {
                 println!("✅ IBC packet transmitted successfully in {}ms", latency_ms);
             } else {
-                return Err(IBCError::UnknownError(format!("Transmission failed after {}ms", latency_ms)));
+                return Err(IBCError::UnknownError(format!(
+                    "Transmission failed after {}ms",
+                    latency_ms
+                )));
             }
         } else {
             // Fallback to mock transmission
-            println!("📡 Transmitting packet to counterparty chain (mock): {} -> {}", 
-                    packet.source_channel, packet.dest_channel);
-            
+            println!(
+                "📡 Transmitting packet to counterparty chain (mock): {} -> {}",
+                packet.source_channel, packet.dest_channel
+            );
+
             // Simulate realistic network delay
             std::thread::sleep(std::time::Duration::from_millis(1500));
         }
-        
+
         // Serialize packet for transmission
         let serialized = serde_json::to_vec(packet)
             .map_err(|e| IBCError::UnknownError(format!("Packet serialization error: {}", e)))?;
-        
+
         // Send via networking layer (P2P, relayer, etc.)
         self.send_to_relayer(&packet.dest_channel, &serialized)?;
-        
+
         Ok(())
     }
-    
+
     fn store_packet_receipt(&self, key: &str, packet: &IBCPacket) -> Result<(), IBCError> {
         // Store packet receipt with timestamp
-        println!("📋 Storing packet receipt: {} for seq {}", key, packet.sequence);
-        
+        println!(
+            "📋 Storing packet receipt: {} for seq {}",
+            key, packet.sequence
+        );
+
         // In production, store in persistent storage
         // self.packet_receipts.insert(key.to_string(), true);
-        
+
         // Store packet data for potential disputes
         self.store_packet_data_for_disputes(packet)?;
-        
+
         Ok(())
     }
-    
+
     fn process_received_packet_data(&self, packet: &IBCPacket) -> Result<(), IBCError> {
         // Process packet data based on packet type and application
-        println!("⚙️ Processing received packet data: {} bytes", packet.data.len());
-        
+        println!(
+            "⚙️ Processing received packet data: {} bytes",
+            packet.data.len()
+        );
+
         // Decode packet data based on the port (application)
         match packet.dest_port.as_str() {
             "transfer" => self.process_token_transfer_packet(packet),
@@ -1231,78 +1522,91 @@ impl DytallixIBC {
             }
         }
     }
-    
+
     // Application-specific packet processors
     fn process_token_transfer_packet(&self, _packet: &IBCPacket) -> Result<(), IBCError> {
         // Decode ICS-20 token transfer packet
         println!("💰 Processing token transfer packet");
-        
+
         // In production, this would decode the transfer data and execute the transfer
         // let transfer_data: TokenTransferData = serde_json::from_slice(&packet.data)?;
         // self.execute_token_transfer(&transfer_data)?;
-        
+
         Ok(())
     }
-    
+
     fn process_oracle_data_packet(&self, _packet: &IBCPacket) -> Result<(), IBCError> {
         // Process oracle data update
         println!("🔮 Processing oracle data packet");
-        
+
         // In production, this would update oracle state with the new data
         // let oracle_data: OracleData = serde_json::from_slice(&packet.data)?;
         // self.update_oracle_state(&oracle_data)?;
-        
+
         Ok(())
     }
-    
+
     fn process_governance_packet(&self, _packet: &IBCPacket) -> Result<(), IBCError> {
         // Process cross-chain governance proposal
         println!("🏛️ Processing governance packet");
-        
+
         // In production, this would handle governance proposals
         // let governance_data: GovernanceProposal = serde_json::from_slice(&packet.data)?;
         // self.handle_governance_proposal(&governance_data)?;
-        
+
         Ok(())
     }
-    
+
     // Helper methods for IBC operations
     fn send_to_relayer(&self, dest_channel: &str, data: &[u8]) -> Result<(), IBCError> {
         // In production, this would send to IBC relayers
-        println!("🚀 Sending {} bytes to relayer for channel {}", data.len(), dest_channel);
+        println!(
+            "🚀 Sending {} bytes to relayer for channel {}",
+            data.len(),
+            dest_channel
+        );
         Ok(())
     }
-    
+
     fn store_packet_data_for_disputes(&self, packet: &IBCPacket) -> Result<(), IBCError> {
         // Store packet data for potential dispute resolution
-        println!("🗄️ Storing packet data for disputes: seq {}", packet.sequence);
+        println!(
+            "🗄️ Storing packet data for disputes: seq {}",
+            packet.sequence
+        );
         Ok(())
     }
-    
+
     // Additional IBC helper methods
     fn verify_acknowledgment(&self, packet: &IBCPacket, ack: &[u8]) -> Result<(), IBCError> {
         // Verify acknowledgment format and signature
-        println!("🔍 Verifying acknowledgment for packet seq {}", packet.sequence);
-        
+        println!(
+            "🔍 Verifying acknowledgment for packet seq {}",
+            packet.sequence
+        );
+
         // Check acknowledgment is not empty
         if ack.is_empty() {
             return Err(IBCError::InvalidPacket("Empty acknowledgment".to_string()));
         }
-        
+
         // In production, verify acknowledgment signature and format
         Ok(())
     }
-    
+
     fn update_packet_state(&self, commitment_key: &str, state: &str) -> Result<(), IBCError> {
         // Update packet state in persistent storage
         println!("📝 Updating packet state: {} -> {}", commitment_key, state);
         Ok(())
     }
-    
+
     fn process_acknowledgment(&self, packet: &IBCPacket, ack: &[u8]) -> Result<(), IBCError> {
         // Process acknowledgment based on success/failure
-        println!("⚙️ Processing acknowledgment for packet seq {}", packet.sequence);
-        
+        println!(
+            "⚙️ Processing acknowledgment for packet seq {}",
+            packet.sequence
+        );
+
         // Decode acknowledgment to determine success/failure
         match std::str::from_utf8(ack) {
             Ok(ack_str) if ack_str.contains("success") => {
@@ -1312,61 +1616,69 @@ impl DytallixIBC {
                 self.handle_failed_packet(packet, ack)?;
             }
         }
-        
+
         Ok(())
     }
-    
+
     fn cleanup_packet_commitment(&self, commitment_key: &str) -> Result<(), IBCError> {
         // Clean up packet commitment from storage
         println!("🧹 Cleaning up packet commitment: {}", commitment_key);
         Ok(())
     }
-    
+
     fn process_packet_timeout(&self, packet: &IBCPacket) -> Result<(), IBCError> {
         // Process packet timeout and refund/revert operations
         println!("⏰ Processing timeout for packet seq {}", packet.sequence);
-        
+
         // Revert any state changes made by the packet
         self.revert_packet_state_changes(packet)?;
-        
+
         // Refund any locked assets
         self.refund_locked_assets(packet)?;
-        
+
         Ok(())
     }
-    
-    fn store_channel_state(&self, port: &str, channel_id: &str, _channel: &IBCChannel) -> Result<(), IBCError> {
+
+    fn store_channel_state(
+        &self,
+        port: &str,
+        channel_id: &str,
+        _channel: &IBCChannel,
+    ) -> Result<(), IBCError> {
         // Store channel state in persistent storage
         println!("💾 Storing channel state: {}_{}", port, channel_id);
-        
+
         // In production, store in database
         // let key = format!("{}_{}", port, channel_id);
         // self.channels.insert(key, channel.clone());
-        
+
         Ok(())
     }
-    
+
     fn initialize_channel_sequences(&self, channel: &IBCChannel) -> Result<(), IBCError> {
         // Initialize sequence numbers for the channel
         let channel_key = format!("{}_{}", channel.port, channel.id);
         println!("🔢 Initializing sequences for channel: {}", channel_key);
-        
+
         // In production, store in persistent storage
         // self.next_sequence.insert(channel_key, 1);
-        
+
         Ok(())
     }
-    
+
     fn emit_channel_event(&self, event_type: &str, channel: &IBCChannel) -> Result<(), IBCError> {
         // Emit channel-related events
-        println!("📨 Emitting channel event: {} for {}", event_type, channel.id);
+        println!(
+            "📨 Emitting channel event: {} for {}",
+            event_type, channel.id
+        );
         Ok(())
     }
-    
+
     fn find_channel_by_id(&self, channel_id: &str) -> Result<IBCChannel, IBCError> {
         // Find channel by ID in storage
         println!("🔍 Finding channel by ID: {}", channel_id);
-        
+
         // In production, search through persistent storage
         // For demo, return a placeholder channel
         Ok(IBCChannel {
@@ -1379,39 +1691,48 @@ impl DytallixIBC {
             connection_id: "connection-0".to_string(),
         })
     }
-    
+
     fn cleanup_channel_data(&self, channel_id: &str) -> Result<(), IBCError> {
         // Clean up channel-related data
         println!("🧹 Cleaning up data for channel: {}", channel_id);
         Ok(())
     }
-    
+
     fn handle_successful_packet(&self, packet: &IBCPacket) -> Result<(), IBCError> {
         // Handle successful packet acknowledgment
         println!("✅ Handling successful packet: seq {}", packet.sequence);
         Ok(())
     }
-    
+
     fn handle_failed_packet(&self, packet: &IBCPacket, ack: &[u8]) -> Result<(), IBCError> {
         // Handle failed packet acknowledgment
-        println!("❌ Handling failed packet: seq {} - {}", packet.sequence, 
-                String::from_utf8_lossy(ack));
-        
+        println!(
+            "❌ Handling failed packet: seq {} - {}",
+            packet.sequence,
+            String::from_utf8_lossy(ack)
+        );
+
         // Revert state changes
         self.revert_packet_state_changes(packet)?;
-        
+
         Ok(())
     }
-    
+
     fn revert_packet_state_changes(&self, packet: &IBCPacket) -> Result<(), IBCError> {
         // Revert any state changes made by the packet
-        println!("↩️ Reverting state changes for packet seq {}", packet.sequence);
+        println!(
+            "↩️ Reverting state changes for packet seq {}",
+            packet.sequence
+        );
         Ok(())
     }
-    
+
     fn refund_locked_assets(&self, packet: &IBCPacket) -> Result<(), IBCError> {
         // Refund any assets that were locked for this packet
-        println!("💰 Refunding locked assets for packet seq {}", packet.sequence);
+        println!(
+            "💰 Refunding locked assets for packet seq {}",
+            packet.sequence
+        );
         Ok(())
     }
 }
@@ -1422,118 +1743,151 @@ impl IBCModule for DytallixIBC {
         let channel_key = format!("{}_{}", packet.source_port, packet.source_channel);
         if let Some(channel) = self.channels.get(&channel_key) {
             if !matches!(channel.state, ChannelState::Open) {
-                return Err(IBCError::ChannelNotFound(format!("Channel {} is not open", channel_key)));
+                return Err(IBCError::ChannelNotFound(format!(
+                    "Channel {} is not open",
+                    channel_key
+                )));
             }
         } else {
             return Err(IBCError::ChannelNotFound(channel_key));
         }
-        
+
         // Verify PQC signature if present
         self.verify_packet_pqc_signature(&packet)?;
-        
+
         // Check timeout
-        let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
         if packet.timeout_timestamp > 0 && current_time > packet.timeout_timestamp {
-            return Err(IBCError::TimeoutExpired("Packet timeout expired".to_string()));
+            return Err(IBCError::TimeoutExpired(
+                "Packet timeout expired".to_string(),
+            ));
         }
-        
+
         // Store packet commitment
         let commitment_key = self.commitment_key(&packet);
         // Calculate actual commitment hash using BLAKE3
         let commitment = self.calculate_packet_commitment(&packet)?;
-        
+
         // Store commitment in persistent storage
         self.store_packet_commitment(&commitment_key, &commitment)?;
-        
+
         // Send packet to counterparty chain via networking layer
         self.transmit_packet_to_counterparty(&packet)?;
-        println!("IBC packet sent: {} -> {}", packet.source_channel, packet.dest_channel);
-        
+        println!(
+            "IBC packet sent: {} -> {}",
+            packet.source_channel, packet.dest_channel
+        );
+
         Ok(())
     }
-    
+
     fn receive_packet(&self, packet: IBCPacket) -> Result<(), IBCError> {
         // Verify the packet is for a valid channel
         let channel_key = format!("{}_{}", packet.dest_port, packet.dest_channel);
         if let Some(channel) = self.channels.get(&channel_key) {
             if !matches!(channel.state, ChannelState::Open) {
-                return Err(IBCError::ChannelNotFound(format!("Channel {} is not open", channel_key)));
+                return Err(IBCError::ChannelNotFound(format!(
+                    "Channel {} is not open",
+                    channel_key
+                )));
             }
         } else {
             return Err(IBCError::ChannelNotFound(channel_key));
         }
-        
+
         // Verify PQC signature
         self.verify_packet_pqc_signature(&packet)?;
-        
+
         // Check if packet was already received
-        let receipt_key = format!("{}_{}_seq_{}", packet.dest_port, packet.dest_channel, packet.sequence);
+        let receipt_key = format!(
+            "{}_{}_seq_{}",
+            packet.dest_port, packet.dest_channel, packet.sequence
+        );
         if self.packet_receipts.contains_key(&receipt_key) {
-            return Err(IBCError::InvalidPacket("Packet already received".to_string()));
+            return Err(IBCError::InvalidPacket(
+                "Packet already received".to_string(),
+            ));
         }
-        
+
         // Store packet receipt with timestamp
         self.store_packet_receipt(&receipt_key, &packet)?;
-        
+
         // Process packet data based on packet type
         self.process_received_packet_data(&packet)?;
-        
-        println!("IBC packet received: {} <- {}", packet.dest_channel, packet.source_channel);
-        
+
+        println!(
+            "IBC packet received: {} <- {}",
+            packet.dest_channel, packet.source_channel
+        );
+
         Ok(())
     }
-    
+
     fn acknowledge_packet(&self, packet: IBCPacket, ack: Vec<u8>) -> Result<(), IBCError> {
         // Verify packet commitment exists
         let commitment_key = self.commitment_key(&packet);
         if !self.packet_commitments.contains_key(&commitment_key) {
-            return Err(IBCError::InvalidPacket("No commitment found for packet".to_string()));
+            return Err(IBCError::InvalidPacket(
+                "No commitment found for packet".to_string(),
+            ));
         }
-        
+
         // Verify acknowledgment format and signature
         self.verify_acknowledgment(&packet, &ack)?;
-        
+
         // Update packet state to acknowledged
         self.update_packet_state(&commitment_key, "acknowledged")?;
-        
+
         // Process acknowledgment based on success/failure
         self.process_acknowledgment(&packet, &ack)?;
-        
+
         // Clean up commitment storage
         self.cleanup_packet_commitment(&commitment_key)?;
-        
+
         println!("✅ IBC packet acknowledged: {}", commitment_key);
-        
+
         Ok(())
     }
-    
+
     fn timeout_packet(&self, packet: IBCPacket) -> Result<(), IBCError> {
         // Verify timeout conditions
-        let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
         if packet.timeout_timestamp > 0 && current_time <= packet.timeout_timestamp {
-            return Err(IBCError::InvalidPacket("Packet has not timed out yet".to_string()));
+            return Err(IBCError::InvalidPacket(
+                "Packet has not timed out yet".to_string(),
+            ));
         }
-        
+
         // For timeout processing, commitment may not exist if packet was never sent successfully
         let commitment_key = self.commitment_key(&packet);
-        
+
         // Process packet timeout and refund/revert operations
         self.process_packet_timeout(&packet)?;
-        
+
         // Update packet state to timed out (if it exists)
         self.update_packet_state(&commitment_key, "timeout")?;
-        
+
         // Clean up commitment storage (if it exists)
         if self.packet_commitments.contains_key(&commitment_key) {
             self.cleanup_packet_commitment(&commitment_key)?;
         }
-        
+
         println!("⏰ IBC packet timed out: {}", commitment_key);
-        
+
         Ok(())
     }
-    
-    fn create_channel(&self, port: String, counterparty_port: String) -> Result<IBCChannel, IBCError> {
+
+    fn create_channel(
+        &self,
+        port: String,
+        counterparty_port: String,
+    ) -> Result<IBCChannel, IBCError> {
         let channel_id = format!("channel-{}", self.channels.len());
         let channel = IBCChannel {
             id: channel_id.clone(),
@@ -1544,57 +1898,59 @@ impl IBCModule for DytallixIBC {
             version: "ics20-1".to_string(), // Token transfer version
             connection_id: "connection-0".to_string(), // Will be updated with actual connection
         };
-        
+
         // Store channel in persistent storage
         self.store_channel_state(&port, &channel_id, &channel)?;
-        
+
         // Initialize channel sequence numbers
         self.initialize_channel_sequences(&channel)?;
-        
+
         // Emit channel creation event
         self.emit_channel_event("ChannelOpenInit", &channel)?;
-        
+
         println!("🆕 IBC channel created: {} on port {}", channel_id, port);
-        
+
         Ok(channel)
     }
-    
+
     fn close_channel(&self, channel_id: String) -> Result<(), IBCError> {
         // Find the channel in storage
         let channel = self.find_channel_by_id(&channel_id)?;
-        
+
         // Verify channel can be closed (must be in Open state)
         if !matches!(channel.state, ChannelState::Open) {
-            return Err(IBCError::ChannelNotFound(format!("Channel {} is not in Open state", channel_id)));
+            return Err(IBCError::ChannelNotFound(format!(
+                "Channel {} is not in Open state",
+                channel_id
+            )));
         }
-        
+
         // Update channel state to Closed
         let mut closed_channel = channel;
         closed_channel.state = ChannelState::Closed;
-        
+
         // Store updated channel state
         self.store_channel_state(&closed_channel.port, &channel_id, &closed_channel)?;
-        
+
         // Clean up channel-related data
         self.cleanup_channel_data(&channel_id)?;
-        
+
         // Emit channel close event
         self.emit_channel_event("ChannelClose", &closed_channel)?;
-        
+
         println!("🔒 IBC channel closed: {}", channel_id);
         Ok(())
     }
 }
 
-pub mod connectors;
-pub mod storage;
-pub mod query_analysis;
 pub mod cache;
+pub mod connectors;
+pub mod query_analysis;
+pub mod storage;
 
 pub use connectors::{
-    ConnectorManager, ChainType,
-    EthereumConnector, EthereumConfig, EthereumAddress, EthereumTxHash, EthereumBlock,
-    CosmosConnector, CosmosConfig, CosmosAddress, CosmosTxHash, CosmosBlock,
-    PolkadotConnector, PolkadotConfig, PolkadotAddress, PolkadotTxHash, PolkadotBlock, PolkadotChainType,
-    TransferResult, TransferStatus,
+    ChainType, ConnectorManager, CosmosAddress, CosmosBlock, CosmosConfig, CosmosConnector,
+    CosmosTxHash, EthereumAddress, EthereumBlock, EthereumConfig, EthereumConnector,
+    EthereumTxHash, PolkadotAddress, PolkadotBlock, PolkadotChainType, PolkadotConfig,
+    PolkadotConnector, PolkadotTxHash, TransferResult, TransferStatus,
 };

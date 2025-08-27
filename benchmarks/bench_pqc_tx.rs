@@ -191,7 +191,7 @@ fn sign_with_algorithm(
             Ok(signed_message.as_bytes().to_vec())
         }
         SignatureAlgorithm::SphincsSha256128s => {
-            use pqcrypto_sphincsplus::sphincssha2128ssimple;
+            use pqcrypto_sphincsplus::sphincssha2128ssimple; // corrected
             use pqcrypto_traits::sign::{SecretKey, SignedMessage};
             
             let sk = sphincssha2128ssimple::SecretKey::from_bytes(secret_key)
@@ -239,7 +239,7 @@ fn verify_with_algorithm(
             }
         }
         SignatureAlgorithm::SphincsSha256128s => {
-            use pqcrypto_sphincsplus::sphincssha2128ssimple;
+            use pqcrypto_sphincsplus::sphincssha2128ssimple; // corrected
             use pqcrypto_traits::sign::{PublicKey, SignedMessage};
             
             let pk = sphincssha2128ssimple::PublicKey::from_bytes(public_key)

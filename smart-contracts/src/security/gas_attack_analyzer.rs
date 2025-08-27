@@ -3,11 +3,11 @@
 //! This module specializes in detecting gas-related attack vectors including
 //! gas griefing, DoS attacks, and gas manipulation exploits.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use crate::runtime::{ContractDeployment, ContractCall, ExecutionResult};
-use crate::gas_optimizer::{GasOptimizer, OperationComplexity, BridgeOperationProfiles};
 use super::{SecurityFinding, Severity, VulnerabilityCategory};
+use crate::gas_optimizer::{BridgeOperationProfiles, GasOptimizer, OperationComplexity};
+use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Analyzer for gas-related attack vectors
 pub struct GasAttackAnalyzer {
@@ -67,7 +67,10 @@ impl GasAttackAnalyzer {
     }
 
     /// Analyze a contract deployment for gas attack vectors
-    pub async fn analyze_deployment(&mut self, deployment: &ContractDeployment) -> Vec<SecurityFinding> {
+    pub async fn analyze_deployment(
+        &mut self,
+        deployment: &ContractDeployment,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         // 1. Analyze gas limit requirements
@@ -83,7 +86,11 @@ impl GasAttackAnalyzer {
     }
 
     /// Analyze execution for gas attack vectors
-    pub async fn analyze_execution(&mut self, call: &ContractCall, result: &ExecutionResult) -> Vec<SecurityFinding> {
+    pub async fn analyze_execution(
+        &mut self,
+        call: &ContractCall,
+        result: &ExecutionResult,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         // Record execution for pattern analysis
@@ -155,7 +162,8 @@ impl GasAttackAnalyzer {
             findings.push(SecurityFinding {
                 id: format!("GAS-EXHAUSTION-{}", self.generate_id()),
                 title: "Potential Gas Exhaustion Vector".to_string(),
-                description: "High gas limit could be used to exhaust network resources".to_string(),
+                description: "High gas limit could be used to exhaust network resources"
+                    .to_string(),
                 severity: Severity::High,
                 category: VulnerabilityCategory::DoS,
                 location: Some(deployment.address.clone()),
@@ -175,7 +183,10 @@ impl GasAttackAnalyzer {
     }
 
     /// Analyze complexity patterns that could lead to gas attacks
-    async fn analyze_complexity_patterns(&mut self, deployment: &ContractDeployment) -> Vec<SecurityFinding> {
+    async fn analyze_complexity_patterns(
+        &mut self,
+        deployment: &ContractDeployment,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         // Estimate complexity based on contract size and patterns
@@ -186,21 +197,32 @@ impl GasAttackAnalyzer {
             findings.push(SecurityFinding {
                 id: format!("GAS-COMPLEXITY-{}", self.generate_id()),
                 title: "High Computational Complexity".to_string(),
-                description: "Contract exhibits high computational complexity that could lead to gas attacks".to_string(),
+                description:
+                    "Contract exhibits high computational complexity that could lead to gas attacks"
+                        .to_string(),
                 severity: Severity::Medium,
                 category: VulnerabilityCategory::GasGriefing,
                 location: Some(deployment.address.clone()),
                 evidence: vec![
                     format!("Complexity score: {}", complexity_score),
-                    format!("Storage operations: {}", complexity.storage_reads + complexity.storage_writes),
-                    format!("Computational intensity: {}", complexity.computational_intensity),
+                    format!(
+                        "Storage operations: {}",
+                        complexity.storage_reads + complexity.storage_writes
+                    ),
+                    format!(
+                        "Computational intensity: {}",
+                        complexity.computational_intensity
+                    ),
                 ],
                 recommendations: vec![
                     "Optimize computational complexity".to_string(),
                     "Consider breaking operations into smaller chunks".to_string(),
                     "Use gas-efficient algorithms".to_string(),
                 ],
-                gas_impact: Some(self.gas_optimizer.estimate_gas_cost("deployment", &complexity)),
+                gas_impact: Some(
+                    self.gas_optimizer
+                        .estimate_gas_cost("deployment", &complexity),
+                ),
             });
         }
 
@@ -218,7 +240,9 @@ impl GasAttackAnalyzer {
             findings.push(SecurityFinding {
                 id: format!("GAS-GRIEF-LOOP-{}", self.generate_id()),
                 title: "Potential Infinite Loop Gas Griefing".to_string(),
-                description: "Contract contains patterns that could create infinite loops for gas griefing".to_string(),
+                description:
+                    "Contract contains patterns that could create infinite loops for gas griefing"
+                        .to_string(),
                 severity: Severity::High,
                 category: VulnerabilityCategory::GasGriefing,
                 location: Some(deployment.address.clone()),
@@ -259,7 +283,11 @@ impl GasAttackAnalyzer {
     }
 
     /// Detect gas griefing in execution
-    fn detect_gas_griefing(&self, call: &ContractCall, result: &ExecutionResult) -> Vec<SecurityFinding> {
+    fn detect_gas_griefing(
+        &self,
+        call: &ContractCall,
+        result: &ExecutionResult,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         let efficiency = if call.gas_limit > 0 {
@@ -273,7 +301,9 @@ impl GasAttackAnalyzer {
             findings.push(SecurityFinding {
                 id: format!("GAS-GRIEF-EXEC-{}", self.generate_id()),
                 title: "Gas Griefing During Execution".to_string(),
-                description: "Contract execution shows patterns consistent with gas griefing attacks".to_string(),
+                description:
+                    "Contract execution shows patterns consistent with gas griefing attacks"
+                        .to_string(),
                 severity: Severity::High,
                 category: VulnerabilityCategory::GasGriefing,
                 location: Some(format!("{}::{}", call.contract_address, call.method)),
@@ -295,7 +325,11 @@ impl GasAttackAnalyzer {
     }
 
     /// Detect DoS through gas exhaustion
-    fn detect_gas_exhaustion_dos(&self, call: &ContractCall, result: &ExecutionResult) -> Vec<SecurityFinding> {
+    fn detect_gas_exhaustion_dos(
+        &self,
+        call: &ContractCall,
+        result: &ExecutionResult,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         // Check for patterns that could exhaust gas
@@ -303,7 +337,8 @@ impl GasAttackAnalyzer {
             findings.push(SecurityFinding {
                 id: format!("GAS-DOS-EXHAUST-{}", self.generate_id()),
                 title: "Gas Exhaustion DoS Attack".to_string(),
-                description: "Execution consumed excessive gas that could be used for DoS attacks".to_string(),
+                description: "Execution consumed excessive gas that could be used for DoS attacks"
+                    .to_string(),
                 severity: Severity::Critical,
                 category: VulnerabilityCategory::DoS,
                 location: Some(format!("{}::{}", call.contract_address, call.method)),
@@ -325,18 +360,24 @@ impl GasAttackAnalyzer {
     }
 
     /// Detect gas limit manipulation
-    fn detect_gas_manipulation(&self, call: &ContractCall, result: &ExecutionResult) -> Vec<SecurityFinding> {
+    fn detect_gas_manipulation(
+        &self,
+        call: &ContractCall,
+        result: &ExecutionResult,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         // Look for patterns where gas limit is set very high but actual usage is low
         // This could indicate manipulation attempts
         let gas_ratio = result.gas_used as f64 / call.gas_limit as f64;
-        
+
         if call.gas_limit > 1_000_000 && gas_ratio < 0.1 {
             findings.push(SecurityFinding {
                 id: format!("GAS-MANIPULATION-{}", self.generate_id()),
                 title: "Potential Gas Limit Manipulation".to_string(),
-                description: "Unusually high gas limit with low actual usage suggests potential manipulation".to_string(),
+                description:
+                    "Unusually high gas limit with low actual usage suggests potential manipulation"
+                        .to_string(),
                 severity: Severity::Medium,
                 category: VulnerabilityCategory::GasGriefing,
                 location: Some(format!("{}::{}", call.contract_address, call.method)),
@@ -358,31 +399,39 @@ impl GasAttackAnalyzer {
     }
 
     /// Analyze gas usage patterns over time
-    async fn analyze_gas_usage_patterns(&self, call: &ContractCall, result: &ExecutionResult) -> Vec<SecurityFinding> {
+    async fn analyze_gas_usage_patterns(
+        &self,
+        call: &ContractCall,
+        result: &ExecutionResult,
+    ) -> Vec<SecurityFinding> {
         let mut findings = Vec::new();
 
         // Analyze historical patterns for this contract/method
-        let recent_executions: Vec<_> = self.execution_history
+        let recent_executions: Vec<_> = self
+            .execution_history
             .iter()
             .filter(|record| {
-                record.contract_address == call.contract_address &&
-                record.method == call.method &&
-                call.timestamp - record.timestamp < 3600 // Last hour
+                record.contract_address == call.contract_address
+                    && record.method == call.method
+                    && call.timestamp - record.timestamp < 3600 // Last hour
             })
             .collect();
 
         if recent_executions.len() > 10 {
             // Calculate average gas usage
-            let avg_gas: f64 = recent_executions.iter()
+            let avg_gas: f64 = recent_executions
+                .iter()
                 .map(|r| r.actual_gas as f64)
-                .sum::<f64>() / recent_executions.len() as f64;
+                .sum::<f64>()
+                / recent_executions.len() as f64;
 
             // Check for sudden spikes
             if result.gas_used as f64 > avg_gas * self.thresholds.dos_spike_multiplier {
                 findings.push(SecurityFinding {
                     id: format!("GAS-SPIKE-DOS-{}", self.generate_id()),
                     title: "Gas Usage Spike DoS Attack".to_string(),
-                    description: "Sudden spike in gas usage could indicate DoS attack attempt".to_string(),
+                    description: "Sudden spike in gas usage could indicate DoS attack attempt"
+                        .to_string(),
                     severity: Severity::High,
                     category: VulnerabilityCategory::DoS,
                     location: Some(format!("{}::{}", call.contract_address, call.method)),
@@ -457,9 +506,8 @@ impl GasAttackAnalyzer {
         }
 
         // Heuristics for griefing patterns
-        indicators.potential_infinite_loops = 
-            indicators.loop_count > 5 && 
-            (indicators.branch_count as f64 / indicators.loop_count as f64) < 0.3;
+        indicators.potential_infinite_loops = indicators.loop_count > 5
+            && (indicators.branch_count as f64 / indicators.loop_count as f64) < 0.3;
 
         indicators.excessive_storage_ops = indicators.storage_op_count > 100;
 
@@ -467,7 +515,8 @@ impl GasAttackAnalyzer {
     }
 
     fn generate_id(&self) -> String {
-        format!("{:08x}", 
+        format!(
+            "{:08x}",
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
@@ -493,7 +542,10 @@ impl GasAttackAnalyzer {
                 category: VulnerabilityCategory::GasOptimization,
                 location: None,
                 evidence: vec![
-                    format!("Average efficiency: {:.2}%", stats.average_efficiency * 100.0),
+                    format!(
+                        "Average efficiency: {:.2}%",
+                        stats.average_efficiency * 100.0
+                    ),
                     format!("Total operations: {}", stats.total_operations),
                 ],
                 recommendations: vec![
@@ -522,7 +574,7 @@ struct GriefingIndicators {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::{ContractDeployment, ContractCall, ExecutionResult, StateChange};
+    use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult, StateChange};
 
     #[test]
     fn test_gas_analyzer_creation() {
@@ -533,7 +585,7 @@ mod tests {
     #[test]
     fn test_excessive_gas_limit_detection() {
         let mut analyzer = GasAttackAnalyzer::new();
-        
+
         let deployment = ContractDeployment {
             address: "test".to_string(),
             code: b"\x00asm\x01\x00\x00\x00".to_vec(),
@@ -546,13 +598,15 @@ mod tests {
 
         let findings = analyzer.analyze_gas_limits(&deployment);
         assert!(!findings.is_empty());
-        assert!(findings.iter().any(|f| f.category == VulnerabilityCategory::GasGriefing));
+        assert!(findings
+            .iter()
+            .any(|f| f.category == VulnerabilityCategory::GasGriefing));
     }
 
     #[tokio::test]
     async fn test_gas_griefing_detection() {
         let mut analyzer = GasAttackAnalyzer::new();
-        
+
         let call = ContractCall {
             contract_address: "test".to_string(),
             caller: "caller".to_string(),
@@ -580,7 +634,7 @@ mod tests {
     #[test]
     fn test_complexity_calculation() {
         let analyzer = GasAttackAnalyzer::new();
-        
+
         let complexity = OperationComplexity {
             storage_reads: 10,
             storage_writes: 5,
@@ -595,7 +649,7 @@ mod tests {
 
         let score = analyzer.calculate_complexity_score(&complexity);
         assert!(score > 0);
-        
+
         // Higher complexity should give higher score
         let high_complexity = OperationComplexity {
             storage_reads: 100,
@@ -616,17 +670,14 @@ mod tests {
     #[test]
     fn test_griefing_pattern_analysis() {
         let analyzer = GasAttackAnalyzer::new();
-        
+
         // Create bytecode with many loop instructions
         let bytecode_with_loops = vec![
             0x00, 0x61, 0x73, 0x6d, // WASM magic
             0x01, 0x00, 0x00, 0x00, // WASM version
             0x02, 0x00, 0x03, 0x01, // Many loop instructions
-            0x02, 0x00, 0x03, 0x01,
-            0x02, 0x00, 0x03, 0x01,
-            0x02, 0x00, 0x03, 0x01,
-            0x02, 0x00, 0x03, 0x01,
-            0x02, 0x00, 0x03, 0x01,
+            0x02, 0x00, 0x03, 0x01, 0x02, 0x00, 0x03, 0x01, 0x02, 0x00, 0x03, 0x01, 0x02, 0x00,
+            0x03, 0x01, 0x02, 0x00, 0x03, 0x01,
         ];
 
         let indicators = analyzer.analyze_bytecode_for_griefing(&bytecode_with_loops);

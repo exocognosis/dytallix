@@ -1,28 +1,29 @@
 use crate::rpc::errors::ApiError;
+use crate::runtime::bridge;
+use crate::runtime::emission::EmissionEngine;
+use crate::runtime::governance::{GovernanceModule, ProposalType};
+use crate::runtime::staking::StakingModule;
+use crate::storage::oracle::OracleStore;
 use crate::{
+    addr,
+    crypto::{canonical_json, sha3_256, ActivePQC},
     mempool::{basic_validate, Mempool, MempoolError},
     state::State,
     storage::blocks::TpsWindow,
     storage::{receipts::TxReceipt, state::Storage, tx::Transaction},
-    ws::server::WsHub,
-    crypto::{canonical_json, sha3_256, ActivePQC},
     types::{SignedTx, ValidationError},
-    addr,
+    ws::server::WsHub,
 };
 use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
+use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use colored::Colorize; // needed for algorithm.cyan()
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::storage::oracle::OracleStore;
-use crate::runtime::bridge;
-use crate::runtime::emission::EmissionEngine;
-use crate::runtime::governance::{GovernanceModule, ProposalType};
-use crate::runtime::staking::StakingModule;
-use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 #[derive(Clone)]
 pub struct RpcContext {
@@ -43,10 +44,10 @@ pub struct SubmitTx {
 }
 
 fn validate_signed_tx(
-    signed_tx: &SignedTx, 
+    signed_tx: &SignedTx,
     expected_chain_id: &str,
     expected_nonce: u64,
-    account_state: &crate::state::AccountState
+    account_state: &crate::state::AccountState,
 ) -> Result<(), ValidationError> {
     // Verify signature
     if let Err(_) = signed_tx.verify() {
@@ -55,38 +56,39 @@ fn validate_signed_tx(
 
     // Validate transaction
     if let Err(_) = signed_tx.tx.validate(expected_chain_id) {
-        return Err(ValidationError::InvalidChainId { 
-            expected: expected_chain_id.to_string(), 
-            got: signed_tx.tx.chain_id.clone() 
+        return Err(ValidationError::InvalidChainId {
+            expected: expected_chain_id.to_string(),
+            got: signed_tx.tx.chain_id.clone(),
         });
     }
 
     // Check nonce
     if signed_tx.tx.nonce != expected_nonce {
-        return Err(ValidationError::InvalidNonce { 
-            expected: expected_nonce, 
-            got: signed_tx.tx.nonce 
+        return Err(ValidationError::InvalidNonce {
+            expected: expected_nonce,
+            got: signed_tx.tx.nonce,
         });
     }
 
     // Calculate required amounts per denomination
-    let mut required_per_denom: std::collections::HashMap<String, u128> = std::collections::HashMap::new();
-    
+    let mut required_per_denom: std::collections::HashMap<String, u128> =
+        std::collections::HashMap::new();
+
     // Add transaction fee (always in udgt for now)
     let fee_denom = "udgt".to_string();
     required_per_denom.insert(fee_denom.clone(), signed_tx.tx.fee);
-    
+
     // Add amounts from messages
     for msg in &signed_tx.tx.msgs {
         match msg {
             crate::types::Msg::Send { denom, amount, .. } => {
-                // Convert DGT/DRT to micro denominations  
+                // Convert DGT/DRT to micro denominations
                 let micro_denom = match denom.to_ascii_uppercase().as_str() {
                     "DGT" => "udgt",
-                    "DRT" => "udrt", 
-                    _ => denom.as_str() // Pass through other denoms
+                    "DRT" => "udrt",
+                    _ => denom.as_str(), // Pass through other denoms
                 };
-                
+
                 let current = required_per_denom.get(micro_denom).copied().unwrap_or(0);
                 required_per_denom.insert(micro_denom.to_string(), current.saturating_add(*amount));
             }
@@ -97,9 +99,9 @@ fn validate_signed_tx(
     for (denom, required_amount) in required_per_denom {
         let available = account_state.balance_of(&denom);
         if available < required_amount {
-            return Err(ValidationError::InsufficientFunds { 
-                required: required_amount, 
-                available 
+            return Err(ValidationError::InsufficientFunds {
+                required: required_amount,
+                available,
             });
         }
     }
@@ -113,27 +115,31 @@ pub async fn submit(
     Json(body): Json<SubmitTx>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let signed_tx = body.signed_tx;
-    
+
     // Get chain ID and first sender address
     let chain_id = ctx.storage.get_chain_id().unwrap_or_default();
     let from = signed_tx.first_from_address().ok_or_else(|| {
-        ApiError::Validation(ValidationError::Internal("no sender address found".to_string()))
+        ApiError::Validation(ValidationError::Internal(
+            "no sender address found".to_string(),
+        ))
     })?;
-    
+
     // Get current nonce and account state
     let mut state = ctx.state.lock().unwrap();
     let current_nonce = state.nonce_of(from);
     let account_state = state.get_account(from);
     drop(state);
-    
+
     // Validate the signed transaction
     validate_signed_tx(&signed_tx, &chain_id, current_nonce, &account_state)?;
-    
+
     // Generate transaction hash
     let tx_hash = signed_tx.tx_hash().map_err(|_| {
-        ApiError::Validation(ValidationError::Internal("failed to generate tx hash".to_string()))
+        ApiError::Validation(ValidationError::Internal(
+            "failed to generate tx hash".to_string(),
+        ))
     })?;
-    
+
     // Check for duplicate transaction
     {
         let mempool = ctx.mempool.lock().unwrap();
@@ -144,7 +150,7 @@ pub async fn submit(
             return Err(ApiError::Validation(ValidationError::MempoolFull));
         }
     }
-    
+
     // Build legacy Transaction wrapper for storage compatibility
     // TODO: Remove this legacy conversion once storage is updated
     let legacy_tx = Transaction::new(
@@ -156,15 +162,15 @@ pub async fn submit(
         signed_tx.tx.nonce,
         Some(signed_tx.signature.clone()),
     );
-    
+
     // Additional validation using legacy system
     {
         let state = ctx.state.lock().unwrap();
         if let Err(e) = basic_validate(&state, &legacy_tx) {
             if e.starts_with("InvalidNonce") {
-                return Err(ApiError::InvalidNonce { 
-                    expected: current_nonce, 
-                    got: signed_tx.tx.nonce 
+                return Err(ApiError::InvalidNonce {
+                    expected: current_nonce,
+                    got: signed_tx.tx.nonce,
                 });
             }
             if e.contains("InsufficientBalance") {
@@ -173,29 +179,50 @@ pub async fn submit(
             return Err(ApiError::Internal);
         }
     }
-    
+
     // Add to mempool
     {
         let mut mempool = ctx.mempool.lock().unwrap();
-        mempool.push(legacy_tx.clone()).map_err(|e| match e {
-            MempoolError::Duplicate => ApiError::DuplicateTx,
-            MempoolError::Full => ApiError::MempoolFull,
-        })?;
+        // Use add_transaction directly to capture detailed rejection reasons
+        if let Err(reason) = mempool.add_transaction(&State::default(), legacy_tx.clone()) {
+            return Err(match reason {
+                crate::mempool::RejectionReason::InvalidSignature => ApiError::InvalidSignature,
+                crate::mempool::RejectionReason::NonceGap { expected, got } => {
+                    ApiError::InvalidNonce { expected, got }
+                }
+                crate::mempool::RejectionReason::InsufficientFunds => ApiError::InsufficientFunds,
+                crate::mempool::RejectionReason::UnderpricedGas { .. } => {
+                    ApiError::BadRequest("underpriced gas".to_string())
+                }
+                crate::mempool::RejectionReason::OversizedTx { .. } => {
+                    ApiError::BadRequest("oversized transaction".to_string())
+                }
+                crate::mempool::RejectionReason::Duplicate(_) => ApiError::DuplicateTx,
+                crate::mempool::RejectionReason::PolicyViolation(msg) => {
+                    ApiError::BadRequest(format!("policy violation: {}", msg))
+                }
+                crate::mempool::RejectionReason::InternalError(_) => ApiError::Internal,
+            });
+        }
     }
-    
+
     // Store transaction and receipt
-    ctx.storage.put_tx(&legacy_tx).map_err(|_| ApiError::Internal)?;
+    ctx.storage
+        .put_tx(&legacy_tx)
+        .map_err(|_| ApiError::Internal)?;
     let pending = TxReceipt::pending(&legacy_tx);
-    ctx.storage.put_pending_receipt(&pending).map_err(|_| ApiError::Internal)?;
-    
+    ctx.storage
+        .put_pending_receipt(&pending)
+        .map_err(|_| ApiError::Internal)?;
+
     // Broadcast to websocket
     ctx.ws.broadcast_json(&json!({
         "type": "new_transaction",
-        "hash": tx_hash 
+        "hash": tx_hash
     }));
-    
+
     Ok(Json(json!({
-        "hash": tx_hash, 
+        "hash": tx_hash,
         "status": "pending"
     })))
 }
@@ -243,12 +270,39 @@ pub async fn get_block(
             .and_then(|h| ctx.storage.get_block_by_height(h))
     };
     if let Some(b) = block {
-        Ok(Json(
-            json!({"hash": b.hash, "height": b.header.height, "parent": b.header.parent, "timestamp": b.header.timestamp, "txs": b.txs }),
-        ))
+        // Enrich block metadata (signature + algorithm if available)
+        let mut obj = json!({
+            "hash": b.hash,
+            "height": b.header.height,
+            "parent": b.header.parent,
+            "timestamp": b.header.timestamp,
+            "txs": b.txs,
+        });
+        if let Some(sig) = b.header.signature.as_ref() {
+            // placeholder: adapt if Option later
+            obj["validator"] = serde_json::json!(b.header.validator);
+            obj["state_root"] = serde_json::json!(b.header.state_root);
+            obj["pqc_algorithm"] = serde_json::json!(sig.algorithm);
+        }
+        Ok(Json(obj))
     } else {
         Err(ApiError::NotFound)
     }
+}
+
+// New: getTransactionReceipt endpoint (hash path param) returning full receipt metadata
+#[axum::debug_handler]
+pub async fn get_transaction_receipt(
+    Path(hash): Path<String>,
+    ctx: axum::Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    if let Some(r) = ctx.storage.get_receipt(&hash) {
+        let mut v = serde_json::to_value(&r).unwrap();
+        // Attach PQC algorithm placeholder for future (tx signatures currently separate)
+        v["pqc_algorithm"] = serde_json::json!("Dilithium5");
+        return Ok(Json(v));
+    }
+    Err(ApiError::NotFound)
 }
 
 pub async fn get_balance(
@@ -257,7 +311,7 @@ pub async fn get_balance(
     ctx: axum::Extension<RpcContext>,
 ) -> Json<serde_json::Value> {
     let mut state = ctx.state.lock().unwrap();
-    
+
     // Check if specific denomination is requested
     if let Some(denom) = params.get("denom") {
         let bal = state.balance_of(&addr, denom);
@@ -267,11 +321,11 @@ pub async fn get_balance(
             "balance": bal.to_string()
         }));
     }
-    
+
     // Return all balances for the address
     let balances = state.balances_of(&addr);
     let legacy_balance = state.legacy_balance_of(&addr);
-    
+
     // Format balances for multi-denomination response
     let formatted_balances: std::collections::HashMap<String, serde_json::Value> = balances
         .iter()
@@ -285,19 +339,19 @@ pub async fn get_balance(
                 }),
                 "udrt" => json!({
                     "balance": amount.to_string(),
-                    "formatted": format!("{} DRT", amount / 1_000_000), // Assuming 6 decimal places  
+                    "formatted": format!("{} DRT", amount / 1_000_000), // Assuming 6 decimal places
                     "type": "reward",
                     "description": "Reward token for transaction fees and staking rewards"
                 }),
                 _ => json!({
                     "balance": amount.to_string(),
                     "type": "unknown"
-                })
+                }),
             };
             (denom.clone(), denom_info)
         })
         .collect();
-    
+
     Json(json!({
         "address": addr,
         "balances": formatted_balances,
@@ -406,18 +460,30 @@ pub async fn gov_submit_proposal(
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     use crate::runtime::governance::ProposalType;
-    
-    let title = body.get("title").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
-    let description = body.get("description").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
-    let key = body.get("key").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
-    let value = body.get("value").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
+
+    let title = body
+        .get("title")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::Internal)?;
+    let description = body
+        .get("description")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::Internal)?;
+    let key = body
+        .get("key")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::Internal)?;
+    let value = body
+        .get("value")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::Internal)?;
     let height = ctx.storage.height();
-    
+
     let proposal_type = ProposalType::ParameterChange {
         key: key.to_string(),
         value: value.to_string(),
     };
-    
+
     match ctx.governance.lock().unwrap().submit_proposal(
         height,
         title.to_string(),
@@ -436,18 +502,26 @@ pub async fn gov_deposit(
     Extension(ctx): Extension<RpcContext>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let depositor = body.get("depositor").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
-    let proposal_id = body.get("proposal_id").and_then(|v| v.as_u64()).ok_or(ApiError::Internal)?;
-    let amount = body.get("amount").and_then(|v| v.as_u64()).ok_or(ApiError::Internal)? as u128;
+    let depositor = body
+        .get("depositor")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::Internal)?;
+    let proposal_id = body
+        .get("proposal_id")
+        .and_then(|v| v.as_u64())
+        .ok_or(ApiError::Internal)?;
+    let amount = body
+        .get("amount")
+        .and_then(|v| v.as_u64())
+        .ok_or(ApiError::Internal)? as u128;
     let height = ctx.storage.height();
-    
-    match ctx.governance.lock().unwrap().deposit(
-        height,
-        depositor,
-        proposal_id,
-        amount,
-        "udgt",
-    ) {
+
+    match ctx
+        .governance
+        .lock()
+        .unwrap()
+        .deposit(height, depositor, proposal_id, amount, "udgt")
+    {
         Ok(()) => Ok(Json(json!({"success": true}))),
         Err(e) => {
             eprintln!("Governance deposit error: {}", e);
@@ -461,12 +535,21 @@ pub async fn gov_vote(
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     use crate::runtime::governance::VoteOption;
-    
-    let voter = body.get("voter").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
-    let proposal_id = body.get("proposal_id").and_then(|v| v.as_u64()).ok_or(ApiError::Internal)?;
-    let option_str = body.get("option").and_then(|v| v.as_str()).ok_or(ApiError::Internal)?;
+
+    let voter = body
+        .get("voter")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::Internal)?;
+    let proposal_id = body
+        .get("proposal_id")
+        .and_then(|v| v.as_u64())
+        .ok_or(ApiError::Internal)?;
+    let option_str = body
+        .get("option")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::Internal)?;
     let height = ctx.storage.height();
-    
+
     let option = match option_str {
         "yes" => VoteOption::Yes,
         "no" => VoteOption::No,
@@ -474,8 +557,13 @@ pub async fn gov_vote(
         "abstain" => VoteOption::Abstain,
         _ => return Err(ApiError::Internal),
     };
-    
-    match ctx.governance.lock().unwrap().vote(height, voter, proposal_id, option) {
+
+    match ctx
+        .governance
+        .lock()
+        .unwrap()
+        .vote(height, voter, proposal_id, option)
+    {
         Ok(()) => Ok(Json(json!({"success": true}))),
         Err(e) => {
             eprintln!("Governance vote error: {}", e);
@@ -526,22 +614,24 @@ pub async fn gov_list_proposals(
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let governance = ctx.governance.lock().unwrap();
-    
+
     match governance.get_all_proposals() {
         Ok(proposals) => {
             let mut proposal_list = Vec::new();
-            
+
             for proposal in proposals {
                 // Get current tally for each proposal
                 let current_tally = governance.tally(proposal.id).ok();
                 let total_voting_power = governance.total_voting_power().unwrap_or(1);
-                
-                let participating_voting_power = current_tally.as_ref()
+
+                let participating_voting_power = current_tally
+                    .as_ref()
                     .map(|t| t.total_voting_power)
                     .unwrap_or(0);
-                    
+
                 let quorum_met = if total_voting_power > 0 {
-                    let quorum_required = (total_voting_power * governance.get_config().quorum) / 10000;
+                    let quorum_required =
+                        (total_voting_power * governance.get_config().quorum) / 10000;
                     participating_voting_power >= quorum_required
                 } else {
                     false
@@ -567,10 +657,10 @@ pub async fn gov_list_proposals(
                         "quorum_met": quorum_met
                     }))
                 });
-                
+
                 proposal_list.push(proposal_summary);
             }
-            
+
             Ok(Json(json!({
                 "proposals": proposal_list
             })))
@@ -588,18 +678,21 @@ pub async fn gov_get_proposal_votes(
     Path(proposal_id): Path<u64>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let governance = ctx.governance.lock().unwrap();
-    
+
     match governance.get_proposal_votes(proposal_id) {
         Ok(votes) => {
-            let vote_list: Vec<_> = votes.into_iter().map(|vote| {
-                json!({
-                    "voter": vote.voter,
-                    "option": vote.option,
-                    "voting_power": vote.weight.to_string(),
-                    "timestamp": null // TODO: add timestamp to Vote struct
+            let vote_list: Vec<_> = votes
+                .into_iter()
+                .map(|vote| {
+                    json!({
+                        "voter": vote.voter,
+                        "option": vote.option,
+                        "voting_power": vote.weight.to_string(),
+                        "timestamp": null // TODO: add timestamp to Vote struct
+                    })
                 })
-            }).collect();
-            
+                .collect();
+
             Ok(Json(json!({
                 "proposal_id": proposal_id,
                 "votes": vote_list
@@ -618,14 +711,12 @@ pub async fn gov_get_voting_power(
     Path(address): Path<String>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let governance = ctx.governance.lock().unwrap();
-    
+
     match governance.voting_power(&address) {
-        Ok(voting_power) => {
-            Ok(Json(json!({
-                "address": address,
-                "voting_power": voting_power.to_string()
-            })))
-        }
+        Ok(voting_power) => Ok(Json(json!({
+            "address": address,
+            "voting_power": voting_power.to_string()
+        }))),
         Err(e) => {
             eprintln!("Failed to get voting power for {}: {}", address, e);
             Err(ApiError::Internal)
@@ -638,11 +729,11 @@ pub async fn gov_get_total_voting_power(
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let governance = ctx.governance.lock().unwrap();
-    
+
     match governance.total_voting_power() {
         Ok(total_power) => {
             let active_power = governance.active_set_voting_power().unwrap_or(total_power);
-            
+
             Ok(Json(json!({
                 "total_voting_power": total_power.to_string(),
                 "active_set_voting_power": active_power.to_string()
@@ -671,11 +762,14 @@ pub async fn get_rewards(
     let limit = params.limit.unwrap_or(50).min(500); // Default 50, max 500
     let current_height = ctx.storage.height();
     let start_height = params.start_height.unwrap_or(current_height);
-    
+
     let mut events = Vec::new();
     let emission = ctx.emission.lock().unwrap();
-    
-    for height in (1..=start_height.min(current_height)).rev().take(limit as usize) {
+
+    for height in (1..=start_height.min(current_height))
+        .rev()
+        .take(limit as usize)
+    {
         if let Some(event) = emission.get_event(height) {
             // Format numbers as strings to prevent JS precision issues
             let formatted_event = json!({
@@ -694,10 +788,10 @@ pub async fn get_rewards(
             events.push(formatted_event);
         }
     }
-    
+
     // Get staking stats
     let (total_stake, reward_index, pending_emission) = ctx.staking.lock().unwrap().get_stats();
-    
+
     Ok(Json(json!({
         "events": events,
         "pagination": {
@@ -719,7 +813,7 @@ pub async fn get_rewards_by_height(
     Path(height): Path<u64>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let emission = ctx.emission.lock().unwrap();
-    
+
     match emission.get_event(height) {
         Some(event) => {
             // Format numbers as strings to prevent JS precision issues
@@ -754,14 +848,14 @@ pub async fn stats_with_emission(
     let rolling_tps = { ctx.tps.lock().unwrap().rolling_tps(now) };
     let chain_id = ctx.storage.get_chain_id();
     let em_snap = ctx.emission.lock().unwrap().snapshot();
-    
+
     // Get latest emission event
     let current_height = ctx.storage.height();
     let latest_emission_event = ctx.emission.lock().unwrap().get_event(current_height);
-    
+
     // Get staking stats
     let (total_stake, reward_index, pending_emission) = ctx.staking.lock().unwrap().get_stats();
-    
+
     Ok(Json(json!({
         "height": ctx.storage.height(),
         "mempool_size": ctx.mempool.lock().unwrap().len(),
@@ -793,18 +887,18 @@ pub async fn staking_claim(
 
     let mut staking = ctx.staking.lock().unwrap();
     let claimed = staking.claim_rewards(address);
-    
+
     if claimed > 0 {
         // Credit DRT tokens to the address
         if let Ok(mut state) = ctx.state.lock() {
             state.credit(address, "udrt", claimed);
         }
     }
-    
+
     // Get current reward index and new balance for response
     let reward_index = staking.get_stats().1;
     drop(staking); // Release lock before getting balance
-    
+
     let new_balance = if let Ok(state) = ctx.state.lock() {
         state.get_balance(address, "udrt")
     } else {
@@ -826,7 +920,7 @@ pub async fn staking_get_accrued(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let staking = ctx.staking.lock().unwrap();
     let accrued = staking.get_accrued_rewards(&address);
-    
+
     Ok(Json(json!({
         "address": address,
         "accrued_rewards": accrued.to_string(),

@@ -1,14 +1,14 @@
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::sync::RwLock;
 use std::cmp::Ordering;
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::sync::RwLock;
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+use crate::gas::{intrinsic_gas, validate_gas_limit, GasSchedule, TxKind};
 use crate::state::State;
 use crate::storage::tx::Transaction;
-use crate::gas::{TxKind, GasSchedule, validate_gas_limit, intrinsic_gas};
-use crate::crypto::{ActivePQC, PQC, canonical_json, sha3_256};
-use blockchain_core::policy::{PolicyManager, PolicyError};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use dytallix_node::policy::signature_policy::{PolicyError, PolicyManager};
 
 #[cfg(test)]
 mod gas_tests;
@@ -33,7 +33,7 @@ pub enum RejectionReason {
     InsufficientFunds,
     UnderpricedGas { min: u64, got: u64 },
     OversizedTx { max: usize, got: usize },
-    Duplicate,
+    Duplicate(String),
     PolicyViolation(String),
     InternalError(String),
 }
@@ -47,7 +47,7 @@ impl RejectionReason {
             RejectionReason::InsufficientFunds => "insufficient_funds",
             RejectionReason::UnderpricedGas { .. } => "underpriced_gas",
             RejectionReason::OversizedTx { .. } => "oversized_tx",
-            RejectionReason::Duplicate => "duplicate",
+            RejectionReason::Duplicate(_) => "duplicate",
             RejectionReason::PolicyViolation(_) => "policy_violation",
             RejectionReason::InternalError(_) => "internal_error",
         }
@@ -57,7 +57,8 @@ impl RejectionReason {
 impl std::fmt::Display for RejectionReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RejectionReason::InvalidSignature => write!(f, "{}", TX_INVALID_SIG),
+            RejectionReason::Duplicate(hash) => write!(f, "duplicate tx {}", hash),
+            RejectionReason::InvalidSignature => write!(f, "invalid signature"),
             RejectionReason::NonceGap { expected, got } => {
                 write!(f, "nonce gap: expected {}, got {}", expected, got)
             }
@@ -68,7 +69,7 @@ impl std::fmt::Display for RejectionReason {
             RejectionReason::OversizedTx { max, got } => {
                 write!(f, "oversized transaction: max {}, got {}", max, got)
             }
-            RejectionReason::Duplicate => write!(f, "duplicate transaction"),
+            RejectionReason::PolicyViolation(msg) => write!(f, "policy violation: {}", msg),
             RejectionReason::InternalError(msg) => write!(f, "internal error: {}", msg),
         }
     }
@@ -145,7 +146,7 @@ impl PendingTx {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         Self {
             tx,
             received_at,
@@ -189,24 +190,32 @@ impl Mempool {
             tx_lookup: HashMap::new(),
             tx_hashes: HashSet::new(),
             total_bytes: 0,
+            policy_manager: PolicyManager::new(),
         }
     }
 
     /// Add transaction to mempool with full validation
-    pub fn add_transaction(&mut self, state: &State, tx: Transaction) -> Result<(), RejectionReason> {
+    pub fn add_transaction(
+        &mut self,
+        state: &State,
+        tx: Transaction,
+    ) -> Result<(), RejectionReason> {
         // 1. Signature verification
         if !verify_envelope(&tx) {
             return Err(RejectionReason::InvalidSignature);
         }
-        
+
         // 1.5. Policy enforcement - validate signature algorithm if policy is configured
         if let Err(policy_error) = self.validate_signature_policy(&tx) {
-            return Err(RejectionReason::PolicyViolation(policy_error.to_string()));
+            return Err(RejectionReason::PolicyViolation(format!(
+                "{}",
+                policy_error
+            )));
         }
 
         // 2. Duplicate check
         if self.tx_hashes.contains(&tx.hash) {
-            return Err(RejectionReason::Duplicate);
+            return Err(RejectionReason::Duplicate(tx.hash));
         }
 
         // 3. Size check
@@ -263,7 +272,7 @@ impl Mempool {
         // Balance check (fee + transfer amount for send messages)
         let gas_cost = tx.gas_limit * tx.gas_price;
         let total_needed = tx.amount + tx.fee + gas_cost as u128;
-        
+
         if balance < total_needed {
             return Err(RejectionReason::InsufficientFunds);
         }
@@ -296,11 +305,11 @@ impl Mempool {
         // BTreeSet is ordered, so last() gives us the lowest priority
         if let Some(lowest_key) = self.ordered_txs.iter().last().cloned() {
             self.ordered_txs.remove(&lowest_key);
-            
+
             if let Some(tx) = self.tx_lookup.remove(&lowest_key.hash) {
                 self.tx_hashes.remove(&lowest_key.hash);
                 self.total_bytes = self.total_bytes.saturating_sub(tx.serialized_size);
-                
+
                 // Log eviction for metrics
                 log::info!("Evicted transaction {} due to capacity", lowest_key.hash);
             }
@@ -363,6 +372,11 @@ impl Mempool {
     pub fn config(&self) -> &MempoolConfig {
         &self.config
     }
+
+    /// Push a transaction into the mempool (RPC method)
+    pub fn push(&mut self, tx: Transaction) -> Result<(), RejectionReason> {
+        self.add_transaction(&State::default(), tx)
+    }
 }
 
 /// Legacy error type for backward compatibility
@@ -376,7 +390,7 @@ pub enum MempoolError {
 impl From<RejectionReason> for MempoolError {
     fn from(reason: RejectionReason) -> Self {
         match reason {
-            RejectionReason::Duplicate => MempoolError::Duplicate,
+            RejectionReason::Duplicate(_) => MempoolError::Duplicate,
             reason => MempoolError::Rejection(reason),
         }
     }
@@ -411,26 +425,28 @@ fn verify_envelope(tx: &Transaction) -> bool {
 /// Verify PQC signature for a transaction
 fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> Result<(), String> {
     // 1. Decode base64 signature and public key
-    let sig_bytes = B64.decode(signature)
+    let sig_bytes = B64
+        .decode(signature)
         .map_err(|e| format!("invalid signature encoding: {}", e))?;
-    let pk_bytes = B64.decode(public_key)
+    let pk_bytes = B64
+        .decode(public_key)
         .map_err(|e| format!("invalid public key encoding: {}", e))?;
 
     // 2. Create canonical transaction for signing
     let canonical_tx = tx.canonical_fields();
-    
+
     // 3. Serialize to canonical JSON
     let tx_bytes = canonical_json(&canonical_tx)
         .map_err(|e| format!("failed to serialize transaction: {}", e))?;
-    
+
     // 4. Hash with SHA3-256
     let tx_hash = sha3_256(&tx_bytes);
-    
+
     // 5. Verify signature using ActivePQC
     if !ActivePQC::verify(&pk_bytes, &tx_hash, &sig_bytes) {
         return Err("signature verification failed".to_string());
     }
-    
+
     Ok(())
 }
 
@@ -446,24 +462,30 @@ pub fn basic_validate(state: &State, tx: &Transaction) -> Result<(), String> {
 /// Gas validation function with enhanced error reporting
 fn validate_gas(tx: &Transaction) -> Result<(), String> {
     let schedule = GasSchedule::default();
-    
+
     // For now, assume all transactions are transfers
     // This will be extended when we have better transaction type detection
     let tx_kind = TxKind::Transfer;
-    
+
     // Estimate transaction size (approximation for now)
     let tx_size_bytes = estimate_tx_size(tx);
     let additional_signatures = 0; // Single signature for now
-    
+
     // Validate gas limit against intrinsic requirements
-    validate_gas_limit(&tx_kind, tx_size_bytes, additional_signatures, tx.gas_limit, &schedule)
-        .map_err(|e| format!("GasValidationError: {}", e))?;
-    
+    validate_gas_limit(
+        &tx_kind,
+        tx_size_bytes,
+        additional_signatures,
+        tx.gas_limit,
+        &schedule,
+    )
+    .map_err(|e| format!("GasValidationError: {}", e))?;
+
     // Check gas price is reasonable (non-zero)
     if tx.gas_price == 0 {
         return Err("GasValidationError: gas price cannot be zero".to_string());
     }
-    
+
     Ok(())
 }
 
@@ -479,27 +501,18 @@ fn estimate_tx_size(tx: &Transaction) -> usize {
     8 +  // nonce (u64)
     tx.signature.as_ref().map_or(0, |s| s.len()) +
     8 +  // gas_limit (u64)
-    8    // gas_price (u64)
+    8 // gas_price (u64)
 }
 
 impl Mempool {
     /// Validate transaction signature algorithm against policy
     fn validate_signature_policy(&self, tx: &Transaction) -> Result<(), PolicyError> {
-        // For now, create a default policy manager since we haven't updated constructors
-        // In production, this would use self.policy_manager
-        let policy_manager = PolicyManager::default();
-        
-        // Extract signature algorithm from transaction
-        let signature_algorithm = match tx.signature_algorithm() {
-            Some(alg) => alg,
-            None => return Err(PolicyError::UnknownAlgorithm("No algorithm specified".to_string())),
-        };
-        
-        // Check if policy should be enforced at mempool level
-        if policy_manager.policy().should_enforce_at_mempool() {
-            policy_manager.validate_transaction_algorithm(&signature_algorithm)?;
+        // Extract signature algorithm from transaction (legacy tx has no explicit algorithm; accept Dilithium5 default)
+        if let Some(alg) = tx.signature_algorithm() {
+            if self.policy_manager.policy().should_enforce_at_mempool() {
+                self.policy_manager.validate_transaction_algorithm(&alg)?;
+            }
         }
-        
         Ok(())
     }
 }

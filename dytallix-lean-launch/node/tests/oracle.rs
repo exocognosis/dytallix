@@ -121,7 +121,7 @@ fn oracle_batch_operations() {
     ];
 
     let failed_hashes = oracle_store.put_ai_risks_batch(&records).unwrap();
-    
+
     // One record should have failed (the one with invalid risk_score)
     assert_eq!(failed_hashes.len(), 1);
     assert_eq!(failed_hashes[0], "0x333");

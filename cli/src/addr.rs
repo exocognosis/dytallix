@@ -1,7 +1,7 @@
 use blake3::Hasher;
-use sha3::{Digest, Sha3_256};
+use ripemd::{Digest as RipemdDigest, Ripemd160};
 use sha2::Sha256;
-use ripemd::{Ripemd160, Digest as RipemdDigest};
+use sha3::{Digest, Sha3_256};
 
 // Legacy address derivation for existing wallets (Blake3-based)
 // Format: dyt1 + hex( blake3("dyt.addr.v1" || pk) )[0..38] (19 bytes) + 4 hex chars checksum (sha3 over body)
@@ -32,12 +32,12 @@ pub fn pqc_address_from_pk(pk: &[u8]) -> String {
     let mut sha256_hasher = Sha256::new();
     sha256_hasher.update(pk);
     let sha256_hash = sha256_hasher.finalize();
-    
+
     // Step 2: RIPEMD160 hash of SHA256 result
     let mut ripemd_hasher = Ripemd160::new();
     ripemd_hasher.update(&sha256_hash);
     let ripemd_hash = ripemd_hasher.finalize();
-    
+
     // Step 3: Encode with bech32 using "dytallix" prefix
     // For now using simplified encoding until we add bech32 library
     format!("dytallix{}", hex::encode(&ripemd_hash))
@@ -46,7 +46,7 @@ pub fn pqc_address_from_pk(pk: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_legacy_addr_len() {
         let pk = [7u8; 64];
@@ -54,7 +54,7 @@ mod tests {
         assert!(addr.starts_with("dyt1"));
         assert_eq!(addr.len(), 48);
     }
-    
+
     #[test]
     fn test_pqc_addr_format() {
         let pk = [7u8; 64];
@@ -62,7 +62,7 @@ mod tests {
         assert!(addr.starts_with("dytallix"));
         assert_eq!(addr.len(), "dytallix".len() + 40); // prefix + 20 bytes hex encoded
     }
-    
+
     #[test]
     fn test_addr_deterministic() {
         let pk = [1u8; 32];
@@ -70,7 +70,7 @@ mod tests {
         let addr2 = address_from_pk(&pk);
         assert_eq!(addr1, addr2);
     }
-    
+
     #[test]
     fn test_different_keys_different_addresses() {
         let pk1 = [1u8; 32];

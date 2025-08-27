@@ -50,7 +50,7 @@ pub const MICRO_UNIT_FACTOR: u64 = 1_000_000; // 10^6
 pub fn micro_to_display(amount: u64, denom: &str) -> f64 {
     let token = get_token_by_micro_denom(denom)
         .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
-    
+
     let divisor = 10u64.pow(token.decimals as u32) as f64;
     amount as f64 / divisor
 }
@@ -59,7 +59,7 @@ pub fn micro_to_display(amount: u64, denom: &str) -> f64 {
 pub fn display_to_micro(amount: f64, denom: &str) -> u64 {
     let token = get_token_by_micro_denom(denom)
         .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
-    
+
     let multiplier = 10u64.pow(token.decimals as u32) as f64;
     (amount * multiplier) as u64
 }
@@ -86,7 +86,7 @@ pub fn get_token_by_symbol(symbol: &str) -> Option<&'static TokenMetadata> {
 pub fn format_amount_with_symbol(amount_in_micro: u64, denom: &str) -> String {
     let token = get_token_by_micro_denom(denom)
         .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
-    
+
     let formatted = micro_to_display(amount_in_micro, denom);
     format!("{:.6} {}", formatted, token.symbol)
 }

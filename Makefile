@@ -1,6 +1,6 @@
 # Dytallix Project Makefile
 
-.PHONY: help build test lint clean verify-token-migration ci install checksum security-audit trivy dev faucet test-unit test-e2e
+.PHONY: help build test lint clean verify-token-migration ci install checksum security-audit trivy dev faucet test-unit test-e2e errors
 
 # Configuration variables
 FRONTEND_DIR?=dytallix-lean-launch

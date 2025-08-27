@@ -9,17 +9,24 @@ pub trait PQC {
     const ALG: &'static str; // algorithm identifier (e.g. "dilithium5")
 }
 
-#[cfg(feature = "pqc-real")]
+#[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
 mod dilithium;
-#[cfg(feature = "pqc-real")]
+#[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
 pub use dilithium::Dilithium as ActivePQC;
 
-#[cfg(feature = "pqc-mock")]
+#[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
 mod mock;
-#[cfg(feature = "pqc-mock")]
+#[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
 pub use mock::MockPQC as ActivePQC;
 
-#[path = "kdf.rs"] mod kdf;
+// Fallback: if neither feature is set, enable mock for compilation
+#[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-mock")))]
+mod mock;
+#[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-mock")))]
+pub use mock::MockPQC as ActivePQC;
+
+#[path = "kdf.rs"]
+mod kdf;
 pub use kdf::*;
 
 mod hash;

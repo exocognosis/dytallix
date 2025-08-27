@@ -3,7 +3,7 @@
 //! Provides PostgreSQL-based persistence for bridge transactions, validator signatures,
 //! chain configurations, and bridge state.
 
-use crate::{Asset, AssetMetadata, BridgeError, BridgeTx, BridgeTxId, BridgeStatus, PQCSignature};
+use crate::{Asset, AssetMetadata, BridgeError, BridgeStatus, BridgeTx, BridgeTxId, PQCSignature};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{PgPool, Row};
@@ -14,8 +14,8 @@ pub mod models;
 
 pub use models::*;
 
-use crate::query_analysis::{QueryAnalyzer, PerformanceAnalysisReport};
 use crate::cache::{BridgeCache, CacheConfig, CachePriority};
+use crate::query_analysis::{PerformanceAnalysisReport, QueryAnalyzer};
 
 /// Bridge storage manager using PostgreSQL with Redis caching
 #[derive(Clone)]
@@ -28,10 +28,10 @@ pub struct BridgeStorage {
 impl BridgeStorage {
     /// Create new bridge storage with database connection and optional cache
     pub async fn new(database_url: &str) -> Result<Self, BridgeError> {
-        let pool = PgPool::connect(database_url)
-            .await
-            .map_err(|e| BridgeError::ConnectionError(format!("Database connection failed: {}", e)))?;
-        
+        let pool = PgPool::connect(database_url).await.map_err(|e| {
+            BridgeError::ConnectionError(format!("Database connection failed: {}", e))
+        })?;
+
         // Run migrations
         sqlx::migrate!("./migrations")
             .run(&pool)
@@ -40,8 +40,8 @@ impl BridgeStorage {
 
         // Initialize query analyzer
         let query_analyzer = Some(QueryAnalyzer::new(pool.clone()));
-        
-        Ok(Self { 
+
+        Ok(Self {
             pool,
             query_analyzer,
             cache: None,
@@ -49,19 +49,22 @@ impl BridgeStorage {
     }
 
     /// Create new bridge storage with Redis caching enabled
-    pub async fn new_with_cache(database_url: &str, cache_config: CacheConfig) -> Result<Self, BridgeError> {
+    pub async fn new_with_cache(
+        database_url: &str,
+        cache_config: CacheConfig,
+    ) -> Result<Self, BridgeError> {
         let mut storage = Self::new(database_url).await?;
-        
+
         // Initialize Redis cache
-        let cache = BridgeCache::new(cache_config)
-            .await
-            .map_err(|e| BridgeError::ConnectionError(format!("Cache initialization failed: {}", e)))?;
-        
+        let cache = BridgeCache::new(cache_config).await.map_err(|e| {
+            BridgeError::ConnectionError(format!("Cache initialization failed: {}", e))
+        })?;
+
         storage.cache = Some(cache);
-        
+
         Ok(storage)
     }
-    
+
     /// Store bridge transaction with intelligent caching
     pub async fn store_bridge_transaction(&self, bridge_tx: &BridgeTx) -> Result<(), BridgeError> {
         let query = r#"
@@ -75,14 +78,16 @@ impl BridgeStorage {
                 validator_signatures = EXCLUDED.validator_signatures,
                 updated_at = CURRENT_TIMESTAMP
         "#;
-        
-        let signatures_json = serde_json::to_value(&bridge_tx.validator_signatures)
-            .map_err(|e| BridgeError::SerializationError(format!("Failed to serialize signatures: {}", e)))?;
-        
+
+        let signatures_json =
+            serde_json::to_value(&bridge_tx.validator_signatures).map_err(|e| {
+                BridgeError::SerializationError(format!("Failed to serialize signatures: {}", e))
+            })?;
+
         let metadata = serde_json::json!({
             "asset_metadata": bridge_tx.asset.metadata
         });
-        
+
         sqlx::query(query)
             .bind(&bridge_tx.id.0)
             .bind(&bridge_tx.asset.id)
@@ -105,8 +110,10 @@ impl BridgeStorage {
             .bind(metadata)
             .execute(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to store bridge transaction: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to store bridge transaction: {}", e))
+            })?;
+
         // Cache the transaction if cache is available
         if let Some(cache) = &self.cache {
             let priority = match bridge_tx.status {
@@ -114,18 +121,25 @@ impl BridgeStorage {
                 BridgeStatus::Locked | BridgeStatus::Minted => CachePriority::Medium,
                 _ => CachePriority::Low,
             };
-            
+
             if let Err(e) = cache.cache_bridge_transaction(bridge_tx, priority).await {
                 // Log cache error but don't fail the operation
-                tracing::warn!("Failed to cache bridge transaction {}: {}", bridge_tx.id.0, e);
+                tracing::warn!(
+                    "Failed to cache bridge transaction {}: {}",
+                    bridge_tx.id.0,
+                    e
+                );
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Get bridge transaction by ID with cache-first approach
-    pub async fn get_bridge_transaction(&self, tx_id: &BridgeTxId) -> Result<Option<BridgeTx>, BridgeError> {
+    pub async fn get_bridge_transaction(
+        &self,
+        tx_id: &BridgeTxId,
+    ) -> Result<Option<BridgeTx>, BridgeError> {
         // Try cache first if available
         if let Some(cache) = &self.cache {
             match cache.get_bridge_transaction(tx_id).await {
@@ -151,23 +165,25 @@ impl BridgeStorage {
             FROM bridge_transactions
             WHERE id = $1
         "#;
-        
+
         let row = sqlx::query(query)
             .bind(&tx_id.0)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to fetch bridge transaction: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to fetch bridge transaction: {}", e))
+            })?;
+
         if let Some(row) = row {
             let metadata: Value = row.get("metadata");
-            let asset_metadata: AssetMetadata = serde_json::from_value(
-                metadata.get("asset_metadata").cloned().unwrap_or_default()
-            ).unwrap_or_default();
-            
+            let asset_metadata: AssetMetadata =
+                serde_json::from_value(metadata.get("asset_metadata").cloned().unwrap_or_default())
+                    .unwrap_or_default();
+
             let signatures_json: Value = row.get("validator_signatures");
-            let validator_signatures: Vec<PQCSignature> = serde_json::from_value(signatures_json)
-                .unwrap_or_default();
-            
+            let validator_signatures: Vec<PQCSignature> =
+                serde_json::from_value(signatures_json).unwrap_or_default();
+
             let status_str: String = row.get("status");
             let status = match status_str.as_str() {
                 "pending" => BridgeStatus::Pending,
@@ -179,7 +195,7 @@ impl BridgeStorage {
                 "reversed" => BridgeStatus::Reversed,
                 _ => BridgeStatus::Pending,
             };
-            
+
             let bridge_tx = BridgeTx {
                 id: BridgeTxId(row.get("id")),
                 asset: Asset {
@@ -192,11 +208,13 @@ impl BridgeStorage {
                 dest_chain: row.get("dest_chain"),
                 source_address: row.get("source_address"),
                 dest_address: row.get("dest_address"),
-                timestamp: row.get::<chrono::DateTime<chrono::Utc>, _>("created_at").timestamp() as u64,
+                timestamp: row
+                    .get::<chrono::DateTime<chrono::Utc>, _>("created_at")
+                    .timestamp() as u64,
                 validator_signatures,
                 status,
             };
-            
+
             // Cache the result if cache is available
             if let Some(cache) = &self.cache {
                 let priority = match bridge_tx.status {
@@ -204,18 +222,18 @@ impl BridgeStorage {
                     BridgeStatus::Locked | BridgeStatus::Minted => CachePriority::Medium,
                     _ => CachePriority::Low,
                 };
-                
+
                 if let Err(e) = cache.cache_bridge_transaction(&bridge_tx, priority).await {
                     tracing::warn!("Failed to cache bridge transaction {}: {}", tx_id.0, e);
                 }
             }
-            
+
             Ok(Some(bridge_tx))
         } else {
             Ok(None)
         }
     }
-    
+
     /// Update bridge transaction status
     pub async fn update_bridge_transaction_status(
         &self,
@@ -228,7 +246,7 @@ impl BridgeStorage {
             SET status = $1, dest_tx_hash = $2, updated_at = CURRENT_TIMESTAMP
             WHERE id = $3
         "#;
-        
+
         let status_str = match status {
             BridgeStatus::Pending => "pending",
             BridgeStatus::Confirmed => "confirmed",
@@ -238,18 +256,20 @@ impl BridgeStorage {
             BridgeStatus::Minted => "minted",
             BridgeStatus::Reversed => "reversed",
         };
-        
+
         sqlx::query(query)
             .bind(status_str)
             .bind(dest_tx_hash)
             .bind(&tx_id.0)
             .execute(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to update bridge transaction: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to update bridge transaction: {}", e))
+            })?;
+
         Ok(())
     }
-    
+
     /// Add validator signature to bridge transaction
     pub async fn add_validator_signature(
         &self,
@@ -264,7 +284,7 @@ impl BridgeStorage {
                 signature_data = EXCLUDED.signature_data,
                 signature_type = EXCLUDED.signature_type
         "#;
-        
+
         sqlx::query(query)
             .bind(&tx_id.0)
             .bind(validator_id)
@@ -272,29 +292,36 @@ impl BridgeStorage {
             .bind(&signature.algorithm)
             .execute(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to store validator signature: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to store validator signature: {}", e))
+            })?;
+
         // Update the bridge transaction's signatures cache
         self.update_bridge_transaction_signatures(tx_id).await?;
-        
+
         Ok(())
     }
-    
+
     /// Update bridge transaction signatures from validator_signatures table
-    async fn update_bridge_transaction_signatures(&self, tx_id: &BridgeTxId) -> Result<(), BridgeError> {
+    async fn update_bridge_transaction_signatures(
+        &self,
+        tx_id: &BridgeTxId,
+    ) -> Result<(), BridgeError> {
         let query = r#"
             SELECT validator_id, signature_data, signature_type
             FROM validator_signatures
             WHERE bridge_tx_id = $1
             ORDER BY created_at
         "#;
-        
+
         let rows = sqlx::query(query)
             .bind(&tx_id.0)
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to fetch validator signatures: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to fetch validator signatures: {}", e))
+            })?;
+
         let mut signatures = Vec::new();
         for row in rows {
             let signature = PQCSignature {
@@ -306,28 +333,38 @@ impl BridgeStorage {
             };
             signatures.push(signature);
         }
-        
-        let signatures_json = serde_json::to_value(&signatures)
-            .map_err(|e| BridgeError::SerializationError(format!("Failed to serialize signatures: {}", e)))?;
-        
+
+        let signatures_json = serde_json::to_value(&signatures).map_err(|e| {
+            BridgeError::SerializationError(format!("Failed to serialize signatures: {}", e))
+        })?;
+
         let update_query = r#"
             UPDATE bridge_transactions
             SET validator_signatures = $1, updated_at = CURRENT_TIMESTAMP
             WHERE id = $2
         "#;
-        
+
         sqlx::query(update_query)
             .bind(signatures_json)
             .bind(&tx_id.0)
             .execute(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to update bridge transaction signatures: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!(
+                    "Failed to update bridge transaction signatures: {}",
+                    e
+                ))
+            })?;
+
         Ok(())
     }
-    
+
     /// Store asset metadata
-    pub async fn store_asset_metadata(&self, asset_id: &str, metadata: &AssetMetadata) -> Result<(), BridgeError> {
+    pub async fn store_asset_metadata(
+        &self,
+        asset_id: &str,
+        metadata: &AssetMetadata,
+    ) -> Result<(), BridgeError> {
         let query = r#"
             INSERT INTO asset_metadata (asset_id, name, symbol, description, decimals, icon_url)
             VALUES ($1, $2, $3, $4, $5, $6)
@@ -338,7 +375,7 @@ impl BridgeStorage {
                 decimals = EXCLUDED.decimals,
                 icon_url = EXCLUDED.icon_url
         "#;
-        
+
         sqlx::query(query)
             .bind(asset_id)
             .bind(&metadata.name)
@@ -348,11 +385,13 @@ impl BridgeStorage {
             .bind(&metadata.icon_url)
             .execute(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to store asset metadata: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to store asset metadata: {}", e))
+            })?;
+
         Ok(())
     }
-    
+
     /// Get pending bridge transactions
     pub async fn get_pending_transactions(&self) -> Result<Vec<BridgeTx>, BridgeError> {
         let query = r#"
@@ -363,23 +402,25 @@ impl BridgeStorage {
             WHERE status = 'pending'
             ORDER BY created_at
         "#;
-        
+
         let rows = sqlx::query(query)
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to fetch pending transactions: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to fetch pending transactions: {}", e))
+            })?;
+
         let mut transactions = Vec::new();
         for row in rows {
             let metadata: Value = row.get("metadata");
-            let asset_metadata: AssetMetadata = serde_json::from_value(
-                metadata.get("asset_metadata").cloned().unwrap_or_default()
-            ).unwrap_or_default();
-            
+            let asset_metadata: AssetMetadata =
+                serde_json::from_value(metadata.get("asset_metadata").cloned().unwrap_or_default())
+                    .unwrap_or_default();
+
             let signatures_json: Value = row.get("validator_signatures");
-            let validator_signatures: Vec<PQCSignature> = serde_json::from_value(signatures_json)
-                .unwrap_or_default();
-            
+            let validator_signatures: Vec<PQCSignature> =
+                serde_json::from_value(signatures_json).unwrap_or_default();
+
             let bridge_tx = BridgeTx {
                 id: BridgeTxId(row.get("id")),
                 asset: Asset {
@@ -392,17 +433,19 @@ impl BridgeStorage {
                 dest_chain: row.get("dest_chain"),
                 source_address: row.get("source_address"),
                 dest_address: row.get("dest_address"),
-                timestamp: row.get::<chrono::DateTime<chrono::Utc>, _>("created_at").timestamp() as u64,
+                timestamp: row
+                    .get::<chrono::DateTime<chrono::Utc>, _>("created_at")
+                    .timestamp() as u64,
                 validator_signatures,
                 status: BridgeStatus::Pending,
             };
-            
+
             transactions.push(bridge_tx);
         }
-        
+
         Ok(transactions)
     }
-    
+
     /// Store chain configuration
     pub async fn store_chain_config(
         &self,
@@ -418,18 +461,20 @@ impl BridgeStorage {
                 config_data = EXCLUDED.config_data,
                 updated_at = CURRENT_TIMESTAMP
         "#;
-        
+
         sqlx::query(query)
             .bind(chain_name)
             .bind(chain_type)
             .bind(config)
             .execute(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to store chain config: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to store chain config: {}", e))
+            })?;
+
         Ok(())
     }
-    
+
     /// Get chain configuration
     pub async fn get_chain_config(&self, chain_name: &str) -> Result<Option<Value>, BridgeError> {
         let query = r#"
@@ -437,20 +482,22 @@ impl BridgeStorage {
             FROM chain_configs
             WHERE chain_name = $1 AND is_active = true
         "#;
-        
+
         let row = sqlx::query(query)
             .bind(chain_name)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to fetch chain config: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to fetch chain config: {}", e))
+            })?;
+
         if let Some(row) = row {
             Ok(Some(row.get("config_data")))
         } else {
             Ok(None)
         }
     }
-    
+
     /// Store bridge state
     pub async fn store_bridge_state(&self, key: &str, value: &Value) -> Result<(), BridgeError> {
         let query = r#"
@@ -460,17 +507,19 @@ impl BridgeStorage {
                 value = EXCLUDED.value,
                 updated_at = CURRENT_TIMESTAMP
         "#;
-        
+
         sqlx::query(query)
             .bind(key)
             .bind(value)
             .execute(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to store bridge state: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to store bridge state: {}", e))
+            })?;
+
         Ok(())
     }
-    
+
     /// Get bridge state
     pub async fn get_bridge_state(&self, key: &str) -> Result<Option<Value>, BridgeError> {
         let query = r#"
@@ -478,20 +527,22 @@ impl BridgeStorage {
             FROM bridge_state
             WHERE key = $1
         "#;
-        
+
         let row = sqlx::query(query)
             .bind(key)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to fetch bridge state: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to fetch bridge state: {}", e))
+            })?;
+
         if let Some(row) = row {
             Ok(Some(row.get("value")))
         } else {
             Ok(None)
         }
     }
-    
+
     /// Get bridge statistics
     pub async fn get_bridge_statistics(&self) -> Result<BridgeStatistics, BridgeError> {
         let query = r#"
@@ -504,12 +555,14 @@ impl BridgeStorage {
                 SUM(asset_amount) as total_volume
             FROM bridge_transactions
         "#;
-        
+
         let row = sqlx::query(query)
             .fetch_one(&self.pool)
             .await
-            .map_err(|e| BridgeError::NetworkError(format!("Failed to fetch bridge statistics: {}", e)))?;
-        
+            .map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to fetch bridge statistics: {}", e))
+            })?;
+
         Ok(BridgeStatistics {
             total_transactions: row.get::<i64, _>("total_transactions") as u64,
             pending_transactions: row.get::<i64, _>("pending_transactions") as u64,
@@ -523,9 +576,9 @@ impl BridgeStorage {
     /// Enable database query tracking and performance monitoring
     pub async fn enable_performance_monitoring(&self) -> Result<(), BridgeError> {
         if let Some(analyzer) = &self.query_analyzer {
-            analyzer.enable_query_tracking()
-                .await
-                .map_err(|e| BridgeError::NetworkError(format!("Failed to enable query tracking: {}", e)))?;
+            analyzer.enable_query_tracking().await.map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to enable query tracking: {}", e))
+            })?;
         }
         Ok(())
     }
@@ -533,22 +586,28 @@ impl BridgeStorage {
     /// Get comprehensive database performance analysis report
     pub async fn get_performance_analysis(&self) -> Result<PerformanceAnalysisReport, BridgeError> {
         if let Some(analyzer) = &self.query_analyzer {
-            analyzer.generate_performance_report()
-                .await
-                .map_err(|e| BridgeError::NetworkError(format!("Failed to generate performance report: {}", e)))
+            analyzer.generate_performance_report().await.map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to generate performance report: {}", e))
+            })
         } else {
-            Err(BridgeError::NetworkError("Query analyzer not initialized".to_string()))
+            Err(BridgeError::NetworkError(
+                "Query analyzer not initialized".to_string(),
+            ))
         }
     }
 
     /// Get database health metrics for monitoring dashboard
-    pub async fn get_database_health(&self) -> Result<crate::query_analysis::DatabaseHealthMetrics, BridgeError> {
+    pub async fn get_database_health(
+        &self,
+    ) -> Result<crate::query_analysis::DatabaseHealthMetrics, BridgeError> {
         if let Some(analyzer) = &self.query_analyzer {
-            analyzer.get_database_health_metrics()
-                .await
-                .map_err(|e| BridgeError::NetworkError(format!("Failed to get health metrics: {}", e)))
+            analyzer.get_database_health_metrics().await.map_err(|e| {
+                BridgeError::NetworkError(format!("Failed to get health metrics: {}", e))
+            })
         } else {
-            Err(BridgeError::NetworkError("Query analyzer not initialized".to_string()))
+            Err(BridgeError::NetworkError(
+                "Query analyzer not initialized".to_string(),
+            ))
         }
     }
 }
@@ -577,17 +636,17 @@ impl Default for AssetMetadata {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{BridgeTxId, BridgeStatus};
-    
+    use crate::{BridgeStatus, BridgeTxId};
+
     // Note: These tests require a running PostgreSQL database
     // In a real environment, you'd use test containers or a test database
-    
+
     #[tokio::test]
     #[ignore] // Ignore by default since it requires database setup
     async fn test_bridge_storage_operations() {
         let database_url = "postgresql://postgres:password@localhost/dytallix_test";
         let storage = BridgeStorage::new(database_url).await.unwrap();
-        
+
         // Create test bridge transaction
         let bridge_tx = BridgeTx {
             id: BridgeTxId("test_tx_123".to_string()),
@@ -610,26 +669,29 @@ mod tests {
             validator_signatures: Vec::new(),
             status: BridgeStatus::Pending,
         };
-        
+
         // Store bridge transaction
         storage.store_bridge_transaction(&bridge_tx).await.unwrap();
-        
+
         // Retrieve bridge transaction
         let retrieved = storage.get_bridge_transaction(&bridge_tx.id).await.unwrap();
         assert!(retrieved.is_some());
-        
+
         let retrieved_tx = retrieved.unwrap();
         assert_eq!(retrieved_tx.id, bridge_tx.id);
         assert_eq!(retrieved_tx.asset.id, bridge_tx.asset.id);
         assert_eq!(retrieved_tx.source_chain, bridge_tx.source_chain);
-        
+
         // Update status
-        storage.update_bridge_transaction_status(
-            &bridge_tx.id,
-            BridgeStatus::Completed,
-            Some("0xabcdef123456789"),
-        ).await.unwrap();
-        
+        storage
+            .update_bridge_transaction_status(
+                &bridge_tx.id,
+                BridgeStatus::Completed,
+                Some("0xabcdef123456789"),
+            )
+            .await
+            .unwrap();
+
         // Get statistics
         let stats = storage.get_bridge_statistics().await.unwrap();
         assert!(stats.total_transactions > 0);

@@ -3,11 +3,11 @@
 //! Provides comprehensive query analysis, performance tracking, and AI-driven insights
 //! for database optimization in the Dytallix bridge system.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryStatistics {
@@ -114,9 +114,12 @@ impl QueryAnalyzer {
     }
 
     /// Get comprehensive query statistics
-    pub async fn get_query_statistics(&self, limit: Option<i32>) -> Result<Vec<QueryStatistics>, sqlx::Error> {
+    pub async fn get_query_statistics(
+        &self,
+        limit: Option<i32>,
+    ) -> Result<Vec<QueryStatistics>, sqlx::Error> {
         let limit = limit.unwrap_or(50);
-        
+
         let query = r#"
             SELECT 
                 encode(sha256(query::bytea), 'hex') as query_hash,
@@ -136,10 +139,7 @@ impl QueryAnalyzer {
             LIMIT $1
         "#;
 
-        let rows = sqlx::query(query)
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await?;
+        let rows = sqlx::query(query).bind(limit).fetch_all(&self.pool).await?;
 
         let mut statistics = Vec::new();
         for row in rows {
@@ -189,9 +189,7 @@ impl QueryAnalyzer {
             ORDER BY index_scans DESC, index_size DESC
         "#;
 
-        let rows = sqlx::query(query)
-            .fetch_all(&self.pool)
-            .await?;
+        let rows = sqlx::query(query).fetch_all(&self.pool).await?;
 
         let mut stats = Vec::new();
         for row in rows {
@@ -224,9 +222,7 @@ impl QueryAnalyzer {
             WHERE datname = current_database()
         "#;
 
-        let conn_row = sqlx::query(connection_query)
-            .fetch_one(&self.pool)
-            .await?;
+        let conn_row = sqlx::query(connection_query).fetch_one(&self.pool).await?;
 
         // Get cache hit ratio
         let cache_query = r#"
@@ -240,9 +236,7 @@ impl QueryAnalyzer {
             WHERE datname = current_database()
         "#;
 
-        let cache_row = sqlx::query(cache_query)
-            .fetch_one(&self.pool)
-            .await?;
+        let cache_row = sqlx::query(cache_query).fetch_one(&self.pool).await?;
 
         // Get database size
         let size_query = r#"
@@ -254,13 +248,11 @@ impl QueryAnalyzer {
                 ) as index_size_mb
         "#;
 
-        let size_row = sqlx::query(size_query)
-            .fetch_one(&self.pool)
-            .await?;
+        let size_row = sqlx::query(size_query).fetch_one(&self.pool).await?;
 
         // Get slow queries count (queries taking more than 100ms on average)
         let slow_query_count = sqlx::query(
-            "SELECT count(*) as slow_queries FROM pg_stat_statements WHERE mean_exec_time > 100"
+            "SELECT count(*) as slow_queries FROM pg_stat_statements WHERE mean_exec_time > 100",
         )
         .fetch_one(&self.pool)
         .await?
@@ -268,7 +260,7 @@ impl QueryAnalyzer {
 
         // Get average query time
         let avg_query_time = sqlx::query(
-            "SELECT coalesce(avg(mean_exec_time), 0) as avg_time FROM pg_stat_statements"
+            "SELECT coalesce(avg(mean_exec_time), 0) as avg_time FROM pg_stat_statements",
         )
         .fetch_one(&self.pool)
         .await?
@@ -284,9 +276,7 @@ impl QueryAnalyzer {
             WHERE datname = current_database()
         "#;
 
-        let activity_row = sqlx::query(activity_query)
-            .fetch_one(&self.pool)
-            .await?;
+        let activity_row = sqlx::query(activity_query).fetch_one(&self.pool).await?;
 
         let total_active: i64 = activity_row.get("total_active");
         let active_connections: i64 = activity_row.get("active_connections");
@@ -301,12 +291,18 @@ impl QueryAnalyzer {
             } else {
                 0.0
             },
-            cache_hit_ratio: cache_row.get::<Option<f64>, _>("cache_hit_ratio").unwrap_or(0.0),
-            deadlocks_count: conn_row.get::<Option<i64>, _>("deadlocks_count").unwrap_or(0),
+            cache_hit_ratio: cache_row
+                .get::<Option<f64>, _>("cache_hit_ratio")
+                .unwrap_or(0.0),
+            deadlocks_count: conn_row
+                .get::<Option<i64>, _>("deadlocks_count")
+                .unwrap_or(0),
             slow_queries_count: slow_query_count,
             avg_query_time_ms: avg_query_time,
             database_size_mb: size_row.get::<Option<f64>, _>("db_size_mb").unwrap_or(0.0),
-            index_size_mb: size_row.get::<Option<f64>, _>("index_size_mb").unwrap_or(0.0),
+            index_size_mb: size_row
+                .get::<Option<f64>, _>("index_size_mb")
+                .unwrap_or(0.0),
             table_bloat_ratio: 0.0, // Would require more complex calculation
             timestamp: Utc::now(),
         })
@@ -343,7 +339,8 @@ impl QueryAnalyzer {
 
         // Analyze unused indexes
         for index in index_stats.iter() {
-            if index.index_scans < 10 && index.index_size > 10_000_000 { // Less than 10 scans and > 10MB
+            if index.index_scans < 10 && index.index_size > 10_000_000 {
+                // Less than 10 scans and > 10MB
                 let recommendation = QueryOptimizationRecommendation {
                     query_hash: format!("index_{}", index.index_name),
                     recommendation_type: "index_removal".to_string(),
@@ -374,7 +371,9 @@ impl QueryAnalyzer {
                 ),
                 expected_improvement: "Improved query performance and reduced I/O".to_string(),
                 implementation_difficulty: "medium".to_string(),
-                suggested_action: "Increase shared_buffers or effective_cache_size in PostgreSQL configuration".to_string(),
+                suggested_action:
+                    "Increase shared_buffers or effective_cache_size in PostgreSQL configuration"
+                        .to_string(),
                 ai_confidence_score: 0.9,
             };
             recommendations.push(recommendation);
@@ -392,7 +391,9 @@ impl QueryAnalyzer {
                 ),
                 expected_improvement: "Better connection management and throughput".to_string(),
                 implementation_difficulty: "low".to_string(),
-                suggested_action: "Consider increasing connection pool size or implementing connection pooling".to_string(),
+                suggested_action:
+                    "Consider increasing connection pool size or implementing connection pooling"
+                        .to_string(),
                 ai_confidence_score: 0.7,
             };
             recommendations.push(recommendation);
@@ -402,32 +403,49 @@ impl QueryAnalyzer {
     }
 
     /// Generate a comprehensive performance analysis report
-    pub async fn generate_performance_report(&self) -> Result<PerformanceAnalysisReport, sqlx::Error> {
+    pub async fn generate_performance_report(
+        &self,
+    ) -> Result<PerformanceAnalysisReport, sqlx::Error> {
         info!("Generating comprehensive performance analysis report");
 
         let query_stats = self.get_query_statistics(Some(20)).await?;
         let index_stats = self.get_index_usage_stats().await?;
         let health_metrics = self.get_database_health_metrics().await?;
 
-        let optimization_recommendations = self.generate_optimization_recommendations(
-            &query_stats,
-            &index_stats,
-            &health_metrics,
-        ).await;
+        let optimization_recommendations = self
+            .generate_optimization_recommendations(&query_stats, &index_stats, &health_metrics)
+            .await;
 
         let mut performance_trends = HashMap::new();
-        performance_trends.insert("avg_query_time_ms".to_string(), health_metrics.avg_query_time_ms);
-        performance_trends.insert("cache_hit_ratio".to_string(), health_metrics.cache_hit_ratio);
-        performance_trends.insert("connection_utilization".to_string(), health_metrics.connection_utilization);
-        performance_trends.insert("slow_queries_count".to_string(), health_metrics.slow_queries_count as f64);
+        performance_trends.insert(
+            "avg_query_time_ms".to_string(),
+            health_metrics.avg_query_time_ms,
+        );
+        performance_trends.insert(
+            "cache_hit_ratio".to_string(),
+            health_metrics.cache_hit_ratio,
+        );
+        performance_trends.insert(
+            "connection_utilization".to_string(),
+            health_metrics.connection_utilization,
+        );
+        performance_trends.insert(
+            "slow_queries_count".to_string(),
+            health_metrics.slow_queries_count as f64,
+        );
 
-        let ai_insights = self.generate_ai_insights(&query_stats, &health_metrics).await;
+        let ai_insights = self
+            .generate_ai_insights(&query_stats, &health_metrics)
+            .await;
 
         Ok(PerformanceAnalysisReport {
             analysis_timestamp: Utc::now(),
             database_health: health_metrics,
             top_slow_queries: query_stats,
-            underutilized_indexes: index_stats.into_iter().filter(|idx| idx.efficiency_score < 50.0).collect(),
+            underutilized_indexes: index_stats
+                .into_iter()
+                .filter(|idx| idx.efficiency_score < 50.0)
+                .collect(),
             optimization_recommendations,
             performance_trends,
             ai_insights,
@@ -447,7 +465,8 @@ impl QueryAnalyzer {
         let mut insights = Vec::new();
 
         // Analyze query patterns
-        let avg_query_time = query_stats.iter().map(|q| q.mean_time_ms).sum::<f64>() / query_stats.len() as f64;
+        let avg_query_time =
+            query_stats.iter().map(|q| q.mean_time_ms).sum::<f64>() / query_stats.len() as f64;
         if avg_query_time > 50.0 {
             insights.push(format!(
                 "⚠️ Average query time ({:.2}ms) is above optimal threshold (50ms). Consider query optimization.",
@@ -499,10 +518,11 @@ impl QueryAnalyzer {
 
     fn generate_query_optimization_suggestion(&self, query: &QueryStatistics) -> String {
         let query_text = query.query_text.to_lowercase();
-        
+
         if query_text.contains("select") && query_text.contains("where") {
             if query_text.contains("like") {
-                "Consider using full-text search or GIN index for text search operations".to_string()
+                "Consider using full-text search or GIN index for text search operations"
+                    .to_string()
             } else if query_text.contains("order by") {
                 "Consider adding an index on the ORDER BY columns".to_string()
             } else if query_text.contains("join") {
@@ -519,22 +539,22 @@ impl QueryAnalyzer {
 
     fn calculate_confidence_score(&self, query: &QueryStatistics) -> f64 {
         let mut score: f64 = 0.5; // Base score with explicit type
-        
+
         // Higher confidence for frequently called queries
         if query.calls > 100 {
             score += 0.2;
         }
-        
+
         // Higher confidence for consistently slow queries
         if query.stddev_time_ms < query.mean_time_ms * 0.5 {
             score += 0.2;
         }
-        
+
         // Adjust based on cache hit ratio
         if query.hit_ratio < 90.0 {
             score += 0.1;
         }
-        
+
         score = score.min(1.0_f64);
         score
     }
@@ -615,20 +635,20 @@ mod tests {
     async fn test_query_analyzer() {
         let database_url = "postgresql://postgres:password@localhost/dytallix_test";
         let pool = PgPool::connect(database_url).await.unwrap();
-        
+
         let analyzer = QueryAnalyzer::new(pool);
-        
+
         // Test enabling query tracking
         analyzer.enable_query_tracking().await.unwrap();
-        
+
         // Test getting query statistics
         let stats = analyzer.get_query_statistics(Some(10)).await.unwrap();
         assert!(stats.len() <= 10);
-        
+
         // Test getting health metrics
         let health = analyzer.get_database_health_metrics().await.unwrap();
         assert!(health.total_connections >= 0);
-        
+
         // Test generating performance report
         let report = analyzer.generate_performance_report().await.unwrap();
         assert!(!report.ai_insights.is_empty());

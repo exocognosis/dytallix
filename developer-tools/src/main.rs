@@ -1,14 +1,14 @@
-use clap::{Parser, Subcommand};
 use anyhow::Result;
+use clap::{Parser, Subcommand};
 use colored::*;
 
+mod client;
 mod commands;
 mod config;
-mod client;
 mod crypto;
-mod utils;
 mod help;
 mod tokens;
+mod utils;
 
 use commands::*;
 use config::Config;
@@ -21,19 +21,19 @@ use config::Config;
 struct Cli {
     #[command(subcommand)]
     command: Commands,
-    
+
     /// Node URL
     #[arg(long, default_value = "http://localhost:3030")]
     node_url: String,
-    
+
     /// AI services URL  
     #[arg(long, default_value = "http://localhost:8000")]
     ai_url: String,
-    
+
     /// Verbose output
     #[arg(short, long)]
     verbose: bool,
-    
+
     /// Skip interactive confirmations
     #[arg(long)]
     yes: bool,
@@ -270,7 +270,7 @@ enum KeysCommands {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    
+
     // Initialize logging
     if cli.verbose {
         env_logger::Builder::from_default_env()
@@ -281,26 +281,28 @@ async fn main() -> Result<()> {
             .filter_level(log::LevelFilter::Info)
             .init();
     }
-    
+
     // Load configuration
-    let mut config = config::load_config().await.unwrap_or_else(|_| Config::default());
-    
+    let mut config = config::load_config()
+        .await
+        .unwrap_or_else(|_| Config::default());
+
     // Override with CLI arguments
     if cli.node_url != "http://localhost:3030" {
         config.node_url = cli.node_url.clone();
         config.network.node_url = cli.node_url.clone();
     }
-    
+
     if cli.ai_url != "http://localhost:8000" {
         config.ai_url = cli.ai_url.clone();
         config.network.ai_services_url = cli.ai_url.clone();
     }
-    
+
     if cli.verbose {
         config.verbose = true;
         config.developer.verbose = true;
     }
-    
+
     // Execute command
     match cli.command {
         Commands::Node { command } => {
@@ -331,7 +333,7 @@ async fn main() -> Result<()> {
             help::print_full_help();
         }
     }
-    
+
     Ok(())
 }
 
@@ -350,12 +352,19 @@ async fn execute_account_command(command: AccountCommands, config: &Config) -> R
         AccountCommands::Create { name } => account::create_account(name, config).await,
         AccountCommands::List => account::list_accounts(config).await,
         AccountCommands::Balance { account } => account::account_balance(account, config).await,
-        AccountCommands::Export { account, output } => account::export_account(account, output, config).await,
-        AccountCommands::Import { file } => account::import_account(file, config).await,
-        AccountCommands::Sign { account, message } => account::sign_message(account, message, config).await,
-        AccountCommands::Verify { message, signature, public_key, algorithm } => {
-            account::verify_signature(message, signature, public_key, algorithm, config).await
+        AccountCommands::Export { account, output } => {
+            account::export_account(account, output, config).await
         }
+        AccountCommands::Import { file } => account::import_account(file, config).await,
+        AccountCommands::Sign { account, message } => {
+            account::sign_message(account, message, config).await
+        }
+        AccountCommands::Verify {
+            message,
+            signature,
+            public_key,
+            algorithm,
+        } => account::verify_signature(message, signature, public_key, algorithm, config).await,
         AccountCommands::Generate => account::generate_address(config).await,
     }
 }
@@ -365,18 +374,22 @@ async fn execute_contract_command(command: ContractCommands, config: &Config) ->
         ContractCommands::Deploy { contract, params } => {
             smart_contract::deploy_contract(contract, params, config).await
         }
-        ContractCommands::Call { address, method, params } => {
-            smart_contract::call_contract(address, method, params, config).await
-        }
-        ContractCommands::Query { address, method, params } => {
-            smart_contract::query_contract(address, method, params, config).await
-        }
-        ContractCommands::Events { address, from_block, to_block } => {
-            smart_contract::contract_events(address, from_block, to_block, config).await
-        }
-        ContractCommands::Templates => {
-            smart_contract::list_contract_templates(config).await
-        }
+        ContractCommands::Call {
+            address,
+            method,
+            params,
+        } => smart_contract::call_contract(address, method, params, config).await,
+        ContractCommands::Query {
+            address,
+            method,
+            params,
+        } => smart_contract::query_contract(address, method, params, config).await,
+        ContractCommands::Events {
+            address,
+            from_block,
+            to_block,
+        } => smart_contract::contract_events(address, from_block, to_block, config).await,
+        ContractCommands::Templates => smart_contract::list_contract_templates(config).await,
         ContractCommands::Init { template, output } => {
             smart_contract::init_from_template(template, output, config).await
         }
@@ -387,9 +400,10 @@ async fn execute_ai_command(command: AiCommands, config: &Config) -> Result<()> 
     match command {
         AiCommands::AnalyzeFraud { input } => ai::analyze_fraud(input, config).await,
         AiCommands::ScoreRisk { input } => ai::score_risk(input, config).await,
-        AiCommands::GenerateContract { description, contract_type } => {
-            ai::generate_contract(description, contract_type, config).await
-        }
+        AiCommands::GenerateContract {
+            description,
+            contract_type,
+        } => ai::generate_contract(description, contract_type, config).await,
         AiCommands::OracleStatus => ai::oracle_status(config).await,
         AiCommands::Test => ai::test_ai_services(config).await,
     }
@@ -409,83 +423,141 @@ async fn execute_transaction_command(command: TransactionCommands, config: &Conf
 
 async fn execute_keys_command(command: KeysCommands, config: &Config) -> Result<()> {
     match command {
-        KeysCommands::PqcGen { algo, keystore, label } => {
-            keys::generate_pqc_keys(algo, keystore, label).await
-        }
+        KeysCommands::PqcGen {
+            algo,
+            keystore,
+            label,
+        } => keys::generate_pqc_keys(algo, keystore, label).await,
     }
 }
 
 async fn initialize_config(config: &Config) -> Result<()> {
-    println!("{}", "🔧 Initializing Dytallix CLI configuration...".bright_green());
-    
+    println!(
+        "{}",
+        "🔧 Initializing Dytallix CLI configuration...".bright_green()
+    );
+
     // Create config directory
     let config_dir = config::get_config_dir()?;
     tokio::fs::create_dir_all(&config_dir).await?;
-    
+
     // Create default configuration
     config::create_default_config(&config_dir).await?;
-    
+
     // Create data directory
     let data_dir = config::get_data_dir()?;
     tokio::fs::create_dir_all(&data_dir).await?;
-    
+
     // Create subdirectories
     let account_dir = data_dir.join("accounts");
     let contract_dir = data_dir.join("contracts");
     let logs_dir = data_dir.join("logs");
-    
+
     tokio::fs::create_dir_all(&account_dir).await?;
     tokio::fs::create_dir_all(&contract_dir).await?;
     tokio::fs::create_dir_all(&logs_dir).await?;
-    
-    println!("{}", "✅ Configuration initialized successfully!".bright_green());
+
+    println!(
+        "{}",
+        "✅ Configuration initialized successfully!".bright_green()
+    );
     println!("Config directory: {}", config_dir.display());
     println!("Data directory: {}", data_dir.display());
-    
+
     // Show quick start
     println!("\n{}", "🎯 Quick Start:".bright_cyan());
-    println!("1. Create your first account: {}", "dytallix-cli account create".bright_white());
-    println!("2. Start the node: {}", "dytallix-cli node start".bright_white());
-    println!("3. Check status: {}", "dytallix-cli node status".bright_white());
+    println!(
+        "1. Create your first account: {}",
+        "dytallix-cli account create".bright_white()
+    );
+    println!(
+        "2. Start the node: {}",
+        "dytallix-cli node start".bright_white()
+    );
+    println!(
+        "3. Check status: {}",
+        "dytallix-cli node status".bright_white()
+    );
     println!("4. Get help: {}", "dytallix-cli guide".bright_white());
-    
+
     Ok(())
 }
 
 async fn show_config(config: &Config) -> Result<()> {
     println!("{}", "📋 Current Configuration".bright_cyan().bold());
     println!();
-    
+
     println!("{}", "🌐 Network Settings:".bright_blue());
     println!("  Node URL: {}", config.network.node_url.bright_white());
-    println!("  AI Services URL: {}", config.network.ai_services_url.bright_white());
+    println!(
+        "  AI Services URL: {}",
+        config.network.ai_services_url.bright_white()
+    );
     println!("  Network ID: {}", config.network.network_id.bright_white());
     println!("  Chain ID: {}", config.network.chain_id.bright_white());
-    println!("  Timeout: {}s", config.network.timeout.to_string().bright_white());
+    println!(
+        "  Timeout: {}s",
+        config.network.timeout.to_string().bright_white()
+    );
     println!();
-    
+
     println!("{}", "👨‍💻 Developer Settings:".bright_blue());
-    println!("  Default Account: {}", if config.developer.default_account.is_empty() { "None".to_string() } else { config.developer.default_account.clone() }.bright_white());
-    println!("  Verbose Mode: {}", config.developer.verbose.to_string().bright_white());
-    println!("  Auto Confirm: {}", config.developer.auto_confirm.to_string().bright_white());
-    println!("  Save History: {}", config.developer.save_history.to_string().bright_white());
+    println!(
+        "  Default Account: {}",
+        if config.developer.default_account.is_empty() {
+            "None".to_string()
+        } else {
+            config.developer.default_account.clone()
+        }
+        .bright_white()
+    );
+    println!(
+        "  Verbose Mode: {}",
+        config.developer.verbose.to_string().bright_white()
+    );
+    println!(
+        "  Auto Confirm: {}",
+        config.developer.auto_confirm.to_string().bright_white()
+    );
+    println!(
+        "  Save History: {}",
+        config.developer.save_history.to_string().bright_white()
+    );
     println!();
-    
+
     println!("{}", "🤖 AI Settings:".bright_blue());
-    println!("  Auto Analysis: {}", config.ai.auto_analysis.to_string().bright_white());
-    println!("  Fraud Threshold: {}", config.ai.fraud_threshold.to_string().bright_white());
-    println!("  Risk Threshold: {}", config.ai.risk_threshold.to_string().bright_white());
-    println!("  Enable Caching: {}", config.ai.enable_caching.to_string().bright_white());
-    println!("  Cache TTL: {}s", config.ai.cache_ttl.to_string().bright_white());
+    println!(
+        "  Auto Analysis: {}",
+        config.ai.auto_analysis.to_string().bright_white()
+    );
+    println!(
+        "  Fraud Threshold: {}",
+        config.ai.fraud_threshold.to_string().bright_white()
+    );
+    println!(
+        "  Risk Threshold: {}",
+        config.ai.risk_threshold.to_string().bright_white()
+    );
+    println!(
+        "  Enable Caching: {}",
+        config.ai.enable_caching.to_string().bright_white()
+    );
+    println!(
+        "  Cache TTL: {}s",
+        config.ai.cache_ttl.to_string().bright_white()
+    );
     println!();
-    
+
     println!("{}", "📁 Directory Locations:".bright_blue());
     if let Ok(config_dir) = config::get_config_dir() {
-        println!("  Config: {}", config_dir.display().to_string().bright_white());
+        println!(
+            "  Config: {}",
+            config_dir.display().to_string().bright_white()
+        );
     }
     if let Ok(data_dir) = config::get_data_dir() {
         println!("  Data: {}", data_dir.display().to_string().bright_white());
     }
-    
+
     Ok(())
 }

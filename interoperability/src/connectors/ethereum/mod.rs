@@ -15,16 +15,19 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub mod bridge_contract;
-pub mod wrapped_token;
 pub mod deployed_addresses;
+pub mod wrapped_token;
 
-pub use bridge_contract::{EthereumBridgeContract, BridgeContractCall, BridgeContractEvent, EthereumClient, EthereumWsClient};
-pub use wrapped_token::{WrappedTokenContract, WrappedTokenRegistry, WrappedTokenDeploymentConfig};
-pub use deployed_addresses::{
-    NetworkAddresses, SEPOLIA_ADDRESSES, MAINNET_ADDRESSES,
-    get_network_addresses, get_all_networks, is_network_supported,
-    get_network_name, is_network_deployed, get_deployment_info, DeploymentInfo
+pub use bridge_contract::{
+    BridgeContractCall, BridgeContractEvent, EthereumBridgeContract, EthereumClient,
+    EthereumWsClient,
 };
+pub use deployed_addresses::{
+    get_all_networks, get_deployment_info, get_network_addresses, get_network_name,
+    is_network_deployed, is_network_supported, DeploymentInfo, NetworkAddresses, MAINNET_ADDRESSES,
+    SEPOLIA_ADDRESSES,
+};
+pub use wrapped_token::{WrappedTokenContract, WrappedTokenDeploymentConfig, WrappedTokenRegistry};
 
 // Ethereum-specific types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,16 +79,16 @@ pub struct EthereumConnector {
 impl EthereumConnector {
     pub fn new(config: EthereumConfig) -> Result<Self, BridgeError> {
         let bridge_contract = EthereumBridgeContract::new(config.bridge_contract_address.clone());
-        
+
         let deployment_config = WrappedTokenDeploymentConfig {
             deployer_private_key: config.private_key.clone().unwrap_or_default(),
             gas_limit: config.gas_limit,
             gas_price: config.gas_price,
             bridge_contract_address: config.bridge_contract_address.clone(),
         };
-        
+
         let wrapped_token_registry = WrappedTokenRegistry::new(deployment_config);
-        
+
         Ok(Self {
             config,
             bridge_contract,
@@ -98,14 +101,16 @@ impl EthereumConnector {
     /// Initialize Web3 connections
     pub async fn initialize(&mut self) -> Result<(), BridgeError> {
         // Initialize HTTP client
-        let provider = Provider::<Http>::try_from(&self.config.rpc_url)
-            .map_err(|e| BridgeError::ConnectionFailed(format!("Provider creation failed: {}", e)))?;
+        let provider = Provider::<Http>::try_from(&self.config.rpc_url).map_err(|e| {
+            BridgeError::ConnectionFailed(format!("Provider creation failed: {}", e))
+        })?;
 
         if let Some(private_key) = &self.config.private_key {
-            let wallet: LocalWallet = private_key.parse()
+            let wallet: LocalWallet = private_key
+                .parse()
                 .map_err(|e| BridgeError::InvalidChain(format!("Invalid private key: {}", e)))?;
             let wallet = wallet.with_chain_id(self.config.chain_id);
-            
+
             let client = Arc::new(SignerMiddleware::new(provider.clone(), wallet.clone()));
             self.client = Some(client.clone());
 
@@ -114,7 +119,7 @@ impl EthereumConnector {
             if let Ok(ws_provider) = Provider::<Ws>::connect(&ws_url).await {
                 let ws_client = Arc::new(SignerMiddleware::new(ws_provider, wallet));
                 self.ws_client = Some(ws_client.clone());
-                
+
                 // Initialize contract with WebSocket for events
                 let mut contract = self.bridge_contract.clone();
                 contract.initialize_ws(ws_client).await?;
@@ -126,12 +131,14 @@ impl EthereumConnector {
             contract.initialize(client).await?;
             self.bridge_contract = contract;
         } else {
-            return Err(BridgeError::InvalidChain("Private key required for signing".to_string()));
+            return Err(BridgeError::InvalidChain(
+                "Private key required for signing".to_string(),
+            ));
         }
 
         Ok(())
     }
-    
+
     /// Lock asset on Ethereum side of the bridge
     pub async fn lock_asset(
         &self,
@@ -139,23 +146,28 @@ impl EthereumConnector {
         dest_address: &str,
         bridge_tx: &BridgeTx,
     ) -> Result<EthereumTxHash, BridgeError> {
-        println!("🔒 Locking {} {} on Ethereum for bridge tx {}", 
-                 asset.amount, asset.id, bridge_tx.id.0);
-        
+        println!(
+            "🔒 Locking {} {} on Ethereum for bridge tx {}",
+            asset.amount, asset.id, bridge_tx.id.0
+        );
+
         let asset_address = self.get_asset_address(&asset.id)?;
-        
+
         // Use real Web3 contract call
-        let tx_hash = self.bridge_contract.lock_asset(
-            &asset_address,
-            asset.amount,
-            &bridge_tx.dest_chain,
-            dest_address,
-        ).await?;
+        let tx_hash = self
+            .bridge_contract
+            .lock_asset(
+                &asset_address,
+                asset.amount,
+                &bridge_tx.dest_chain,
+                dest_address,
+            )
+            .await?;
 
         println!("✅ Asset locked on Ethereum. Tx hash: {:?}", tx_hash);
         Ok(EthereumTxHash(format!("{:?}", tx_hash)))
     }
-    
+
     /// Release (mint) wrapped asset on Ethereum
     pub async fn release_wrapped_asset(
         &mut self,
@@ -163,14 +175,22 @@ impl EthereumConnector {
         dest_address: &str,
         bridge_tx_id: &str,
     ) -> Result<EthereumTxHash, BridgeError> {
-        println!("🪙 Releasing wrapped asset {} on Ethereum for address {}", 
-                 wrapped_asset.wrapped_contract, dest_address);
-        
+        println!(
+            "🪙 Releasing wrapped asset {} on Ethereum for address {}",
+            wrapped_asset.wrapped_contract, dest_address
+        );
+
         // Get or deploy wrapped token contract
-        let wrapped_contract_address = if self.wrapped_token_registry.has_wrapped_token(&wrapped_asset.original_asset_id) {
-            self.wrapped_token_registry.get_wrapped_contract(&wrapped_asset.original_asset_id)
+        let wrapped_contract_address = if self
+            .wrapped_token_registry
+            .has_wrapped_token(&wrapped_asset.original_asset_id)
+        {
+            self.wrapped_token_registry
+                .get_wrapped_contract(&wrapped_asset.original_asset_id)
                 .map(|c| c.contract_address.clone())
-                .ok_or(BridgeError::InvalidAsset("Wrapped contract not found".to_string()))?
+                .ok_or(BridgeError::InvalidAsset(
+                    "Wrapped contract not found".to_string(),
+                ))?
         } else {
             // Deploy new wrapped token contract
             let original_asset = Asset {
@@ -180,41 +200,61 @@ impl EthereumConnector {
                 metadata: crate::AssetMetadata {
                     name: format!("Wrapped {}", wrapped_asset.original_asset_id),
                     symbol: format!("w{}", wrapped_asset.original_asset_id),
-                    description: format!("Wrapped {} from {}", wrapped_asset.original_asset_id, wrapped_asset.original_chain),
+                    description: format!(
+                        "Wrapped {} from {}",
+                        wrapped_asset.original_asset_id, wrapped_asset.original_chain
+                    ),
                     icon_url: None,
                 },
             };
-            
-            let wrapped_contract = self.wrapped_token_registry.deploy_wrapped_token(&original_asset, &wrapped_asset.original_chain).await?;
+
+            let wrapped_contract = self
+                .wrapped_token_registry
+                .deploy_wrapped_token(&original_asset, &wrapped_asset.original_chain)
+                .await?;
             wrapped_contract.contract_address
         };
-        
-        // Use real Web3 contract call
-        let tx_hash = self.bridge_contract.release_asset(
-            &wrapped_contract_address,
-            wrapped_asset.amount,
-            dest_address,
-            bridge_tx_id,
-        ).await?;
 
-        println!("✅ Wrapped asset released on Ethereum. Tx hash: {:?}", tx_hash);
+        // Use real Web3 contract call
+        let tx_hash = self
+            .bridge_contract
+            .release_asset(
+                &wrapped_contract_address,
+                wrapped_asset.amount,
+                dest_address,
+                bridge_tx_id,
+            )
+            .await?;
+
+        println!(
+            "✅ Wrapped asset released on Ethereum. Tx hash: {:?}",
+            tx_hash
+        );
         Ok(EthereumTxHash(format!("{:?}", tx_hash)))
     }
-    
+
     /// Mint wrapped asset on Ethereum
     pub async fn mint_wrapped_asset(
         &mut self,
         wrapped_asset: &WrappedAsset,
         dest_address: &str,
     ) -> Result<EthereumTxHash, BridgeError> {
-        println!("🪙 Minting wrapped asset {} on Ethereum for address {}", 
-                 wrapped_asset.wrapped_contract, dest_address);
-        
+        println!(
+            "🪙 Minting wrapped asset {} on Ethereum for address {}",
+            wrapped_asset.wrapped_contract, dest_address
+        );
+
         // Get or deploy wrapped token contract
-        let wrapped_contract_address = if self.wrapped_token_registry.has_wrapped_token(&wrapped_asset.original_asset_id) {
-            self.wrapped_token_registry.get_wrapped_contract(&wrapped_asset.original_asset_id)
+        let wrapped_contract_address = if self
+            .wrapped_token_registry
+            .has_wrapped_token(&wrapped_asset.original_asset_id)
+        {
+            self.wrapped_token_registry
+                .get_wrapped_contract(&wrapped_asset.original_asset_id)
                 .map(|c| c.contract_address.clone())
-                .ok_or(BridgeError::InvalidAsset("Wrapped contract not found".to_string()))?
+                .ok_or(BridgeError::InvalidAsset(
+                    "Wrapped contract not found".to_string(),
+                ))?
         } else {
             // Deploy new wrapped token contract
             let original_asset = Asset {
@@ -224,41 +264,59 @@ impl EthereumConnector {
                 metadata: crate::AssetMetadata {
                     name: format!("Wrapped {}", wrapped_asset.original_asset_id),
                     symbol: format!("w{}", wrapped_asset.original_asset_id),
-                    description: format!("Wrapped {} from {}", wrapped_asset.original_asset_id, wrapped_asset.original_chain),
+                    description: format!(
+                        "Wrapped {} from {}",
+                        wrapped_asset.original_asset_id, wrapped_asset.original_chain
+                    ),
                     icon_url: None,
                 },
             };
-            
-            let wrapped_contract = self.wrapped_token_registry.deploy_wrapped_token(&original_asset, &wrapped_asset.original_chain).await?;
+
+            let wrapped_contract = self
+                .wrapped_token_registry
+                .deploy_wrapped_token(&original_asset, &wrapped_asset.original_chain)
+                .await?;
             wrapped_contract.contract_address
         };
-        
-        // Use real Web3 contract call to mint
-        let tx_hash = self.bridge_contract.mint_wrapped_token(
-            &wrapped_contract_address,
-            wrapped_asset.amount,
-            dest_address,
-        ).await?;
 
-        println!("✅ Wrapped asset minted on Ethereum. Tx hash: {:?}", tx_hash);
+        // Use real Web3 contract call to mint
+        let tx_hash = self
+            .bridge_contract
+            .mint_wrapped_token(
+                &wrapped_contract_address,
+                wrapped_asset.amount,
+                dest_address,
+            )
+            .await?;
+
+        println!(
+            "✅ Wrapped asset minted on Ethereum. Tx hash: {:?}",
+            tx_hash
+        );
         Ok(EthereumTxHash(format!("{:?}", tx_hash)))
     }
-    
+
     /// Monitor Ethereum for bridge events
-    pub async fn monitor_bridge_events(&self, from_block: Option<u64>) -> Result<Vec<EthereumBridgeEvent>, BridgeError> {
-        println!("👀 Monitoring Ethereum bridge events from block {:?}", from_block);
-        
+    pub async fn monitor_bridge_events(
+        &self,
+        from_block: Option<u64>,
+    ) -> Result<Vec<EthereumBridgeEvent>, BridgeError> {
+        println!(
+            "👀 Monitoring Ethereum bridge events from block {:?}",
+            from_block
+        );
+
         // Get recent lock events
-        let lock_events = self.bridge_contract.get_lock_events(
-            from_block.unwrap_or(0),
-            None,
-        ).await?;
+        let lock_events = self
+            .bridge_contract
+            .get_lock_events(from_block.unwrap_or(0), None)
+            .await?;
 
         // Get recent release events
-        let release_events = self.bridge_contract.get_release_events(
-            from_block.unwrap_or(0),
-            None,
-        ).await?;
+        let release_events = self
+            .bridge_contract
+            .get_release_events(from_block.unwrap_or(0), None)
+            .await?;
 
         let mut events = Vec::new();
 
@@ -282,7 +340,7 @@ impl EthereumConnector {
                 recipient: format!("{:?}", event.recipient),
                 bridge_tx_id: event.bridge_tx_id,
                 tx_hash: "".to_string(), // Would get from event metadata
-                block_number: 0, // Would get from event metadata when available
+                block_number: 0,         // Would get from event metadata when available
             });
         }
 
@@ -295,11 +353,11 @@ impl EthereumConnector {
         println!("🔄 Starting real-time event monitoring");
 
         self.bridge_contract.monitor_events(None).await?;
-        
+
         println!("✅ Event monitoring started successfully");
         Ok(())
     }
-    
+
     /// Get current Ethereum block information
     pub async fn get_current_block(&self) -> Result<EthereumBlock, BridgeError> {
         // In production, call eth_blockNumber and eth_getBlockByNumber
@@ -312,15 +370,15 @@ impl EthereumConnector {
                 .as_secs(),
         })
     }
-    
+
     /// Verify transaction confirmation on Ethereum
     pub async fn verify_transaction(&self, tx_hash: &EthereumTxHash) -> Result<bool, BridgeError> {
         println!("✅ Verifying Ethereum transaction: {}", tx_hash.0);
-        
+
         // In production, check transaction receipt and confirmations
         Ok(true)
     }
-    
+
     /// Get Ethereum address for an asset ID
     fn get_asset_address(&self, asset_id: &str) -> Result<String, BridgeError> {
         // In production, this would be a registry lookup
@@ -328,15 +386,18 @@ impl EthereumConnector {
             "ETH" => Ok("0x0000000000000000000000000000000000000000".to_string()), // Native ETH
             "USDC" => Ok("0xA0b86a33E6441E5A4C5C3BD1C6B06B65a80D8a7b".to_string()), // USDC on Sepolia
             "USDT" => Ok("0xfaD6367E52450d800bE70CEbc9735b2Ac24BB80a".to_string()), // USDT on Sepolia
-            _ => Err(BridgeError::InvalidTransaction(format!("Unknown asset: {}", asset_id))),
+            _ => Err(BridgeError::InvalidTransaction(format!(
+                "Unknown asset: {}",
+                asset_id
+            ))),
         }
     }
-    
+
     /// Get wrapped token registry (mutable access)
     pub fn get_wrapped_token_registry_mut(&mut self) -> &mut WrappedTokenRegistry {
         &mut self.wrapped_token_registry
     }
-    
+
     /// Get wrapped token registry (immutable access)
     pub fn get_wrapped_token_registry(&self) -> &WrappedTokenRegistry {
         &self.wrapped_token_registry
@@ -381,21 +442,21 @@ pub enum EthereumBridgeEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{AssetMetadata, BridgeTxId, BridgeStatus};
+    use crate::{AssetMetadata, BridgeStatus, BridgeTxId};
 
     #[tokio::test]
     async fn test_ethereum_connector_creation() {
         let config = EthereumConfig::default();
         let connector = EthereumConnector::new(config).unwrap();
-        
+
         assert_eq!(connector.config.chain_id, 11155111); // Sepolia
     }
-    
+
     #[tokio::test]
     async fn test_ethereum_asset_locking() {
         let config = EthereumConfig::default();
         let connector = EthereumConnector::new(config).unwrap();
-        
+
         let asset = Asset {
             id: "ETH".to_string(),
             amount: 1000000000000000000, // 1 ETH in wei
@@ -407,7 +468,7 @@ mod tests {
                 icon_url: None,
             },
         };
-        
+
         let bridge_tx = BridgeTx {
             id: BridgeTxId("test_tx_123".to_string()),
             asset: asset.clone(),
@@ -419,19 +480,19 @@ mod tests {
             validator_signatures: Vec::new(),
             status: BridgeStatus::Pending,
         };
-        
+
         let result = connector.lock_asset(&asset, "dyt1test", &bridge_tx).await;
         assert!(result.is_ok());
-        
+
         let tx_hash = result.unwrap();
         assert!(tx_hash.0.starts_with("0x"));
     }
-    
+
     #[tokio::test]
     async fn test_ethereum_wrapped_asset_minting() {
         let config = EthereumConfig::default();
         let mut connector = EthereumConnector::new(config).unwrap();
-        
+
         let wrapped_asset = WrappedAsset {
             original_asset_id: "DOT".to_string(),
             original_chain: "polkadot".to_string(),
@@ -439,22 +500,26 @@ mod tests {
             amount: 1000000000000, // 1 DOT
             wrapping_timestamp: 0,
         };
-        
-        let result = connector.mint_wrapped_asset(&wrapped_asset, "0x1234567890123456789012345678901234567890").await;
+
+        let result = connector
+            .mint_wrapped_asset(&wrapped_asset, "0x1234567890123456789012345678901234567890")
+            .await;
         assert!(result.is_ok());
-        
+
         let tx_hash = result.unwrap();
         assert!(tx_hash.0.starts_with("0x"));
-        
+
         // Verify wrapped token was registered
-        assert!(connector.get_wrapped_token_registry().has_wrapped_token("DOT"));
+        assert!(connector
+            .get_wrapped_token_registry()
+            .has_wrapped_token("DOT"));
     }
-    
+
     #[tokio::test]
     async fn test_ethereum_current_block() {
         let config = EthereumConfig::default();
         let connector = EthereumConnector::new(config).unwrap();
-        
+
         let block = connector.get_current_block().await.unwrap();
         assert!(block.number > 0);
         assert!(block.hash.starts_with("0x"));

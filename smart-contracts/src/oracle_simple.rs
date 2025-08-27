@@ -4,9 +4,9 @@ Simple Oracle Module
 Basic oracle functionality without ink! dependencies
 */
 
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 use crate::types::{Address, Amount};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OracleRequest {
@@ -45,47 +45,50 @@ impl SimpleOracle {
             authorized_providers: HashMap::new(),
         }
     }
-    
+
     pub fn submit_request(&mut self, mut request: OracleRequest) -> u64 {
         let request_id = self.next_request_id;
         self.next_request_id += 1;
-        
+
         request.id = request_id;
         self.requests.insert(request_id, request);
-        
+
         request_id
     }
-    
+
     pub fn submit_response(&mut self, response: OracleResponse) -> Result<(), String> {
         if !self.requests.contains_key(&response.request_id) {
             return Err("Request not found".to_string());
         }
-        
+
         self.responses.insert(response.request_id, response);
         Ok(())
     }
-    
+
     pub fn get_response(&self, request_id: u64) -> Option<&OracleResponse> {
         self.responses.get(&request_id)
     }
-    
+
     pub fn authorize_provider(&mut self, provider: Address) {
         self.authorized_providers.insert(provider, true);
     }
-    
+
     pub fn is_provider_authorized(&self, provider: &Address) -> bool {
-        self.authorized_providers.get(provider).copied().unwrap_or(false)
+        self.authorized_providers
+            .get(provider)
+            .copied()
+            .unwrap_or(false)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_oracle_basic_functionality() {
         let mut oracle = SimpleOracle::new();
-        
+
         let request = OracleRequest {
             id: 0, // Will be set by submit_request
             requester: "dyt1user123".to_string(),
@@ -95,10 +98,10 @@ mod tests {
             fee: 100,
             timestamp: 1234567890,
         };
-        
+
         let request_id = oracle.submit_request(request);
         assert_eq!(request_id, 1);
-        
+
         let response = OracleResponse {
             request_id,
             data: vec![1, 2, 3, 4],
@@ -106,10 +109,10 @@ mod tests {
             timestamp: 1234567900,
             provider: "dyt1oracle456".to_string(),
         };
-        
+
         let result = oracle.submit_response(response);
         assert!(result.is_ok());
-        
+
         let retrieved = oracle.get_response(request_id);
         assert!(retrieved.is_some());
         assert_eq!(retrieved.unwrap().confidence, 95);

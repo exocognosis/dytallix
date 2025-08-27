@@ -5,11 +5,10 @@
 use crate::{Asset, BridgeError, BridgeTx};
 use serde::{Deserialize, Serialize};
 
-
 pub mod ibc_client;
 pub mod relayer;
 
-pub use ibc_client::{CosmosIbcClient, IbcPacket, IBCTransferData};
+pub use ibc_client::{CosmosIbcClient, IBCTransferData, IbcPacket};
 pub use relayer::{CosmosRelayer, RelayerConfig};
 
 // Cosmos-specific types
@@ -69,10 +68,10 @@ impl CosmosConnector {
             config.grpc_url.clone(),
             config.chain_id.clone(),
         )?;
-        
+
         // Initialize connection
         ibc_client.connect().await?;
-        
+
         let relayer_config = RelayerConfig {
             source_chain: config.chain_id.clone(),
             dest_chain: "dytallix-1".to_string(),
@@ -81,21 +80,21 @@ impl CosmosConnector {
             gas_limit: config.gas_limit,
             gas_price: config.gas_price.clone(),
         };
-        
+
         let relayer = CosmosRelayer::new(relayer_config);
-        
+
         Ok(Self {
             config,
             ibc_client,
             relayer,
         })
     }
-    
+
     /// Set signing key for transaction operations
     pub fn set_signing_key(&mut self, private_key_hex: &str) -> Result<(), BridgeError> {
         self.ibc_client.set_signing_key(private_key_hex)
     }
-    
+
     /// Transfer asset via IBC to destination chain
     pub async fn ibc_transfer(
         &mut self,
@@ -103,9 +102,11 @@ impl CosmosConnector {
         dest_address: &str,
         bridge_tx: &BridgeTx,
     ) -> Result<CosmosTxHash, BridgeError> {
-        println!("🚀 Initiating IBC transfer of {} {} to {}", 
-                 asset.amount, asset.id, dest_address);
-        
+        println!(
+            "🚀 Initiating IBC transfer of {} {} to {}",
+            asset.amount, asset.id, dest_address
+        );
+
         // Create IBC transfer packet
         let packet = IbcPacket {
             source_port: self.config.ibc_port_id.clone(),
@@ -117,22 +118,24 @@ impl CosmosConnector {
                 amount: asset.amount.to_string(),
                 sender: bridge_tx.source_address.clone(),
                 receiver: dest_address.to_string(),
-            }).map_err(|e| BridgeError::NetworkError(e.to_string()))?,
+            })
+            .map_err(|e| BridgeError::NetworkError(e.to_string()))?,
             timeout_height: 0, // No timeout by height
             timeout_timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
-                .as_nanos() as u64 + 3600_000_000_000, // 1 hour timeout
+                .as_nanos() as u64
+                + 3600_000_000_000, // 1 hour timeout
         };
-        
+
         // Submit IBC transfer transaction
         let tx_hash = self.ibc_client.send_ibc_transfer(packet).await?;
-        
+
         println!("✅ IBC transfer submitted: {}", tx_hash.0);
-        
+
         Ok(tx_hash)
     }
-    
+
     /// Receive and process IBC packets from other chains
     pub async fn receive_ibc_packet(
         &mut self,
@@ -140,17 +143,22 @@ impl CosmosConnector {
         proof: &[u8],
         proof_height: u64,
     ) -> Result<CosmosTxHash, BridgeError> {
-        println!("📦 Receiving IBC packet from {}:{}", 
-                 packet.source_port, packet.source_channel);
-        
+        println!(
+            "📦 Receiving IBC packet from {}:{}",
+            packet.source_port, packet.source_channel
+        );
+
         // Verify packet proof and execute on destination
-        let tx_hash = self.ibc_client.receive_packet(packet, proof, proof_height).await?;
-        
+        let tx_hash = self
+            .ibc_client
+            .receive_packet(packet, proof, proof_height)
+            .await?;
+
         println!("✅ IBC packet received: {}", tx_hash.0);
-        
+
         Ok(tx_hash)
     }
-    
+
     /// Acknowledge IBC packet receipt
     pub async fn acknowledge_ibc_packet(
         &mut self,
@@ -158,38 +166,44 @@ impl CosmosConnector {
         acknowledgement: &[u8],
     ) -> Result<CosmosTxHash, BridgeError> {
         println!("✅ Acknowledging IBC packet");
-        
-        let tx_hash = self.ibc_client.acknowledge_packet(packet, acknowledgement).await?;
-        
+
+        let tx_hash = self
+            .ibc_client
+            .acknowledge_packet(packet, acknowledgement)
+            .await?;
+
         Ok(tx_hash)
     }
-    
+
     /// Monitor IBC events and packets
     pub async fn monitor_ibc_events(&mut self) -> Result<Vec<CosmosIbcEvent>, BridgeError> {
         println!("👀 Monitoring Cosmos IBC events");
-        
+
         // In production, this would:
         // 1. Subscribe to IBC events via WebSocket
         // 2. Parse packet data and events
         // 3. Return structured events
-        
+
         Ok(Vec::new())
     }
-    
+
     /// Get current block information
     pub async fn get_current_block(&mut self) -> Result<CosmosBlock, BridgeError> {
         self.ibc_client.get_latest_block().await
     }
-    
+
     /// Query account balance
     pub async fn get_balance(&mut self, address: &str, denom: &str) -> Result<u64, BridgeError> {
         self.ibc_client.query_balance(address, denom).await
     }
-    
+
     /// Verify transaction confirmation
-    pub async fn verify_transaction(&mut self, tx_hash: &CosmosTxHash) -> Result<bool, BridgeError> {
+    pub async fn verify_transaction(
+        &mut self,
+        tx_hash: &CosmosTxHash,
+    ) -> Result<bool, BridgeError> {
         println!("✅ Verifying Cosmos transaction: {}", tx_hash.0);
-        
+
         self.ibc_client.verify_transaction(tx_hash).await
     }
 }
@@ -228,22 +242,22 @@ pub enum CosmosIbcEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{AssetMetadata, BridgeTxId, BridgeStatus};
+    use crate::{AssetMetadata, BridgeStatus, BridgeTxId};
 
     #[tokio::test]
     async fn test_cosmos_connector_creation() {
         let config = CosmosConfig::default();
         let connector = CosmosConnector::new(config).await.unwrap();
-        
+
         assert_eq!(connector.config.chain_id, "cosmoshub-4");
         assert_eq!(connector.config.prefix, "cosmos");
     }
-    
+
     #[tokio::test]
     async fn test_cosmos_ibc_transfer() {
         let config = CosmosConfig::default();
         let mut connector = CosmosConnector::new(config).await.unwrap();
-        
+
         let asset = Asset {
             id: "ATOM".to_string(),
             amount: 1000000, // 1 ATOM (6 decimals)
@@ -255,7 +269,7 @@ mod tests {
                 icon_url: None,
             },
         };
-        
+
         let bridge_tx = BridgeTx {
             id: BridgeTxId("test_ibc_tx_123".to_string()),
             asset: asset.clone(),
@@ -267,20 +281,20 @@ mod tests {
             validator_signatures: Vec::new(),
             status: BridgeStatus::Pending,
         };
-        
+
         let result = connector.ibc_transfer(&asset, "dyt1test", &bridge_tx).await;
         assert!(result.is_ok());
-        
+
         let tx_hash = result.unwrap();
         assert!(!tx_hash.0.is_empty());
         assert!(tx_hash.0.starts_with("COSMOS_TX_"));
     }
-    
+
     #[tokio::test]
     async fn test_cosmos_current_block() {
         let config = CosmosConfig::default();
         let mut connector = CosmosConnector::new(config).await.unwrap();
-        
+
         let block = connector.get_current_block().await.unwrap();
         assert!(block.height > 0);
         assert_eq!(block.chain_id, "cosmoshub-4");

@@ -1,9 +1,9 @@
 use anyhow::Result;
-use dytallix_pqc::{SignatureAlgorithm, KeyExchangeAlgorithm, PQCManager};
-use serde::{Serialize, Deserialize};
-use std::path::PathBuf;
-use dirs::home_dir;
 use chrono;
+use dirs::home_dir;
+use dytallix_pqc::{KeyExchangeAlgorithm, PQCManager, SignatureAlgorithm};
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 /// Configuration for PQC operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,7 +18,7 @@ impl Default for PQCConfig {
         let mut data_dir = home_dir().unwrap_or_else(|| PathBuf::from("."));
         data_dir.push(".dytallix");
         data_dir.push("accounts");
-        
+
         Self {
             data_dir,
             default_signature_algorithm: SignatureAlgorithm::Dilithium5,
@@ -38,23 +38,23 @@ impl CryptoManager {
         let config = PQCConfig::default();
         let pqc_manager = PQCManager::new()
             .map_err(|e| anyhow::anyhow!("Failed to initialize PQC manager: {}", e))?;
-        
+
         Ok(Self {
             config,
             pqc_manager,
         })
     }
-    
+
     pub fn new_with_config(config: PQCConfig) -> Result<Self> {
         let pqc_manager = PQCManager::new()
             .map_err(|e| anyhow::anyhow!("Failed to initialize PQC manager: {}", e))?;
-        
+
         Ok(Self {
             config,
             pqc_manager,
         })
     }
-    
+
     /// Create a new PQC account
     pub fn create_account(
         &mut self,
@@ -64,20 +64,21 @@ impl CryptoManager {
         key_exchange_alg: Option<KeyExchangeAlgorithm>,
     ) -> Result<String> {
         let _sig_alg = signature_alg.unwrap_or(self.config.default_signature_algorithm.clone());
-        let _kex_alg = key_exchange_alg.unwrap_or(self.config.default_key_exchange_algorithm.clone());
-        
+        let _kex_alg =
+            key_exchange_alg.unwrap_or(self.config.default_key_exchange_algorithm.clone());
+
         // For now, just return a mock account address
         // In a real implementation, this would create and store the account
         Ok(format!("dyt1{}", hex::encode(&name.as_bytes()[..8])))
     }
-    
+
     /// List all accounts
     pub fn list_accounts(&self) -> Vec<String> {
         // For now, return a mock list
         // In a real implementation, this would read from storage
         vec!["dyt1default".to_string()]
     }
-    
+
     /// Get account information
     pub fn get_account_info(&self, name: &str) -> Result<Option<AccountInfo>> {
         // For now, return a mock account info
@@ -92,7 +93,7 @@ impl CryptoManager {
             key_exchange_public_key_hex: "deadbeef".repeat(8),
         }))
     }
-    
+
     /// Sign a message with an account
     pub fn sign_message(
         &mut self,
@@ -101,12 +102,14 @@ impl CryptoManager {
         passphrase: Option<&str>,
     ) -> Result<String> {
         // Create a signature using the PQC manager
-        let signature = self.pqc_manager.sign(message)
+        let signature = self
+            .pqc_manager
+            .sign(message)
             .map_err(|e| anyhow::anyhow!("Failed to sign message: {}", e))?;
-        
+
         Ok(hex::encode(signature.data))
     }
-    
+
     /// Verify a signature
     pub fn verify_signature(
         &self,
@@ -117,25 +120,26 @@ impl CryptoManager {
     ) -> Result<bool> {
         let signature_data = hex::decode(signature_hex)
             .map_err(|e| anyhow::anyhow!("Invalid signature hex: {}", e))?;
-        
+
         let public_key = hex::decode(public_key_hex)
             .map_err(|e| anyhow::anyhow!("Invalid public key hex: {}", e))?;
-        
+
         let signature = dytallix_pqc::Signature {
             data: signature_data,
             algorithm,
         };
-        
+
         // Create a temporary PQC manager for verification
         let temp_manager = dytallix_pqc::PQCManager::new()
             .map_err(|e| anyhow::anyhow!("Failed to create PQC manager: {}", e))?;
-        
-        let is_valid = temp_manager.verify(message, &signature, &public_key)
+
+        let is_valid = temp_manager
+            .verify(message, &signature, &public_key)
             .map_err(|e| anyhow::anyhow!("Verification failed: {}", e))?;
-        
+
         Ok(is_valid)
     }
-    
+
     /// Export an account
     pub fn export_account(&self, name: &str, include_private_keys: bool) -> Result<String> {
         // For now, return mock export data
@@ -146,28 +150,32 @@ impl CryptoManager {
             "include_private_keys": include_private_keys,
             "mock": true
         });
-        
+
         Ok(export_data.to_string())
     }
-    
+
     /// Import an account
-    pub fn import_account(&mut self, account_data: &str, passphrase: Option<&str>) -> Result<String> {
+    pub fn import_account(
+        &mut self,
+        account_data: &str,
+        passphrase: Option<&str>,
+    ) -> Result<String> {
         // For now, return mock import result
         // In a real implementation, this would deserialize and store account data
         Ok("mock_imported_account".to_string())
     }
-    
+
     /// Generate a new address (without storing the account)
     pub fn generate_address() -> Result<(String, String, String)> {
         let pqc_manager = PQCManager::new()
             .map_err(|e| anyhow::anyhow!("Failed to create PQC manager: {}", e))?;
-        
+
         let public_key_hex = hex::encode(pqc_manager.get_signature_public_key());
         let kex_public_key_hex = hex::encode(pqc_manager.get_key_exchange_public_key());
-        
+
         // Generate address from public key
         let address = generate_address_from_public_key(pqc_manager.get_signature_public_key());
-        
+
         Ok((address, public_key_hex, kex_public_key_hex))
     }
 }
@@ -186,13 +194,13 @@ pub struct AccountInfo {
 
 /// Generate Dytallix address from public key
 pub fn generate_address_from_public_key(public_key: &[u8]) -> String {
-    use sha3::{Sha3_256, Digest};
-    
+    use sha3::{Digest, Sha3_256};
+
     let mut hasher = Sha3_256::new();
     hasher.update(b"dytallix_address_v1");
     hasher.update(public_key);
     let hash = hasher.finalize();
-    
+
     // Take first 20 bytes and encode with Dytallix prefix
     let address_bytes = &hash[..20];
     format!("dyt1{}", hex::encode(address_bytes))
@@ -202,7 +210,7 @@ pub fn generate_address_from_public_key(public_key: &[u8]) -> String {
 mod tests {
     use super::*;
     use tempfile::TempDir;
-    
+
     #[test]
     fn test_crypto_manager_creation() {
         let temp_dir = TempDir::new().unwrap();
@@ -210,11 +218,11 @@ mod tests {
             data_dir: temp_dir.path().to_path_buf(),
             ..Default::default()
         };
-        
+
         let crypto_manager = CryptoManager::new_with_config(config);
         assert!(crypto_manager.is_ok());
     }
-    
+
     #[test]
     fn test_address_generation() {
         let (address, _, _) = CryptoManager::generate_address().unwrap();

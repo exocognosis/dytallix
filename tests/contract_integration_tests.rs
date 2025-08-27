@@ -19,7 +19,10 @@ use std::sync::Arc;
 struct MockAIAnalyzer;
 
 impl ContractAIAnalyzer for MockAIAnalyzer {
-    fn analyze_deployment(&self, _contract: &ContractDeployment) -> Result<AIAnalysisResult, String> {
+    fn analyze_deployment(
+        &self,
+        _contract: &ContractDeployment,
+    ) -> Result<AIAnalysisResult, String> {
         Ok(AIAnalysisResult {
             security_score: 0.85,
             gas_efficiency: 0.9,
@@ -28,7 +31,11 @@ impl ContractAIAnalyzer for MockAIAnalyzer {
         })
     }
 
-    fn analyze_execution(&self, _call: &ContractCall, _result: &ExecutionResult) -> Result<AIAnalysisResult, String> {
+    fn analyze_execution(
+        &self,
+        _call: &ContractCall,
+        _result: &ExecutionResult,
+    ) -> Result<AIAnalysisResult, String> {
         Ok(AIAnalysisResult {
             security_score: 0.8,
             gas_efficiency: 0.85,
@@ -76,21 +83,25 @@ async fn test_complete_contract_lifecycle() {
     assert_eq!(info.gas_limit, deployment.gas_limit);
 
     println!("Testing contract storage operations...");
-    
+
     // Test storage operations
     let storage_key = b"test_key";
     let storage_value = b"test_value";
-    
+
     // Set initial storage value
-    runtime.set_contract_storage(&contract_address, storage_key.to_vec(), storage_value.to_vec());
-    
+    runtime.set_contract_storage(
+        &contract_address,
+        storage_key.to_vec(),
+        storage_value.to_vec(),
+    );
+
     // Read storage value
     let retrieved_value = runtime.get_contract_state(&contract_address, storage_key);
     assert!(retrieved_value.is_some());
     assert_eq!(retrieved_value.unwrap(), storage_value);
 
     println!("Testing contract execution...");
-    
+
     // Test contract execution
     let call = ContractCall {
         contract_address: contract_address.clone(),
@@ -103,14 +114,17 @@ async fn test_complete_contract_lifecycle() {
     };
 
     let execution_result = runtime.call_contract(call.clone()).await;
-    assert!(execution_result.is_ok(), "Contract execution should succeed");
+    assert!(
+        execution_result.is_ok(),
+        "Contract execution should succeed"
+    );
     let result = execution_result.unwrap();
     assert!(result.success);
     assert!(result.gas_used > 0);
     assert!(result.gas_used < call.gas_limit);
 
     println!("Testing contract statistics...");
-    
+
     // Verify contract statistics updated
     let stats = runtime.get_contract_statistics(&contract_address);
     assert!(stats.is_some());
@@ -120,7 +134,7 @@ async fn test_complete_contract_lifecycle() {
     assert!(memory_usage >= 0);
 
     println!("Testing state persistence...");
-    
+
     // Test state persistence
     let state_data = runtime.persist_contract_state(&contract_address);
     assert!(state_data.is_ok());
@@ -144,7 +158,7 @@ async fn test_contract_deployment_validation() {
     let runtime = ContractRuntime::new(1_000_000, 16).unwrap();
 
     println!("Testing invalid WASM code rejection...");
-    
+
     // Test invalid WASM code
     let invalid_deployment = ContractDeployment {
         address: "dyt1invalid_contract".to_string(),
@@ -162,7 +176,7 @@ async fn test_contract_deployment_validation() {
     assert!(matches!(error.code, ErrorCode::InvalidContract));
 
     println!("Testing gas limit validation...");
-    
+
     // Test gas limit exceeding maximum
     let high_gas_deployment = ContractDeployment {
         address: "dyt1high_gas_contract".to_string(),
@@ -201,7 +215,7 @@ async fn test_gas_metering_and_limits() {
     let contract_address = runtime.deploy_contract(deployment).await.unwrap();
 
     println!("Testing gas estimation...");
-    
+
     // Test gas estimation
     let test_call = ContractCall {
         contract_address: contract_address.clone(),
@@ -220,7 +234,7 @@ async fn test_gas_metering_and_limits() {
     assert!(gas_estimate <= test_call.gas_limit);
 
     println!("Testing gas limit enforcement...");
-    
+
     // Test low gas limit execution (should fail or consume all gas)
     let low_gas_call = ContractCall {
         contract_address: contract_address.clone(),
@@ -270,7 +284,7 @@ async fn test_storage_isolation() {
     let contract2_addr = runtime.deploy_contract(contract2_deployment).await.unwrap();
 
     println!("Testing storage isolation between contracts...");
-    
+
     // Set storage in contract1
     let key = b"shared_key";
     let value1 = b"contract1_value";
@@ -299,7 +313,10 @@ async fn test_ai_integration() {
     // Create a rejecting AI analyzer
     struct RejectingAnalyzer;
     impl ContractAIAnalyzer for RejectingAnalyzer {
-        fn analyze_deployment(&self, _contract: &ContractDeployment) -> Result<AIAnalysisResult, String> {
+        fn analyze_deployment(
+            &self,
+            _contract: &ContractDeployment,
+        ) -> Result<AIAnalysisResult, String> {
             Ok(AIAnalysisResult {
                 security_score: 0.3, // Low score should cause rejection
                 gas_efficiency: 0.5,
@@ -307,8 +324,12 @@ async fn test_ai_integration() {
                 risk_assessment: "High risk detected".to_string(),
             })
         }
-        
-        fn analyze_execution(&self, _call: &ContractCall, _result: &ExecutionResult) -> Result<AIAnalysisResult, String> {
+
+        fn analyze_execution(
+            &self,
+            _call: &ContractCall,
+            _result: &ExecutionResult,
+        ) -> Result<AIAnalysisResult, String> {
             Ok(AIAnalysisResult {
                 security_score: 0.3,
                 gas_efficiency: 0.5,
@@ -326,7 +347,7 @@ async fn test_ai_integration() {
     runtime.set_ai_analyzer(Arc::new(RejectingAnalyzer));
 
     println!("Testing AI rejection of suspicious contracts...");
-    
+
     let deployment = ContractDeployment {
         address: "dyt1suspicious_contract".to_string(),
         code: create_test_wasm_contract(),
@@ -364,7 +385,7 @@ async fn test_event_emission() {
     let contract_address = runtime.deploy_contract(deployment).await.unwrap();
 
     println!("Testing event emission during execution...");
-    
+
     // Execute contract (should emit events)
     let call = ContractCall {
         contract_address: contract_address.clone(),
@@ -379,11 +400,11 @@ async fn test_event_emission() {
     let result = runtime.call_contract(call).await;
     assert!(result.is_ok());
     let execution_result = result.unwrap();
-    
+
     // Check that events were collected (mock implementation)
     assert!(execution_result.success);
     // Note: In the real implementation, events would be in execution_result.events
-    
+
     println!("Event emission test completed!");
 }
 
@@ -392,7 +413,7 @@ async fn test_contract_size_limits() {
     let runtime = ContractRuntime::new(1_000_000, 16).unwrap();
 
     println!("Testing contract size limits...");
-    
+
     // Create oversized contract (1MB+ code)
     let mut large_code = create_test_wasm_contract();
     large_code.extend(vec![0; 1024 * 1024]); // Add 1MB of padding
@@ -411,7 +432,10 @@ async fn test_contract_size_limits() {
     // Should either succeed or fail gracefully with size limit error
     if result.is_err() {
         let error = result.unwrap_err();
-        assert!(matches!(error.code, ErrorCode::InvalidContract) || matches!(error.code, ErrorCode::InvalidInput));
+        assert!(
+            matches!(error.code, ErrorCode::InvalidContract)
+                || matches!(error.code, ErrorCode::InvalidInput)
+        );
     }
 
     println!("Contract size limit test completed!");
@@ -422,16 +446,11 @@ fn create_test_wasm_contract() -> Vec<u8> {
     // Minimal WASM module with magic number and version
     vec![
         // WASM magic number
-        0x00, 0x61, 0x73, 0x6d,
-        // WASM version (1)
-        0x01, 0x00, 0x00, 0x00,
-        // Type section (empty)
-        0x01, 0x00,
-        // Function section (empty)
-        0x03, 0x00,
-        // Export section (empty) 
-        0x07, 0x00,
-        // Code section (empty)
+        0x00, 0x61, 0x73, 0x6d, // WASM version (1)
+        0x01, 0x00, 0x00, 0x00, // Type section (empty)
+        0x01, 0x00, // Function section (empty)
+        0x03, 0x00, // Export section (empty)
+        0x07, 0x00, // Code section (empty)
         0x0a, 0x00,
     ]
 }
@@ -457,7 +476,7 @@ async fn test_deterministic_execution() {
     assert_eq!(addr1, addr2);
 
     println!("Testing deterministic execution...");
-    
+
     // Execute same call on both runtimes
     let call = ContractCall {
         contract_address: addr1.clone(),

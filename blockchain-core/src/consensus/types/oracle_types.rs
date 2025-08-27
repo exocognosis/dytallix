@@ -332,7 +332,11 @@ impl OracleIdentity {
         match self.last_activity {
             Some(last) => {
                 let now = chrono::Utc::now().timestamp() as u64;
-                if now > last { now - last } else { 0 }
+                if now > last {
+                    now - last
+                } else {
+                    0
+                }
             }
             None => u64::MAX, // If never active, return max value
         }

@@ -40,7 +40,7 @@ fn de_u128<'de, D: Deserializer<'de>>(d: D) -> Result<u128, D::Error> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxReceipt {
-    pub receipt_version: u32,         // RECEIPT_FORMAT_VERSION for versioning
+    pub receipt_version: u32, // RECEIPT_FORMAT_VERSION for versioning
     pub tx_hash: String,
     pub status: TxStatus,
     pub block_height: Option<u64>,
@@ -54,11 +54,11 @@ pub struct TxReceipt {
     pub nonce: u64,
     pub error: Option<String>,
     // Gas accounting fields
-    pub gas_used: u64,                // Actual gas consumed during execution
-    pub gas_limit: u64,               // Gas limit from the transaction
-    pub gas_price: u64,               // Gas price from the transaction (in datt)
-    pub gas_refund: u64,              // Gas refund (always 0 for now, stub for future)
-    pub success: bool,                // Whether the transaction succeeded
+    pub gas_used: u64,   // Actual gas consumed during execution
+    pub gas_limit: u64,  // Gas limit from the transaction
+    pub gas_price: u64,  // Gas price from the transaction (in datt)
+    pub gas_refund: u64, // Gas refund (always 0 for now, stub for future)
+    pub success: bool,   // Whether the transaction succeeded
 }
 
 impl TxReceipt {
@@ -76,8 +76,8 @@ impl TxReceipt {
             nonce: tx.nonce,
             error: None,
             gas_used: 0,
-            gas_limit: 0, // Will be set from SignedTx when available
-            gas_price: 0, // Will be set from SignedTx when available
+            gas_limit: 0,  // Will be set from SignedTx when available
+            gas_price: 0,  // Will be set from SignedTx when available
             gas_refund: 0, // Always 0 for now
             success: false,
         }
@@ -85,12 +85,12 @@ impl TxReceipt {
 
     /// Create a receipt for a successful transaction
     pub fn success(
-        tx: &Transaction, 
-        gas_used: u64, 
-        gas_limit: u64, 
+        tx: &Transaction,
+        gas_used: u64,
+        gas_limit: u64,
         gas_price: u64,
         block_height: u64,
-        index: u32
+        index: u32,
     ) -> Self {
         Self {
             receipt_version: RECEIPT_FORMAT_VERSION,
@@ -120,7 +120,7 @@ impl TxReceipt {
         gas_price: u64,
         error: String,
         block_height: u64,
-        index: u32
+        index: u32,
     ) -> Self {
         Self {
             receipt_version: RECEIPT_FORMAT_VERSION,

@@ -15,7 +15,7 @@ fn test_account_state_multi_denomination() {
     // Test setting and getting balances
     account.set_balance("udgt", 1000);
     account.set_balance("udrt", 2000);
-    
+
     assert_eq!(account.balance_of("udgt"), 1000);
     assert_eq!(account.balance_of("udrt"), 2000);
     assert_eq!(account.balance_of("unknown"), 0);
@@ -46,15 +46,15 @@ fn test_storage_multi_denomination() {
     let storage = Storage::open(temp_dir.path().to_path_buf()).unwrap();
 
     let addr = "dyt1test123";
-    
+
     // Test setting and getting multi-denomination balances
     let mut balances = BTreeMap::new();
     balances.insert("udgt".to_string(), 1000);
     balances.insert("udrt".to_string(), 2000);
-    
+
     storage.set_balances_db(addr, &balances).unwrap();
     let retrieved = storage.get_balances_db(addr);
-    
+
     assert_eq!(retrieved.get("udgt"), Some(&1000));
     assert_eq!(retrieved.get("udrt"), Some(&2000));
 
@@ -64,7 +64,7 @@ fn test_storage_multi_denomination() {
     // Test legacy balance setter (should migrate to multi-denom)
     let new_addr = "dyt1test456";
     storage.set_balance_db(new_addr, 5000).unwrap();
-    
+
     let migrated_balances = storage.get_balances_db(new_addr);
     assert_eq!(migrated_balances.get("udgt"), Some(&5000));
     assert_eq!(storage.get_balance_db(new_addr), 5000);
@@ -82,14 +82,14 @@ fn test_state_multi_denomination() {
     // Test crediting different denominations
     state.credit(addr1, "udgt", 1000);
     state.credit(addr1, "udrt", 2000);
-    
+
     assert_eq!(state.balance_of(addr1, "udgt"), 1000);
     assert_eq!(state.balance_of(addr1, "udrt"), 2000);
     assert_eq!(state.legacy_balance_of(addr1), 1000);
 
     // Test multi-denomination transfer
     state.credit(addr2, "udgt", 500); // Give addr2 some udgt for fees
-    
+
     // Transfer udrt from addr1 to addr2, pay fees in udgt
     let result = state.apply_transfer(addr1, addr2, "udrt", 1000, "udgt", 100);
     assert!(result.is_ok());
@@ -137,12 +137,12 @@ fn test_empty_balances() {
     let mut state = State::new(storage);
 
     let addr = "dyt1empty";
-    
+
     // Test getting balances for non-existent account
     assert_eq!(state.balance_of(addr, "udgt"), 0);
     assert_eq!(state.balance_of(addr, "udrt"), 0);
     assert_eq!(state.legacy_balance_of(addr), 0);
-    
+
     let balances = state.balances_of(addr);
     assert!(balances.is_empty());
 }

@@ -1,8 +1,8 @@
 use crate::crypto::PQCManager;
-use base64::{Engine as _};
+use base64::Engine as _;
 use bytes; // add bytes crate usage
 use futures_util::{SinkExt, StreamExt};
-use log::{error, info, warn};
+use log::{error, info, warn}; // ensure log crate available (added to Cargo.toml if missing)
 use once_cell::sync::Lazy;
 use rand;
 use regex::Regex;
@@ -667,7 +667,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize Dytallix Runtime for staking operations
     let runtime = Arc::new(crate::runtime::DytallixRuntime::new(storage.clone())?);
 
-    // Contract RPC endpoint  
+    // Contract RPC endpoint
     let rpc_runtime = runtime.clone();
     let contract_rpc = warp::path("rpc")
         .and(warp::post())
@@ -861,7 +861,8 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::get())
         .and(warp::any().map(move || staking_runtime.clone()))
         .and_then(|runtime: Arc<crate::runtime::DytallixRuntime>| async move {
-            let (total_stake, total_validators, active_validators) = runtime.get_staking_stats().await;
+            let (total_stake, total_validators, active_validators) =
+                runtime.get_staking_stats().await;
             let response = StakingStatsResponse {
                 total_stake,
                 total_validators,
@@ -872,7 +873,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     warp::reply::json(&ApiResponse::success(response)),
                     warp::http::StatusCode::OK,
                 )
-                .into_response()
+                .into_response(),
             )
         })
         .boxed();
@@ -883,7 +884,8 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::any().map(move || staking_validators_runtime.clone()))
         .and_then(|runtime: Arc<crate::runtime::DytallixRuntime>| async move {
             let validators = runtime.get_active_validators().await;
-            let response: Vec<ValidatorResponse> = validators.iter()
+            let response: Vec<ValidatorResponse> = validators
+                .iter()
                 .map(|v| ValidatorResponse {
                     address: v.address.clone(),
                     total_stake: v.total_stake,
@@ -897,7 +899,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     warp::reply::json(&ApiResponse::success(response)),
                     warp::http::StatusCode::OK,
                 )
-                .into_response()
+                .into_response(),
             )
         })
         .boxed();
@@ -907,78 +909,89 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
     let staking_rewards = warp::path!("staking" / "rewards" / String)
         .and(warp::get())
         .and(warp::any().map(move || staking_rewards_runtime.clone()))
-        .and_then(|delegator: String, runtime: Arc<crate::runtime::DytallixRuntime>| async move {
-            let summary = runtime.get_delegator_rewards_summary(&delegator).await;
-            Ok::<_, warp::Rejection>(
-                warp::reply::with_status(
-                    warp::reply::json(&summary),
-                    warp::http::StatusCode::OK,
+        .and_then(
+            |delegator: String, runtime: Arc<crate::runtime::DytallixRuntime>| async move {
+                let summary = runtime.get_delegator_rewards_summary(&delegator).await;
+                Ok::<_, warp::Rejection>(
+                    warp::reply::with_status(
+                        warp::reply::json(&summary),
+                        warp::http::StatusCode::OK,
+                    )
+                    .into_response(),
                 )
-                .into_response()
-            )
-        })
+            },
+        )
         .boxed();
 
     // POST /staking/claim - claim rewards
     let staking_claim_runtime = runtime.clone();
-    let staking_claim = warp::path!("staking" / "claim")
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(warp::any().map(move || staking_claim_runtime.clone()))
-        .and_then(|claim_request: serde_json::Value, runtime: Arc<crate::runtime::DytallixRuntime>| async move {
-            if let Some(delegator) = claim_request.get("delegator").and_then(|v| v.as_str()) {
-                let result = if let Some(validator) = claim_request.get("validator").and_then(|v| v.as_str()) {
-                    // Claim from specific validator
-                    runtime.claim_rewards(&delegator.to_string(), &validator.to_string()).await
-                } else {
-                    // Claim from all validators
-                    runtime.claim_all_rewards(&delegator.to_string()).await
-                };
-                
-                match result {
-                    Ok(claimed) => {
-                        let new_balance = runtime.get_drt_balance(delegator).await;
+    let staking_claim =
+        warp::path!("staking" / "claim")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || staking_claim_runtime.clone()))
+            .and_then(
+                |claim_request: serde_json::Value,
+                 runtime: Arc<crate::runtime::DytallixRuntime>| async move {
+                    if let Some(delegator) = claim_request.get("delegator").and_then(|v| v.as_str())
+                    {
+                        let result = if let Some(validator) =
+                            claim_request.get("validator").and_then(|v| v.as_str())
+                        {
+                            // Claim from specific validator
+                            runtime
+                                .claim_rewards(&delegator.to_string(), &validator.to_string())
+                                .await
+                        } else {
+                            // Claim from all validators
+                            runtime.claim_all_rewards(&delegator.to_string()).await
+                        };
+
+                        match result {
+                            Ok(claimed) => {
+                                let new_balance = runtime.get_drt_balance(delegator).await;
+                                let response = serde_json::json!({
+                                    "delegator": delegator,
+                                    "claimed": claimed.to_string(),
+                                    "new_balance": new_balance.to_string(),
+                                    "height": runtime.get_current_height().await.unwrap_or(0)
+                                });
+                                Ok::<_, warp::Rejection>(
+                                    warp::reply::with_status(
+                                        warp::reply::json(&response),
+                                        warp::http::StatusCode::OK,
+                                    )
+                                    .into_response(),
+                                )
+                            }
+                            Err(e) => {
+                                let response = serde_json::json!({
+                                    "error": format!("Failed to claim rewards: {}", e)
+                                });
+                                Ok::<_, warp::Rejection>(
+                                    warp::reply::with_status(
+                                        warp::reply::json(&response),
+                                        warp::http::StatusCode::BAD_REQUEST,
+                                    )
+                                    .into_response(),
+                                )
+                            }
+                        }
+                    } else {
                         let response = serde_json::json!({
-                            "delegator": delegator,
-                            "claimed": claimed.to_string(),
-                            "new_balance": new_balance.to_string(),
-                            "height": runtime.get_current_height().await.unwrap_or(0)
-                        });
-                        Ok::<_, warp::Rejection>(
-                            warp::reply::with_status(
-                                warp::reply::json(&response),
-                                warp::http::StatusCode::OK,
-                            )
-                            .into_response()
-                        )
-                    }
-                    Err(e) => {
-                        let response = serde_json::json!({
-                            "error": format!("Failed to claim rewards: {}", e)
+                            "error": "Missing required field: delegator"
                         });
                         Ok::<_, warp::Rejection>(
                             warp::reply::with_status(
                                 warp::reply::json(&response),
                                 warp::http::StatusCode::BAD_REQUEST,
                             )
-                            .into_response()
+                            .into_response(),
                         )
                     }
-                }
-            } else {
-                let response = serde_json::json!({
-                    "error": "Missing required field: delegator"
-                });
-                Ok::<_, warp::Rejection>(
-                    warp::reply::with_status(
-                        warp::reply::json(&response),
-                        warp::http::StatusCode::BAD_REQUEST,
-                    )
-                    .into_response()
-                )
-            }
-        })
-        .boxed();
+                },
+            )
+            .boxed();
 
     // CORS
     let cors = {
@@ -1084,11 +1097,14 @@ async fn handle_websocket(
 
 // Contract RPC handler functions
 async fn handle_contract_deploy(
-    params: serde_json::Value, 
-    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+    params: serde_json::Value,
+    ctx: (
+        Arc<crate::storage::StorageManager>,
+        Arc<crate::types::TransactionPool>,
+    ),
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
-    
+
     // Extract deployment parameters
     if let Some(code_hex) = params.get("code").and_then(|c| c.as_str()) {
         if let Ok(code) = hex::decode(code_hex) {
@@ -1096,22 +1112,30 @@ async fn handle_contract_deploy(
             if code.len() < 8 || &code[0..4] != b"\x00asm" {
                 return serde_json::json!({"error": "Invalid WASM code"});
             }
-            
+
             // Create runtime and deploy contract
             if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
                 let deployment = crate::contracts::ContractDeployment {
                     code: code.clone(),
                     metadata: serde_json::json!({}),
-                    deployer: params.get("from").and_then(|f| f.as_str()).unwrap_or("unknown").to_string(),
-                    gas_limit: params.get("gas_limit").and_then(|g| g.as_u64()).unwrap_or(100_000),
-                    address: generate_contract_address(&blake3::hash(&code).as_bytes()),
-                    initial_state: params.get("initial_state")
+                    deployer: params
+                        .get("from")
+                        .and_then(|f| f.as_str())
+                        .unwrap_or("unknown")
+                        .to_string(),
+                    gas_limit: params
+                        .get("gas_limit")
+                        .and_then(|g| g.as_u64())
+                        .unwrap_or(100_000),
+                    address: generate_contract_address(blake3::hash(&code).as_bytes()),
+                    initial_state: params
+                        .get("initial_state")
                         .and_then(|s| serde_json::to_vec(s).ok())
                         .unwrap_or_default(),
                     timestamp: chrono::Utc::now().timestamp() as u64,
                     ai_audit_score: None,
                 };
-                
+
                 match runtime.deploy_contract(deployment).await {
                     Ok(address) => {
                         let code_hash = blake3::hash(&code);
@@ -1133,54 +1157,76 @@ async fn handle_contract_deploy(
             }
         }
     }
-    
+
     serde_json::json!({"error": "Invalid deployment parameters"})
 }
 
 async fn handle_contract_instantiate(
     params: serde_json::Value,
-    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+    ctx: (
+        Arc<crate::storage::StorageManager>,
+        Arc<crate::types::TransactionPool>,
+    ),
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
-    
+
     // For MVP, we don't distinguish between deployment and instantiation
     // In a full implementation, this would create instances from deployed code
     if let Some(code_hash) = params.get("code_hash").and_then(|h| h.as_str()) {
         let instance_address = generate_instance_address(code_hash);
-        
+
         return serde_json::json!({
             "success": true,
             "instance_address": instance_address,
             "gas_used": 30000
         });
     }
-    
+
     serde_json::json!({"error": "Invalid instantiation parameters"})
 }
 
 async fn handle_contract_execute(
     params: serde_json::Value,
-    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+    ctx: (
+        Arc<crate::storage::StorageManager>,
+        Arc<crate::types::TransactionPool>,
+    ),
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
-    
+
     if let Some(contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
         if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
             let call = crate::contracts::ContractCall {
                 contract_id: contract_address.to_string(),
-                function: params.get("function").and_then(|f| f.as_str()).unwrap_or("execute").to_string(),
+                function: params
+                    .get("function")
+                    .and_then(|f| f.as_str())
+                    .unwrap_or("execute")
+                    .to_string(),
                 args: params.get("args").cloned().unwrap_or(serde_json::json!({})),
-                caller: params.get("from").and_then(|f| f.as_str()).unwrap_or("unknown").to_string(),
-                gas_limit: params.get("gas_limit").and_then(|g| g.as_u64()).unwrap_or(100_000),
+                caller: params
+                    .get("from")
+                    .and_then(|f| f.as_str())
+                    .unwrap_or("unknown")
+                    .to_string(),
+                gas_limit: params
+                    .get("gas_limit")
+                    .and_then(|g| g.as_u64())
+                    .unwrap_or(100_000),
                 contract_address: contract_address.to_string(),
-                method: params.get("function").and_then(|f| f.as_str()).unwrap_or("execute").to_string(),
-                input_data: params.get("args")
+                method: params
+                    .get("function")
+                    .and_then(|f| f.as_str())
+                    .unwrap_or("execute")
+                    .to_string(),
+                input_data: params
+                    .get("args")
                     .and_then(|a| serde_json::to_vec(a).ok())
                     .unwrap_or_default(),
                 value: params.get("value").and_then(|v| v.as_u64()).unwrap_or(0),
                 timestamp: chrono::Utc::now().timestamp() as u64,
             };
-            
+
             match runtime.call_contract(call).await {
                 Ok(result) => {
                     return serde_json::json!({
@@ -1198,16 +1244,19 @@ async fn handle_contract_execute(
             }
         }
     }
-    
+
     serde_json::json!({"error": "Invalid execution parameters"})
 }
 
 async fn handle_contract_get_code(
     params: serde_json::Value,
-    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+    ctx: (
+        Arc<crate::storage::StorageManager>,
+        Arc<crate::types::TransactionPool>,
+    ),
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
-    
+
     if let Some(hash) = params.get("hash").and_then(|h| h.as_str()) {
         // TODO: Implement proper code storage and retrieval
         return serde_json::json!({
@@ -1216,16 +1265,19 @@ async fn handle_contract_get_code(
             "deployed_at": chrono::Utc::now().timestamp()
         });
     }
-    
+
     serde_json::json!({"error": "Code not found"})
 }
 
 async fn handle_contract_get_instance(
     params: serde_json::Value,
-    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+    ctx: (
+        Arc<crate::storage::StorageManager>,
+        Arc<crate::types::TransactionPool>,
+    ),
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
-    
+
     if let Some(address) = params.get("address").and_then(|a| a.as_str()) {
         if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
             if let Some(info) = runtime.get_contract_info(address) {
@@ -1238,19 +1290,22 @@ async fn handle_contract_get_instance(
                 });
             }
         }
-        
+
         return serde_json::json!({"error": "Instance not found"});
     }
-    
+
     serde_json::json!({"error": "Invalid address parameter"})
 }
 
 async fn handle_contract_get_storage(
     params: serde_json::Value,
-    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+    ctx: (
+        Arc<crate::storage::StorageManager>,
+        Arc<crate::types::TransactionPool>,
+    ),
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
-    
+
     if let Some(contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
         if let Some(key_hex) = params.get("key").and_then(|k| k.as_str()) {
             if let Ok(key) = hex::decode(key_hex) {
@@ -1265,18 +1320,22 @@ async fn handle_contract_get_storage(
             }
         }
     }
-    
+
     serde_json::json!({"error": "Invalid storage parameters"})
 }
 
 async fn handle_contract_list(
-    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+    ctx: (
+        Arc<crate::storage::StorageManager>,
+        Arc<crate::types::TransactionPool>,
+    ),
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
-    
+
     if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
         let contracts = runtime.list_contracts();
-        let contract_list: Vec<serde_json::Value> = contracts.iter()
+        let contract_list: Vec<serde_json::Value> = contracts
+            .iter()
             .filter_map(|addr| {
                 runtime.get_contract_info(addr).map(|info| {
                     serde_json::json!({
@@ -1287,20 +1346,23 @@ async fn handle_contract_list(
                 })
             })
             .collect();
-            
+
         return serde_json::json!(contract_list);
     }
-    
+
     serde_json::json!([])
 }
 
 // WASM-specific handlers (aliases for contract handlers with different parameter formats)
 async fn handle_wasm_deploy(
-    params: serde_json::Value, 
-    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+    params: serde_json::Value,
+    ctx: (
+        Arc<crate::storage::StorageManager>,
+        Arc<crate::types::TransactionPool>,
+    ),
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
-    
+
     // Extract deployment parameters from WASM-specific format
     if let Some(code_base64) = params.get("code_base64").and_then(|c| c.as_str()) {
         // Decode base64 WASM code
@@ -1309,20 +1371,23 @@ async fn handle_wasm_deploy(
             if code.len() < 8 || &code[0..4] != b"\x00asm" {
                 return serde_json::json!({"error": "Invalid WASM code"});
             }
-            
+
             // Create runtime and deploy contract
             if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
                 let deployment = crate::contracts::ContractDeployment {
                     code: code.clone(),
                     metadata: serde_json::json!({}),
                     deployer: "wasm_deployer".to_string(), // TODO: Extract from auth
-                    gas_limit: params.get("gas_limit").and_then(|g| g.as_u64()).unwrap_or(500_000),
-                    address: generate_contract_address(&blake3::hash(&code).as_bytes()),
+                    gas_limit: params
+                        .get("gas_limit")
+                        .and_then(|g| g.as_u64())
+                        .unwrap_or(500_000),
+                    address: generate_contract_address(blake3::hash(&code).as_bytes()),
                     initial_state: vec![], // Empty initial state for WASM
                     timestamp: chrono::Utc::now().timestamp() as u64,
                     ai_audit_score: None,
                 };
-                
+
                 match runtime.deploy_contract(deployment).await {
                     Ok(address) => {
                         let code_hash = blake3::hash(&code);
@@ -1343,35 +1408,48 @@ async fn handle_wasm_deploy(
             return serde_json::json!({"error": "Failed to decode base64 WASM code"});
         }
     }
-    
+
     serde_json::json!({"error": "Invalid WASM deployment parameters"})
 }
 
 async fn handle_wasm_execute(
-    params: serde_json::Value, 
-    ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)
+    params: serde_json::Value,
+    ctx: (
+        Arc<crate::storage::StorageManager>,
+        Arc<crate::types::TransactionPool>,
+    ),
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
-    
+
     // Extract execution parameters
     if let (Some(address), Some(method)) = (
         params.get("address").and_then(|a| a.as_str()),
-        params.get("method").and_then(|m| m.as_str())
+        params.get("method").and_then(|m| m.as_str()),
     ) {
         // Create runtime and execute contract
         if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
             let call = crate::contracts::ContractCall {
+                contract_id: address.to_string(),
+                function: method.to_string(),
+                args: params
+                    .get("args_json")
+                    .cloned()
+                    .unwrap_or(serde_json::json!({})),
                 contract_address: address.to_string(),
-                caller: "wasm_caller".to_string(), // TODO: Extract from auth
+                caller: "wasm_caller".to_string(),
                 method: method.to_string(),
-                input_data: params.get("args_json")
+                input_data: params
+                    .get("args_json")
                     .and_then(|args| serde_json::to_vec(args).ok())
                     .unwrap_or_default(),
-                gas_limit: params.get("gas_limit").and_then(|g| g.as_u64()).unwrap_or(20_000),
+                gas_limit: params
+                    .get("gas_limit")
+                    .and_then(|g| g.as_u64())
+                    .unwrap_or(20_000),
                 value: 0, // No value transfer for basic WASM calls
                 timestamp: chrono::Utc::now().timestamp() as u64,
             };
-            
+
             match runtime.call_contract(call).await {
                 Ok(result) => {
                     return serde_json::json!({
@@ -1388,7 +1466,7 @@ async fn handle_wasm_execute(
             return serde_json::json!({"error": "Failed to create contract runtime"});
         }
     }
-    
+
     serde_json::json!({"error": "Invalid WASM execution parameters"})
 }
 
@@ -1410,17 +1488,14 @@ async fn handle_staking_register_validator(
     params: &[serde_json::Value],
     runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
-    if let (Some(address), Some(pubkey), Some(commission)) = (
-        params[0].as_str(),
-        params[1].as_str(),
-        params[2].as_u64(),
-    ) {
+    if let (Some(address), Some(pubkey), Some(commission)) =
+        (params[0].as_str(), params[1].as_str(), params[2].as_u64())
+    {
         if let Ok(pubkey_bytes) = hex::decode(pubkey) {
-            match runtime.register_validator(
-                address.to_string(),
-                pubkey_bytes,
-                commission as u16,
-            ).await {
+            match runtime
+                .register_validator(address.to_string(), pubkey_bytes, commission as u16)
+                .await
+            {
                 Ok(_) => serde_json::json!({"success": true}),
                 Err(e) => serde_json::json!({"error": format!("Registration failed: {}", e)}),
             }
@@ -1439,13 +1514,14 @@ async fn handle_staking_delegate(
     if let (Some(delegator), Some(validator), Some(amount)) = (
         params[0].as_str(),
         params[1].as_str(),
-        params[2].as_u64().or_else(|| params[2].as_str().and_then(|s| s.parse().ok())),
+        params[2]
+            .as_u64()
+            .or_else(|| params[2].as_str().and_then(|s| s.parse().ok())),
     ) {
-        match runtime.delegate(
-            delegator.to_string(),
-            validator.to_string(),
-            amount as u128,
-        ).await {
+        match runtime
+            .delegate(delegator.to_string(), validator.to_string(), amount as u128)
+            .await
+        {
             Ok(_) => serde_json::json!({"success": true}),
             Err(e) => serde_json::json!({"error": format!("Delegation failed: {}", e)}),
         }
@@ -1458,14 +1534,11 @@ async fn handle_staking_claim_rewards(
     params: &[serde_json::Value],
     runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
-    if let (Some(delegator), Some(validator)) = (
-        params[0].as_str(),
-        params[1].as_str(),
-    ) {
-        match runtime.claim_rewards(
-            &delegator.to_string(),
-            &validator.to_string(),
-        ).await {
+    if let (Some(delegator), Some(validator)) = (params[0].as_str(), params[1].as_str()) {
+        match runtime
+            .claim_rewards(&delegator.to_string(), &validator.to_string())
+            .await
+        {
             Ok(rewards) => serde_json::json!(rewards),
             Err(e) => serde_json::json!({"error": format!("Failed to claim rewards: {}", e)}),
         }
@@ -1492,16 +1565,15 @@ async fn handle_staking_sync_accrued(
     params: &[serde_json::Value],
     runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
-    if let (Some(delegator), Some(validator)) = (
-        params[0].as_str(),
-        params[1].as_str(),
-    ) {
-        match runtime.sync_and_get_accrued_rewards(
-            &delegator.to_string(),
-            &validator.to_string(),
-        ).await {
+    if let (Some(delegator), Some(validator)) = (params[0].as_str(), params[1].as_str()) {
+        match runtime
+            .sync_and_get_accrued_rewards(&delegator.to_string(), &validator.to_string())
+            .await
+        {
             Ok(accrued) => serde_json::json!({"accrued": accrued}),
-            Err(e) => serde_json::json!({"error": format!("Failed to sync accrued rewards: {}", e)}),
+            Err(e) => {
+                serde_json::json!({"error": format!("Failed to sync accrued rewards: {}", e)})
+            }
         }
     } else {
         serde_json::json!({"error": "Invalid parameters"})
@@ -1512,14 +1584,11 @@ async fn handle_staking_get_accrued(
     params: &[serde_json::Value],
     runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
-    if let (Some(delegator), Some(validator)) = (
-        params[0].as_str(),
-        params[1].as_str(),
-    ) {
-        match runtime.get_accrued_rewards(
-            &delegator.to_string(),
-            &validator.to_string(),
-        ).await {
+    if let (Some(delegator), Some(validator)) = (params[0].as_str(), params[1].as_str()) {
+        match runtime
+            .get_accrued_rewards(&delegator.to_string(), &validator.to_string())
+            .await
+        {
             Ok(accrued) => serde_json::json!({"accrued": accrued}),
             Err(e) => serde_json::json!({"error": format!("Failed to get accrued rewards: {}", e)}),
         }
@@ -1555,14 +1624,17 @@ async fn handle_staking_get_validators(
     runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
     let validators = runtime.get_active_validators().await;
-    let result: Vec<serde_json::Value> = validators.iter()
-        .map(|v| serde_json::json!({
-            "address": v.address,
-            "total_stake": v.total_stake.to_string(),
-            "status": format!("{:?}", v.status),
-            "commission_rate": v.commission_rate,
-            "self_stake": v.self_stake.to_string(),
-        }))
+    let result: Vec<serde_json::Value> = validators
+        .iter()
+        .map(|v| {
+            serde_json::json!({
+                "address": v.address,
+                "total_stake": v.total_stake.to_string(),
+                "status": format!("{:?}", v.status),
+                "commission_rate": v.commission_rate,
+                "self_stake": v.self_stake.to_string(),
+            })
+        })
         .collect();
     serde_json::json!(result)
 }

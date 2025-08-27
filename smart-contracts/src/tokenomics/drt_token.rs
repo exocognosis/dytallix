@@ -10,11 +10,11 @@ Key features:
 - Integration with Emission Controller
 */
 
-use std::collections::BTreeMap;
-use scale::{Decode, Encode};
-use serde::{Serialize, Deserialize};
+use super::types::{Balance, EmissionRate, TokenomicsError, TokenomicsResult};
 use crate::types::Address;
-use super::types::{Balance, TokenomicsError, TokenomicsResult, EmissionRate};
+use scale::{Decode, Encode};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// DRT Token contract state
 #[derive(Debug, Clone, Encode, Decode, Serialize, Deserialize)]
@@ -106,7 +106,12 @@ impl DRTToken {
     }
 
     /// Transfer tokens between addresses
-    pub fn transfer(&mut self, from: Address, to: Address, amount: Balance) -> TokenomicsResult<()> {
+    pub fn transfer(
+        &mut self,
+        from: Address,
+        to: Address,
+        amount: Balance,
+    ) -> TokenomicsResult<()> {
         if from == to {
             return Err(TokenomicsError::TransferToSelf);
         }
@@ -129,19 +134,31 @@ impl DRTToken {
     }
 
     /// Approve spending allowance
-    pub fn approve(&mut self, owner: Address, spender: Address, amount: Balance) -> TokenomicsResult<()> {
+    pub fn approve(
+        &mut self,
+        owner: Address,
+        spender: Address,
+        amount: Balance,
+    ) -> TokenomicsResult<()> {
         self.allowances
             .entry(owner)
             .or_default()
             .insert(spender, amount);
-        
+
         Ok(())
     }
 
     /// Transfer from allowance
-    pub fn transfer_from(&mut self, owner: Address, spender: Address, to: Address, amount: Balance) -> TokenomicsResult<()> {
+    pub fn transfer_from(
+        &mut self,
+        owner: Address,
+        spender: Address,
+        to: Address,
+        amount: Balance,
+    ) -> TokenomicsResult<()> {
         // Check allowance
-        let allowance = self.allowances
+        let allowance = self
+            .allowances
             .get(&owner)
             .and_then(|allowances| allowances.get(&spender))
             .copied()
@@ -188,7 +205,11 @@ impl DRTToken {
     }
 
     /// Update emission rate (only callable by emission controller)
-    pub fn update_emission_rate(&mut self, new_rate: EmissionRate, caller: &Address) -> TokenomicsResult<()> {
+    pub fn update_emission_rate(
+        &mut self,
+        new_rate: EmissionRate,
+        caller: &Address,
+    ) -> TokenomicsResult<()> {
         // Check if caller is emission controller
         if let Some(ref controller) = self.emission_controller {
             if caller != controller {
@@ -203,7 +224,12 @@ impl DRTToken {
     }
 
     /// Process emission for the current block (only callable by emission controller)
-    pub fn process_emission(&mut self, current_block: u64, recipient: Address, caller: &Address) -> TokenomicsResult<Balance> {
+    pub fn process_emission(
+        &mut self,
+        current_block: u64,
+        recipient: Address,
+        caller: &Address,
+    ) -> TokenomicsResult<Balance> {
         // Check if caller is emission controller
         if let Some(ref controller) = self.emission_controller {
             if caller != controller {
@@ -231,19 +257,23 @@ impl DRTToken {
 
 // WASM-compatible exports for DRT token functions
 #[no_mangle]
-pub extern "C" fn drt_balance_of(token_ptr: *const DRTToken, address_ptr: *const u8, address_len: usize) -> u64 {
+pub extern "C" fn drt_balance_of(
+    token_ptr: *const DRTToken,
+    address_ptr: *const u8,
+    address_len: usize,
+) -> u64 {
     // Safety: This would be properly handled in a real WASM environment
     0 // Placeholder implementation
 }
 
 #[no_mangle]
 pub extern "C" fn drt_transfer(
-    token_ptr: *mut DRTToken, 
-    from_ptr: *const u8, 
+    token_ptr: *mut DRTToken,
+    from_ptr: *const u8,
     from_len: usize,
     to_ptr: *const u8,
     to_len: usize,
-    amount: u64
+    amount: u64,
 ) -> i32 {
     // Safety: This would be properly handled in a real WASM environment
     0 // Placeholder implementation
@@ -256,7 +286,7 @@ pub extern "C" fn drt_mint(
     to_len: usize,
     amount: u64,
     caller_ptr: *const u8,
-    caller_len: usize
+    caller_len: usize,
 ) -> i32 {
     // Safety: This would be properly handled in a real WASM environment
     0 // Placeholder implementation
@@ -267,7 +297,7 @@ pub extern "C" fn drt_burn(
     token_ptr: *mut DRTToken,
     from_ptr: *const u8,
     from_len: usize,
-    amount: u64
+    amount: u64,
 ) -> i32 {
     // Safety: This would be properly handled in a real WASM environment
     0 // Placeholder implementation
@@ -299,7 +329,7 @@ mod tests {
     fn test_drt_creation() {
         let owner = "dyt1owner".to_string();
         let token = DRTToken::new(owner.clone());
-        
+
         assert_eq!(token.total_supply, 0);
         assert_eq!(token.owner, owner);
         assert_eq!(token.current_emission_rate, 1000);
@@ -311,7 +341,7 @@ mod tests {
         let owner = "dyt1owner".to_string();
         let controller = "dyt1controller".to_string();
         let mut token = DRTToken::new(owner);
-        
+
         let result = token.set_emission_controller(controller.clone());
         assert!(result.is_ok());
         assert_eq!(token.emission_controller, Some(controller));
@@ -323,14 +353,14 @@ mod tests {
         let controller = "dyt1controller".to_string();
         let recipient = "dyt1recipient".to_string();
         let mut token = DRTToken::new(owner);
-        
+
         // Set controller
         token.set_emission_controller(controller.clone()).unwrap();
-        
+
         // Mint tokens
         let result = token.mint(recipient.clone(), 500, &controller);
         assert!(result.is_ok());
-        
+
         assert_eq!(token.balance_of(&recipient), 500);
         assert_eq!(token.total_supply(), 500);
     }
@@ -342,10 +372,10 @@ mod tests {
         let unauthorized = "dyt1unauthorized".to_string();
         let recipient = "dyt1recipient".to_string();
         let mut token = DRTToken::new(owner);
-        
+
         // Set controller
         token.set_emission_controller(controller).unwrap();
-        
+
         // Try to mint with unauthorized caller
         let result = token.mint(recipient, 500, &unauthorized);
         assert!(matches!(result, Err(TokenomicsError::NotAuthorized)));
@@ -357,15 +387,15 @@ mod tests {
         let controller = "dyt1controller".to_string();
         let user = "dyt1user".to_string();
         let mut token = DRTToken::new(owner);
-        
+
         // Set controller and mint tokens
         token.set_emission_controller(controller.clone()).unwrap();
         token.mint(user.clone(), 1000, &controller).unwrap();
-        
+
         // Burn tokens
         let result = token.burn(user.clone(), 300);
         assert!(result.is_ok());
-        
+
         assert_eq!(token.balance_of(&user), 700);
         assert_eq!(token.total_supply(), 700);
         assert_eq!(token.total_burned(), 300);
@@ -376,7 +406,7 @@ mod tests {
         let owner = "dyt1owner".to_string();
         let user = "dyt1user".to_string();
         let mut token = DRTToken::new(owner);
-        
+
         // Try to burn without balance
         let result = token.burn(user, 100);
         assert!(matches!(result, Err(TokenomicsError::InsufficientBalance)));
@@ -388,15 +418,15 @@ mod tests {
         let controller = "dyt1controller".to_string();
         let recipient = "dyt1recipient".to_string();
         let mut token = DRTToken::new(owner);
-        
+
         // Set controller
         token.set_emission_controller(controller.clone()).unwrap();
-        
+
         // Process emission for block 10
         let result = token.process_emission(10, recipient.clone(), &controller);
         assert!(result.is_ok());
         let emitted = result.unwrap();
-        
+
         // Should emit for 10 blocks at rate of 1000 per block
         assert_eq!(emitted, 10000);
         assert_eq!(token.balance_of(&recipient), 10000);
@@ -410,15 +440,15 @@ mod tests {
         let from = "dyt1from".to_string();
         let to = "dyt1to".to_string();
         let mut token = DRTToken::new(owner);
-        
+
         // Set controller and mint tokens
         token.set_emission_controller(controller.clone()).unwrap();
         token.mint(from.clone(), 1000, &controller).unwrap();
-        
+
         // Transfer tokens
         let result = token.transfer(from.clone(), to.clone(), 300);
         assert!(result.is_ok());
-        
+
         assert_eq!(token.balance_of(&from), 700);
         assert_eq!(token.balance_of(&to), 300);
     }
@@ -428,14 +458,14 @@ mod tests {
         let owner = "dyt1owner".to_string();
         let controller = "dyt1controller".to_string();
         let mut token = DRTToken::new(owner);
-        
+
         // Set controller
         token.set_emission_controller(controller.clone()).unwrap();
-        
+
         // Update emission rate
         let result = token.update_emission_rate(2000, &controller);
         assert!(result.is_ok());
-        
+
         assert_eq!(token.emission_rate(), 2000);
     }
 }

@@ -1,6 +1,6 @@
 use crate::models::{Block, Transaction};
-use rusqlite::{Connection, Result, params, OptionalExtension};
 use anyhow::anyhow;
+use rusqlite::{params, Connection, OptionalExtension, Result};
 
 pub struct Store {
     conn: Connection,
@@ -8,11 +8,11 @@ pub struct Store {
 
 impl Store {
     pub fn new(db_path: &str) -> anyhow::Result<Self> {
-        let conn = Connection::open(db_path)
-            .map_err(|e| anyhow!("Failed to open database: {}", e))?;
-        
+        let conn =
+            Connection::open(db_path).map_err(|e| anyhow!("Failed to open database: {}", e))?;
+
         crate::schema::apply_migrations(&conn)?;
-        
+
         Ok(Self { conn })
     }
 
@@ -52,9 +52,9 @@ impl Store {
         let mut stmt = self.conn.prepare(
             "SELECT height, hash, time, tx_count FROM blocks 
              ORDER BY height DESC 
-             LIMIT ?1 OFFSET ?2"
+             LIMIT ?1 OFFSET ?2",
         )?;
-        
+
         let block_iter = stmt.query_map(params![limit, offset], |row| {
             Ok(Block {
                 height: row.get(0)?,
@@ -76,9 +76,9 @@ impl Store {
             "SELECT hash, height, sender, recipient, amount, denom, status, gas_used 
              FROM txs 
              ORDER BY rowid DESC 
-             LIMIT ?1 OFFSET ?2"
+             LIMIT ?1 OFFSET ?2",
         )?;
-        
+
         let tx_iter = stmt.query_map(params![limit, offset], |row| {
             Ok(Transaction {
                 hash: row.get(0)?,
@@ -103,22 +103,24 @@ impl Store {
         let mut stmt = self.conn.prepare(
             "SELECT hash, height, sender, recipient, amount, denom, status, gas_used 
              FROM txs 
-             WHERE hash = ?1"
+             WHERE hash = ?1",
         )?;
-        
-        let tx = stmt.query_row(params![hash], |row| {
-            Ok(Transaction {
-                hash: row.get(0)?,
-                height: row.get(1)?,
-                sender: row.get(2)?,
-                recipient: row.get(3)?,
-                amount: row.get(4)?,
-                denom: row.get(5)?,
-                status: row.get(6)?,
-                gas_used: row.get(7)?,
+
+        let tx = stmt
+            .query_row(params![hash], |row| {
+                Ok(Transaction {
+                    hash: row.get(0)?,
+                    height: row.get(1)?,
+                    sender: row.get(2)?,
+                    recipient: row.get(3)?,
+                    amount: row.get(4)?,
+                    denom: row.get(5)?,
+                    status: row.get(6)?,
+                    gas_used: row.get(7)?,
+                })
             })
-        }).optional()?;
-        
+            .optional()?;
+
         Ok(tx)
     }
 }
@@ -132,7 +134,7 @@ mod tests {
     fn test_schema_creation() {
         let temp_db = NamedTempFile::new().unwrap();
         let store = Store::new(temp_db.path().to_str().unwrap()).unwrap();
-        
+
         // Test that we can insert and retrieve a block
         let block = Block {
             height: 1,
@@ -140,7 +142,7 @@ mod tests {
             time: "2024-01-01T00:00:00Z".to_string(),
             tx_count: 0,
         };
-        
+
         store.insert_block(&block).unwrap();
         let blocks = store.get_blocks(10, 0).unwrap();
         assert_eq!(blocks.len(), 1);
@@ -152,7 +154,7 @@ mod tests {
     fn test_transaction_insert_select() {
         let temp_db = NamedTempFile::new().unwrap();
         let store = Store::new(temp_db.path().to_str().unwrap()).unwrap();
-        
+
         // Insert a block first
         let block = Block {
             height: 1,
@@ -161,7 +163,7 @@ mod tests {
             tx_count: 1,
         };
         store.insert_block(&block).unwrap();
-        
+
         // Insert a transaction
         let tx = Transaction {
             hash: "tx_hash".to_string(),
@@ -173,15 +175,15 @@ mod tests {
             status: 1,
             gas_used: 21000,
         };
-        
+
         store.insert_transaction(&tx).unwrap();
-        
+
         // Test retrieval
         let txs = store.get_transactions(10, 0).unwrap();
         assert_eq!(txs.len(), 1);
         assert_eq!(txs[0].hash, "tx_hash");
         assert_eq!(txs[0].sender, Some("sender_addr".to_string()));
-        
+
         // Test by hash
         let retrieved_tx = store.get_transaction_by_hash("tx_hash").unwrap();
         assert!(retrieved_tx.is_some());
@@ -192,18 +194,18 @@ mod tests {
     fn test_idempotent_inserts() {
         let temp_db = NamedTempFile::new().unwrap();
         let store = Store::new(temp_db.path().to_str().unwrap()).unwrap();
-        
+
         let block = Block {
             height: 1,
             hash: "test_hash".to_string(),
             time: "2024-01-01T00:00:00Z".to_string(),
             tx_count: 0,
         };
-        
+
         // Insert the same block twice
         store.insert_block(&block).unwrap();
         store.insert_block(&block).unwrap();
-        
+
         // Should only have one block
         let blocks = store.get_blocks(10, 0).unwrap();
         assert_eq!(blocks.len(), 1);
@@ -213,10 +215,10 @@ mod tests {
     fn test_latest_block_height() {
         let temp_db = NamedTempFile::new().unwrap();
         let store = Store::new(temp_db.path().to_str().unwrap()).unwrap();
-        
+
         // No blocks initially
         assert_eq!(store.get_latest_block_height().unwrap(), None);
-        
+
         // Insert blocks
         for height in [1, 3, 2] {
             let block = Block {
@@ -227,7 +229,7 @@ mod tests {
             };
             store.insert_block(&block).unwrap();
         }
-        
+
         // Should return highest height
         assert_eq!(store.get_latest_block_height().unwrap(), Some(3));
     }

@@ -147,6 +147,53 @@ impl PQCManager {
             public_key: self.inner.get_signature_public_key().to_vec(),
         })
     }
+
+    /// Derive validator address from signature public key: dyt1 + hex(blake3(pubkey)[0..20])
+    pub fn derive_validator_address(&self) -> String {
+        use blake3::Hasher;
+        let pk = self.get_dilithium_public_key();
+        let mut hasher = Hasher::new();
+        hasher.update(pk);
+        let digest = hasher.finalize();
+        let bytes = &digest.as_bytes()[0..20];
+        format!("dyt1{}", hex::encode(bytes))
+    }
+
+    /// Produce canonical bytes of a block header with signature field zeroed (not included).
+    pub fn canonical_header_without_sig(header: &crate::types::BlockHeader) -> Vec<u8> {
+        use crate::types::BlockHeader as BH;
+        // Create a shallow clone with empty signature fields
+        let mut clone = header.clone();
+        clone.signature.signature.data.clear();
+        clone.signature.public_key.clear();
+        // Serialize deterministic (bincode is deterministic given struct order)
+        bincode::serialize(&clone).expect("serialize header")
+    }
+
+    /// Sign block header (excluding signature field itself)
+    pub fn sign_block_header(
+        &self,
+        header: &crate::types::BlockHeader,
+    ) -> Result<crate::types::PQCBlockSignature, Box<dyn std::error::Error>> {
+        let bytes = Self::canonical_header_without_sig(header);
+        let sig = self.inner.sign(&bytes)?;
+        Ok(crate::types::PQCBlockSignature {
+            signature: sig,
+            public_key: self.get_dilithium_public_key().to_vec(),
+        })
+    }
+
+    /// Verify block signature using canonical header serialization with signature removed
+    pub fn verify_block_signature(
+        &self,
+        header: &crate::types::BlockHeader,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        let bytes = Self::canonical_header_without_sig(header);
+        let sig = &header.signature.signature;
+        Ok(self
+            .inner
+            .verify(&bytes, sig, &header.signature.public_key)?)
+    }
 }
 
 // --- Message formatters ----------------------------------------------------

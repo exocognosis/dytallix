@@ -3,11 +3,11 @@
 //! This module generates comprehensive security audit reports in Markdown format
 //! with detailed findings, recommendations, and actionable security advice.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use super::{SecurityAuditResult, SecurityFinding, Severity, VulnerabilityCategory};
 use crate::gas_optimizer::GasStatistics;
 use crate::storage_optimizer::StorageStatistics;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Audit report generator
 pub struct AuditReportGenerator {
@@ -55,11 +55,11 @@ pub struct ExecutiveSummary {
 /// Security level assessment
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum SecurityLevel {
-    Excellent,  // 90-100 score
-    Good,       // 75-89 score  
-    Fair,       // 50-74 score
-    Poor,       // 25-49 score
-    Critical,   // 0-24 score
+    Excellent, // 90-100 score
+    Good,      // 75-89 score
+    Fair,      // 50-74 score
+    Poor,      // 25-49 score
+    Critical,  // 0-24 score
 }
 
 /// Deployment recommendation
@@ -102,11 +102,11 @@ pub struct DetailedFinding {
 /// Effort required for remediation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RemediationEffort {
-    Trivial,    // < 1 hour
-    Low,        // 1-8 hours
-    Medium,     // 1-3 days
-    High,       // 1-2 weeks
-    Critical,   // > 2 weeks
+    Trivial,  // < 1 hour
+    Low,      // 1-8 hours
+    Medium,   // 1-3 days
+    High,     // 1-2 weeks
+    Critical, // > 2 weeks
 }
 
 /// Gas analysis report section
@@ -150,10 +150,10 @@ pub struct Recommendation {
 /// Recommendation priority
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum Priority {
-    Immediate,  // Fix now
-    High,       // Fix within days
-    Medium,     // Fix within weeks
-    Low,        // Fix when convenient
+    Immediate, // Fix now
+    High,      // Fix within days
+    Medium,    // Fix within weeks
+    Low,       // Fix when convenient
 }
 
 /// Report appendix with additional information
@@ -216,27 +216,50 @@ impl AuditReportGenerator {
 
         // Title and metadata
         markdown.push_str(&format!("# Smart Contract Security Audit Report\n\n"));
-        markdown.push_str(&format!("**Contract:** `{}`\n", report.metadata.contract_address));
+        markdown.push_str(&format!(
+            "**Contract:** `{}`\n",
+            report.metadata.contract_address
+        ));
         markdown.push_str(&format!("**Audit Date:** {}\n", report.metadata.audit_date));
         markdown.push_str(&format!("**Report ID:** {}\n", report.metadata.report_id));
-        markdown.push_str(&format!("**Auditor Version:** {}\n\n", report.metadata.auditor_version));
+        markdown.push_str(&format!(
+            "**Auditor Version:** {}\n\n",
+            report.metadata.auditor_version
+        ));
 
         // Executive Summary
         markdown.push_str("## Executive Summary\n\n");
-        markdown.push_str(&format!("**Overall Security Score:** {}/100 ({})\n\n", 
+        markdown.push_str(&format!(
+            "**Overall Security Score:** {}/100 ({})\n\n",
             report.executive_summary.overall_security_score,
             self.security_level_description(report.executive_summary.security_level)
         ));
 
         markdown.push_str("### Issue Count\n");
-        markdown.push_str(&format!("- **Critical:** {}\n", report.executive_summary.critical_issues));
-        markdown.push_str(&format!("- **High:** {}\n", report.executive_summary.high_issues));
-        markdown.push_str(&format!("- **Medium:** {}\n", report.executive_summary.medium_issues));
-        markdown.push_str(&format!("- **Low:** {}\n\n", report.executive_summary.low_issues));
+        markdown.push_str(&format!(
+            "- **Critical:** {}\n",
+            report.executive_summary.critical_issues
+        ));
+        markdown.push_str(&format!(
+            "- **High:** {}\n",
+            report.executive_summary.high_issues
+        ));
+        markdown.push_str(&format!(
+            "- **Medium:** {}\n",
+            report.executive_summary.medium_issues
+        ));
+        markdown.push_str(&format!(
+            "- **Low:** {}\n\n",
+            report.executive_summary.low_issues
+        ));
 
         // Deployment Recommendation
         markdown.push_str("### Deployment Recommendation\n");
-        markdown.push_str(&self.format_deployment_recommendation(&report.executive_summary.deployment_recommendation));
+        markdown.push_str(
+            &self.format_deployment_recommendation(
+                &report.executive_summary.deployment_recommendation,
+            ),
+        );
         markdown.push_str("\n");
 
         // Key Concerns
@@ -250,22 +273,23 @@ impl AuditReportGenerator {
 
         // Detailed Findings
         markdown.push_str("## Detailed Security Findings\n\n");
-        
+
         for (index, detailed_finding) in report.detailed_findings.iter().enumerate() {
             let finding = &detailed_finding.finding;
-            markdown.push_str(&format!("### Finding #{}: {} [{}]\n\n", 
-                index + 1, 
-                finding.title, 
+            markdown.push_str(&format!(
+                "### Finding #{}: {} [{}]\n\n",
+                index + 1,
+                finding.title,
                 finding.severity.as_str()
             ));
 
             markdown.push_str(&format!("**Category:** {}\n", finding.category.as_str()));
             markdown.push_str(&format!("**Severity:** {}\n", finding.severity.as_str()));
-            
+
             if let Some(location) = &finding.location {
                 markdown.push_str(&format!("**Location:** `{}`\n", location));
             }
-            
+
             if let Some(gas_impact) = finding.gas_impact {
                 markdown.push_str(&format!("**Gas Impact:** {} gas units\n", gas_impact));
             }
@@ -285,8 +309,10 @@ impl AuditReportGenerator {
                 markdown.push_str(&format!("- {}\n", recommendation));
             }
 
-            markdown.push_str(&format!("\n**Remediation Effort:** {}\n\n", 
-                self.remediation_effort_description(detailed_finding.remediation_effort.clone())));
+            markdown.push_str(&format!(
+                "\n**Remediation Effort:** {}\n\n",
+                self.remediation_effort_description(detailed_finding.remediation_effort.clone())
+            ));
 
             if let Some(poc) = &detailed_finding.proof_of_concept {
                 markdown.push_str("**Proof of Concept:**\n");
@@ -298,14 +324,29 @@ impl AuditReportGenerator {
 
         // Gas Analysis
         markdown.push_str("## Gas Analysis Report\n\n");
-        markdown.push_str(&format!("**Gas Efficiency Score:** {}/100\n", report.gas_analysis.gas_efficiency_score));
-        markdown.push_str(&format!("**Potential Gas Savings:** {} gas units\n\n", report.gas_analysis.potential_savings));
+        markdown.push_str(&format!(
+            "**Gas Efficiency Score:** {}/100\n",
+            report.gas_analysis.gas_efficiency_score
+        ));
+        markdown.push_str(&format!(
+            "**Potential Gas Savings:** {} gas units\n\n",
+            report.gas_analysis.potential_savings
+        ));
 
         if !report.gas_analysis.optimization_opportunities.is_empty() {
             markdown.push_str("### Gas Optimization Opportunities\n");
-            for (index, opt) in report.gas_analysis.optimization_opportunities.iter().enumerate() {
-                markdown.push_str(&format!("{}. **{}** - {} gas savings\n", 
-                    index + 1, opt.category, opt.potential_savings));
+            for (index, opt) in report
+                .gas_analysis
+                .optimization_opportunities
+                .iter()
+                .enumerate()
+            {
+                markdown.push_str(&format!(
+                    "{}. **{}** - {} gas savings\n",
+                    index + 1,
+                    opt.category,
+                    opt.potential_savings
+                ));
                 markdown.push_str(&format!("   {}\n", opt.description));
             }
             markdown.push_str("\n");
@@ -314,7 +355,10 @@ impl AuditReportGenerator {
         if !report.gas_analysis.attack_vectors.is_empty() {
             markdown.push_str("### Gas Attack Vectors\n");
             for vector in &report.gas_analysis.attack_vectors {
-                markdown.push_str(&format!("- **{}:** {}\n", vector.attack_type, vector.description));
+                markdown.push_str(&format!(
+                    "- **{}:** {}\n",
+                    vector.attack_type, vector.description
+                ));
                 markdown.push_str(&format!("  - **Impact:** {}\n", vector.impact));
                 markdown.push_str(&format!("  - **Mitigation:** {}\n", vector.mitigation));
             }
@@ -323,7 +367,7 @@ impl AuditReportGenerator {
 
         // Recommendations
         markdown.push_str("## Recommendations\n\n");
-        
+
         let priority_groups = [
             (Priority::Immediate, "Immediate Action Required"),
             (Priority::High, "High Priority"),
@@ -332,16 +376,18 @@ impl AuditReportGenerator {
         ];
 
         for (priority, title) in &priority_groups {
-            let priority_recs: Vec<_> = report.recommendations.iter()
+            let priority_recs: Vec<_> = report
+                .recommendations
+                .iter()
                 .filter(|r| r.priority == *priority)
                 .collect();
-            
+
             if !priority_recs.is_empty() {
                 markdown.push_str(&format!("### {}\n", title));
                 for rec in priority_recs {
                     markdown.push_str(&format!("#### {}\n", rec.title));
                     markdown.push_str(&format!("{}\n\n", rec.description));
-                    
+
                     if !rec.implementation_steps.is_empty() {
                         markdown.push_str("**Implementation Steps:**\n");
                         for (i, step) in rec.implementation_steps.iter().enumerate() {
@@ -359,14 +405,22 @@ impl AuditReportGenerator {
         markdown.push_str(&format!("{}\n\n", report.appendix.methodology_details));
 
         markdown.push_str("### Test Coverage\n");
-        markdown.push_str(&format!("- **Vulnerability Patterns Tested:** {}\n", 
-            report.appendix.test_coverage.vulnerability_patterns_tested));
-        markdown.push_str(&format!("- **Fuzz Test Iterations:** {}\n", 
-            report.appendix.test_coverage.fuzz_test_iterations));
-        markdown.push_str(&format!("- **Gas Scenarios Analyzed:** {}\n", 
-            report.appendix.test_coverage.gas_scenarios_analyzed));
-        markdown.push_str(&format!("- **Overall Coverage:** {:.1}%\n\n", 
-            report.appendix.test_coverage.coverage_percentage));
+        markdown.push_str(&format!(
+            "- **Vulnerability Patterns Tested:** {}\n",
+            report.appendix.test_coverage.vulnerability_patterns_tested
+        ));
+        markdown.push_str(&format!(
+            "- **Fuzz Test Iterations:** {}\n",
+            report.appendix.test_coverage.fuzz_test_iterations
+        ));
+        markdown.push_str(&format!(
+            "- **Gas Scenarios Analyzed:** {}\n",
+            report.appendix.test_coverage.gas_scenarios_analyzed
+        ));
+        markdown.push_str(&format!(
+            "- **Overall Coverage:** {:.1}%\n\n",
+            report.appendix.test_coverage.coverage_percentage
+        ));
 
         if !report.appendix.tool_versions.is_empty() {
             markdown.push_str("### Tool Versions\n");
@@ -377,13 +431,19 @@ impl AuditReportGenerator {
         }
 
         markdown.push_str("---\n");
-        markdown.push_str("*This report was generated by the Dytallix Smart Contract Security Auditor*\n");
+        markdown.push_str(
+            "*This report was generated by the Dytallix Smart Contract Security Auditor*\n",
+        );
 
         markdown
     }
 
     /// Save report to file
-    pub fn save_report_to_file(&self, report_content: &str, filename: &str) -> Result<(), std::io::Error> {
+    pub fn save_report_to_file(
+        &self,
+        report_content: &str,
+        filename: &str,
+    ) -> Result<(), std::io::Error> {
         std::fs::write(filename, report_content)
     }
 
@@ -422,7 +482,9 @@ impl AuditReportGenerator {
 
         let key_concerns = self.extract_key_concerns(audit_result);
         let deployment_recommendation = self.determine_deployment_recommendation(
-            critical_issues, high_issues, &audit_result.findings
+            critical_issues,
+            high_issues,
+            &audit_result.findings,
         );
 
         ExecutiveSummary {
@@ -442,8 +504,12 @@ impl AuditReportGenerator {
         let mut by_category = HashMap::new();
 
         for finding in &audit_result.findings {
-            *by_severity.entry(finding.severity.as_str().to_string()).or_insert(0) += 1;
-            *by_category.entry(finding.category.as_str().to_string()).or_insert(0) += 1;
+            *by_severity
+                .entry(finding.severity.as_str().to_string())
+                .or_insert(0) += 1;
+            *by_category
+                .entry(finding.category.as_str().to_string())
+                .or_insert(0) += 1;
         }
 
         let risk_assessment = self.assess_risk(audit_result);
@@ -456,23 +522,37 @@ impl AuditReportGenerator {
         }
     }
 
-    fn generate_detailed_findings(&self, audit_result: &SecurityAuditResult) -> Vec<DetailedFinding> {
-        audit_result.findings.iter()
-            .map(|finding| {
-                DetailedFinding {
-                    finding: finding.clone(),
-                    technical_details: self.generate_technical_details(finding),
-                    proof_of_concept: self.generate_proof_of_concept(finding),
-                    remediation_effort: self.assess_remediation_effort(finding),
-                    references: self.get_security_references(finding),
-                }
+    fn generate_detailed_findings(
+        &self,
+        audit_result: &SecurityAuditResult,
+    ) -> Vec<DetailedFinding> {
+        audit_result
+            .findings
+            .iter()
+            .map(|finding| DetailedFinding {
+                finding: finding.clone(),
+                technical_details: self.generate_technical_details(finding),
+                proof_of_concept: self.generate_proof_of_concept(finding),
+                remediation_effort: self.assess_remediation_effort(finding),
+                references: self.get_security_references(finding),
             })
             .collect()
     }
 
-    fn generate_gas_analysis(&self, audit_result: &SecurityAuditResult, gas_stats: Option<&GasStatistics>) -> GasAnalysisReport {
-        let gas_findings: Vec<_> = audit_result.findings.iter()
-            .filter(|f| matches!(f.category, VulnerabilityCategory::GasGriefing | VulnerabilityCategory::GasOptimization))
+    fn generate_gas_analysis(
+        &self,
+        audit_result: &SecurityAuditResult,
+        gas_stats: Option<&GasStatistics>,
+    ) -> GasAnalysisReport {
+        let gas_findings: Vec<_> = audit_result
+            .findings
+            .iter()
+            .filter(|f| {
+                matches!(
+                    f.category,
+                    VulnerabilityCategory::GasGriefing | VulnerabilityCategory::GasOptimization
+                )
+            })
             .collect();
 
         let gas_efficiency_score = if let Some(stats) = gas_stats {
@@ -481,9 +561,7 @@ impl AuditReportGenerator {
             80 // Default reasonable score
         };
 
-        let potential_savings = gas_findings.iter()
-            .filter_map(|f| f.gas_impact)
-            .sum();
+        let potential_savings = gas_findings.iter().filter_map(|f| f.gas_impact).sum();
 
         let optimization_opportunities = self.extract_gas_optimizations(&gas_findings);
         let attack_vectors = self.extract_gas_attack_vectors(&gas_findings);
@@ -512,7 +590,8 @@ impl AuditReportGenerator {
                 priority: Priority::Immediate,
                 category: "Critical Security".to_string(),
                 title: "Address Critical Security Vulnerabilities".to_string(),
-                description: "Critical security vulnerabilities must be fixed before deployment".to_string(),
+                description: "Critical security vulnerabilities must be fixed before deployment"
+                    .to_string(),
                 implementation_steps: vec![
                     "Review all critical findings in detail".to_string(),
                     "Implement recommended fixes".to_string(),
@@ -528,7 +607,8 @@ impl AuditReportGenerator {
                 priority: Priority::High,
                 category: "Security Hardening".to_string(),
                 title: "Implement Security Hardening Measures".to_string(),
-                description: "Address high-severity security issues to improve contract security".to_string(),
+                description: "Address high-severity security issues to improve contract security"
+                    .to_string(),
                 implementation_steps: vec![
                     "Prioritize high-severity findings".to_string(),
                     "Implement security controls".to_string(),
@@ -542,7 +622,8 @@ impl AuditReportGenerator {
             priority: Priority::Medium,
             category: "Security Best Practices".to_string(),
             title: "Implement Security Best Practices".to_string(),
-            description: "Follow industry security best practices for smart contract development".to_string(),
+            description: "Follow industry security best practices for smart contract development"
+                .to_string(),
             implementation_steps: vec![
                 "Regular security reviews".to_string(),
                 "Automated security testing in CI/CD".to_string(),
@@ -556,7 +637,10 @@ impl AuditReportGenerator {
 
     fn generate_appendix(&self, audit_result: &SecurityAuditResult) -> ReportAppendix {
         let mut tool_versions = HashMap::new();
-        tool_versions.insert("Dytallix Security Auditor".to_string(), audit_result.auditor_version.clone());
+        tool_versions.insert(
+            "Dytallix Security Auditor".to_string(),
+            audit_result.auditor_version.clone(),
+        );
         tool_versions.insert("WASM Runtime".to_string(), "wasmi-0.31".to_string());
         tool_versions.insert("Gas Optimizer".to_string(), "1.0".to_string());
 
@@ -568,9 +652,18 @@ impl AuditReportGenerator {
         };
 
         let mut glossary = HashMap::new();
-        glossary.insert("Reentrancy".to_string(), "A vulnerability where external calls can manipulate contract state".to_string());
-        glossary.insert("Gas Griefing".to_string(), "Attacks that waste gas to harm other users".to_string());
-        glossary.insert("Integer Overflow".to_string(), "When arithmetic operations exceed maximum value limits".to_string());
+        glossary.insert(
+            "Reentrancy".to_string(),
+            "A vulnerability where external calls can manipulate contract state".to_string(),
+        );
+        glossary.insert(
+            "Gas Griefing".to_string(),
+            "Attacks that waste gas to harm other users".to_string(),
+        );
+        glossary.insert(
+            "Integer Overflow".to_string(),
+            "When arithmetic operations exceed maximum value limits".to_string(),
+        );
 
         ReportAppendix {
             methodology_details: "This audit employed a multi-layered approach combining static analysis, dynamic testing, and behavioral analysis to identify security vulnerabilities and optimization opportunities.".to_string(),
@@ -586,7 +679,7 @@ impl AuditReportGenerator {
         match level {
             SecurityLevel::Excellent => "Excellent",
             SecurityLevel::Good => "Good",
-            SecurityLevel::Fair => "Fair", 
+            SecurityLevel::Fair => "Fair",
             SecurityLevel::Poor => "Poor",
             SecurityLevel::Critical => "Critical",
         }
@@ -604,54 +697,68 @@ impl AuditReportGenerator {
 
     fn format_deployment_recommendation(&self, rec: &DeploymentRecommendation) -> String {
         match rec {
-            DeploymentRecommendation::SafeToDeploy => 
-                "✅ **Safe to Deploy** - No blocking security issues found".to_string(),
+            DeploymentRecommendation::SafeToDeploy => {
+                "✅ **Safe to Deploy** - No blocking security issues found".to_string()
+            }
             DeploymentRecommendation::DeployWithCaution { conditions } => {
-                let mut result = "⚠️ **Deploy with Caution** - Address the following conditions:\n".to_string();
+                let mut result =
+                    "⚠️ **Deploy with Caution** - Address the following conditions:\n".to_string();
                 for condition in conditions {
                     result.push_str(&format!("- {}\n", condition));
                 }
                 result
-            },
+            }
             DeploymentRecommendation::RequiresFixesBeforeDeployment { critical_issues } => {
-                let mut result = "🔧 **Requires Fixes** - Must address critical issues:\n".to_string();
+                let mut result =
+                    "🔧 **Requires Fixes** - Must address critical issues:\n".to_string();
                 for issue in critical_issues {
                     result.push_str(&format!("- {}\n", issue));
                 }
                 result
-            },
+            }
             DeploymentRecommendation::DoNotDeploy { blocking_issues } => {
                 let mut result = "❌ **Do Not Deploy** - Blocking security issues:\n".to_string();
                 for issue in blocking_issues {
                     result.push_str(&format!("- {}\n", issue));
                 }
                 result
-            },
+            }
         }
     }
 
     fn extract_key_concerns(&self, audit_result: &SecurityAuditResult) -> Vec<String> {
         let mut concerns = Vec::new();
-        
+
         let critical_count = audit_result.findings_by_severity(Severity::Critical).len();
         let high_count = audit_result.findings_by_severity(Severity::High).len();
-        
+
         if critical_count > 0 {
-            concerns.push(format!("{} critical security vulnerabilities require immediate attention", critical_count));
+            concerns.push(format!(
+                "{} critical security vulnerabilities require immediate attention",
+                critical_count
+            ));
         }
-        
+
         if high_count > 3 {
-            concerns.push("Multiple high-severity issues indicate systemic security problems".to_string());
+            concerns.push(
+                "Multiple high-severity issues indicate systemic security problems".to_string(),
+            );
         }
 
         // Check for specific vulnerability patterns
-        let has_reentrancy = audit_result.findings.iter()
+        let has_reentrancy = audit_result
+            .findings
+            .iter()
             .any(|f| matches!(f.category, VulnerabilityCategory::Reentrancy));
         if has_reentrancy {
-            concerns.push("Reentrancy vulnerabilities pose significant risk to contract funds".to_string());
+            concerns.push(
+                "Reentrancy vulnerabilities pose significant risk to contract funds".to_string(),
+            );
         }
 
-        let has_gas_issues = audit_result.findings.iter()
+        let has_gas_issues = audit_result
+            .findings
+            .iter()
             .any(|f| matches!(f.category, VulnerabilityCategory::GasGriefing));
         if has_gas_issues {
             concerns.push("Gas-related vulnerabilities could enable DoS attacks".to_string());
@@ -661,29 +768,35 @@ impl AuditReportGenerator {
     }
 
     fn determine_deployment_recommendation(
-        &self, 
-        critical: u32, 
-        high: u32, 
-        findings: &[SecurityFinding]
+        &self,
+        critical: u32,
+        high: u32,
+        findings: &[SecurityFinding],
     ) -> DeploymentRecommendation {
         if critical > 0 {
-            let critical_issues: Vec<String> = findings.iter()
+            let critical_issues: Vec<String> = findings
+                .iter()
                 .filter(|f| f.severity == Severity::Critical)
                 .map(|f| f.title.clone())
                 .collect();
-            
+
             if critical > 2 {
-                DeploymentRecommendation::DoNotDeploy { blocking_issues: critical_issues }
+                DeploymentRecommendation::DoNotDeploy {
+                    blocking_issues: critical_issues,
+                }
             } else {
                 DeploymentRecommendation::RequiresFixesBeforeDeployment { critical_issues }
             }
         } else if high > 5 {
             DeploymentRecommendation::RequiresFixesBeforeDeployment {
-                critical_issues: vec!["Too many high-severity issues".to_string()]
+                critical_issues: vec!["Too many high-severity issues".to_string()],
             }
         } else if high > 0 {
             DeploymentRecommendation::DeployWithCaution {
-                conditions: vec!["Address high-severity findings".to_string(), "Implement monitoring".to_string()]
+                conditions: vec![
+                    "Address high-severity findings".to_string(),
+                    "Implement monitoring".to_string(),
+                ],
             }
         } else {
             DeploymentRecommendation::SafeToDeploy
@@ -694,9 +807,25 @@ impl AuditReportGenerator {
         let critical_count = audit_result.findings_by_severity(Severity::Critical).len();
         let high_count = audit_result.findings_by_severity(Severity::High).len();
 
-        let attack_surface = if audit_result.findings.len() > 10 { "Large" } else { "Limited" };
-        let exploitability = if critical_count > 0 { "High" } else if high_count > 2 { "Medium" } else { "Low" };
-        let impact_assessment = if critical_count > 0 { "Severe" } else if high_count > 0 { "Moderate" } else { "Low" };
+        let attack_surface = if audit_result.findings.len() > 10 {
+            "Large"
+        } else {
+            "Limited"
+        };
+        let exploitability = if critical_count > 0 {
+            "High"
+        } else if high_count > 2 {
+            "Medium"
+        } else {
+            "Low"
+        };
+        let impact_assessment = if critical_count > 0 {
+            "Severe"
+        } else if high_count > 0 {
+            "Moderate"
+        } else {
+            "Low"
+        };
         let likelihood = if critical_count > 0 { "High" } else { "Medium" };
 
         RiskAssessment {
@@ -755,7 +884,8 @@ impl AuditReportGenerator {
     }
 
     fn extract_gas_optimizations(&self, findings: &[&SecurityFinding]) -> Vec<GasOptimization> {
-        findings.iter()
+        findings
+            .iter()
             .filter(|f| matches!(f.category, VulnerabilityCategory::GasOptimization))
             .map(|f| GasOptimization {
                 category: "Gas Efficiency".to_string(),
@@ -767,8 +897,14 @@ impl AuditReportGenerator {
     }
 
     fn extract_gas_attack_vectors(&self, findings: &[&SecurityFinding]) -> Vec<GasAttackVector> {
-        findings.iter()
-            .filter(|f| matches!(f.category, VulnerabilityCategory::GasGriefing | VulnerabilityCategory::DoS))
+        findings
+            .iter()
+            .filter(|f| {
+                matches!(
+                    f.category,
+                    VulnerabilityCategory::GasGriefing | VulnerabilityCategory::DoS
+                )
+            })
             .map(|f| GasAttackVector {
                 attack_type: f.category.as_str().to_string(),
                 description: f.description.clone(),
@@ -782,15 +918,15 @@ impl AuditReportGenerator {
 // Simple date/time implementation since we might not have chrono
 mod chrono {
     pub struct Utc;
-    
+
     impl Utc {
         pub fn now() -> DateTime {
             DateTime
         }
     }
-    
+
     pub struct DateTime;
-    
+
     impl DateTime {
         pub fn format(&self, _fmt: &str) -> impl std::fmt::Display {
             use std::time::{SystemTime, UNIX_EPOCH};
@@ -818,21 +954,27 @@ mod tests {
     #[test]
     fn test_security_level_classification() {
         let generator = AuditReportGenerator::new();
-        
-        assert_eq!(generator.security_level_description(SecurityLevel::Excellent), "Excellent");
-        assert_eq!(generator.security_level_description(SecurityLevel::Critical), "Critical");
+
+        assert_eq!(
+            generator.security_level_description(SecurityLevel::Excellent),
+            "Excellent"
+        );
+        assert_eq!(
+            generator.security_level_description(SecurityLevel::Critical),
+            "Critical"
+        );
     }
 
     #[test]
     fn test_deployment_recommendation_formatting() {
         let generator = AuditReportGenerator::new();
-        
+
         let safe_rec = DeploymentRecommendation::SafeToDeploy;
         let formatted = generator.format_deployment_recommendation(&safe_rec);
         assert!(formatted.contains("Safe to Deploy"));
-        
+
         let caution_rec = DeploymentRecommendation::DeployWithCaution {
-            conditions: vec!["Test condition".to_string()]
+            conditions: vec!["Test condition".to_string()],
         };
         let formatted = generator.format_deployment_recommendation(&caution_rec);
         assert!(formatted.contains("Deploy with Caution"));
@@ -841,7 +983,7 @@ mod tests {
     #[test]
     fn test_markdown_generation() {
         let mut generator = AuditReportGenerator::new();
-        
+
         // Create a simple audit result for testing
         let audit_result = SecurityAuditResult {
             contract_address: "test_contract".to_string(),
@@ -853,7 +995,7 @@ mod tests {
 
         let report = generator.generate_report(&audit_result, None, None);
         let markdown = generator.generate_markdown_report(&report);
-        
+
         assert!(markdown.contains("# Smart Contract Security Audit Report"));
         assert!(markdown.contains("test_contract"));
         assert!(markdown.contains("Executive Summary"));

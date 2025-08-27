@@ -3,8 +3,8 @@ use axum::{
     Extension, Router,
 };
 use dytallix_lean_node::{
-    mempool::Mempool, rpc, runtime::emission::EmissionEngine, runtime::staking::StakingModule, 
-    runtime::governance::GovernanceModule, state::State,
+    mempool::Mempool, rpc, runtime::emission::EmissionEngine,
+    runtime::governance::GovernanceModule, runtime::staking::StakingModule, state::State,
     storage::blocks::TpsWindow, storage::state::Storage, ws::server::WsHub,
 };
 use serde_json::json;
@@ -19,9 +19,15 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
     let mempool = Arc::new(Mutex::new(Mempool::new(100)));
     let tps = Arc::new(Mutex::new(TpsWindow::new(60)));
     let ws = WsHub::new();
-    let emission = Arc::new(Mutex::new(EmissionEngine::new(storage.clone(), state.clone())));
+    let emission = Arc::new(Mutex::new(EmissionEngine::new(
+        storage.clone(),
+        state.clone(),
+    )));
     let staking = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
-    let governance = Arc::new(Mutex::new(GovernanceModule::new(storage.clone(), state.clone())));
+    let governance = Arc::new(Mutex::new(GovernanceModule::new(
+        storage.clone(),
+        state.clone(),
+    )));
     let metrics = Arc::new(dytallix_lean_node::metrics::Metrics::new());
     let ctx = dytallix_lean_node::rpc::RpcContext {
         storage,
@@ -47,7 +53,7 @@ async fn claim_flow_persists() {
     let (app, ctx) = app();
     // simulate block heights to accumulate pools
     ctx.emission.lock().unwrap().apply_until(3); // 3 blocks
-                                 // pools now have community=15, staking=21, ecosystem=9
+                                                 // pools now have community=15, staking=21, ecosystem=9
     let resp = app
         .clone()
         .oneshot(
@@ -99,5 +105,8 @@ async fn claim_flow_persists() {
     // engine2 should see previously advanced height (3)
     assert_eq!(engine2.last_accounted_height(), 3);
     // pool after claim: check block_rewards pool instead of community (updated naming)
-    assert_eq!(engine2.pool_amount("block_rewards"), engine2.pool_amount("block_rewards"));
+    assert_eq!(
+        engine2.pool_amount("block_rewards"),
+        engine2.pool_amount("block_rewards")
+    );
 }

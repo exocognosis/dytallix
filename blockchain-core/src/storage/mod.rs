@@ -472,18 +472,95 @@ impl StorageManager {
         }
         Ok(())
     }
+
+    /// Snapshot all key/value pairs relevant for state root commitment.
+    /// Currently includes all RocksDB entries except meta:* keys.
+    pub fn snapshot_kv(&self) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Box<dyn std::error::Error>> {
+        use rocksdb::IteratorMode;
+        let mut out = Vec::new();
+        let iter = self.db.iterator(IteratorMode::Start);
+        for item in iter {
+            if let Ok((k, v)) = item {
+                // Exclude meta & ephemeral prefixes from state commitment
+                if k.starts_with(b"meta:") {
+                    continue;
+                }
+                if k.starts_with(b"rcpt:") {
+                    continue;
+                } // legacy receipts (non-consensus)
+                if k.starts_with(b"receipt:") {
+                    continue;
+                } // volatile per-tx receipts
+                if k.starts_with(b"tx:") {
+                    continue;
+                } // mempool / tx objects
+                out.push((k.to_vec(), v.to_vec()));
+            }
+        }
+        // Canonical sort lexicographically by key bytes
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        Ok(out)
+    }
+    fn receipt_height_index_key(height: u64, index: u32) -> String {
+        format!("rcpi:{:016x}:{}", height, index)
+    }
+    fn receipt_tx_lookup_key(tx_hash: &str) -> String {
+        format!("rcpx:{}", tx_hash)
+    }
+
+    /// Store receipts in new indexed form (height/index and tx_hash -> (height,index))
+    pub fn store_receipts_indexed(
+        &self,
+        height: u64,
+        receipts: &[TxReceipt],
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for (i, r) in receipts.iter().enumerate() {
+            let key_hi = Self::receipt_height_index_key(height, i as u32);
+            if self.db.get(&key_hi)?.is_none() {
+                self.db.put(key_hi.as_bytes(), bincode::serialize(r)?)?;
+            }
+            let key_tx = Self::receipt_tx_lookup_key(&r.tx_hash);
+            if self.db.get(&key_tx)?.is_none() {
+                self.db
+                    .put(key_tx.as_bytes(), bincode::serialize(&(height, i as u32))?)?;
+            }
+            // Also keep backward compatibility single-key receipt
+            let key = Self::receipt_key(&r.tx_hash);
+            if self.db.get(&key)?.is_none() {
+                self.db.put(key, bincode::serialize(r)?)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Lookup receipt via index map then load
+    pub fn get_receipt_via_index(
+        &self,
+        tx_hash: &str,
+    ) -> Result<Option<TxReceipt>, Box<dyn std::error::Error>> {
+        if let Some(raw_idx) = self.db.get(Self::receipt_tx_lookup_key(tx_hash))? {
+            let (h, idx): (u64, u32) = bincode::deserialize(&raw_idx)?;
+            let key_hi = Self::receipt_height_index_key(h, idx);
+            if let Some(raw_r) = self.db.get(key_hi)? {
+                return Ok(Some(bincode::deserialize(&raw_r)?));
+            }
+        }
+        // fallback to legacy direct storage
+        futures::executor::block_on(async { self.get_receipt(tx_hash).await })
+    }
 }
 
 // --- Helper: build a simple block from transactions (used by background producer) ---
-pub fn build_block(
+// Refactored: caller must supply precomputed state_root (from injected snapshot) and timestamp.
+pub fn build_block_with_state(
     parent_hash: String,
     number: u64,
     txs: Vec<Transaction>,
     validator: Address,
+    state_root: String,
+    timestamp: u64,
 ) -> Block {
     let transactions_root = crate::types::BlockHeader::calculate_transactions_root(&txs);
-    let state_root = "0".repeat(64); // placeholder
-    let timestamp = chrono::Utc::now().timestamp() as u64;
     let signature = crate::types::PQCBlockSignature {
         signature: dytallix_pqc::Signature {
             data: vec![],

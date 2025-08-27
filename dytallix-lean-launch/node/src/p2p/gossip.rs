@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::sync::{Arc, RwLock};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::storage::tx::Transaction;
 
@@ -63,7 +63,7 @@ impl PeerQueue {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;
-        
+
         now - self.last_sent >= throttle_interval_ms
     }
 
@@ -103,7 +103,7 @@ impl TransactionGossip {
     /// Check if we should gossip this transaction (not seen recently from enough peers)
     pub fn should_gossip(&self, tx_hash: &str, from_peer: Option<&str>) -> bool {
         let mut seen_cache = self.seen_cache.write().unwrap();
-        
+
         // Clean up expired entries
         self.cleanup_expired_entries(&mut seen_cache);
 
@@ -126,13 +126,16 @@ impl TransactionGossip {
                 if let Some(peer) = from_peer {
                     from_peers.insert(peer.to_string());
                 }
-                
-                seen_cache.insert(tx_hash.to_string(), SeenEntry {
-                    tx_hash: tx_hash.to_string(),
-                    seen_at: now,
-                    from_peers,
-                });
-                
+
+                seen_cache.insert(
+                    tx_hash.to_string(),
+                    SeenEntry {
+                        tx_hash: tx_hash.to_string(),
+                        seen_at: now,
+                        from_peers,
+                    },
+                );
+
                 true // New transaction, should gossip
             }
         }
@@ -157,12 +160,12 @@ impl TransactionGossip {
         }
 
         let mut peer_queues = self.peer_queues.write().unwrap();
-        
+
         for peer_id in peers {
             let queue = peer_queues
                 .entry(peer_id.clone())
                 .or_insert_with(|| PeerQueue::new(peer_id.clone()));
-            
+
             // Add to queue if not at capacity
             if queue.pending_txs.len() < self.config.max_outbound_per_peer {
                 queue.pending_txs.push_back(tx_hash.to_string());
@@ -176,7 +179,7 @@ impl TransactionGossip {
     /// Get next batch of transactions to send to a peer (with throttling)
     pub fn get_pending_for_peer(&self, peer_id: &str, batch_size: usize) -> Vec<String> {
         let mut peer_queues = self.peer_queues.write().unwrap();
-        
+
         if let Some(queue) = peer_queues.get_mut(peer_id) {
             if queue.can_send(self.config.throttle_interval_ms) {
                 let mut batch = Vec::new();
@@ -187,15 +190,15 @@ impl TransactionGossip {
                         break;
                     }
                 }
-                
+
                 if !batch.is_empty() {
                     queue.mark_sent();
                 }
-                
+
                 return batch;
             }
         }
-        
+
         Vec::new()
     }
 
@@ -205,9 +208,7 @@ impl TransactionGossip {
         let peer_queues = self.peer_queues.read().unwrap();
         let broadcast_hashes = self.broadcast_hashes.read().unwrap();
 
-        let total_pending = peer_queues.values()
-            .map(|q| q.pending_txs.len())
-            .sum();
+        let total_pending = peer_queues.values().map(|q| q.pending_txs.len()).sum();
 
         GossipStats {
             seen_cache_size: seen_cache.len(),
@@ -224,23 +225,21 @@ impl TransactionGossip {
             .unwrap()
             .as_millis() as u64;
 
-        seen_cache.retain(|_, entry| {
-            now - entry.seen_at < self.config.seen_ttl_ms
-        });
+        seen_cache.retain(|_, entry| now - entry.seen_at < self.config.seen_ttl_ms);
     }
 
     /// Periodic cleanup task (should be called regularly)
     pub fn cleanup(&self) {
         let mut seen_cache = self.seen_cache.write().unwrap();
         self.cleanup_expired_entries(&mut seen_cache);
-        
+
         // Also cleanup old broadcast hashes (keep them for TTL duration)
         let mut broadcast_hashes = self.broadcast_hashes.write().unwrap();
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;
-        
+
         // For simplicity, clear all broadcast hashes older than TTL
         // In production, you'd want to track timestamps per hash
         broadcast_hashes.clear();
@@ -264,10 +263,10 @@ mod tests {
     fn test_gossip_duplicate_suppression() {
         let gossip = TransactionGossip::new();
         let tx_hash = "test_hash";
-        
+
         // First time should gossip
         assert!(gossip.should_gossip(tx_hash, Some("peer1")));
-        
+
         // Second time should not gossip
         assert!(!gossip.should_gossip(tx_hash, Some("peer2")));
     }
@@ -275,13 +274,13 @@ mod tests {
     #[test]
     fn test_peer_queue_throttling() {
         let mut queue = PeerQueue::new("peer1".to_string());
-        
+
         // Should be able to send initially
         assert!(queue.can_send(100));
-        
+
         // Mark as sent
         queue.mark_sent();
-        
+
         // Should not be able to send immediately
         assert!(!queue.can_send(100));
     }
@@ -290,13 +289,13 @@ mod tests {
     fn test_broadcast_tracking() {
         let gossip = TransactionGossip::new();
         let tx_hash = "test_hash";
-        
+
         // Initially not broadcast
         assert!(!gossip.was_broadcast(tx_hash));
-        
+
         // Mark as broadcast
         gossip.mark_broadcast(tx_hash);
-        
+
         // Now should be marked as broadcast
         assert!(gossip.was_broadcast(tx_hash));
     }

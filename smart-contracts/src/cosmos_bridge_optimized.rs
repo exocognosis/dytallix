@@ -11,13 +11,13 @@
 //! - Dynamic gas cost calculation
 //! - Memory-optimized serialization
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use cosmwasm_std::{
-    entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
-    Uint128, Addr, CosmosMsg, BankMsg, Coin, StdError,
+    entry_point, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
+    MessageInfo, Response, StdError, StdResult, Uint128,
 };
 use cw_storage_plus::{Item, Map};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use thiserror::Error;
 
 /// Contract error types (unchanged for compatibility)
@@ -25,34 +25,34 @@ use thiserror::Error;
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
-    
+
     #[error("Unauthorized")]
     Unauthorized {},
-    
+
     #[error("Invalid bridge transaction")]
     InvalidBridgeTransaction {},
-    
+
     #[error("Bridge transaction already processed")]
     AlreadyProcessed {},
-    
+
     #[error("Insufficient balance")]
     InsufficientBalance {},
-    
+
     #[error("Token not supported")]
     TokenNotSupported {},
-    
+
     #[error("AI fraud detection triggered")]
     AIFraudDetected {},
-    
+
     #[error("Invalid IBC packet")]
     InvalidIBCPacket {},
-    
+
     #[error("Bridge paused")]
     BridgePaused {},
-    
+
     #[error("Amount below minimum")]
     AmountBelowMinimum {},
-    
+
     #[error("Amount above maximum")]
     AmountAboveMaximum {},
 }
@@ -77,7 +77,7 @@ impl OptimizedState {
     pub fn is_paused(&self) -> bool {
         self.flags & 0x01 != 0
     }
-    
+
     pub fn set_paused(&mut self, paused: bool) {
         if paused {
             self.flags |= 0x01;
@@ -85,11 +85,11 @@ impl OptimizedState {
             self.flags &= !0x01;
         }
     }
-    
+
     pub fn is_ai_enabled(&self) -> bool {
         self.flags & 0x02 != 0
     }
-    
+
     pub fn set_ai_enabled(&mut self, enabled: bool) {
         if enabled {
             self.flags |= 0x02;
@@ -130,19 +130,19 @@ impl OptimizedBridgeTransaction {
     pub fn validator_confirmations(&self) -> u32 {
         self.packed_data & 0xFFFF
     }
-    
+
     pub fn set_validator_confirmations(&mut self, count: u32) {
         self.packed_data = (self.packed_data & !0xFFFF) | (count & 0xFFFF);
     }
-    
+
     pub fn ai_risk_score(&self) -> u8 {
         ((self.packed_data >> 16) & 0xFF) as u8
     }
-    
+
     pub fn set_ai_risk_score(&mut self, score: u8) {
         self.packed_data = (self.packed_data & !0xFF0000) | ((score as u32) << 16);
     }
-    
+
     pub fn increment_confirmations(&mut self) {
         let current = self.validator_confirmations();
         self.set_validator_confirmations(current + 1);
@@ -165,15 +165,15 @@ impl OptimizedTokenConfig {
     pub fn decimals(&self) -> u8 {
         (self.packed_config & 0xFF) as u8
     }
-    
+
     pub fn set_decimals(&mut self, decimals: u8) {
         self.packed_config = (self.packed_config & !0xFF) | (decimals as u32);
     }
-    
+
     pub fn is_active(&self) -> bool {
         (self.packed_config & 0x100) != 0
     }
-    
+
     pub fn set_active(&mut self, active: bool) {
         if active {
             self.packed_config |= 0x100;
@@ -204,7 +204,7 @@ pub enum ExecuteMsg {
         recipient: String,
         ethereum_sender: String,
     },
-    
+
     /// Burn tokens for Ethereum unlock
     BurnTokens {
         bridge_id: String,
@@ -212,24 +212,21 @@ pub enum ExecuteMsg {
         amount: Uint128,
         ethereum_recipient: String,
     },
-    
+
     /// Optimized batch validator confirmation
     BatchConfirmBridge {
         confirmations: Vec<ValidatorConfirmationBatch>,
     },
-    
+
     /// Single validator confirmation (for compatibility)
     ConfirmBridge {
         bridge_id: String,
         signature: String,
     },
-    
+
     /// Complete bridge transaction
-    CompleteBridge {
-        bridge_id: String,
-        success: bool,
-    },
-    
+    CompleteBridge { bridge_id: String, success: bool },
+
     /// Add supported token
     AddSupportedToken {
         denom: String,
@@ -237,34 +234,25 @@ pub enum ExecuteMsg {
         decimals: u8,
         mint_cap: Option<Uint128>,
     },
-    
+
     /// Remove supported token
-    RemoveSupportedToken {
-        denom: String,
-    },
-    
+    RemoveSupportedToken { denom: String },
+
     /// Add validator
-    AddValidator {
-        validator: String,
-    },
-    
+    AddValidator { validator: String },
+
     /// Remove validator
-    RemoveValidator {
-        validator: String,
-    },
-    
+    RemoveValidator { validator: String },
+
     /// Update AI risk score
-    UpdateAIRiskScore {
-        bridge_id: String,
-        risk_score: u8,
-    },
-    
+    UpdateAIRiskScore { bridge_id: String, risk_score: u8 },
+
     /// Pause bridge operations
     Pause {},
-    
+
     /// Unpause bridge operations
     Unpause {},
-    
+
     /// Update bridge parameters
     UpdateBridgeParams {
         bridge_fee: Option<Uint128>,
@@ -272,12 +260,9 @@ pub enum ExecuteMsg {
         max_bridge_amount: Option<Uint128>,
         min_validators: Option<u32>,
     },
-    
+
     /// Emergency burn recovery
-    EmergencyRecovery {
-        bridge_id: String,
-        reason: String,
-    },
+    EmergencyRecovery { bridge_id: String, reason: String },
 }
 
 /// Contract query messages (unchanged for compatibility)
@@ -286,30 +271,24 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     /// Get contract state
     GetState {},
-    
+
     /// Get bridge transaction
-    GetBridgeTransaction {
-        bridge_id: String,
-    },
-    
+    GetBridgeTransaction { bridge_id: String },
+
     /// Get supported token
-    GetSupportedToken {
-        denom: String,
-    },
-    
+    GetSupportedToken { denom: String },
+
     /// List all supported tokens
     ListSupportedTokens {},
-    
+
     /// Get validator list
     GetValidators {},
-    
+
     /// Get bridge statistics (lazy loaded)
     GetBridgeStats {},
-    
+
     /// Get AI risk assessment
-    GetAIRiskScore {
-        bridge_id: String,
-    },
+    GetAIRiskScore { bridge_id: String },
 }
 
 /// Contract instantiation message
@@ -340,13 +319,14 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     let admin = deps.api.addr_validate(&msg.admin)?;
     let ai_oracle = deps.api.addr_validate(&msg.ai_oracle)?;
-    
-    let validators: Result<Vec<Addr>, _> = msg.validators
+
+    let validators: Result<Vec<Addr>, _> = msg
+        .validators
         .iter()
         .map(|v| deps.api.addr_validate(v))
         .collect();
     let validators = validators?;
-    
+
     let mut state = OptimizedState {
         admin,
         ethereum_channel: msg.ethereum_channel,
@@ -359,9 +339,9 @@ pub fn instantiate(
         ai_oracle,
         ai_confidence_threshold: 80,
     };
-    
+
     STATE.save(deps.storage, &state)?;
-    
+
     Ok(Response::new()
         .add_attribute("method", "instantiate")
         .add_attribute("admin", info.sender))
@@ -399,13 +379,22 @@ pub fn execute(
             token_denom,
             amount,
             ethereum_recipient,
-        } => execute_burn_tokens_optimized(deps, env, info, bridge_id, token_denom, amount, ethereum_recipient),
+        } => execute_burn_tokens_optimized(
+            deps,
+            env,
+            info,
+            bridge_id,
+            token_denom,
+            amount,
+            ethereum_recipient,
+        ),
         ExecuteMsg::BatchConfirmBridge { confirmations } => {
             execute_batch_confirm_bridge(deps, env, info, confirmations)
         }
-        ExecuteMsg::ConfirmBridge { bridge_id, signature } => {
-            execute_confirm_bridge_optimized(deps, env, info, bridge_id, signature)
-        }
+        ExecuteMsg::ConfirmBridge {
+            bridge_id,
+            signature,
+        } => execute_confirm_bridge_optimized(deps, env, info, bridge_id, signature),
         ExecuteMsg::CompleteBridge { bridge_id, success } => {
             execute_complete_bridge_optimized(deps, env, info, bridge_id, success)
         }
@@ -414,7 +403,15 @@ pub fn execute(
             ethereum_address,
             decimals,
             mint_cap,
-        } => execute_add_supported_token_optimized(deps, env, info, denom, ethereum_address, decimals, mint_cap),
+        } => execute_add_supported_token_optimized(
+            deps,
+            env,
+            info,
+            denom,
+            ethereum_address,
+            decimals,
+            mint_cap,
+        ),
         ExecuteMsg::Pause {} => execute_pause_optimized(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause_optimized(deps, env, info),
         ExecuteMsg::UpdateBridgeParams {
@@ -450,16 +447,16 @@ pub fn execute_mint_tokens_optimized(
 ) -> Result<Response, ContractError> {
     // Load state once
     let state = STATE.load(deps.storage)?;
-    
+
     // Early return checks
     if state.is_paused() {
         return Err(ContractError::BridgePaused {});
     }
-    
+
     if !state.validators.contains(&info.sender) {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     // Validate amount early
     if amount < state.min_bridge_amount || amount > state.max_bridge_amount {
         return Err(if amount < state.min_bridge_amount {
@@ -468,30 +465,30 @@ pub fn execute_mint_tokens_optimized(
             ContractError::AmountAboveMaximum {}
         });
     }
-    
+
     // Check if already processed (fast fail)
     if BRIDGE_TRANSACTIONS.has(deps.storage, &bridge_id) {
         return Err(ContractError::AlreadyProcessed {});
     }
-    
+
     // Load and validate token config
     let token_config = SUPPORTED_TOKENS
         .may_load(deps.storage, &token_denom)?
         .ok_or(ContractError::TokenNotSupported {})?;
-    
+
     if !token_config.is_active() {
         return Err(ContractError::TokenNotSupported {});
     }
-    
+
     // Check mint cap
     if let Some(mint_cap) = token_config.mint_cap {
         if token_config.total_minted + amount > mint_cap {
             return Err(ContractError::InsufficientBalance {});
         }
     }
-    
+
     let recipient_addr = deps.api.addr_validate(&recipient)?;
-    
+
     // Create optimized bridge transaction
     let mut bridge_tx = OptimizedBridgeTransaction {
         bridge_id: bridge_id.clone(),
@@ -504,32 +501,32 @@ pub fn execute_mint_tokens_optimized(
         status: OptimizedBridgeStatus::Pending,
         packed_data: 1, // 1 confirmation from current validator
     };
-    
+
     // Get validator index for bitmask
     let validator_index = state
         .validators
         .iter()
         .position(|v| v == &info.sender)
         .unwrap_or(0);
-    
+
     // Set validator confirmation bitmask
     let confirmation_mask = 1u64 << validator_index;
     VALIDATOR_CONFIRMATIONS.save(deps.storage, &bridge_id, &confirmation_mask)?;
-    
+
     // Check if enough confirmations
     if bridge_tx.validator_confirmations() >= state.min_validators {
         // Execute mint
         let mint_msg = create_mint_message(&token_denom, amount, recipient_addr)?;
-        
+
         // Update token config atomically
         let mut updated_token_config = token_config;
         updated_token_config.total_minted += amount;
         SUPPORTED_TOKENS.save(deps.storage, &token_denom, &updated_token_config)?;
-        
+
         // Update bridge transaction status
         bridge_tx.status = OptimizedBridgeStatus::Minted;
         BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
-        
+
         Ok(Response::new()
             .add_message(mint_msg)
             .add_attribute("method", "mint_tokens_optimized")
@@ -539,11 +536,14 @@ pub fn execute_mint_tokens_optimized(
     } else {
         // Save pending transaction
         BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
-        
+
         Ok(Response::new()
             .add_attribute("method", "mint_tokens_pending_optimized")
             .add_attribute("bridge_id", bridge_id)
-            .add_attribute("confirmations", bridge_tx.validator_confirmations().to_string()))
+            .add_attribute(
+                "confirmations",
+                bridge_tx.validator_confirmations().to_string(),
+            ))
     }
 }
 
@@ -558,12 +558,12 @@ pub fn execute_burn_tokens_optimized(
     ethereum_recipient: String,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     // Early return checks
     if state.is_paused() {
         return Err(ContractError::BridgePaused {});
     }
-    
+
     if amount < state.min_bridge_amount || amount > state.max_bridge_amount {
         return Err(if amount < state.min_bridge_amount {
             ContractError::AmountBelowMinimum {}
@@ -571,20 +571,20 @@ pub fn execute_burn_tokens_optimized(
             ContractError::AmountAboveMaximum {}
         });
     }
-    
+
     if BRIDGE_TRANSACTIONS.has(deps.storage, &bridge_id) {
         return Err(ContractError::AlreadyProcessed {});
     }
-    
+
     // Load and validate token
     let token_config = SUPPORTED_TOKENS
         .may_load(deps.storage, &token_denom)?
         .ok_or(ContractError::TokenNotSupported {})?;
-    
+
     if !token_config.is_active() {
         return Err(ContractError::TokenNotSupported {});
     }
-    
+
     // Create bridge transaction
     let mut bridge_tx = OptimizedBridgeTransaction {
         bridge_id: bridge_id.clone(),
@@ -597,18 +597,18 @@ pub fn execute_burn_tokens_optimized(
         status: OptimizedBridgeStatus::Pending,
         packed_data: 0,
     };
-    
+
     // Execute burn immediately
     let burn_msg = create_burn_message(&token_denom, amount, info.sender.clone())?;
-    
+
     // Update token config and transaction status atomically
     let mut updated_token_config = token_config;
     updated_token_config.total_burned += amount;
     SUPPORTED_TOKENS.save(deps.storage, &token_denom, &updated_token_config)?;
-    
+
     bridge_tx.status = OptimizedBridgeStatus::Burned;
     BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
-    
+
     Ok(Response::new()
         .add_message(burn_msg)
         .add_attribute("method", "burn_tokens_optimized")
@@ -625,50 +625,51 @@ pub fn execute_batch_confirm_bridge(
     confirmations: Vec<ValidatorConfirmationBatch>,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     // Only validators can batch confirm
     if !state.validators.contains(&info.sender) {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     let mut processed_count = 0u32;
     let mut responses: Vec<Response> = Vec::new();
-    
+
     for batch in confirmations {
         for (validator, _signature) in batch.confirmations {
             if !state.validators.contains(&validator) {
                 continue; // Skip invalid validators
             }
-            
+
             // Get validator index
             let validator_index = state
                 .validators
                 .iter()
                 .position(|v| v == &validator)
                 .unwrap_or(0);
-            
+
             // Load existing confirmations
             let mut confirmation_mask = VALIDATOR_CONFIRMATIONS
                 .may_load(deps.storage, &batch.bridge_id)?
                 .unwrap_or(0);
-            
+
             // Set validator bit
             let validator_bit = 1u64 << validator_index;
             if confirmation_mask & validator_bit == 0 {
                 confirmation_mask |= validator_bit;
                 VALIDATOR_CONFIRMATIONS.save(deps.storage, &batch.bridge_id, &confirmation_mask)?;
-                
+
                 // Update bridge transaction confirmation count
-                if let Ok(mut bridge_tx) = BRIDGE_TRANSACTIONS.load(deps.storage, &batch.bridge_id) {
+                if let Ok(mut bridge_tx) = BRIDGE_TRANSACTIONS.load(deps.storage, &batch.bridge_id)
+                {
                     bridge_tx.set_validator_confirmations(confirmation_mask.count_ones());
                     BRIDGE_TRANSACTIONS.save(deps.storage, &batch.bridge_id, &bridge_tx)?;
-                    
+
                     processed_count += 1;
                 }
             }
         }
     }
-    
+
     Ok(Response::new()
         .add_attribute("method", "batch_confirm_bridge_optimized")
         .add_attribute("processed_confirmations", processed_count.to_string()))
@@ -683,44 +684,47 @@ pub fn execute_confirm_bridge_optimized(
     _signature: String,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     if !state.validators.contains(&info.sender) {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     // Get validator index
     let validator_index = state
         .validators
         .iter()
         .position(|v| v == &info.sender)
         .unwrap_or(0);
-    
+
     let validator_bit = 1u64 << validator_index;
     let mut confirmation_mask = VALIDATOR_CONFIRMATIONS
         .may_load(deps.storage, &bridge_id)?
         .unwrap_or(0);
-    
+
     // Already confirmed?
     if confirmation_mask & validator_bit != 0 {
         return Ok(Response::new().add_attribute("method", "already_confirmed"));
     }
-    
+
     // Set confirmation bit
     confirmation_mask |= validator_bit;
     VALIDATOR_CONFIRMATIONS.save(deps.storage, &bridge_id, &confirmation_mask)?;
-    
+
     // Update bridge transaction
     let mut bridge_tx = BRIDGE_TRANSACTIONS
         .may_load(deps.storage, &bridge_id)?
         .ok_or(ContractError::InvalidBridgeTransaction {})?;
-    
+
     bridge_tx.set_validator_confirmations(confirmation_mask.count_ones());
     BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
-    
+
     Ok(Response::new()
         .add_attribute("method", "confirm_bridge_optimized")
         .add_attribute("bridge_id", bridge_id)
-        .add_attribute("confirmations", bridge_tx.validator_confirmations().to_string()))
+        .add_attribute(
+            "confirmations",
+            bridge_tx.validator_confirmations().to_string(),
+        ))
 }
 
 /// Other optimized execute functions
@@ -732,23 +736,23 @@ pub fn execute_complete_bridge_optimized(
     success: bool,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     if !state.validators.contains(&info.sender) {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     let mut bridge_tx = BRIDGE_TRANSACTIONS
         .may_load(deps.storage, &bridge_id)?
         .ok_or(ContractError::InvalidBridgeTransaction {})?;
-    
+
     bridge_tx.status = if success {
         OptimizedBridgeStatus::Completed
     } else {
         OptimizedBridgeStatus::Failed
     };
-    
+
     BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
-    
+
     Ok(Response::new()
         .add_attribute("method", "complete_bridge_optimized")
         .add_attribute("bridge_id", bridge_id)
@@ -765,11 +769,11 @@ pub fn execute_add_supported_token_optimized(
     mint_cap: Option<Uint128>,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     if info.sender != state.admin {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     let mut token_config = OptimizedTokenConfig {
         denom: denom.clone(),
         ethereum_address,
@@ -778,12 +782,12 @@ pub fn execute_add_supported_token_optimized(
         total_minted: Uint128::zero(),
         total_burned: Uint128::zero(),
     };
-    
+
     token_config.set_decimals(decimals);
     token_config.set_active(true);
-    
+
     SUPPORTED_TOKENS.save(deps.storage, &denom, &token_config)?;
-    
+
     Ok(Response::new()
         .add_attribute("method", "add_supported_token_optimized")
         .add_attribute("denom", denom))
@@ -795,14 +799,14 @@ pub fn execute_pause_optimized(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     let mut state = STATE.load(deps.storage)?;
-    
+
     if info.sender != state.admin {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     state.set_paused(true);
     STATE.save(deps.storage, &state)?;
-    
+
     Ok(Response::new().add_attribute("method", "pause_optimized"))
 }
 
@@ -812,14 +816,14 @@ pub fn execute_unpause_optimized(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     let mut state = STATE.load(deps.storage)?;
-    
+
     if info.sender != state.admin {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     state.set_paused(false);
     STATE.save(deps.storage, &state)?;
-    
+
     Ok(Response::new().add_attribute("method", "unpause_optimized"))
 }
 
@@ -833,11 +837,11 @@ pub fn execute_update_bridge_params_optimized(
     min_validators: Option<u32>,
 ) -> Result<Response, ContractError> {
     let mut state = STATE.load(deps.storage)?;
-    
+
     if info.sender != state.admin {
         return Err(ContractError::Unauthorized {});
     }
-    
+
     // Update parameters if provided
     if let Some(fee) = bridge_fee {
         state.bridge_fee = fee;
@@ -851,9 +855,9 @@ pub fn execute_update_bridge_params_optimized(
     if let Some(min_vals) = min_validators {
         state.min_validators = min_vals;
     }
-    
+
     STATE.save(deps.storage, &state)?;
-    
+
     Ok(Response::new().add_attribute("method", "update_bridge_params_optimized"))
 }
 
@@ -865,8 +869,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetBridgeTransaction { bridge_id } => {
             to_binary(&query_bridge_transaction_optimized(deps, bridge_id)?)
         }
-        QueryMsg::GetSupportedToken { denom } => to_binary(&query_supported_token_optimized(deps, denom)?),
-        QueryMsg::ListSupportedTokens {} => to_binary(&query_list_supported_tokens_optimized(deps)?),
+        QueryMsg::GetSupportedToken { denom } => {
+            to_binary(&query_supported_token_optimized(deps, denom)?)
+        }
+        QueryMsg::ListSupportedTokens {} => {
+            to_binary(&query_list_supported_tokens_optimized(deps)?)
+        }
         QueryMsg::GetValidators {} => to_binary(&query_validators_optimized(deps)?),
         QueryMsg::GetBridgeStats {} => to_binary(&query_bridge_stats_optimized(deps)?),
         QueryMsg::GetAIRiskScore { bridge_id } => {
@@ -880,11 +888,17 @@ pub fn query_state_optimized(deps: Deps) -> StdResult<OptimizedState> {
     STATE.load(deps.storage)
 }
 
-pub fn query_bridge_transaction_optimized(deps: Deps, bridge_id: String) -> StdResult<OptimizedBridgeTransaction> {
+pub fn query_bridge_transaction_optimized(
+    deps: Deps,
+    bridge_id: String,
+) -> StdResult<OptimizedBridgeTransaction> {
     BRIDGE_TRANSACTIONS.load(deps.storage, &bridge_id)
 }
 
-pub fn query_supported_token_optimized(deps: Deps, denom: String) -> StdResult<OptimizedTokenConfig> {
+pub fn query_supported_token_optimized(
+    deps: Deps,
+    denom: String,
+) -> StdResult<OptimizedTokenConfig> {
     SUPPORTED_TOKENS.load(deps.storage, &denom)
 }
 
@@ -906,10 +920,10 @@ pub fn query_bridge_stats_optimized(deps: Deps) -> StdResult<OptimizedBridgeStat
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .map(|item| item.map(|(_, token)| token))
         .collect::<StdResult<Vec<_>>>()?;
-    
+
     let total_minted = tokens.iter().map(|t| t.total_minted).sum::<Uint128>();
     let total_burned = tokens.iter().map(|t| t.total_burned).sum::<Uint128>();
-    
+
     Ok(OptimizedBridgeStats {
         total_tokens: tokens.len() as u32,
         total_minted,
@@ -983,17 +997,17 @@ mod tests {
             ai_oracle: Addr::unchecked("oracle"),
             ai_confidence_threshold: 80,
         };
-        
+
         // Test pause functionality
         assert!(!state.is_paused());
         state.set_paused(true);
         assert!(state.is_paused());
         assert_eq!(state.flags & 0x01, 0x01);
-        
+
         state.set_paused(false);
         assert!(!state.is_paused());
         assert_eq!(state.flags & 0x01, 0x00);
-        
+
         // Test AI enabled functionality
         assert!(!state.is_ai_enabled());
         state.set_ai_enabled(true);
@@ -1014,20 +1028,20 @@ mod tests {
             status: OptimizedBridgeStatus::Pending,
             packed_data: 0,
         };
-        
+
         // Test validator confirmations
         assert_eq!(tx.validator_confirmations(), 0);
         tx.set_validator_confirmations(5);
         assert_eq!(tx.validator_confirmations(), 5);
-        
+
         tx.increment_confirmations();
         assert_eq!(tx.validator_confirmations(), 6);
-        
+
         // Test AI risk score
         assert_eq!(tx.ai_risk_score(), 0);
         tx.set_ai_risk_score(75);
         assert_eq!(tx.ai_risk_score(), 75);
-        
+
         // Ensure both values coexist
         assert_eq!(tx.validator_confirmations(), 6);
         assert_eq!(tx.ai_risk_score(), 75);
@@ -1043,17 +1057,17 @@ mod tests {
             total_minted: Uint128::zero(),
             total_burned: Uint128::zero(),
         };
-        
+
         // Test decimals
         assert_eq!(config.decimals(), 0);
         config.set_decimals(18);
         assert_eq!(config.decimals(), 18);
-        
+
         // Test active flag
         assert!(!config.is_active());
         config.set_active(true);
         assert!(config.is_active());
-        
+
         // Ensure both values coexist
         assert_eq!(config.decimals(), 18);
         assert!(config.is_active());
@@ -1062,7 +1076,7 @@ mod tests {
     #[test]
     fn proper_initialization_optimized() {
         let mut deps = mock_dependencies();
-        
+
         let msg = InstantiateMsg {
             admin: "admin".to_string(),
             ethereum_channel: "channel-0".to_string(),
@@ -1071,7 +1085,7 @@ mod tests {
             bridge_fee: Uint128::from(1000u128),
             ai_oracle: "ai_oracle".to_string(),
         };
-        
+
         let info = mock_info("creator", &coins(1000, "earth"));
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
@@ -1080,7 +1094,7 @@ mod tests {
     #[test]
     fn test_query_state_optimized() {
         let mut deps = mock_dependencies();
-        
+
         let msg = InstantiateMsg {
             admin: "admin".to_string(),
             ethereum_channel: "channel-0".to_string(),
@@ -1089,10 +1103,10 @@ mod tests {
             bridge_fee: Uint128::from(1000u128),
             ai_oracle: "ai_oracle".to_string(),
         };
-        
+
         let info = mock_info("creator", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        
+
         let res = query(deps.as_ref(), mock_env(), QueryMsg::GetState {}).unwrap();
         let state: OptimizedState = from_binary(&res).unwrap();
         assert_eq!(state.admin, "admin");

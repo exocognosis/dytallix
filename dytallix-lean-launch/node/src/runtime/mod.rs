@@ -1,7 +1,7 @@
 pub mod bridge;
 pub mod emission;
-pub mod oracle;
 pub mod governance;
+pub mod oracle;
 pub mod staking;
 
 #[cfg(test)]

@@ -3,9 +3,9 @@
 //! This module provides utilities for dynamic gas calculation, optimization strategies,
 //! and gas usage profiling to achieve measurable gas cost reductions.
 
-use std::collections::HashMap;
+use cosmwasm_std::{Storage, Uint128};
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{Uint128, Storage};
+use std::collections::HashMap;
 
 /// Gas cost configuration for different operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,17 +83,11 @@ pub enum OptimizationStrategy {
         ttl_seconds: u64,
     },
     /// Use compact data structures
-    CompactSerialization {
-        compression_ratio: f64,
-    },
+    CompactSerialization { compression_ratio: f64 },
     /// Lazy load expensive operations
-    LazyLoading {
-        threshold_complexity: u32,
-    },
+    LazyLoading { threshold_complexity: u32 },
     /// Early return optimization
-    EarlyReturn {
-        validation_order: Vec<String>,
-    },
+    EarlyReturn { validation_order: Vec<String> },
 }
 
 /// Gas usage metrics for profiling
@@ -151,13 +145,15 @@ impl GasOptimizer {
 
         // Memory costs
         total_gas += (complexity.memory_allocations as u64) * self.config.memory_allocation_base;
-        total_gas += (complexity.key_size_bytes + complexity.value_size_bytes) as u64 * self.config.memory_cost_per_byte;
+        total_gas += (complexity.key_size_bytes + complexity.value_size_bytes) as u64
+            * self.config.memory_cost_per_byte;
 
         // Validation costs
         total_gas += (complexity.validation_checks as u64) * self.config.validation_cost_per_check;
 
         // Cryptographic operation costs
-        total_gas += (complexity.cryptographic_operations as u64) * self.config.cryptographic_operation_base;
+        total_gas +=
+            (complexity.cryptographic_operations as u64) * self.config.cryptographic_operation_base;
 
         // Network call costs
         total_gas += (complexity.network_calls as u64) * self.config.network_call_base;
@@ -172,21 +168,33 @@ impl GasOptimizer {
     }
 
     /// Apply optimization strategies to reduce gas cost
-    fn apply_optimizations(&self, operation: &str, base_gas: u64, complexity: &OperationComplexity) -> u64 {
+    fn apply_optimizations(
+        &self,
+        operation: &str,
+        base_gas: u64,
+        complexity: &OperationComplexity,
+    ) -> u64 {
         let mut optimized_gas = base_gas;
         let mut applied_optimizations = Vec::new();
 
         for strategy in &self.optimization_strategies {
             match strategy {
-                OptimizationStrategy::BatchOperations { batch_size, operation_type } => {
+                OptimizationStrategy::BatchOperations {
+                    batch_size,
+                    operation_type,
+                } => {
                     if operation.contains(operation_type) && complexity.storage_writes > 1 {
                         // Reduce gas for batched operations
                         let batch_reduction = ((*batch_size as f64).ln() * 0.1) as f64;
-                        optimized_gas = (optimized_gas as f64 * (1.0 - batch_reduction.min(0.3))) as u64;
+                        optimized_gas =
+                            (optimized_gas as f64 * (1.0 - batch_reduction.min(0.3))) as u64;
                         applied_optimizations.push("batch_operations");
                     }
                 }
-                OptimizationStrategy::CacheData { cache_size_limit: _, ttl_seconds: _ } => {
+                OptimizationStrategy::CacheData {
+                    cache_size_limit: _,
+                    ttl_seconds: _,
+                } => {
                     if complexity.storage_reads > 2 {
                         // Reduce gas for cached reads
                         optimized_gas = (optimized_gas as f64 * 0.85) as u64;
@@ -197,20 +205,27 @@ impl GasOptimizer {
                     if complexity.value_size_bytes > 100 {
                         // Reduce gas for compact serialization
                         let size_reduction = compression_ratio;
-                        optimized_gas = (optimized_gas as f64 * (1.0 - size_reduction * 0.2)) as u64;
+                        optimized_gas =
+                            (optimized_gas as f64 * (1.0 - size_reduction * 0.2)) as u64;
                         applied_optimizations.push("compact_serialization");
                     }
                 }
-                OptimizationStrategy::LazyLoading { threshold_complexity } => {
-                    let total_complexity = complexity.storage_reads + complexity.storage_writes + 
-                                          complexity.validation_checks + complexity.cryptographic_operations;
+                OptimizationStrategy::LazyLoading {
+                    threshold_complexity,
+                } => {
+                    let total_complexity = complexity.storage_reads
+                        + complexity.storage_writes
+                        + complexity.validation_checks
+                        + complexity.cryptographic_operations;
                     if total_complexity > *threshold_complexity {
                         // Reduce gas for lazy loading
                         optimized_gas = (optimized_gas as f64 * 0.90) as u64;
                         applied_optimizations.push("lazy_loading");
                     }
                 }
-                OptimizationStrategy::EarlyReturn { validation_order: _ } => {
+                OptimizationStrategy::EarlyReturn {
+                    validation_order: _,
+                } => {
                     if complexity.validation_checks > 3 {
                         // Reduce gas for early return optimization
                         optimized_gas = (optimized_gas as f64 * 0.88) as u64;
@@ -290,7 +305,11 @@ impl GasOptimizer {
     fn get_most_efficient_operation(&self) -> Option<String> {
         self.operation_cache
             .values()
-            .max_by(|a, b| a.efficiency_rating.partial_cmp(&b.efficiency_rating).unwrap_or(std::cmp::Ordering::Equal))
+            .max_by(|a, b| {
+                a.efficiency_rating
+                    .partial_cmp(&b.efficiency_rating)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .map(|metrics| metrics.operation_name.clone())
     }
 
@@ -298,7 +317,11 @@ impl GasOptimizer {
     fn get_least_efficient_operation(&self) -> Option<String> {
         self.operation_cache
             .values()
-            .min_by(|a, b| a.efficiency_rating.partial_cmp(&b.efficiency_rating).unwrap_or(std::cmp::Ordering::Equal))
+            .min_by(|a, b| {
+                a.efficiency_rating
+                    .partial_cmp(&b.efficiency_rating)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .map(|metrics| metrics.operation_name.clone())
     }
 
@@ -317,8 +340,11 @@ impl GasOptimizer {
                         "Optimize validation logic with early returns"
                     } else {
                         "Review data structures for more compact representation"
-                    }.to_string(),
-                    potential_gas_savings: ((1.0 - metrics.efficiency_rating) * metrics.estimated_gas as f64) as u64,
+                    }
+                    .to_string(),
+                    potential_gas_savings: ((1.0 - metrics.efficiency_rating)
+                        * metrics.estimated_gas as f64)
+                        as u64,
                 });
             }
         }
@@ -366,12 +392,12 @@ impl BridgeOperationProfiles {
     /// Complexity profile for mint tokens operation
     pub fn mint_tokens() -> OperationComplexity {
         OperationComplexity {
-            storage_reads: 3, // state, token_config, existing_transaction_check
-            storage_writes: 2, // bridge_transaction, token_config_update
-            key_size_bytes: 64, // bridge_id + token_denom
-            value_size_bytes: 300, // transaction data + config data
-            memory_allocations: 5, // various structs
-            validation_checks: 6, // pause, validator, amount, token, cap, duplicate
+            storage_reads: 3,            // state, token_config, existing_transaction_check
+            storage_writes: 2,           // bridge_transaction, token_config_update
+            key_size_bytes: 64,          // bridge_id + token_denom
+            value_size_bytes: 300,       // transaction data + config data
+            memory_allocations: 5,       // various structs
+            validation_checks: 6,        // pause, validator, amount, token, cap, duplicate
             cryptographic_operations: 1, // signature verification
             network_calls: 0,
             computational_intensity: 3,
@@ -381,7 +407,7 @@ impl BridgeOperationProfiles {
     /// Complexity profile for burn tokens operation
     pub fn burn_tokens() -> OperationComplexity {
         OperationComplexity {
-            storage_reads: 2, // state, token_config
+            storage_reads: 2,  // state, token_config
             storage_writes: 2, // bridge_transaction, token_config
             key_size_bytes: 64,
             value_size_bytes: 250,
@@ -396,9 +422,9 @@ impl BridgeOperationProfiles {
     /// Complexity profile for confirm bridge operation
     pub fn confirm_bridge() -> OperationComplexity {
         OperationComplexity {
-            storage_reads: 2, // state, bridge_transaction
-            storage_writes: 2, // validator_confirmations, bridge_transaction
-            key_size_bytes: 80, // bridge_id + validator_address
+            storage_reads: 2,     // state, bridge_transaction
+            storage_writes: 2,    // validator_confirmations, bridge_transaction
+            key_size_bytes: 80,   // bridge_id + validator_address
             value_size_bytes: 50, // confirmation flag + updated count
             memory_allocations: 2,
             validation_checks: 3, // validator, already_confirmed, transaction_exists
@@ -411,12 +437,12 @@ impl BridgeOperationProfiles {
     /// Complexity profile for batch confirm bridge operation (optimized)
     pub fn batch_confirm_bridge(batch_size: u32) -> OperationComplexity {
         OperationComplexity {
-            storage_reads: 1 + batch_size, // state + bridge_transactions
-            storage_writes: batch_size, // confirmation updates
-            key_size_bytes: 80 * batch_size, // multiple bridge_ids + validators
-            value_size_bytes: 50 * batch_size, // multiple confirmations
-            memory_allocations: 3, // batch processing structures
-            validation_checks: 2 + batch_size, // validator + per-transaction checks
+            storage_reads: 1 + batch_size,        // state + bridge_transactions
+            storage_writes: batch_size,           // confirmation updates
+            key_size_bytes: 80 * batch_size,      // multiple bridge_ids + validators
+            value_size_bytes: 50 * batch_size,    // multiple confirmations
+            memory_allocations: 3,                // batch processing structures
+            validation_checks: 2 + batch_size,    // validator + per-transaction checks
             cryptographic_operations: batch_size, // signature verifications
             network_calls: 0,
             computational_intensity: 3,
@@ -428,10 +454,10 @@ impl BridgeOperationProfiles {
         OperationComplexity {
             storage_reads: 10, // multiple token configs for stats
             storage_writes: 0,
-            key_size_bytes: 100, // various keys for token iteration
+            key_size_bytes: 100,    // various keys for token iteration
             value_size_bytes: 1000, // accumulated token data
-            memory_allocations: 8, // result aggregation
-            validation_checks: 1, // basic validation
+            memory_allocations: 8,  // result aggregation
+            validation_checks: 1,   // basic validation
             cryptographic_operations: 0,
             network_calls: 0,
             computational_intensity: 4, // aggregation computation
@@ -469,7 +495,7 @@ impl MemoryGasCalculator {
 
         let expansion = new_size - old_size;
         let expansion_words = (expansion + 31) / 32; // Round up to word boundary
-        
+
         // Quadratic growth cost to discourage excessive memory usage
         expansion_words * 3 + (expansion_words * expansion_words) / 512
     }
@@ -483,10 +509,10 @@ mod tests {
     fn test_gas_optimizer_basic_calculation() {
         let optimizer = GasOptimizer::new();
         let complexity = BridgeOperationProfiles::mint_tokens();
-        
+
         let estimated_gas = optimizer.estimate_gas_cost("mint_tokens", &complexity);
         assert!(estimated_gas > 0);
-        
+
         // Should be reasonable for a mint operation
         assert!(estimated_gas > 5000);
         assert!(estimated_gas < 50000);
@@ -495,21 +521,21 @@ mod tests {
     #[test]
     fn test_optimization_strategies() {
         let mut optimizer = GasOptimizer::new();
-        
+
         // Add caching strategy
         optimizer.add_strategy(OptimizationStrategy::CacheData {
             cache_size_limit: 1000,
             ttl_seconds: 300,
         });
-        
+
         let complexity = OperationComplexity {
             storage_reads: 5, // Multiple reads should trigger caching optimization
             ..BridgeOperationProfiles::mint_tokens()
         };
-        
+
         let base_gas = optimizer.estimate_gas_cost("mint_tokens", &OperationComplexity::default());
         let optimized_gas = optimizer.estimate_gas_cost("mint_tokens", &complexity);
-        
+
         // Optimized version should use less gas due to caching
         assert!(optimized_gas != base_gas);
     }
@@ -518,7 +544,7 @@ mod tests {
     fn test_batch_operation_complexity() {
         let single_confirm = BridgeOperationProfiles::confirm_bridge();
         let batch_confirm = BridgeOperationProfiles::batch_confirm_bridge(5);
-        
+
         // Batch should be more efficient per operation
         assert!(batch_confirm.storage_writes > single_confirm.storage_writes);
         assert!(batch_confirm.computational_intensity >= single_confirm.computational_intensity);
@@ -527,12 +553,12 @@ mod tests {
     #[test]
     fn test_gas_statistics_tracking() {
         let mut optimizer = GasOptimizer::new();
-        
+
         // Record some usage data
         optimizer.record_gas_usage("mint_tokens", 10000, 8500);
         optimizer.record_gas_usage("burn_tokens", 8000, 9000);
         optimizer.record_gas_usage("confirm_bridge", 5000, 4200);
-        
+
         let stats = optimizer.get_gas_statistics();
         assert_eq!(stats.total_operations, 3);
         assert!(stats.average_efficiency > 0.0);
@@ -542,10 +568,10 @@ mod tests {
     #[test]
     fn test_optimization_recommendations() {
         let mut optimizer = GasOptimizer::new();
-        
+
         // Record inefficient operation
         optimizer.record_gas_usage("inefficient_op", 5000, 8000);
-        
+
         let recommendations = optimizer.get_optimization_recommendations();
         assert!(!recommendations.is_empty());
         assert_eq!(recommendations[0].operation, "inefficient_op");
@@ -556,10 +582,10 @@ mod tests {
     fn test_memory_gas_calculation() {
         let gas_cost = MemoryGasCalculator::calculate_memory_gas(1000, 1200, 5);
         assert!(gas_cost > 1000); // Should include base cost plus allocations
-        
+
         let expansion_cost = MemoryGasCalculator::expansion_gas_cost(1000, 2000);
         assert!(expansion_cost > 0);
-        
+
         // No expansion should cost nothing
         let no_expansion = MemoryGasCalculator::expansion_gas_cost(1000, 1000);
         assert_eq!(no_expansion, 0);
@@ -570,7 +596,7 @@ mod tests {
         let default_complexity = OperationComplexity::default();
         assert_eq!(default_complexity.storage_reads, 0);
         assert_eq!(default_complexity.computational_intensity, 1);
-        
+
         let mint_complexity = BridgeOperationProfiles::mint_tokens();
         assert!(mint_complexity.storage_reads > 0);
         assert!(mint_complexity.validation_checks > 0);

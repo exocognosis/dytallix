@@ -1,10 +1,10 @@
+use crate::types::ValidationError;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use serde::Serialize;
-use crate::types::ValidationError;
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "error", content = "details", rename_all = "PascalCase")]
@@ -17,6 +17,7 @@ pub enum ApiError {
     NotFound,
     Internal,
     Validation(ValidationError),
+    BadRequest(String),
 }
 
 impl IntoResponse for ApiError {
@@ -38,6 +39,7 @@ impl IntoResponse for ApiError {
                 };
                 (status, Json(validation_error.to_json())).into_response()
             },
+            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error":"BAD_REQUEST","message":msg}))).into_response(),
         }
     }
 }

@@ -136,12 +136,18 @@ pub struct StakingConfig {
 impl StakingConfig {
     /// Convert to staking module parameters
     pub fn to_staking_params(&self) -> crate::staking::StakingParams {
+        // Use defaults for fields not represented in StakingConfig
+        let defaults = crate::staking::StakingParams::default();
         crate::staking::StakingParams {
             max_validators: self.max_validators,
             min_self_stake: self.minimum_validator_stake as u128,
             slash_double_sign: self.double_sign_slash_rate,
             slash_downtime: self.downtime_slash_rate,
             emission_per_block: self.emission_per_block,
+            // Newly required fields
+            downtime_threshold: self.offline_threshold as u64,
+            signed_blocks_window: defaults.signed_blocks_window,
+            min_signed_per_window: defaults.min_signed_per_window,
         }
     }
 }
@@ -299,9 +305,9 @@ impl GenesisConfig {
         let staking = StakingConfig {
             minimum_validator_stake: 32_000_000_000_000u64,
             max_validators: 100,
-            double_sign_slash_rate: 500, // 5% slash for double signing
-            downtime_slash_rate: 100,    // 1% slash for downtime
-            offline_threshold: 300,      // 300 blocks (~1 hour) to be considered offline
+            double_sign_slash_rate: 500,   // 5% slash for double signing
+            downtime_slash_rate: 100,      // 1% slash for downtime
+            offline_threshold: 300,        // 300 blocks (~1 hour) to be considered offline
             emission_per_block: 1_000_000, // 1 DRT per block in uDRT
         };
 

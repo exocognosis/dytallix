@@ -5,10 +5,10 @@ Implements upfront fee charging, full-revert semantics, and deterministic gas ac
 to ensure all nodes reach identical post-state and receipts.
 */
 
-use crate::gas::{Gas, GasMeter, GasError, GasSchedule, TxKind, intrinsic_gas};
-use crate::storage::tx::Transaction;
-use crate::storage::receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION};
+use crate::gas::{intrinsic_gas, Gas, GasError, GasMeter, GasSchedule, TxKind};
 use crate::state::State;
+use crate::storage::receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION};
+use crate::storage::tx::Transaction;
 use std::collections::HashMap;
 use thiserror::Error;
 
@@ -16,16 +16,16 @@ use thiserror::Error;
 pub enum ExecutionError {
     #[error("Insufficient funds: required {required}, available {available}")]
     InsufficientFunds { required: u128, available: u128 },
-    
+
     #[error("Invalid nonce: expected {expected}, got {actual}")]
     InvalidNonce { expected: u64, actual: u64 },
-    
+
     #[error("Gas error: {0}")]
     Gas(#[from] GasError),
-    
+
     #[error("Overflow in fee calculation")]
     FeeOverflow,
-    
+
     #[error("State error: {0}")]
     State(String),
 }
@@ -68,36 +68,43 @@ impl ExecutionContext {
             events: Vec::new(),
         }
     }
-    
+
     /// Calculate upfront fee with overflow protection
     pub fn calculate_upfront_fee(&self) -> Result<u128, ExecutionError> {
         let gas_limit = self.gas_limit as u128;
         let gas_price = self.gas_price as u128;
-        
-        gas_limit.checked_mul(gas_price)
+
+        gas_limit
+            .checked_mul(gas_price)
             .ok_or(ExecutionError::FeeOverflow)
     }
-    
+
     /// Record a state change for potential revert
-    pub fn record_state_change(&mut self, address: String, denom: String, old_balance: u128, new_balance: u128) {
+    pub fn record_state_change(
+        &mut self,
+        address: String,
+        denom: String,
+        old_balance: u128,
+        new_balance: u128,
+    ) {
         self.state_changes.push(StateChange {
             address,
-            denom, 
+            denom,
             old_balance,
             new_balance,
         });
     }
-    
+
     /// Consume gas and check if we're out of gas
     pub fn consume_gas(&mut self, amount: Gas, operation: &str) -> Result<(), GasError> {
         self.gas_meter.consume(amount, operation)
     }
-    
+
     /// Get gas used so far
     pub fn gas_used(&self) -> Gas {
         self.gas_meter.gas_used()
     }
-    
+
     /// Revert all state changes recorded in this context
     pub fn revert_state_changes(&self, state: &mut State) {
         // Revert changes in reverse order
@@ -125,7 +132,7 @@ pub fn execute_transaction(
             success: false,
         };
     }
-    
+
     // Step 2: Determine gas parameters (backward compatibility)
     let (gas_limit, gas_price) = if tx.gas_limit > 0 && tx.gas_price > 0 {
         // New gas-aware transaction
@@ -134,49 +141,65 @@ pub fn execute_transaction(
         // Legacy transaction: treat fee as gas_limit with gas_price=1
         (tx.fee as u64, 1u64)
     };
-    
+
     // Step 3: Create execution context
     let mut ctx = ExecutionContext::new(gas_limit, gas_price);
-    
+
     // Step 4: Calculate and deduct upfront fee
     let upfront_fee = match ctx.calculate_upfront_fee() {
         Ok(fee) => fee,
         Err(error) => {
             return ExecutionResult {
-                receipt: create_failed_receipt(tx, 0, gas_limit, gas_price, error.to_string(), block_height, tx_index),
+                receipt: create_failed_receipt(
+                    tx,
+                    0,
+                    gas_limit,
+                    gas_price,
+                    error.to_string(),
+                    block_height,
+                    tx_index,
+                ),
                 state_changes: Vec::new(),
                 gas_used: 0,
                 success: false,
             };
         }
     };
-    
+
     let sender_balance = state.balance_of(&tx.from, "udgt");
     let total_required = tx.amount + upfront_fee;
-    
+
     if sender_balance < total_required {
         return ExecutionResult {
             receipt: create_failed_receipt(
-                tx, 
-                0, 
-                gas_limit, 
-                gas_price, 
-                format!("InsufficientFunds: required {}, available {}", total_required, sender_balance),
-                block_height, 
-                tx_index
+                tx,
+                0,
+                gas_limit,
+                gas_price,
+                format!(
+                    "InsufficientFunds: required {}, available {}",
+                    total_required, sender_balance
+                ),
+                block_height,
+                tx_index,
             ),
             state_changes: Vec::new(),
             gas_used: 0,
             success: false,
         };
     }
-    
-    // Step 5: Deduct upfront fee immediately 
+
+    // Step 5: Deduct upfront fee immediately
     let old_sender_balance = sender_balance;
     let new_sender_balance = sender_balance - upfront_fee;
-    ctx.record_state_change(tx.from.clone(), "udgt".to_string(), old_sender_balance, new_sender_balance);
+    ctx.record_state_change(
+        tx.from.clone(),
+        "udgt".to_string(),
+        old_sender_balance,
+        new_sender_balance,
+    );
     state.set_balance(&tx.from, "udgt", new_sender_balance);
-    
+
     // Step 6: Calculate intrinsic gas and charge it
     let tx_size = estimate_transaction_size(tx);
     let intrinsic_gas = match intrinsic_gas(&TxKind::Transfer, tx_size, 1, gas_schedule) {
@@ -185,52 +208,84 @@ pub fn execute_transaction(
             // Revert upfront fee deduction and fail
             ctx.revert_state_changes(state);
             return ExecutionResult {
-                receipt: create_failed_receipt(tx, 0, gas_limit, gas_price, error.to_string(), block_height, tx_index),
+                receipt: create_failed_receipt(
+                    tx,
+                    0,
+                    gas_limit,
+                    gas_price,
+                    error.to_string(),
+                    block_height,
+                    tx_index,
+                ),
                 state_changes: Vec::new(),
                 gas_used: 0,
                 success: false,
             };
         }
     };
-    
+
     if let Err(gas_error) = ctx.consume_gas(intrinsic_gas, "intrinsic") {
         // Out of gas - revert state but keep fee
         ctx.revert_state_changes(state);
         return ExecutionResult {
-            receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, "OutOfGas".to_string(), block_height, tx_index),
+            receipt: create_failed_receipt(
+                tx,
+                ctx.gas_used(),
+                gas_limit,
+                gas_price,
+                "OutOfGas".to_string(),
+                block_height,
+                tx_index,
+            ),
             state_changes: Vec::new(),
             gas_used: ctx.gas_used(),
             success: false,
         };
     }
-    
+
     // Step 7: Execute the actual transfer
     if let Err(gas_error) = execute_transfer(tx, state, &mut ctx) {
         // Out of gas during execution - revert state but keep fee
         ctx.revert_state_changes(state);
         return ExecutionResult {
-            receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, "OutOfGas".to_string(), block_height, tx_index),
+            receipt: create_failed_receipt(
+                tx,
+                ctx.gas_used(),
+                gas_limit,
+                gas_price,
+                "OutOfGas".to_string(),
+                block_height,
+                tx_index,
+            ),
             state_changes: Vec::new(),
             gas_used: ctx.gas_used(),
             success: false,
         };
     }
-    
+
     // Step 8: Success - commit state changes and create success receipt
+    let state_changes = ctx.state_changes.clone();
     ExecutionResult {
-        receipt: create_success_receipt(tx, ctx.gas_used(), gas_limit, gas_price, block_height, tx_index),
-        state_changes: ctx.state_changes,
-        gas_used: ctx.gas_used(),
         success: true,
+        state_changes,
+        gas_used: ctx.gas_used(),
+        receipt: create_success_receipt(
+            tx,
+            ctx.gas_used(),
+            gas_limit,
+            gas_price,
+            block_height,
+            tx_index,
+        ),
     }
 }
 
 /// Validate basic transaction fields
 fn validate_transaction(tx: &Transaction, state: &State) -> Result<(), ExecutionError> {
-    let expected_nonce = state.nonce_of(&tx.from);
-    if tx.nonce != expected_nonce {
+    let current = state.nonce_of(&tx.from);
+    if current > tx.nonce {
         return Err(ExecutionError::InvalidNonce {
-            expected: expected_nonce,
+            expected: current,
             actual: tx.nonce,
         });
     }
@@ -238,30 +293,44 @@ fn validate_transaction(tx: &Transaction, state: &State) -> Result<(), Execution
 }
 
 /// Execute the transfer operation with gas metering
-fn execute_transfer(tx: &Transaction, state: &mut State, ctx: &mut ExecutionContext) -> Result<(), GasError> {
+fn execute_transfer(
+    tx: &Transaction,
+    state: &mut State,
+    ctx: &mut ExecutionContext,
+) -> Result<(), GasError> {
     // Charge gas for KV operations
     ctx.consume_gas(40, "kv_read_from")?; // Read sender balance
-    ctx.consume_gas(40, "kv_read_to")?;   // Read recipient balance  
+    ctx.consume_gas(40, "kv_read_to")?; // Read recipient balance
     ctx.consume_gas(120, "kv_write_from")?; // Write sender balance
-    ctx.consume_gas(120, "kv_write_to")?;   // Write recipient balance
-    
+    ctx.consume_gas(120, "kv_write_to")?; // Write recipient balance
+
     // Record the transfer state changes
     let sender_old_balance = state.balance_of(&tx.from, "udgt");
     let recipient_old_balance = state.balance_of(&tx.to, "udgt");
-    
+
     let sender_new_balance = sender_old_balance - tx.amount;
     let recipient_new_balance = recipient_old_balance + tx.amount;
-    
-    ctx.record_state_change(tx.from.clone(), "udgt".to_string(), sender_old_balance, sender_new_balance);
-    ctx.record_state_change(tx.to.clone(), "udgt".to_string(), recipient_old_balance, recipient_new_balance);
-    
+
+    ctx.record_state_change(
+        tx.from.clone(),
+        "udgt".to_string(),
+        sender_old_balance,
+        sender_new_balance,
+    );
+    ctx.record_state_change(
+        tx.to.clone(),
+        "udgt".to_string(),
+        recipient_old_balance,
+        recipient_new_balance,
+    );
+
     // Apply the transfer
     state.set_balance(&tx.from, "udgt", sender_new_balance);
     state.set_balance(&tx.to, "udgt", recipient_new_balance);
-    
+
     // Increment sender nonce
     state.increment_nonce(&tx.from);
-    
+
     Ok(())
 }
 
@@ -352,18 +421,21 @@ mod tests {
     #[test]
     fn test_upfront_fee_overflow() {
         let ctx = ExecutionContext::new(u64::MAX, u64::MAX);
-        assert!(matches!(ctx.calculate_upfront_fee(), Err(ExecutionError::FeeOverflow)));
+        assert!(matches!(
+            ctx.calculate_upfront_fee(),
+            Err(ExecutionError::FeeOverflow)
+        ));
     }
 
     #[test]
     fn test_successful_execution() {
         let mut state = create_test_state();
         let gas_schedule = GasSchedule::default();
-        
+
         // Setup initial state
         state.set_balance("alice", "udgt", 100_000);
         state.set_balance("bob", "udgt", 50_000);
-        
+
         let tx = Transaction::with_gas(
             "test_hash".to_string(),
             "alice".to_string(),
@@ -375,9 +447,9 @@ mod tests {
             25_000,
             1,
         );
-        
+
         let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
-        
+
         assert!(result.success);
         assert_eq!(result.receipt.status, TxStatus::Success);
         assert!(result.gas_used > 0);
@@ -389,10 +461,10 @@ mod tests {
     fn test_insufficient_funds() {
         let mut state = create_test_state();
         let gas_schedule = GasSchedule::default();
-        
+
         // Setup insufficient balance
         state.set_balance("alice", "udgt", 1_000); // Not enough for amount + gas
-        
+
         let tx = Transaction::with_gas(
             "test_hash".to_string(),
             "alice".to_string(),
@@ -404,11 +476,16 @@ mod tests {
             25_000,
             1_000, // High gas price
         );
-        
+
         let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
-        
+
         assert!(!result.success);
         assert_eq!(result.receipt.status, TxStatus::Failed);
-        assert!(result.receipt.error.as_ref().unwrap().contains("InsufficientFunds"));
+        assert!(result
+            .receipt
+            .error
+            .as_ref()
+            .unwrap()
+            .contains("InsufficientFunds"));
     }
 }

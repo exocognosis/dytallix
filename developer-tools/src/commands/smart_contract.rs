@@ -1,40 +1,48 @@
-use anyhow::Result;
+use crate::client::{BlockchainClient, ContractCallData, DeploymentData};
 use crate::config::Config;
-use crate::client::{BlockchainClient, DeploymentData, ContractCallData};
+use anyhow::Result;
+use base64::prelude::*;
 use colored::*;
 use serde_json::Value;
 use std::fs;
 use std::path::Path;
-use base64::prelude::*;
 
-pub async fn deploy_contract(contract: String, params: Option<String>, config: &Config) -> Result<()> {
+pub async fn deploy_contract(
+    contract: String,
+    params: Option<String>,
+    config: &Config,
+) -> Result<()> {
     println!("{}", "🚀 Deploying smart contract...".bright_green());
-    
+
     // Read contract WASM file
     let contract_path = Path::new(&contract);
     if !contract_path.exists() {
         return Err(anyhow::anyhow!("Contract file not found: {}", contract));
     }
-    
+
     let contract_bytes = fs::read(contract_path)?;
-    println!("Contract file: {} ({} bytes)", contract.bright_cyan(), contract_bytes.len());
-    
+    println!(
+        "Contract file: {} ({} bytes)",
+        contract.bright_cyan(),
+        contract_bytes.len()
+    );
+
     // Validate WASM bytecode
     validate_wasm_bytecode(&contract_bytes)?;
-    
+
     // Validate WASM bytecode
     validate_wasm_bytecode(&contract_bytes)?;
-    
+
     // Parse constructor parameters
     let constructor_params: Option<Value> = if let Some(params_str) = params {
         Some(serde_json::from_str(&params_str)?)
     } else {
         None
     };
-    
+
     // Create blockchain client
     let client = BlockchainClient::new(config.node_url.clone());
-    
+
     // Check node health first
     match client.get_health().await {
         Ok(response) => {
@@ -45,29 +53,35 @@ pub async fn deploy_contract(contract: String, params: Option<String>, config: &
             }
         }
         Err(e) => {
-            println!("{}", format!("❌ Cannot connect to node: {}", e).bright_red());
+            println!(
+                "{}",
+                format!("❌ Cannot connect to node: {}", e).bright_red()
+            );
             return Err(anyhow::anyhow!("Node connection failed"));
         }
     }
-    
+
     // Deploy contract
     println!("Deploying contract with {} bytes...", contract_bytes.len());
-    
+
     // Create deployment transaction
     let deployment_data = DeploymentData {
         code: BASE64_STANDARD.encode(&contract_bytes),
         constructor_params: constructor_params.clone(),
         gas_limit: 1000000, // Default gas limit
     };
-    
+
     // Real deployment via blockchain API
     println!("Calling blockchain contract deployment API...");
-    
+
     // Try real deployment first, fall back to simulation if needed
     let deployment_result = match client.deploy_smart_contract(&deployment_data).await {
         Ok(result) => result,
         Err(e) => {
-            println!("{}", format!("⚠️  Backend deployment failed, using simulation: {}", e).bright_yellow());
+            println!(
+                "{}",
+                format!("⚠️  Backend deployment failed, using simulation: {}", e).bright_yellow()
+            );
             // Simulate deployment for development
             serde_json::json!({
                 "success": true,
@@ -78,38 +92,50 @@ pub async fn deploy_contract(contract: String, params: Option<String>, config: &
             })
         }
     };
-    
+
     if deployment_result["success"].as_bool().unwrap_or(false) {
-        let contract_address = deployment_result["contract_address"].as_str().unwrap_or("unknown");
-        let tx_hash = deployment_result["transaction_hash"].as_str().unwrap_or("unknown");
+        let contract_address = deployment_result["contract_address"]
+            .as_str()
+            .unwrap_or("unknown");
+        let tx_hash = deployment_result["transaction_hash"]
+            .as_str()
+            .unwrap_or("unknown");
         let gas_used = deployment_result["gas_used"].as_u64().unwrap_or(0);
-        
+
         println!("{}", "✅ Contract deployed successfully!".bright_green());
         println!("Contract address: {}", contract_address.bright_cyan());
         println!("Transaction hash: {}", tx_hash.bright_blue());
         println!("Gas used: {}", gas_used.to_string().bright_blue());
-        
+
         // Save contract info locally
         save_contract_info(contract_address, &contract, constructor_params.as_ref())?;
-        
-        println!("\n{}", "📋 Contract saved locally for future interactions".bright_green());
+
+        println!(
+            "\n{}",
+            "📋 Contract saved locally for future interactions".bright_green()
+        );
     } else {
         return Err(anyhow::anyhow!("Contract deployment failed"));
     }
-    
+
     Ok(())
 }
 
-pub async fn call_contract(address: String, method: String, params: Option<String>, config: &Config) -> Result<()> {
+pub async fn call_contract(
+    address: String,
+    method: String,
+    params: Option<String>,
+    config: &Config,
+) -> Result<()> {
     println!("{}", "📞 Calling contract method...".bright_blue());
     println!("Contract: {}", address.bright_cyan());
     println!("Method: {}", method.bright_white());
-    
+
     // Validate contract address format
     if !address.starts_with("dyt1") || address.len() < 10 {
         return Err(anyhow::anyhow!("Invalid contract address format"));
     }
-    
+
     // Parse method parameters
     let method_params: Option<Value> = if let Some(params_str) = params {
         match serde_json::from_str(&params_str) {
@@ -119,22 +145,28 @@ pub async fn call_contract(address: String, method: String, params: Option<Strin
     } else {
         None
     };
-    
+
     if let Some(ref params) = method_params {
-        println!("Parameters: {}", serde_json::to_string_pretty(params)?.bright_yellow());
+        println!(
+            "Parameters: {}",
+            serde_json::to_string_pretty(params)?.bright_yellow()
+        );
     }
-    
+
     // Create blockchain client
     let client = BlockchainClient::new(config.node_url.clone());
-    
+
     // Check if contract exists
     match client.get_contract_info(&address).await {
         Ok(_) => println!("{}", "✅ Contract found".bright_green()),
         Err(_) => {
-            println!("{}", "⚠️  Contract not found on chain, proceeding with simulation".bright_yellow());
+            println!(
+                "{}",
+                "⚠️  Contract not found on chain, proceeding with simulation".bright_yellow()
+            );
         }
     }
-    
+
     // Create contract call transaction
     let call_data = ContractCallData {
         contract_address: address.clone(),
@@ -142,12 +174,15 @@ pub async fn call_contract(address: String, method: String, params: Option<Strin
         params: method_params,
         gas_limit: 500000,
     };
-    
+
     // Try real call first, fall back to simulation
     let call_result = match client.call_contract_method(&call_data).await {
         Ok(result) => result,
         Err(e) => {
-            println!("{}", format!("⚠️  Backend call failed, using simulation: {}", e).bright_yellow());
+            println!(
+                "{}",
+                format!("⚠️  Backend call failed, using simulation: {}", e).bright_yellow()
+            );
             // Simulate successful call
             serde_json::json!({
                 "success": true,
@@ -157,42 +192,58 @@ pub async fn call_contract(address: String, method: String, params: Option<Strin
             })
         }
     };
-    
+
     if call_result["success"].as_bool().unwrap_or(false) {
         let gas_used = call_result["gas_used"].as_u64().unwrap_or(0);
-        let tx_hash = call_result["transaction_hash"].as_str().unwrap_or("unknown");
+        let tx_hash = call_result["transaction_hash"]
+            .as_str()
+            .unwrap_or("unknown");
         let result_value = &call_result["result"];
-        
-        println!("{}", "✅ Contract method called successfully!".bright_green());
+
+        println!(
+            "{}",
+            "✅ Contract method called successfully!".bright_green()
+        );
         println!("Transaction hash: {}", tx_hash.bright_cyan());
         println!("Gas used: {}", gas_used.to_string().bright_blue());
-        println!("Return value: {}", serde_json::to_string_pretty(result_value)?.bright_green());
+        println!(
+            "Return value: {}",
+            serde_json::to_string_pretty(result_value)?.bright_green()
+        );
     } else {
         return Err(anyhow::anyhow!("Contract call failed"));
     }
-    
+
     Ok(())
 }
 
-pub async fn query_contract(address: String, method: String, params: Option<String>, config: &Config) -> Result<()> {
+pub async fn query_contract(
+    address: String,
+    method: String,
+    params: Option<String>,
+    config: &Config,
+) -> Result<()> {
     println!("{}", "🔍 Querying contract...".bright_blue());
     println!("Contract: {}", address.bright_cyan());
     println!("Method: {}", method.bright_white());
-    
+
     // Parse query parameters
     let query_params: Option<Value> = if let Some(params_str) = params {
         Some(serde_json::from_str(&params_str)?)
     } else {
         None
     };
-    
+
     if let Some(ref params) = query_params {
-        println!("Parameters: {}", serde_json::to_string_pretty(params)?.bright_yellow());
+        println!(
+            "Parameters: {}",
+            serde_json::to_string_pretty(params)?.bright_yellow()
+        );
     }
-    
+
     // Create blockchain client
     let client = BlockchainClient::new(config.node_url.clone());
-    
+
     // For now, simulate query since the backend isn't fully implemented
     let mock_result = serde_json::json!({
         "status": "success",
@@ -202,22 +253,42 @@ pub async fn query_contract(address: String, method: String, params: Option<Stri
             "last_update": chrono::Utc::now().timestamp()
         }
     });
-    
+
     println!("{}", "✅ Contract queried successfully!".bright_green());
-    println!("Result: {}", serde_json::to_string_pretty(&mock_result)?.bright_white());
-    
+    println!(
+        "Result: {}",
+        serde_json::to_string_pretty(&mock_result)?.bright_white()
+    );
+
     Ok(())
 }
 
-pub async fn contract_events(address: String, from_block: Option<u64>, to_block: Option<u64>, config: &Config) -> Result<()> {
+pub async fn contract_events(
+    address: String,
+    from_block: Option<u64>,
+    to_block: Option<u64>,
+    config: &Config,
+) -> Result<()> {
     println!("{}", "📜 Fetching contract events...".bright_blue());
     println!("Contract: {}", address.bright_cyan());
-    println!("From block: {}", from_block.map(|b| b.to_string()).unwrap_or_else(|| "genesis".to_string()).bright_white());
-    println!("To block: {}", to_block.map(|b| b.to_string()).unwrap_or_else(|| "latest".to_string()).bright_white());
-    
+    println!(
+        "From block: {}",
+        from_block
+            .map(|b| b.to_string())
+            .unwrap_or_else(|| "genesis".to_string())
+            .bright_white()
+    );
+    println!(
+        "To block: {}",
+        to_block
+            .map(|b| b.to_string())
+            .unwrap_or_else(|| "latest".to_string())
+            .bright_white()
+    );
+
     // Create blockchain client
     let client = BlockchainClient::new(config.node_url.clone());
-    
+
     // For now, simulate events since the backend isn't fully implemented
     let mock_events = vec![
         serde_json::json!({
@@ -239,17 +310,27 @@ pub async fn contract_events(address: String, from_block: Option<u64>, to_block:
                 "spender": "dyt1spender123456789abcdef",
                 "amount": 100000
             }
-        })
+        }),
     ];
-    
-    println!("{}", "✅ Contract events fetched successfully!".bright_green());
-    println!("Found {} events:", mock_events.len().to_string().bright_cyan());
-    
+
+    println!(
+        "{}",
+        "✅ Contract events fetched successfully!".bright_green()
+    );
+    println!(
+        "Found {} events:",
+        mock_events.len().to_string().bright_cyan()
+    );
+
     for (i, event) in mock_events.iter().enumerate() {
-        println!("\n{} Event {}:", "📋".bright_blue(), (i + 1).to_string().bright_white());
+        println!(
+            "\n{} Event {}:",
+            "📋".bright_blue(),
+            (i + 1).to_string().bright_white()
+        );
         println!("{}", serde_json::to_string_pretty(event)?.bright_white());
     }
-    
+
     Ok(())
 }
 
@@ -258,19 +339,19 @@ fn save_contract_info(address: &str, contract_file: &str, params: Option<&Value>
         .ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?
         .join("dytallix")
         .join("contracts");
-    
+
     std::fs::create_dir_all(&config_dir)?;
-    
+
     let contract_info = serde_json::json!({
         "address": address,
         "contract_file": contract_file,
         "constructor_params": params,
         "deployed_at": chrono::Utc::now().to_rfc3339()
     });
-    
+
     let info_file = config_dir.join(format!("{}.json", address));
     std::fs::write(info_file, serde_json::to_string_pretty(&contract_info)?)?;
-    
+
     Ok(())
 }
 
@@ -280,19 +361,19 @@ fn validate_wasm_bytecode(bytes: &[u8]) -> Result<()> {
     if bytes.len() < 8 {
         return Err(anyhow::anyhow!("WASM file too small"));
     }
-    
+
     // Check WASM magic number (0x00 0x61 0x73 0x6d)
     let magic = &bytes[0..4];
     if magic != [0x00, 0x61, 0x73, 0x6d] {
         return Err(anyhow::anyhow!("Invalid WASM magic number"));
     }
-    
+
     // Check version (0x01 0x00 0x00 0x00)
     let version = &bytes[4..8];
     if version != [0x01, 0x00, 0x00, 0x00] {
         return Err(anyhow::anyhow!("Unsupported WASM version"));
     }
-    
+
     println!("{}", "✅ WASM bytecode validation passed".bright_green());
     Ok(())
 }
@@ -301,32 +382,64 @@ fn validate_wasm_bytecode(bytes: &[u8]) -> Result<()> {
 pub async fn list_contract_templates(config: &Config) -> Result<()> {
     println!("{}", "📄 Available Smart Contract Templates".bright_blue());
     println!();
-    
+
     let templates = vec![
-        ("Simple Token", "ERC20-like token with PQC signatures", "token.wasm"),
-        ("Escrow Contract", "AI-enhanced escrow with fraud detection", "escrow.wasm"),
-        ("Voting DAO", "Decentralized voting with governance", "voting.wasm"),
-        ("Oracle Consumer", "AI oracle data consumer contract", "oracle.wasm"),
+        (
+            "Simple Token",
+            "ERC20-like token with PQC signatures",
+            "token.wasm",
+        ),
+        (
+            "Escrow Contract",
+            "AI-enhanced escrow with fraud detection",
+            "escrow.wasm",
+        ),
+        (
+            "Voting DAO",
+            "Decentralized voting with governance",
+            "voting.wasm",
+        ),
+        (
+            "Oracle Consumer",
+            "AI oracle data consumer contract",
+            "oracle.wasm",
+        ),
     ];
-    
+
     for (i, (name, description, file)) in templates.iter().enumerate() {
-        println!("{}. {} {}", (i + 1).to_string().bright_cyan(), name.bright_white(), format!("({})", file).bright_black());
+        println!(
+            "{}. {} {}",
+            (i + 1).to_string().bright_cyan(),
+            name.bright_white(),
+            format!("({})", file).bright_black()
+        );
         println!("   {}", description.bright_yellow());
         println!();
     }
-    
-    println!("{}", "💡 Use 'dytallix-cli contract init <template>' to create from template".bright_green());
+
+    println!(
+        "{}",
+        "💡 Use 'dytallix-cli contract init <template>' to create from template".bright_green()
+    );
     Ok(())
 }
 
-pub async fn init_from_template(template_name: String, output_dir: Option<String>, config: &Config) -> Result<()> {
-    println!("{}", format!("🏗️  Initializing contract from template: {}", template_name).bright_blue());
-    
-    let output_path = output_dir.unwrap_or_else(|| format!("{}_contract", template_name.to_lowercase()));
-    
+pub async fn init_from_template(
+    template_name: String,
+    output_dir: Option<String>,
+    config: &Config,
+) -> Result<()> {
+    println!(
+        "{}",
+        format!("🏗️  Initializing contract from template: {}", template_name).bright_blue()
+    );
+
+    let output_path =
+        output_dir.unwrap_or_else(|| format!("{}_contract", template_name.to_lowercase()));
+
     // Create directory
     std::fs::create_dir_all(&output_path)?;
-    
+
     // Generate template files based on template type
     match template_name.to_lowercase().as_str() {
         "token" | "simple-token" => generate_token_template(&output_path)?,
@@ -335,14 +448,17 @@ pub async fn init_from_template(template_name: String, output_dir: Option<String
         "oracle" | "oracle-consumer" => generate_oracle_template(&output_path)?,
         _ => return Err(anyhow::anyhow!("Unknown template: {}", template_name)),
     }
-    
-    println!("{}", "✅ Contract template created successfully!".bright_green());
+
+    println!(
+        "{}",
+        "✅ Contract template created successfully!".bright_green()
+    );
     println!("Location: {}", output_path.bright_cyan());
     println!("\n{}", "📋 Next steps:".bright_blue());
     println!("  1. cd {}", output_path);
     println!("  2. cargo build --target wasm32-unknown-unknown --release");
     println!("  3. dytallix-cli contract deploy target/wasm32-unknown-unknown/release/*.wasm");
-    
+
     Ok(())
 }
 
@@ -416,7 +532,7 @@ pub extern "C" fn balance_of(account: *const u8, account_len: usize) -> u64 {
     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
     std::fs::create_dir_all(format!("{}/src", output_path))?;
-    
+
     Ok(())
 }
 
@@ -494,7 +610,7 @@ pub extern "C" fn release_funds() -> u32 {
     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
     std::fs::create_dir_all(format!("{}/src", output_path))?;
     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
-    
+
     Ok(())
 }
 
@@ -547,7 +663,7 @@ pub extern "C" fn vote(proposal_id: *const u8, proposal_len: usize, vote: u32) -
     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
     std::fs::create_dir_all(format!("{}/src", output_path))?;
     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
-    
+
     Ok(())
 }
 
@@ -589,6 +705,6 @@ pub extern "C" fn get_price() -> u64 {
     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
     std::fs::create_dir_all(format!("{}/src", output_path))?;
     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
-    
+
     Ok(())
 }

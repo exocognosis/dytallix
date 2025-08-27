@@ -259,3 +259,20 @@ jobs:
             dytallix-lean-launch/artifacts
             target/release/dytallix
           if-no-files-found: warn
+      - name: Run error surfacing script
+        run: |
+          bash dytallix-lean-launch/scripts/error_surfacing.sh || true
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            **/launch-evidence/**
+            **/ERRORS_SUMMARY.md
+            **/SUCCESS.md
+      - name: Print error summary on failure
+        if: failure()
+        run: |
+          echo '--- ERRORS SUMMARY (if present) ---'
+          if [ -f ERRORS_SUMMARY.md ]; then cat ERRORS_SUMMARY.md; else echo 'No ERRORS_SUMMARY.md generated'; fi

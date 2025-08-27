@@ -1,0 +1,10 @@
+# Ignore build artifacts, dependencies, VCS, logs
+**/target
+**/node_modules
+**/.git
+**/.DS_Store
+**/dist
+**/build
+**/*.log
+# Launch evidence (except summary outputs if needed later)
+dytallix-lean-launch/launch-evidence/**

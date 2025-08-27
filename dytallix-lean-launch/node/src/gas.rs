@@ -38,13 +38,13 @@ pub enum TxKind {
 pub enum GasError {
     #[error("Out of gas: required {required}, available {available}")]
     OutOfGas { required: Gas, available: Gas },
-    
+
     #[error("Gas limit too low: minimum {minimum}, provided {provided}")]
     GasLimitTooLow { minimum: Gas, provided: Gas },
-    
+
     #[error("Invalid gas price: {0}")]
     InvalidGasPrice(String),
-    
+
     #[error("Gas overflow in calculation")]
     Overflow,
 }
@@ -62,7 +62,7 @@ pub struct GasSchedule {
     pub contract_instantiate_base: Gas,
     pub contract_call_base: Gas,
     pub contract_migrate_base: Gas,
-    
+
     // Variable component costs
     pub per_byte: Gas,
     pub per_additional_signature: Gas,
@@ -85,7 +85,7 @@ impl Default for GasSchedule {
             contract_instantiate_base: 15_000,
             contract_call_base: 8_000,
             contract_migrate_base: 12_000,
-            
+
             // Variable components (from specification)
             per_byte: 2,
             per_additional_signature: 700,
@@ -129,7 +129,7 @@ impl GasMeter {
             gas_operations: HashMap::new(),
         }
     }
-    
+
     pub fn consume(&mut self, amount: Gas, operation: &str) -> Result<(), GasError> {
         if self.gas_used.saturating_add(amount) > self.gas_limit {
             return Err(GasError::OutOfGas {
@@ -137,24 +137,27 @@ impl GasMeter {
                 available: self.remaining_gas(),
             });
         }
-        
+
         self.gas_used += amount;
-        *self.gas_operations.entry(operation.to_string()).or_insert(0) += amount;
+        *self
+            .gas_operations
+            .entry(operation.to_string())
+            .or_insert(0) += amount;
         Ok(())
     }
-    
+
     pub fn remaining_gas(&self) -> Gas {
         self.gas_limit.saturating_sub(self.gas_used)
     }
-    
+
     pub fn gas_used(&self) -> Gas {
         self.gas_used
     }
-    
+
     pub fn gas_limit(&self) -> Gas {
         self.gas_limit
     }
-    
+
     pub fn operations(&self) -> &HashMap<String, Gas> {
         &self.gas_operations
     }
@@ -169,8 +172,10 @@ pub fn intrinsic_gas(
 ) -> Result<Gas, GasError> {
     let base_cost = schedule.base_cost(tx_kind);
     let size_cost = schedule.per_byte.saturating_mul(tx_size_bytes as Gas);
-    let sig_cost = schedule.per_additional_signature.saturating_mul(additional_signatures as Gas);
-    
+    let sig_cost = schedule
+        .per_additional_signature
+        .saturating_mul(additional_signatures as Gas);
+
     base_cost
         .saturating_add(size_cost)
         .saturating_add(sig_cost)
@@ -187,14 +192,14 @@ pub fn validate_gas_limit(
     schedule: &GasSchedule,
 ) -> Result<(), GasError> {
     let intrinsic = intrinsic_gas(tx_kind, tx_size_bytes, additional_signatures, schedule)?;
-    
+
     if gas_limit < intrinsic {
         return Err(GasError::GasLimitTooLow {
             minimum: intrinsic,
             provided: gas_limit,
         });
     }
-    
+
     Ok(())
 }
 
@@ -214,7 +219,7 @@ pub fn estimate_gas_limit(
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_gas_schedule_defaults() {
         let schedule = GasSchedule::default();
@@ -222,63 +227,63 @@ mod tests {
         assert_eq!(schedule.per_byte, 2);
         assert_eq!(schedule.per_vm_instruction, 0); // Deferred
     }
-    
+
     #[test]
     fn test_intrinsic_gas_calculation() {
         let schedule = GasSchedule::default();
-        
+
         // Transfer with 100 bytes, no additional signatures
         let gas = intrinsic_gas(&TxKind::Transfer, 100, 0, &schedule).unwrap();
         assert_eq!(gas, 500 + 100 * 2); // base + per_byte
-        
+
         // Transfer with additional signature
         let gas = intrinsic_gas(&TxKind::Transfer, 100, 1, &schedule).unwrap();
         assert_eq!(gas, 500 + 100 * 2 + 700); // base + per_byte + per_sig
     }
-    
+
     #[test]
     fn test_gas_meter() {
         let mut meter = GasMeter::new(1000);
-        
+
         assert_eq!(meter.remaining_gas(), 1000);
         assert_eq!(meter.gas_used(), 0);
-        
+
         meter.consume(300, "storage_read").unwrap();
         assert_eq!(meter.remaining_gas(), 700);
         assert_eq!(meter.gas_used(), 300);
-        
+
         // Should fail when trying to consume more than remaining
         let result = meter.consume(800, "storage_write");
         assert!(matches!(result, Err(GasError::OutOfGas { .. })));
     }
-    
+
     #[test]
     fn test_gas_validation() {
         let schedule = GasSchedule::default();
-        
+
         // Valid gas limit
         let result = validate_gas_limit(&TxKind::Transfer, 100, 0, 1000, &schedule);
         assert!(result.is_ok());
-        
+
         // Invalid gas limit (too low)
         let result = validate_gas_limit(&TxKind::Transfer, 100, 0, 500, &schedule);
         assert!(matches!(result, Err(GasError::GasLimitTooLow { .. })));
     }
-    
+
     #[test]
     fn test_gas_estimation() {
         let schedule = GasSchedule::default();
-        
+
         let estimated = estimate_gas_limit(&TxKind::Transfer, 100, 0, &schedule, 2.0).unwrap();
         let intrinsic = intrinsic_gas(&TxKind::Transfer, 100, 0, &schedule).unwrap();
-        
+
         assert_eq!(estimated, intrinsic * 2);
     }
 
     #[test]
     fn test_all_transaction_types() {
         let schedule = GasSchedule::default();
-        
+
         // Test each transaction type has a valid base cost
         assert_eq!(schedule.base_cost(&TxKind::Transfer), 500);
         assert_eq!(schedule.base_cost(&TxKind::GovernanceProposalCreate), 5_000);
@@ -294,12 +299,12 @@ mod tests {
     #[test]
     fn test_deterministic_gas() {
         let schedule = GasSchedule::default();
-        
+
         // Same inputs should always produce same outputs
         let gas1 = intrinsic_gas(&TxKind::Transfer, 150, 0, &schedule).unwrap();
         let gas2 = intrinsic_gas(&TxKind::Transfer, 150, 0, &schedule).unwrap();
         assert_eq!(gas1, gas2);
-        
+
         // Different inputs should produce different outputs
         let gas_small = intrinsic_gas(&TxKind::Transfer, 100, 0, &schedule).unwrap();
         let gas_large = intrinsic_gas(&TxKind::Transfer, 200, 0, &schedule).unwrap();
@@ -309,11 +314,11 @@ mod tests {
     #[test]
     fn test_gas_meter_operation_tracking() {
         let mut meter = GasMeter::new(1000);
-        
+
         meter.consume(100, "kv_read").unwrap();
         meter.consume(200, "kv_write").unwrap();
         meter.consume(50, "kv_read").unwrap(); // Another read
-        
+
         // Should track cumulative gas per operation
         assert_eq!(meter.operations().get("kv_read"), Some(&150));
         assert_eq!(meter.operations().get("kv_write"), Some(&200));
@@ -330,37 +335,46 @@ mod tests {
     #[test]
     fn test_out_of_gas_behavior() {
         let mut meter = GasMeter::new(100);
-        
+
         // Consume exactly the limit
         assert!(meter.consume(100, "max_operation").is_ok());
         assert_eq!(meter.remaining_gas(), 0);
-        
+
         // Try to consume one more unit should fail
         let result = meter.consume(1, "over_limit");
-        assert!(matches!(result, Err(GasError::OutOfGas { required: 1, available: 0 })));
+        assert!(matches!(
+            result,
+            Err(GasError::OutOfGas {
+                required: 1,
+                available: 0
+            })
+        ));
     }
 }
 
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    use crate::storage::{tx::Transaction, receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION}};
+    use crate::storage::{
+        receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION},
+        tx::Transaction,
+    };
 
     /// Simulate transaction execution with gas metering
     fn simulate_tx_execution(
         gas_limit: u64,
-        operations: Vec<(&str, u64)>
+        operations: Vec<(&str, u64)>,
     ) -> Result<(u64, Vec<(String, u64)>), GasError> {
         let mut meter = GasMeter::new(gas_limit);
         let mut executed_ops = Vec::new();
-        
+
         for (op_name, gas_cost) in operations {
             match meter.consume(gas_cost, op_name) {
                 Ok(()) => executed_ops.push((op_name.to_string(), gas_cost)),
                 Err(e) => return Err(e),
             }
         }
-        
+
         Ok((meter.gas_used(), executed_ops))
     }
 
@@ -372,11 +386,15 @@ mod integration_tests {
             ("storage_read", 200),
             ("expensive_operation", 400), // This should cause OOG
         ];
-        
+
         let result = simulate_tx_execution(gas_limit, operations);
         assert!(result.is_err());
-        
-        if let Err(GasError::OutOfGas { required, available }) = result {
+
+        if let Err(GasError::OutOfGas {
+            required,
+            available,
+        }) = result
+        {
             assert_eq!(required, 400);
             assert_eq!(available, 300); // 1000 - 500 - 200
         } else {
@@ -393,13 +411,17 @@ mod integration_tests {
             ("operation1", 300),
             ("operation2", 500), // This should cause OOG
         ];
-        
+
         // Run multiple times - should be deterministic
         for _ in 0..5 {
             let result = simulate_tx_execution(gas_limit, operations.clone());
             assert!(result.is_err());
-            
-            if let Err(GasError::OutOfGas { required, available }) = result {
+
+            if let Err(GasError::OutOfGas {
+                required,
+                available,
+            }) = result
+            {
                 assert_eq!(required, 500);
                 assert_eq!(available, 400); // 1500 - 800 - 300
             } else {
@@ -421,7 +443,7 @@ mod integration_tests {
             25000,
             1500,
         );
-        
+
         let receipt = TxReceipt::failed(
             &tx,
             18000, // Gas used before failure
@@ -429,9 +451,9 @@ mod integration_tests {
             1500,
             "OutOfGas".to_string(),
             100,
-            1
+            1,
         );
-        
+
         assert_eq!(receipt.receipt_version, RECEIPT_FORMAT_VERSION);
         assert_eq!(receipt.status, TxStatus::Failed);
         assert_eq!(receipt.gas_used, 18000);
@@ -454,15 +476,15 @@ mod integration_tests {
             30000,
             2000,
         );
-        
+
         let receipt = TxReceipt::success(&tx, 22000, 30000, 2000, 100, 1);
-        
+
         // Serialize to JSON (for REST API)
         let json = serde_json::to_string(&receipt).unwrap();
         assert!(json.contains("\"gas_used\":22000"));
         assert!(json.contains("\"gas_limit\":30000"));
         assert!(json.contains("\"gas_price\":2000"));
-        
+
         // Deserialize back
         let deserialized: TxReceipt = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.gas_used, 22000);
@@ -474,16 +496,16 @@ mod integration_tests {
         // Test that different gas schedules produce different results
         let mut schedule1 = GasSchedule::default();
         let mut schedule2 = GasSchedule::default();
-        
+
         // Modify one schedule slightly
         schedule2.transfer_base = 600; // Changed from 500
-        
+
         let tx_size = 200;
         let additional_sigs = 0;
-        
+
         let gas1 = intrinsic_gas(&TxKind::Transfer, tx_size, additional_sigs, &schedule1).unwrap();
         let gas2 = intrinsic_gas(&TxKind::Transfer, tx_size, additional_sigs, &schedule2).unwrap();
-        
+
         // Should produce different results - this would cause consensus failure
         assert_ne!(gas1, gas2);
         assert_eq!(gas2 - gas1, 100); // Difference should be exactly the base cost change
@@ -498,7 +520,7 @@ mod regression_tests {
     fn test_gas_table_version_consistency() {
         // Ensure gas table version is properly set
         assert_eq!(GAS_TABLE_VERSION, 1);
-        
+
         // This test would be extended to check version compatibility
         // In a real implementation, this would verify that nodes reject
         // connections from peers with different gas table versions
@@ -509,14 +531,14 @@ mod regression_tests {
         // Test that gas calculations remain stable across runs
         // This is critical for consensus - same inputs must always produce same outputs
         let schedule = GasSchedule::default();
-        
+
         let test_cases = vec![
             (TxKind::Transfer, 100, 0),
             (TxKind::Transfer, 200, 1),
             (TxKind::GovernanceVote, 150, 0),
             (TxKind::ContractCall, 500, 2),
         ];
-        
+
         for (tx_kind, size, sigs) in test_cases {
             let gas1 = intrinsic_gas(&tx_kind, size, sigs, &schedule).unwrap();
             // Run the same calculation multiple times
@@ -531,7 +553,7 @@ mod regression_tests {
     fn test_receipt_version_compatibility() {
         // Test that receipt format version is consistent
         assert_eq!(RECEIPT_FORMAT_VERSION, 1);
-        
+
         // Test that receipts include the version field
         let tx = Transaction::new(
             "test_hash".to_string(),
@@ -542,7 +564,7 @@ mod regression_tests {
             1,
             Some("signature".to_string()),
         );
-        
+
         let receipt = TxReceipt::pending(&tx);
         assert_eq!(receipt.receipt_version, RECEIPT_FORMAT_VERSION);
     }
@@ -552,7 +574,7 @@ mod regression_tests {
         // Test that default gas schedule values haven't changed unexpectedly
         // This prevents accidental changes that would break consensus
         let schedule = GasSchedule::default();
-        
+
         // Core transaction costs (from specification)
         assert_eq!(schedule.transfer_base, 500);
         assert_eq!(schedule.governance_proposal_create_base, 5_000);
@@ -563,7 +585,7 @@ mod regression_tests {
         assert_eq!(schedule.contract_instantiate_base, 15_000);
         assert_eq!(schedule.contract_call_base, 8_000);
         assert_eq!(schedule.contract_migrate_base, 12_000);
-        
+
         // Variable costs (from specification)
         assert_eq!(schedule.per_byte, 2);
         assert_eq!(schedule.per_additional_signature, 700);
@@ -585,11 +607,11 @@ mod regression_tests {
             1,
             Some("signature".to_string()),
         );
-        
+
         // Legacy transactions should have default gas values
         assert_eq!(legacy_tx.gas_limit, 0);
         assert_eq!(legacy_tx.gas_price, 0);
-        
+
         // Should be serializable/deserializable
         let json = serde_json::to_string(&legacy_tx).unwrap();
         let deserialized: Transaction = serde_json::from_str(&json).unwrap();
@@ -601,23 +623,31 @@ mod regression_tests {
     fn test_gas_error_determinism() {
         // Test that gas errors are consistent and deterministic
         let mut meter = GasMeter::new(1000);
-        
+
         // Consume some gas
         meter.consume(800, "operation1").unwrap();
-        
+
         // Try to consume more than available
         let error1 = meter.consume(300, "operation2").unwrap_err();
         let error2 = meter.consume(300, "operation2").unwrap_err();
-        
+
         // Errors should be identical
         match (error1, error2) {
-            (GasError::OutOfGas { required: r1, available: a1 }, 
-             GasError::OutOfGas { required: r2, available: a2 }) => {
+            (
+                GasError::OutOfGas {
+                    required: r1,
+                    available: a1,
+                },
+                GasError::OutOfGas {
+                    required: r2,
+                    available: a2,
+                },
+            ) => {
                 assert_eq!(r1, r2);
                 assert_eq!(a1, a2);
                 assert_eq!(r1, 300);
                 assert_eq!(a1, 200);
-            },
+            }
             _ => panic!("Expected OutOfGas errors"),
         }
     }
@@ -626,11 +656,11 @@ mod regression_tests {
     fn test_wasm_instruction_placeholder() {
         // Test that WASM instruction cost is properly set to 0 as placeholder
         assert_eq!(PER_VM_INSTRUCTION, 0);
-        
+
         let schedule = GasSchedule::default();
         assert_eq!(schedule.per_vm_instruction, 0);
-        
-        // This ensures that when WASM integration is added, 
+
+        // This ensures that when WASM integration is added,
         // we remember to update this value and increment GAS_TABLE_VERSION
     }
 
@@ -643,7 +673,7 @@ mod regression_tests {
             (100000u64, 500u64),
             (u32::MAX as u64, 1000u64), // Large but safe values
         ];
-        
+
         for (gas_limit, gas_price) in test_cases {
             let tx = Transaction::with_gas(
                 "test_hash".to_string(),
@@ -656,13 +686,13 @@ mod regression_tests {
                 gas_limit,
                 gas_price,
             );
-            
+
             let receipt = TxReceipt::success(&tx, gas_limit / 2, gas_limit, gas_price, 100, 1);
             let fee = receipt.fee_charged_datt();
-            
+
             // Fee should be exactly gas_limit * gas_price
             assert_eq!(fee, gas_limit.saturating_mul(gas_price));
-            
+
             // Calculation should be deterministic
             let fee2 = receipt.fee_charged_datt();
             assert_eq!(fee, fee2);
