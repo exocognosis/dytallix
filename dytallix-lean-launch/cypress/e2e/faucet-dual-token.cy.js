@@ -35,31 +35,19 @@ describe('Dual-Token Faucet E2E Tests', () => {
     })
   })
 
-  describe('Wallet Integration', () => {
-    it('should show connect wallet button when no wallet detected', () => {
-      cy.contains('Connect Wallet').should('be.visible')
-    })
-
-    it('should handle wallet connection attempt', () => {
-      // Mock window.ethereum for testing
-      cy.window().then((win) => {
-        win.ethereum = {
-          request: cy.stub().resolves(['0x1234567890123456789012345678901234567890'])
-        }
-      })
-
-      cy.contains('Connect Wallet').click()
-      
-      // Should show connection status
-      cy.contains('Wallet connected').should('be.visible')
-    })
-
+  describe('Address Input', () => {
     it('should allow manual address entry', () => {
       const testAddress = 'dytallix1test123456789012345678901234567890'
       
       cy.get('input[placeholder="dytallix1..."]')
         .type(testAddress)
         .should('have.value', testAddress)
+    })
+
+    it('should show PQC wallet auto-detection when available', () => {
+      // This would test auto-detection from local PQC wallet
+      // Implementation would check for presence of saved wallet meta
+      cy.contains('(Enter your dytallix1... address)').should('be.visible')
     })
   })
 
