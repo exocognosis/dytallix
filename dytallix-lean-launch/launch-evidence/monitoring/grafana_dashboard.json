@@ -1,1 +1,437 @@
-{ "TODO": "populate via evidence prompt" }
+{
+  "dashboard": {
+    "id": null,
+    "uid": "dytallix-monitoring",
+    "title": "Dytallix Network Monitoring",
+    "description": "Comprehensive monitoring dashboard for Dytallix blockchain network performance and health",
+    "tags": ["dytallix", "blockchain", "monitoring", "performance"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Block Height",
+        "type": "timeseries",
+        "description": "Current blockchain block height over time",
+        "targets": [
+          {
+            "expr": "dyt_block_height",
+            "legendFormat": "Block Height",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "options": {
+          "legend": {
+            "displayMode": "visible",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Transactions Per Second (TPS)",
+        "type": "timeseries",
+        "description": "Network transaction throughput",
+        "targets": [
+          {
+            "expr": "dyt_tps",
+            "legendFormat": "TPS",
+            "refId": "A"
+          },
+          {
+            "expr": "avg_over_time(dyt_tps[5m])",
+            "legendFormat": "TPS (5m avg)",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "tps",
+            "min": 0,
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "options": {
+          "legend": {
+            "displayMode": "visible",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "API Latency (P95)",
+        "type": "timeseries",
+        "description": "95th percentile API response latency",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(dytallix_api_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Latency",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(dytallix_api_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50 Latency",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "min": 0,
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1.0}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "options": {
+          "legend": {
+            "displayMode": "visible",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Validator Uptime",
+        "type": "stat",
+        "description": "Percentage of validators that are currently online",
+        "targets": [
+          {
+            "expr": "(count(dyt_validator_voting_power > 0) / count(dyt_validator_voting_power)) * 100",
+            "legendFormat": "Validator Uptime %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "green", "value": 95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Mempool Size",
+        "type": "timeseries",
+        "description": "Number of pending transactions in mempool",
+        "targets": [
+          {
+            "expr": "dyt_mempool_size",
+            "legendFormat": "Pending Transactions",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1000},
+                {"color": "red", "value": 5000}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+        "options": {
+          "legend": {
+            "displayMode": "visible",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Blocks Per Second",
+        "type": "timeseries",
+        "description": "Rate of block production",
+        "targets": [
+          {
+            "expr": "dyt_blocks_per_second",
+            "legendFormat": "Blocks/sec",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "options": {
+          "legend": {
+            "displayMode": "visible",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Gas Usage",
+        "type": "timeseries",
+        "description": "Gas used per block over time",
+        "targets": [
+          {
+            "expr": "dyt_gas_used_per_block",
+            "legendFormat": "Gas Used",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "options": {
+          "legend": {
+            "displayMode": "visible",
+            "placement": "bottom"
+          }
+        }
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Validator Downtime Alerts",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{alertname=\"ValidatorDowntime\"}",
+          "iconColor": "red"
+        }
+      ]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "validator",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(dyt_validator_voting_power, validator)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": null
+        }
+      ]
+    }
+  },
+  "alerting": {
+    "rules": [
+      {
+        "uid": "validator-downtime-alert",
+        "title": "Validator Downtime Alert",
+        "condition": "A",
+        "data": [
+          {
+            "refId": "A",
+            "queryType": "",
+            "relativeTimeRange": {
+              "from": 300,
+              "to": 0
+            },
+            "model": {
+              "expr": "increase(dyt_block_height[5m]) == 0",
+              "intervalMs": 1000,
+              "maxDataPoints": 43200,
+              "refId": "A"
+            }
+          }
+        ],
+        "noDataState": "NoData",
+        "execErrState": "Alerting",
+        "for": "5m",
+        "annotations": {
+          "description": "No new blocks have been produced in the last 5 minutes. This indicates potential validator downtime or network issues.",
+          "runbook_url": "https://docs.dytallix.com/monitoring/runbooks/validator-downtime",
+          "summary": "Dytallix validator downtime detected"
+        },
+        "labels": {
+          "severity": "critical",
+          "team": "blockchain"
+        }
+      },
+      {
+        "uid": "high-mempool-alert", 
+        "title": "High Mempool Size Alert",
+        "condition": "A",
+        "data": [
+          {
+            "refId": "A",
+            "queryType": "",
+            "relativeTimeRange": {
+              "from": 300,
+              "to": 0
+            },
+            "model": {
+              "expr": "dyt_mempool_size > 5000",
+              "intervalMs": 1000,
+              "maxDataPoints": 43200,
+              "refId": "A"
+            }
+          }
+        ],
+        "noDataState": "NoData",
+        "execErrState": "OK",
+        "for": "2m",
+        "annotations": {
+          "description": "Mempool size has exceeded 5000 pending transactions for more than 2 minutes. This may indicate network congestion.",
+          "runbook_url": "https://docs.dytallix.com/monitoring/runbooks/high-mempool",
+          "summary": "High mempool size detected"
+        },
+        "labels": {
+          "severity": "warning",
+          "team": "blockchain"
+        }
+      },
+      {
+        "uid": "api-latency-alert",
+        "title": "High API Latency Alert", 
+        "condition": "A",
+        "data": [
+          {
+            "refId": "A",
+            "queryType": "",
+            "relativeTimeRange": {
+              "from": 300,
+              "to": 0
+            },
+            "model": {
+              "expr": "histogram_quantile(0.95, rate(dytallix_api_request_duration_seconds_bucket[5m])) > 1.0",
+              "intervalMs": 1000,
+              "maxDataPoints": 43200,
+              "refId": "A"
+            }
+          }
+        ],
+        "noDataState": "NoData",
+        "execErrState": "OK", 
+        "for": "3m",
+        "annotations": {
+          "description": "API P95 latency has exceeded 1 second for more than 3 minutes. This may impact user experience.",
+          "runbook_url": "https://docs.dytallix.com/monitoring/runbooks/high-api-latency",
+          "summary": "High API latency detected"
+        },
+        "labels": {
+          "severity": "warning",
+          "team": "api"
+        }
+      }
+    ]
+  },
+  "prometheus_metrics_documentation": {
+    "required_metrics": [
+      {
+        "name": "dyt_block_height",
+        "type": "gauge",
+        "help": "Current blockchain block height",
+        "example": "dyt_block_height 12345"
+      },
+      {
+        "name": "dyt_tps", 
+        "type": "gauge",
+        "help": "Current transactions per second",
+        "example": "dyt_tps 175.5"
+      },
+      {
+        "name": "dytallix_api_request_duration_seconds_bucket",
+        "type": "histogram",
+        "help": "API request duration histogram for latency percentiles",
+        "example": "dytallix_api_request_duration_seconds_bucket{le=\"0.1\"} 100"
+      },
+      {
+        "name": "dyt_validator_voting_power",
+        "type": "gauge", 
+        "help": "Voting power of each validator",
+        "labels": ["validator"],
+        "example": "dyt_validator_voting_power{validator=\"validator-1\"} 1000"
+      },
+      {
+        "name": "dyt_mempool_size",
+        "type": "gauge",
+        "help": "Number of pending transactions in mempool", 
+        "example": "dyt_mempool_size 250"
+      },
+      {
+        "name": "dyt_blocks_per_second",
+        "type": "gauge",
+        "help": "Rate of block production",
+        "example": "dyt_blocks_per_second 0.25"
+      },
+      {
+        "name": "dyt_gas_used_per_block",
+        "type": "gauge",
+        "help": "Gas used in latest block",
+        "example": "dyt_gas_used_per_block 21000000"
+      }
+    ]
+  }
+}
