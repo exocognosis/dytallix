@@ -1,1 +1,10 @@
-# TODO: populate via evidence prompt
+# PQClean Manifest Hash List
+# Generated from: artifacts/pqclean-manifest.json
+# Generated at: 2025-08-27T03:34:00+00:00
+# Tool: scripts/pqc/generate_hash_list.sh
+
+# Original manifest generated at: 2025-08-21T15:05:01.495Z
+# Original tool: scripts/gen-pqclean-manifest.js
+# Files count: 0
+
+# Format: sha256 path
