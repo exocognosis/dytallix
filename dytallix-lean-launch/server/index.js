@@ -577,6 +577,60 @@ app.post('/api/anomaly/send-test-alert', async (req, res, next) => {
   }
 })
 
+// --- Emission Information API ---
+app.get('/api/emission', (req, res, next) => {
+  try {
+    // Get current blockchain height (mock for now)
+    const currentBlock = 100000;
+    const blocksPerEpoch = 210000; // Bitcoin-style halving
+    const currentEpoch = Math.floor(currentBlock / blocksPerEpoch);
+    
+    // Calculate emission rate (starts at 50 DGT per block, halves each epoch)
+    const baseEmissionRate = 50;
+    const currentEmissionRate = baseEmissionRate / Math.pow(2, currentEpoch);
+    
+    // Calculate total supply
+    let totalSupply = 0;
+    for (let epoch = 0; epoch <= currentEpoch; epoch++) {
+      const epochRate = baseEmissionRate / Math.pow(2, epoch);
+      const blocksInThisEpoch = epoch === currentEpoch 
+        ? currentBlock % blocksPerEpoch 
+        : blocksPerEpoch;
+      totalSupply += epochRate * blocksInThisEpoch;
+    }
+    
+    // Next reduction calculations
+    const nextReductionBlock = (currentEpoch + 1) * blocksPerEpoch;
+    const blocksUntilReduction = nextReductionBlock - currentBlock;
+    
+    res.json({
+      ok: true,
+      timestamp: new Date().toISOString(),
+      current_emission_rate: currentEmissionRate,
+      total_supply: Math.round(totalSupply * 100) / 100,
+      circulating_supply: Math.round(totalSupply * 0.95 * 100) / 100, // 95% circulating
+      next_reduction_block: nextReductionBlock,
+      blocks_until_reduction: blocksUntilReduction,
+      reduction_factor: 0.5,
+      current_block: currentBlock,
+      current_epoch: currentEpoch,
+      blocks_per_epoch: blocksPerEpoch
+    });
+  } catch (e) {
+    next(e)
+  }
+})
+
+// Alternative endpoint for consistency with other patterns
+app.get('/emission', (req, res, next) => {
+  try {
+    // Redirect to API endpoint for consistency
+    res.redirect('/api/emission');
+  } catch (e) {
+    next(e)
+  }
+})
+
 // --- Contract Security Scanner API ---
 app.post('/api/contract/scan', async (req, res, next) => {
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'

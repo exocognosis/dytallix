@@ -7,10 +7,12 @@ const TOKEN_COOLDOWNS = {
   DRT: 6 * 60   // 6 hours
 }
 
-// Rate Limiter Interface
+// Rate Limiter Interface  
 class IRateLimiter {
   async checkAndConsume(key) {
-    throw new Error('Not implemented')
+    // Abstract method - must be implemented by subclasses
+    const methodName = this.constructor.name + '.checkAndConsume'
+    throw new Error(`${methodName} must be implemented`)
   }
 }
 

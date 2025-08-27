@@ -81,8 +81,74 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: QueryCmd) -> Result<()> {
             let url = format!("{}/proposals", client.base);
             let res = reqwest::get(url).await?; let v: serde_json::Value = res.json().await?; if fmt.is_json() { print_json(&v)?; } else { println!("{}", v); }
         }
-        QueryWhat::Emission => { println!("TODO emission query"); }
+        QueryWhat::Emission => {
+            let url = format!("{}/emission", client.base);
+            match reqwest::get(&url).await {
+                Ok(res) => {
+                    if !res.status().is_success() { 
+                        // Try alternative endpoint pattern
+                        let alt_url = format!("{}/stats/emission", client.base);
+                        match reqwest::get(&alt_url).await {
+                            Ok(alt_res) => {
+                                if !alt_res.status().is_success() {
+                                    return Err(anyhow!("emission query failed on both /emission and /stats/emission endpoints"));
+                                }
+                                let v: serde_json::Value = alt_res.json().await?;
+                                if fmt.is_json() { 
+                                    print_json(&v)?; 
+                                } else { 
+                                    display_emission_info(&v);
+                                }
+                            }
+                            Err(_) => return Err(anyhow!("emission query failed - endpoints not available")),
+                        }
+                    } else {
+                        let v: serde_json::Value = res.json().await?;
+                        if fmt.is_json() { 
+                            print_json(&v)?; 
+                        } else { 
+                            display_emission_info(&v);
+                        }
+                    }
+                }
+                Err(_) => return Err(anyhow!("emission query failed - network error")),
+            }
+        }
         QueryWhat::Stats => { let url = format!("{}/stats", client.base); let res = reqwest::get(url).await?; let v: serde_json::Value = res.json().await?; if fmt.is_json() { print_json(&v)?; } else { println!("{}", v); } }
     }
     Ok(())
+}
+
+fn display_emission_info(v: &serde_json::Value) {
+    println!("Emission Information:");
+    
+    if let Some(current_rate) = v.get("current_emission_rate") {
+        println!("  Current Rate: {} DGT per block", current_rate);
+    }
+    
+    if let Some(total_supply) = v.get("total_supply") {
+        println!("  Total Supply: {} DGT", total_supply);
+    }
+    
+    if let Some(circulating) = v.get("circulating_supply") {
+        println!("  Circulating: {} DGT", circulating);
+    }
+    
+    if let Some(next_reduction) = v.get("next_reduction_block") {
+        println!("  Next Reduction Block: {}", next_reduction);
+    }
+    
+    if let Some(reduction_factor) = v.get("reduction_factor") {
+        println!("  Reduction Factor: {}", reduction_factor);
+    }
+    
+    if let Some(blocks_until_reduction) = v.get("blocks_until_reduction") {
+        println!("  Blocks Until Reduction: {}", blocks_until_reduction);
+    }
+    
+    // Fallback: display raw JSON if structure is different
+    if v.get("current_emission_rate").is_none() && 
+       v.get("total_supply").is_none() {
+        println!("{}", v);
+    }
 }
