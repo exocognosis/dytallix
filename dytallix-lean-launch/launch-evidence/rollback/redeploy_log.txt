@@ -1,48 +1,48 @@
 === Dytallix System Rollback Drill ===
-Drill started at: 2025-08-27T03:34:29+00:00
+Drill started at: 2025-08-27T03:37:12+00:00
 Purpose: Validate disaster recovery capabilities and system resilience
 
 Configuration:
-  Registry Image: dytallix/test
-  Current Tag: v1.0.0
-  Previous Tag: v0.9.0
+  Registry Image: test
+  Current Tag: v2.0.0
+  Previous Tag: v1.9.0
   Dry Run Mode: true
   Target Time: 300s
 
 === Phase 1: Pre-rollback Validation ===
-2025-08-27T03:34:29+00:00 - Starting pre-rollback checks...
-2025-08-27T03:34:29+00:00 - Stored current image tag: v1.0.0
-2025-08-27T03:34:29+00:00 - Verifying previous image availability...
-2025-08-27T03:34:29+00:00 - [DRY RUN] Simulating image pull: dytallix/test:v0.9.0
-2025-08-27T03:34:31+00:00 - [DRY RUN] Image pull simulation completed
+2025-08-27T03:37:12+00:00 - Starting pre-rollback checks...
+2025-08-27T03:37:12+00:00 - Stored current image tag: v2.0.0
+2025-08-27T03:37:12+00:00 - Verifying previous image availability...
+2025-08-27T03:37:12+00:00 - [DRY RUN] Simulating image pull: test:v1.9.0
+2025-08-27T03:37:14+00:00 - [DRY RUN] Image pull simulation completed
 
 === Phase 2: Service Rollback ===
-2025-08-27T03:34:31+00:00 - Beginning service rollback process...
-2025-08-27T03:34:31+00:00 - [DRY RUN] Stopping current services...
-2025-08-27T03:34:32+00:00 - [DRY RUN] Services stopped
-2025-08-27T03:34:32+00:00 - Switching to previous image version...
-2025-08-27T03:34:32+00:00 - [DRY RUN] Deploying dytallix/test:v0.9.0...
-2025-08-27T03:34:35+00:00 - [DRY RUN] Deployment completed
-2025-08-27T03:34:35+00:00 - Starting services with previous version...
-2025-08-27T03:34:37+00:00 - [DRY RUN] Services started successfully
+2025-08-27T03:37:14+00:00 - Beginning service rollback process...
+2025-08-27T03:37:14+00:00 - [DRY RUN] Stopping current services...
+2025-08-27T03:37:15+00:00 - [DRY RUN] Services stopped
+2025-08-27T03:37:15+00:00 - Switching to previous image version...
+2025-08-27T03:37:15+00:00 - [DRY RUN] Deploying test:v1.9.0...
+2025-08-27T03:37:18+00:00 - [DRY RUN] Deployment completed
+2025-08-27T03:37:18+00:00 - Starting services with previous version...
+2025-08-27T03:37:20+00:00 - [DRY RUN] Services started successfully
 
 === Phase 3: Smoke Tests ===
-2025-08-27T03:34:37+00:00 - Running post-rollback smoke tests...
-2025-08-27T03:34:37+00:00 - Testing service health endpoints...
-2025-08-27T03:34:38+00:00 - [DRY RUN] Health check: PASSED
-2025-08-27T03:34:38+00:00 - Testing basic functionality...
-2025-08-27T03:34:39+00:00 - [DRY RUN] Basic functionality test: PASSED
-2025-08-27T03:34:39+00:00 - Testing database connectivity...
-2025-08-27T03:34:40+00:00 - [DRY RUN] Database connectivity: PASSED
-2025-08-27T03:34:40+00:00 - Testing critical API endpoints...
-2025-08-27T03:34:41+00:00 - [DRY RUN] API endpoints test: PASSED
+2025-08-27T03:37:20+00:00 - Running post-rollback smoke tests...
+2025-08-27T03:37:20+00:00 - Testing service health endpoints...
+2025-08-27T03:37:21+00:00 - [DRY RUN] Health check: PASSED
+2025-08-27T03:37:21+00:00 - Testing basic functionality...
+2025-08-27T03:37:22+00:00 - [DRY RUN] Basic functionality test: PASSED
+2025-08-27T03:37:22+00:00 - Testing database connectivity...
+2025-08-27T03:37:23+00:00 - [DRY RUN] Database connectivity: PASSED
+2025-08-27T03:37:23+00:00 - Testing critical API endpoints...
+2025-08-27T03:37:24+00:00 - [DRY RUN] API endpoints test: PASSED
 
 === Phase 4: Results Summary ===
-2025-08-27T03:34:41+00:00 - Rollback drill completed
+2025-08-27T03:37:24+00:00 - Rollback drill completed
 
 Timing Results:
-  start_time_unix=1756265669
-  end_time_unix=1756265681
+  start_time_unix=1756265832
+  end_time_unix=1756265844
   full_restore_time_seconds=12
   target_time_seconds=300
   threshold_met=true
@@ -60,4 +60,4 @@ Final Status:
   ready_for_production=true
 
 Previous image tag preserved in: /home/runner/work/dytallix/dytallix/dytallix-lean-launch/launch-evidence/rollback/previous_image_tag.txt
-Drill completed at: 2025-08-27T03:34:41+00:00
+Drill completed at: 2025-08-27T03:37:24+00:00
