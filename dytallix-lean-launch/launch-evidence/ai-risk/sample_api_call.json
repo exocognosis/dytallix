@@ -1,1 +1,55 @@
-{ "TODO": "populate via evidence prompt" }
+{
+  "sample_request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:8000/risk",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "id": "tx123",
+      "amount": 42.5,
+      "from": "dyt1sender123",
+      "to": "dyt1receiver456",
+      "gas_limit": 75000,
+      "timestamp": "2024-01-15T10:30:00Z"
+    }
+  },
+  "sample_response": {
+    "status_code": 200,
+    "body": {
+      "risk_score": 24.0,
+      "risk_level": "LOW",
+      "assessment_timestamp": "2024-01-15T10:30:01.123456Z",
+      "rationale": {
+        "base_hash_score": 24,
+        "amount_analysis": {
+          "amount": 42.5,
+          "category": "small"
+        },
+        "transaction_type": {
+          "is_self_transaction": false,
+          "addresses_involved": 2
+        },
+        "gas_analysis": {
+          "gas_limit": 75000,
+          "category": "normal"
+        },
+        "scoring_methodology": "Deterministic hash-based scoring with amount and gas adjustments"
+      },
+      "model_version": "deterministic-v1.0"
+    }
+  },
+  "curl_example": "curl -s -X POST http://127.0.0.1:8000/risk -H 'Content-Type: application/json' -d '{\"id\":\"tx123\",\"amount\":42.5,\"from\":\"dyt1sender123\",\"to\":\"dyt1receiver456\",\"gas_limit\":75000}' | jq .",
+  "deterministic_test": {
+    "description": "Same input always produces same output - this demonstrates deterministic scoring",
+    "test_transaction": {
+      "id": "test_tx_001",
+      "amount": 100.0,
+      "from": "addr_a",
+      "to": "addr_b"
+    },
+    "expected_score": 32.0,
+    "expected_level": "LOW",
+    "note": "Running this exact transaction multiple times will always return risk_score: 32.0 and risk_level: LOW"
+  }
+}
