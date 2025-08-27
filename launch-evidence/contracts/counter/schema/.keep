@@ -1,0 +1,20 @@
+# Schema directory for CosmWasm contract
+
+This directory will be populated with JSON schema files when you run:
+
+```bash
+cargo schema
+```
+
+The generated schema files include:
+- Query and execute message schemas
+- Response type schemas  
+- Contract state schemas
+
+These files are used by:
+- Frontend applications for type safety
+- Code generation tools
+- Documentation generation
+- IDE integration and autocompletion
+
+Schema generation requires the `cosmwasm-schema` dependency which is included in the counter contract's Cargo.toml.

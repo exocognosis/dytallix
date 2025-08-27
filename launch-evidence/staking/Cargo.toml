@@ -1,0 +1,34 @@
+[package]
+name = "emission_script"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dytallix Team"]
+description = "Staking emission evidence collection script for launch verification"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.0", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+anyhow = "1.0"
+toml = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4"] }
+
+# Optional gRPC support
+tonic = { version = "0.10", optional = true }
+prost = { version = "0.12", optional = true }
+
+# Optional Cosmos SDK proto support
+cosmos-sdk-proto = { version = "0.20", optional = true }
+
+[features]
+default = ["grpc"]
+grpc = ["tonic", "prost", "cosmos-sdk-proto"]
+
+[[bin]]
+name = "emission_script"
+path = "src/main.rs"
