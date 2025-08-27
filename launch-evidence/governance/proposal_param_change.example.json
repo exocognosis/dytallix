@@ -1,0 +1,22 @@
+{
+  "@type": "/cosmos.gov.v1beta1.MsgSubmitProposal",
+  "content": {
+    "@type": "/cosmos.params.v1beta1.ParameterChangeProposal",
+    "title": "Staking Parameter Adjustment for Launch Evidence",
+    "description": "This proposal modifies the unbonding time parameter as part of the launch evidence collection process. This demonstrates governance functionality and parameter change execution for testnet verification.",
+    "changes": [
+      {
+        "subspace": "staking",
+        "key": "UnbondingTime",
+        "value": "\"1814400s\""
+      }
+    ]
+  },
+  "initial_deposit": [
+    {
+      "denom": "uDRT",
+      "amount": "10000000"
+    }
+  ],
+  "proposer": ""
+}
