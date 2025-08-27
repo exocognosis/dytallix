@@ -44,7 +44,7 @@ export const balancesCommand = new Command('balances')
       }
 
     } catch (error) {
-      console.error(chalk.red('Failed to query balances:'), error.message)
+      console.error(chalk.red('Failed to query balances:'), (error as Error).message)
       process.exit(1)
     }
   })

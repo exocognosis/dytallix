@@ -44,7 +44,7 @@ export const broadcastCommand = new Command('broadcast')
       }
 
     } catch (error) {
-      console.error(chalk.red('Failed to broadcast transaction:'), error.message)
+      console.error(chalk.red('Failed to broadcast transaction:'), (error as Error).message)
       process.exit(1)
     }
   })

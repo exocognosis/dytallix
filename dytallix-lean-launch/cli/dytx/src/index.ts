@@ -48,6 +48,6 @@ program.exitOverride((err) => {
 try {
   await program.parseAsync(process.argv)
 } catch (error) {
-  console.error(chalk.red('Error:'), error.message)
+  console.error(chalk.red('Error:'), (error as Error).message)
   process.exit(1)
 }

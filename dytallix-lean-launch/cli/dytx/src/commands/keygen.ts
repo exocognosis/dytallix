@@ -29,7 +29,7 @@ export const keygenCommand = new Command('keygen')
           type: 'password',
           name: 'passphrase',
           message: 'Enter passphrase to encrypt the key:',
-          validate: (input) => input.length >= 8 || 'Passphrase must be at least 8 characters'
+          validate: (input: string) => input.length >= 8 || 'Passphrase must be at least 8 characters'
         }
       ])
 
@@ -38,7 +38,7 @@ export const keygenCommand = new Command('keygen')
           type: 'password',
           name: 'confirmPassphrase',
           message: 'Confirm passphrase:',
-          validate: (input) => input === passphrase || 'Passphrases do not match'
+          validate: (input: string) => input === passphrase || 'Passphrases do not match'
         }
       ])
 
@@ -79,7 +79,7 @@ export const keygenCommand = new Command('keygen')
       }
 
     } catch (error) {
-      console.error(chalk.red('Failed to generate key:'), error.message)
+      console.error(chalk.red('Failed to generate key:'), (error as Error).message)
       process.exit(1)
     }
   })

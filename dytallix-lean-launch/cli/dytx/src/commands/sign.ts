@@ -57,7 +57,7 @@ export const signCommand = new Command('sign')
       }
 
     } catch (error) {
-      console.error(chalk.red('Failed to sign transaction:'), error.message)
+      console.error(chalk.red('Failed to sign transaction:'), (error as Error).message)
       process.exit(1)
     }
   })

@@ -87,11 +87,49 @@ Never commit real mnemonics or secrets. `.env`, `.env.staging`, production secre
 ## Features
 - Multi-page dashboard (Home, Faucet, Tech Specs, AI Modules, Roadmap, Developer Resources)
 - Dual-token faucet with bech32 address validation (`dytallix1...`)
+- **Post-quantum cryptography (PQC) wallet system** with Dilithium, Falcon, SPHINCS+ support
 - Cosmos integration via CosmJS (LCD / RPC / WebSocket placeholders)
 - PQC WASM integrity manifest & facade (`src/crypto/pqc`)
 - **Gas accounting system** with deterministic fee calculation and CLI support
 - **Smart Contract Security Scanner** with Slither + Mythril integration
 - Responsive UI with modular component structure
+
+## PQC Wallet System
+
+Dytallix provides native post-quantum cryptography wallet functionality:
+
+### Web SDK
+```typescript
+import { DytallixWalletProvider } from './lib/wallet/provider'
+
+const wallet = new DytallixWalletProvider()
+const account = await wallet.createKey({
+  algo: 'dilithium',
+  label: 'My PQC Wallet',
+  passphrase: 'secure_passphrase'
+})
+```
+
+### CLI (dytx)
+```bash
+cd cli/dytx && npm install && npm run build
+
+# Generate new key
+dytx keygen --algo dilithium --label "dev-key"
+
+# Check balances  
+dytx balances dytallix1abc123...
+
+# Transfer tokens
+dytx transfer --from addr1 --to addr2 --amount 1.5 --denom udgt
+```
+
+### Supported Algorithms
+- **Dilithium**: NIST standardized, balanced security/performance
+- **Falcon**: Compact signatures, faster verification  
+- **SPHINCS+**: Conservative choice, hash-based security
+
+For detailed integration guide, see [`docs/wallet-migration.md`](docs/wallet-migration.md) and [`docs/cli.md`](docs/cli.md).
 
 ## Smart Contract Security Scanner
 
@@ -168,13 +206,13 @@ MIT (see `LICENSE`).
 
 ## Faucet (Prod)
 
-The production Dytallix testnet faucet provides dual-token dispensing capabilities with robust server-side rate limiting and automatic wallet integration.
+The production Dytallix testnet faucet provides dual-token dispensing capabilities with robust server-side rate limiting and PQC wallet integration.
 
 ### Features
 
 - **Dual-Token Support**: Request both DGT (Governance) and DRT (Reward) tokens in a single request
 - **Server-Side Rate Limiting**: Redis-backed rate limiting with in-memory fallback
-- **Wallet Integration**: Automatic address population from injected providers (MetaMask, etc.)
+- **PQC Wallet Integration**: Automatic address population from local PQC wallet storage
 - **Standardized API**: RESTful endpoints with strict TypeScript DTO types
 - **Enhanced UX**: Real-time feedback with toast notifications and cooldown tracking
 

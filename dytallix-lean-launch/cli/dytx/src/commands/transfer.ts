@@ -91,7 +91,7 @@ export const transferCommand = new Command('transfer')
       }
 
     } catch (error) {
-      console.error(chalk.red('Failed to transfer:'), error.message)
+      console.error(chalk.red('Failed to transfer:'), (error as Error).message)
       process.exit(1)
     }
   })
