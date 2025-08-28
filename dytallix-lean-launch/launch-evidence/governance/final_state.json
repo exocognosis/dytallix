@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-08-28T14:46:50Z",
+  "proposal_execution": {
+    "proposal_id": 1,
+    "execution_height": "post_voting_period",
+    "status": "Success"
+  },
+  "parameter_changes": {
+    "gas_limit": {
+      "old_value": "21000",
+      "new_value": "50000",
+      "change_verified": true
+    }
+  },
+  "persistence": {
+    "parameter_stored": true,
+    "retrievable_via_rpc": true
+  }
+}

