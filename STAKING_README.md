@@ -6,7 +6,7 @@ A comprehensive Proof-of-Stake implementation for the Dytallix blockchain featur
 
 The Dytallix staking system enables:
 - **Validator Registration**: Become a block producer by staking DGT tokens
-- **Delegation**: Stake DGT tokens to validators and earn DRT rewards  
+- **Delegation**: Stake DGT tokens to validators and earn DRT rewards
 - **Reward Accrual**: Automatic proportional reward distribution per block
 - **Governance Ready**: Foundation for stake-weighted governance (future)
 
@@ -22,7 +22,7 @@ dcli stake register-validator \
   --commission 500 \
   --self-stake 1000000000000
 
-# Check validator status  
+# Check validator status
 dcli stake show --address validator1
 ```
 
@@ -65,7 +65,7 @@ dcli stake stats
 
 ### 🔄 Future Enhancements
 - [ ] **Undelegation** - Token unbonding with time delays
-- [ ] **Slashing** - Punishment for validator misbehavior  
+- [ ] **Slashing** - Punishment for validator misbehavior
 - [ ] **Commission** - Validator fee collection from rewards
 - [ ] **Governance** - Stake-weighted proposal voting
 - [ ] **Advanced Rewards** - Variable emission schedules
@@ -120,7 +120,7 @@ pub struct Delegation {
 - **Minimum Validator Stake**: 1 million DGT
 - **Unit**: uDGT (1 DGT = 1,000,000 uDGT)
 
-### DRT (Reward Token)  
+### DRT (Reward Token)
 - **Total Supply**: Variable (inflationary ~6% annually)
 - **Use Cases**: Staking rewards, AI service payments
 - **Distribution**: Block rewards to validators/delegators
@@ -139,7 +139,7 @@ const REWARD_SCALE: u128 = 1_000_000_000_000; // 1e12 for precision
 // Update validator reward index
 reward_index += (emission_per_block * SCALE) / total_active_stake;
 
-// Calculate delegator rewards  
+// Calculate delegator rewards
 pending_rewards = (validator.reward_index - delegation.cursor) * delegation.stake / SCALE;
 ```
 
@@ -159,7 +159,7 @@ Your Rewards: 1,000,000 * 10% = 100,000 uDRT (0.1 DRT)
 - **Maximum Validators**: Maintains decentralization (100 limit)
 - **Commission Transparency**: Rates visible to delegators
 
-### Delegation Protection  
+### Delegation Protection
 - **Duplicate Prevention**: One delegation per delegator-validator pair
 - **Balance Verification**: Sufficient DGT required before delegation
 - **Atomic Operations**: All-or-nothing delegation/reward claiming
@@ -185,7 +185,7 @@ cargo run --example staking_example
 
 ### Test Coverage
 - Validator registration and activation
-- Delegation mechanics and constraints  
+- Delegation mechanics and constraints
 - Reward calculation accuracy
 - Multi-validator scenarios
 - Edge cases and error conditions

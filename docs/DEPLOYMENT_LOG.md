@@ -55,7 +55,7 @@ This document tracks all bridge contract deployments across different networks.
 # Verify DytallixBridge
 npx hardhat verify --network sepolia <BRIDGE_ADDRESS>
 
-# Verify WrappedTokenFactory  
+# Verify WrappedTokenFactory
 npx hardhat verify --network sepolia <FACTORY_ADDRESS> <BRIDGE_ADDRESS>
 
 # Verify Wrapped DGT Token

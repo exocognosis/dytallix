@@ -249,9 +249,9 @@ impl BlockProcessor {
         result.transaction_results = transaction_results;
 
         // 3. AI-enhanced block validation (if available)
-        if let Some(ai_integration) = &self.ai_integration {
+        if let Some(_ai_integration) = &self.ai_integration {
             match self
-                .validate_block_with_ai(block, ai_integration.clone())
+                .validate_block_with_ai(block, _ai_integration.clone())
                 .await
             {
                 Ok(ai_result) => {
@@ -288,7 +288,7 @@ impl BlockProcessor {
         }
 
         // 3. Verify block hash
-        let calculated_hash = self.calculate_block_hash(block);
+        let _calculated_hash = self.calculate_block_hash(block);
         // Note: We don't have a hash field in BlockHeader, so we skip this check for now
         // TODO: Add hash field to BlockHeader or implement proper hash verification
 
@@ -305,7 +305,7 @@ impl BlockProcessor {
     async fn validate_block_with_ai(
         &self,
         block: &Block,
-        ai_integration: Arc<AIIntegrationManager>,
+        _ai_integration: Arc<AIIntegrationManager>,
     ) -> Result<serde_json::Value> {
         // Prepare block data for AI analysis
         let mut analysis_data = HashMap::new();

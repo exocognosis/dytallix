@@ -33,7 +33,7 @@ Get account balance information.
       "formatted": "1.0 DGT"
     },
     "udrt": {
-      "balance": "500000", 
+      "balance": "500000",
       "formatted": "0.5 DRT"
     }
   },
@@ -304,7 +304,7 @@ Request testnet tokens.
       "txHash": "0x1234..."
     },
     {
-      "token": "DRT", 
+      "token": "DRT",
       "amount": "5000000",
       "txHash": "0x5678..."
     }

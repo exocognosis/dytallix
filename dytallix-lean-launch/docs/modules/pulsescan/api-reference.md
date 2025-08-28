@@ -108,7 +108,7 @@ GET /findings/{id}
     "high_velocity_pattern",
     "suspicious_amount_distribution"
   ],
-  "signature_pq": "a1b2c3d4...", 
+  "signature_pq": "a1b2c3d4...",
   "block_height": 12345678,
   "timestamp_detected": 1640995200,
   "timestamp_created": "2023-01-01T12:00:00Z",

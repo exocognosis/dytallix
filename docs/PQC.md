@@ -16,7 +16,7 @@ The following NIST-approved PQC algorithms are supported:
 - **Use Case**: Recommended for most applications due to balanced performance
 
 ### Falcon1024
-- **Type**: Lattice-based signature scheme  
+- **Type**: Lattice-based signature scheme
 - **Security Level**: NIST Level 5
 - **Key Sizes**: Public key ~1.8KB, Secret key ~2.3KB, Signature ~1.3KB
 - **Performance**: Compact signatures, fast operations
@@ -92,7 +92,7 @@ Transactions are signed over canonical JSON representation of core fields:
 ```json
 {
   "from": "dyt1sender...",
-  "to": "dyt1receiver...", 
+  "to": "dyt1receiver...",
   "amount": 1000000,
   "fee": 1000,
   "nonce": 42,
@@ -155,12 +155,12 @@ fn verify_envelope(tx: &Transaction) -> bool {
             // Decode base64 components
             let sig_bytes = base64::decode(signature)?;
             let pk_bytes = base64::decode(public_key)?;
-            
+
             // Create canonical transaction
             let canonical_tx = tx.canonical_fields();
             let tx_bytes = canonical_json(&canonical_tx)?;
             let tx_hash = sha3_256(&tx_bytes);
-            
+
             // Verify with active PQC algorithm
             ActivePQC::verify(&pk_bytes, &tx_hash, &sig_bytes)
         }
@@ -261,7 +261,7 @@ Run PQC-specific tests:
 # Mempool verification tests
 cargo test -p dytallix-lean-node pqc_tests
 
-# CLI key generation tests  
+# CLI key generation tests
 cargo test -p dytallix-cli keys
 
 # Integration tests
@@ -307,7 +307,7 @@ cargo test -p dytallix-sdk pqc_transaction
 - **Batch Verification**: Optimize verification for multiple transactions
 - **Hardware Acceleration**: Support for PQC-optimized hardware
 
-### Medium Term  
+### Medium Term
 - **Algorithm Agility**: Runtime algorithm selection and migration support
 - **Threshold Signatures**: Multi-party signing for enhanced security
 - **Key Rotation**: Automated key lifecycle management
@@ -323,7 +323,7 @@ cargo test -p dytallix-sdk pqc_transaction
 
 **Audit Areas**:
 - Algorithm implementation correctness
-- Side-channel attack resistance  
+- Side-channel attack resistance
 - Memory safety and key zeroization
 - Cryptographic parameter validation
 - Timing attack mitigation
@@ -336,7 +336,7 @@ cargo test -p dytallix-sdk pqc_transaction
 - Verify signature is valid base64
 - Check for truncated or corrupted data
 
-**Error: "Unsupported algorithm"**  
+**Error: "Unsupported algorithm"**
 - Ensure algorithm matches ActivePQC configuration
 - Verify PQC features are enabled in build
 

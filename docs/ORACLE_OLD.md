@@ -9,7 +9,7 @@ The Dytallix Oracle system provides a secure, scalable ingestion pipeline for ex
 ### Core Components
 
 1. **OracleStore** - Persistent storage layer using RocksDB
-2. **REST API** - HTTP endpoints for score submission  
+2. **REST API** - HTTP endpoints for score submission
 3. **CLI Interface** - Command-line tools for oracle operations
 4. **RPC Integration** - Risk scores exposed in transaction queries
 5. **Signature Verification** - Optional cryptographic validation
@@ -19,7 +19,7 @@ The Dytallix Oracle system provides a secure, scalable ingestion pipeline for ex
 ```rust
 pub struct AiRiskRecord {
     pub tx_hash: String,        // Transaction hash (hex format)
-    pub model_id: String,       // AI model identifier 
+    pub model_id: String,       // AI model identifier
     pub risk_score: f32,        // Risk score (0.0 to 1.0)
     pub confidence: Option<f32>, // Confidence level (0.0 to 1.0)
     pub signature: Option<String>, // Optional cryptographic signature
@@ -61,7 +61,7 @@ pub struct AiRiskRecord {
     "records": [
         {
             "tx_hash": "0x1234...",
-            "model_id": "fraud-detector-v2.1", 
+            "model_id": "fraud-detector-v2.1",
             "risk_score": 0.75,
             "confidence": 0.92,
             "signature": "base64-signature"
@@ -132,7 +132,7 @@ cat > risk_scores.json << EOF
         "confidence": 0.92
     },
     {
-        "tx_hash": "0x5678...", 
+        "tx_hash": "0x5678...",
         "model_id": "ml-risk-engine-v1.0",
         "risk_score": 0.23,
         "confidence": 0.88
@@ -173,12 +173,12 @@ The oracle endpoints include built-in rate limiting to prevent abuse:
    - Must be hex format starting with "0x"
    - Minimum length of 3 characters
 
-2. **Risk Score** 
+2. **Risk Score**
    - Must be between 0.0 and 1.0 (inclusive)
    - Required field
 
 3. **Confidence**
-   - Must be between 0.0 and 1.0 (inclusive) 
+   - Must be between 0.0 and 1.0 (inclusive)
    - Optional field
 
 4. **Model ID**
@@ -196,11 +196,11 @@ def submit_risk_score(tx_hash, model_id, risk_score, confidence=None):
     url = "http://localhost:3030/oracle/ai_risk"
     payload = {
         "tx_hash": tx_hash,
-        "model_id": model_id, 
+        "model_id": model_id,
         "risk_score": risk_score,
         "confidence": confidence
     }
-    
+
     response = requests.post(url, json=payload)
     return response.json()
 
@@ -229,7 +229,7 @@ async function submitRiskScore(txHash, modelId, riskScore, confidence) {
             confidence: confidence
         })
     });
-    
+
     return await response.json();
 }
 
@@ -242,7 +242,7 @@ async function submitBatchRiskScores(records) {
         },
         body: JSON.stringify({ records })
     });
-    
+
     return await response.json();
 }
 ```
@@ -380,7 +380,7 @@ RUST_LOG=debug cargo run
 ### Planned Features
 
 1. **WebSocket Support** - Real-time risk score streaming
-2. **Advanced Rate Limiting** - Per-model and per-source limits  
+2. **Advanced Rate Limiting** - Per-model and per-source limits
 3. **Metrics Dashboard** - Oracle submission statistics and monitoring
 4. **Model Performance Tracking** - Accuracy metrics and A/B testing
 5. **Multi-Model Aggregation** - Combining scores from multiple AI models

@@ -96,7 +96,7 @@ The FastAPI application integrates signing into all endpoints:
 async def analyze_fraud(request: FraudAnalysisRequest):
     # Perform analysis
     analysis = await fraud_detector.analyze_transaction(...)
-    
+
     # Sign the response
     if signing_service and signing_service.is_initialized:
         signed_response = signing_service.sign_fraud_detection_response(...)

@@ -6,7 +6,7 @@
 
 #### 1. WASM Integration (Primary Task)
 - **✅ Contract Deployment**: Updated `execute_deployment` in consensus engine to use WASM runtime
-- **✅ Contract Execution**: Updated `execute_contract_call` to use WASM runtime  
+- **✅ Contract Execution**: Updated `execute_contract_call` to use WASM runtime
 - **✅ API Compatibility**: Fixed all struct field changes (DeployTransaction, CallTransaction, PQCTransactionSignature)
 - **✅ Test Creation**: Created comprehensive WASM integration test (`tests/wasm_integration_test.rs`)
 - **✅ Compilation Success**: WASM test compiles and runs successfully

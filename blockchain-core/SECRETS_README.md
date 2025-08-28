@@ -13,7 +13,7 @@ The secrets management system eliminates hard-coded secrets and provides a unifi
 ## Key Features
 
 - 🔐 **No hard-coded secrets** - All sensitive data loaded from secure sources
-- 🔄 **Pluggable providers** - Easy to switch between secret backends  
+- 🔄 **Pluggable providers** - Easy to switch between secret backends
 - 📊 **Provider priorities** - Try Vault first, fallback to environment
 - ⚡ **Async/await ready** - Non-blocking secret retrieval
 - 🛡️ **Error handling** - Graceful degradation when providers are unavailable
@@ -159,7 +159,7 @@ let provider = VaultProvider::from_env()?;
 The Vault provider in stub mode simulates a real Vault deployment without network calls:
 
 - ✅ No Vault server required
-- ✅ Consistent with real Vault data structure  
+- ✅ Consistent with real Vault data structure
 - ✅ Perfect for development and testing
 - ✅ Safe default for dev environments
 
@@ -237,11 +237,11 @@ dcli secrets test --comprehensive
 #[tokio::test]
 async fn test_secret_retrieval() {
     env::set_var("TEST_SECRET", "test_value");
-    
+
     let config = SecretConfig::for_testing();
     let mut manager = SecretManager::new(config).unwrap();
     manager.initialize().await.unwrap();
-    
+
     let value = manager.get_secret("SECRET").await.unwrap();
     assert_eq!(value, "test_value");
 }
@@ -332,7 +332,7 @@ Follow the existing Vault setup in `devops/secrets-management/vault-setup.sh` to
 ## Future Roadmap
 
 - **AWS Secrets Manager** provider
-- **Azure Key Vault** provider  
+- **Azure Key Vault** provider
 - **Google Secret Manager** provider
 - **Kubernetes Secrets** provider
 - **Secret rotation** support

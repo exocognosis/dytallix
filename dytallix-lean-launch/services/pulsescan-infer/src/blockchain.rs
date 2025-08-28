@@ -36,7 +36,7 @@ pub struct BlockchainMonitor {
 impl BlockchainMonitor {
     pub async fn new(config: &Config) -> Result<Self, InferenceError> {
         let rpc_client = reqwest::Client::new();
-        
+
         Ok(Self {
             rpc_client,
             rpc_url: config.blockchain_rpc_url.clone(),
@@ -46,17 +46,17 @@ impl BlockchainMonitor {
 
     pub async fn transaction_stream(&self) -> Result<mpsc::Receiver<Transaction>, InferenceError> {
         let (tx, rx) = mpsc::channel(1000);
-        
+
         // Simulate transaction stream - in real implementation, this would:
         // 1. Connect to blockchain WebSocket
         // 2. Subscribe to new transactions
         // 3. Parse and send transactions through channel
-        
+
         let _handle = tokio::spawn(async move {
             loop {
                 // Simulate a transaction every 5 seconds
                 tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                
+
                 let mock_transaction = Transaction {
                     hash: format!("{:064x}", rand::random::<u64>()),
                     from: "dytallix1sender...".to_string(),
@@ -67,13 +67,13 @@ impl BlockchainMonitor {
                     timestamp: chrono::Utc::now().timestamp() as u64,
                     block_height: 1000000 + rand::random::<u64>() % 1000,
                 };
-                
+
                 if tx.send(mock_transaction).await.is_err() {
                     break;
                 }
             }
         });
-        
+
         Ok(rx)
     }
 
@@ -83,13 +83,13 @@ impl BlockchainMonitor {
         // 2. Sign the transaction
         // 3. Broadcast to the blockchain
         // 4. Return the transaction hash
-        
+
         tracing::info!(
             "Submitting finding for tx {} with score {:.3}",
             finding.tx_hash,
             finding.score
         );
-        
+
         // Simulate blockchain submission
         Ok(format!("tx_{:016x}", rand::random::<u64>()))
     }

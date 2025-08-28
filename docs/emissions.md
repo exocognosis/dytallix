@@ -34,7 +34,7 @@ The emission system supports three different schedule modes:
 Fixed amount per block, regardless of circulating supply.
 
 ```rust
-EmissionSchedule::Static { 
+EmissionSchedule::Static {
     per_block: 1_000_000  // 1 DRT per block (in uDRT)
 }
 ```
@@ -43,7 +43,7 @@ EmissionSchedule::Static {
 Time-based phases with different emission rates for different block ranges.
 
 ```rust
-EmissionSchedule::Phased { 
+EmissionSchedule::Phased {
     phases: vec![
         EmissionPhase {
             start_height: 1,
@@ -63,7 +63,7 @@ EmissionSchedule::Phased {
 Annual inflation rate applied to circulating supply.
 
 ```rust
-EmissionSchedule::Percentage { 
+EmissionSchedule::Percentage {
     annual_inflation_rate: 500  // 5% annual inflation (basis points)
 }
 ```
@@ -117,7 +117,7 @@ When `circulating_supply = 0`, the system uses a fixed bootstrap emission:
 Each block's emission is distributed according to the breakdown percentages:
 
 1. **Block Rewards**: 60% - Validator block production rewards
-2. **Staking Rewards**: 25% - Delegator and validator staking rewards  
+2. **Staking Rewards**: 25% - Delegator and validator staking rewards
 3. **AI Module Incentives**: 10% - AI service provider rewards
 4. **Bridge Operations**: 5% - Cross-chain bridge operation rewards
 
@@ -196,7 +196,7 @@ Returns recent emission events with pagination.
       "total_emitted": "1000000",
       "pools": {
         "block_rewards": "600000",
-        "staking_rewards": "250000", 
+        "staking_rewards": "250000",
         "ai_module_incentives": "100000",
         "bridge_operations": "50000"
       },
@@ -211,7 +211,7 @@ Returns recent emission events with pagination.
   },
   "staking_stats": {
     "total_stake": "50000000000000",
-    "reward_index": "123456789012", 
+    "reward_index": "123456789012",
     "pending_emission": "0"
   }
 }
@@ -237,7 +237,7 @@ Enhanced stats endpoint with emission data.
   "emission_pools": {
     "block_rewards": "1200000000",
     "staking_rewards": "500000000",
-    "ai_module_incentives": "200000000", 
+    "ai_module_incentives": "200000000",
     "bridge_operations": "100000000"
   },
   "latest_emission": {
@@ -271,7 +271,7 @@ Options:
 ### Validation Checks
 
 1. **Distribution Consistency**: `sum(pools) = total_emission` for each block
-2. **Cumulative Totals**: Pool totals vs circulating supply consistency  
+2. **Cumulative Totals**: Pool totals vs circulating supply consistency
 3. **Staking Rewards**: Reward index and pending emission validation
 4. **Precision**: Floating-point vs integer calculation differences
 
@@ -336,7 +336,7 @@ Located in `tests/integration_emission_staking.rs`:
 # Unit tests
 cargo test emission_schedule_tests
 
-# Integration tests  
+# Integration tests
 cargo test integration_emission_staking
 
 # All emission-related tests

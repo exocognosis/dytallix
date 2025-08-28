@@ -1,11 +1,17 @@
 use crate::wasm::host_env::{HostEnv, HostExecutionContext};
 use anyhow::{anyhow, Result};
-use std::sync::Arc;
 use wasmtime::{Caller, Config, Engine, Instance, Linker, Memory, Module, Store};
 
+// Manual Debug impl because wasmtime::Engine is not Debug
 pub struct WasmEngine {
     engine: Engine,
     host_env: HostEnv,
+}
+
+impl std::fmt::Debug for WasmEngine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WasmEngine").finish()
+    }
 }
 
 impl WasmEngine {
@@ -64,12 +70,12 @@ impl WasmEngine {
             .and_then(|e| e.into_memory())
             .ok_or_else(|| anyhow!("memory export not found"))
     }
-    fn read_mem<T>(mut caller: Caller<'_, T>, ptr: i32, len: i32) -> Result<Vec<u8>> {
+    fn read_mem<T>(caller: &mut Caller<'_, T>, ptr: i32, len: i32) -> Result<Vec<u8>> {
         if ptr < 0 || len < 0 {
             return Err(anyhow!("negative ptr/len"));
         }
-        let mem = Self::get_memory(&mut caller)?;
-        let data = mem.data(&caller);
+        let mem = Self::get_memory(caller)?;
+        let data = mem.data(&*caller);
         let start = ptr as usize;
         let end = start + len as usize;
         if end > data.len() {
@@ -77,12 +83,12 @@ impl WasmEngine {
         }
         Ok(data[start..end].to_vec())
     }
-    fn write_mem<T>(mut caller: Caller<'_, T>, ptr: i32, bytes: &[u8]) -> Result<()> {
+    fn write_mem<T>(caller: &mut Caller<'_, T>, ptr: i32, bytes: &[u8]) -> Result<()> {
         if ptr < 0 {
             return Err(anyhow!("negative ptr"));
         }
-        let mem = Self::get_memory(&mut caller)?;
-        let data = mem.data_mut(&mut caller);
+        let mem = Self::get_memory(caller)?;
+        let data = mem.data_mut(&mut *caller);
         let start = ptr as usize;
         let end = start + bytes.len();
         if end > data.len() {
@@ -92,7 +98,7 @@ impl WasmEngine {
         Ok(())
     }
 
-    fn charge_fuel<T>(mut caller: Caller<'_, T>, amount: u64) -> Result<()> {
+    fn charge_fuel<T>(caller: &mut Caller<'_, T>, amount: u64) -> Result<()> {
         if amount == 0 {
             return Ok(());
         }
@@ -115,12 +121,12 @@ impl WasmEngine {
                   max_len: i32|
                   -> i32 {
                 let gas_cost = env.gas_table().storage_get;
-                let _ = Self::charge_fuel(caller.as_context_mut(), gas_cost);
+                let _ = Self::charge_fuel(&mut caller, gas_cost);
                 match (|| -> Result<i32> {
-                    let key = Self::read_mem(caller.as_context_mut(), key_ptr, key_len)?;
+                    let key = Self::read_mem(&mut caller, key_ptr, key_len)?;
                     if let Some(val) = env.storage_get(&key) {
                         let take = std::cmp::min(val.len(), max_len as usize);
-                        Self::write_mem(caller.as_context_mut(), val_ptr, &val[..take])?;
+                        Self::write_mem(&mut caller, val_ptr, &val[..take])?;
                         Ok(take as i32)
                     } else {
                         Ok(-1)
@@ -145,10 +151,10 @@ impl WasmEngine {
                   -> i32 {
                 let gas_cost =
                     env_set.gas_table().storage_set + ((val_len.max(0) as u64 + 31) / 32) * 5;
-                let _ = Self::charge_fuel(caller.as_context_mut(), gas_cost);
+                let _ = Self::charge_fuel(&mut caller, gas_cost);
                 match (|| -> Result<i32> {
-                    let key = Self::read_mem(caller.as_context_mut(), key_ptr, key_len)?;
-                    let val = Self::read_mem(caller.as_context_mut(), val_ptr, val_len)?;
+                    let key = Self::read_mem(&mut caller, key_ptr, key_len)?;
+                    let val = Self::read_mem(&mut caller, val_ptr, val_len)?;
                     env_set.storage_set(key, val);
                     Ok(0)
                 })() {
@@ -165,9 +171,9 @@ impl WasmEngine {
             "storage_delete",
             move |mut caller: Caller<'_, T>, key_ptr: i32, key_len: i32| -> i32 {
                 let gas_cost = env_del.gas_table().storage_delete;
-                let _ = Self::charge_fuel(caller.as_context_mut(), gas_cost);
+                let _ = Self::charge_fuel(&mut caller, gas_cost);
                 match (|| -> Result<i32> {
-                    let key = Self::read_mem(caller.as_context_mut(), key_ptr, key_len)?;
+                    let key = Self::read_mem(&mut caller, key_ptr, key_len)?;
                     Ok(if env_del.storage_delete(&key) { 1 } else { 0 })
                 })() {
                     Ok(r) => r,
@@ -185,11 +191,11 @@ impl WasmEngine {
                 let chunks = (data_len.max(0) as u64 + 31) / 32;
                 let gas_cost =
                     env_hash.gas_table().crypto_hash + chunks * env_hash.gas_table().crypto_hash;
-                let _ = Self::charge_fuel(caller.as_context_mut(), gas_cost);
+                let _ = Self::charge_fuel(&mut caller, gas_cost);
                 match (|| -> Result<i32> {
-                    let data = Self::read_mem(caller.as_context_mut(), data_ptr, data_len)?;
+                    let data = Self::read_mem(&mut caller, data_ptr, data_len)?;
                     let hash = env_hash.blake3_hash(&data);
-                    Self::write_mem(caller.as_context_mut(), out_ptr, &hash)?;
+                    Self::write_mem(&mut caller, out_ptr, &hash)?;
                     Ok(0)
                 })() {
                     Ok(r) => r,
@@ -214,12 +220,12 @@ impl WasmEngine {
                   algo_len: i32|
                   -> i32 {
                 let gas_cost = env_verify.gas_table().crypto_verify;
-                let _ = Self::charge_fuel(caller.as_context_mut(), gas_cost);
+                let _ = Self::charge_fuel(&mut caller, gas_cost);
                 match (|| -> Result<i32> {
-                    let sig = Self::read_mem(caller.as_context_mut(), sig_ptr, sig_len)?;
-                    let msg = Self::read_mem(caller.as_context_mut(), msg_ptr, msg_len)?;
-                    let pk = Self::read_mem(caller.as_context_mut(), pub_ptr, pub_len)?;
-                    let algo = Self::read_mem(caller.as_context_mut(), algo_ptr, algo_len)?;
+                    let sig = Self::read_mem(&mut caller, sig_ptr, sig_len)?;
+                    let msg = Self::read_mem(&mut caller, msg_ptr, msg_len)?;
+                    let pk = Self::read_mem(&mut caller, pub_ptr, pub_len)?;
+                    let algo = Self::read_mem(&mut caller, algo_ptr, algo_len)?;
                     let algo_str = String::from_utf8_lossy(&algo).to_string();
                     Ok(if env_verify.pqc_verify(&msg, &sig, &algo_str, &pk) {
                         1
@@ -256,11 +262,11 @@ impl WasmEngine {
             "get_caller_address",
             move |mut caller: Caller<'_, T>, out_ptr: i32, max_len: i32| -> i32 {
                 let gas_cost = env_caller.gas_table().env_read;
-                let _ = Self::charge_fuel(caller.as_context_mut(), gas_cost);
+                let _ = Self::charge_fuel(&mut caller, gas_cost);
                 let ctx = env_caller.context();
                 let addr = ctx.caller.as_bytes();
                 let take = std::cmp::min(addr.len(), max_len as usize);
-                if Self::write_mem(caller.as_context_mut(), out_ptr, &addr[..take]).is_ok() {
+                if Self::write_mem(&mut caller, out_ptr, &addr[..take]).is_ok() {
                     take as i32
                 } else {
                     -1
@@ -275,8 +281,8 @@ impl WasmEngine {
             "debug_log",
             move |mut caller: Caller<'_, T>, msg_ptr: i32, msg_len: i32| {
                 let gas_cost = env_log.gas_table().log + ((msg_len.max(0) as u64 + 63) / 64) * 5;
-                let _ = Self::charge_fuel(caller.as_context_mut(), gas_cost);
-                if let Ok(bytes) = Self::read_mem(caller.as_context_mut(), msg_ptr, msg_len) {
+                let _ = Self::charge_fuel(&mut caller, gas_cost);
+                if let Ok(bytes) = Self::read_mem(&mut caller, msg_ptr, msg_len) {
                     if let Ok(msg) = String::from_utf8(bytes) {
                         env_log.push_log(msg);
                     }

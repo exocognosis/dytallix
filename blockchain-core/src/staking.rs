@@ -1,7 +1,7 @@
 // Staking module for Dytallix blockchain
 // Implements validator registry, delegation, and reward accrual
 
-use crate::types::{Address, Amount, BlockNumber, ValidatorInfo};
+use crate::types::{Address, BlockNumber}; // Removed unused imports: Amount, ValidatorInfo
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -1013,6 +1013,8 @@ impl StakingState {
         } else {
             0
         };
+
+        let _avg_reward_index = avg_reward_index; // suppress unused variable warning
 
         (self.global_reward_index, self.pending_staking_emission)
     }

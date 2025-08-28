@@ -167,7 +167,7 @@ impl AIOracleClient {
     /// Health check endpoint for AI services
     pub async fn health_check(&self) -> Result<bool> {
         let url = format!("{}/health", self.config.endpoint.trim_end_matches('/'));
-        
+
         match self.client.get(&url).send().await {
             Ok(resp) => Ok(resp.status().is_success()),
             Err(_) => Ok(false),
@@ -177,7 +177,7 @@ impl AIOracleClient {
     /// Service discovery - get available AI services and their capabilities
     pub async fn discover_services(&self) -> Result<Vec<AIServiceInfo>> {
         let url = format!("{}/services", self.config.endpoint.trim_end_matches('/'));
-        
+
         match self.client.get(&url).send().await {
             Ok(resp) => {
                 if resp.status().is_success() {
@@ -288,17 +288,17 @@ impl ConsensusEngine {
         info!("Generated PQC keys at {}", path.display());
         Ok(())
     }
-    
+
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Starting consensus engine...");
-        
+
         if self.is_validator {
             self.start_validator_loop().await?;
         }
-        
+
         Ok(())
     }
-    
+
     pub async fn stop(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Stopping consensus engine...");
         Ok(())
@@ -320,7 +320,7 @@ impl ConsensusEngine {
         let services = self.ai_client.discover_services().await?;
         info!("Discovered {} AI services", services.len());
         for service in &services {
-            debug!("AI Service: {} - Type: {:?} - Availability: {:.2}", 
+            debug!("AI Service: {} - Type: {:?} - Availability: {:.2}",
                    service.service_id, service.service_type, service.availability_score);
         }
         Ok(services)
@@ -328,8 +328,8 @@ impl ConsensusEngine {
 
     /// Request AI analysis for a transaction or data
     pub async fn request_ai_analysis(
-        &self, 
-        service_type: AIServiceType, 
+        &self,
+        service_type: AIServiceType,
         data: HashMap<String, Value>
     ) -> Result<SignedAIOracleResponse, Box<dyn std::error::Error>> {
         let request = AIAnalysisRequest {
@@ -342,7 +342,7 @@ impl ConsensusEngine {
         };
 
         let response = self.ai_client.request_analysis(&request).await?;
-        
+
         // Validate response signature (in production, this would verify PQC signature)
         if response.confidence_score < self.ai_client.get_config().risk_threshold {
             warn!("AI analysis confidence score below threshold: {}", response.confidence_score);
@@ -350,20 +350,20 @@ impl ConsensusEngine {
 
         Ok(response)
     }
-    
+
     async fn start_validator_loop(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Starting validator loop...");
-        
+
         let runtime = Arc::clone(&self.runtime);
         let pqc_manager = Arc::clone(&self.pqc_manager);
         let current_block = Arc::clone(&self.current_block);
-        
+
         tokio::spawn(async move {
             let mut block_number = 0u64;
-            
+
             loop {
                 debug!("Validator tick - producing block #{}", block_number);
-                
+
                 // Create a sample transaction for demonstration
                 let mut sample_tx = crate::types::TransferTransaction {
                     hash: String::new(), // Will be calculated
@@ -380,14 +380,14 @@ impl ConsensusEngine {
                         signature: dytallix_pqc::Signature {
                             data: Vec::new(),
                             algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
-                            
-                            
+
+
                         },
                         public_key: Vec::new(),
                     },
                     ai_risk_score: Some(0.1), // Low risk
                 };
-                
+
                 // Calculate hash
                 sample_tx.hash = sample_tx.calculate_hash();
 
@@ -401,24 +401,24 @@ impl ConsensusEngine {
                         public_key: pqc_manager.get_dilithium_public_key().to_vec(),
                     };
                 }
-                
+
                 let mut transaction = Transaction::Transfer(sample_tx);
                 transaction
                     .sign_transaction(&pqc_manager)
                     .expect("failed to sign sample transaction");
                 let transactions = vec![transaction];
-                
+
                 // Create block proposal
                 match Self::create_block_proposal(&runtime, &pqc_manager, &current_block, transactions, block_number).await {
                     Ok(block) => {
-                        info!("✅ Successfully created block #{} with {} transactions", 
+                        info!("✅ Successfully created block #{} with {} transactions",
                               block.header.number, block.transactions.len());
-                        
+
                         // Validate the block
                         match Self::validate_block_static(&runtime, &pqc_manager, &block).await {
                             Ok(true) => {
                                 info!("✅ Block #{} validation successful", block.header.number);
-                                
+
                                 // Apply block to state
                                 if let Err(e) = Self::apply_block_to_state(&runtime, &block).await {
                                     log::error!("Failed to apply block to state: {}", e);
@@ -441,26 +441,26 @@ impl ConsensusEngine {
                         log::error!("Failed to create block proposal: {}", e);
                     }
                 }
-                
+
                 tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
             }
         });
-        
+
         Ok(())
     }
-    
+
     pub async fn propose_block(&self, transactions: Vec<Transaction>) -> Result<Block, String> {
         Self::create_block_proposal(&self.runtime, &self.pqc_manager, &self.current_block, transactions, 0).await
     }
-    
+
     pub async fn validate_block(&self, block: &Block) -> Result<bool, String> {
         Self::validate_block_static(&self.runtime, &self.pqc_manager, block).await
     }
-    
+
     fn calculate_merkle_root(&self, transactions: &[Transaction]) -> String {
         Self::calculate_merkle_root_static(transactions)
     }
-    
+
     // Static helper methods for use in async tasks
     async fn create_block_proposal(
         runtime: &Arc<DytallixRuntime>,
@@ -475,24 +475,24 @@ impl ConsensusEngine {
             None => "0".repeat(64), // Genesis block
         };
         drop(previous_block);
-        
+
         let transactions_root = Self::calculate_merkle_root_static(&transactions);
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| e.to_string())?
             .as_secs();
-        
+
         // Create a placeholder signature (to be replaced)
         let placeholder_signature = crate::types::PQCBlockSignature {
             signature: dytallix_pqc::Signature {
                 data: Vec::new(),
                 algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
-                
-                
+
+
             },
             public_key: Vec::new(),
         };
-        
+
         let header = BlockHeader {
             number: block_number,
             parent_hash,
@@ -501,33 +501,33 @@ impl ConsensusEngine {
             timestamp,
             validator: "dyt1validator".to_string(), // TODO: Use actual validator address
             signature: placeholder_signature.clone(),
-            
+
         };
-        
+
         let mut block = Block {
             header,
             transactions,
         };
-        
+
         // Sign the block with PQC signature
         let block_hash = Self::calculate_block_hash_static(&block.header);
         let signature = pqc_manager.sign_message(block_hash.as_bytes())
             .map_err(|e| e.to_string())?;
-        
+
         // Update the block header with real signature
         block.header.signature = crate::types::PQCBlockSignature {
             signature: dytallix_pqc::Signature {
                 data: signature.signature,
                 algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
-                
-                
+
+
             },
             public_key: pqc_manager.get_dilithium_public_key().to_vec(),
         };
-        
+
         Ok(block)
     }
-    
+
     async fn validate_block_static(
         runtime: &Arc<DytallixRuntime>,
         pqc_manager: &Arc<PQCManager>,
@@ -537,7 +537,7 @@ impl ConsensusEngine {
         if block.transactions.is_empty() {
             return Ok(false);
         }
-        
+
         // Validate PQC signature
         let block_hash = Self::calculate_block_hash_static(&block.header);
         let is_valid = pqc_manager.verify_signature(
@@ -550,21 +550,21 @@ impl ConsensusEngine {
             },
             &block.header.signature.public_key,
         ).map_err(|e| e.to_string())?;
-        
+
         if !is_valid {
             return Ok(false);
         }
-        
+
         // Validate transactions
         for tx in &block.transactions {
             if !Self::validate_transaction_static(runtime, pqc_manager, tx).await? {
                 return Ok(false);
             }
         }
-        
+
         Ok(true)
     }
-    
+
     async fn validate_transaction_static(
         runtime: &Arc<DytallixRuntime>,
         pqc_manager: &Arc<PQCManager>,
@@ -581,7 +581,7 @@ impl ConsensusEngine {
                 if transfer_tx.amount == 0 {
                     return Ok(false);
                 }
-                
+
                 // Check AI risk score if present
                 if let Some(risk_score) = transfer_tx.ai_risk_score {
                     if risk_score > 0.8 {
@@ -589,7 +589,7 @@ impl ConsensusEngine {
                         return Ok(false);
                     }
                 }
-                
+
                 // Check balance for transfers (skip for genesis)
                 if transfer_tx.from != "dyt1genesis" {
                     let balance = runtime.get_balance(&transfer_tx.from).await
@@ -599,7 +599,7 @@ impl ConsensusEngine {
                         return Ok(false);
                     }
                 }
-                
+
                 if !Self::validate_transaction_signature_static(pqc_manager, tx)? {
                     return Ok(false);
                 }
@@ -622,7 +622,7 @@ impl ConsensusEngine {
                 if ai_request_tx.service_type == AIServiceType::Unknown {
                     return Ok(false);
                 }
-                
+
                 // Check for required fields based on service type
                 match ai_request_tx.service_type {
                     AIServiceType::KYC | AIServiceType::AML => {
@@ -637,7 +637,7 @@ impl ConsensusEngine {
                     },
                     _ => {}
                 }
-                
+
                 // Check AI risk score if present
                 if let Some(risk_score) = ai_request_tx.ai_risk_score {
                     if risk_score > 0.8 {
@@ -645,18 +645,18 @@ impl ConsensusEngine {
                         return Ok(false);
                     }
                 }
-                
+
                 Ok(true)
             }
         }
     }
-    
+
     async fn apply_block_to_state(
         runtime: &Arc<DytallixRuntime>,
         block: &Block,
     ) -> Result<(), String> {
         info!("Applying block #{} to state", block.header.number);
-        
+
         for tx in &block.transactions {
             match tx {
                 Transaction::Transfer(transfer_tx) => {
@@ -671,12 +671,12 @@ impl ConsensusEngine {
                                 .map_err(|e| e.to_string())?;
                         }
                     }
-                    
+
                     // Add to recipient
                     let recipient_balance = runtime.get_balance(&transfer_tx.to).await.unwrap_or(0);
                     runtime.set_balance(&transfer_tx.to, recipient_balance + transfer_tx.amount).await
                         .map_err(|e| e.to_string())?;
-                    
+
                     info!("Applied transfer: {} -> {} ({})", transfer_tx.from, transfer_tx.to, transfer_tx.amount);
                 }
                 Transaction::Deploy(deploy_tx) => {
@@ -697,7 +697,7 @@ impl ConsensusEngine {
                 }
             }
         }
-        
+
         // Save state to storage
         runtime.save_state().await.map_err(|e| e.to_string())?;
 
@@ -737,11 +737,11 @@ impl ConsensusEngine {
             _ => Ok(true),
         }
     }
-    
+
     fn calculate_block_hash_static(header: &BlockHeader) -> String {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         header.number.hash(&mut hasher);
         header.parent_hash.hash(&mut hasher);
@@ -750,7 +750,7 @@ impl ConsensusEngine {
         header.timestamp.hash(&mut hasher);
         header.validator.hash(&mut hasher);
         header.nonce.hash(&mut hasher);
-        
+
         format!("{:x}", hasher.finish())
     }
 
@@ -770,11 +770,11 @@ impl ConsensusEngine {
             .verify_signature(&message, &pqc_sig, &sig.public_key)
             .map_err(|e| e.to_string())
     }
-    
+
     fn calculate_merkle_root_static(transactions: &[Transaction]) -> String {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         for tx in transactions {
             // Hash the transaction based on its type
@@ -798,7 +798,7 @@ impl ConsensusEngine {
                 }
             }
         }
-        
+
         format!("{:x}", hasher.finish())
     }
 }

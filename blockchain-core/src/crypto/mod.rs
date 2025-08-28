@@ -161,7 +161,6 @@ impl PQCManager {
 
     /// Produce canonical bytes of a block header with signature field zeroed (not included).
     pub fn canonical_header_without_sig(header: &crate::types::BlockHeader) -> Vec<u8> {
-        use crate::types::BlockHeader as BH;
         // Create a shallow clone with empty signature fields
         let mut clone = header.clone();
         clone.signature.signature.data.clear();

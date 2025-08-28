@@ -145,7 +145,7 @@ impl NotificationSystem {
     }
 
     /// Get all notifications for a user/officer
-    pub async fn get_notifications(&self, officer_id: Option<String>) -> Vec<Notification> {
+    pub async fn get_notifications(&self, _officer_id: Option<String>) -> Vec<Notification> {
         let notifications = self.notifications.lock().await;
         // For now, return all notifications. In a real implementation,
         // this would filter by officer_id and permissions

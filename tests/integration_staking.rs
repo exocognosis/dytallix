@@ -831,7 +831,7 @@ fn test_backward_compatibility() {
     // Test that old delegation JSON (without accrued_rewards) can be deserialized
     let old_delegation_json = r#"{
         "delegator_address": "delegator1",
-        "validator_address": "validator1", 
+        "validator_address": "validator1",
         "stake_amount": 1000000000000,
         "reward_cursor_index": 123456
     }"#;

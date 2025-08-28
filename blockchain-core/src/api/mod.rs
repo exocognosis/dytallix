@@ -1,16 +1,12 @@
 use crate::crypto::PQCManager;
 use base64::Engine as _;
-use bytes; // add bytes crate usage
 use futures_util::{SinkExt, StreamExt};
-use log::{error, info, warn}; // ensure log crate available (added to Cargo.toml if missing)
+use log::{error, info}; // removed unused warn import
 use once_cell::sync::Lazy;
-use rand;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::sync::Arc;
 use tokio::sync::broadcast;
-use tokio_tungstenite::{accept_async, tungstenite::Message};
 use warp::reply::Reply;
 use warp::Filter; // ensure accessible
 
@@ -476,7 +472,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     .into_response());
                 }
                 // Build transaction
-                let mut tx = crate::types::TransferTransaction::new(
+                let tx = crate::types::TransferTransaction::new(
                     req.from.clone(),
                     req.to.clone(),
                     req.amount,
@@ -516,7 +512,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                                 .into_response())
                             }
                         };
-                        let pqc = crate::crypto::PQCManager::new().map_err(|_| ()).unwrap();
+                        let pqc = PQCManager::new().map_err(|_| ()).unwrap();
                         let sig_wrapper = crate::crypto::PQCSignature {
                             signature: sig_bytes.clone(),
                             algorithm: sig.algorithm.clone(),
@@ -644,7 +640,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::get())
         .and(warp::any().map(move || (storage_tx.clone(), tx_pool_lookup.clone())))
         .and_then(|hash: String, ctx: (Arc<crate::storage::StorageManager>, Arc<crate::types::TransactionPool>)| async move {
-            let (storage, pool) = ctx;
+            let (storage, _pool) = ctx; // renamed pool to _pool to silence unused variable warning
             if let Ok(Some(r)) = storage.get_receipt(&hash).await {
                 return Ok::<_, warp::Rejection>(warp::reply::with_status(warp::reply::json(&serde_json::json!({
                     "tx_hash": r.tx_hash,
@@ -665,10 +661,10 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .boxed();
 
     // Initialize Dytallix Runtime for staking operations
-    let runtime = Arc::new(crate::runtime::DytallixRuntime::new(storage.clone())?);
+    let _runtime = Arc::new(crate::runtime::DytallixRuntime::new(storage.clone())?); // unused runtime reserved for staking and future expansion
 
     // Contract RPC endpoint
-    let rpc_runtime = runtime.clone();
+    let rpc_runtime = _runtime.clone();
     let contract_rpc = warp::path("rpc")
         .and(warp::post())
         .and(warp::body::json())
@@ -723,7 +719,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     "contract_list" => {
                         handle_contract_list((storage.clone(), tx_pool.clone())).await
                     }
-                    
+
                     // WASM-specific endpoints (aliases for contract methods)
                     "wasm_deploy" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
@@ -739,7 +735,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                             serde_json::json!({"error": "Invalid parameters"})
                         }
                     }
-                    
+
                     // Staking methods
                     "staking_register_validator" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
@@ -839,7 +835,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                         serde_json::json!({"error": {"code": -32601, "message": "Method not found"}})
                     }
                 };
-                
+
                 Ok::<_, warp::Rejection>(warp::reply::json(&serde_json::json!({
                     "jsonrpc": "2.0",
                     "result": result,
@@ -856,7 +852,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .boxed();
 
     // Staking endpoints
-    let staking_runtime = runtime.clone();
+    let staking_runtime = _runtime.clone();
     let staking_stats = warp::path!("staking" / "stats")
         .and(warp::get())
         .and(warp::any().map(move || staking_runtime.clone()))
@@ -878,7 +874,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         })
         .boxed();
 
-    let staking_validators_runtime = runtime.clone();
+    let staking_validators_runtime = _runtime.clone();
     let staking_validators = warp::path!("staking" / "validators")
         .and(warp::get())
         .and(warp::any().map(move || staking_validators_runtime.clone()))
@@ -905,7 +901,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .boxed();
 
     // GET /staking/rewards/{delegator} - comprehensive reward information
-    let staking_rewards_runtime = runtime.clone();
+    let staking_rewards_runtime = _runtime.clone();
     let staking_rewards = warp::path!("staking" / "rewards" / String)
         .and(warp::get())
         .and(warp::any().map(move || staking_rewards_runtime.clone()))
@@ -924,7 +920,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .boxed();
 
     // POST /staking/claim - claim rewards
-    let staking_claim_runtime = runtime.clone();
+    let staking_claim_runtime = _runtime.clone();
     let staking_claim =
         warp::path!("staking" / "claim")
             .and(warp::post())
@@ -1227,21 +1223,17 @@ async fn handle_contract_execute(
                 timestamp: chrono::Utc::now().timestamp() as u64,
             };
 
-            match runtime.call_contract(call).await {
-                Ok(result) => {
-                    return serde_json::json!({
-                        "success": result.success,
-                        "return_value": hex::encode(&result.return_value),
-                        "gas_used": result.gas_used,
-                        "events": result.events
-                    });
-                }
-                Err(e) => {
-                    return serde_json::json!({
-                        "error": format!("Execution failed: {}", e)
-                    });
-                }
-            }
+            return match runtime.call_contract(call).await {
+                Ok(result) => serde_json::json!({
+                    "success": result.success,
+                    "return_value": hex::encode(&result.return_value),
+                    "gas_used": result.gas_used,
+                    "events": result.events
+                }),
+                Err(e) => serde_json::json!({
+                    "error": format!("Execution failed: {}", e)
+                }),
+            };
         }
     }
 
@@ -1450,18 +1442,14 @@ async fn handle_wasm_execute(
                 timestamp: chrono::Utc::now().timestamp() as u64,
             };
 
-            match runtime.call_contract(call).await {
-                Ok(result) => {
-                    return serde_json::json!({
-                        "result_json": result.return_value,
-                        "gas_used": result.gas_used,
-                        "height": 1 // TODO: Get actual block height
-                    });
-                }
-                Err(e) => {
-                    return serde_json::json!({"error": format!("Execution failed: {}", e)});
-                }
-            }
+            return match runtime.call_contract(call).await {
+                Ok(result) => serde_json::json!({
+                    "result_json": result.return_value,
+                    "gas_used": result.gas_used,
+                    "height": 1 // TODO: Get actual block height
+                }),
+                Err(e) => serde_json::json!({"error": format!("Execution failed: {}", e)}),
+            };
         } else {
             return serde_json::json!({"error": "Failed to create contract runtime"});
         }
@@ -1473,14 +1461,14 @@ async fn handle_wasm_execute(
 // Helper functions for address generation
 fn generate_contract_address(code_hash: &[u8]) -> String {
     let hash = blake3::hash(code_hash);
-    format!("contract_{}", hex::encode(&hash.as_bytes()[0..16]))
+    format!("contract_{}", hex::encode(&hash.as_bytes()[..16]))
 }
 
 fn generate_instance_address(code_hash: &str) -> String {
     let timestamp = chrono::Utc::now().timestamp();
     let input = format!("{}_{}", code_hash, timestamp);
     let hash = blake3::hash(input.as_bytes());
-    format!("instance_{}", hex::encode(&hash.as_bytes()[0..16]))
+    format!("instance_{}", hex::encode(&hash.as_bytes()[..16]))
 }
 
 // Staking RPC handler functions
@@ -1643,7 +1631,7 @@ async fn handle_staking_get_delegations(
     params: &[serde_json::Value],
     runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
-    if let Some(address) = params[0].as_str() {
+    if let Some(_address) = params[0].as_str() { // renamed address to _address to silence unused variable warning
         // For now, return empty array since we need to implement delegation queries
         // This would require iterating through all delegations to find matches
         serde_json::json!([])

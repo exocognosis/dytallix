@@ -291,7 +291,7 @@ kubectl run test-pod --image=nginx --dry-run=server
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2024-01-28  
-**Next Review**: 2024-02-28  
+**Document Version**: 1.0
+**Last Updated**: 2024-01-28
+**Next Review**: 2024-02-28
 **Owner**: DevSecOps Team

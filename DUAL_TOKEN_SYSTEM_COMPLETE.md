@@ -58,7 +58,7 @@ Request dual tokens with configurable type selection:
       "purpose": "Governance voting and protocol decisions"
     },
     {
-      "token": "DRT", 
+      "token": "DRT",
       "amount": "100000000udrt",
       "amountFormatted": "100 DRT",
       "txHash": "3E6BC98FBADEC8866E1C91D7609EDCFD31B3A4CA8FC4DAC293775CB7803CD129",
@@ -72,7 +72,7 @@ Request dual tokens with configurable type selection:
       "votingPower": "1 DGT = 1 Vote"
     },
     "DRT": {
-      "name": "Dytallix Reward Token", 
+      "name": "Dytallix Reward Token",
       "supply": "Inflationary (-6% annual)",
       "utility": "Staking rewards, AI payments, transaction fees"
     }
@@ -150,7 +150,7 @@ Comprehensive dual token system information:
     },
     "DRT": {
       "amount": "100000000udrt",
-      "formatted": "100 DRT per request", 
+      "formatted": "100 DRT per request",
       "purpose": "Rewards and transaction fees",
       "supply": "Inflationary (~6% annual)"
     }
@@ -172,7 +172,7 @@ Comprehensive dual token system information:
 - **Voting Power**: 1 DGT = 1 Vote
 - **Balance Limit**: 50 DGT per address via faucet
 
-### DRT (Reward Token)  
+### DRT (Reward Token)
 - **Per Request**: 100 DRT (100,000,000 udrt)
 - **Purpose**: Staking rewards, AI service payments, transaction fees
 - **Supply Model**: Inflationary with ~6% annual inflation
@@ -212,7 +212,7 @@ Comprehensive dual token system information:
 ```bash
 NAME              STATUS                PORTS
 dytallix-faucet   Up (health: healthy)  0.0.0.0:3001->3001/tcp
-dytallix-node     Up                    0.0.0.0:26656-26657->26656-26657/tcp  
+dytallix-node     Up                    0.0.0.0:26656-26657->26656-26657/tcp
 faucet-frontend   Up                    0.0.0.0:80->80/tcp
 ```
 
@@ -226,7 +226,7 @@ faucet-frontend   Up                    0.0.0.0:80->80/tcp
 ### Successful API Tests ✅
 1. **Both Tokens**: `curl -X POST /api/faucet -d '{"address":"dyt1...", "tokenType":"both"}'`
    - Returns: 10 DGT + 100 DRT with separate transaction hashes
-   
+
 2. **Individual Tokens**: Supports "DGT" and "DRT" token types
    - DGT only: Returns governance token with voting power info
    - DRT only: Returns reward token with utility information
@@ -267,7 +267,7 @@ console.log(`Received ${result.transactions.length} transactions`);
 - `/faucet/src/controllers/faucetController-dual.js`: Complete dual token logic
 - `/faucet/src/middleware/validation.js`: Updated to accept tokenType parameter
 
-### Frontend Changes  
+### Frontend Changes
 - `/docker-compose/faucet-frontend/index.html`: Enhanced UI with token selection
 - Added dual token information display
 - Updated API documentation and status checking
@@ -282,7 +282,7 @@ The implementation perfectly aligns with the provided tokenomics specification:
 
 ### DGT Tokenomics ✅
 - ✅ Fixed 1B supply (no inflation)
-- ✅ Governance and voting primary function  
+- ✅ Governance and voting primary function
 - ✅ 1 DGT = 1 Vote mechanism
 - ✅ Staking rewards distributed in DRT tokens
 

@@ -27,17 +27,17 @@ pub struct StoredFinding {
 impl Database {
     pub async fn new(database_url: &str) -> Result<Self, InferenceError> {
         let pool = PgPool::connect(database_url).await?;
-        
+
         // Run migrations if needed
         sqlx::migrate!("./migrations").run(&pool).await.ok();
-        
+
         Ok(Self { pool })
     }
 
     pub async fn store_finding(&self, finding: &crate::blockchain::Finding) -> Result<i64, InferenceError> {
         let severity = match finding.score {
             s if s >= 0.9 => "critical",
-            s if s >= 0.7 => "high", 
+            s if s >= 0.7 => "high",
             s if s >= 0.5 => "medium",
             _ => "low",
         };
@@ -47,7 +47,7 @@ impl Database {
         let row = sqlx::query!(
             r#"
             INSERT INTO findings (
-                tx_hash, address, score, severity, reasons, 
+                tx_hash, address, score, severity, reasons,
                 signature_pq, metadata, block_height, timestamp_detected
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -72,7 +72,7 @@ impl Database {
     pub async fn get_address_stats(&self, address: &str) -> Result<AddressStats, InferenceError> {
         let row = sqlx::query!(
             r#"
-            SELECT 
+            SELECT
                 COUNT(*) as total_findings,
                 COUNT(*) FILTER (WHERE severity IN ('high', 'critical')) as high_risk_findings,
                 AVG(score) as average_score,
@@ -98,11 +98,11 @@ impl Database {
     pub async fn get_velocity_stats(&self, address: &str, window_hours: i64) -> Result<VelocityStats, InferenceError> {
         let row = sqlx::query!(
             r#"
-            SELECT 
+            SELECT
                 COUNT(*) as transaction_count,
                 SUM(CAST(metadata->>'amount' AS DECIMAL)) as total_volume
             FROM findings
-            WHERE address = $1 
+            WHERE address = $1
             AND timestamp_created > NOW() - INTERVAL '%d hours'
             "#,
             address,

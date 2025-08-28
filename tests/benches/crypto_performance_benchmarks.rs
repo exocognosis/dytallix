@@ -92,7 +92,7 @@ pub struct MockCryptoService {
 impl MockCryptoService {
     pub fn new(algorithm: crate::gas_price_benchmarks::PQCAlgorithm, pregenerated_keys: usize) -> Self {
         let mut keys = Vec::with_capacity(pregenerated_keys);
-        
+
         for _ in 0..pregenerated_keys {
             let (private_key, public_key) = match algorithm {
                 crate::gas_price_benchmarks::PQCAlgorithm::Dilithium5 => {
@@ -107,13 +107,13 @@ impl MockCryptoService {
             };
             keys.push((private_key, public_key));
         }
-        
+
         Self { algorithm, keys }
     }
 
     pub async fn perform_operation(&self, operation: CryptoOperation, data: &[u8]) -> Result<Duration, &'static str> {
         let start = Instant::now();
-        
+
         match operation {
             CryptoOperation::KeyGeneration => {
                 self.generate_key_pair().await?;
@@ -138,7 +138,7 @@ impl MockCryptoService {
                 self.verify_signature(data, &signature, key_index).await?;
             },
         }
-        
+
         Ok(start.elapsed())
     }
 
@@ -149,7 +149,7 @@ impl MockCryptoService {
             crate::gas_price_benchmarks::PQCAlgorithm::Falcon1024 => Duration::from_micros(800),
             crate::gas_price_benchmarks::PQCAlgorithm::Sphincs256 => Duration::from_micros(100),
         };
-        
+
         tokio::time::sleep(generation_time).await;
         Ok(0) // Return first key index for simplicity
     }
@@ -158,23 +158,23 @@ impl MockCryptoService {
         if key_index >= self.keys.len() {
             return Err("Key index out of bounds");
         }
-        
+
         // Simulate signing time
         let signing_time = match self.algorithm {
             crate::gas_price_benchmarks::PQCAlgorithm::Dilithium5 => Duration::from_micros(50),
             crate::gas_price_benchmarks::PQCAlgorithm::Falcon1024 => Duration::from_micros(100),
             crate::gas_price_benchmarks::PQCAlgorithm::Sphincs256 => Duration::from_micros(500),
         };
-        
+
         tokio::time::sleep(signing_time).await;
-        
+
         // Return mock signature
         let signature_size = match self.algorithm {
             crate::gas_price_benchmarks::PQCAlgorithm::Dilithium5 => 3906,
             crate::gas_price_benchmarks::PQCAlgorithm::Falcon1024 => 1330,
             crate::gas_price_benchmarks::PQCAlgorithm::Sphincs256 => 49856,
         };
-        
+
         Ok(vec![0u8; signature_size])
     }
 
@@ -182,14 +182,14 @@ impl MockCryptoService {
         if key_index >= self.keys.len() {
             return Err("Key index out of bounds");
         }
-        
+
         // Simulate verification time
         let verification_time = match self.algorithm {
             crate::gas_price_benchmarks::PQCAlgorithm::Dilithium5 => Duration::from_micros(30),
             crate::gas_price_benchmarks::PQCAlgorithm::Falcon1024 => Duration::from_micros(80),
             crate::gas_price_benchmarks::PQCAlgorithm::Sphincs256 => Duration::from_micros(20),
         };
-        
+
         tokio::time::sleep(verification_time).await;
         Ok(true) // Always return success for mock
     }
@@ -199,11 +199,11 @@ impl MockCryptoService {
 fn benchmark_crypto_throughput(c: &mut Criterion) {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let config = PerformanceTestConfig::default();
-    
+
     for &batch_size in &config.batch_sizes {
         let mut group = c.benchmark_group(format!("crypto_throughput_batch_{}", batch_size));
         group.throughput(Throughput::Elements(batch_size as u64));
-        
+
         for operation in [CryptoOperation::Signing, CryptoOperation::Verification, CryptoOperation::FullCycle] {
             group.bench_with_input(
                 BenchmarkId::new(operation.name(), batch_size),
@@ -227,7 +227,7 @@ fn benchmark_crypto_throughput(c: &mut Criterion) {
                                     service_ref.perform_operation(operation, data_ref).await
                                 });
                             }
-                            
+
                             let results: Vec<_> = futures::future::join_all(tasks).await;
                             black_box(results)
                         },
@@ -244,9 +244,9 @@ fn benchmark_crypto_throughput(c: &mut Criterion) {
 fn benchmark_crypto_concurrency(c: &mut Criterion) {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let config = PerformanceTestConfig::default();
-    
+
     let mut group = c.benchmark_group("crypto_concurrency");
-    
+
     for &concurrency in &config.concurrency_levels {
         group.bench_with_input(
             BenchmarkId::new("concurrent_signing", concurrency),
@@ -264,23 +264,23 @@ fn benchmark_crypto_concurrency(c: &mut Criterion) {
                     },
                     |(service, data, semaphore)| async move {
                         let mut tasks = JoinSet::new();
-                        
+
                         for _ in 0..concurrency {
                             let service = Arc::clone(&service);
                             let data = data.clone();
                             let semaphore = Arc::clone(&semaphore);
-                            
+
                             tasks.spawn(async move {
                                 let _permit = semaphore.acquire().await.unwrap();
                                 service.perform_operation(CryptoOperation::Signing, &data).await
                             });
                         }
-                        
+
                         let mut results = Vec::new();
                         while let Some(result) = tasks.join_next().await {
                             results.push(result.unwrap());
                         }
-                        
+
                         black_box(results)
                     },
                     criterion::BatchSize::SmallInput,
@@ -294,31 +294,31 @@ fn benchmark_crypto_concurrency(c: &mut Criterion) {
 /// Run comprehensive performance analysis
 pub async fn run_performance_analysis() {
     println!("🚀 Running comprehensive cryptographic performance analysis...");
-    
+
     let config = PerformanceTestConfig::default();
     let algorithms = [
         crate::gas_price_benchmarks::PQCAlgorithm::Dilithium5,
         crate::gas_price_benchmarks::PQCAlgorithm::Falcon1024,
         crate::gas_price_benchmarks::PQCAlgorithm::Sphincs256,
     ];
-    
+
     for algorithm in algorithms {
         println!("\n🔐 Testing {} performance...", algorithm.name());
-        
+
         let service = MockCryptoService::new(algorithm, 1000);
         let data = vec![0u8; 1024];
-        
+
         // Test different operations
-        for operation in [CryptoOperation::KeyGeneration, CryptoOperation::Signing, 
+        for operation in [CryptoOperation::KeyGeneration, CryptoOperation::Signing,
                          CryptoOperation::Verification, CryptoOperation::FullCycle] {
             println!("\n  📊 Operation: {}", operation.name());
-            
+
             let mut latencies = Vec::new();
             let mut successes = 0;
             let total_operations = 1000;
-            
+
             let start_time = Instant::now();
-            
+
             for _ in 0..total_operations {
                 match service.perform_operation(operation, &data).await {
                     Ok(duration) => {
@@ -330,83 +330,83 @@ pub async fn run_performance_analysis() {
                     }
                 }
             }
-            
+
             let total_duration = start_time.elapsed();
             let metrics = calculate_performance_metrics(&latencies, successes, total_operations, total_duration);
-            
+
             print_performance_metrics(&metrics);
         }
-        
+
         // Test concurrency performance
         println!("\n  🔄 Concurrency test...");
         await_concurrency_test(&service, &data).await;
     }
-    
+
     println!("\n✅ Performance analysis complete!");
 }
 
 async fn await_concurrency_test(service: &MockCryptoService, data: &[u8]) {
     let concurrency_levels = [1, 10, 50, 100];
-    
+
     for &concurrency in &concurrency_levels {
         let start_time = Instant::now();
         let mut tasks = JoinSet::new();
-        
+
         for _ in 0..concurrency {
             let data = data.to_vec();
             tasks.spawn(async move {
                 service.perform_operation(CryptoOperation::Signing, &data).await
             });
         }
-        
+
         let mut successes = 0;
         while let Some(result) = tasks.join_next().await {
             if result.unwrap().is_ok() {
                 successes += 1;
             }
         }
-        
+
         let duration = start_time.elapsed();
         let ops_per_sec = (concurrency as f64) / duration.as_secs_f64();
-        
-        println!("    Concurrency {}: {:.2} ops/sec, {:.2}ms avg latency", 
+
+        println!("    Concurrency {}: {:.2} ops/sec, {:.2}ms avg latency",
                 concurrency, ops_per_sec, duration.as_millis() as f64 / concurrency as f64);
     }
 }
 
 fn calculate_performance_metrics(
-    latencies: &[f64], 
-    successes: usize, 
-    total_ops: usize, 
+    latencies: &[f64],
+    successes: usize,
+    total_ops: usize,
     total_duration: Duration
 ) -> CryptoPerformanceMetrics {
     let ops_per_second = successes as f64 / total_duration.as_secs_f64();
     let success_rate = successes as f64 / total_ops as f64;
-    
+
     let avg_latency = if !latencies.is_empty() {
         latencies.iter().sum::<f64>() / latencies.len() as f64
     } else {
         0.0
     };
-    
+
     // Calculate percentiles
     let mut sorted_latencies = latencies.to_vec();
     sorted_latencies.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    
+
     let p95_latency = if !sorted_latencies.is_empty() {
         let index = (sorted_latencies.len() as f64 * 0.95) as usize;
         sorted_latencies.get(index).copied().unwrap_or(0.0)
     } else {
         0.0
     };
-    
+
     let p99_latency = if !sorted_latencies.is_empty() {
         let index = (sorted_latencies.len() as f64 * 0.99) as usize;
         sorted_latencies.get(index).copied().unwrap_or(0.0)
     } else {
         0.0
     };
-    
+
     CryptoPerformanceMetrics {
         ops_per_second,
         avg_latency_us: avg_latency,
@@ -444,7 +444,7 @@ mod tests {
             10
         );
         let data = b"test data";
-        
+
         let result = service.perform_operation(CryptoOperation::Signing, data).await;
         assert!(result.is_ok());
     }
@@ -465,7 +465,7 @@ mod tests {
             5,
             Duration::from_millis(1000)
         );
-        
+
         assert_eq!(metrics.success_rate, 1.0);
         assert!(metrics.ops_per_second > 0.0);
         assert!(metrics.avg_latency_us > 0.0);

@@ -1,6 +1,6 @@
 //! AI-Powered Test Case Generator for Cross-Chain Asset Transfers
 //!
-//! This module implements an AI-enhanced test case generator that produces diverse 
+//! This module implements an AI-enhanced test case generator that produces diverse
 //! bridge test scenarios, edge cases, stress tests, and failure scenarios.
 //! Dynamic test case creation based on network conditions and token types.
 
@@ -272,7 +272,7 @@ impl AITestGenerator {
     /// Generate diverse edge cases based on AI analysis
     pub async fn generate_edge_cases(&mut self) -> Result<Vec<GeneratedTestCase>, Box<dyn std::error::Error>> {
         let mut edge_cases = Vec::new();
-        
+
         // AI-generated edge case scenarios
         let edge_scenarios = vec![
             ScenarioType::LargeAmount,  // Test with maximum token amounts
@@ -293,15 +293,15 @@ impl AITestGenerator {
     /// Generate stress test scenarios
     pub async fn generate_stress_tests(&mut self) -> Result<Vec<GeneratedTestCase>, Box<dyn std::error::Error>> {
         let mut stress_tests = Vec::new();
-        
+
         // High-volume concurrent transfers
         let concurrent_test = self.generate_concurrent_stress_test().await?;
         stress_tests.push(concurrent_test);
-        
+
         // Network congestion simulation
         let congestion_test = self.generate_congestion_stress_test().await?;
         stress_tests.push(congestion_test);
-        
+
         // Extended duration test
         let duration_test = self.generate_duration_stress_test().await?;
         stress_tests.push(duration_test);
@@ -312,15 +312,15 @@ impl AITestGenerator {
     /// Generate failure scenarios for robustness testing
     pub async fn generate_failure_scenarios(&mut self) -> Result<Vec<GeneratedTestCase>, Box<dyn std::error::Error>> {
         let mut failure_scenarios = Vec::new();
-        
+
         // Network partition simulation
         let partition_test = self.generate_network_partition_test().await?;
         failure_scenarios.push(partition_test);
-        
+
         // Validator failure simulation
         let validator_failure_test = self.generate_validator_failure_test().await?;
         failure_scenarios.push(validator_failure_test);
-        
+
         // Gas price spike simulation
         let gas_spike_test = self.generate_gas_spike_test().await?;
         failure_scenarios.push(gas_spike_test);
@@ -339,10 +339,10 @@ impl AITestGenerator {
                 execution_time: result.actual_execution_time,
                 success_rate: if matches!(result.actual_outcome, TestOutcome::Success) { 1.0 } else { 0.0 },
             };
-            
+
             self.historical_patterns.push(pattern);
         }
-        
+
         // Limit historical patterns to prevent memory growth
         if self.historical_patterns.len() > 1000 {
             self.historical_patterns.drain(..100);
@@ -350,7 +350,7 @@ impl AITestGenerator {
     }
 
     // Private helper methods
-    
+
     async fn generate_single_test_case(
         &self,
         id: u32,
@@ -360,7 +360,7 @@ impl AITestGenerator {
         let scenario = self.build_test_scenario(scenario_type.clone(), conditions).await?;
         let priority = self.determine_priority(&scenario_type, conditions);
         let estimated_duration = self.estimate_duration(&scenario, conditions);
-        
+
         Ok(GeneratedTestCase {
             id: format!("ai_test_{:04}", id),
             scenario,
@@ -397,7 +397,7 @@ impl AITestGenerator {
             ScenarioType::ConcurrentTransfers => self.build_concurrent_steps(),
             _ => self.build_basic_transfer_steps(),
         };
-        
+
         Ok(TestScenario {
             scenario_type,
             steps,
@@ -446,7 +446,7 @@ impl AITestGenerator {
         for i in 0..5 {
             let mut params = HashMap::new();
             params.insert("transfer_id".to_string(), i.to_string());
-            
+
             steps.push(TestStep {
                 action: TestAction::LockTokens,
                 chain: ChainTarget::Ethereum,
@@ -458,7 +458,7 @@ impl AITestGenerator {
     }
 
     // Additional helper methods would be implemented here...
-    
+
     async fn generate_edge_case_scenario(&self, scenario: ScenarioType) -> Result<GeneratedTestCase, Box<dyn std::error::Error>> {
         // Implementation for edge case generation
         todo!("Implement edge case scenario generation")
@@ -608,13 +608,13 @@ mod tests {
     async fn test_generate_basic_test_cases() {
         let mut generator = AITestGenerator::new();
         let scenarios = vec![ScenarioType::BasicTransfer];
-        
+
         let result = generator.generate_test_cases(5, scenarios).await;
         assert!(result.is_ok());
-        
+
         let test_cases = result.unwrap();
         assert_eq!(test_cases.len(), 5);
-        
+
         for test_case in &test_cases {
             assert!(!test_case.id.is_empty());
             assert!(test_case.estimated_duration > Duration::from_secs(0));
@@ -626,7 +626,7 @@ mod tests {
         let mut generator = AITestGenerator::new();
         let result = generator.generate_edge_cases().await;
         assert!(result.is_ok());
-        
+
         let edge_cases = result.unwrap();
         assert!(!edge_cases.is_empty());
     }

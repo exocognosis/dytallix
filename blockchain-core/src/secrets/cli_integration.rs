@@ -5,8 +5,7 @@
 
 use anyhow::Result;
 use clap::{Args, Subcommand};
-use serde_json;
-use std::collections::HashMap;
+use std::collections::HashMap; // HashMap used in mock secret map
 
 // Note: In a real integration, these would import from blockchain-core
 // For now, we'll create a simple demonstration

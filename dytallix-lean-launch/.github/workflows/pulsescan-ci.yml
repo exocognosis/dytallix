@@ -33,13 +33,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: ${{ env.RUST_VERSION }}
         targets: wasm32-unknown-unknown
-    
+
     - name: Cache Cargo
       uses: actions/cache@v3
       with:
@@ -50,26 +50,26 @@ jobs:
           ~/.cargo/git/db/
           target/
         key: ${{ runner.os }}-cargo-contracts-${{ hashFiles('**/Cargo.lock') }}
-    
+
     - name: Run tests
       run: cargo test --verbose
-    
+
     - name: Check formatting
       run: cargo fmt -- --check
-    
+
     - name: Run Clippy
       run: cargo clippy -- -D warnings
-    
+
     - name: Build WASM contract
       run: cargo build --release --target wasm32-unknown-unknown
-    
+
     - name: Optimize WASM (if wasm-opt available)
       run: |
         if command -v wasm-opt &> /dev/null; then
           wasm-opt -Oz --output target/wasm32-unknown-unknown/release/pulsescan_optimized.wasm \
                    target/wasm32-unknown-unknown/release/pulsescan.wasm
         fi
-    
+
     - name: Upload contract artifacts
       uses: actions/upload-artifact@v3
       with:
@@ -98,7 +98,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:6
         options: >-
@@ -111,12 +111,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: ${{ env.RUST_VERSION }}
-    
+
     - name: Cache Cargo
       uses: actions/cache@v3
       with:
@@ -127,7 +127,7 @@ jobs:
           ~/.cargo/git/db/
           target/
         key: ${{ runner.os }}-cargo-inference-${{ hashFiles('**/Cargo.lock') }}
-    
+
     - name: Setup test database
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pulsescan_test
@@ -135,27 +135,27 @@ jobs:
         cargo install sqlx-cli --no-default-features --features postgres
         sqlx database create
         sqlx migrate run --source ../../migrations/pulsescan
-    
+
     - name: Run tests
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pulsescan_test
         REDIS_URL: redis://localhost:6379
       run: cargo test --verbose
-    
+
     - name: Check formatting
       run: cargo fmt -- --check
-    
+
     - name: Run Clippy
       run: cargo clippy -- -D warnings
-    
+
     - name: Build release
       run: cargo build --release
-    
+
     - name: Generate coverage report
       run: |
         cargo install cargo-tarpaulin
         cargo tarpaulin --out xml --output-dir coverage
-    
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
@@ -182,7 +182,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:6
         options: >-
@@ -195,17 +195,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
         cache-dependency-path: dytallix-lean-launch/services/pulsescan-api/package-lock.json
-    
+
     - name: Install dependencies
       run: npm ci
-    
+
     - name: Setup test database
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pulsescan_test
@@ -214,10 +214,10 @@ jobs:
         psql -h localhost -U postgres -d pulsescan_test -f ../../migrations/pulsescan/001_initial_schema.sql
       env:
         PGPASSWORD: postgres
-    
+
     - name: Run linter
       run: npm run lint
-    
+
     - name: Run tests
       env:
         NODE_ENV: test
@@ -229,15 +229,15 @@ jobs:
         REDIS_URL: redis://localhost:6379
         API_KEY: test-api-key
       run: npm test
-    
+
     - name: Build TypeScript
       run: npm run build
-    
+
     - name: Generate coverage report
       env:
         NODE_ENV: test
       run: npm run test -- --coverage
-    
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
@@ -247,15 +247,15 @@ jobs:
   lint-helm:
     name: Lint Helm Charts
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Helm
       uses: azure/setup-helm@v3
       with:
         version: '3.12.0'
-    
+
     - name: Lint Helm chart
       run: |
         helm lint dytallix-lean-launch/helm/pulsescan
@@ -264,10 +264,10 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
@@ -275,7 +275,7 @@ jobs:
         scan-ref: 'dytallix-lean-launch'
         format: 'sarif'
         output: 'trivy-results.sarif'
-    
+
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v2
       with:
@@ -286,20 +286,20 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test-contracts, test-inference-service, test-api-service]
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-    
+
     - name: Log in to Container Registry
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    
+
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
@@ -312,7 +312,7 @@ jobs:
           type=ref,event=pr
           type=sha,prefix={{branch}}-
           type=raw,value=latest,enable={{is_default_branch}}
-    
+
     - name: Build and push inference service image
       uses: docker/build-push-action@v5
       with:
@@ -322,7 +322,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-    
+
     - name: Build and push API service image
       uses: docker/build-push-action@v5
       with:
@@ -339,15 +339,15 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [build-images]
     environment: staging
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Helm
       uses: azure/setup-helm@v3
       with:
         version: '3.12.0'
-    
+
     - name: Deploy to staging
       run: |
         echo "Deploying PulseScan to staging environment"

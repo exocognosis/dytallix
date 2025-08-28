@@ -314,6 +314,7 @@ impl EnhancedAIIntegrationManager {
         let response_time = signed_response.response.processing_time_ms;
         let is_accurate = expected_accuracy.map(|acc| acc >= 0.8).unwrap_or(true); // Default to accurate if no expectation
 
+        // signature_valid and is_accurate are both used below; keep names (Clippy warned earlier because variables were not used; now they are)
         if let Err(e) = self
             .oracle_registry
             .update_reputation(oracle_id, response_time, is_accurate, signature_valid)
@@ -413,7 +414,7 @@ impl EnhancedAIIntegrationManager {
         match transaction {
             Transaction::AIRequest(ai_tx) => {
                 // For AI request transactions, we might have a pre-computed response
-                if let Some(response_data) = &ai_tx.ai_response {
+                if let Some(_response_data) = &ai_tx.ai_response {
                     // Validate the response if it exists
                     // This is a simplified implementation
                     return Ok((0.5, true));

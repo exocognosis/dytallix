@@ -52,7 +52,7 @@ impl EthereumBridgeContract {
     pub fn new(contract_address: String) -> Self {
         let address: Address = contract_address.parse()
             .unwrap_or_else(|_| Address::zero());
-        
+
         Self {
             contract_address: address,
             contract: None,
@@ -87,7 +87,7 @@ impl EthereumBridgeContract {
 
         let asset_addr: Address = asset_address.parse()
             .map_err(|_| BridgeError::InvalidAddress(asset_address.to_string()))?;
-        
+
         let call = contract.lock_asset(
             asset_addr,
             U256::from(amount),
@@ -114,7 +114,7 @@ impl EthereumBridgeContract {
 
         let token_addr: Address = wrapped_token_address.parse()
             .map_err(|_| BridgeError::InvalidAddress(wrapped_token_address.to_string()))?;
-        
+
         let recipient_addr: Address = recipient.parse()
             .map_err(|_| BridgeError::InvalidAddress(recipient.to_string()))?;
 
@@ -280,7 +280,7 @@ mod tests {
         let contract = EthereumBridgeContract::new(
             "0x1234567890123456789012345678901234567890".to_string()
         );
-        
+
         assert_eq!(contract.contract_address, "0x1234567890123456789012345678901234567890".parse::<Address>().unwrap());
     }
 
@@ -289,14 +289,14 @@ mod tests {
         let contract = EthereumBridgeContract::new(
             "0x1234567890123456789012345678901234567890".to_string()
         );
-        
+
         let call = contract.prepare_lock_asset_call(
             "0xA0b86a33E6441E5A4C5C3BD1C6B06B65a80D8a7b",
             1000000000000000000,
             "dytallix",
             "dyt1test"
         );
-        
+
         assert_eq!(call.function_name, "lockAsset");
         assert_eq!(call.parameters.len(), 4);
         assert_eq!(call.gas_limit, U256::from(200000));

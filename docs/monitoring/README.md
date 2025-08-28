@@ -166,7 +166,7 @@ The Grafana dashboard provides:
    ```bash
    # Edit Slack webhook URL
    echo "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK" > deployment/docker/secrets/slack_webhook
-   
+
    # Configure SMTP password
    echo "your_smtp_password" > deployment/docker/secrets/smtp_password
    ```
@@ -181,10 +181,10 @@ The Grafana dashboard provides:
    ```bash
    # Check all services are running
    docker-compose -f docker-compose.testnet.yml ps
-   
+
    # Test Prometheus targets
    curl http://localhost:9093/api/v1/targets
-   
+
    # Access Grafana dashboard
    # URL: http://localhost:3000
    # Username: admin

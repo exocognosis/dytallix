@@ -14,13 +14,13 @@ fn benchmark_pqc_verification(c: &mut Criterion) {
         SignatureAlgorithm::Falcon1024,
         SignatureAlgorithm::SphincsSha256128s,
     ];
-    
+
     // Sample transaction data for signing
     let message = b"sample_transaction_data_for_benchmarking_purposes";
-    
+
     let mut group = c.benchmark_group("pqc_signature_verification");
     group.measurement_time(Duration::from_secs(10));
-    
+
     for algorithm in algorithms {
         // Setup PQC manager with specific algorithm
         let pqc_manager = match PQCManager::new() {
@@ -30,7 +30,7 @@ fn benchmark_pqc_verification(c: &mut Criterion) {
                 continue;
             }
         };
-        
+
         // Generate a signature for benchmarking
         let signature = match pqc_manager.sign(message) {
             Ok(sig) => sig,
@@ -39,9 +39,9 @@ fn benchmark_pqc_verification(c: &mut Criterion) {
                 continue;
             }
         };
-        
+
         let public_key = pqc_manager.get_signature_public_key();
-        
+
         group.bench_with_input(
             BenchmarkId::new("verify", format!("{:?}", algorithm)),
             &algorithm,
@@ -58,7 +58,7 @@ fn benchmark_pqc_verification(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 
@@ -95,12 +95,12 @@ criterion_main!(benches);
 #[cfg(test)]
 mod benchmark_tests {
     use super::*;
-    
+
     #[test]
     fn test_benchmark_setup() {
         // Verify benchmark setup works
         generate_performance_report();
-        
+
         // Test that PQC manager can be created (may fail in test environment)
         let _ = PQCManager::new();
     }

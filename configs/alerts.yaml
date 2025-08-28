@@ -22,13 +22,13 @@ rules:
     threshold: 1500
     # Number of consecutive evaluation intervals required
     consecutive: 3
-    
+
   oracle_timeout:
     enabled: true
     # p95 latency milliseconds threshold
     threshold_ms: 800
     consecutive: 2
-    
+
   validator_offline:
     enabled: true
     # seconds since last heartbeat considered offline

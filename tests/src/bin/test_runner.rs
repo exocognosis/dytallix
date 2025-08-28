@@ -65,11 +65,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let run_gas_analysis_only = matches.get_flag("gas-analysis");
     let run_stress_tests = matches.get_flag("stress-tests");
     let run_all = matches.get_flag("all");
-    
+
     let duration = matches.get_one::<String>("duration")
         .unwrap()
         .parse::<u64>()?;
-    
+
     let output_format = match matches.get_one::<String>("output").unwrap().as_str() {
         "json" => OutputFormat::Json,
         "csv" => OutputFormat::Csv,

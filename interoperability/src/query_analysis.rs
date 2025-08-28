@@ -121,7 +121,7 @@ impl QueryAnalyzer {
         let limit = limit.unwrap_or(50);
 
         let query = r#"
-            SELECT 
+            SELECT
                 encode(sha256(query::bytea), 'hex') as query_hash,
                 query as query_text,
                 calls,
@@ -131,9 +131,9 @@ impl QueryAnalyzer {
                 max_exec_time as max_time_ms,
                 stddev_exec_time as stddev_time_ms,
                 rows,
-                100.0 * shared_blks_hit / 
+                100.0 * shared_blks_hit /
                     nullif(shared_blks_hit + shared_blks_read, 0) as hit_ratio
-            FROM pg_stat_statements 
+            FROM pg_stat_statements
             WHERE query NOT LIKE '%pg_stat_statements%'
             ORDER BY total_exec_time DESC
             LIMIT $1
@@ -165,7 +165,7 @@ impl QueryAnalyzer {
     /// Get index usage statistics
     pub async fn get_index_usage_stats(&self) -> Result<Vec<IndexUsageStats>, sqlx::Error> {
         let query = r#"
-            SELECT 
+            SELECT
                 schemaname as schema_name,
                 tablename as table_name,
                 indexname as index_name,
@@ -174,16 +174,16 @@ impl QueryAnalyzer {
                 idx_scan as index_scans,
                 idx_tup_read as tuples_read,
                 idx_tup_fetch as tuples_fetched,
-                CASE 
+                CASE
                     WHEN idx_scan = 0 THEN 0
                     ELSE round((idx_tup_fetch::numeric / idx_tup_read::numeric) * 100, 2)
                 END as usage_ratio,
-                CASE 
+                CASE
                     WHEN idx_scan = 0 THEN 0
                     WHEN pg_relation_size(indexrelid) = 0 THEN 100
                     ELSE round((idx_scan::numeric / (pg_relation_size(indexrelid) / 1024.0 / 1024.0)) * 100, 2)
                 END as efficiency_score
-            FROM pg_stat_user_indexes 
+            FROM pg_stat_user_indexes
             JOIN pg_indexes ON pg_indexes.indexname = pg_stat_user_indexes.indexname
             WHERE schemaname = 'public'
             ORDER BY index_scans DESC, index_size DESC
@@ -214,7 +214,7 @@ impl QueryAnalyzer {
     pub async fn get_database_health_metrics(&self) -> Result<DatabaseHealthMetrics, sqlx::Error> {
         // Get connection statistics
         let connection_query = r#"
-            SELECT 
+            SELECT
                 sum(numbackends) as total_connections,
                 sum(xact_commit + xact_rollback) as total_transactions,
                 sum(deadlocks) as deadlocks_count
@@ -226,7 +226,7 @@ impl QueryAnalyzer {
 
         // Get cache hit ratio
         let cache_query = r#"
-            SELECT 
+            SELECT
                 sum(blks_hit) as cache_hits,
                 sum(blks_read) as disk_reads,
                 round(
@@ -240,10 +240,10 @@ impl QueryAnalyzer {
 
         // Get database size
         let size_query = r#"
-            SELECT 
+            SELECT
                 round(pg_database_size(current_database()) / 1024.0 / 1024.0, 2) as db_size_mb,
                 round(
-                    (SELECT sum(pg_relation_size(indexrelid)) 
+                    (SELECT sum(pg_relation_size(indexrelid))
                      FROM pg_stat_user_indexes) / 1024.0 / 1024.0, 2
                 ) as index_size_mb
         "#;
@@ -268,7 +268,7 @@ impl QueryAnalyzer {
 
         // Get current connection info from pg_stat_activity
         let activity_query = r#"
-            SELECT 
+            SELECT
                 count(*) as total_active,
                 count(*) FILTER (WHERE state = 'active') as active_connections,
                 count(*) FILTER (WHERE state = 'idle') as idle_connections
@@ -347,7 +347,7 @@ impl QueryAnalyzer {
                     priority: "low".to_string(),
                     description: format!(
                         "Index '{}' on table '{}' is rarely used ({} scans) but consumes {:.2}MB of space.",
-                        index.index_name, index.table_name, index.index_scans, 
+                        index.index_name, index.table_name, index.index_scans,
                         index.index_size as f64 / 1024.0 / 1024.0
                     ),
                     expected_improvement: "Reduced storage overhead and faster writes".to_string(),

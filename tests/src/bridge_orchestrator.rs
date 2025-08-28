@@ -218,15 +218,15 @@ impl BridgeTestOrchestrator {
             config.ethereum_rpc_url.clone(),
             config.bridge_contract_address.clone(),
         ));
-        
+
         let cosmos_client = Arc::new(CosmosClient::new(
             config.cosmos_rpc_url.clone(),
             config.cosmos_channel_id.clone(),
         ));
-        
+
         let event_monitor = Arc::new(EventMonitor::new());
         let balance_tracker = Arc::new(BalanceTracker::new());
-        
+
         Self {
             ethereum_client,
             cosmos_client,
@@ -245,10 +245,10 @@ impl BridgeTestOrchestrator {
     ) -> Result<TestExecutionResult, Box<dyn std::error::Error>> {
         let session_id = format!("session_{}", uuid::Uuid::new_v4());
         let start_time = Instant::now();
-        
+
         // Create balance snapshot before execution
         let balance_before = self.balance_tracker.create_snapshot(&session_id).await?;
-        
+
         let mut session = TestSession {
             id: session_id.clone(),
             test_case: test_case.clone(),
@@ -298,7 +298,7 @@ impl BridgeTestOrchestrator {
         ).await?;
 
         let execution_time = start_time.elapsed();
-        
+
         let result = TestExecutionResult {
             session_id: session_id.clone(),
             test_case_id: test_case.id.clone(),
@@ -345,24 +345,24 @@ impl BridgeTestOrchestrator {
         reverse_case: GeneratedTestCase,
     ) -> Result<(TestExecutionResult, TestExecutionResult), Box<dyn std::error::Error>> {
         println!("🔄 Starting bidirectional flow test");
-        
+
         // Execute forward flow: Ethereum -> Cosmos (Lock -> Mint)
         println!("➡️  Executing forward flow (Ethereum -> Cosmos)");
         let forward_result = self.execute_test_case(forward_case).await?;
-        
+
         if !matches!(forward_result.outcome, TestOutcome::Success) {
             return Err(format!("Forward flow failed: {:?}", forward_result.outcome).into());
         }
-        
+
         // Wait for settlement
         tokio::time::sleep(Duration::from_secs(10)).await;
-        
+
         // Execute reverse flow: Cosmos -> Ethereum (Burn -> Unlock)
         println!("⬅️  Executing reverse flow (Cosmos -> Ethereum)");
         let reverse_result = self.execute_test_case(reverse_case).await?;
-        
+
         println!("✅ Bidirectional flow test completed");
-        
+
         Ok((forward_result, reverse_result))
     }
 
@@ -373,22 +373,22 @@ impl BridgeTestOrchestrator {
     ) -> Result<Vec<TestExecutionResult>, Box<dyn std::error::Error>> {
         let max_concurrent = self.config.max_concurrent_tests;
         let mut results = Vec::new();
-        
+
         // Process tests in batches
         for chunk in test_cases.chunks(max_concurrent) {
             let mut handles = Vec::new();
-            
+
             for test_case in chunk {
                 let orchestrator_clone = self.clone_for_async();
                 let test_case_clone = test_case.clone();
-                
+
                 let handle = tokio::spawn(async move {
                     orchestrator_clone.execute_test_case(test_case_clone).await
                 });
-                
+
                 handles.push(handle);
             }
-            
+
             // Wait for all tests in the batch to complete
             for handle in handles {
                 match handle.await {
@@ -398,7 +398,7 @@ impl BridgeTestOrchestrator {
                 }
             }
         }
-        
+
         Ok(results)
     }
 
@@ -432,10 +432,10 @@ impl BridgeTestOrchestrator {
         let total_tests = results.len();
         let successful_tests = results.iter().filter(|r| matches!(r.outcome, TestOutcome::Success)).count();
         let failed_tests = total_tests - successful_tests;
-        
+
         let total_execution_time: Duration = results.iter().map(|r| r.execution_time).sum();
         let total_gas_used: u64 = results.iter().map(|r| r.gas_used_total).sum();
-        
+
         let avg_execution_time = if total_tests > 0 {
             total_execution_time / total_tests as u32
         } else {
@@ -462,7 +462,7 @@ impl BridgeTestOrchestrator {
     ) -> Result<(), Box<dyn std::error::Error>> {
         for (step_index, step) in session.test_case.scenario.steps.iter().enumerate() {
             let step_start = Instant::now();
-            
+
             session.current_step = Some(TestStepExecution {
                 step_index,
                 action: step.action.clone(),
@@ -473,7 +473,7 @@ impl BridgeTestOrchestrator {
             });
 
             let step_result = self.execute_single_step(step, session).await;
-            
+
             match step_result {
                 Ok(tx_hash) => {
                     if let Some(hash) = tx_hash {
@@ -489,7 +489,7 @@ impl BridgeTestOrchestrator {
                     return Err(e);
                 }
             }
-            
+
             let step_duration = step_start.elapsed();
             session.monitoring_data.transaction_times.insert(
                 format!("step_{}", step_index),
@@ -542,11 +542,11 @@ impl BridgeTestOrchestrator {
     ) -> Result<BalanceVerificationResult, Box<dyn std::error::Error>> {
         // Implement balance verification logic
         // This is a simplified version - real implementation would be more complex
-        
+
         let is_balanced = true; // TODO: Implement actual verification
         let ethereum_delta = 0; // TODO: Calculate actual delta
         let cosmos_delta = 0; // TODO: Calculate actual delta
-        
+
         Ok(BalanceVerificationResult {
             is_balanced,
             ethereum_delta,
@@ -686,7 +686,7 @@ impl BalanceTracker {
     pub async fn create_snapshot(&self, session_id: &str) -> Result<BalanceSnapshot, Box<dyn std::error::Error>> {
         let ethereum_balances = self.ethereum_balances.read().await.clone();
         let cosmos_balances = self.cosmos_balances.read().await.clone();
-        
+
         let snapshot = BalanceSnapshot {
             session_id: session_id.to_string(),
             timestamp: std::time::SystemTime::now()
@@ -698,7 +698,7 @@ impl BalanceTracker {
 
         let mut snapshots = self.snapshots.write().await;
         snapshots.push(snapshot.clone());
-        
+
         Ok(snapshot)
     }
 }
@@ -725,7 +725,7 @@ mod tests {
     async fn test_orchestrator_creation() {
         let config = create_test_config();
         let orchestrator = BridgeTestOrchestrator::new(config);
-        
+
         // Verify orchestrator is created properly
         assert_eq!(orchestrator.config.max_concurrent_tests, 5);
     }
@@ -734,7 +734,7 @@ mod tests {
     async fn test_balance_tracker() {
         let tracker = BalanceTracker::new();
         let snapshot = tracker.create_snapshot("test_session").await;
-        
+
         assert!(snapshot.is_ok());
         let snapshot = snapshot.unwrap();
         assert_eq!(snapshot.session_id, "test_session");
@@ -744,7 +744,7 @@ mod tests {
     async fn test_event_monitor() {
         let monitor = EventMonitor::new();
         let result = monitor.correlate_transactions("eth_hash", "cosmos_hash").await;
-        
+
         assert!(result.is_ok());
     }
 
@@ -754,10 +754,10 @@ mod tests {
             "http://localhost:8545".to_string(),
             "0x1234567890abcdef".to_string(),
         );
-        
+
         let mut params = HashMap::new();
         params.insert("amount".to_string(), "1000".to_string());
-        
+
         let result = client.lock_tokens(&params).await;
         assert!(result.is_ok());
     }
@@ -768,10 +768,10 @@ mod tests {
             "http://localhost:26657".to_string(),
             "channel-0".to_string(),
         );
-        
+
         let mut params = HashMap::new();
         params.insert("amount".to_string(), "1000".to_string());
-        
+
         let result = client.mint_tokens(&params).await;
         assert!(result.is_ok());
     }

@@ -1,12 +1,9 @@
 use crate::types::{
     AccountState, Address, Amount, Block, BlockNumber, Timestamp, Transaction,
-    Transaction as TxEnum, TxReceipt, TxStatus,
+    Transaction as TxEnum, TxReceipt,
 };
-use log::{debug, error, info};
 use rocksdb::{Options, DB};
 use serde::{Deserialize, Serialize};
-use sha3::Digest as Sha3Digest;
-use sha3::Sha3_256;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
@@ -545,8 +542,14 @@ impl StorageManager {
                 return Ok(Some(bincode::deserialize(&raw_r)?));
             }
         }
-        // fallback to legacy direct storage
-        futures::executor::block_on(async { self.get_receipt(tx_hash).await })
+        // fallback to legacy direct storage (synchronous)
+        if let Some(raw) = self.db.get(Self::receipt_key(tx_hash))? {
+            return Ok(Some(bincode::deserialize(&raw)?));
+        }
+        if let Some(raw) = self.db.get(Self::rcpt_key(tx_hash))? {
+            return Ok(Some(bincode::deserialize(&raw)?));
+        }
+        Ok(None)
     }
 }
 

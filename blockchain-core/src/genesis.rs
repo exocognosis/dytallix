@@ -3,11 +3,9 @@ Genesis Block Configuration for Dytallix Mainnet
 Implements the mainnet genesis configuration with dual-token system
 */
 
-use crate::types::serde_u128_string;
 use crate::types::{Address, Amount, BlockNumber, Hash, Timestamp, ValidatorInfo};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap; // Use string-based serde for all Amount fields to avoid JSON precision loss
 
 /// Vesting schedule for token allocations
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -543,7 +541,7 @@ mod tests {
                     let cliff_years = vesting.cliff_duration as f64 / (365.25 * 24.0 * 60.0 * 60.0);
                     let total_years =
                         vesting.vesting_duration as f64 / (365.25 * 24.0 * 60.0 * 60.0);
-                    println!("   {} - {:.0}M DGT ({:.1}% of supply) - {:.1}y cliff, {:.1}y total vesting", 
+                    println!("   {} - {:.0}M DGT ({:.1}% of supply) - {:.1}y cliff, {:.1}y total vesting",
                         allocation.address,
                         amount_readable / 1e6,
                         (allocation.amount as f64 / genesis.total_dgt_supply() as f64) * 100.0,

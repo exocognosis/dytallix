@@ -49,7 +49,7 @@ WebSocket connection to 'ws://rpc.dytallix.com:26657/websocket' failed
 
 #### Problem: "insufficient funds" error
 ```
-Error: insufficient funds: insufficient account funds; 
+Error: insufficient funds: insufficient account funds;
 got: 0udgt, required: 1250udgt
 ```
 
@@ -70,7 +70,7 @@ got: 0udgt, required: 1250udgt
 
 #### Problem: "invalid signature" error
 ```
-Error: unauthorized: signature verification failed; 
+Error: unauthorized: signature verification failed;
 verify correct account sequence and chain-id
 ```
 
@@ -89,7 +89,7 @@ verify correct account sequence and chain-id
 
 3. Ensure you're using PQC signature algorithm:
    ```javascript
-   const wallet = await Wallet.create({ 
+   const wallet = await Wallet.create({
      algorithm: 'dilithium5' // Not secp256k1
    });
    ```
@@ -169,7 +169,7 @@ Error: Invalid address format
 
 #### Problem: Contract deployment fails
 ```
-Error: failed to execute message; message index: 0: 
+Error: failed to execute message; message index: 0:
 contract validation failed
 ```
 
@@ -199,7 +199,7 @@ contract validation failed
 
 #### Problem: Contract execution fails
 ```
-Error: contract execution failed: Generic error: 
+Error: contract execution failed: Generic error:
 unauthorized
 ```
 
@@ -357,7 +357,7 @@ Queries taking > 10 seconds to respond
 2. Cache frequently accessed data:
    ```javascript
    const cache = new Map();
-   
+
    async function getCachedBalance(address) {
      if (cache.has(address)) {
        return cache.get(address);

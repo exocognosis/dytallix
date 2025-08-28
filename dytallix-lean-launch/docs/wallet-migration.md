@@ -32,7 +32,7 @@ Continuing to expose EVM-centric "Connect Wallet" UX (MetaMask, EIP-1193, ethers
 ### Dependencies (Future Cleanup)
 The following packages will be removed in future updates:
 - `ethers` - Ethereum library
-- `web3` - Alternative Ethereum library  
+- `web3` - Alternative Ethereum library
 - `wagmi` - React hooks for Ethereum
 - `@web3modal/*` - Wallet connection modals
 
@@ -108,7 +108,7 @@ import ConnectModal from './components/Wallet/ConnectModal'
 import AccountPill from './components/Wallet/AccountPill'
 
 // Instead of "Connect MetaMask"
-<ConnectModal 
+<ConnectModal
   isOpen={showConnect}
   onClose={() => setShowConnect(false)}
   onConnect={handleWalletConnect}

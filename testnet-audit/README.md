@@ -211,7 +211,7 @@ The health dashboard (`reports/health-dashboard.html`) provides:
 ### 3. Load Testing Phase
 - **Parallel Execution:**
   - Locust load testing
-  - Artillery stress testing  
+  - Artillery stress testing
   - WebSocket connection testing
 - Real-time performance tracking
 - Automatic threshold monitoring

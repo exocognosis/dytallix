@@ -62,11 +62,11 @@ Example nginx configuration:
 server {
     listen 9464;
     server_name your-node-domain.com;
-    
+
     location /metrics {
         proxy_pass http://127.0.0.1:9464/metrics;
         proxy_set_header Host $host;
-        
+
         # Optional: Add basic auth
         auth_basic "Dytallix Metrics";
         auth_basic_user_file /etc/nginx/.htpasswd;
@@ -110,7 +110,7 @@ For multiple nodes:
 scrape_configs:
   - job_name: 'dytallix-nodes'
     static_configs:
-      - targets: 
+      - targets:
         - 'node1.example.com:9464'
         - 'node2.example.com:9464'
         - 'node3.example.com:9464'

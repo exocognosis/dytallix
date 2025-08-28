@@ -15,7 +15,7 @@ data:
     name: projects/dytallix/policy
     description: "Binary Authorization policy for Dytallix blockchain bridge"
     globalPolicyEvaluationMode: ENABLE
-    
+
     # Default admission rule - require attestation
     defaultAdmissionRule:
       evaluationMode: REQUIRE_ATTESTATION
@@ -23,7 +23,7 @@ data:
       requireAttestationsBy:
       - projects/dytallix/attestors/prod-attestor
       - projects/dytallix/attestors/security-attestor
-    
+
     # Cluster-specific admission rules
     clusterAdmissionRules:
       us-central1-a.dytallix-bridge-cluster:
@@ -32,21 +32,21 @@ data:
         requireAttestationsBy:
         - projects/dytallix/attestors/cluster-attestor
         - projects/dytallix/attestors/security-attestor
-    
+
     # Kubernetes service account admission rules
     kubernetesServiceAccountAdmissionRules:
       # System service accounts - allow with logging
       kube-system/*:
         evaluationMode: ALWAYS_ALLOW
         enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
-      
+
       # Dytallix service accounts - require attestation
       dytallix/*:
         evaluationMode: REQUIRE_ATTESTATION
         enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
         requireAttestationsBy:
         - projects/dytallix/attestors/dytallix-attestor
-    
+
     # Istio service account rules (if using service mesh)
     istioServiceIdentityAdmissionRules:
       # Allow Istio system components
@@ -81,7 +81,7 @@ data:
               # Production RSA public key would go here
               -----END PUBLIC KEY-----
             signatureAlgorithm: RSA_PSS_2048_SHA256
-    
+
     # Security Attestor
     - name: projects/dytallix/attestors/security-attestor
       description: "Security team attestor for vulnerability scanning"
@@ -94,7 +94,7 @@ data:
               # Security team RSA public key would go here
               -----END PUBLIC KEY-----
             signatureAlgorithm: RSA_PSS_2048_SHA256
-    
+
     # Dytallix Application Attestor
     - name: projects/dytallix/attestors/dytallix-attestor
       description: "Dytallix application-specific attestor"
@@ -127,7 +127,7 @@ data:
         enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
         requireAttestationsBy:
         - projects/dytallix/attestors/prod-attestor
-      
+
       # Artifact Registry - require attestation
       us-central1-docker.pkg.dev/dytallix/*:
         evaluationMode: REQUIRE_ATTESTATION
@@ -135,28 +135,28 @@ data:
         requireAttestationsBy:
         - projects/dytallix/attestors/prod-attestor
         - projects/dytallix/attestors/security-attestor
-      
+
       # Docker Hub - block all except specific allowed images
       docker.io/*:
         evaluationMode: ALWAYS_DENY
         enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
-      
+
       # Allow specific base images from Docker Hub
       docker.io/library/alpine:*:
         evaluationMode: ALWAYS_ALLOW
         enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
-      
+
       docker.io/library/ubuntu:*:
         evaluationMode: REQUIRE_ATTESTATION
         enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
         requireAttestationsBy:
         - projects/dytallix/attestors/security-attestor
-      
+
       # Google system images - allow with logging
       gke.gcr.io/*:
         evaluationMode: ALWAYS_ALLOW
         enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
-      
+
       k8s.gcr.io/*:
         evaluationMode: ALWAYS_ALLOW
         enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
@@ -201,17 +201,17 @@ data:
       # Maximum allowed vulnerability severity
       maximumFixableSeverity: MEDIUM
       maximumUnfixableSeverity: LOW
-      
+
       # Allowlist for specific CVEs that have been reviewed and accepted
       allowlistCVEs:
       # - CVE-2021-XXXXX  # Example: accepted CVE with business justification
-      
+
       # Package allowlist for known-good packages
       allowlistPackages:
       - packageType: GO
         packageName: github.com/dytallix/secure-crypto
         packageVersion: v1.2.3
-      
+
       # Scan configuration
       scanConfig:
         # Scan on image push

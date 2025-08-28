@@ -20,20 +20,20 @@ mod tests {
         // Test default values
         let tx_count = env::var("TX_COUNT").unwrap_or_else(|_| "10000".to_string()).parse::<usize>().unwrap();
         let algo = env::var("PQC_ALGO").unwrap_or_else(|_| "dilithium".to_string());
-        
+
         assert_eq!(tx_count, 10000);
         assert_eq!(algo, "dilithium");
-        
+
         // Test environment variable override
         env::set_var("TX_COUNT", "5000");
         env::set_var("PQC_ALGO", "falcon");
-        
+
         let tx_count = env::var("TX_COUNT").unwrap().parse::<usize>().unwrap();
         let algo = env::var("PQC_ALGO").unwrap();
-        
+
         assert_eq!(tx_count, 5000);
         assert_eq!(algo, "falcon");
-        
+
         // Clean up
         env::remove_var("TX_COUNT");
         env::remove_var("PQC_ALGO");
@@ -68,15 +68,15 @@ mod tests {
     fn test_artifacts_directory_creation() {
         // Test that we can create artifacts directory
         std::fs::create_dir_all("/tmp/test-artifacts").unwrap();
-        
+
         // Test that we can write to it
         let test_content = r#"{"test": "benchmark result"}"#;
         std::fs::write("/tmp/test-artifacts/test_bench.json", test_content).unwrap();
-        
+
         // Test that we can read it back
         let content = std::fs::read_to_string("/tmp/test-artifacts/test_bench.json").unwrap();
         assert!(content.contains("benchmark result"));
-        
+
         // Clean up
         std::fs::remove_file("/tmp/test-artifacts/test_bench.json").unwrap();
         std::fs::remove_dir("/tmp/test-artifacts").unwrap();

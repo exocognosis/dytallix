@@ -147,7 +147,7 @@ Lists transactions with optional filtering.
 Successfully tested all three transaction commands:
 
 1. **Send Transaction**: ✅ Submits transactions and returns transaction hash
-2. **Get Transaction**: ✅ Retrieves and displays transaction details 
+2. **Get Transaction**: ✅ Retrieves and displays transaction details
 3. **List Transactions**: ✅ Lists transactions in formatted table with filtering
 
 The implementation provides a complete transaction management system that allows developers to:

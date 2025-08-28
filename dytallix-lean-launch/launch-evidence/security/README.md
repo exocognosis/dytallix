@@ -105,7 +105,7 @@ jobs:
           node-version: '18'
       - run: npm ci
       - run: npm audit --audit-level=high
-      
+
   cargo-audit:
     runs-on: ubuntu-latest
     steps:
@@ -169,5 +169,5 @@ For security-related questions or to report vulnerabilities:
 
 ---
 
-*Last Updated: 2024-01-15*  
+*Last Updated: 2024-01-15*
 *Audit Status: NPM ✅ Complete, Cargo ⏳ Pending*

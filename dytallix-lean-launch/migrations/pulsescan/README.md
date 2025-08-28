@@ -7,7 +7,7 @@ This directory contains database migration scripts for the PulseScan fraud & ano
 ### 001_initial_schema.sql
 Initial database schema including:
 - `findings` - Core anomaly detection results
-- `address_profiles` - Aggregate address information  
+- `address_profiles` - Aggregate address information
 - `transaction_features` - ML feature vectors
 - `anomaly_patterns` - Detected pattern definitions
 - `model_metrics` - ML model performance tracking

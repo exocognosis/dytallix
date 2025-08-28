@@ -117,7 +117,7 @@ cd cli/dytx && npm install && npm run build
 # Generate new key
 dytx keygen --algo dilithium --label "dev-key"
 
-# Check balances  
+# Check balances
 dytx balances dytallix1abc123...
 
 # Transfer tokens
@@ -126,7 +126,7 @@ dytx transfer --from addr1 --to addr2 --amount 1.5 --denom udgt
 
 ### Supported Algorithms
 - **Dilithium**: NIST standardized, balanced security/performance
-- **Falcon**: Compact signatures, faster verification  
+- **Falcon**: Compact signatures, faster verification
 - **SPHINCS+**: Conservative choice, hash-based security
 
 For detailed integration guide, see [`docs/wallet-migration.md`](docs/wallet-migration.md) and [`docs/cli.md`](docs/cli.md).
@@ -236,7 +236,7 @@ curl -X POST http://localhost:8787/api/faucet \
 curl -X POST http://localhost:8787/api/faucet \
   -H "Content-Type: application/json" \
   -d '{
-    "address": "dytallix1example123456789012345678901234567890", 
+    "address": "dytallix1example123456789012345678901234567890",
     "token": "DGT"
   }'
 ```
@@ -252,7 +252,7 @@ curl -X POST http://localhost:8787/api/faucet \
       "txHash": "0x..."
     },
     {
-      "symbol": "DRT", 
+      "symbol": "DRT",
       "amount": "50",
       "txHash": "0x..."
     }
@@ -311,7 +311,7 @@ curl "http://localhost:8787/api/balance?address=dytallix1example1234567890123456
       "denom": "udgt"
     },
     {
-      "symbol": "DRT", 
+      "symbol": "DRT",
       "amount": "100",
       "denom": "udrt"
     }
@@ -408,7 +408,7 @@ Frontend (React)
 └── src/utils/faucet.ts            # Legacy compatibility layer
 
 Tests
-├── src/__tests__/faucet-dual-token.test.js  # Backend unit tests  
+├── src/__tests__/faucet-dual-token.test.js  # Backend unit tests
 └── cypress/e2e/faucet-dual-token.cy.js      # E2E integration tests
 ```
 
@@ -435,7 +435,7 @@ For migration details, see `FAUCET_CONSOLIDATION_MIGRATION.md`.
 
 ## Next Steps
 - Migrate `src/` dashboard into `web/` directory
-- ~~Converge faucet logic into dedicated `faucet/` service~~ ✅ **COMPLETED** 
+- ~~Converge faucet logic into dedicated `faucet/` service~~ ✅ **COMPLETED**
 - Implement explorer indexing & UI expansion
 - Extend AI module integrations (anomaly detection, transaction classification)
 

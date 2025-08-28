@@ -339,10 +339,10 @@ func main() {
 
     // Get latest block
     block, err := client.GetLatestBlock()
-    
+
     // Get account balance
     balance, err := client.GetBalance("dytallix1...")
-    
+
     // Send transaction
     tx, err := client.SendTokens(dytallix.SendTokensReq{
         From:   "dytallix1...",
@@ -392,5 +392,5 @@ The testnet may be reset periodically for upgrades. Monitor announcements in:
 
 ---
 
-*Last Updated: July 31, 2025*  
+*Last Updated: July 31, 2025*
 *API Version: v1.0.0-testnet*

@@ -5,12 +5,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 // Enable smart contracts integration now that the crate compiles
 use crate::crypto::PQCManager; // added
-use crate::staking::{StakingError, StakingState};
+// use crate::staking::{StakingError, StakingState}; // temporarily disable due to path resolution issues
 use crate::storage::StorageManager;
 use crate::types::{Address, BlockNumber};
 use crate::types::{Transaction, TxReceipt, TxStatus};
-use crate::wasm::engine::WasmEngine; // added
-use crate::wasm::host_env::{HostEnv, HostExecutionContext}; // added
+use crate::wasm::WasmEngine; // updated simplified import
+use crate::wasm::host_env::{HostEnv, HostExecutionContext}; // keep host env
 use dytallix_contracts::runtime::{
     ContractCall, ContractDeployment, ContractRuntime, ExecutionResult,
 }; // added
@@ -86,7 +86,6 @@ impl RuntimeState {
     }
 }
 
-#[derive(Debug)]
 pub struct DytallixRuntime {
     state: Arc<RwLock<RuntimeState>>,
     storage: Arc<StorageManager>,
@@ -94,6 +93,16 @@ pub struct DytallixRuntime {
     // WASM engine & env (single reusable engine with shared HostEnv)
     wasm_engine: Arc<WasmEngine>,
     pqc_manager: Arc<PQCManager>,
+}
+
+impl std::fmt::Debug for DytallixRuntime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DytallixRuntime")
+            .field("state", &"<state>")
+            .field("storage", &"<storage>")
+            .field("contract_runtime", &"<contract_runtime>")
+            .finish()
+    }
 }
 
 impl DytallixRuntime {
@@ -514,7 +523,7 @@ impl DytallixRuntime {
         Ok(rewards)
     }
 
-    /// Claim rewards for all delegations of a delegator  
+    /// Claim rewards for all delegations of a delegator
     pub async fn claim_all_rewards(&self, delegator: &Address) -> Result<u128, StakingError> {
         let mut state = self.state.write().await;
         let total_rewards = state.staking.claim_all_rewards(delegator)?;
@@ -731,7 +740,7 @@ impl DytallixRuntime {
         block_time: i64,
     ) -> (Vec<TxReceipt>, u64) {
         let mut receipts = Vec::with_capacity(txs.len());
-        let mut gas_sum = 0u64;
+        let mut gas_sum = 0u64; // mutable because we accumulate
         for (i, tx) in txs.iter().enumerate() {
             let rcpt = self.execute_tx(tx, block_height, block_time, i).await;
             gas_sum += rcpt.gas_used;

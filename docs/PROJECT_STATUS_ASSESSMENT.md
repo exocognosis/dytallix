@@ -22,7 +22,7 @@ Based on comprehensive analysis of the current codebase and roadmap, the Dytalli
 
 ##### **✅ PQC Implementation - COMPLETE & PRODUCTION-READY**
 - **Full Dilithium5 implementation** with signing/verification
-- **Falcon1024 implementation** with signing/verification  
+- **Falcon1024 implementation** with signing/verification
 - **SPHINCS+ implementation** with signing/verification
 - **Crypto-agility framework** with algorithm switching
 - **Key rotation and backup capabilities**

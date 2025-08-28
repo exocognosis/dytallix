@@ -182,7 +182,7 @@ pub enum WasmCommand {
         gas: u64,
     },
 
-    /// Query a WASM contract state  
+    /// Query a WASM contract state
     Query {
         /// Contract address
         address: String,

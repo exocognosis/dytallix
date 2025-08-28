@@ -39,7 +39,7 @@ You're right - I got carried away with corporate-style planning. Let's focus on 
 Pick **2-3 things max**:
 
 1. **Test the tokenomics frontend** - Make sure the UI we built actually works
-2. **Improve the website** - Make it look more professional 
+2. **Improve the website** - Make it look more professional
 3. **Write some basic tests** - So you know when you break things
 
 ## ❌ **What NOT to Do Right Now**

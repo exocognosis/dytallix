@@ -190,7 +190,7 @@ impl Mempool {
             tx_lookup: HashMap::new(),
             tx_hashes: HashSet::new(),
             total_bytes: 0,
-            policy_manager: PolicyManager::new(),
+            policy_manager: PolicyManager::default(),
         }
     }
 

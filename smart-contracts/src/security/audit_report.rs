@@ -838,13 +838,13 @@ impl AuditReportGenerator {
 
     fn generate_technical_details(&self, finding: &SecurityFinding) -> String {
         match finding.category {
-            VulnerabilityCategory::Reentrancy => 
+            VulnerabilityCategory::Reentrancy =>
                 "Reentrancy occurs when external calls can manipulate contract state before the original function completes.".to_string(),
-            VulnerabilityCategory::IntegerOverflow => 
+            VulnerabilityCategory::IntegerOverflow =>
                 "Integer overflow/underflow can lead to unexpected behavior when arithmetic operations exceed type limits.".to_string(),
-            VulnerabilityCategory::AccessControl => 
+            VulnerabilityCategory::AccessControl =>
                 "Access control vulnerabilities allow unauthorized users to execute privileged functions.".to_string(),
-            VulnerabilityCategory::GasGriefing => 
+            VulnerabilityCategory::GasGriefing =>
                 "Gas griefing attacks waste computational resources to harm other users or the network.".to_string(),
             _ => "Technical analysis indicates potential security implications requiring review.".to_string(),
         }

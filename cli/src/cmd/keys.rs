@@ -53,7 +53,7 @@ pub enum AlgorithmChoice {
     Pqc,
     /// Use Dilithium5 algorithm specifically
     Dilithium5,
-    /// Use Falcon1024 algorithm specifically  
+    /// Use Falcon1024 algorithm specifically
     Falcon1024,
     /// Use SPHINCS+ algorithm specifically
     SphincsSha256128s,

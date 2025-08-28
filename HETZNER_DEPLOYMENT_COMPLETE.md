@@ -2,8 +2,8 @@
 
 ## 🎉 **DEPLOYMENT SUCCESSFUL - LIVE ON HETZNER SERVER**
 
-**Date:** August 3, 2025  
-**Server:** 178.156.187.81  
+**Date:** August 3, 2025
+**Server:** 178.156.187.81
 **Status:** ✅ FULLY OPERATIONAL
 
 ---
@@ -192,16 +192,16 @@ docker-compose -f docker-compose-faucet.yml restart
 
 ## 🎯 **Key Features Implemented**
 
-✅ **Dual-Token System**: Full support for DGT and DRT tokens  
-✅ **Dytallix Branding**: Dark gradient, glass morphism, Inter font  
-✅ **Real Blockchain**: Tendermint node producing blocks  
-✅ **Rate Limiting**: Prevents abuse with IP-based cooldowns  
-✅ **Validation**: Address format and request validation  
-✅ **External Access**: All services accessible from internet  
-✅ **Health Monitoring**: Real-time status and balance tracking  
-✅ **Error Handling**: Comprehensive error responses  
-✅ **Mobile Responsive**: Works on all device sizes  
-✅ **Transaction Details**: Full transaction info with hashes  
+✅ **Dual-Token System**: Full support for DGT and DRT tokens
+✅ **Dytallix Branding**: Dark gradient, glass morphism, Inter font
+✅ **Real Blockchain**: Tendermint node producing blocks
+✅ **Rate Limiting**: Prevents abuse with IP-based cooldowns
+✅ **Validation**: Address format and request validation
+✅ **External Access**: All services accessible from internet
+✅ **Health Monitoring**: Real-time status and balance tracking
+✅ **Error Handling**: Comprehensive error responses
+✅ **Mobile Responsive**: Works on all device sizes
+✅ **Transaction Details**: Full transaction info with hashes
 
 ---
 
@@ -217,8 +217,8 @@ docker-compose -f docker-compose-faucet.yml restart
 
 **🎉 The Dytallix Testnet Faucet is now live and ready for developer use!**
 
-**Frontend**: http://178.156.187.81:80  
-**API**: http://178.156.187.81:3001  
-**Blockchain**: http://178.156.187.81:26657  
+**Frontend**: http://178.156.187.81:80
+**API**: http://178.156.187.81:3001
+**Blockchain**: http://178.156.187.81:26657
 
 **Deployment completed successfully on August 3, 2025** ✨

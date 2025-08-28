@@ -7,61 +7,61 @@ monitoring:
     collection_interval_seconds: 10
     retention_days: 30
     prometheus_endpoint: "localhost:9090"
-    
+
   # Alert thresholds
   alerts:
     latency:
       warning_threshold_ms: 25000      # 25 seconds
       critical_threshold_ms: 35000     # 35 seconds
       evaluation_window_minutes: 5
-      
+
     throughput:
       warning_threshold_tph: 450       # transactions per hour
       critical_threshold_tph: 400
       evaluation_window_minutes: 10
-      
+
     error_rate:
       warning_threshold: 0.01          # 1%
       critical_threshold: 0.015        # 1.5%
       evaluation_window_minutes: 5
-      
+
     resource_usage:
       cpu_warning_threshold: 0.80      # 80%
       cpu_critical_threshold: 0.95     # 95%
       memory_warning_threshold: 0.80
       memory_critical_threshold: 0.95
-      
+
   # Dashboard configuration
   dashboard:
     refresh_interval_seconds: 30
     real_time_charts: true
     historical_data_retention_hours: 168  # 7 days
-    
+
     # Chart configurations
     charts:
       - name: "Transaction Latency"
         type: "line"
         metrics: ["avg_latency", "p95_latency", "p99_latency"]
         time_range_hours: 24
-        
+
       - name: "Throughput"
         type: "line"
         metrics: ["transactions_per_hour", "successful_transactions_per_hour"]
         time_range_hours: 24
-        
+
       - name: "Error Rates"
         type: "area"
         metrics: ["error_rate", "timeout_rate", "network_error_rate"]
         time_range_hours: 24
-        
+
       - name: "Bridge Health"
         type: "status"
         metrics: ["bridge_status", "relayer_status", "circuit_breaker_status"]
-        
+
       - name: "Resource Usage"
         type: "gauge"
         metrics: ["cpu_usage", "memory_usage", "network_io", "disk_io"]
-        
+
       - name: "AI Optimization"
         type: "table"
         metrics: ["recommended_batch_size", "recommended_concurrency", "optimization_confidence"]

@@ -95,7 +95,7 @@ The emission rate adapts based on network utilization:
 fn calculate_adaptive_rate(&self, network_utilization: u32) -> EmissionRate {
     let base_rate = self.emission_params.base_emission_rate;
     let adjustment_factor = self.emission_params.adjustment_factor as u64;
-    
+
     let adjustment = if network_utilization > 5000 {
         // High utilization - increase emission
         base_rate * adjustment_factor / 10000
@@ -130,7 +130,7 @@ fn calculate_adaptive_rate(&self, network_utilization: u32) -> EmissionRate {
 Each block's emission is distributed as follows:
 
 - **40%** → Validator rewards
-- **30%** → Staker rewards  
+- **30%** → Staker rewards
 - **30%** → Treasury/Development fund
 
 ### Staking Reward System
@@ -223,7 +223,7 @@ dyt stake claim --address dyt1delegator
 ### Claiming Process
 
 1. **Validators**: Claim rewards from validator pool based on block production
-2. **Stakers**: Claim rewards from staker pool based on stake amount and duration  
+2. **Stakers**: Claim rewards from staker pool based on stake amount and duration
 3. **Treasury**: Automatic allocation for development and ecosystem growth
 
 ## WASM Integration

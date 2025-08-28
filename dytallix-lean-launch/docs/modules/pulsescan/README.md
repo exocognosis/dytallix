@@ -161,7 +161,7 @@ curl "http://localhost:3001/api/v1/stats"
 PulseScan extracts 20+ features across multiple dimensions:
 
 - **Velocity Features**: Transaction frequency patterns
-- **Amount Features**: Statistical distribution analysis  
+- **Amount Features**: Statistical distribution analysis
 - **Temporal Features**: Time-based behavioral patterns
 - **Graph Features**: Network centrality and connectivity
 - **Behavioral Features**: Gas usage and interaction patterns
@@ -171,7 +171,7 @@ PulseScan extracts 20+ features across multiple dimensions:
 Multiple detection algorithms working in ensemble:
 
 1. **Isolation Forest**: Unsupervised anomaly detection
-2. **One-Class SVM**: Boundary-based anomaly detection  
+2. **One-Class SVM**: Boundary-based anomaly detection
 3. **Autoencoder**: Neural network reconstruction error
 4. **Statistical Tests**: Z-score and percentile-based detection
 
@@ -228,7 +228,7 @@ Configure alerts for:
 cd contracts/pulsescan
 cargo test
 
-# Inference service tests  
+# Inference service tests
 cd services/pulsescan-infer
 cargo test
 

@@ -204,7 +204,7 @@ The Dytallix Cross-Chain Bridge is now ready for enterprise-grade deployment on 
 
 ---
 
-**Generated**: July 21, 2025  
-**Version**: v0.12.0  
-**Status**: Production Ready  
+**Generated**: July 21, 2025
+**Version**: v0.12.0
+**Status**: Production Ready
 **Repository**: https://github.com/HisMadRealm/dytallix.git

@@ -266,33 +266,33 @@ data:
     [bridge]
     name = "dytallix"
     environment = "testnet"
-    
+
     [ethereum]
     chain_id = 11155111  # Sepolia testnet
     confirmation_blocks = 12
     gas_limit = 500000
-    
+
     [cosmos]
     chain_id = "cosmoshub-4"
     gas_limit = 200000
-    
+
     [polkadot]
     chain_id = "westend"
-    
+
     [security]
     pqc_enabled = true
     audit_logging = true
     require_tls = true
-    
+
     [monitoring]
     metrics_enabled = true
     health_check_interval = 30
-    
+
   logging.yaml: |
     level: info
     format: json
     output: stdout
-    
+
     loggers:
       bridge: info
       ethereum: debug

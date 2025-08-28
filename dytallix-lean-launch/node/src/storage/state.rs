@@ -148,7 +148,7 @@ impl Storage {
             .unwrap_or(0)
     }
 
-    /// Legacy single balance setter (for backward compatibility)  
+    /// Legacy single balance setter (for backward compatibility)
     pub fn set_balance_db(&self, addr: &str, bal: u128) -> anyhow::Result<()> {
         // Migrate to multi-denom format
         let mut balances = self.get_balances_db(addr);

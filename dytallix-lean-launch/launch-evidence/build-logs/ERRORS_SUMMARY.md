@@ -1,86 +1,87 @@
 
-## fmt_check FAILED (exit 1)
+## clippy FAILED (exit 101)
 
-Last 80 lines of /Users/rickglenn/dytallix/dytallix-lean-launch/launch-evidence/build-logs/fmt_check.log:
+Last 80 lines of /Users/rickglenn/dytallix/dytallix-lean-launch/launch-evidence/build-logs/clippy.log:
 ```
-(B[m     let (new_total_stake, new_reward_index, new_pending) = staking.get_stats();
-     assert_eq!(new_total_stake, 500_000_000_000);
-     assert!(new_reward_index > 0); // Should have applied pending rewards
-Diff in /Users/rickglenn/dytallix/dytallix-lean-launch/node/tests/staking_reward_accrual_integration.rs:155:
-     assert_eq!(new_pending, 0); // Pending should be cleared
-[31m-    
-(B[m[32m+
-(B[m     // Delegator should have accrued the full pending amount
-     let accrued = staking.get_accrued_rewards("delegator1");
-     assert_eq!(accrued, 750_000); // All the pending emission
-Diff in /Users/rickglenn/dytallix/dytallix-lean-launch/node/tests/staking_reward_accrual_integration.rs:165:
-     let dir = tempdir().unwrap();
-     let storage = Arc::new(Storage::open(dir.path().join("node.db")).unwrap());
-     let mut staking = StakingModule::new(storage);
-[31m-    
-(B[m[32m+
-(B[m     // Add delegator but no emissions
-     staking.update_delegator_stake("delegator1", 100_000_000_000);
-[31m-    
-(B[m[32m+
-(B[m     // Claim should return 0
-     let claimed = staking.claim_rewards("delegator1");
-     assert_eq!(claimed, 0);
-Diff in /Users/rickglenn/dytallix/dytallix-lean-launch/node/tests/staking_reward_accrual_integration.rs:175:
-[31m-    
-(B[m[32m+
-(B[m     // Still 0 after claim
-     let accrued = staking.get_accrued_rewards("delegator1");
-     assert_eq!(accrued, 0);
-Diff in /Users/rickglenn/dytallix/dytallix-lean-launch/node/tests/staking_reward_accrual_integration.rs:184:
-     let dir = tempdir().unwrap();
-     let storage = Arc::new(Storage::open(dir.path().join("node.db")).unwrap());
-     let state = Arc::new(Mutex::new(State::new(storage.clone())));
-[31m-    
-(B[m[32m+
-(B[m     let config = EmissionConfig {
-[31m-        schedule: EmissionSchedule::Static { per_block: 1_000_000 },
-(B[m[32m+        schedule: EmissionSchedule::Static {
-(B[m[32m+            per_block: 1_000_000,
-(B[m[32m+        },
-(B[m         initial_supply: 0,
-         emission_breakdown: EmissionBreakdown {
-             block_rewards: 60,
-Diff in /Users/rickglenn/dytallix/dytallix-lean-launch/node/tests/staking_reward_accrual_integration.rs:195:
-             bridge_operations: 5,
-         },
-     };
-[31m-    
-(B[m[32m+
-(B[m     let mut emission = EmissionEngine::new_with_config(storage.clone(), state, config);
-     let mut staking = StakingModule::new(storage);
-[31m-    
-(B[m[32m+
-(B[m     // Setup delegator and apply emission
-     staking.update_delegator_stake("delegator1", 1_000_000_000_000);
-     emission.apply_until(1);
-Diff in /Users/rickglenn/dytallix/dytallix-lean-launch/node/tests/staking_reward_accrual_integration.rs:205:
-     let staking_rewards = emission.get_latest_staking_rewards();
-     staking.apply_external_emission(staking_rewards);
-[31m-    
-(B[m[32m+
-(B[m     // First claim should work
-     let first_claim = staking.claim_rewards("delegator1");
-     assert_eq!(first_claim, 250_000);
-Diff in /Users/rickglenn/dytallix/dytallix-lean-launch/node/tests/staking_reward_accrual_integration.rs:211:
-[31m-    
-(B[m[32m+
-(B[m     // Immediate second claim should return 0
-     let second_claim = staking.claim_rewards("delegator1");
-     assert_eq!(second_claim, 0);
-Diff in /Users/rickglenn/dytallix/dytallix-lean-launch/node/tests/staking_reward_accrual_integration.rs:215:
-[31m-    
-(B[m[32m+
-(B[m     // Accrued should be 0
-     let accrued = staking.get_accrued_rewards("delegator1");
-     assert_eq!(accrued, 0);
-Diff in /Users/rickglenn/dytallix/dytallix-lean-launch/node/tests/staking_reward_accrual_integration.rs:219:
- }
-[32m+
-(B[m```
+
+error[E0599]: no method named `as_context_mut` found for struct `Caller` in the current scope
+   --> /Users/rickglenn/dytallix/blockchain-core/src/wasm/engine.rs:279:58
+    |
+279 |                 if let Ok(bytes) = Self::read_mem(caller.as_context_mut(), msg_ptr, msg_len) {
+    |                                                          ^^^^^^^^^^^^^^
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `AsContextMut` which provides `as_context_mut` is implemented but not in scope; perhaps you want to import it
+    |
+1   + use wasmtime::AsContextMut;
+    |
+help: there is a method `as_context` with a similar name
+    |
+279 -                 if let Ok(bytes) = Self::read_mem(caller.as_context_mut(), msg_ptr, msg_len) {
+279 +                 if let Ok(bytes) = Self::read_mem(caller.as_context(), msg_ptr, msg_len) {
+    |
+
+error[E0277]: the `?` operator can only be used on `Result`s, not `Option`s, in a method that returns `Result`
+  --> /Users/rickglenn/dytallix/blockchain-core/src/wasm/execution.rs:28:51
+   |
+14 | /     pub fn deploy(
+15 | |         &mut self,
+16 | |         creator: [u8; 32],
+17 | |         code: &[u8],
+18 | |         height: u64,
+19 | |         gas_limit: u64,
+20 | |     ) -> Result<(ContractInstance, u64)> {
+   | |________________________________________- this function returns a `Result`
+...
+28 |           let remaining = store_ctx.fuel_remaining()?;
+   |                                                     ^ use `.ok_or(...)?` to provide an error compatible with `std::result::Result<(wasm::types::ContractInstance, u64), anyhow::Error>`
+
+error[E0277]: the `?` operator can only be used on `Result`s, not `Option`s, in a method that returns `Result`
+  --> /Users/rickglenn/dytallix/blockchain-core/src/wasm/execution.rs:55:51
+   |
+36 | /     pub fn execute(
+37 | |         &mut self,
+38 | |         address: [u8; 32],
+39 | |         method: &str,
+40 | |         gas_limit: u64,
+41 | |     ) -> Result<(i64, u64)> {
+   | |___________________________- this function returns a `Result`
+...
+55 |           let remaining = store_ctx.fuel_remaining()?;
+   |                                                     ^ use `.ok_or(...)?` to provide an error compatible with `std::result::Result<(i64, u64), anyhow::Error>`
+
+error[E0599]: no method named `cloned` found for enum `Result<MutexGuard<'_, HostExecutionContext>, PoisonError<...>>` in the current scope
+  --> /Users/rickglenn/dytallix/blockchain-core/src/wasm/host_env.rs:82:31
+   |
+82 |         self.inner.ctx.lock().cloned().unwrap_or_default()
+   |                               ^^^^^^ `std::result::Result<std::sync::MutexGuard<'_, HostExecutionContext>, PoisonError<std::sync::MutexGuard<'_, HostExecutionContext>>>` is not an iterator
+   |
+help: call `.into_iter()` first
+   |
+82 |         self.inner.ctx.lock().into_iter().cloned().unwrap_or_default()
+   |                               ++++++++++++
+
+warning: unused variable: `tx`
+   --> /Users/rickglenn/dytallix/blockchain-core/src/consensus/transaction_validation.rs:375:41
+    |
+375 |     fn validate_signature_policy(&self, tx: &Transaction) -> Result<()> {
+    |                                         ^^ help: if this is intentional, prefix it with an underscore: `_tx`
+
+warning: unused variable: `deploy`
+   --> /Users/rickglenn/dytallix/blockchain-core/src/consensus/review_api.rs:221:47
+    |
+221 |             crate::types::Transaction::Deploy(deploy) => ("Deploy".to_string(), None, None, None),
+    |                                               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_deploy`
+
+warning: unused variable: `oracle_entry`
+   --> /Users/rickglenn/dytallix/blockchain-core/src/consensus/signature_verification.rs:263:13
+    |
+263 |         let oracle_entry = self.validate_oracle(&signed_response.oracle_identity)?;
+    |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_oracle_entry`
+
+Some errors have detailed explanations: E0277, E0308, E0433, E0592, E0599, E0609.
+For more information about an error, try `rustc --explain E0277`.
+warning: `dytallix-node` (lib) generated 18 warnings
+error: could not compile `dytallix-node` (lib) due to 31 previous errors; 18 warnings emitted
+```
 

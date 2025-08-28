@@ -9,7 +9,7 @@ use serde::{Serialize, Deserialize};
 
 // Import both original and optimized contracts for comparison
 use crate::cosmos_bridge::{
-    ExecuteMsg as OriginalExecuteMsg, 
+    ExecuteMsg as OriginalExecuteMsg,
     QueryMsg as OriginalQueryMsg,
     InstantiateMsg as OriginalInstantiateMsg,
     execute as original_execute,
@@ -19,7 +19,7 @@ use crate::cosmos_bridge::{
 
 use crate::cosmos_bridge_optimized::{
     ExecuteMsg as OptimizedExecuteMsg,
-    QueryMsg as OptimizedQueryMsg, 
+    QueryMsg as OptimizedQueryMsg,
     InstantiateMsg as OptimizedInstantiateMsg,
     execute as optimized_execute,
     query as optimized_query,
@@ -104,7 +104,7 @@ impl WasmOptimizationBenchmark {
     /// Create benchmark with custom config
     pub fn with_config(config: BenchmarkConfig) -> Self {
         let mut gas_optimizer = GasOptimizer::new();
-        
+
         // Add optimization strategies
         gas_optimizer.add_strategy(crate::gas_optimizer::OptimizationStrategy::BatchOperations {
             batch_size: 5,
@@ -209,7 +209,7 @@ impl WasmOptimizationBenchmark {
             let mut deps = mock_dependencies();
             let info = mock_info("creator", &coins(1000, "earth"));
             let _ = original_instantiate(deps.as_mut(), mock_env(), info.clone(), original_msg.clone());
-            
+
             let mut deps = mock_dependencies();
             let _ = optimized_instantiate(deps.as_mut(), mock_env(), info, optimized_msg.clone());
         }
@@ -288,17 +288,17 @@ impl WasmOptimizationBenchmark {
         for i in 0..self.config.warmup_iterations {
             let info = mock_info("validator1", &[]);
             let bridge_id = format!("warmup_bridge_{}", i);
-            
+
             let mut original_msg_copy = original_msg.clone();
             if let OriginalExecuteMsg::MintTokens { ref mut bridge_id, .. } = original_msg_copy {
                 *bridge_id = format!("warmup_bridge_{}", i);
             }
-            
+
             let mut optimized_msg_copy = optimized_msg.clone();
             if let OptimizedExecuteMsg::MintTokens { ref mut bridge_id, .. } = optimized_msg_copy {
                 *bridge_id = format!("warmup_bridge_{}", i);
             }
-            
+
             let _ = original_execute(original_deps.as_mut(), mock_env(), info.clone(), original_msg_copy);
             let _ = optimized_execute(optimized_deps.as_mut(), mock_env(), info, optimized_msg_copy);
         }
@@ -773,7 +773,7 @@ impl WasmOptimizationBenchmark {
     pub fn export_results_csv(&self, results: &BenchmarkResults) -> String {
         let mut csv = String::new();
         csv.push_str("operation,original_time_ns,optimized_time_ns,time_improvement_%,original_gas,optimized_gas,gas_improvement_%,original_storage_ops,optimized_storage_ops,storage_improvement_%,original_memory,optimized_memory,memory_improvement_%\n");
-        
+
         for op in &results.operations {
             csv.push_str(&format!(
                 "{},{},{},{:.2},{},{},{:.2},{},{},{:.2},{},{},{:.2}\n",
@@ -792,7 +792,7 @@ impl WasmOptimizationBenchmark {
                 op.memory_improvement_percent,
             ));
         }
-        
+
         csv
     }
 
@@ -800,20 +800,20 @@ impl WasmOptimizationBenchmark {
     pub fn generate_optimization_report(&self, results: &BenchmarkResults) -> String {
         let mut report = String::new();
         report.push_str("# WASM Bridge Contract Optimization Report\n\n");
-        
+
         report.push_str(&format!("**Benchmark Configuration:**\n"));
         report.push_str(&format!("- Iterations: {}\n", results.config.iterations));
         report.push_str(&format!("- Warmup Iterations: {}\n", results.config.warmup_iterations));
         report.push_str(&format!("- Test Data Size: {}\n\n", results.config.test_data_size));
-        
+
         report.push_str("## Overall Performance Improvements\n\n");
         report.push_str(&format!("- **Execution Time**: {:.2}% improvement\n", results.overall_time_improvement));
         report.push_str(&format!("- **Gas Usage**: {:.2}% reduction\n", results.overall_gas_improvement));
         report.push_str(&format!("- **Storage Operations**: {:.2}% reduction\n", results.overall_storage_improvement));
         report.push_str(&format!("- **Memory Usage**: {:.2}% reduction\n\n", results.overall_memory_improvement));
-        
+
         report.push_str("## Operation-Specific Results\n\n");
-        
+
         for op in &results.operations {
             report.push_str(&format!("### {}\n", op.operation_name));
             report.push_str(&format!("- Time improvement: {:.2}%\n", op.time_improvement_percent));
@@ -821,14 +821,14 @@ impl WasmOptimizationBenchmark {
             report.push_str(&format!("- Storage improvement: {:.2}%\n", op.storage_improvement_percent));
             report.push_str(&format!("- Memory improvement: {:.2}%\n\n", op.memory_improvement_percent));
         }
-        
+
         report.push_str("## Key Optimizations Applied\n\n");
         report.push_str("1. **Storage Access Optimization**: Batched operations and caching\n");
         report.push_str("2. **Data Structure Compaction**: Bit flags and packed data\n");
         report.push_str("3. **Validation Streamlining**: Early returns and reduced redundancy\n");
         report.push_str("4. **Memory Management**: Efficient allocation patterns\n");
         report.push_str("5. **Gas Metering**: Dynamic cost calculation\n\n");
-        
+
         report
     }
 }

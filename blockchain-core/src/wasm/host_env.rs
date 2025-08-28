@@ -7,7 +7,7 @@ use anyhow::Result;
 use blake3;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use wasmtime::{Caller, Engine, Linker};
+use wasmtime::Linker; // Removed unused imports: Caller, Engine
 
 #[derive(Clone, Debug, Default)]
 pub struct HostExecutionContext {
@@ -29,6 +29,12 @@ struct HostEnvInner {
     logs: Mutex<Vec<String>>,             // structured logs captured per execution
     gas_table: GasTable,
     pqc: Arc<PQCManager>,
+}
+
+impl std::fmt::Debug for HostEnv {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HostEnv").finish()
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -79,7 +85,11 @@ impl HostEnv {
     }
 
     pub fn context(&self) -> HostExecutionContext {
-        self.inner.ctx.lock().cloned().unwrap_or_default()
+        self.inner
+            .ctx
+            .lock()
+            .map(|g| g.clone())
+            .unwrap_or_else(|_| HostExecutionContext::default())
     }
 
     pub fn gas_table(&self) -> GasTable {
@@ -121,7 +131,7 @@ impl HostEnv {
             .unwrap_or(false)
     }
 
-    pub fn register_host_functions<T>(&self, linker: &mut Linker<T>) -> Result<()> {
+    pub fn register_host_functions<T>(&self, _linker: &mut Linker<T>) -> Result<()> {
         // Placeholder for future host function registration
         // Examples of future functions:
         // - storage_get/storage_set for persistent key-value storage

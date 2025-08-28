@@ -59,7 +59,7 @@ data:
         type: RuntimeDefault
       supplementalGroups: []
       sysctls: []
-    
+
     # Container-level security context (add to each container)
     containerSecurityContext:
       allowPrivilegeEscalation: false
@@ -77,7 +77,7 @@ data:
         type: RuntimeDefault
       privileged: false
       procMount: Default
-    
+
     # Required volume mounts for read-only root filesystem
     volumeMounts:
     - name: tmp-volume
@@ -88,7 +88,7 @@ data:
       mountPath: /var/log
     - name: var-run
       mountPath: /var/run
-    
+
     # Required volumes
     volumes:
     - name: tmp-volume

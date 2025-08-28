@@ -26,7 +26,7 @@ struct Cli {
     #[arg(long, default_value = "http://localhost:3030")]
     node_url: String,
 
-    /// AI services URL  
+    /// AI services URL
     #[arg(long, default_value = "http://localhost:8000")]
     ai_url: String,
 

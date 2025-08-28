@@ -8,7 +8,7 @@
 - **VPC Network**: `dytallix-testnet-vpc` with proper CIDR allocation
 - **Subnet**: `dytallix-testnet-subnet` with secondary ranges for pods and services
 - **Service Account**: `dytallix-bridge-sa@dytallix.iam.gserviceaccount.com`
-- **Storage Buckets**: 
+- **Storage Buckets**:
   - `dytallix-testnet-storage` (main storage)
   - `dytallix-testnet-access-logs` (access logs)
 - **Artifact Registry**: `us-central1-docker.pkg.dev/dytallix/dytallix-testnet-repo`
@@ -108,10 +108,10 @@ Service Account: dytallix-bridge-sa@dytallix.iam.gserviceaccount.com
    ```bash
    # Check cluster status
    kubectl get nodes -o wide
-   
+
    # Check system pods
    kubectl get pods -n kube-system
-   
+
    # Check storage classes
    kubectl get storageclass
    ```
@@ -126,7 +126,7 @@ Service Account: dytallix-bridge-sa@dytallix.iam.gserviceaccount.com
    ```bash
    # Check workload identity
    kubectl get serviceaccount
-   
+
    # Check network policies
    kubectl get networkpolicy
    ```

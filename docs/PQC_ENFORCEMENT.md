@@ -89,7 +89,7 @@ The system enforces policies at two levels:
 - Rejects transactions with non-whitelisted algorithms
 - Returns `PolicyViolation` error for rejected transactions
 
-#### 2. Consensus Level  
+#### 2. Consensus Level
 - Validates algorithm during block proposal
 - Ensures only compliant transactions are included in blocks
 - Prevents consensus on blocks with policy violations
@@ -103,7 +103,7 @@ Transaction queries and submissions include algorithm information:
 ```json
 {
   "hash": "0x...",
-  "status": "success", 
+  "status": "success",
   "algorithm": "dilithium5",
   "gas_limit": 50000,
   "gas_price": 1000
@@ -146,7 +146,7 @@ Account information includes the selected signature algorithm:
 PQC algorithms have different performance characteristics:
 
 - **Dilithium5**: Balanced performance, ~1.5KB signatures
-- **Falcon1024**: Fastest verification, ~690B signatures  
+- **Falcon1024**: Fastest verification, ~690B signatures
 - **SPHINCS+**: Smallest public keys, larger signatures (~7KB)
 
 ### Network Overhead
@@ -162,7 +162,7 @@ PQC algorithms have different performance characteristics:
 // Mempool rejection
 RejectionReason::PolicyViolation("Algorithm Dilithium5 is not in the allowed list")
 
-// Consensus validation error  
+// Consensus validation error
 "Signature policy violation: Legacy algorithm ecdsa is explicitly rejected"
 ```
 
@@ -212,7 +212,7 @@ cargo test pqc_policy_enforcement
 # Test mempool integration
 cargo test mempool_policy_validation
 
-# Test consensus integration  
+# Test consensus integration
 cargo test consensus_policy_validation
 ```
 

@@ -546,7 +546,7 @@ impl BridgeStorage {
     /// Get bridge statistics
     pub async fn get_bridge_statistics(&self) -> Result<BridgeStatistics, BridgeError> {
         let query = r#"
-            SELECT 
+            SELECT
                 COUNT(*) as total_transactions,
                 COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_transactions,
                 COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_transactions,

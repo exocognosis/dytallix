@@ -2,7 +2,7 @@
 OSMOSIS WASM CONTRACT BENCHMARKS
 
 This module provides comprehensive benchmarking capabilities for WASM contracts
-deployed on the Osmosis testnet, measuring execution time, gas usage, and 
+deployed on the Osmosis testnet, measuring execution time, gas usage, and
 throughput under various load conditions.
 */
 
@@ -83,7 +83,7 @@ impl OsmosisWasmBenchmark {
         println!("🚀 Starting Osmosis WASM Contract Benchmarks");
         println!("Testnet endpoint: {}", self.config.testnet_endpoint);
         println!("Contract addresses: {:?}", self.config.contract_addresses);
-        
+
         let start_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
             .as_secs();
@@ -100,7 +100,7 @@ impl OsmosisWasmBenchmark {
 
         // Calculate aggregate results
         let results = self.calculate_aggregate_results(start_time, end_time);
-        
+
         println!("✅ Benchmark completed successfully");
         println!("Total operations: {}", results.total_operations);
         println!("Success rate: {:.2}%", (1.0 - results.error_rate) * 100.0);
@@ -112,14 +112,14 @@ impl OsmosisWasmBenchmark {
 
     async fn run_baseline_performance_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("📊 Running baseline performance test...");
-        
+
         for contract_addr in &self.config.contract_addresses.clone() {
             // Test basic query operations
             let query_metrics = self.benchmark_query_operation(
                 contract_addr,
                 r#"{"get_count": {}}"#.to_string(),
             ).await?;
-            
+
             self.results.push(query_metrics);
 
             // Test execute operations
@@ -128,7 +128,7 @@ impl OsmosisWasmBenchmark {
                 r#"{"increment": {}}"#.to_string(),
                 vec![],
             ).await?;
-            
+
             self.results.push(execute_metrics);
         }
 
@@ -137,19 +137,19 @@ impl OsmosisWasmBenchmark {
 
     async fn run_load_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("🔥 Running load test with {} concurrent transactions...", self.config.concurrent_transactions);
-        
+
         let mut tasks = Vec::new();
         let contract_addresses = self.config.contract_addresses.clone();
-        
+
         for i in 0..self.config.concurrent_transactions {
             let contract_addr = contract_addresses[i % contract_addresses.len()].clone();
             let client = self.client.clone();
             let endpoint = self.config.testnet_endpoint.clone();
-            
+
             let task = tokio::spawn(async move {
                 Self::execute_load_test_transaction(client, endpoint, contract_addr).await
             });
-            
+
             tasks.push(task);
         }
 
@@ -165,10 +165,10 @@ impl OsmosisWasmBenchmark {
 
     async fn run_gas_efficiency_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("⛽ Running gas efficiency analysis...");
-        
+
         // Test different gas limits to find optimal settings
         let gas_limits = vec![100_000, 200_000, 500_000, 1_000_000, 2_000_000];
-        
+
         for gas_limit in gas_limits {
             for contract_addr in &self.config.contract_addresses.clone() {
                 let mut metrics = self.benchmark_execute_operation(
@@ -176,7 +176,7 @@ impl OsmosisWasmBenchmark {
                     r#"{"increment": {}}"#.to_string(),
                     vec![],
                 ).await?;
-                
+
                 metrics.gas_limit = gas_limit;
                 self.results.push(metrics);
             }
@@ -187,15 +187,15 @@ impl OsmosisWasmBenchmark {
 
     async fn run_concurrent_execution_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("🔄 Running concurrent execution test...");
-        
+
         let start_time = Instant::now();
         let mut interval_results = Vec::new();
-        
+
         // Run for specified test duration
         while start_time.elapsed().as_secs() < self.config.test_duration_seconds {
             let interval_start = Instant::now();
             let mut interval_ops = 0;
-            
+
             // Execute operations for 1-second intervals
             while interval_start.elapsed().as_millis() < 1000 {
                 for contract_addr in &self.config.contract_addresses.clone() {
@@ -203,12 +203,12 @@ impl OsmosisWasmBenchmark {
                         contract_addr,
                         r#"{"get_count": {}}"#.to_string(),
                     ).await?;
-                    
+
                     interval_ops += 1;
                     self.results.push(metrics);
                 }
             }
-            
+
             interval_results.push(interval_ops);
             println!("Interval TPS: {}", interval_ops);
         }
@@ -308,10 +308,10 @@ impl OsmosisWasmBenchmark {
         };
 
         // In real implementation, would parse gas_used from response
-        let gas_used = if success { 
+        let gas_used = if success {
             (self.config.gas_limit as f64 * 0.7) as u64 // Simulate 70% gas usage
-        } else { 
-            0 
+        } else {
+            0
         };
 
         Ok(OperationMetrics {
@@ -369,12 +369,12 @@ impl OsmosisWasmBenchmark {
         let total_operations = self.results.len() as u64;
         let successful_operations = self.results.iter().filter(|m| m.success).count() as u64;
         let failed_operations = total_operations - successful_operations;
-        
+
         let duration_seconds = (end_time - start_time) as f64;
-        let average_tps = if duration_seconds > 0.0 { 
-            total_operations as f64 / duration_seconds 
-        } else { 
-            0.0 
+        let average_tps = if duration_seconds > 0.0 {
+            total_operations as f64 / duration_seconds
+        } else {
+            0.0
         };
 
         // Calculate peak TPS from 1-second intervals
@@ -439,7 +439,7 @@ impl OsmosisWasmBenchmark {
     pub fn export_results_csv(&self, results: &BenchmarkResults) -> String {
         let mut csv = String::new();
         csv.push_str("operation_type,contract_address,execution_time_ms,gas_used,gas_limit,success,timestamp\n");
-        
+
         for metric in &results.operation_metrics {
             csv.push_str(&format!(
                 "{},{},{},{},{},{},{}\n",
@@ -452,7 +452,7 @@ impl OsmosisWasmBenchmark {
                 metric.timestamp
             ));
         }
-        
+
         csv
     }
 }
@@ -486,7 +486,7 @@ mod tests {
     async fn test_benchmark_configuration() {
         let config = BenchmarkConfig::default();
         let benchmark = OsmosisWasmBenchmark::new(config);
-        
+
         assert!(!benchmark.config.contract_addresses.is_empty());
         assert!(benchmark.config.test_duration_seconds > 0);
     }
@@ -495,7 +495,7 @@ mod tests {
     fn test_metrics_calculation() {
         let config = BenchmarkConfig::default();
         let mut benchmark = OsmosisWasmBenchmark::new(config);
-        
+
         // Add test metrics
         benchmark.results.push(OperationMetrics {
             operation_type: "test".to_string(),

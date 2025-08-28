@@ -20,7 +20,7 @@ The Dytallix Oracle system provides a secure, scalable ingestion pipeline for ex
 pub struct AiRiskRecord {
     pub tx_hash: String,        // Transaction hash (hex format)
     pub score_str: String,      // Original score string (deterministic)
-    pub model_id: String,       // AI model identifier 
+    pub model_id: String,       // AI model identifier
     pub ingested_at: u64,       // Unix timestamp
     pub source: String,         // Oracle source identifier
 }
@@ -248,7 +248,7 @@ The Oracle system exposes the following metrics:
 - Total oracle submissions
 - Labels: `status="ok"` or `status="error"`
 
-**oracle_latency_seconds** - Histogram  
+**oracle_latency_seconds** - Histogram
 - Oracle ingest to persistence latency
 - Buckets: [0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0]
 
@@ -367,23 +367,23 @@ class OracleClient:
     def __init__(self, base_url: str, secret: str):
         self.base_url = base_url
         self.secret = secret.encode()
-    
+
     def _create_signature(self, body: str) -> str:
         return hmac.new(
             self.secret,
             body.encode(),
             hashlib.sha256
         ).hexdigest()
-    
+
     def submit_risk(self, tx_hash: str, score: str, model_id: str):
         body = json.dumps({
             "tx_hash": tx_hash,
             "score": score,
             "model_id": model_id
         })
-        
+
         signature = self._create_signature(body)
-        
+
         response = requests.post(
             f"{self.base_url}/api/oracle/submit",
             headers={
@@ -393,7 +393,7 @@ class OracleClient:
             },
             data=body
         )
-        
+
         return response.json()
 
 # Usage

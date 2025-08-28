@@ -2,7 +2,7 @@ name: ML-DSA-65
 type: signature
 claimed-nist-level: 3
 length-public-key: 1952
-length-secret-key: 4032 
+length-secret-key: 4032
 length-signature: 3309
 nistkat-sha256: 7cb96242eac9907a55b5c84c202f0ebd552419c50b2e986dc2e28f07ecebf072
 testvectors-sha256: b66d7de88a3bec2d7cf171a7a1198f6de47384e2a1dd3bf7d07432316a9a40f8

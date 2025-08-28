@@ -3,8 +3,8 @@
 ## Overview
 This document provides a comprehensive security hardening checklist for the Dytallix cloud infrastructure, ensuring compliance with industry standards and best practices for blockchain infrastructure security.
 
-**Last Updated:** `2025-07-27 00:39:18 UTC`  
-**Compliance Frameworks:** CIS Kubernetes Benchmark, NIST Cybersecurity Framework, SOC 2 Type II, GDPR  
+**Last Updated:** `2025-07-27 00:39:18 UTC`
+**Compliance Frameworks:** CIS Kubernetes Benchmark, NIST Cybersecurity Framework, SOC 2 Type II, GDPR
 **Risk Assessment Date:** `2025-07-27`
 
 ---
@@ -603,7 +603,7 @@ This document provides a comprehensive security hardening checklist for the Dyta
 
 ---
 
-**Document Version:** 1.0  
-**Next Review Date:** `2025-08-26`  
-**Document Owner:** DevSecOps Team  
+**Document Version:** 1.0
+**Next Review Date:** `2025-08-26`
+**Document Owner:** DevSecOps Team
 **Approval:** Chief Information Security Officer

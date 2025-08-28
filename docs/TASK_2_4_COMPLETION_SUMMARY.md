@@ -77,7 +77,7 @@ Successfully implemented a comprehensive Oracle Registry and Reputation Manageme
 
 #### Unit Tests
 - **Location**: Embedded in implementation files
-- **Coverage**: 
+- **Coverage**:
   - Basic oracle registration (✅ PASSING)
   - Oracle slashing functionality (✅ PASSING)
 

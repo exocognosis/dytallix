@@ -8,7 +8,7 @@ The Dytallix cross-chain bridge is **PRODUCTION-READY** with complete smart cont
 
 ### **✅ Ethereum Contracts (Sepolia Testnet Ready)**
 - **DytallixBridge.sol** - Main bridge contract with asset locking/unlocking
-- **WrappedDytallix.sol** - ERC-20 wrapped token implementation  
+- **WrappedDytallix.sol** - ERC-20 wrapped token implementation
 - **WrappedTokenFactory.sol** - Factory for deploying new wrapped tokens
 - **Hardhat deployment infrastructure** with scripts and configuration
 
@@ -55,7 +55,7 @@ cd /Users/rickglenn/Desktop/dytallix/deployment/cosmos-contracts
 # Configure environment
 cat > .env << 'EOF'
 MNEMONIC="your twelve word mnemonic phrase for deployment wallet"
-OSMOSIS_TESTNET_RPC=https://rpc.osmotest5.osmosis.zone  
+OSMOSIS_TESTNET_RPC=https://rpc.osmotest5.osmosis.zone
 VALIDATOR_THRESHOLD=3
 BRIDGE_FEE_BPS=10
 VALIDATORS=osmo1validator1,osmo1validator2,osmo1validator3
@@ -164,7 +164,7 @@ After deployment, update configuration:
 // Update in /interoperability/src/connectors/ethereum/mod.rs
 const ETHEREUM_BRIDGE_ADDRESS: &str = "0xDeployedBridgeAddress";
 
-// Update in /interoperability/src/connectors/cosmos/mod.rs  
+// Update in /interoperability/src/connectors/cosmos/mod.rs
 const COSMOS_BRIDGE_ADDRESS: &str = "osmo1deployedcontractaddress";
 ```
 

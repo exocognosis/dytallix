@@ -26,7 +26,7 @@ impl Store {
 
     pub fn insert_transaction(&self, tx: &Transaction) -> Result<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO txs (hash, height, sender, recipient, amount, denom, status, gas_used) 
+            "INSERT OR REPLACE INTO txs (hash, height, sender, recipient, amount, denom, status, gas_used)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 tx.hash,
@@ -50,8 +50,8 @@ impl Store {
 
     pub fn get_blocks(&self, limit: u32, offset: u32) -> Result<Vec<Block>> {
         let mut stmt = self.conn.prepare(
-            "SELECT height, hash, time, tx_count FROM blocks 
-             ORDER BY height DESC 
+            "SELECT height, hash, time, tx_count FROM blocks
+             ORDER BY height DESC
              LIMIT ?1 OFFSET ?2",
         )?;
 
@@ -73,9 +73,9 @@ impl Store {
 
     pub fn get_transactions(&self, limit: u32, offset: u32) -> Result<Vec<Transaction>> {
         let mut stmt = self.conn.prepare(
-            "SELECT hash, height, sender, recipient, amount, denom, status, gas_used 
-             FROM txs 
-             ORDER BY rowid DESC 
+            "SELECT hash, height, sender, recipient, amount, denom, status, gas_used
+             FROM txs
+             ORDER BY rowid DESC
              LIMIT ?1 OFFSET ?2",
         )?;
 
@@ -101,8 +101,8 @@ impl Store {
 
     pub fn get_transaction_by_hash(&self, hash: &str) -> Result<Option<Transaction>> {
         let mut stmt = self.conn.prepare(
-            "SELECT hash, height, sender, recipient, amount, denom, status, gas_used 
-             FROM txs 
+            "SELECT hash, height, sender, recipient, amount, denom, status, gas_used
+             FROM txs
              WHERE hash = ?1",
         )?;
 

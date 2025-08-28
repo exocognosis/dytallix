@@ -12,17 +12,17 @@ fullnameOverride: ""
 inference:
   enabled: true
   replicaCount: 2
-  
+
   image:
     repository: dytallix/pulsescan-infer
     pullPolicy: IfNotPresent
     tag: "1.0.0"
-  
+
   service:
     type: ClusterIP
     port: 9090
     targetPort: 9090
-  
+
   resources:
     limits:
       cpu: 2000m
@@ -30,11 +30,11 @@ inference:
     requests:
       cpu: 1000m
       memory: 2Gi
-  
+
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  
+
   env:
     - name: RUST_LOG
       value: "info"
@@ -55,7 +55,7 @@ inference:
         configMapKeyRef:
           name: pulsescan-config
           key: contract-address
-  
+
   configMap:
     config.toml: |
       database_url = "${DATABASE_URL}"
@@ -65,13 +65,13 @@ inference:
       min_anomaly_score = 0.7
       auto_submit_findings = true
       metrics_port = 9090
-      
+
       [inference]
       model_type = "ensemble"
       batch_size = 32
       confidence_threshold = 0.8
       enable_ensemble = true
-      
+
       [features]
       enable_graph_features = true
       enable_temporal_features = true
@@ -83,17 +83,17 @@ inference:
 api:
   enabled: true
   replicaCount: 3
-  
+
   image:
     repository: dytallix/pulsescan-api
     pullPolicy: IfNotPresent
     tag: "1.0.0"
-  
+
   service:
     type: ClusterIP
     port: 3001
     targetPort: 3001
-  
+
   ingress:
     enabled: true
     className: "nginx"
@@ -111,7 +111,7 @@ api:
       - secretName: pulsescan-api-tls
         hosts:
           - pulsescan-api.dytallix.com
-  
+
   resources:
     limits:
       cpu: 1000m
@@ -119,11 +119,11 @@ api:
     requests:
       cpu: 500m
       memory: 1Gi
-  
+
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  
+
   env:
     - name: NODE_ENV
       value: "production"
@@ -219,7 +219,7 @@ autoscaling:
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
-  
+
   api:
     enabled: true
     minReplicas: 3
@@ -238,7 +238,7 @@ podDisruptionBudget:
 # Network Policies
 networkPolicy:
   enabled: true
-  
+
 # Security Context
 securityContext:
   runAsNonRoot: true

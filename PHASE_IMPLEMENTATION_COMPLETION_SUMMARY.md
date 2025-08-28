@@ -8,7 +8,7 @@ Successfully implemented production-ready external chain connectors with real de
 ### 1. Enhanced Polkadot/Substrate Integration ✅
 - **Real Dependencies**: Updated to use `subxt` v0.32 with `substrate-compat` feature
 - **Async Client**: Refactored `SubstrateClient` to use real `OnlineClient<PolkadotConfig>`
-- **Production Structure**: 
+- **Production Structure**:
   - Real connection handling with proper error management
   - Block and event subscription framework (ready for production implementation)
   - Async new methods for proper client initialization
@@ -59,13 +59,13 @@ Successfully implemented production-ready external chain connectors with real de
 ### Database Schema
 ```sql
 -- Bridge Transactions (core table)
-bridge_transactions: id, asset_id, asset_amount, source_chain, dest_chain, 
+bridge_transactions: id, asset_id, asset_amount, source_chain, dest_chain,
                     source_address, dest_address, status, validator_signatures, etc.
 
 -- Asset Metadata
 asset_metadata: asset_id, name, symbol, description, decimals, icon_url
 
--- Validator Signatures  
+-- Validator Signatures
 validator_signatures: bridge_tx_id, validator_id, signature_data, signature_type
 
 -- Chain Configurations

@@ -269,7 +269,7 @@ data:
             subject: '🚨 CRITICAL: Dytallix Production Alert - {{ .GroupLabels.alertname }}'
             body: |
               Critical alert in Dytallix production:
-              
+
               {{ range .Alerts }}
               Alert: {{ .Annotations.summary }}
               Description: {{ .Annotations.description }}

@@ -69,7 +69,7 @@ The faucet is configured via `src/config/faucetConfig.ts`:
 
 - **Allowed Tokens**: TOKENA (max 100 per request), TOKENB (max 50 per request)
 - **Cooldown**: 3600 seconds (1 hour) per token per address
-- **Rate Limits**: 
+- **Rate Limits**:
   - IP: 10 requests per 15 minutes
   - Address: 5 requests per 15 minutes
 - **Max Tokens Per Request**: 2

@@ -280,16 +280,16 @@ POST /staking/claim                 # Claim rewards (validator optional)
   "height": 12345,
   "global_reward_index": "456789012345",
   "summary": {
-    "total_stake": "600000000000", 
+    "total_stake": "600000000000",
     "pending_rewards": "150000",
     "accrued_unclaimed": "150000",
     "total_claimed": "5000000"
   },
   "positions": [
     {
-      "validator": "dyt1validator...", 
-      "stake": "100000000000", 
-      "pending": "25000", 
+      "validator": "dyt1validator...",
+      "stake": "100000000000",
+      "pending": "25000",
       "accrued_unclaimed": "25000",
       "total_claimed": "1000000",
       "last_index": "456789000000"
@@ -442,7 +442,7 @@ The implementation builds upon existing types:
 ```json
 {
   "jsonrpc": "2.0",
-  "method": "staking_delegate", 
+  "method": "staking_delegate",
   "params": ["delegator_address", "validator_address", amount],
   "id": 1
 }

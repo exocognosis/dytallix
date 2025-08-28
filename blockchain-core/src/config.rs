@@ -217,7 +217,6 @@ impl NodeConfig {
             .get_secret("SIGNATURE_POLICY_ALLOWED_ALGORITHMS")
             .await
         {
-            use dytallix_pqc::SignatureAlgorithm;
             use std::collections::HashSet;
 
             let mut allowed = HashSet::new();

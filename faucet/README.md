@@ -64,7 +64,7 @@ Request test tokens for a Dytallix address.
     },
     {
       "token": "DRT",
-      "amount": "100000000udrt", 
+      "amount": "100000000udrt",
       "amountFormatted": "100.000000 DRT",
       "txHash": "DEF456...",
       "purpose": "For rewards, incentives, and transaction fees"
@@ -131,7 +131,7 @@ Check balance for a specific address.
     },
     "drt": {
       "amount": "50000000udrt",
-      "formatted": "50.000000 DRT", 
+      "formatted": "50.000000 DRT",
       "description": "Used for rewards, incentives, staking rewards, and AI service payments"
     }
   },

@@ -80,7 +80,7 @@ Current gas costs:
 ### Fee Charging Rules
 
 - **Success Case**: Full fee charged (`gas_limit * gas_price`)
-- **Failure Case**: Full fee charged (`gas_limit * gas_price`) 
+- **Failure Case**: Full fee charged (`gas_limit * gas_price`)
 - **No Refunds**: `gas_refund` is always 0 (stub for future implementation)
 - **Integer Math**: All calculations use integer arithmetic, no floating point
 
@@ -120,7 +120,7 @@ Current gas costs:
 ### Safety Properties
 
 1. **Fee Payment**: Failed transactions always charge appropriate fees
-2. **State Consistency**: No partial state corruption on failures  
+2. **State Consistency**: No partial state corruption on failures
 3. **Gas Bounds**: Execution cannot exceed specified gas limits
 4. **Nonce Progression**: Account nonces advance deterministically
 
@@ -154,7 +154,7 @@ Execution uses state change journaling for efficient revert:
 ```rust
 struct StateChange {
     address: String,
-    denom: String,  
+    denom: String,
     old_balance: u128,
     new_balance: u128,
 }
@@ -170,6 +170,6 @@ struct StateChange {
 
 Comprehensive test coverage includes:
 - Deterministic replay tests
-- Out-of-gas scenario tests  
+- Out-of-gas scenario tests
 - Mixed success/failure transaction batches
 - Edge cases and overflow conditions

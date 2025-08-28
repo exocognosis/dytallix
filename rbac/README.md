@@ -215,7 +215,7 @@ Failed: 0
    ```bash
    # Check service account bindings
    kubectl get rolebindings,clusterrolebindings --all-namespaces | grep dytallix
-   
+
    # Test specific permission
    kubectl auth can-i get pods --as=system:serviceaccount:dytallix:dytallix-bridge-sa
    ```
@@ -224,7 +224,7 @@ Failed: 0
    ```bash
    # Check network policies
    kubectl get networkpolicy -A
-   
+
    # Test connectivity from pod
    kubectl exec -it <pod-name> -n dytallix -- nc -zv <target> <port>
    ```
@@ -233,7 +233,7 @@ Failed: 0
    ```bash
    # Check pod security context
    kubectl get pod <pod-name> -n dytallix -o yaml | grep -A 20 securityContext
-   
+
    # Check events for security violations
    kubectl get events -n dytallix --field-selector type=Warning
    ```

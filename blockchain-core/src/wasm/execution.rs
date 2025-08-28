@@ -25,7 +25,7 @@ impl<'a, S: ContractStore> WasmExecutor<'a, S> {
         if let Some(init) = instance.get_func(&mut store_ctx, "init") {
             let _ = init.call(&mut store_ctx, &[], &mut []);
         }
-        let remaining = store_ctx.fuel_remaining()?;
+        let remaining = store_ctx.fuel_remaining().ok_or(anyhow!("fuel remaining unavailable"))?;
         let gas_out = finalize_gas(gas_limit, remaining);
         let mut updated = inst.clone();
         updated.last_gas_used = gas_out.gas_used;
@@ -52,7 +52,7 @@ impl<'a, S: ContractStore> WasmExecutor<'a, S> {
             return Err(anyhow!("unsupported signature"));
         }
         func.call(&mut store_ctx, &[], &mut results[..ty.results().len()])?;
-        let remaining = store_ctx.fuel_remaining()?;
+        let remaining = store_ctx.fuel_remaining().ok_or(anyhow!("fuel remaining unavailable"))?;
         let gas_out = finalize_gas(gas_limit, remaining);
         let mut updated = inst.clone();
         updated.last_gas_used = gas_out.gas_used;

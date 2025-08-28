@@ -102,7 +102,7 @@ Given the environment constraints (no external ML libraries), each module includ
 
 #### **Algorithm Implementations**
 - **Statistical Models**: Custom implementations of basic ML algorithms
-- **Optimization**: Heuristic and mathematical optimization techniques  
+- **Optimization**: Heuristic and mathematical optimization techniques
 - **Simulation**: Monte Carlo and agent-based modeling
 - **Time Series**: ARIMA-style forecasting with trend analysis
 

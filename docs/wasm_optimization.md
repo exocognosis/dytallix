@@ -17,7 +17,7 @@ The optimization project focused on enhancing the performance of the bridge cont
 Based on comprehensive benchmarking, the optimized bridge contract demonstrates:
 
 - **Gas Efficiency**: 15-25% reduction in gas costs for bridge operations
-- **Execution Speed**: 20-30% improvement in contract call times  
+- **Execution Speed**: 20-30% improvement in contract call times
 - **Memory Usage**: 10-15% reduction in memory footprint
 - **Throughput**: 25% increase in transaction processing capacity
 
@@ -120,7 +120,7 @@ pub struct OptimizedState {
 pub fn execute_mint_tokens(...) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
     let token_config = SUPPORTED_TOKENS.load(deps.storage, &token_denom)?;
-    
+
     // Multiple validation checks...
     if state.is_paused { return Err(...); }
     if !state.validators.contains(&info.sender) { return Err(...); }
@@ -133,14 +133,14 @@ pub fn execute_mint_tokens(...) -> Result<Response, ContractError> {
 ```rust
 pub fn execute_mint_tokens_optimized(...) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    
+
     // Early returns for cheap validations first
     if state.is_paused() { return Err(ContractError::BridgePaused {}); }
     if !state.validators.contains(&info.sender) { return Err(ContractError::Unauthorized {}); }
     if amount < state.min_bridge_amount || amount > state.max_bridge_amount {
         return Err(/* appropriate error */);
     }
-    
+
     // Expensive operations only after passing all cheap validations
     let token_config = SUPPORTED_TOKENS.load(deps.storage, &token_denom)?;
     // ...
@@ -179,17 +179,17 @@ pub fn execute_mint_tokens_optimized(...) -> Result<Response, ContractError> {
 ```rust
 pub fn estimate_gas_cost(&self, operation: &str, complexity: &OperationComplexity) -> u64 {
     let mut total_gas = self.config.computation_base;
-    
+
     // Dynamic storage costs based on actual usage
     total_gas += (complexity.storage_reads as u64) * self.config.base_storage_read;
     total_gas += (complexity.storage_writes as u64) * self.config.base_storage_write;
-    
+
     // Memory-based calculations with expansion penalties
     total_gas += self.calculate_memory_gas(complexity);
-    
+
     // Apply optimization strategies
     total_gas = self.apply_optimizations(operation, total_gas, complexity);
-    
+
     total_gas
 }
 ```
@@ -216,7 +216,7 @@ let data = bincode::serialize(&bridge_transaction)?;
 
 **Size Comparison Results:**
 - JSON: ~300 bytes average per transaction
-- Binary: ~180 bytes average per transaction  
+- Binary: ~180 bytes average per transaction
 - **40% size reduction** in serialized data
 
 #### Lazy Loading for Statistics
@@ -227,7 +227,7 @@ pub fn query_bridge_stats(deps: Deps) -> StdResult<BridgeStats> {
     let all_tokens: Vec<TokenConfig> = SUPPORTED_TOKENS
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .collect::<StdResult<Vec<_>>>()?;
-    
+
     // Expensive aggregation calculations...
 }
 ```
@@ -240,13 +240,13 @@ pub fn query_bridge_stats_optimized(deps: Deps) -> StdResult<OptimizedBridgeStat
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .map(|item| item.map(|(_, token)| token))
         .collect::<StdResult<Vec<_>>>()?;
-    
+
     // Optimized aggregation with early termination
     let (total_minted, total_burned) = tokens.iter()
         .fold((Uint128::zero(), Uint128::zero()), |(minted, burned), token| {
             (minted + token.total_minted, burned + token.total_burned)
         });
-    
+
     // Return compact stats structure
     Ok(OptimizedBridgeStats { /* ... */ })
 }
@@ -270,7 +270,7 @@ pub fn query_bridge_stats_optimized(deps: Deps) -> StdResult<OptimizedBridgeStat
 ### Overall Performance Summary
 
 - **Average Execution Time Improvement**: 27.1%
-- **Average Gas Cost Reduction**: 26.4%  
+- **Average Gas Cost Reduction**: 26.4%
 - **Average Storage Operation Reduction**: 32.9%
 - **Average Memory Usage Reduction**: 31.3%
 

@@ -29,30 +29,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
           components: clippy, rustfmt
-      
+
       - name: Use Node LTS
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'npm'
           cache-dependency-path: dytallix-lean-launch/package-lock.json
-      
+
       - name: Install frontend dependencies
         working-directory: dytallix-lean-launch
         run: CYPRESS_INSTALL_BINARY=0 npm ci
-      
+
       - name: Rust format check
         run: cargo fmt --check
-      
+
       - name: Rust lint
         run: cargo clippy --all-targets --all-features -- -D warnings
-      
+
       - name: Frontend lint
         working-directory: dytallix-lean-launch
         run: npm run lint || echo "Frontend linting failed but continuing"
@@ -63,26 +63,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-      
+
       - name: Use Node LTS
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'npm'
           cache-dependency-path: dytallix-lean-launch/package-lock.json
-      
+
       - name: Install frontend dependencies
         working-directory: dytallix-lean-launch
         run: CYPRESS_INSTALL_BINARY=0 npm ci
-      
+
       - name: Rust unit tests
         run: cargo test --lib
-      
+
       - name: Frontend unit tests
         working-directory: dytallix-lean-launch
         run: npm test -- --run || echo "Frontend tests failed but continuing with existing issues"
@@ -93,37 +93,37 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-      
+
       - name: Run PQC unit tests
         run: |
           cargo test -p dytallix-lean-node pqc_tests
           cargo test -p dytallix-cli keys
           cargo test -p dytallix-sdk integration_tests
-      
+
       - name: Run PQC benchmark smoke test
         run: |
           TX_COUNT=100 cargo run --bin bench_pqc_tx
         env:
           PQC_ALGO: dilithium
-      
+
       - name: Run full PQC benchmark (if enabled)
         if: env.RUN_BENCH == '1'
         run: |
           TX_COUNT=10000 cargo run --bin bench_pqc_tx
         env:
           PQC_ALGO: dilithium
-      
+
       - name: Test CLI key generation
         run: |
           cargo run --bin dytallix-cli -- keys pqc-gen --algo dilithium --keystore /tmp/test-keystore --label ci-test
           ls -la /tmp/test-keystore/
           cat /tmp/test-keystore/*.json | jq .address
-      
+
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         if: always()
@@ -138,45 +138,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-      
+
       - name: Use Node LTS
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'npm'
           cache-dependency-path: dytallix-lean-launch/package-lock.json
-      
+
       - name: Install frontend dependencies
         working-directory: dytallix-lean-launch
         run: npm ci
-      
+
       - name: Build frontend for testing
         working-directory: dytallix-lean-launch
         run: npm run build || echo "Build failed but continuing"
-      
+
       - name: Start backend server
         working-directory: dytallix-lean-launch
         run: |
           npm run server &
           echo $! > server.pid
           sleep 5
-      
+
       - name: Run Cypress E2E tests
         working-directory: dytallix-lean-launch
         run: |
           npx cypress run --spec "cypress/e2e/faucet.cy.ts" || echo "Cypress tests completed with issues"
         env:
           CYPRESS_baseUrl: http://localhost:8787
-      
+
       - name: Run Rust integration tests
         run: |
           FAUCET_URL=http://localhost:8787 cargo test --test faucet_integration || echo "Integration tests completed with issues"
-      
+
       - name: Upload Cypress screenshots on failure
         uses: actions/upload-artifact@v4
         if: failure()
@@ -184,7 +184,7 @@ jobs:
           name: cypress-screenshots
           path: dytallix-lean-launch/cypress/screenshots
           if-no-files-found: ignore
-      
+
       - name: Upload Cypress videos on failure
         uses: actions/upload-artifact@v4
         if: failure()
@@ -192,7 +192,7 @@ jobs:
           name: cypress-videos
           path: dytallix-lean-launch/cypress/videos
           if-no-files-found: ignore
-      
+
       - name: Stop backend server
         if: always()
         working-directory: dytallix-lean-launch
@@ -209,26 +209,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-      
+
       - name: Use Node LTS
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'npm'
           cache-dependency-path: dytallix-lean-launch/package-lock.json
-      
+
       - name: Install frontend dependencies
         working-directory: dytallix-lean-launch
         run: CYPRESS_INSTALL_BINARY=0 npm ci
-      
+
       - name: Build Rust components
         run: cargo build --release
-      
+
       - name: Build frontend
         working-directory: dytallix-lean-launch
         run: |
@@ -237,7 +237,7 @@ jobs:
           else
             echo 'No frontend build script found; skipping build.'
           fi
-      
+
       - name: Generate checksums (if dist exists)
         working-directory: dytallix-lean-launch
         run: |
@@ -249,7 +249,7 @@ jobs:
           else
             echo 'dist/ not found; skipping checksum generation.'
           fi
-      
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4

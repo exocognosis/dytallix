@@ -113,7 +113,7 @@ dcli contract query list
   "jsonrpc": "2.0",
   "method": "contract_deploy",
   "params": [{
-    "code": "0x0061736d01000000...", 
+    "code": "0x0061736d01000000...",
     "from": "dyt1deployer123",
     "gas_limit": 100000,
     "initial_state": {}
@@ -222,15 +222,15 @@ The implementation includes comprehensive tests for:
 
 All original requirements have been implemented:
 
-✅ **Contract Deployment**: Upload WASM code and persist code hash  
-✅ **Contract Instantiation**: Create contract instances with isolated storage  
-✅ **Contract Execution**: Execute exported functions with gas limits  
-✅ **Deterministic Gas Metering**: Instruction counting with configurable costs  
-✅ **Sandboxed Storage**: Prefixed key-value storage per contract instance  
-✅ **CLI Commands**: Deploy, instantiate, execute, and query commands  
-✅ **RPC Endpoints**: Complete JSON-RPC API for all operations  
-✅ **Documentation**: Comprehensive developer documentation  
-✅ **Testing**: Unit, integration, and regression tests  
+✅ **Contract Deployment**: Upload WASM code and persist code hash
+✅ **Contract Instantiation**: Create contract instances with isolated storage
+✅ **Contract Execution**: Execute exported functions with gas limits
+✅ **Deterministic Gas Metering**: Instruction counting with configurable costs
+✅ **Sandboxed Storage**: Prefixed key-value storage per contract instance
+✅ **CLI Commands**: Deploy, instantiate, execute, and query commands
+✅ **RPC Endpoints**: Complete JSON-RPC API for all operations
+✅ **Documentation**: Comprehensive developer documentation
+✅ **Testing**: Unit, integration, and regression tests
 
 ## 🚀 Next Steps
 

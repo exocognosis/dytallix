@@ -8,7 +8,7 @@ Transform the current mock/simulation bridge logic into production-ready, testne
 
 ### ✅ **COMPLETED (Infrastructure Ready)**
 - **Ethereum**: Complete Hardhat deployment infrastructure with real smart contracts
-- **Cosmos**: Complete CosmWasm deployment infrastructure with real smart contracts  
+- **Cosmos**: Complete CosmWasm deployment infrastructure with real smart contracts
 - **Frontend**: React application ready for bridge interactions
 - **Architecture**: Comprehensive bridge types, interfaces, and module structure
 - **Testing**: Bridge library tests passing (18/18 tests)
@@ -16,7 +16,7 @@ Transform the current mock/simulation bridge logic into production-ready, testne
 
 ### ⚠️ **PENDING (Logic Implementation)**
 - **Polkadot**: All substrate client logic is mock/simulated
-- **Cosmos IBC**: All IBC client logic is mock/simulated  
+- **Cosmos IBC**: All IBC client logic is mock/simulated
 - **Integration**: Real chain connections and transaction processing
 - **End-to-end**: Live cross-chain transfer testing
 
@@ -92,7 +92,7 @@ The Ethereum bridge is **production-ready** with:
 
 ### **Technical Milestones**:
 - [ ] Ethereum bridge live on Sepolia testnet
-- [ ] Cosmos bridge live on Osmosis testnet  
+- [ ] Cosmos bridge live on Osmosis testnet
 - [ ] Polkadot bridge live on testnet
 - [ ] Frontend connects to all live contracts
 - [ ] Cross-chain validator network operational

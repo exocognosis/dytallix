@@ -64,13 +64,13 @@ jobs:
           for dashboard in observability/grafana/dashboards/*.json; do
             echo "Validating $dashboard"
             jq empty "$dashboard"
-            
+
             # Check for required fields
             if ! jq -e '.dashboard.uid' "$dashboard" > /dev/null; then
               echo "Error: Dashboard $dashboard missing required 'uid' field"
               exit 1
             fi
-            
+
             if ! jq -e '.dashboard.title' "$dashboard" > /dev/null; then
               echo "Error: Dashboard $dashboard missing required 'title' field"
               exit 1
@@ -86,17 +86,17 @@ jobs:
       - name: Check metric inventory completeness
         run: |
           echo "Checking metric inventory in documentation..."
-          
+
           # Extract metric names from metrics.rs
           METRICS_IN_CODE=$(grep -o 'dyt_[a-zA-Z_]*' dytallix-lean-launch/node/src/metrics.rs | sort | uniq)
-          
+
           # Check if all metrics are documented
           for metric in $METRICS_IN_CODE; do
             if ! grep -q "$metric" docs/OBSERVABILITY.md; then
               echo "Warning: Metric '$metric' found in code but not documented in OBSERVABILITY.md"
             fi
           done
-          
+
           # Check for required core metrics
           REQUIRED_METRICS=(
             "dyt_block_height"
@@ -111,13 +111,13 @@ jobs:
             "dyt_validator_missed_blocks_total"
             "dyt_validator_voting_power"
           )
-          
+
           for metric in "${REQUIRED_METRICS[@]}"; do
             if ! grep -q "$metric" dytallix-lean-launch/node/src/metrics.rs; then
               echo "Error: Required metric '$metric' not found in metrics.rs"
               exit 1
             fi
-            
+
             if ! grep -q "$metric" docs/OBSERVABILITY.md; then
               echo "Error: Required metric '$metric' not documented in OBSERVABILITY.md"
               exit 1
@@ -127,19 +127,19 @@ jobs:
       - name: Validate dashboard metric references
         run: |
           echo "Validating dashboard metric references..."
-          
+
           # Check that dashboard queries reference valid metrics
           for dashboard in observability/grafana/dashboards/*.json; do
             echo "Checking metric references in $dashboard"
-            
+
             # Extract prometheus queries from dashboard
             QUERIES=$(jq -r '.dashboard.panels[]?.targets[]?.expr // empty' "$dashboard")
-            
+
             if [ -n "$QUERIES" ]; then
               while IFS= read -r query; do
                 # Extract metric names from queries (basic check)
                 METRICS_IN_QUERY=$(echo "$query" | grep -o 'dyt_[a-zA-Z_]*\|dytallix_[a-zA-Z_]*' || true)
-                
+
                 for metric in $METRICS_IN_QUERY; do
                   if ! grep -q "$metric" dytallix-lean-launch/node/src/metrics.rs; then
                     echo "Warning: Dashboard $dashboard references metric '$metric' which may not exist in code"
@@ -152,10 +152,10 @@ jobs:
       - name: Check alert rule metric references
         run: |
           echo "Checking alert rule metric references..."
-          
+
           # Extract metric names from alert rules
           ALERT_METRICS=$(yq eval '.groups[].rules[].expr' observability/prometheus/alerts/core-rules.yml | grep -o 'dyt_[a-zA-Z_]*\|dytallix_[a-zA-Z_]*' | sort | uniq || true)
-          
+
           for metric in $ALERT_METRICS; do
             if ! grep -q "$metric" dytallix-lean-launch/node/src/metrics.rs; then
               echo "Warning: Alert rule references metric '$metric' which may not exist in code"
@@ -165,7 +165,7 @@ jobs:
       - name: Validate documentation format
         run: |
           echo "Validating documentation format..."
-          
+
           # Check for required sections in OBSERVABILITY.md
           REQUIRED_SECTIONS=(
             "## Overview"
@@ -175,7 +175,7 @@ jobs:
             "## Security Considerations"
             "## Troubleshooting"
           )
-          
+
           for section in "${REQUIRED_SECTIONS[@]}"; do
             if ! grep -q "$section" docs/OBSERVABILITY.md; then
               echo "Error: Required section '$section' not found in OBSERVABILITY.md"
@@ -186,12 +186,12 @@ jobs:
       - name: Check for TODO/PLACEHOLDER items
         run: |
           echo "Checking for TODO/PLACEHOLDER items..."
-          
+
           # Check for unresolved placeholders in templates
           if grep -r "PLACEHOLDER" reports/soak/; then
             echo "Info: Found PLACEHOLDER items in soak report template (expected)"
           fi
-          
+
           # Check for TODOs in documentation
           if grep -i "TODO\|FIXME" docs/OBSERVABILITY.md; then
             echo "Warning: Found TODO items in documentation"
@@ -203,7 +203,7 @@ jobs:
           echo ""
           echo "Validated components:"
           echo "  - Prometheus configuration and alert rules"
-          echo "  - Grafana datasource and dashboard configurations"  
+          echo "  - Grafana datasource and dashboard configurations"
           echo "  - Dashboard JSON syntax and structure"
           echo "  - Shell script syntax"
           echo "  - Metric inventory completeness"

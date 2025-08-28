@@ -1,17 +1,17 @@
 # Dytallix 48-Hour Soak Test Report
 
-**Test Period**: [PLACEHOLDER: START_DATE] to [PLACEHOLDER: END_DATE]  
-**Test Duration**: 48 hours  
-**Test Environment**: Testnet  
+**Test Period**: [PLACEHOLDER: START_DATE] to [PLACEHOLDER: END_DATE]
+**Test Duration**: 48 hours
+**Test Environment**: Testnet
 **Report Generated**: [PLACEHOLDER: REPORT_DATE]
 
 ## Executive Summary
 
-**Test Status**: [PLACEHOLDER: PASS/FAIL/PARTIAL]  
-**Network Uptime**: [PLACEHOLDER: 99.xx%]  
-**Total Blocks Produced**: [PLACEHOLDER: 12,345]  
-**Average TPS**: [PLACEHOLDER: 123.45]  
-**Critical Alerts**: [PLACEHOLDER: 0]  
+**Test Status**: [PLACEHOLDER: PASS/FAIL/PARTIAL]
+**Network Uptime**: [PLACEHOLDER: 99.xx%]
+**Total Blocks Produced**: [PLACEHOLDER: 12,345]
+**Average TPS**: [PLACEHOLDER: 123.45]
+**Critical Alerts**: [PLACEHOLDER: 0]
 **Performance Issues**: [PLACEHOLDER: None/Minor/Major]
 
 ## Test Configuration
@@ -201,6 +201,6 @@ See `graphs/` directory for:
 
 ---
 
-**Report prepared by**: [PLACEHOLDER: Test Team]  
-**Review and approval**: [PLACEHOLDER: Technical Lead]  
+**Report prepared by**: [PLACEHOLDER: Test Team]
+**Review and approval**: [PLACEHOLDER: Technical Lead]
 **Next soak test**: [PLACEHOLDER: Date for next test]

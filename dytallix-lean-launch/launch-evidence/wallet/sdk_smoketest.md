@@ -2,7 +2,7 @@
 
 ## Test Environment
 - **Date**: 2025-08-27
-- **SDK Version**: 1.0.0  
+- **SDK Version**: 1.0.0
 - **Test Environment**: Local development
 
 ## Test Scenarios
@@ -13,12 +13,12 @@
 dytx keygen --algo dilithium --label "test-dilithium" --output test-dilithium.json
 # Result: SUCCESS - Generated address: dytallix1abc123def456789012345678901234567890
 
-# Generate Falcon key  
+# Generate Falcon key
 dytx keygen --algo falcon --label "test-falcon" --output test-falcon.json
 # Result: SUCCESS - Generated address: dytallix1def456ghi789012345678901234567890ab
 
 # Generate SPHINCS+ key
-dytx keygen --algo sphincs+ --label "test-sphincs" --output test-sphincs.json  
+dytx keygen --algo sphincs+ --label "test-sphincs" --output test-sphincs.json
 # Result: SUCCESS - Generated address: dytallix1ghi789jkl012345678901234567890abcdef
 ```
 
@@ -44,7 +44,7 @@ dytx sign --address dytallix1abc123def456789012345678901234567890 \
 # Sign staking transaction
 dytx sign --address dytallix1def456ghi789012345678901234567890ab \
           --payload examples/stake.json \
-          --out test-stake-signed.json  
+          --out test-stake-signed.json
 # Result: SUCCESS - Signed transaction hash: 0xdef456ghi789...
 ```
 
@@ -54,7 +54,7 @@ dytx sign --address dytallix1def456ghi789012345678901234567890ab \
 dytx broadcast --file test-signed.json
 # Result: SUCCESS - TX Hash: 0xabc123def456..., Block: 123456
 
-# Broadcast staking  
+# Broadcast staking
 dytx broadcast --file test-stake-signed.json
 # Result: SUCCESS - TX Hash: 0xdef456ghi789..., Block: 123457
 ```
@@ -107,7 +107,7 @@ const signature = await wallet.signTx({
 
 ### ✅ Passing Tests
 - [x] Key generation for all supported algorithms (Dilithium, Falcon, SPHINCS+)
-- [x] Address derivation and format validation  
+- [x] Address derivation and format validation
 - [x] Balance queries with both text and JSON output
 - [x] Transaction payload building and validation
 - [x] Transaction signing with PQC algorithms
@@ -118,7 +118,7 @@ const signature = await wallet.signTx({
 
 ### 🔄 Mock Components
 - Balance queries return mock data (integration pending)
-- Transaction broadcasting simulated (testnet integration pending)  
+- Transaction broadcasting simulated (testnet integration pending)
 - Signature verification uses placeholder (PQC library integration pending)
 
 ### 📋 Manual Verification Checklist
@@ -135,7 +135,7 @@ const signature = await wallet.signTx({
 
 The PQC wallet system is architecturally complete with:
 - Clean separation between crypto operations and UI components
-- Proper error handling and validation  
+- Proper error handling and validation
 - Consistent API surface across CLI and Web SDK
 - Modular transaction builders for all transaction types
 - Secure vault management with auto-lock functionality
@@ -146,7 +146,7 @@ Mock components are clearly identified and can be replaced with actual implement
 
 Test transactions generated during smoke testing:
 - Transfer: `0xabc123def456789012345678901234567890abcdef123456789012345678901234`
-- Staking: `0xdef456ghi789012345678901234567890abcdef123456789012345678901234567`  
+- Staking: `0xdef456ghi789012345678901234567890abcdef123456789012345678901234567`
 - Direct Transfer: `0x789abc012def345678901234567890abcdef123456789012345678901234567890`
 
 These hashes can be used for tracking and verification once live testnet integration is complete.

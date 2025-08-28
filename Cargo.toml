@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "blockchain-core",
-    "developer-tools", 
+    "developer-tools",
     "pqc-crypto",
     "smart-contracts",
     "governance",

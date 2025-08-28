@@ -15,7 +15,7 @@ This document tracks all compilation warnings and issues across the entire Dytal
 **Critical Issues**: None
 **Details**: See main tracking document
 
-### 2. smart-contracts 
+### 2. smart-contracts
 **Status**: ✅ Compiles successfully with warnings
 **Warning Count**: 5 warnings
 **Issues**:
@@ -24,7 +24,7 @@ This document tracks all compilation warnings and issues across the entire Dytal
 - Unused gas metering methods
 
 ### 3. pqc-crypto
-**Status**: ✅ Compiles successfully with warnings  
+**Status**: ✅ Compiles successfully with warnings
 **Warning Count**: 1 warning
 **Issues**:
 - Unused fields in `AlgorithmMigration` struct (future feature)
@@ -116,7 +116,7 @@ This document tracks all compilation warnings and issues across the entire Dytal
 **Count**: Multiple files
 
 #### Missing External Dependencies
-- `test_wallet.rs`: Missing `blake3`, `sha2`, `hex` 
+- `test_wallet.rs`: Missing `blake3`, `sha2`, `hex`
 - `wallet/src/lib.rs`: Missing multiple crypto dependencies
 - Various modules missing proper workspace integration
 

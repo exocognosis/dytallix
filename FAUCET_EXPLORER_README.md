@@ -5,7 +5,7 @@ This repository contains the complete infrastructure for the Dytallix testnet, i
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 18+
 - Docker & Docker Compose (optional)
 - Dytallix testnet node running on `127.0.0.1:26657`
 
@@ -53,7 +53,7 @@ docker-compose down
   - Comprehensive logging and monitoring
   - Health checks and status endpoints
 
-### Block Explorer (Port 3002)  
+### Block Explorer (Port 3002)
 - **Endpoint**: `http://localhost:3002`
 - **Features**:
   - Real-time block and transaction viewing
@@ -159,7 +159,7 @@ Search for blocks, transactions, or addresses.
 # Check faucet status
 curl http://localhost:3001/api/status
 
-# Check explorer network status  
+# Check explorer network status
 curl http://localhost:3002/api/status
 
 # Check service health
@@ -177,7 +177,7 @@ curl http://localhost:3002/health
    curl -X POST http://localhost:3001/api/faucet \
      -H "Content-Type: application/json" \
      -d '{"address":"dyt1example_address_here"}'
-   
+
    # Check balance
    curl http://localhost:3001/api/balance/dyt1example_address_here
    ```
@@ -186,7 +186,7 @@ curl http://localhost:3002/health
    ```bash
    # Get recent blocks
    curl http://localhost:3002/api/blocks
-   
+
    # Search for a block
    curl http://localhost:3002/api/search/1
    ```
@@ -206,7 +206,7 @@ curl http://localhost:3002/health
 # Run faucet tests
 cd faucet && npm test
 
-# Run explorer tests  
+# Run explorer tests
 cd explorer && npm test
 ```
 

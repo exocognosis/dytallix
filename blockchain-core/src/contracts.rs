@@ -6,7 +6,7 @@ Provides proper contract deployment, instantiation, and execution
 through the dytallix-contracts runtime.
 */
 
-use anyhow::{anyhow, Result};
+use anyhow::Result; // retain Result only
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -104,11 +104,13 @@ impl ContractRuntime {
                 // Transform state changes (best-effort: assumes fields key & value)
                 let mut state_changes_map: HashMap<String, serde_json::Value> = HashMap::new();
                 for sc in &result.state_changes {
-                    #[allow(unused)]
-                    {
-                        // If actual field names differ, adjust accordingly
-                        state_changes_map.insert(sc.key.clone(), serde_json::json!(&sc.value));
-                    }
+                    // Convert binary key to hex for JSON readability
+                    let key_hex = hex::encode(&sc.key);
+                    let entry = serde_json::json!({
+                        "old": sc.old_value.as_ref().map(|v| hex::encode(v)),
+                        "new": hex::encode(&sc.new_value)
+                    });
+                    state_changes_map.insert(key_hex, entry);
                 }
 
                 Ok(ExecutionResult {

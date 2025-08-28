@@ -9,7 +9,7 @@ services:
       - "26657:26657"
     user: "0"
     entrypoint: ["/bin/sh"]
-    command: 
+    command:
       - -c
       - |
         if [ ! -f /tendermint/config/genesis.json ]; then
@@ -22,7 +22,7 @@ services:
       - dytallix-network
 
   dytallix-faucet:
-    build: 
+    build:
       context: ../faucet
       dockerfile: Dockerfile
     container_name: dytallix-faucet

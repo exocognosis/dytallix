@@ -115,10 +115,10 @@ The Enhanced Dytallix Explorer frontend provides comprehensive functionality for
 
 **RiskBadge**
 ```jsx
-<RiskBadge 
-  level="high" 
-  score={0.85} 
-  rationale="Unusual transaction pattern detected" 
+<RiskBadge
+  level="high"
+  score={0.85}
+  rationale="Unusual transaction pattern detected"
 />
 ```
 - Color-coded risk levels (green/yellow/red)
@@ -127,10 +127,10 @@ The Enhanced Dytallix Explorer frontend provides comprehensive functionality for
 
 **Amount**
 ```jsx
-<Amount 
-  value={1000000} 
-  denom="DGT" 
-  showFiat={true} 
+<Amount
+  value={1000000}
+  denom="DGT"
+  showFiat={true}
 />
 ```
 - Automatic decimal formatting (6 decimals default)
@@ -139,9 +139,9 @@ The Enhanced Dytallix Explorer frontend provides comprehensive functionality for
 
 **GasTag**
 ```jsx
-<GasTag 
-  gasUsed={45000} 
-  gasLimit={100000} 
+<GasTag
+  gasUsed={45000}
+  gasLimit={100000}
 />
 ```
 - Gas usage display with percentage bars
@@ -303,7 +303,7 @@ npm test
 # E2E tests
 npm run test:e2e
 
-# Accessibility tests  
+# Accessibility tests
 npm run test:a11y
 ```
 
@@ -351,7 +351,7 @@ Provides HTTP endpoints for the explorer UI.
 
 **Endpoints:**
 - `GET /explorer/blocks?limit=&offset=` - List blocks with pagination
-- `GET /explorer/txs?limit=&offset=` - List transactions with pagination  
+- `GET /explorer/txs?limit=&offset=` - List transactions with pagination
 - `GET /explorer/tx/{hash}` - Get transaction details by hash
 
 **Features:**
@@ -381,7 +381,7 @@ All configuration is done via environment variables:
 - `DYT_POLL_INTERVAL_MS` - Polling interval in milliseconds (default: `5000`)
 - `DYT_INDEXER_JSONL` - Optional JSONL log file path for debugging
 
-### API Configuration  
+### API Configuration
 - `DYT_INDEX_DB` - SQLite database path (default: `explorer.db`)
 - `DYT_API_PORT` - API server port (default: `8080`)
 
@@ -428,7 +428,7 @@ DYT_POLL_INTERVAL_MS=3000 \
 
 3. **Start the API service:**
 ```bash
-# With default configuration  
+# With default configuration
 ./target/release/dytallix-explorer-api
 
 # With custom configuration
@@ -452,7 +452,7 @@ For development, you can run the services with cargo:
 cd explorer/indexer
 cargo run
 
-# Terminal 2 - API  
+# Terminal 2 - API
 cd explorer/api
 cargo run
 
@@ -506,7 +506,7 @@ npm run cypress:open
 ```bash
 # High-frequency polling for real-time updates
 export DYT_RPC_BASE="https://rpc.dytallix.com"
-export DYT_INDEX_DB="/var/lib/dytallix/explorer.db"  
+export DYT_INDEX_DB="/var/lib/dytallix/explorer.db"
 export DYT_BACKFILL_BLOCKS=1000
 export DYT_POLL_INTERVAL_MS=1000
 export DYT_API_PORT=8080
@@ -614,7 +614,7 @@ List blocks with pagination.
 List transactions with pagination.
 
 **Query Parameters:**
-- `limit` (optional) - Number of transactions to return (default: 20, max: 100)  
+- `limit` (optional) - Number of transactions to return (default: 20, max: 100)
 - `offset` (optional) - Number of transactions to skip (default: 0)
 
 **Response:**
@@ -647,7 +647,7 @@ Get transaction details by hash.
   "hash": "0xabcd...",
   "height": 12345,
   "sender": "dyt1...",
-  "recipient": "dyt1...", 
+  "recipient": "dyt1...",
   "amount": "100",
   "denom": "dyt",
   "status": 1,

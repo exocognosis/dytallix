@@ -17,7 +17,7 @@ The service uses a deterministic algorithm that combines multiple factors:
 1. **Base Hash Score**: SHA256 hash of transaction ID + amount → numeric value (0-100)
 2. **Amount Analysis**: Risk adjustments based on transaction amount
    - Large amounts (>10,000): +15 risk points
-   - Medium amounts (1,000-10,000): +8 risk points  
+   - Medium amounts (1,000-10,000): +8 risk points
    - Micro amounts (<1): +5 risk points
 3. **Gas Usage Analysis**: Risk adjustments based on gas limit
    - High gas (>100,000): +10 risk points
@@ -27,7 +27,7 @@ The service uses a deterministic algorithm that combines multiple factors:
 ### Risk Level Thresholds
 
 - **LOW**: 0-33.33
-- **MEDIUM**: 33.34-66.66  
+- **MEDIUM**: 33.34-66.66
 - **HIGH**: 66.67-100.0
 
 ## Installation
@@ -68,7 +68,7 @@ curl -s -X POST http://127.0.0.1:8000/risk \
   -d '{
     "id": "tx123",
     "amount": 42.5,
-    "from": "dyt1sender123", 
+    "from": "dyt1sender123",
     "to": "dyt1receiver456",
     "gas_limit": 75000
   }' | jq .
@@ -80,7 +80,7 @@ curl -s -X POST http://127.0.0.1:8000/risk \
 curl -s -X POST http://127.0.0.1:8000/risk \
   -H 'Content-Type: application/json' \
   -d '{
-    "id": "tx999", 
+    "id": "tx999",
     "amount": 15000.0,
     "from": "dyt1whale",
     "to": "dyt1exchange"
@@ -129,7 +129,7 @@ Assess transaction risk.
 {
   "id": "string",           // Required: Transaction ID
   "amount": 0.0,           // Required: Transaction amount (>0)
-  "from": "string",        // Required: Source address  
+  "from": "string",        // Required: Source address
   "to": "string",          // Required: Destination address
   "gas_limit": 0,          // Optional: Gas limit
   "timestamp": "string"    // Optional: Transaction timestamp
@@ -176,7 +176,7 @@ The service is designed for easy extension:
 
 ```python
 # TODO: Integration points for future ML models
-# TODO: External risk feed integration  
+# TODO: External risk feed integration
 # TODO: Real-time transaction monitoring
 # TODO: Batch risk assessment capabilities
 # TODO: Risk model versioning and A/B testing

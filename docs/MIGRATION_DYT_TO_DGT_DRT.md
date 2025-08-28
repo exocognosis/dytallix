@@ -77,7 +77,7 @@ The Dytallix tokenomics have evolved into a dual-token model to better serve dif
 
 ### Environment Variables
 - **DEPRECATED**: `FAUCET_AMOUNT=1000000udyt`
-- **NEW**: 
+- **NEW**:
   - `DGT_FAUCET_AMOUNT=10000000udgt`
   - `DRT_FAUCET_AMOUNT=100000000udrt`
 

@@ -78,7 +78,7 @@ The migration is designed to be backward compatible with zero downtime:
    - Legacy `accrued_rewards` field is maintained for compatibility
    - New delegations initialize with current `global_reward_index`
 
-2. **Global Index Initialization**: 
+2. **Global Index Initialization**:
    - Starts at 0 for new deployments
    - For existing deployments, initializes from current validator reward indices
 
@@ -96,7 +96,7 @@ let avg_validator_index = validators.values()
     .filter(|v| v.status == Active)
     .map(|v| v.reward_index)
     .sum::<u128>() / active_count;
-    
+
 staking_state.global_reward_index = avg_validator_index;
 ```
 
@@ -146,7 +146,7 @@ POST /staking/claim                 # Flexible claim endpoint
 ### Benefits
 
 1. **Performance**: O(1) reward calculations vs O(n) per validator
-2. **Accuracy**: Eliminates rounding errors from per-validator calculations  
+2. **Accuracy**: Eliminates rounding errors from per-validator calculations
 3. **Functionality**: Multi-validator claiming in single transaction
 4. **Scalability**: Efficient reward tracking regardless of validator count
 5. **Precision**: Global index provides consistent reward distribution
@@ -167,8 +167,8 @@ POST /staking/claim                 # Flexible claim endpoint
    ```bash
    # Before migration: claim rewards
    dcli staking claim-rewards --delegator addr1 --validator val1
-   
-   # After migration: verify same functionality  
+
+   # After migration: verify same functionality
    dcli staking claim --delegator addr1 --validator val1
    ```
 

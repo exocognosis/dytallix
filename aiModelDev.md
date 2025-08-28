@@ -8,7 +8,7 @@ This document outlines the AI modules needed for Dytallix, including function, m
 
 ```bash
 ai_modules/
-├── sentinel/              
+├── sentinel/
 │   ├── data/
 │   ├── models/
 │   └── tests/

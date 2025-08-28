@@ -13,7 +13,7 @@ The format follows Keep a Changelog and Semantic Versioning where applicable.
   - Enhanced Cypress E2E tests for complete faucet flow including wallet balance verification (`cypress/e2e/faucet.cy.ts`)
   - Rust integration tests for faucet API contract validation (`tests/faucet_integration.rs`)
   - Local faucet testing script with JSON validation (`scripts/faucet_request.sh`)
-  
+
 - **Enhanced CI/CD Pipeline**
   - Multi-job CI workflow with separate lint, unit test, E2E test, and build stages
   - Rust toolchain integration with clippy and rustfmt

@@ -5,7 +5,7 @@ global:
 scrape_configs:
   - job_name: 'dytallix-nodes'
     static_configs:
-      - targets: 
+      - targets:
         - 'dytallix-node-1:9090'
         - 'dytallix-node-2:9090'
         - 'dytallix-node-3:9090'

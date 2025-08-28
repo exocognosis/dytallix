@@ -136,7 +136,7 @@ Analyzes Solidity source code for security vulnerabilities.
 ## Tool Installation & Requirements
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 18+
 - Python 3.8+
 - Solidity Compiler (solc)
 
@@ -178,7 +178,7 @@ node test/api.test.js
 
 ### Benchmarking Methodology
 - **Small Contracts** (< 100 LOC): < 5 seconds
-- **Medium Contracts** (100-500 LOC): 5-15 seconds  
+- **Medium Contracts** (100-500 LOC): 5-15 seconds
 - **Large Contracts** (500-1000 LOC): 15-30 seconds
 - **Very Large Contracts** (> 1000 LOC): 30-60 seconds
 
@@ -228,7 +228,7 @@ node test/api.test.js
 ```bash
 🔍 Running Contract Scanner Test Suite...
 ✅ PASS: Detected reentrancy vulnerability as critical
-✅ PASS: Detected arithmetic overflow vulnerability  
+✅ PASS: Detected arithmetic overflow vulnerability
 ✅ PASS: Safe contract has no critical/high issues
 ✅ PASS: Large payload rejected correctly
 ✅ PASS: Concurrency control working

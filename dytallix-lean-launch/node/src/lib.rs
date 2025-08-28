@@ -13,5 +13,5 @@ pub mod storage;
 pub mod types; // canonical transaction types
 pub mod util;
 pub mod ws; // added util module // p2p networking and gossip
-                                 // re-export emission types
+            // re-export emission types
 pub use runtime::emission::*;

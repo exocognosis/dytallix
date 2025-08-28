@@ -7,7 +7,7 @@ use crate::secrets::{SecretError, SecretResult};
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::env;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Core trait for secret providers
 ///

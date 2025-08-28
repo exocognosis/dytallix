@@ -13,25 +13,25 @@ pub struct TransactionFeatures {
     pub velocity_1h: f64,
     pub velocity_24h: f64,
     pub velocity_7d: f64,
-    
+
     // Amount features
     pub amount_z_score: f64,
     pub amount_percentile: f64,
     pub round_amount_indicator: f64,
-    
+
     // Temporal features
     pub hour_of_day: f64,
     pub day_of_week: f64,
     pub is_weekend: f64,
     pub time_since_last_tx: f64,
-    
+
     // Graph features
     pub in_degree: f64,
     pub out_degree: f64,
     pub clustering_coefficient: f64,
     pub betweenness_centrality: f64,
     pub page_rank: f64,
-    
+
     // Behavioral features
     pub gas_price_z_score: f64,
     pub gas_limit_z_score: f64,
@@ -49,19 +49,19 @@ impl FeatureExtractor {
 
     pub async fn extract(&self, transaction: &crate::blockchain::Transaction) -> Result<TransactionFeatures, InferenceError> {
         let mut features = TransactionFeatures::default();
-        
+
         // Extract velocity features
         if self.config.enable_temporal_features {
             features.velocity_1h = self.calculate_velocity_1h(transaction).await?;
             features.velocity_24h = self.calculate_velocity_24h(transaction).await?;
             features.velocity_7d = self.calculate_velocity_7d(transaction).await?;
         }
-        
+
         // Extract amount features
         features.amount_z_score = self.calculate_amount_z_score(transaction).await?;
         features.amount_percentile = self.calculate_amount_percentile(transaction).await?;
         features.round_amount_indicator = self.is_round_amount(transaction);
-        
+
         // Extract temporal features
         if self.config.enable_temporal_features {
             let (hour, day, weekend) = self.extract_time_features(transaction);
@@ -70,7 +70,7 @@ impl FeatureExtractor {
             features.is_weekend = weekend;
             features.time_since_last_tx = self.time_since_last_transaction(transaction).await?;
         }
-        
+
         // Extract graph features
         if self.config.enable_graph_features {
             features.in_degree = self.calculate_in_degree(transaction).await?;
@@ -79,7 +79,7 @@ impl FeatureExtractor {
             features.betweenness_centrality = self.calculate_betweenness_centrality(transaction).await?;
             features.page_rank = self.calculate_page_rank(transaction).await?;
         }
-        
+
         // Extract behavioral features
         if self.config.enable_behavioral_features {
             features.gas_price_z_score = self.calculate_gas_price_z_score(transaction).await?;
@@ -88,7 +88,7 @@ impl FeatureExtractor {
             features.address_age_days = self.calculate_address_age(transaction).await?;
             features.unique_counterparties = self.calculate_unique_counterparties(transaction).await?;
         }
-        
+
         Ok(features)
     }
 
@@ -110,7 +110,7 @@ impl FeatureExtractor {
         let amount = transaction.amount.parse::<f64>().unwrap_or(0.0);
         let mean = 1000.0; // Would be calculated from historical data
         let std_dev = 500.0; // Would be calculated from historical data
-        
+
         Ok((amount - mean) / std_dev)
     }
 
@@ -121,7 +121,7 @@ impl FeatureExtractor {
         else if amount < 1000.0 { 0.5 }
         else if amount < 10000.0 { 0.8 }
         else { 0.95 };
-        
+
         Ok(0.5) // Placeholder
     }
 
@@ -132,14 +132,14 @@ impl FeatureExtractor {
 
     fn extract_time_features(&self, transaction: &crate::blockchain::Transaction) -> (f64, f64, f64) {
         use chrono::{DateTime, Utc, Timelike, Datelike, Weekday};
-        
+
         let datetime = DateTime::from_timestamp(transaction.timestamp as i64, 0)
             .unwrap_or_else(|| Utc::now());
-        
+
         let hour_of_day = datetime.hour() as f64 / 24.0;
         let day_of_week = datetime.weekday().num_days_from_monday() as f64 / 7.0;
         let is_weekend = if matches!(datetime.weekday(), Weekday::Sat | Weekday::Sun) { 1.0 } else { 0.0 };
-        
+
         (hour_of_day, day_of_week, is_weekend)
     }
 
@@ -173,7 +173,7 @@ impl FeatureExtractor {
         let gas_price = transaction.gas_price.parse::<f64>().unwrap_or(0.0);
         let mean = 20.0; // Would be calculated from historical data
         let std_dev = 5.0;
-        
+
         Ok((gas_price - mean) / std_dev)
     }
 
@@ -181,7 +181,7 @@ impl FeatureExtractor {
         let gas_limit = transaction.gas_limit.parse::<f64>().unwrap_or(0.0);
         let mean = 21000.0; // Standard ETH transfer
         let std_dev = 10000.0;
-        
+
         Ok((gas_limit - mean) / std_dev)
     }
 
@@ -270,9 +270,9 @@ mod tests {
             lookback_window_hours: 24,
             velocity_window_minutes: 60,
         };
-        
+
         let extractor = FeatureExtractor::new(&config);
-        
+
         let transaction = Transaction {
             hash: "test_hash".to_string(),
             from: "dytallix1test".to_string(),
@@ -283,10 +283,10 @@ mod tests {
             timestamp: 1234567890,
             block_height: 12345,
         };
-        
+
         let features = extractor.extract(&transaction).await.unwrap();
         let vector = features.to_vector();
-        
+
         assert_eq!(vector.len(), 20);
         assert!(vector.iter().all(|&x| x.is_finite()));
     }
@@ -295,17 +295,17 @@ mod tests {
     fn test_round_amount_detection() {
         let config = FeatureConfig::default();
         let extractor = FeatureExtractor::new(&config);
-        
+
         let transaction1 = crate::blockchain::Transaction {
             amount: "1000".to_string(),
             ..Default::default()
         };
-        
+
         let transaction2 = crate::blockchain::Transaction {
             amount: "1234.56".to_string(),
             ..Default::default()
         };
-        
+
         assert_eq!(extractor.is_round_amount(&transaction1), 1.0);
         assert_eq!(extractor.is_round_amount(&transaction2), 0.0);
     }

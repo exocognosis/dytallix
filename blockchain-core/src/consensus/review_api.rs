@@ -218,7 +218,7 @@ impl TransactionReviewApi {
                 Some(transfer.from.clone()),
                 Some(transfer.to.clone()),
             ),
-            crate::types::Transaction::Deploy(deploy) => ("Deploy".to_string(), None, None, None),
+            crate::types::Transaction::Deploy(_deploy) => ("Deploy".to_string(), None, None, None),
             crate::types::Transaction::Call(call) => (
                 "Call".to_string(),
                 None,

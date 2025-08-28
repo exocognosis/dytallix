@@ -31,7 +31,7 @@ Sentry architecture isolates validator nodes from public exposure. Public RPC / 
 
 | Service | Port | Exposure |
 |---------|------|----------|
-| RPC (HTTP) | 26657 | Public | 
+| RPC (HTTP) | 26657 | Public |
 | gRPC | 9090 | Public |
 | REST API | 1317 | Public |
 | P2P (Tendermint) | 26656 | Sentry only |

@@ -584,7 +584,7 @@ impl ConsensusEngine {
 
     // Static helper methods for use in async tasks
     async fn create_block_proposal(
-        runtime: &Arc<DytallixRuntime>,
+        _runtime: &Arc<DytallixRuntime>,
         pqc_manager: &Arc<PQCManager>,
         current_block: &Arc<RwLock<Option<Block>>>,
         transactions: Vec<Transaction>,
@@ -788,14 +788,14 @@ impl ConsensusEngine {
                             // Apply risk-based processing decision
                             match processing_decision {
                                 ai_integration::RiskProcessingDecision::AutoApprove => {
-                                    info!("Transaction auto-approved by AI: risk score {:.3}, fraud prob {:.3}, confidence {:.3}", 
+                                    info!("Transaction auto-approved by AI: risk score {:.3}, fraud prob {:.3}, confidence {:.3}",
                                           risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0), confidence.unwrap_or(0.0));
                                     Ok(true)
                                 }
                                 ai_integration::RiskProcessingDecision::RequireReview {
                                     reason,
                                 } => {
-                                    warn!("Transaction flagged for manual review: {} (risk: {:.3}, fraud: {:.3})", 
+                                    warn!("Transaction flagged for manual review: {} (risk: {:.3}, fraud: {:.3})",
                                           reason, risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0));
 
                                     // Add to high-risk queue for manual review
@@ -805,7 +805,7 @@ impl ConsensusEngine {
                                     Ok(false) // Still reject for now until we restructure the validation flow
                                 }
                                 ai_integration::RiskProcessingDecision::AutoReject { reason } => {
-                                    warn!("Transaction auto-rejected by AI: {} (risk: {:.3}, fraud: {:.3})", 
+                                    warn!("Transaction auto-rejected by AI: {} (risk: {:.3}, fraud: {:.3})",
                                           reason, risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0));
                                     Ok(false)
                                 }
@@ -1386,7 +1386,7 @@ impl ConsensusEngine {
                                 response_id: response_id.clone(),
                             },
                             processing_decision_clone.clone(),
-                            crate::consensus::notification_types::ReviewPriority::Medium,
+                            risk_priority,
                             oracle_id.clone(),
                             response_id.clone(),
                             None, // Block number not available during validation
@@ -1399,7 +1399,7 @@ impl ConsensusEngine {
 
                     match processing_decision {
                         ai_integration::RiskProcessingDecision::AutoApprove => {
-                            info!("Transaction auto-approved by AI: risk score {:.3}, fraud prob {:.3}, confidence {:.3}", 
+                            info!("Transaction auto-approved by AI: risk score {:.3}, fraud prob {:.3}, confidence {:.3}",
                                   risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0), confidence.unwrap_or(0.0));
                             Ok(true)
                         }
@@ -1426,7 +1426,7 @@ impl ConsensusEngine {
                                 .await
                             {
                                 Ok(queue_id) => {
-                                    info!("Transaction {} queued for manual review (queue ID: {}): {}", 
+                                    info!("Transaction {} queued for manual review (queue ID: {}): {}",
                                           tx_hash, queue_id, reason);
                                     // Return false for now - transaction will be processed after manual approval
                                     Ok(false)

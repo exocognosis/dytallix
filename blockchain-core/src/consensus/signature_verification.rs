@@ -260,7 +260,7 @@ impl SignatureVerifier {
         self.validate_response_freshness(signed_response)?;
 
         // 2. Oracle validation
-        let oracle_entry = self.validate_oracle(&signed_response.oracle_identity)?;
+        let _oracle_entry = self.validate_oracle(&signed_response.oracle_identity)?;
 
         // 3. Nonce validation (replay protection)
         self.validate_nonce(

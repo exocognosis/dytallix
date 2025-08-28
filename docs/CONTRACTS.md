@@ -84,7 +84,7 @@ dcli contract instantiate --code-hash 0x123abc... --from dyt1user456 --gas 50000
 **RPC Example:**
 ```json
 {
-  "jsonrpc": "2.0", 
+  "jsonrpc": "2.0",
   "method": "contract_instantiate",
   "params": [{
     "code_hash": "0x123abc...",
@@ -123,7 +123,7 @@ dcli contract execute --contract instance_f1e2d3c4b5a6 --function transfer --fro
 ```json
 {
   "jsonrpc": "2.0",
-  "method": "contract_execute", 
+  "method": "contract_execute",
   "params": [{
     "contract_address": "instance_f1e2d3c4b5a6",
     "function": "transfer",
@@ -165,7 +165,7 @@ dcli contract query instance instance_f1e2d3c4b5a6
 ```json
 {
   "jsonrpc": "2.0",
-  "method": "contract_get_instance", 
+  "method": "contract_get_instance",
   "params": [{"address": "instance_f1e2d3c4b5a6"}],
   "id": 5
 }
@@ -184,7 +184,7 @@ dcli contract query storage --contract instance_f1e2d3c4b5a6 --key "0x1234"
   "jsonrpc": "2.0",
   "method": "contract_get_storage",
   "params": [{
-    "contract_address": "instance_f1e2d3c4b5a6", 
+    "contract_address": "instance_f1e2d3c4b5a6",
     "key": "0x1234"
   }],
   "id": 6
@@ -263,7 +263,7 @@ Contracts can emit events for external monitoring and indexing.
 ```json
 {
   "contract_address": "instance_f1e2d3c4b5a6",
-  "topic": "Transfer", 
+  "topic": "Transfer",
   "data": {"from": "addr1", "to": "addr2", "amount": 100},
   "timestamp": 1640995200,
   "block_number": 12345,
@@ -284,7 +284,7 @@ Contracts can emit events for external monitoring and indexing.
 Optional AI-powered security analysis:
 
 - **Deployment Analysis**: Scan for known vulnerabilities
-- **Execution Monitoring**: Detect suspicious behavior patterns  
+- **Execution Monitoring**: Detect suspicious behavior patterns
 - **State Change Validation**: Verify state transitions are valid
 
 ### Sandboxing
@@ -371,15 +371,15 @@ impl Token {
     fn transfer(&mut self, to: Address, amount: u64) -> Result<(), Error> {
         let from = self.caller();
         let from_balance = self.get_balance(&from)?;
-        
+
         if from_balance < amount {
             return Err(Error::InsufficientBalance);
         }
-        
+
         self.set_balance(&from, from_balance - amount)?;
         let to_balance = self.get_balance(&to)?;
         self.set_balance(&to, to_balance + amount)?;
-        
+
         self.emit_event("Transfer", TransferEvent { from, to, amount })?;
         Ok(())
     }
@@ -395,14 +395,14 @@ An escrow contract with AI-powered fraud detection:
 impl Escrow {
     fn release(&mut self, escrow_id: u64) -> Result<(), Error> {
         let escrow = self.get_escrow(escrow_id)?;
-        
+
         // AI fraud detection
         if let Some(ai_score) = self.analyze_release(&escrow)? {
             if ai_score < 0.7 {
                 return Err(Error::FraudDetected);
             }
         }
-        
+
         self.transfer(escrow.beneficiary, escrow.amount)?;
         self.emit_event("EscrowReleased", ReleaseEvent { escrow_id })?;
         Ok(())
@@ -415,7 +415,7 @@ impl Escrow {
 ### Current Status (MVP)
 
 - ✅ WASM execution engine
-- ✅ Gas metering system  
+- ✅ Gas metering system
 - ✅ Contract storage
 - ✅ Event emission
 - ✅ CLI commands

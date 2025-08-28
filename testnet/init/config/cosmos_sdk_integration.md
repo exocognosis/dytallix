@@ -50,7 +50,7 @@ func VerifyPQCSignature(pubKey crypto.PubKey, sigBytes []byte, msg []byte) error
 # Initialize Cosmos SDK chain with PQC support
 dytallix init testnet-node --chain-id=dytallix-testnet-1
 
-# Add PQC validators 
+# Add PQC validators
 dytallix add-genesis-account validator1 1000000000udyt
 dytallix gentx validator1 100000000udyt --keyring-backend=test
 

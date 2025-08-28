@@ -151,7 +151,7 @@ impl SignaturePolicy {
         self.enforce_at_mempool
     }
 
-    /// Check if policy should be enforced at consensus level  
+    /// Check if policy should be enforced at consensus level
     pub fn should_enforce_at_consensus(&self) -> bool {
         self.enforce_at_consensus
     }

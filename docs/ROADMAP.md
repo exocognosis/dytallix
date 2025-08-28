@@ -135,7 +135,7 @@ The Dytallix project has made **exceptional progress** beyond the original roadm
 
 ### 🎯 **Current Priorities**
 1. **Testnet Deployment**: Execute ready-to-deploy testnet infrastructure (TOP PRIORITY)
-2. **Cross-Chain Bridges**: Complete PQC-secured interoperability protocols  
+2. **Cross-Chain Bridges**: Complete PQC-secured interoperability protocols
 3. **Performance Optimization**: End-to-end testing and stress testing
 4. **API Documentation**: Final consolidation and OpenAPI specifications
 

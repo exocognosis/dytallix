@@ -93,12 +93,12 @@ pub fn execute(
 
 pub fn execute_increment(deps: DepsMut) -> Result<Response, ContractError> {
     let mut count = COUNT.load(deps.storage)?;
-    
+
     // Check for overflow
     if count == i32::MAX {
         return Err(ContractError::Overflow {});
     }
-    
+
     count += 1;
     COUNT.save(deps.storage, &count)?;
 
@@ -109,12 +109,12 @@ pub fn execute_increment(deps: DepsMut) -> Result<Response, ContractError> {
 
 pub fn execute_decrement(deps: DepsMut) -> Result<Response, ContractError> {
     let mut count = COUNT.load(deps.storage)?;
-    
+
     // Prevent negative counts
     if count <= 0 {
         return Err(ContractError::NegativeCount {});
     }
-    
+
     count -= 1;
     COUNT.save(deps.storage, &count)?;
 
@@ -128,7 +128,7 @@ pub fn execute_reset(deps: DepsMut, count: i32) -> Result<Response, ContractErro
     if count < 0 {
         return Err(ContractError::NegativeCount {});
     }
-    
+
     COUNT.save(deps.storage, &count)?;
 
     Ok(Response::new()

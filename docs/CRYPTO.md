@@ -30,13 +30,13 @@ Where:
 - Fee: 21,000,000 datt = 0.021 DGT
 
 #### Contract Call
-- Gas limit: 100,000  
+- Gas limit: 100,000
 - Gas price: 1,500 datt
 - Fee: 150,000,000 datt = 0.15 DGT
 
 #### Governance Proposal
 - Gas limit: 50,000
-- Gas price: 2,000 datt  
+- Gas price: 2,000 datt
 - Fee: 100,000,000 datt = 0.1 DGT
 
 ## Gas Model Economics
@@ -66,7 +66,7 @@ Traditional fixed-fee models don't scale with transaction complexity. Gas-based 
 Post-quantum signatures are significantly larger than classical signatures:
 
 - **Classical ECDSA**: ~64 bytes
-- **Dilithium5**: ~4,595 bytes  
+- **Dilithium5**: ~4,595 bytes
 - **Falcon-1024**: ~1,330 bytes
 
 ### Gas Cost Implications

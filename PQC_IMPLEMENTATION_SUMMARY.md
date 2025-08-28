@@ -5,7 +5,7 @@
 I have successfully implemented comprehensive PQC signature verification for cross-chain bridge operations in the Dytallix repository. Here's what has been accomplished:
 
 ### 1. **BridgePQCManager** - Extended PQC Functionality (`pqc-crypto/src/bridge.rs`)
-- **Multi-algorithm support**: Dilithium5, Falcon1024, SPHINCS+ 
+- **Multi-algorithm support**: Dilithium5, Falcon1024, SPHINCS+
 - **Cross-chain payload formats**: Ethereum transactions, Cosmos IBC packets, Generic bridge payloads
 - **Chain-specific configurations**: Different hash algorithms and signature formats per chain
 - **Multi-signature validation**: Configurable threshold signatures (default 3-of-N)
@@ -17,7 +17,7 @@ I have successfully implemented comprehensive PQC signature verification for cro
 - **Validator consensus**: Multi-signature validation with PQC algorithms
 - **Cross-chain compatibility**: Support for different signature formats across chains
 
-### 3. **IBC Integration** 
+### 3. **IBC Integration**
 - **PQC packet signatures**: Enhanced IBC packets with PQC signature support
 - **Signature verification**: Real PQC verification in IBC packet processing
 - **Chain format compatibility**: Proper conversion between chain-specific formats

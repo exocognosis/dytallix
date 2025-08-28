@@ -6,7 +6,7 @@ A comprehensive testing framework for validating all core API and WebSocket inte
 
 This validation suite provides complete coverage for:
 - **API Endpoint Testing** - All core REST endpoints with response validation
-- **WebSocket Testing** - Real-time connection and message broadcasting  
+- **WebSocket Testing** - Real-time connection and message broadcasting
 - **Security Testing** - Protection against common vulnerabilities
 - **Performance Testing** - Load testing and performance monitoring
 - **Automated Reporting** - HTML, Markdown, and CSV reports
@@ -17,7 +17,7 @@ This validation suite provides complete coverage for:
 tests/
 ├── api/                    # API endpoint tests
 │   ├── test_status.py      # System status endpoint tests
-│   ├── test_blocks.py      # Blockchain blocks endpoint tests  
+│   ├── test_blocks.py      # Blockchain blocks endpoint tests
 │   ├── test_transactions.py # Transaction endpoint tests
 │   └── test_peers.py       # Network peers endpoint tests
 ├── websocket/              # WebSocket real-time tests
@@ -80,7 +80,7 @@ cd tests/scripts/
 Tests all core REST API endpoints:
 
 - **Status & Health**: `/health`, `/status`, `/stats`
-- **Blockchain Data**: `/blocks`, `/transactions`, `/peers`  
+- **Blockchain Data**: `/blocks`, `/transactions`, `/peers`
 - **Account Operations**: `/balance/{address}`, `/submit`
 - **Data Retrieval**: `/transaction/{hash}`, `/blocks/{id}`
 
@@ -112,7 +112,7 @@ python tests/websocket/test_realtime.py --url ws://localhost:3030/ws
 Comprehensive security vulnerability testing:
 
 - **SQL Injection Protection**
-- **Cross-Site Scripting (XSS) Protection**  
+- **Cross-Site Scripting (XSS) Protection**
 - **Buffer Overflow Protection**
 - **Rate Limiting Validation**
 - **CORS Security Headers**
@@ -186,7 +186,7 @@ Options:
 
 ### Core API Tests
 - ✅ Endpoint availability and response codes
-- ✅ JSON response structure validation  
+- ✅ JSON response structure validation
 - ✅ Data type and format verification
 - ✅ Pagination and filtering parameters
 - ✅ Error handling and edge cases

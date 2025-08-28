@@ -1,8 +1,8 @@
 # 🚀 Dytallix Production Branch Migration Plan
 
-**Target Date**: August 5, 2025 (Week 2 of Sprint)  
-**Public Repository**: `https://github.com/dytallix/dytallix-mainnet`  
-**Production Branch**: `production`  
+**Target Date**: August 5, 2025 (Week 2 of Sprint)
+**Public Repository**: `https://github.com/dytallix/dytallix-mainnet`
+**Production Branch**: `production`
 
 ---
 
@@ -252,7 +252,7 @@ cosmos_endpoint = "YOUR_COSMOS_RPC"
     "private_key": "STORE_SECURELY"
   },
   "key_exchange_keypair": {
-    "public_key": "GENERATE_WITH_KEYGEN_TOOL", 
+    "public_key": "GENERATE_WITH_KEYGEN_TOOL",
     "private_key": "STORE_SECURELY"
   }
 }
@@ -311,7 +311,7 @@ jobs:
         toolchain: stable
     - name: Run tests
       run: cargo test --all
-    
+
   security:
     runs-on: ubuntu-latest
     steps:

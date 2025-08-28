@@ -406,7 +406,7 @@ impl AIIntegrationManager {
     pub async fn request_and_verify_ai_analysis(
         &self,
         transaction_data: serde_json::Value,
-        analysis_type: &str,
+        _analysis_type: &str,
     ) -> AIVerificationResult {
         if !self.config.require_ai_verification {
             return AIVerificationResult::Skipped {

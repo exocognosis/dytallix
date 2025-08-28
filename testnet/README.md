@@ -1,8 +1,8 @@
 # Dytallix Testnet - Quantum-Resistant Blockchain
 
-🚀 **Live Testnet**: `testnet.dytallix.com`  
-🔗 **Chain ID**: `dytallix-testnet-1`  
-⚡ **Status**: Active  
+🚀 **Live Testnet**: `testnet.dytallix.com`
+🔗 **Chain ID**: `dytallix-testnet-1`
+⚡ **Status**: Active
 🛡️ **Security**: Post-Quantum Cryptography Enabled
 
 ## Quick Links
@@ -58,7 +58,7 @@ dytallix tx bank send \
   --node $DYTALLIX_RPC \
   --fees 1000udgt
 
-# Example transaction hash: 
+# Example transaction hash:
 # 0x7a8b9cdef123456789abcdef0123456789abcdef0123456789abcdef01234567
 ```
 
@@ -107,10 +107,10 @@ Recent testnet transactions for testing and exploration:
 
 ### Staking Information
 - **Minimum Self Delegation**: 1,000,000 DGT
-- **Minimum Delegation**: 1 DGT  
+- **Minimum Delegation**: 1 DGT
 - **Unbonding Period**: 21 days
 - **Maximum Validators**: 100 (current: 4)
-- **Slashing Parameters**: 
+- **Slashing Parameters**:
   - Downtime: 1% slash, 10min jail
   - Double Sign: 5% slash, permanent tombstone
 
@@ -340,6 +340,6 @@ For real-time network metrics and monitoring, visit:
 
 ---
 
-*Last Updated: July 31, 2025*  
-*Testnet Version: v1.0.0-testnet*  
+*Last Updated: July 31, 2025*
+*Testnet Version: v1.0.0-testnet*
 *© 2025 Dytallix. Quantum-Safe, AI-Enhanced, Future-Ready.*

@@ -5,22 +5,22 @@ config:
     - duration: 60
       arrivalRate: 10
       name: "Warm-up phase"
-    
+
     # Sustained load phase - maintain steady load
     - duration: 300
       arrivalRate: 50
       name: "Sustained load phase"
-    
+
     # Peak load phase - test maximum capacity
     - duration: 120
       arrivalRate: 100
       name: "Peak load phase"
-    
+
     # Burst test - spike to very high load
     - duration: 60
       arrivalRate: 200
       name: "Burst test phase"
-    
+
     # Cool-down phase - reduce load gradually
     - duration: 60
       arrivalRate: 20
@@ -32,7 +32,7 @@ config:
       User-Agent: 'Artillery/Dytallix-Testnet-Audit'
       Content-Type: 'application/json'
       Accept: 'application/json'
-  
+
   # Payload configuration
   payload:
     - path: './test-data.csv'
@@ -43,20 +43,20 @@ config:
         - 'fee'
       order: sequence
       skipHeader: true
-  
+
   # Performance thresholds
   ensure:
     # Response time requirements
     - http.response_time.p95: 2000  # 95th percentile under 2 seconds
     - http.response_time.p99: 5000  # 99th percentile under 5 seconds
     - http.response_time.median: 500  # Median under 500ms
-    
+
     # Error rate requirements
     - http.request_rate: 40  # Minimum 40 requests per second
     - http.codes.200: 95     # At least 95% success rate
     - http.codes.201: 0      # No 201 responses expected
     - http.codes.202: 5      # Up to 5% 202 responses (accepted/queued)
-    
+
     # WebSocket requirements
     - ws.open_rate: 5        # Minimum 5 WebSocket connections per second
     - ws.message_rate: 20    # Minimum 20 messages per second
@@ -66,11 +66,11 @@ config:
     metrics-by-endpoint:
       # Track metrics per endpoint
       useOnlyRequestNames: true
-    
+
     expect:
       # Automatic validation plugin
       outputFormat: 'json'
-      
+
     # Publish real-time metrics
     publish-metrics:
       - type: 'statsd'
@@ -100,7 +100,7 @@ scenarios:
             - equals:
                 - "{{ node_status }}"
                 - "running"
-      
+
       # Block data endpoints
       - get:
           url: "/blocks?limit={{ $randomInt(1, 20) }}"
@@ -110,14 +110,14 @@ scenarios:
             - property: "length"
               min: 0
               max: 20
-      
+
       # Transaction endpoints
       - get:
           url: "/transactions?limit={{ $randomInt(1, 50) }}"
           expect:
             - statusCode: 200
             - contentType: json
-      
+
       # Network information
       - get:
           url: "/peers"
@@ -127,7 +127,7 @@ scenarios:
           expect:
             - statusCode: 200
             - hasProperty: "peers"
-      
+
       - get:
           url: "/stats"
           capture:
@@ -138,13 +138,13 @@ scenarios:
           expect:
             - statusCode: 200
             - hasProperty: "network"
-      
+
       # Balance queries
       - get:
           url: "/balance/test_address_{{ $randomInt(1, 1000) }}"
           expect:
             - statusCode: [200, 404]  # Both are acceptable
-      
+
       # Transaction details
       - get:
           url: "/transaction/{{ $randomString(64) }}"
@@ -180,10 +180,10 @@ scenarios:
           expect:
             - statusCode: [200, 201, 202]
             - hasProperty: ["transaction_id", "hash"]
-      
+
       # Follow up with transaction verification
       - think: 1  # Wait 1 second
-      
+
       - get:
           url: "/transaction/{{ submitted_tx_hash || submitted_tx_id }}"
           ifTrue: "{{ submitted_tx_hash || submitted_tx_id }}"
@@ -199,7 +199,7 @@ scenarios:
           target: "wss://testnet-api.dytallix.io/ws"
           headers:
             User-Agent: "Artillery-WebSocket-Client"
-          
+
       # Subscribe to real-time feeds
       - send:
           payload: |
@@ -207,7 +207,7 @@ scenarios:
               "type": "subscribe",
               "channels": ["blocks", "transactions", "network_stats"]
             }
-      
+
       # Send periodic ping messages
       - loop:
           - send:
@@ -218,7 +218,7 @@ scenarios:
                 }
           - think: 10  # Wait 10 seconds between pings
         count: 30  # Send 30 pings (5 minutes total)
-      
+
       # Send unsubscribe message
       - send:
           payload: |

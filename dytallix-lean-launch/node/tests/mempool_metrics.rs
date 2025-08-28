@@ -357,7 +357,7 @@ async fn test_comprehensive_metrics_flow() {
 
     println!(
         "✅ Comprehensive metrics test completed: {} admissions, {} rejections by {:?}, {} gossip duplicates",
-        successful_admissions, 
+        successful_admissions,
         rejections_by_reason.values().sum::<u64>(),
         rejections_by_reason,
         duplicates_suppressed

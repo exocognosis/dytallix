@@ -151,6 +151,6 @@ deployment/cosmos-contracts/
 
 ---
 
-**Last Updated**: 2024-07-25T01:20:00Z  
-**Status**: DEPLOYMENT READY ✅  
+**Last Updated**: 2024-07-25T01:20:00Z
+**Status**: DEPLOYMENT READY ✅
 **Next Action**: Fund deployment wallet with testnet OSMO tokens

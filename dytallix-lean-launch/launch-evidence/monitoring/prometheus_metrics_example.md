@@ -18,7 +18,7 @@ The Dytallix monitoring system relies on specific Prometheus metrics exported by
 - **Usage**: Track blockchain progress and detect stalling
 
 #### `dyt_tps`
-- **Type**: Gauge  
+- **Type**: Gauge
 - **Description**: Current transactions per second throughput
 - **Labels**: None
 - **Example**: `dyt_tps 175.5`
@@ -98,8 +98,8 @@ blocks_per_second = Gauge('dyt_blocks_per_second', 'Rate of block production')
 mempool_size = Gauge('dyt_mempool_size', 'Number of pending transactions')
 gas_used = Gauge('dyt_gas_used_per_block', 'Gas used in latest block')
 
-validator_voting_power = Gauge('dyt_validator_voting_power', 
-                               'Voting power of each validator', 
+validator_voting_power = Gauge('dyt_validator_voting_power',
+                               'Voting power of each validator',
                                ['validator'])
 
 api_duration = Histogram('dytallix_api_request_duration_seconds',
@@ -118,7 +118,7 @@ def collect_blockchain_metrics():
     blocks_per_second.set(random.uniform(0.2, 0.3))
     mempool_size.set(random.randint(100, 500))
     gas_used.set(random.randint(15000000, 25000000))
-    
+
     # Validator metrics
     validators = ['validator-1', 'validator-2', 'validator-3']
     for validator in validators:
@@ -130,21 +130,21 @@ def simulate_api_metrics():
     """Simulate API request metrics"""
     endpoints = ['/api/blocks', '/api/transactions', '/api/accounts']
     methods = ['GET', 'POST']
-    
+
     for endpoint in endpoints:
         for method in methods:
             # Simulate request latency
             latency = random.uniform(0.01, 0.5)
             api_duration.labels(
-                method=method, 
-                endpoint=endpoint, 
+                method=method,
+                endpoint=endpoint,
                 status_code='200'
             ).observe(latency)
-            
+
             # Increment request counter
             api_requests.labels(
                 method=method,
-                endpoint=endpoint, 
+                endpoint=endpoint,
                 status_code='200'
             ).inc()
 
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     # Start metrics server on port 9090
     start_http_server(9090)
     print("Metrics server started on port 9090")
-    
+
     while True:
         collect_blockchain_metrics()
         simulate_api_metrics()
@@ -208,7 +208,7 @@ Each alert includes:
 For production deployment:
 
 1. **Metric Retention**: Configure appropriate retention policies in Prometheus
-2. **High Availability**: Deploy Prometheus and Grafana in HA configurations  
+2. **High Availability**: Deploy Prometheus and Grafana in HA configurations
 3. **Security**: Secure metrics endpoints with authentication
 4. **Alerting**: Configure AlertManager with proper notification channels
 5. **Backup**: Regular backups of Grafana dashboards and Prometheus data

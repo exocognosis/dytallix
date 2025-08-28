@@ -15,10 +15,10 @@ async fn test_vulnerability_scanner_comprehensive() {
     // Test case 1: Valid WASM contract
     let valid_deployment = create_valid_test_deployment();
     let findings = scanner.scan_deployment(&valid_deployment);
-    
+
     // Should pass basic validation
     assert!(findings.iter().all(|f| f.severity != Severity::Critical));
-    
+
     // Test case 2: Invalid WASM contract (too small)
     let invalid_deployment = ContractDeployment {
         address: "test_invalid".to_string(),
@@ -78,7 +78,7 @@ async fn test_vulnerability_scanner_comprehensive() {
     let findings = scanner.scan_deployment(&large_state_deployment);
     assert!(findings.iter().any(|f| f.category == VulnerabilityCategory::GasOptimization));
 
-    println!("✅ Vulnerability scanner tests passed - {} total findings across test cases", 
+    println!("✅ Vulnerability scanner tests passed - {} total findings across test cases",
         findings.len());
 }
 
@@ -86,7 +86,7 @@ async fn test_vulnerability_scanner_comprehensive() {
 #[tokio::test]
 async fn test_reentrancy_detection() {
     let scanner = VulnerabilityScanner::new();
-    
+
     // Create suspicious state changes that might indicate reentrancy
     let call = ContractCall {
         contract_address: "test_contract".to_string(),
@@ -165,7 +165,7 @@ async fn test_gas_attack_analyzer() {
     // Test deployment analysis
     let deployment = create_valid_test_deployment();
     let deployment_findings = analyzer.analyze_deployment(&deployment).await;
-    
+
     // Should pass basic checks for a reasonable deployment
     assert!(deployment_findings.iter().all(|f| f.severity != Severity::Critical));
 
@@ -232,7 +232,7 @@ async fn test_gas_attack_analyzer() {
     assert!(dos_findings.iter().any(|f| f.category == VulnerabilityCategory::DoS));
     assert!(dos_findings.iter().any(|f| f.severity == Severity::Critical));
 
-    println!("✅ Gas attack analyzer tests passed - detected {} attack patterns", 
+    println!("✅ Gas attack analyzer tests passed - detected {} attack patterns",
         excessive_findings.len() + execution_findings.len() + dos_findings.len());
 }
 
@@ -260,13 +260,13 @@ async fn test_fuzz_tester() {
     };
 
     let problematic_findings = fuzz_tester.test_deployment(&problematic_deployment).await;
-    
+
     // Should detect issues with large state
-    assert!(problematic_findings.iter().any(|f| 
+    assert!(problematic_findings.iter().any(|f|
         f.title.contains("Large State") || f.title.contains("DoS")
     ));
 
-    println!("✅ Fuzz tester tests passed - ran {} test iterations", 
+    println!("✅ Fuzz tester tests passed - ran {} test iterations",
         fuzz_tester.get_test_count());
 }
 
@@ -282,7 +282,7 @@ async fn test_security_auditor_integration() {
     assert_eq!(audit_result.contract_address, normal_deployment.address);
     assert!(audit_result.audit_duration_ms > 0);
     assert!(!audit_result.auditor_version.is_empty());
-    
+
     // Contract should pass basic security checks
     assert!(audit_result.passes_security_check());
     assert!(audit_result.security_score() >= 70); // Should have reasonable score
@@ -299,7 +299,7 @@ async fn test_security_auditor_integration() {
     };
 
     let problematic_audit = auditor.audit_contract(&problematic_deployment).await;
-    
+
     // Should find multiple critical issues
     assert!(!problematic_audit.passes_security_check());
     assert!(problematic_audit.security_score() < 50);
@@ -348,8 +348,8 @@ async fn test_security_auditor_integration() {
 
     let execution_findings = auditor.analyze_execution(&suspicious_call, &suspicious_result).await;
     assert!(!execution_findings.is_empty());
-    assert!(execution_findings.iter().any(|f| 
-        f.category == VulnerabilityCategory::Reentrancy || 
+    assert!(execution_findings.iter().any(|f|
+        f.category == VulnerabilityCategory::Reentrancy ||
         f.category == VulnerabilityCategory::GasGriefing
     ));
 
@@ -382,26 +382,26 @@ async fn test_audit_report_generation() {
     };
 
     let audit_result = auditor.audit_contract(&test_deployment).await;
-    
+
     // Generate comprehensive report
     let report = report_generator.generate_report(&audit_result, None, None);
-    
+
     // Validate report structure
     assert_eq!(report.metadata.contract_address, test_deployment.address);
     assert!(!report.metadata.report_id.is_empty());
     assert!(!report.metadata.audit_date.is_empty());
-    
+
     // Should have findings
     assert!(report.findings_summary.total_findings > 0);
     assert!(!report.detailed_findings.is_empty());
-    
+
     // Should have security assessment
     assert!(report.executive_summary.overall_security_score <= 100);
     assert!(report.executive_summary.critical_issues > 0);
-    
+
     // Generate markdown report
     let markdown = report_generator.generate_markdown_report(&report);
-    
+
     // Validate markdown content
     assert!(markdown.contains("# Smart Contract Security Audit Report"));
     assert!(markdown.contains(&test_deployment.address));
@@ -410,7 +410,7 @@ async fn test_audit_report_generation() {
     assert!(markdown.contains("Gas Analysis Report"));
     assert!(markdown.contains("Recommendations"));
     assert!(markdown.contains("Appendix"));
-    
+
     // Check for specific security content
     assert!(markdown.contains("Critical") || markdown.contains("High"));
     assert!(markdown.contains("Severity"));
@@ -444,7 +444,7 @@ async fn test_security_edge_cases() {
     };
 
     let empty_audit = auditor.audit_contract(&empty_deployment).await;
-    
+
     // Should detect multiple critical issues
     assert!(!empty_audit.passes_security_check());
     assert!(empty_audit.security_score() < 30);
@@ -462,10 +462,10 @@ async fn test_security_edge_cases() {
     };
 
     let max_audit = auditor.audit_contract(&max_deployment).await;
-    
+
     // Should handle extreme values gracefully
     assert!(!max_audit.findings.is_empty());
-    assert!(max_audit.findings.iter().any(|f| 
+    assert!(max_audit.findings.iter().any(|f|
         f.category == VulnerabilityCategory::GasGriefing ||
         f.category == VulnerabilityCategory::DoS
     ));
@@ -520,11 +520,11 @@ async fn test_full_security_audit_workflow() {
     for (name, deployment) in contracts {
         println!("   Auditing {}...", name);
         let audit_result = auditor.audit_contract(&deployment).await;
-        
+
         println!("     - Security score: {}/100", audit_result.security_score());
         println!("     - Findings: {}", audit_result.findings.len());
         println!("     - Passes check: {}", audit_result.passes_security_check());
-        
+
         all_results.push((name, audit_result));
     }
 
@@ -534,10 +534,10 @@ async fn test_full_security_audit_workflow() {
             println!("   Generating detailed report for {}...", name);
             let report = report_generator.generate_report(result, None, None);
             let markdown = report_generator.generate_markdown_report(&report);
-            
+
             assert!(markdown.len() > 1000); // Should be substantial report
             assert!(markdown.contains("Critical") || markdown.contains("High"));
-            
+
             println!("     - Report generated: {} characters", markdown.len());
         }
     }

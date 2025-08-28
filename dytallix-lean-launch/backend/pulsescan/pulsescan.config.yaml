@@ -61,7 +61,7 @@ anomalies:
 # Alerting configuration
 alerts:
   minSeverity: "medium"         # Minimum severity to alert: low|medium|high|critical
-  
+
   webhook:
     enabled: false
     url: "${WEBHOOK_URL}"
@@ -69,7 +69,7 @@ alerts:
     headers:
       Authorization: "Bearer ${WEBHOOK_TOKEN}"
       Content-Type: "application/json"
-  
+
   slack:
     enabled: false
     webhookUrl: "${SLACK_WEBHOOK_URL}"
@@ -81,15 +81,15 @@ alerts:
 severityMapping:
   tx_spike:
     low: 0.3                    # Low severity threshold
-    medium: 0.6                 # Medium severity threshold  
+    medium: 0.6                 # Medium severity threshold
     high: 0.8                   # High severity threshold
     critical: 1.0               # Critical severity threshold
-  
+
   validator_downtime:
     medium: 3                   # Consecutive misses for medium
     high: 7                     # Consecutive misses for high
     critical: 10                # Consecutive misses for critical
-  
+
   double_sign:
     critical: 1                 # Any double sign is critical
 

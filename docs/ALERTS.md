@@ -10,7 +10,7 @@ The alerting system monitors key metrics and triggers alerts when predefined thr
 
 - **Non-blocking**: Runs as a background task without impacting transaction processing
 - **Configurable**: All thresholds and evaluation intervals are configurable
-- **Lightweight**: Minimal performance overhead when enabled, zero overhead when disabled  
+- **Lightweight**: Minimal performance overhead when enabled, zero overhead when disabled
 - **Observable**: Exposes Prometheus metrics for alert states and events
 - **Extensible**: Trait-based design allows for easy addition of new metrics sources
 
@@ -96,12 +96,12 @@ rules:
     enabled: true
     threshold: 1500
     consecutive: 3
-    
+
   oracle_timeout:
     enabled: true
     threshold_ms: 800
     consecutive: 2
-    
+
   validator_offline:
     enabled: true
     offline_secs: 30
@@ -152,8 +152,8 @@ The alerting system exposes the following Prometheus metrics:
 
 ### `dytallix_alert_rule_firing`
 
-**Type:** Gauge  
-**Labels:** `rule`  
+**Type:** Gauge
+**Labels:** `rule`
 **Description:** Whether an alert rule is currently firing (1) or not (0)
 
 Example:
@@ -165,8 +165,8 @@ dytallix_alert_rule_firing{rule="validatoroffline"} 0
 
 ### `dytallix_alert_events_total`
 
-**Type:** Counter  
-**Labels:** `rule`, `event_type`  
+**Type:** Counter
+**Labels:** `rule`, `event_type`
 **Description:** Total number of alert events (firing or recovery)
 
 Example:
@@ -276,7 +276,7 @@ cargo test alerts
 # Run with metrics feature enabled
 cargo test --features metrics alerts
 
-# Run with alerts feature enabled  
+# Run with alerts feature enabled
 cargo test --features alerts alerts
 ```
 

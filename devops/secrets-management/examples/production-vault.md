@@ -241,7 +241,7 @@ spec:
       annotations:
         summary: "Dytallix node is down"
         description: "Dytallix node {{ $labels.instance }} has been down for more than 5 minutes"
-    
+
     - alert: DytallixHighCPU
       expr: rate(process_cpu_seconds_total{job="dytallix-node"}[5m]) > 0.8
       for: 10m
@@ -250,7 +250,7 @@ spec:
       annotations:
         summary: "High CPU usage on Dytallix node"
         description: "CPU usage is above 80% for more than 10 minutes"
-    
+
     - alert: DytallixHighMemory
       expr: process_resident_memory_bytes{job="dytallix-node"} / 1024 / 1024 / 1024 > 6
       for: 10m

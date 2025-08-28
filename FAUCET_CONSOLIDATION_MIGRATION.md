@@ -4,14 +4,14 @@ As of this commit, the following legacy faucet UI directories have been removed 
 
 ## Removed Directories
 
-### 1. `frontend/` 
+### 1. `frontend/`
 - **Status**: ❌ Removed
 - **Reason**: Legacy React frontend with separate faucet implementation
 - **Migration**: Key features migrated to `dytallix-lean-launch/`
 - **Assets Preserved**: Environment configurations reviewed and key variables added to main `.env.example`
 
 ### 2. `dytallix-lean-launch-1/`
-- **Status**: ❌ Removed  
+- **Status**: ❌ Removed
 - **Reason**: Duplicate variant of main lean launch implementation
 - **Migration**: No unique features identified, safe to remove
 

@@ -13,7 +13,7 @@ pub struct MetricsServer {
 impl MetricsServer {
     pub fn new(port: u16) -> Self {
         let registry = Registry::new();
-        
+
         Self { registry, port }
     }
 
@@ -40,11 +40,11 @@ impl MetricsServer {
         let routes = metrics_route.or(health_route);
 
         tracing::info!("Starting metrics server on port {}", self.port);
-        
+
         warp::serve(routes)
             .run(([0, 0, 0, 0], self.port))
             .await;
-        
+
         Ok(())
     }
 }

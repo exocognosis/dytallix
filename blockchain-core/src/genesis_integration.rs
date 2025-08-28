@@ -5,14 +5,13 @@ Integrates genesis configuration with the consensus engine to initialize
 the blockchain state with proper token allocations, validators, and parameters.
 */
 
-use crate::consensus::ConsensusEngine;
 use crate::genesis::GenesisConfig;
 use crate::types::{
     AccountState, Address, Amount, Block, BlockHeader, Hash, Transaction, ValidatorInfo,
 };
 use chrono::Utc;
 use sha3::{Digest, Sha3_256};
-use std::collections::HashMap;
+use std::collections::HashMap; // retained for future extensions
 
 /// Genesis block creator for Dytallix blockchain
 pub struct GenesisBlockCreator {

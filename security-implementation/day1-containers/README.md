@@ -6,7 +6,7 @@ Fix container root user vulnerabilities and implement security hardening across 
 ## Files to Modify
 1. `/Dockerfile` - Main blockchain node
 2. `/ai-services/Dockerfile` - AI services API
-3. `/frontend/Dockerfile` - Frontend application  
+3. `/frontend/Dockerfile` - Frontend application
 4. `/deployment/gcp/Dockerfile` - GCP deployment
 
 ## Implementation Steps

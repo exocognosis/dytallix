@@ -10,7 +10,7 @@ The performance dashboard now shows **granular, real-time data** for each of the
 - **Status**: ACTIVE / SCANNING
 - **Purpose**: Real-time fraud detection and network security
 
-### ⛽ **FeeFlow Optimizer** 
+### ⛽ **FeeFlow Optimizer**
 - **Primary Metric**: Current Optimal Fee (0.0002-0.0006 DTX)
 - **Secondary Data**: Fee savings percentage (12-20%)
 - **Status**: OPTIMIZING / ANALYZING

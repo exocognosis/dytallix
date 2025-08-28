@@ -11,14 +11,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize runtime as would be done in the API server
     let storage = Arc::new(StorageManager::new().await?);
     let runtime = Arc::new(DytallixRuntime::new(storage.clone())?);
-    
+
     println!("✓ Runtime initialized");
 
     // Test scenario: Validator registration through runtime interface
     println!("\n1. Testing Validator Registration via Runtime");
     let validator_addr = "dyt1validator123".to_string();
     let pubkey = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    
+
     match runtime.register_validator(validator_addr.clone(), pubkey, 500).await {
         Ok(_) => println!("   ✓ Validator registered successfully"),
         Err(e) => {
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Verify validator exists
     match runtime.get_validator(&validator_addr).await {
         Some(validator) => {
-            println!("   ✓ Validator found: {} (Status: {:?})", 
+            println!("   ✓ Validator found: {} (Status: {:?})",
                      validator.address, validator.status);
         }
         None => {
@@ -42,10 +42,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Test delegation through runtime
     println!("\n2. Testing Delegation via Runtime");
     let stake_amount = 1_000_000_000_000u128;
-    
+
     // Set initial balance
     runtime.set_balance(&validator_addr, stake_amount as u64).await?;
-    
+
     match runtime.delegate(validator_addr.clone(), validator_addr.clone(), stake_amount).await {
         Ok(_) => println!("   ✓ Self-delegation successful"),
         Err(e) => {
@@ -58,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n3. Testing Active Validators Query");
     let active_validators = runtime.get_active_validators().await;
     println!("   ✓ Found {} active validators", active_validators.len());
-    
+
     for validator in &active_validators {
         println!("     - {} (Stake: {} uDGT)", validator.address, validator.total_stake);
     }
@@ -93,7 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Test staking statistics
     println!("\n6. Testing Staking Statistics");
     let (total_stake, total_validators, active_validators_count) = runtime.get_staking_stats().await;
-    
+
     println!("   📊 Staking Statistics:");
     println!("     Total Stake: {} uDGT", total_stake);
     println!("     Total Validators: {}", total_validators);
@@ -104,7 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match runtime.claim_rewards(&validator_addr, &validator_addr).await {
         Ok(claimed) => {
             println!("   ✓ Claimed {} uDRT rewards", claimed);
-            
+
             // Check DRT balance
             let drt_balance = runtime.get_drt_balance(&validator_addr).await;
             println!("   ✓ DRT balance after claim: {} uDRT", drt_balance);
@@ -122,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ Block reward processing");
     println!("✅ Reward calculation and claiming");
     println!("✅ Statistics and queries");
-    
+
     println!("\n🚀 Staking RPC integration is complete and functional!");
     println!("   The staking system is ready for CLI and API usage.");
 

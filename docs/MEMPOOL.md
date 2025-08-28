@@ -232,15 +232,15 @@ Recommended alert thresholds:
 # High rejection rate
 - alert: MempoolHighRejectionRate
   expr: rate(dytallix_mempool_rejected_total[5m]) > 100
-  
+
 # Pool near capacity
 - alert: MempoolNearCapacity
   expr: dytallix_mempool_size / 10000 > 0.9
-  
+
 # High eviction rate
 - alert: MempoolHighEvictionRate
   expr: rate(dytallix_mempool_evicted_total[5m]) > 10
-  
+
 # Gas price spike
 - alert: MempoolGasPriceSpike
   expr: dytallix_mempool_current_min_gas_price > 10000
@@ -270,15 +270,15 @@ Recommended alert thresholds:
 ```rust
 impl Mempool {
     // Add transaction with full validation
-    pub fn add_transaction(&mut self, state: &State, tx: Transaction) 
+    pub fn add_transaction(&mut self, state: &State, tx: Transaction)
         -> Result<(), RejectionReason>;
-    
+
     // Get highest priority transactions for block creation
     pub fn take_snapshot(&self, n: usize) -> Vec<Transaction>;
-    
+
     // Remove transactions after block inclusion
     pub fn drop_hashes(&mut self, hashes: &[String]);
-    
+
     // Pool statistics
     pub fn len(&self) -> usize;
     pub fn total_bytes(&self) -> usize;
@@ -293,13 +293,13 @@ impl Mempool {
 impl TransactionGossip {
     // Check if transaction should be gossiped
     pub fn should_gossip(&self, tx_hash: &str, from_peer: Option<&str>) -> bool;
-    
+
     // Queue transaction for gossip to peers
     pub fn queue_for_gossip(&self, tx_hash: &str, peers: &[String]);
-    
+
     // Get pending transactions for specific peer
     pub fn get_pending_for_peer(&self, peer_id: &str, batch_size: usize) -> Vec<String>;
-    
+
     // Periodic cleanup of expired entries
     pub fn cleanup(&self);
 }
@@ -362,7 +362,7 @@ cargo test --features metrics mempool_metrics
 
 ### Benchmarks
 - **1000 transaction additions**: < 1 second
-- **500 transaction snapshot**: < 10 milliseconds  
+- **500 transaction snapshot**: < 10 milliseconds
 - **Deterministic ordering**: Verified across multiple instances
 - **Concurrent operations**: Maintains consistency under load
 

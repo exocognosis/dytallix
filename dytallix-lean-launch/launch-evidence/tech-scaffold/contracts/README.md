@@ -28,7 +28,7 @@ After successful execution:
 
 - `counter_contract.wasm` - Compiled contract binary
 - `deploy_tx.json` - Contract deployment transaction details
-- `invoke_tx.json` - Contract execution transaction records  
+- `invoke_tx.json` - Contract execution transaction records
 - `gas_report.json` - Gas consumption analysis for all operations
 
 ## Prerequisites
@@ -63,7 +63,7 @@ docker pull cosmwasm/rust-optimizer:0.12.13
 ```bash
 # Chain binary and endpoints
 export DY_BINARY="dytallixd"          # Chain binary name
-export DY_LCD="http://localhost:1317" # LCD/REST endpoint  
+export DY_LCD="http://localhost:1317" # LCD/REST endpoint
 export DY_RPC="http://localhost:26657" # RPC endpoint
 
 # Contract deployment configuration
@@ -130,7 +130,7 @@ The included counter contract is a minimal CosmWasm smart contract that demonstr
   "increment": {}
 }
 
-// Decrement counter  
+// Decrement counter
 {
   "decrement": {}
 }
@@ -281,7 +281,7 @@ Example gas report structure:
 # Check code upload
 $DY_BINARY query wasm code 1 --node $DY_RPC
 
-# Check contract info  
+# Check contract info
 $DY_BINARY query wasm contract dy1contract... --node $DY_RPC
 
 # Query contract state
@@ -295,7 +295,7 @@ $DY_BINARY query tx $TX_HASH --node $DY_RPC
 
 - Contract code should be reviewed for vulnerabilities
 - Use official rust-optimizer for production builds
-- Validate all user inputs in contract logic  
+- Validate all user inputs in contract logic
 - Test thoroughly on testnet before mainnet deployment
 - Monitor gas consumption for DoS attack vectors
 
@@ -305,7 +305,7 @@ Target performance metrics for the counter contract:
 
 - **WASM Size**: < 200KB optimized
 - **Storage Gas**: < 2M gas units
-- **Instantiation Gas**: < 200K gas units  
+- **Instantiation Gas**: < 200K gas units
 - **Execution Gas**: < 150K gas units per operation
 
 ---

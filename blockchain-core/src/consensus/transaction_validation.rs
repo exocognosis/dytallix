@@ -19,7 +19,7 @@ use crate::consensus::high_risk_queue::{HighRiskQueue, ReviewPriority};
 use crate::consensus::performance_optimizer::PerformanceOptimizer;
 use crate::consensus::types::AIServiceType;
 use crate::consensus::SignedAIOracleResponse;
-use crate::policy::{PolicyError, PolicyManager};
+use crate::policy::PolicyManager;
 use crate::types::{AIRequestTransaction, Transaction, TransferTransaction};
 
 /// Transaction validation result
@@ -390,7 +390,9 @@ impl TransactionValidator {
         tx: &Transaction,
         ai_integration: Arc<AIIntegrationManager>,
     ) -> Result<SignedAIOracleResponse> {
-        // Prepare data for AI analysis
+        // Prefix unused variable to silence warning if currently unused
+        let _ai_integration = ai_integration; // retained for future use
+                                              // Prepare data for AI analysis
         let mut analysis_data = HashMap::new();
 
         match tx {

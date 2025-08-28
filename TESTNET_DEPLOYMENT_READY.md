@@ -9,7 +9,7 @@ The Dytallix cross-chain bridge has been **successfully finalized** and is ready
 ### **✅ Code Compilation Status**
 - **All bridge components compile successfully** - No errors, only minor warnings
 - **Ethereum connector**: Complete with Web3 integration and smart contract deployment
-- **Cosmos connector**: Complete with IBC client and CosmWasm integration  
+- **Cosmos connector**: Complete with IBC client and CosmWasm integration
 - **Polkadot connector**: Complete with Substrate client and XCM messaging
 - **Core bridge logic**: Fully implemented with PQC security and validator consensus
 
@@ -31,7 +31,7 @@ The Dytallix cross-chain bridge has been **successfully finalized** and is ready
 
 ### **Ethereum Contracts (Sepolia Testnet Ready)**
 - **DytallixBridge.sol** - Main bridge contract with asset locking/unlocking
-- **WrappedDytallix.sol** - ERC-20 wrapped token implementation  
+- **WrappedDytallix.sol** - ERC-20 wrapped token implementation
 - **WrappedTokenFactory.sol** - Factory for deploying new wrapped tokens
 - **Hardhat deployment infrastructure** with scripts and configuration
 
@@ -82,7 +82,7 @@ npm install
 # Build the WASM contract
 cargo build --release --target wasm32-unknown-unknown
 
-# Copy environment template and configure  
+# Copy environment template and configure
 cp .env.example .env
 # Edit .env with your:
 # - MNEMONIC (12/24 word seed phrase)
@@ -96,7 +96,7 @@ npm run deploy:osmo-testnet
 **Required Environment Variables:**
 ```bash
 MNEMONIC="your twelve word mnemonic phrase for deployment wallet"
-OSMOSIS_TESTNET_RPC=https://rpc.osmotest5.osmosis.zone  
+OSMOSIS_TESTNET_RPC=https://rpc.osmotest5.osmosis.zone
 VALIDATOR_THRESHOLD=3
 BRIDGE_FEE_BPS=10
 VALIDATORS=osmo1validator1,osmo1validator2,osmo1validator3
@@ -137,8 +137,8 @@ The deployed contract addresses need to be configured in:
    ```rust
    // Update in /interoperability/src/connectors/ethereum/mod.rs
    const ETHEREUM_BRIDGE_ADDRESS: &str = "0xDeployedBridgeAddress";
-   
-   // Update in /interoperability/src/connectors/cosmos/mod.rs  
+
+   // Update in /interoperability/src/connectors/cosmos/mod.rs
    const COSMOS_BRIDGE_ADDRESS: &str = "osmo1deployedcontractaddress";
    ```
 
@@ -177,7 +177,7 @@ All contracts are compiled and ready. You can now deploy to testnets and start t
 # Deploy Ethereum (from ethereum-contracts directory)
 npm run deploy:sepolia
 
-# Deploy Cosmos (from cosmos-contracts directory)  
+# Deploy Cosmos (from cosmos-contracts directory)
 npm run deploy:osmo-testnet
 ```
 
@@ -203,7 +203,7 @@ This script will:
 
 ### **Supported Networks**
 - **Ethereum Sepolia** (testnet) → Ready for mainnet
-- **Cosmos Osmosis** (testnet) → Ready for Hub/mainnet  
+- **Cosmos Osmosis** (testnet) → Ready for Hub/mainnet
 - **Polkadot** (infrastructure ready) → Deployment scripts available
 
 ### **Asset Transfer Features**
@@ -276,7 +276,7 @@ The deployment script automatically:
 
 ## 🚀 **FINAL EXECUTION**
 
-The Dytallix cross-chain bridge is **PRODUCTION-READY** for immediate testnet deployment. 
+The Dytallix cross-chain bridge is **PRODUCTION-READY** for immediate testnet deployment.
 
 **To deploy now:**
 ```bash
@@ -285,7 +285,7 @@ The Dytallix cross-chain bridge is **PRODUCTION-READY** for immediate testnet de
 
 This represents a **complete, production-grade cross-chain bridge** with:
 - Real smart contract integrations
-- Full testnet deployment capability  
+- Full testnet deployment capability
 - Comprehensive security implementation
 - Professional-grade code organization
 - Complete documentation and deployment guides

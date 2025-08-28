@@ -12,7 +12,7 @@ cluster:
   machine_type: e2-standard-4
   disk_size: 100
   disk_type: pd-ssd
-  
+
 services:
   # Cloud SQL for metadata and transaction history
   sql:
@@ -21,26 +21,26 @@ services:
     tier: db-custom-2-7680
     storage_size: 100
     storage_type: SSD
-    
+
   # Cloud Storage for backups and large data
   storage:
     bucket_name: dytallix-bridge-storage
     location: US-CENTRAL1
     storage_class: REGIONAL
-    
+
   # Load Balancer configuration
   load_balancer:
     name: dytallix-bridge-lb
     type: EXTERNAL
-    
+
   # Container Registry
   registry:
     hostname: gcr.io
-    
+
 monitoring:
   enabled: true
   stack_driver: true
-  
+
 security:
   # Enable necessary APIs
   apis:
@@ -51,7 +51,7 @@ security:
     - logging.googleapis.com
     - cloudresourcemanager.googleapis.com
     - iam.googleapis.com
-  
+
   # Service account for the bridge
   service_account:
     name: dytallix-bridge-sa

@@ -20,7 +20,7 @@ The Dytallix staking system has been successfully implemented with all core MVP 
   - `max_validators`, `min_self_stake`, `slash_double_sign`, `slash_downtime`
   - `emission_per_block` (new)
 
-### ✅ 2. Delegation System  
+### ✅ 2. Delegation System
 - **Delegation Record**: Complete `Delegation` struct
   - `delegator_address`, `validator_address`, `stake_amount`, `reward_cursor_index`
 - **Core Function**: `delegate()` with DGT locking ✅
@@ -61,7 +61,7 @@ The Dytallix staking system has been successfully implemented with all core MVP 
 
 ### Integration Points
 - **Runtime Extension**: `RuntimeState` enhanced with staking + DRT balances
-- **Genesis Integration**: `StakingConfig` extended with emission parameters  
+- **Genesis Integration**: `StakingConfig` extended with emission parameters
 - **CLI Integration**: Complete command interface in `cli/src/cmd/stake.rs`
 - **API Integration**: RPC endpoint types in `api/mod.rs`
 

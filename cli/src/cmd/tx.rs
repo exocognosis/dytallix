@@ -90,7 +90,7 @@ pub async fn handle_transfer(
     // Display gas information to user
     let intrinsic_gas = estimate_intrinsic_gas_for_transfer(&tx)?;
     if fmt.is_json() {
-        println!("{{\"intrinsic_gas\": {}, \"gas_limit\": {}, \"gas_price\": {}, \"estimated_fee_datt\": {}}}", 
+        println!("{{\"intrinsic_gas\": {}, \"gas_limit\": {}, \"gas_price\": {}, \"estimated_fee_datt\": {}}}",
                  intrinsic_gas, gas_limit, c.gas_price, gas_limit * c.gas_price);
     } else {
         println!("Intrinsic gas: {}", intrinsic_gas);
@@ -208,7 +208,7 @@ pub async fn handle_batch(
     // Display gas information
     let intrinsic_gas = estimate_intrinsic_gas_for_batch(&tx)?;
     if fmt.is_json() {
-        println!("{{\"intrinsic_gas\": {}, \"gas_limit\": {}, \"gas_price\": {}, \"estimated_fee_datt\": {}}}", 
+        println!("{{\"intrinsic_gas\": {}, \"gas_limit\": {}, \"gas_price\": {}, \"estimated_fee_datt\": {}}}",
                  intrinsic_gas, gas_limit, c.gas_price, gas_limit * c.gas_price);
     } else {
         println!("Batch intrinsic gas: {}", intrinsic_gas);

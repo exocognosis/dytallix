@@ -427,7 +427,7 @@ describe('Dytallix Integration', () => {
       apiUrl: 'http://api.dytallix.com:1317',
       chainId: 'dytallix-testnet-1'
     });
-    
+
     wallet = await Wallet.create({ algorithm: 'dilithium5' });
   });
 
@@ -620,8 +620,8 @@ const dytallix = {
 const cosmosWallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic);
 
 // Dytallix
-const dytallixWallet = await Wallet.fromMnemonic(mnemonic, { 
-  algorithm: 'dilithium5' 
+const dytallixWallet = await Wallet.fromMnemonic(mnemonic, {
+  algorithm: 'dilithium5'
 });
 ```
 

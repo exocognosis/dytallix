@@ -328,7 +328,7 @@ The validator lifecycle system includes comprehensive test coverage:
 ```rust
 #[test]
 fn test_validator_leave_functionality()
-#[test]  
+#[test]
 fn test_uptime_tracking_and_jailing()
 #[test]
 fn test_slashing_functionality()

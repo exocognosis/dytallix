@@ -56,7 +56,7 @@ pub struct TransactionMetadata {
     pub transaction_type: String,
     /// From address
     pub from_address: Option<Address>,
-    /// To address  
+    /// To address
     pub to_address: Option<Address>,
     /// Transaction amount
     pub amount: Option<u64>,
@@ -133,7 +133,7 @@ pub struct ComplianceQuery {
     pub address_filter: Option<Vec<Address>>,
     /// Minimum amount threshold
     pub min_amount: Option<u64>,
-    /// Maximum amount threshold  
+    /// Maximum amount threshold
     pub max_amount: Option<u64>,
     /// Include deleted/archived entries
     pub include_archived: bool,
@@ -622,7 +622,7 @@ impl AuditTrailManager {
 
     fn determine_compliance_status(
         &self,
-        ai_result: &AIVerificationResult,
+        _ai_result: &AIVerificationResult,
         risk_decision: &RiskProcessingDecision,
     ) -> ComplianceStatus {
         match risk_decision {

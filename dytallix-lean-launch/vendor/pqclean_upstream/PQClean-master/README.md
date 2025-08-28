@@ -123,9 +123,9 @@ For all of these schemes we have clean C code, but for some we also have optimis
 **Alternate candidates:**
 * No participants yet.
 
-Implementations previously available in PQClean and dropped in Round 3 of the NIST standardization effort are available in the [`round2` tag](https://github.com/PQClean/PQClean/releases/tag/round2). 
+Implementations previously available in PQClean and dropped in Round 3 of the NIST standardization effort are available in the [`round2` tag](https://github.com/PQClean/PQClean/releases/tag/round2).
 
-Implementations previously available in PQClean and dropped in Round 4 of the NIST standardization effort are available in the [`round3` tag](https://github.com/PQClean/PQClean/releases/tag/round3). 
+Implementations previously available in PQClean and dropped in Round 4 of the NIST standardization effort are available in the [`round3` tag](https://github.com/PQClean/PQClean/releases/tag/round3).
 
 ## API used by PQClean
 

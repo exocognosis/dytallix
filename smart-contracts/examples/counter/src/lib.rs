@@ -10,11 +10,11 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 
 #[no_mangle]
-pub extern "C" fn increment() { 
-    unsafe { COUNTER += 1; } 
+pub extern "C" fn increment() {
+    unsafe { COUNTER += 1; }
 }
 
 #[no_mangle]
-pub extern "C" fn get() -> i32 { 
-    unsafe { COUNTER } 
+pub extern "C" fn get() -> i32 {
+    unsafe { COUNTER }
 }

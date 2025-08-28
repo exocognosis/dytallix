@@ -4,5 +4,6 @@
 - node: /opt/homebrew/bin/node
 - npm: /opt/homebrew/bin/npm
 - docker: /usr/local/bin/docker
-- date: 2025-08-27T19:39:06Z
-❌ fmt_check FAILED (exit 1)
+- date: 2025-08-28T03:05:22Z
+✅ fmt_check OK
+❌ clippy FAILED (exit 101)

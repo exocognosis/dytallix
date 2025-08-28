@@ -5,7 +5,7 @@ This service performs the actual security analysis of smart contracts using vari
 ## Features
 
 - **Static Analysis**: Code pattern analysis, vulnerability detection
-- **Dynamic Analysis**: Execution flow analysis, state mutation testing  
+- **Dynamic Analysis**: Execution flow analysis, state mutation testing
 - **Code Quality**: Metrics calculation, best practices checking
 - **AI Integration**: Machine learning model inference for vulnerability detection
 

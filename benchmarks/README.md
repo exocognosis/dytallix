@@ -29,7 +29,7 @@ python3 benchmarks/run_benchmarks.py --all --duration 120 --concurrent 20
 # Smart contracts only
 python3 benchmarks/run_benchmarks.py --smart-contracts
 
-# AI APIs only  
+# AI APIs only
 python3 benchmarks/run_benchmarks.py --ai-apis
 
 # Database only
@@ -156,7 +156,7 @@ python3 benchmarks/unified_metrics_collector.py \
 
 ### Individual Results
 - `results/ai_api_metrics_*.json` - AI API performance data
-- `results/database_metrics_*.json` - Database performance data  
+- `results/database_metrics_*.json` - Database performance data
 - `results/network_*_*.json` - Network performance data
 - `results/network_performance_summary_*.md` - Network summary
 
@@ -217,7 +217,7 @@ Default configuration can be overridden via command-line arguments:
 - name: Run Performance Benchmarks
   run: |
     python3 benchmarks/run_benchmarks.py --all --duration 30
-    
+
 - name: Upload Baseline Report
   uses: actions/upload-artifact@v3
   with:
@@ -239,7 +239,7 @@ The baseline report enables:
 - Transaction success rate: >99%
 - Average execution time: <100ms
 
-### AI APIs  
+### AI APIs
 - Cold start time: <5s
 - Warm response time: <200ms
 - Success rate: >99.5%
@@ -264,7 +264,7 @@ The baseline report enables:
    ```bash
    # Check database availability
    pg_isready -h localhost -p 5432
-   
+
    # Use simulated metrics if database unavailable
    python3 benchmarks/unified_metrics_collector.py --simulate-db
    ```
@@ -273,7 +273,7 @@ The baseline report enables:
    ```bash
    # Check AI service health
    curl http://localhost:8000/api/v1/health
-   
+
    # Benchmarks will use simulated data if services unavailable
    ```
 

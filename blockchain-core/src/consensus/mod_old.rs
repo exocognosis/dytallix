@@ -872,24 +872,24 @@ impl SignedAIOracleResponse {
     /// This creates a deterministic byte representation of the response for signing/verification
     pub fn get_signable_data(&self) -> Result<Vec<u8>> {
         let mut data = Vec::new();
-        
+
         // Add response data
         data.extend_from_slice(self.response.id.as_bytes());
         data.extend_from_slice(self.response.request_id.as_bytes());
         data.extend_from_slice(&self.response.timestamp.to_be_bytes());
         data.extend_from_slice(&self.response.processing_time_ms.to_be_bytes());
-        
+
         // Add response data hash
         let response_data_json = serde_json::to_string(&self.response.response_data)?;
         data.extend_from_slice(response_data_json.as_bytes());
-        
+
         // Add nonce and expiration
         data.extend_from_slice(&self.nonce.to_be_bytes());
         data.extend_from_slice(&self.expires_at.to_be_bytes());
-        
+
         // Add oracle identity
         data.extend_from_slice(self.oracle_identity.oracle_id.as_bytes());
-        
+
         Ok(data)
     }
 
@@ -983,7 +983,7 @@ impl CircuitBreakerContext {
         self.stats.success_count += 1;
         self.stats.total_requests += 1;
         self.update_failure_rate();
-        
+
         // If we're half-open and got a success, close the circuit
         if self.state == CircuitBreakerState::HalfOpen {
             self.state = CircuitBreakerState::Closed;
@@ -997,7 +997,7 @@ impl CircuitBreakerContext {
         self.stats.failure_count += 1;
         self.stats.total_requests += 1;
         self.update_failure_rate();
-        
+
         // Check if we should open the circuit
         if self.state == CircuitBreakerState::Closed && self.should_open_circuit() {
             self.state = CircuitBreakerState::Open;
@@ -1239,7 +1239,7 @@ impl AIOracleClient {
             Ok(response) => {
                 let response_time_ms = start_time.elapsed().as_millis() as u64;
                 let status_code = response.status();
-                
+
                 log::debug!("Health check response: HTTP {}, response time: {}ms", status_code, response_time_ms);
 
                 if status_code.is_success() {
@@ -1247,7 +1247,7 @@ impl AIOracleClient {
                     match response.json::<serde_json::Value>().await {
                         Ok(json_response) => {
                             log::debug!("Successfully parsed health check response: {:?}", json_response);
-                            
+
                             // Extract status from the response or default to Healthy
                             let status = if let Some(status_str) = json_response.get("status").and_then(|v| v.as_str()) {
                                 match status_str.to_lowercase().as_str() {
@@ -1303,7 +1303,7 @@ impl AIOracleClient {
                         }
                         Err(e) => {
                             log::warn!("Failed to parse health check response as JSON: {}", e);
-                            
+
                             // Create a basic health response based on HTTP status
                             let status = if status_code.is_success() {
                                 AIServiceStatus::Healthy
@@ -1327,7 +1327,7 @@ impl AIOracleClient {
                     }
                 } else {
                     log::warn!("Health check failed with HTTP status: {}", status_code);
-                    
+
                     let status = match status_code.as_u16() {
                         503 => AIServiceStatus::Unhealthy,
                         500..=599 => AIServiceStatus::Degraded,
@@ -1355,7 +1355,7 @@ impl AIOracleClient {
             Err(e) => {
                 let response_time_ms = start_time.elapsed().as_millis() as u64;
                 log::error!("Health check request failed: {}", e);
-                
+
                 // Determine error type for better status reporting
                 let (status, error_details) = if e.is_timeout() {
                     (AIServiceStatus::Degraded, serde_json::json!({
@@ -1394,26 +1394,26 @@ impl AIOracleClient {
     pub fn start_background_health_monitoring(&self, interval_seconds: u64) -> tokio::task::JoinHandle<()> {
         let client = self.clone();
         let interval_duration = std::time::Duration::from_secs(interval_seconds);
-        
+
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(interval_duration);
-            
+
             loop {
                 interval.tick().await;
-                
+
                 match client.health_check().await {
                     Ok(health_response) => {
                         log::info!(
-                            "Health check completed - Status: {}, Response time: {}ms", 
-                            health_response.status, 
+                            "Health check completed - Status: {}, Response time: {}ms",
+                            health_response.status,
                             health_response.response_time_ms
                         );
-                        
+
                         // Log additional details if available
                         if let Some(ref details) = health_response.details {
                             log::debug!("Health check details: {:?}", details);
                         }
-                        
+
                         // Log service load if available
                         if let Some(ref load) = health_response.load {
                             log::info!(
@@ -1444,7 +1444,7 @@ impl AIOracleClient {
             Ok(Ok(response)) => {
                 let response_time_ms = start_time.elapsed().as_millis() as u64;
                 let status_code = response.status();
-                
+
                 log::debug!("Health check response: HTTP {}, response time: {}ms", status_code, response_time_ms);
 
                 if status_code.is_success() {
@@ -1452,7 +1452,7 @@ impl AIOracleClient {
                     match response.json::<serde_json::Value>().await {
                         Ok(json_response) => {
                             log::debug!("Successfully parsed health check response: {:?}", json_response);
-                            
+
                             // Extract status from the response or default to Healthy
                             let status = if let Some(status_str) = json_response.get("status").and_then(|v| v.as_str()) {
                                 match status_str.to_lowercase().as_str() {
@@ -1508,7 +1508,7 @@ impl AIOracleClient {
                         }
                         Err(e) => {
                             log::warn!("Failed to parse health check response as JSON: {}", e);
-                            
+
                             // Create a basic health response based on HTTP status
                             let status = if status_code.is_success() {
                                 AIServiceStatus::Healthy
@@ -1532,7 +1532,7 @@ impl AIOracleClient {
                     }
                 } else {
                     log::warn!("Health check failed with HTTP status: {}", status_code);
-                    
+
                     let status = match status_code.as_u16() {
                         503 => AIServiceStatus::Unhealthy,
                         500..=599 => AIServiceStatus::Degraded,
@@ -1560,7 +1560,7 @@ impl AIOracleClient {
             Ok(Err(e)) => {
                 let response_time_ms = start_time.elapsed().as_millis() as u64;
                 log::error!("Health check request failed: {}", e);
-                
+
                 // Determine error type for better status reporting
                 let (status, error_details) = if e.is_timeout() {
                     (AIServiceStatus::Degraded, serde_json::json!({
@@ -1596,7 +1596,7 @@ impl AIOracleClient {
                 // Timeout occurred
                 let response_time_ms = start_time.elapsed().as_millis() as u64;
                 log::error!("Health check timed out after {:?}", timeout);
-                
+
                 Ok(AIHealthCheckResponse {
                     status: AIServiceStatus::Degraded,
                     timestamp: std::time::SystemTime::now()
@@ -1740,56 +1740,56 @@ impl AIOracleClient {
 
     /// Send an AI request with custom retry configuration
     pub async fn send_ai_request_with_retry(
-        &self, 
-        payload: &AIRequestPayload, 
+        &self,
+        payload: &AIRequestPayload,
         retry_config: &RetryConfig
     ) -> AIOracleResult<reqwest::Response> {
         // Validate the payload before sending
         payload.validate()
             .map_err(|e| AIOracleError::Validation { message: format!("Invalid request payload: {}", e) })?;
-        
+
         let endpoint = self.get_endpoint_for_service_type(&payload.service_type);
-        
-        log::info!("Sending AI request {} to {} service (max {} attempts)", 
+
+        log::info!("Sending AI request {} to {} service (max {} attempts)",
                   payload.id, endpoint, retry_config.max_attempts);
-        
+
         let mut last_error = None;
 
         for attempt in 0..retry_config.max_attempts {
             if attempt > 0 {
                 let delay = retry_config.delay_for_attempt(attempt);
-                log::debug!("Retrying AI request {} (attempt {}/{}) after {:?} delay", 
+                log::debug!("Retrying AI request {} (attempt {}/{}) after {:?} delay",
                            payload.id, attempt + 1, retry_config.max_attempts, delay);
                 tokio::time::sleep(delay).await;
             } else {
-                log::debug!("Starting AI request {} (attempt {}/{})", 
+                log::debug!("Starting AI request {} (attempt {}/{})",
                            payload.id, attempt + 1, retry_config.max_attempts);
             }
 
             match self.execute_ai_request(payload, endpoint).await {
                 Ok(response) => {
-                    log::info!("AI request {} completed successfully on attempt {}/{} (total time: {:?})", 
-                              payload.id, attempt + 1, retry_config.max_attempts, 
+                    log::info!("AI request {} completed successfully on attempt {}/{} (total time: {:?})",
+                              payload.id, attempt + 1, retry_config.max_attempts,
                               std::time::Instant::now().duration_since(std::time::Instant::now()));
                     return Ok(response);
                 }
                 Err(error) => {
-                    log::warn!("AI request {} failed on attempt {}/{} with error: {} (retryable: {})", 
+                    log::warn!("AI request {} failed on attempt {}/{} with error: {} (retryable: {})",
                               payload.id, attempt + 1, retry_config.max_attempts, error, error.is_retryable());
-                    
+
                     // Check if we should retry this error
                     if !error.is_retryable() {
                         log::error!("AI request {} failed with non-retryable error type: {}", payload.id, error);
                         return Err(error);
                     }
-                    
+
                     // If this is our last attempt, return the error
                     if attempt + 1 >= retry_config.max_attempts {
                         log::error!("AI request {} exhausted all {} retry attempts", payload.id, retry_config.max_attempts);
                         last_error = Some(error);
                         break;
                     }
-                    
+
                     last_error = Some(error);
                 }
             }
@@ -1800,7 +1800,7 @@ impl AIOracleClient {
             AIOracleError::Unknown { message: "All retry attempts failed".to_string() }
         });
 
-        log::error!("AI request {} failed after {} attempts: {}", 
+        log::error!("AI request {} failed after {} attempts: {}",
                    payload.id, retry_config.max_attempts, final_error);
 
         Err(AIOracleError::MaxRetriesExceeded {
@@ -1815,7 +1815,7 @@ impl AIOracleClient {
         let service_type_str = payload.service_type.to_string();
         let priority_str = payload.priority.to_string();
         let timeout_str = payload.timeout.map(|t| t.to_string());
-        
+
         // Set up headers
         let mut headers = vec![
             ("Content-Type", "application/json"),
@@ -1823,40 +1823,40 @@ impl AIOracleClient {
             ("X-Service-Type", service_type_str.as_str()),
             ("X-Priority", priority_str.as_str()),
         ];
-        
+
         // Add timeout header if specified
         if let Some(ref timeout_value) = timeout_str {
             headers.push(("X-Timeout", timeout_value.as_str()));
         }
-        
+
         // Add signature header if present
         if let Some(ref signature) = payload.signature {
             headers.push(("X-Signature", signature));
         }
-        
+
         // Add correlation ID if available
         if let Some(ref metadata) = payload.metadata {
             if let Some(ref correlation_id) = metadata.correlation_id {
                 headers.push(("X-Correlation-ID", correlation_id));
             }
         }
-        
+
         let url = format!("{}/{}", self.base_url.trim_end_matches('/'), endpoint.trim_start_matches('/'));
-        
+
         log::debug!("Making POST request to: {}", url);
-        
+
         // Execute the request with timeout and error handling
         let mut request = self.client.post(&url).json(payload);
-        
+
         for (key, value) in headers {
             request = request.header(key, value);
         }
-        
+
         match request.send().await {
             Ok(response) => {
                 let status = response.status();
                 log::debug!("POST request completed with status: {}", status);
-                
+
                 if status.is_success() {
                     Ok(response)
                 } else if status.as_u16() == 429 {
@@ -1866,7 +1866,7 @@ impl AIOracleClient {
                         .and_then(|v| v.to_str().ok())
                         .and_then(|s| s.parse::<u64>().ok())
                         .map(Duration::from_secs);
-                    
+
                     Err(AIOracleError::RateLimit {
                         message: format!("Rate limit exceeded (status: {})", status),
                         retry_after,
@@ -1936,19 +1936,19 @@ impl AIOracleClient {
 
     /// Send an AI request and get an AIResponsePayload with custom retry configuration
     pub async fn send_ai_request_response_with_retry(
-        &self, 
-        payload: &AIRequestPayload, 
+        &self,
+        payload: &AIRequestPayload,
         retry_config: &RetryConfig
     ) -> Result<AIResponsePayload> {
         let start_time = std::time::Instant::now();
-        
+
         match self.send_ai_request_with_retry(payload, retry_config).await {
             Ok(response) => {
                 let processing_time = start_time.elapsed().as_millis() as u64;
                 let status_code = response.status();
-                
+
                 log::info!("AI request {} completed with status {}", payload.id, status_code);
-                
+
                 if status_code.is_success() {
                     // Parse the response body as JSON
                     match response.json::<serde_json::Value>().await {
@@ -1958,7 +1958,7 @@ impl AIOracleClient {
                                 payload.service_type.clone(),
                                 response_data,
                             ).with_processing_time(processing_time);
-                            
+
                             log::debug!("AI request {} parsed successfully", payload.id);
                             Ok(ai_response)
                         }
@@ -1974,37 +1974,37 @@ impl AIOracleClient {
                                 payload.service_type.clone(),
                                 error,
                             ).with_processing_time(processing_time);
-                            
+
                             Ok(ai_response)
                         }
                     }
                 } else {
                     log::warn!("AI request {} returned non-success status: {}", payload.id, status_code);
-                    
+
                     // This shouldn't happen with our new error handling, but handle it gracefully
                     let error = AIResponseError::new(
                         format!("HTTP_{}", status_code.as_u16()),
                         format!("HTTP request failed with status: {}", status_code),
                         ErrorCategory::NetworkError,
                     ).with_retryable(status_code.is_server_error());
-                    
+
                     let ai_response = AIResponsePayload::failure(
                         payload.id.clone(),
                         payload.service_type.clone(),
                         error,
                     ).with_processing_time(processing_time);
-                    
+
                     Ok(ai_response)
                 }
             }
             Err(oracle_error) => {
                 let processing_time = start_time.elapsed().as_millis() as u64;
-                
+
                 log::error!("AI request {} failed after retries: {}", payload.id, oracle_error);
-                
+
                 // Convert AIOracleError to AIResponseError and create failure response
                 let response_error = oracle_error.to_response_error();
-                
+
                 let status = match oracle_error {
                     AIOracleError::Timeout { .. } => ResponseStatus::Timeout,
                     AIOracleError::RateLimit { .. } => ResponseStatus::RateLimited,
@@ -2014,7 +2014,7 @@ impl AIOracleClient {
                     AIOracleError::MaxRetriesExceeded { .. } => ResponseStatus::Failure,
                     _ => ResponseStatus::InternalError,
                 };
-                
+
                 let ai_response = AIResponsePayload::new(
                     payload.id.clone(),
                     payload.service_type.clone(),
@@ -2022,7 +2022,7 @@ impl AIOracleClient {
                 )
                 .with_error(response_error)
                 .with_processing_time(processing_time);
-                
+
                 Ok(ai_response)
             }
         }
@@ -2034,7 +2034,7 @@ impl AIOracleClient {
         T: for<'de> serde::Deserialize<'de> + serde::Serialize,
     {
         let ai_response = self.send_ai_request_response(payload).await?;
-        
+
         if ai_response.is_successful() {
             // Try to deserialize the response data to the expected type
             match serde_json::from_value::<T>(ai_response.response_data.clone()) {
@@ -2056,7 +2056,7 @@ impl AIOracleClient {
                         payload.service_type.clone(),
                         error,
                     ).with_processing_time(ai_response.processing_time_ms);
-                    
+
                     Ok(failure_response)
                 }
             }
@@ -2068,7 +2068,7 @@ impl AIOracleClient {
     /// Batch send multiple AI requests and get responses
     pub async fn send_ai_request_batch(&self, payloads: &[AIRequestPayload]) -> Result<Vec<AIResponsePayload>> {
         let mut responses = Vec::new();
-        
+
         // Process requests concurrently
         let mut handles = Vec::new();
         for payload in payloads {
@@ -2079,7 +2079,7 @@ impl AIOracleClient {
             });
             handles.push(handle);
         }
-        
+
         // Collect all responses
         for handle in handles {
             match handle.await {
@@ -2115,7 +2115,7 @@ impl AIOracleClient {
                 }
             }
         }
-        
+
         Ok(responses)
     }
 
@@ -2146,7 +2146,7 @@ impl AIOracleClient {
     /// Test connection pool efficiency by making multiple concurrent requests
     pub async fn test_connection_pool(&self, concurrent_requests: usize) -> Result<Vec<bool>> {
         let mut handles = Vec::new();
-        
+
         for i in 0..concurrent_requests {
             let client = self.clone();
             let handle = tokio::spawn(async move {
@@ -2157,19 +2157,19 @@ impl AIOracleClient {
             });
             handles.push(handle);
         }
-        
+
         let mut results = Vec::new();
         for handle in handles {
             let result = handle.await.unwrap_or(false);
             results.push(result);
         }
-        
+
         log::info!(
             "Connection pool test completed: {}/{} requests successful",
             results.iter().filter(|&&x| x).count(),
             concurrent_requests
         );
-        
+
         Ok(results)
     }
 
@@ -2194,9 +2194,9 @@ impl AIOracleClient {
                 let mut circuit_breaker = self.circuit_breaker.lock()
                     .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
                 circuit_breaker.record_success();
-                log::debug!("Request succeeded, circuit breaker stats: success={}, failure={}, rate={:.2}%", 
-                    circuit_breaker.stats.success_count, 
-                    circuit_breaker.stats.failure_count, 
+                log::debug!("Request succeeded, circuit breaker stats: success={}, failure={}, rate={:.2}%",
+                    circuit_breaker.stats.success_count,
+                    circuit_breaker.stats.failure_count,
                     circuit_breaker.stats.failure_rate * 100.0);
                 Ok(result)
             }
@@ -2205,9 +2205,9 @@ impl AIOracleClient {
                 let mut circuit_breaker = self.circuit_breaker.lock()
                     .map_err(|e| anyhow::anyhow!("Failed to acquire circuit breaker lock: {}", e))?;
                 circuit_breaker.record_failure();
-                log::warn!("Request failed, circuit breaker stats: success={}, failure={}, rate={:.2}%", 
-                    circuit_breaker.stats.success_count, 
-                    circuit_breaker.stats.failure_count, 
+                log::warn!("Request failed, circuit breaker stats: success={}, failure={}, rate={:.2}%",
+                    circuit_breaker.stats.success_count,
+                    circuit_breaker.stats.failure_count,
                     circuit_breaker.stats.failure_rate * 100.0);
                 Err(e)
             }
@@ -2235,7 +2235,7 @@ impl AIOracleClient {
     pub async fn get_with_fallback(&self, endpoint: &str) -> Result<reqwest::Response> {
         let endpoint = endpoint.to_string();
         let client = self.clone();
-        
+
         match self.request_with_circuit_breaker(async move {
             client.get(&endpoint).await
         }).await {
@@ -2248,13 +2248,13 @@ impl AIOracleClient {
         }
     }
 
-   
+
 
     /// Make a POST request with circuit breaker protection and fallback
     pub async fn post_with_fallback(&self, endpoint: &str, body: serde_json::Value) -> Result<reqwest::Response> {
         let endpoint = endpoint.to_string();
         let client = self.clone();
-        
+
         match self.request_with_circuit_breaker(async move {
             client.post(&endpoint, body).await
         }).await {
@@ -2270,7 +2270,7 @@ impl AIOracleClient {
     /// Perform health check with circuit breaker integration
     pub async fn health_check_with_circuit_breaker(&self) -> Result<AIHealthCheckResponse> {
         let client = self.clone();
-        
+
         match self.request_with_circuit_breaker(async move {
             client.health_check().await
         }).await {
@@ -2286,7 +2286,7 @@ impl AIOracleClient {
             }
             Err(e) => {
                 log::error!("Health check failed with circuit breaker protection: {}", e);
-                
+
                 // Return a fallback health response
                 Ok(AIHealthCheckResponse {
                     status: AIServiceStatus::Unhealthy,
@@ -2312,27 +2312,27 @@ impl AIOracleClient {
     pub async fn send_ai_request_with_circuit_breaker(&self, payload: &AIRequestPayload) -> Result<AIResponsePayload> {
         let client = self.clone();
         let payload_clone = payload.clone();
-        
+
         match self.request_with_circuit_breaker(async move {
             client.send_ai_request_response(&payload_clone).await
         }).await {
             Ok(response) => Ok(response),
             Err(e) => {
                 log::error!("AI request failed with circuit breaker protection: {}", e);
-                
+
                 // Create a fallback response
                 let error = AIResponseError::new(
                     "CIRCUIT_BREAKER_OPEN".to_string(),
                     format!("AI service unavailable (circuit breaker open): {}", e),
                     ErrorCategory::ServiceError,
                 ).with_retryable(true);
-                
+
                 let fallback_response = AIResponsePayload::failure(
                     payload.id.clone(),
                     payload.service_type.clone(),
                     error,
                 );
-                
+
                 Ok(fallback_response)
             }
         }
@@ -2352,7 +2352,7 @@ pub struct AIServiceConfig {
     pub max_retries: u32,
     /// Base delay for exponential backoff in milliseconds
     pub base_retry_delay_ms: u64,
-    /// Maximum delay for exponential backoff in milliseconds  
+    /// Maximum delay for exponential backoff in milliseconds
     pub max_retry_delay_ms: u64,
     /// Jitter factor for retry delays (0.0 to 1.0)
     pub retry_jitter: f64,
@@ -2728,7 +2728,7 @@ impl AIServiceConfig {
         // Validate fallback configuration
         let valid_fallback_modes = ["permissive", "restrictive", "default_scores"];
         if !valid_fallback_modes.contains(&self.fallback_config.fallback_mode.as_str()) {
-            return Err(format!("Invalid fallback mode: {}. Must be one of: {:?}", 
+            return Err(format!("Invalid fallback mode: {}. Must be one of: {:?}",
                               self.fallback_config.fallback_mode, valid_fallback_modes));
         }
 
@@ -3162,40 +3162,40 @@ impl AIRequestMetadata {
 pub enum AIOracleError {
     #[error("Network error: {message}")]
     Network { message: String, source: Option<Box<dyn std::error::Error + Send + Sync>> },
-    
+
     #[error("Request timeout after {timeout_ms}ms")]
     Timeout { timeout_ms: u64 },
-    
+
     #[error("HTTP error: {status} - {message}")]
     Http { status: u16, message: String },
-    
+
     #[error("Serialization error: {message}")]
     Serialization { message: String },
-    
+
     #[error("Authentication error: {message}")]
     Authentication { message: String },
-    
+
     #[error("Rate limit exceeded: {message}")]
     RateLimit { message: String, retry_after: Option<Duration> },
-    
+
     #[error("Service unavailable: {message}")]
     ServiceUnavailable { message: String },
-    
+
     #[error("Configuration error: {message}")]
     Configuration { message: String },
-    
+
     #[error("Validation error: {message}")]
     Validation { message: String },
-    
+
     #[error("Circuit breaker open: {message}")]
     CircuitBreaker { message: String },
-    
+
     #[error("Max retries exceeded: {attempts} attempts failed")]
     MaxRetriesExceeded { attempts: u32, last_error: Box<AIOracleError> },
-    
+
     #[error("Service error: {code} - {message}")]
     Service { code: String, message: String, details: Option<String> },
-    
+
     #[error("Unknown error: {message}")]
     Unknown { message: String },
 }
@@ -3390,7 +3390,7 @@ mod tests {
     fn test_url_formatting() {
         let client = AIOracleClient::new("http://localhost:8080/".to_string()).unwrap();
         assert_eq!(client.base_url(), "http://localhost:8080/");
-        
+
         let client = AIOracleClient::new("http://localhost:8080".to_string()).unwrap();
         assert_eq!(client.base_url(), "http://localhost:8080");
     }
@@ -3398,7 +3398,7 @@ mod tests {
     #[test]
     fn test_custom_config() {
         use std::time::Duration;
-        
+
         let client = AIOracleClient::with_config(
             "http://localhost:8080".to_string(),
             Duration::from_secs(45),
@@ -3406,7 +3406,7 @@ mod tests {
             Duration::from_secs(120),
             Duration::from_secs(90),
         );
-        
+
         assert!(client.is_ok());
         let client = client.unwrap();
         assert_eq!(client.timeout(), Duration::from_secs(45));
@@ -3418,11 +3418,11 @@ mod tests {
         assert_eq!(config.max_idle_per_host, 10);
         assert_eq!(config.idle_timeout, Duration::from_secs(90));
         assert_eq!(config.tcp_keepalive, Duration::from_secs(60));
-        
+
         let high_perf = ConnectionPoolConfig::high_performance();
         assert_eq!(high_perf.max_idle_per_host, 50);
         assert!(high_perf.http2_prior_knowledge);
-        
+
         let low_res = ConnectionPoolConfig::low_resource();
         assert_eq!(low_res.max_idle_per_host, 2);
         assert!(!low_res.http2_prior_knowledge);
@@ -3460,11 +3460,11 @@ mod tests {
     #[tokio::test]
     async fn test_connection_pool_concurrent_requests() {
         let client = AIOracleClient::new("http://httpbin.org".to_string()).unwrap();
-        
+
         // Test with a small number of concurrent requests
         let results = client.test_connection_pool(3).await;
         assert!(results.is_ok());
-        
+
         // The actual success depends on network availability, so we just check the structure
         let results = results.unwrap();
         assert_eq!(results.len(), 3);
@@ -3476,7 +3476,7 @@ mod tests {
             AIServiceType::FraudDetection,
             json!({"amount": 1000, "currency": "USD"})
         );
-        
+
         // Test JSON serialization
         let json = payload.to_json();
         assert!(json.is_ok());
@@ -3484,7 +3484,7 @@ mod tests {
         assert!(json_str.contains("\"id\""));
         assert!(json_str.contains("\"service_type\":\"FraudDetection\""));
         assert!(json_str.contains("\"request_data\":{\"amount\":1000,\"currency\":\"USD\"}"));
-        
+
         // Test pretty JSON serialization
         let json_pretty = payload.to_json_pretty();
         assert!(json_pretty.is_ok());
@@ -3513,7 +3513,7 @@ mod tests {
             "callback_url": "http://localhost/callback",
             "signature": "sig1234"
         }"#;
-        
+
         let payload: AIRequestPayload = serde_json::from_str(json_data).unwrap();
         assert_eq!(payload.id, "1234");
         assert_eq!(payload.service_type, AIServiceType::RiskScoring);
@@ -3532,31 +3532,31 @@ mod tests {
             AIServiceType::KYC,
             json!({"name": "John Doe", "document": "123456789"})
         );
-        
+
         // Valid payload
         let validation_result = payload.validate();
         assert!(validation_result.is_ok());
-        
+
         // Invalid payload: empty ID
         payload.id = "".to_string();
         let validation_result = payload.validate();
         assert!(validation_result.is_err());
         assert_eq!(validation_result.err().unwrap(), "Request ID cannot be empty");
-        
+
         // Invalid payload: timestamp too old
         payload.id = uuid::Uuid::new_v4().to_string();
         payload.timestamp = 0;
         let validation_result = payload.validate();
         assert!(validation_result.is_err());
         assert_eq!(validation_result.err().unwrap(), "Timestamp cannot be zero");
-        
+
         // Invalid payload: timeout exceeds maximum
         payload.timestamp = chrono::Utc::now().timestamp() as u64;
         payload.timeout = Some(400);
         let validation_result = payload.validate();
         assert!(validation_result.is_err());
         assert_eq!(validation_result.err().unwrap(), "Timeout cannot exceed 300 seconds");
-        
+
         // Invalid payload: callback URL invalid
         payload.timeout = Some(60);
         payload.callback_url = Some("invalid-url".to_string());
@@ -3571,11 +3571,11 @@ mod tests {
             .with_context(json!({"key": "value"}))
             .with_correlation_id("abcd-efgh".to_string())
             .with_requester("user123".to_string());
-        
+
         // Test that metadata can be serialized as part of a request payload
         let payload = AIRequestPayload::new(AIServiceType::FraudDetection, json!({"test": "data"}))
             .with_metadata(metadata);
-        
+
         let json_str = payload.to_json().unwrap();
         assert!(!json_str.is_empty());
         assert!(json_str.contains("\"source\":\"consensus\""));
@@ -3593,7 +3593,7 @@ mod tests {
             "correlation_id": "ijkl-mnop",
             "requester": "user456"
         }"#;
-        
+
         let metadata: AIRequestMetadata = serde_json::from_str(json_data).unwrap();
         assert_eq!(metadata.source, "validation");
         assert_eq!(metadata.version, "1.0");
@@ -3608,9 +3608,9 @@ mod tests {
             "transaction_id": "tx123",
             "amount": 1000
         });
-        
+
         let payload = AIRequestPayload::new(AIServiceType::FraudDetection, request_data);
-        
+
         assert!(!payload.id.is_empty());
         assert_eq!(payload.service_type, AIServiceType::FraudDetection);
         assert_eq!(payload.priority, RequestPriority::Normal);
@@ -3627,19 +3627,19 @@ mod tests {
             "transaction_id": "tx123",
             "amount": 1000
         });
-        
+
         let metadata = AIRequestMetadata::new(
             "consensus".to_string(),
             "1.0".to_string(),
         );
-        
+
         let payload = AIRequestPayload::new(AIServiceType::RiskScoring, request_data)
             .with_priority(RequestPriority::High)
             .with_timeout(60)
             .with_callback("https://example.com/callback".to_string())
             .with_metadata(metadata)
             .with_signature("signature123".to_string());
-        
+
         assert_eq!(payload.service_type, AIServiceType::RiskScoring);
         assert_eq!(payload.priority, RequestPriority::High);
         assert_eq!(payload.timeout, Some(60));
@@ -3651,16 +3651,16 @@ mod tests {
     #[test]
     fn test_ai_request_payload_convenience_methods() {
         let tx_data = serde_json::json!({"tx_id": "123"});
-        
+
         let fraud_payload = AIRequestPayload::fraud_detection(tx_data.clone());
         assert_eq!(fraud_payload.service_type, AIServiceType::FraudDetection);
-        
+
         let risk_payload = AIRequestPayload::risk_scoring(tx_data.clone());
         assert_eq!(risk_payload.service_type, AIServiceType::RiskScoring);
-        
+
         let contract_payload = AIRequestPayload::contract_analysis(tx_data.clone());
         assert_eq!(contract_payload.service_type, AIServiceType::ContractAnalysis);
-        
+
         let validation_payload = AIRequestPayload::transaction_validation(tx_data);
         assert_eq!(validation_payload.service_type, AIServiceType::TransactionValidation);
     }
@@ -3669,26 +3669,26 @@ mod tests {
     fn test_ai_request_payload_validation() {
         let response_data = serde_json::json!({"test": "data"});
         let payload = AIRequestPayload::new(AIServiceType::FraudDetection, response_data);
-        
+
         // Should validate successfully
         assert!(payload.validate().is_ok());
-        
+
         // Test with invalid callback URL
         let invalid_payload = AIRequestPayload::new(AIServiceType::FraudDetection, serde_json::json!({}))
             .with_callback("invalid-url".to_string());
-        
+
         assert!(invalid_payload.validate().is_err());
-        
+
         // Test with zero timeout
         let zero_timeout_payload = AIRequestPayload::new(AIServiceType::FraudDetection, serde_json::json!({}))
             .with_timeout(0);
-        
+
         assert!(zero_timeout_payload.validate().is_err());
-        
+
         // Test with excessive timeout
         let excessive_timeout_payload = AIRequestPayload::new(AIServiceType::FraudDetection, serde_json::json!({}))
             .with_timeout(400);
-        
+
         assert!(excessive_timeout_payload.validate().is_err());
     }
 
@@ -3727,9 +3727,9 @@ mod tests {
         let error = AIOracleError::MaxRetriesExceeded { attempts: 5, last_error: Box::new(AIOracleError::Timeout { timeout_ms: 30000 }) };
         assert_eq!(format!("{}", error), "Max retries exceeded: 5 attempts failed");
 
-        let error = AIOracleError::Service { 
-            code: "SERVICE_UNAVAILABLE".to_string(), 
-            message: "The service is currently unavailable".to_string(), 
+        let error = AIOracleError::Service {
+            code: "SERVICE_UNAVAILABLE".to_string(),
+            message: "The service is currently unavailable".to_string(),
             details: None };
         assert_eq!(format!("{}", error), "Service error: SERVICE_UNAVAILABLE - The service is currently unavailable");
 
@@ -3921,7 +3921,7 @@ mod tests {
     #[test]
     fn test_ai_service_config_endpoint_urls() {
         let config = AIServiceConfig::new("https://api.example.com".to_string());
-        
+
         assert_eq!(
             config.get_endpoint_url(&AIServiceType::FraudDetection),
             "https://api.example.com/api/v1/fraud-detection"
@@ -3947,7 +3947,7 @@ mod tests {
     #[test]
     fn test_ai_service_config_endpoint_urls_with_trailing_slash() {
         let config = AIServiceConfig::new("https://api.example.com/".to_string());
-        
+
         assert_eq!(
             config.get_endpoint_url(&AIServiceType::FraudDetection),
             "https://api.example.com/api/v1/fraud-detection"
@@ -3970,10 +3970,10 @@ mod tests {
 
         // First retry should be around base_delay * 2^0 = 100ms
         assert!(delay1.as_millis() >= 80 && delay1.as_millis() <= 120);
-        
-        // Second retry should be around base_delay * 2^1 = 200ms  
+
+        // Second retry should be around base_delay * 2^1 = 200ms
         assert!(delay2.as_millis() >= 160 && delay2.as_millis() <= 240);
-        
+
         // Third retry should be around base_delay * 2^2 = 400ms
         assert!(delay3.as_millis() >= 320 && delay3.as_millis() <= 480);
 
@@ -3986,28 +3986,28 @@ mod tests {
     fn test_ai_oracle_error_retryable_classification() {
         // Test network errors are retryable
         assert!(AIOracleError::Network { message: "Connection failed".to_string(), source: None }.is_retryable());
-        
-        // Test timeout errors are retryable  
+
+        // Test timeout errors are retryable
         assert!(AIOracleError::Timeout { timeout_ms: 5000 }.is_retryable());
-        
+
         // Test retryable HTTP errors
         assert!(AIOracleError::Http { status: 500, message: "Internal Server Error".to_string() }.is_retryable());
         assert!(AIOracleError::Http { status: 502, message: "Bad Gateway".to_string() }.is_retryable());
         assert!(AIOracleError::Http { status: 503, message: "Service Unavailable".to_string() }.is_retryable());
         assert!(AIOracleError::Http { status: 504, message: "Gateway Timeout".to_string() }.is_retryable());
         assert!(AIOracleError::Http { status: 429, message: "Too Many Requests".to_string() }.is_retryable());
-        
+
         // Test non-retryable HTTP errors
         assert!(!AIOracleError::Http { status: 400, message: "Bad Request".to_string() }.is_retryable());
         assert!(!AIOracleError::Http { status: 401, message: "Unauthorized".to_string() }.is_retryable());
         assert!(!AIOracleError::Http { status: 404, message: "Not Found".to_string() }.is_retryable());
-        
+
         // Test service unavailable is retryable
         assert!(AIOracleError::ServiceUnavailable { message: "Service down".to_string() }.is_retryable());
-        
+
         // Test rate limit is retryable
         assert!(AIOracleError::RateLimit { message: "Rate limited".to_string(), retry_after: None }.is_retryable());
-        
+
         // Test non-retryable errors
         assert!(!AIOracleError::Authentication { message: "Invalid API key".to_string() }.is_retryable());
         assert!(!AIOracleError::Validation { message: "Invalid input".to_string() }.is_retryable());
@@ -4019,17 +4019,17 @@ mod tests {
     async fn test_request_payload_validation_with_retry_logging() {
         // Create a client for testing
         let client = AIOracleClient::new("http://localhost:8080".to_string()).unwrap();
-        
+
         // Test with invalid payload (empty ID)
         let mut invalid_payload = AIRequestPayload::new(
             AIServiceType::RiskScoring,
             serde_json::json!({"test": "data"})
         );
         invalid_payload.id = "".to_string();
-        
+
         let retry_config = RetryConfig::default();
         let result = client.send_ai_request_with_retry(&invalid_payload, &retry_config).await;
-        
+
         // Should fail with validation error (non-retryable)
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -4041,27 +4041,27 @@ mod tests {
         }
     }
 
-    #[tokio::test] 
+    #[tokio::test]
     async fn test_retry_logic_with_different_error_types() {
         // Create a client for testing
         let client = AIOracleClient::new("http://localhost:8080".to_string()).unwrap();
-        
+
         // Create a valid request payload
         let payload = AIRequestPayload::new(
             AIServiceType::FraudDetection,
             serde_json::json!({"transaction_id": "tx123", "amount": 1000})
         );
-        
+
         // Test retry configuration
         let retry_config = RetryConfig::new(
             3,
             Duration::from_millis(10), // Very short delay for testing
             Duration::from_millis(100)
         );
-        
+
         // This will fail with network error (invalid URL), which should be retryable
         let result = client.send_ai_request_with_retry(&payload, &retry_config).await;
-        
+
         // Should fail after max retries
         assert!(result.is_err());
         match result.unwrap_err() {

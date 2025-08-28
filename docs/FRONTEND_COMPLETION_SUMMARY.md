@@ -60,7 +60,7 @@ Successfully implemented a comprehensive React/TypeScript frontend for the Dytal
 
 ### **Architecture**
 ```
-Frontend (React/TypeScript) 
+Frontend (React/TypeScript)
     ↓ (HTTP/WebSocket)
 Blockchain Node (Rust) - Port 3030
     ↓ (API calls)
@@ -82,7 +82,7 @@ AI Services (Python) - Port 8000
 frontend/
 ├── src/
 │   ├── components/     # Reusable UI components
-│   ├── pages/         # Main application pages  
+│   ├── pages/         # Main application pages
 │   ├── hooks/         # Custom React hooks
 │   ├── services/      # API integration
 │   ├── store/         # Global state management
@@ -137,7 +137,7 @@ frontend/
 - **Endpoints**: `/stats`, `/transactions`, `/health`, `/submit`
 - **Features**: Mock blockchain data, transaction handling
 
-### **AI Services** ✅  
+### **AI Services** ✅
 - **Port**: 8000
 - **Status**: Running with FastAPI
 - **Endpoints**: `/health`, `/ai/statistics`, `/ai/alerts`

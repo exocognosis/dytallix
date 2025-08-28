@@ -18,10 +18,10 @@
 //!
 //! ```rust
 //! use dytallix_blockchain_core::consensus::{ConsensusEngine, AIServiceType};
-//! 
+//!
 //! // Create a new consensus engine
 //! let engine = ConsensusEngine::new(config).await?;
-//! 
+//!
 //! // Process transactions
 //! let result = engine.process_transactions(transactions).await?;
 //! ```
@@ -175,7 +175,7 @@ mod tests {
         // For this test, we'll create a new oracle with services
         let mut oracle_with_services = identity.clone();
         oracle_with_services.supported_services = Some(vec![AIServiceType::FraudDetection, AIServiceType::RiskScoring]);
-        
+
         assert!(oracle_with_services.supports_service(&AIServiceType::FraudDetection));
         assert!(!oracle_with_services.supports_service(&AIServiceType::KYC));
     }
@@ -204,21 +204,21 @@ mod tests {
     #[test]
     fn test_circuit_breaker_functionality() {
         let mut circuit = CircuitBreakerContext::new(3, 60000);
-        
+
         // Initially closed
         assert!(circuit.is_closed());
         assert!(circuit.should_allow_request());
-        
+
         // Record failures
         circuit.record_failure();
         circuit.record_failure();
         assert!(circuit.is_closed());
-        
+
         // Third failure should open circuit
         circuit.record_failure();
         assert!(circuit.is_open());
         assert!(!circuit.should_allow_request());
-        
+
         // Success should close circuit when half-open
         circuit.state = CircuitBreakerState::HalfOpen;
         circuit.record_success(100);
@@ -420,14 +420,14 @@ mod tests {
     #[test]
     fn test_circuit_breaker_failure_rate() {
         let mut circuit = CircuitBreakerContext::default();
-        
+
         // Record some successes and failures
         circuit.record_success(100);
         circuit.record_success(150);
         circuit.record_failure();
         circuit.record_success(120);
         circuit.record_failure();
-        
+
         // Should be 2 failures out of 5 total = 40% failure rate
         assert_eq!(circuit.failure_rate(), 0.4);
         assert_eq!(circuit.stats().total_requests, 5);
@@ -438,11 +438,11 @@ mod tests {
     #[test]
     fn test_ai_service_load_resource_updates() {
         let mut load = AIServiceLoad::default();
-        
+
         load.update_resources(85.5, 67.2);
         assert_eq!(load.cpu_usage, 85.5);
         assert_eq!(load.memory_usage, 67.2);
-        
+
         // Test clamping
         load.update_resources(150.0, -10.0);
         assert_eq!(load.cpu_usage, 100.0);

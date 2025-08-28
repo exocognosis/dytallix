@@ -66,7 +66,7 @@ npm run verify:deployment
 ### 5. Verify Contracts on Etherscan (Manual)
 ```bash
 # Commands will be displayed after deployment, example:
-npx hardhat verify --network sepolia 0x... 
+npx hardhat verify --network sepolia 0x...
 ```
 
 ## Advanced Configuration

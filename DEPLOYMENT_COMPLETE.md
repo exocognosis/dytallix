@@ -13,7 +13,7 @@ The Dytallix cross-chain bridge has been **fully finalized** and successfully ve
 - **Bridge package builds without issues** - Ready for production
 - **Only harmless warnings remain** - All critical code paths verified
 
-### **✅ Bridge Component Verification** 
+### **✅ Bridge Component Verification**
 - **Core bridge logic**: Complete cross-chain asset management
 - **Ethereum connector**: Full Web3 integration with smart contracts
 - **Cosmos connector**: Complete IBC client and CosmWasm integration
@@ -66,7 +66,7 @@ cd /Users/rickglenn/Desktop/dytallix
 - **XCM messaging** for Polkadot parachains
 - **Multi-hop routing** through intermediate chains
 
-### **Security Features** ✅  
+### **Security Features** ✅
 - **Post-quantum signatures** for all bridge operations
 - **Multi-validator consensus** with Byzantine fault tolerance
 - **Time-locked transactions** with challenge periods
@@ -124,7 +124,7 @@ cd deployment/ethereum-contracts
 cp .env.example .env
 # Edit .env with your Sepolia RPC URL, private key, etc.
 
-# Configure Cosmos environment  
+# Configure Cosmos environment
 cd ../cosmos-contracts
 cp .env.example .env
 # Edit .env with your Osmosis testnet configuration

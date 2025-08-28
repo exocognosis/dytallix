@@ -45,7 +45,7 @@ jobs:
       test-matrix: ${{ steps.test-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup test matrix
         id: test-matrix
         run: |
@@ -65,7 +65,7 @@ jobs:
     strategy:
       matrix:
         test-suite: ${{ fromJson(needs.setup.outputs.test-matrix) }}
-    
+
     services:
       ethereum:
         image: trufflesuite/ganache-cli:latest
@@ -76,7 +76,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
-      
+
       cosmos:
         image: cosmwasm/workspace-optimizer:0.12.13
         ports:
@@ -89,42 +89,42 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      
+
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.test-suite }}
-      
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install asyncio dataclasses typing_extensions
-      
+
       - name: Setup test environment
         run: |
           # Create test data directories
           mkdir -p /tmp/bridge_test_data
           mkdir -p /tmp/monitoring_data
-          
+
           # Set environment variables for testing
           echo "ETHEREUM_RPC_URL=http://localhost:8545" >> $GITHUB_ENV
           echo "COSMOS_RPC_URL=http://localhost:26657" >> $GITHUB_ENV
           echo "TEST_MODE=ci" >> $GITHUB_ENV
-      
+
       - name: Run Rust linting
         run: |
           cargo fmt --all -- --check
           cargo clippy --workspace --all-targets --all-features -- -D warnings
-      
+
       - name: Build test suite
         run: |
           cargo build --workspace --tests --verbose
-      
+
       - name: Run basic Rust tests
         if: matrix.test-suite == 'basic'
         run: |
@@ -132,19 +132,19 @@ jobs:
           cargo test --workspace --lib test_orchestrator_creation
           cargo test --workspace --lib test_monitoring_system_integration
           cargo test --workspace --lib test_cross_chain_flow_simulation
-      
+
       - name: Run AI generation tests
         if: matrix.test-suite == 'ai-generation'
         run: |
           cargo test --workspace --lib test_ai_test_generator_integration
           cargo test --workspace --lib ai_test_generator::tests
-      
+
       - name: Run bridge orchestrator tests
         if: matrix.test-suite == 'bidirectional'
         run: |
           cargo test --workspace --lib test_bridge_orchestrator_integration
           cargo test --workspace --lib bridge_orchestrator::tests
-      
+
       - name: Run stress tests
         if: matrix.test-suite == 'stress'
         timeout-minutes: 30
@@ -155,7 +155,7 @@ jobs:
           TEST_TYPE: stress
           MAX_CONCURRENT_TESTS: 10
           STRESS_DURATION: 300
-      
+
       - name: Run security tests
         if: matrix.test-suite == 'security'
         run: |
@@ -165,19 +165,19 @@ jobs:
         env:
           TEST_TYPE: security
           ENABLE_AI_FRAUD_DETECTION: true
-      
+
       - name: Run monitoring tests
         if: matrix.test-suite == 'monitoring'
         run: |
           cargo test --workspace --lib monitoring_system::tests
           cargo test --workspace --lib test_monitoring_system_integration
-      
+
       - name: Generate test coverage
         if: matrix.test-suite == 'basic'
         run: |
           cargo install cargo-tarpaulin || true
           cargo tarpaulin --workspace --out xml --output-dir ./coverage
-      
+
       - name: Upload coverage to Codecov
         if: matrix.test-suite == 'basic'
         uses: codecov/codecov-action@v3
@@ -189,7 +189,7 @@ jobs:
     needs: rust-tests
     runs-on: ubuntu-latest
     if: github.event.inputs.test_type == 'comprehensive' || github.event_name == 'schedule'
-    
+
     services:
       ethereum:
         image: trufflesuite/ganache-cli:latest
@@ -200,7 +200,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
-      
+
       cosmos:
         image: cosmwasm/workspace-optimizer:0.12.13
         ports:
@@ -210,7 +210,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
-      
+
       redis:
         image: redis:alpine
         ports:
@@ -223,25 +223,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-      
+
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
-      
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install asyncio dataclasses typing_extensions pytest pytest-asyncio
-      
+
       - name: Setup comprehensive test environment
         run: |
           # Create comprehensive test environment
           mkdir -p /tmp/comprehensive_test_data
           mkdir -p /tmp/test_reports
           mkdir -p /tmp/monitoring_logs
-          
+
           # Setup test configuration
           cat > /tmp/test_config.json << EOF
           {
@@ -256,57 +256,57 @@ jobs:
             "test_timeout_seconds": 600
           }
           EOF
-      
+
       - name: Run comprehensive bridge tests
         timeout-minutes: 45
         run: |
           echo "🌉 Starting comprehensive cross-chain bridge tests..."
-          
+
           # Run the comprehensive test suite
           python tests/src/bin/comprehensive_test_runner.py
-          
+
           # Run Rust integration tests
           cargo test --workspace test_run_cross_chain_tests --release
         env:
           TEST_CONFIG_FILE: /tmp/test_config.json
           ENABLE_COMPREHENSIVE_LOGGING: true
           RUST_LOG: info
-      
+
       - name: Analyze test results
         if: always()
         run: |
           echo "📊 Analyzing test results..."
-          
+
           # Check if test reports exist
           if [ -f "/tmp/bridge_test_comprehensive_report.json" ]; then
             echo "✅ Comprehensive test report found"
-            
+
             # Extract key metrics
             python3 -c "
           import json
-          
+
           try:
               with open('/tmp/bridge_test_comprehensive_report.json', 'r') as f:
                   report = json.load(f)
-              
+
               total_tests = report.get('total_tests', 0)
               successful_tests = report.get('successful_tests', 0)
               failed_tests = report.get('failed_tests', 0)
-              
+
               success_rate = (successful_tests / total_tests * 100) if total_tests > 0 else 0
-              
+
               print(f'Total Tests: {total_tests}')
               print(f'Successful: {successful_tests}')
               print(f'Failed: {failed_tests}')
               print(f'Success Rate: {success_rate:.2f}%')
-              
+
               # Set outputs for GitHub
               with open('/tmp/test_summary.txt', 'w') as f:
                   f.write(f'total_tests={total_tests}\n')
                   f.write(f'successful_tests={successful_tests}\n')
                   f.write(f'failed_tests={failed_tests}\n')
                   f.write(f'success_rate={success_rate:.2f}\n')
-              
+
           except Exception as e:
               print(f'Error analyzing results: {e}')
               with open('/tmp/test_summary.txt', 'w') as f:
@@ -322,7 +322,7 @@ jobs:
             echo "failed_tests=1" >> /tmp/test_summary.txt
             echo "success_rate=0.0" >> /tmp/test_summary.txt
           fi
-      
+
       - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v3
@@ -334,36 +334,36 @@ jobs:
             /tmp/test_summary.txt
             /tmp/monitoring_logs/
           retention-days: 30
-      
+
       - name: Post test summary to PR
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
-            
+
             let summary = "## 🌉 Cross-Chain Bridge Test Results\n\n";
-            
+
             try {
               const summaryData = fs.readFileSync('/tmp/test_summary.txt', 'utf8');
               const lines = summaryData.split('\n').filter(line => line.trim());
               const data = {};
-              
+
               lines.forEach(line => {
                 const [key, value] = line.split('=');
                 data[key] = value;
               });
-              
+
               const successRate = parseFloat(data.success_rate || 0);
               const statusEmoji = successRate >= 95 ? "🎉" : successRate >= 85 ? "✅" : successRate >= 70 ? "⚠️" : "❌";
-              
+
               summary += `${statusEmoji} **Overall Status**: ${successRate >= 85 ? "PASSED" : "NEEDS ATTENTION"}\n\n`;
               summary += `📊 **Test Statistics**:\n`;
               summary += `- Total Tests: ${data.total_tests || 0}\n`;
               summary += `- Successful: ${data.successful_tests || 0}\n`;
               summary += `- Failed: ${data.failed_tests || 0}\n`;
               summary += `- Success Rate: ${data.success_rate || 0}%\n\n`;
-              
+
               if (successRate >= 95) {
                 summary += "🎉 **Excellent!** Bridge system is highly reliable and ready for production.\n";
               } else if (successRate >= 85) {
@@ -373,11 +373,11 @@ jobs:
               } else {
                 summary += "❌ **Needs Work** Bridge system requires significant improvements.\n";
               }
-              
+
             } catch (error) {
               summary += `❌ **Error**: Failed to analyze test results - ${error.message}\n`;
             }
-            
+
             // Post comment on PR
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -385,14 +385,14 @@ jobs:
               repo: context.repo.repo,
               body: summary
             });
-      
+
       - name: Check test success rate
         if: always()
         run: |
           if [ -f "/tmp/test_summary.txt" ]; then
             source /tmp/test_summary.txt
             echo "Success rate: $success_rate%"
-            
+
             # Fail the job if success rate is below threshold
             if (( $(echo "$success_rate < 80.0" | bc -l) )); then
               echo "❌ Test success rate ($success_rate%) is below minimum threshold (80%)"
@@ -409,53 +409,53 @@ jobs:
     needs: comprehensive-integration-tests
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event.inputs.test_type == 'comprehensive'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Download test artifacts
         uses: actions/download-artifact@v3
         with:
           name: comprehensive-test-results
           path: ./test-results
-      
+
       - name: Analyze performance trends
         run: |
           echo "📈 Analyzing performance trends..."
-          
+
           # This would typically analyze performance data over time
           # and generate trend reports
-          
+
           if [ -f "./test-results/bridge_test_comprehensive_report.json" ]; then
             echo "✅ Performance analysis data available"
-            
+
             # Extract performance metrics (simplified example)
             python3 -c "
           import json
-          
+
           try:
               with open('./test-results/bridge_test_comprehensive_report.json', 'r') as f:
                   report = json.load(f)
-              
+
               monitoring_data = report.get('monitoring_data', {})
               performance_benchmarks = monitoring_data.get('performance_benchmarks', {})
-              
+
               print('Performance Analysis:')
               for benchmark, metrics in performance_benchmarks.items():
                   print(f'  {benchmark}: {metrics}')
-              
+
           except Exception as e:
               print(f'Error analyzing performance: {e}')
           "
           else
             echo "⚠️ Performance data not available"
           fi
-      
+
       - name: Generate performance badge
         run: |
           # Generate a performance badge for the README
           echo "Generating performance badge..."
-          
+
           # This would create a badge showing current performance metrics
           # For now, just create a placeholder
           echo "![Bridge Performance](https://img.shields.io/badge/Bridge%20Performance-Excellent-green)" > performance-badge.md
@@ -464,34 +464,34 @@ jobs:
     needs: [rust-tests, comprehensive-integration-tests]
     runs-on: ubuntu-latest
     if: always() && (github.event_name == 'schedule' || github.ref == 'refs/heads/main')
-    
+
     steps:
       - name: Notify on test completion
         uses: actions/github-script@v6
         with:
           script: |
             const needs = ${{ toJson(needs) }};
-            
+
             let allSuccessful = true;
             let summary = "## 🌉 Dytallix Cross-Chain Bridge - Test Suite Results\n\n";
-            
+
             for (const [jobName, jobResult] of Object.entries(needs)) {
               const status = jobResult.result === 'success' ? '✅' : '❌';
               summary += `${status} **${jobName}**: ${jobResult.result}\n`;
-              
+
               if (jobResult.result !== 'success') {
                 allSuccessful = false;
               }
             }
-            
+
             const overallStatus = allSuccessful ? "🎉 ALL TESTS PASSED" : "⚠️ SOME TESTS FAILED";
             summary = `# ${overallStatus}\n\n` + summary;
-            
+
             summary += `\n**Timestamp**: ${new Date().toISOString()}\n`;
             summary += `**Branch**: ${context.ref}\n`;
             summary += `**Commit**: ${context.sha.substring(0, 7)}\n`;
-            
+
             console.log(summary);
-            
+
             // In a real implementation, you might send this to Slack, Discord, etc.
             // For now, we'll just log it

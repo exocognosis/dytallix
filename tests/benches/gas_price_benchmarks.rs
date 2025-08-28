@@ -5,7 +5,7 @@
 //!
 //! The benchmarks measure:
 //! - Signature generation costs
-//! - Signature verification costs  
+//! - Signature verification costs
 //! - Key generation overhead
 //! - Memory usage patterns
 //! - Computational complexity comparisons
@@ -54,7 +54,7 @@ impl PQCAlgorithm {
     pub fn name(&self) -> &'static str {
         match self {
             PQCAlgorithm::Dilithium5 => "dilithium5",
-            PQCAlgorithm::Falcon1024 => "falcon1024", 
+            PQCAlgorithm::Falcon1024 => "falcon1024",
             PQCAlgorithm::Sphincs256 => "sphincs256",
         }
     }
@@ -91,7 +91,7 @@ impl MockPQCSignature {
     /// Generate a new key pair for the specified algorithm
     pub fn new(algorithm: PQCAlgorithm) -> Self {
         let start = Instant::now();
-        
+
         // Simulate key generation with algorithm-specific characteristics
         let (private_key, public_key) = match algorithm {
             PQCAlgorithm::Dilithium5 => {
@@ -111,7 +111,7 @@ impl MockPQCSignature {
         // Fill with pseudo-random data for realistic benchmarking
         let mut rng = OsRng;
         // In real implementation, this would use proper key generation
-        
+
         Self {
             algorithm,
             private_key,
@@ -122,7 +122,7 @@ impl MockPQCSignature {
     /// Sign data and return signature with timing metrics
     pub fn sign(&self, data: &[u8]) -> (Vec<u8>, Duration) {
         let start = Instant::now();
-        
+
         // Simulate signing with algorithm-specific timing
         let signature = match self.algorithm {
             PQCAlgorithm::Dilithium5 => {
@@ -131,7 +131,7 @@ impl MockPQCSignature {
                 vec![0u8; 3906]
             },
             PQCAlgorithm::Falcon1024 => {
-                // Falcon1024: Medium speed, ~1330 bytes signature  
+                // Falcon1024: Medium speed, ~1330 bytes signature
                 std::thread::sleep(Duration::from_micros(100));
                 vec![0u8; 1330]
             },
@@ -149,7 +149,7 @@ impl MockPQCSignature {
     /// Verify signature and return timing metrics
     pub fn verify(&self, data: &[u8], signature: &[u8]) -> (bool, Duration) {
         let start = Instant::now();
-        
+
         // Simulate verification with algorithm-specific timing
         let valid = match self.algorithm {
             PQCAlgorithm::Dilithium5 => {
@@ -178,27 +178,27 @@ impl MockPQCSignature {
 fn calculate_gas_cost(metrics: &GasCostMetrics) -> u64 {
     // Base gas cost formula (placeholder - to be calibrated with actual network)
     let base_cost = 21000; // Base transaction cost
-    
+
     // Algorithm-specific multipliers based on computational complexity
     let complexity_multiplier = match metrics.algorithm {
         PQCAlgorithm::Dilithium5 => 1.2,   // Moderate complexity
         PQCAlgorithm::Falcon1024 => 1.5,   // Higher complexity
         PQCAlgorithm::Sphincs256 => 2.0,   // Highest complexity
     };
-    
+
     // Data size multiplier
     let data_multiplier = 1.0 + (metrics.data_size as f64 / 1024.0) * 0.1;
-    
+
     // Time-based cost (1 gas per microsecond)
     let time_cost = (metrics.signing_ns + metrics.verification_ns) / 1000;
-    
+
     // Memory cost (1 gas per KB)
     let memory_cost = (metrics.memory_usage / 1024) as u64;
-    
-    let total_cost = (base_cost as f64 * complexity_multiplier * data_multiplier) as u64 
-                   + time_cost 
+
+    let total_cost = (base_cost as f64 * complexity_multiplier * data_multiplier) as u64
+                   + time_cost
                    + memory_cost;
-                   
+
     total_cost
 }
 
@@ -206,7 +206,7 @@ fn calculate_gas_cost(metrics: &GasCostMetrics) -> u64 {
 fn benchmark_pqc_gas_costs(c: &mut Criterion) {
     let config = GasBenchmarkConfig::default();
     let mut group = c.benchmark_group("pqc_gas_costs");
-    
+
     for &algorithm in &config.algorithms {
         for &data_size in &config.data_sizes {
             group.bench_with_input(
@@ -222,7 +222,7 @@ fn benchmark_pqc_gas_costs(c: &mut Criterion) {
                         |(signer, data)| {
                             let (signature, sign_time) = signer.sign(black_box(&data));
                             let (valid, verify_time) = signer.verify(black_box(&data), black_box(&signature));
-                            
+
                             // Create metrics for gas calculation
                             let metrics = GasCostMetrics {
                                 algorithm,
@@ -233,7 +233,7 @@ fn benchmark_pqc_gas_costs(c: &mut Criterion) {
                                 memory_usage: signer.private_key.len() + signer.public_key.len() + signature.len(),
                                 estimated_gas: 0, // Calculated below
                             };
-                            
+
                             let gas_cost = calculate_gas_cost(&metrics);
                             black_box((valid, gas_cost))
                         },
@@ -250,7 +250,7 @@ fn benchmark_pqc_gas_costs(c: &mut Criterion) {
 fn benchmark_key_generation(c: &mut Criterion) {
     let config = GasBenchmarkConfig::default();
     let mut group = c.benchmark_group("pqc_key_generation");
-    
+
     for &algorithm in &config.algorithms {
         group.bench_with_input(
             BenchmarkId::new("keygen", algorithm.name()),
@@ -271,33 +271,33 @@ fn benchmark_key_generation(c: &mut Criterion) {
 /// Comprehensive gas price analysis
 pub fn run_gas_price_analysis() {
     println!("🔍 Running comprehensive PQC gas price analysis...");
-    
+
     let config = GasBenchmarkConfig::default();
     let mut results = Vec::new();
-    
+
     for &algorithm in &config.algorithms {
         println!("\n📊 Analyzing {} algorithm...", algorithm.name());
-        
+
         for &data_size in &config.data_sizes {
             let mut total_metrics = Vec::new();
-            
+
             for _ in 0..config.iterations {
                 let signer = MockPQCSignature::new(algorithm);
                 let data = vec![0u8; data_size];
-                
+
                 // Measure key generation
                 let keygen_start = Instant::now();
                 let _test_signer = MockPQCSignature::new(algorithm);
                 let keygen_time = keygen_start.elapsed();
-                
+
                 // Measure signing
                 let (signature, sign_time) = signer.sign(&data);
-                
+
                 // Measure verification
                 let (valid, verify_time) = signer.verify(&data, &signature);
-                
+
                 assert!(valid, "Signature verification failed");
-                
+
                 let metrics = GasCostMetrics {
                     algorithm,
                     data_size,
@@ -307,23 +307,23 @@ pub fn run_gas_price_analysis() {
                     memory_usage: signer.private_key.len() + signer.public_key.len() + signature.len(),
                     estimated_gas: 0,
                 };
-                
+
                 total_metrics.push(metrics);
             }
-            
+
             // Calculate average metrics
             let avg_metrics = calculate_average_metrics(&total_metrics);
             results.push(avg_metrics);
         }
     }
-    
+
     // Print analysis results
     print_gas_analysis_results(&results);
 }
 
 fn calculate_average_metrics(metrics: &[GasCostMetrics]) -> GasCostMetrics {
     let count = metrics.len() as u64;
-    
+
     GasCostMetrics {
         algorithm: metrics[0].algorithm,
         data_size: metrics[0].data_size,
@@ -338,10 +338,10 @@ fn calculate_average_metrics(metrics: &[GasCostMetrics]) -> GasCostMetrics {
 fn print_gas_analysis_results(results: &[GasCostMetrics]) {
     println!("\n📈 Gas Price Analysis Results");
     println!("==============================");
-    
+
     for metrics in results {
         let gas_cost = calculate_gas_cost(metrics);
-        
+
         println!("\n🔐 Algorithm: {}", metrics.algorithm.name());
         println!("  📏 Data Size: {} bytes", metrics.data_size);
         println!("  🔑 Key Generation: {} μs", metrics.key_generation_ns / 1000);
@@ -349,12 +349,12 @@ fn print_gas_analysis_results(results: &[GasCostMetrics]) {
         println!("  ✅ Verification Time: {} μs", metrics.verification_ns / 1000);
         println!("  💾 Memory Usage: {} KB", metrics.memory_usage / 1024);
         println!("  ⛽ Estimated Gas: {} units", gas_cost);
-        
+
         // Calculate cost per byte
         let cost_per_byte = gas_cost as f64 / metrics.data_size as f64;
         println!("  💰 Cost per Byte: {:.2} gas/byte", cost_per_byte);
     }
-    
+
     println!("\n💡 Recommendations:");
     println!("  • Dilithium5: Best balance of speed and signature size");
     println!("  • Falcon1024: Smallest signatures but higher computational cost");
@@ -378,10 +378,10 @@ mod tests {
     fn test_mock_pqc_signature() {
         let signer = MockPQCSignature::new(PQCAlgorithm::Dilithium5);
         let data = b"test transaction data";
-        
+
         let (signature, _) = signer.sign(data);
         let (valid, _) = signer.verify(data, &signature);
-        
+
         assert!(valid);
     }
 
@@ -396,7 +396,7 @@ mod tests {
             memory_usage: 8192,
             estimated_gas: 0,
         };
-        
+
         let gas_cost = calculate_gas_cost(&metrics);
         assert!(gas_cost > 21000); // Should be more than base cost
     }

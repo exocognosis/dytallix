@@ -36,7 +36,7 @@ Parameter change proposals allow governance to modify blockchain parameters.
 
 **Structure:**
 ```rust
-ProposalType::ParameterChange { 
+ProposalType::ParameterChange {
     key: String,    // Parameter key
     value: String   // New parameter value
 }
@@ -190,7 +190,7 @@ dyt gov config
   "status": "VotingPeriod",
   "tally": {
     "yes": "450000000000",
-    "no": "100000000000", 
+    "no": "100000000000",
     "abstain": "50000000000",
     "no_with_veto": "25000000000",
     "total_voting_power": "625000000000"
@@ -324,7 +324,7 @@ Events are emitted at key lifecycle transitions:
 pub struct GovernanceConfig {
     pub min_deposit: u128,           // 1,000 DGT (1_000_000_000 uDGT)
     pub deposit_period: u64,         // 300 blocks
-    pub voting_period: u64,          // 300 blocks  
+    pub voting_period: u64,          // 300 blocks
     pub quorum: u128,               // 3333 basis points (33.33%)
     pub threshold: u128,            // 5000 basis points (50%)
     pub veto_threshold: u128,       // 3333 basis points (33.33%)
@@ -356,7 +356,7 @@ total_votes = 250_000_000_000  // 25% participation
 quorum_required = 333_300_000_000  // 33.33% of 1T total
 // Result: Rejected (QuorumNotMet)
 
-// Veto triggered  
+// Veto triggered
 yes = 400_000_000_000
 no = 100_000_000_000
 veto = 500_000_000_000  // 50% veto votes

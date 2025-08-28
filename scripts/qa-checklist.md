@@ -13,7 +13,7 @@ npm run test:e2e
 
 #### Test Coverage:
 - ✅ **Faucet Flow**: Wallet address input, form submission, success/error handling
-- ✅ **Wallet Connect**: Connection simulation and address autofill  
+- ✅ **Wallet Connect**: Connection simulation and address autofill
 - ✅ **Status Polling**: Chain height display and real-time updates
 - ✅ **Anomaly Endpoint**: API response validation and structure
 - ✅ **Navigation**: Link accessibility and routing verification
@@ -74,7 +74,7 @@ npm run lighthouse
 - [ ] Failed connections don't break the interface
 - [ ] Successful connections autofill the address field
 
-#### Address Management  
+#### Address Management
 - [ ] Autofilled addresses can be manually edited
 - [ ] Address format validation works for all input methods
 - [ ] Previously entered addresses persist during session
@@ -82,7 +82,7 @@ npm run lighthouse
 ### 📊 Status & Polling
 
 #### Chain Height Display
-- [ ] Navigate to `/status` or `/dashboard` 
+- [ ] Navigate to `/status` or `/dashboard`
 - [ ] Chain height displays as numeric value > 0
 - [ ] Height updates automatically (polling every 10 seconds)
 - [ ] Loading states display during data fetching
@@ -113,7 +113,7 @@ npm run lighthouse
 
 #### Link Validation
 - [ ] `[data-test="nav-home"]` → `/` (home page)
-- [ ] `[data-test="nav-faucet"]` → `/faucet` (faucet page)  
+- [ ] `[data-test="nav-faucet"]` → `/faucet` (faucet page)
 - [ ] `[data-test="nav-dashboard"]` → `/dashboard` (status/dashboard)
 - [ ] All pages load without errors
 
@@ -127,7 +127,7 @@ npm run lighthouse
 
 #### Visual Verification
 - [ ] Dark mode applies darker color scheme
-- [ ] Light mode applies lighter color scheme  
+- [ ] Light mode applies lighter color scheme
 - [ ] Text contrast meets accessibility standards (≥4.5:1)
 - [ ] Interactive elements remain visible in both modes
 
@@ -204,7 +204,7 @@ npm run lighthouse
 
 ### Minor Issues (Document & Fix)
 - Cosmetic styling issues
-- Non-blocking console warnings  
+- Non-blocking console warnings
 - Performance optimizations needed
 - Enhancement opportunities identified
 

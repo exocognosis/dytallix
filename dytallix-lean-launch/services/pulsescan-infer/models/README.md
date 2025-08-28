@@ -7,14 +7,14 @@ This directory contains ML model artifacts for the PulseScan fraud detection sys
 ### model_info.json
 Complete model metadata including:
 - Ensemble component details and weights
-- Feature specifications and normalization parameters  
+- Feature specifications and normalization parameters
 - Performance metrics and evaluation results
 - Training configuration and hyperparameters
 
 ### Model Binaries (Production)
 In production, this directory would contain:
 - `isolation_forest.pkl` - Isolation Forest model
-- `one_class_svm.pkl` - One-Class SVM model  
+- `one_class_svm.pkl` - One-Class SVM model
 - `autoencoder.onnx` - Neural network autoencoder in ONNX format
 - `feature_scaler.pkl` - Feature normalization parameters
 - `thresholds.json` - Detection thresholds per severity level
@@ -23,14 +23,14 @@ In production, this directory would contain:
 
 Models are versioned using semantic versioning (MAJOR.MINOR.PATCH):
 - **MAJOR**: Incompatible feature schema changes
-- **MINOR**: New features or model improvements  
+- **MINOR**: New features or model improvements
 - **PATCH**: Bug fixes and minor tweaks
 
 ## Model Performance
 
 Current production model (v1.0.0):
 - **Accuracy**: 87.5%
-- **Precision**: 82.3% 
+- **Precision**: 82.3%
 - **Recall**: 78.9%
 - **F1-Score**: 80.6%
 - **AUC-ROC**: 91.2%
@@ -43,7 +43,7 @@ The model uses 20 engineered features across multiple categories:
 - Transaction frequency over 1h, 24h, 7d windows
 - Captures burst patterns and sustained high activity
 
-### Amount Features (3)  
+### Amount Features (3)
 - Statistical z-score relative to address history
 - Percentile ranking within recent transactions
 - Round number detection (common in money laundering)
@@ -90,5 +90,5 @@ Models are deployed as:
 ## Security
 
 - Models are cryptographically signed for integrity verification
-- Feature extraction code is deterministic and reproducible  
+- Feature extraction code is deterministic and reproducible
 - All model predictions include confidence scores and explainability

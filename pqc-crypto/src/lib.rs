@@ -524,7 +524,7 @@ impl PQCManager {
         }
     }
 
-    /// Sign a message with the specified algorithm  
+    /// Sign a message with the specified algorithm
     pub fn sign_with_algorithm(
         &self,
         message: &[u8],

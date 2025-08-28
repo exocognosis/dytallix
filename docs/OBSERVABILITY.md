@@ -7,7 +7,7 @@ This document provides comprehensive instructions for setting up and using the D
 The Dytallix observability stack provides deep insights into blockchain performance, transaction processing, validator behavior, and system health. The monitoring system is designed to:
 
 - Have zero performance impact when disabled (default)
-- Provide comprehensive metrics for production monitoring  
+- Provide comprehensive metrics for production monitoring
 - Integrate seamlessly with existing Prometheus/Grafana stacks
 - Support alerting for critical blockchain events
 - Enable comprehensive testing and analysis
@@ -60,7 +60,7 @@ docker-compose up -d
 - `dyt_faucet_requests_total` - Counter with status label
 - `dyt_faucet_tx_latency_seconds` - Histogram for transaction processing time
 
-#### Explorer/API Metrics  
+#### Explorer/API Metrics
 - `dyt_api_request_duration_seconds` - Histogram with route, method, status labels
 - `dyt_explorer_requests_total` - Counter with endpoint, status labels
 
@@ -86,11 +86,11 @@ docker-compose up -d
    ```bash
    # Node metrics (if running)
    curl http://localhost:26680/metrics
-   
+
    # Faucet metrics
    curl http://localhost:9101/metrics
-   
-   # Explorer metrics  
+
+   # Explorer metrics
    curl http://localhost:9102/metrics
    ```
 
@@ -113,7 +113,7 @@ docker-compose up -d
 ### Prometheus Configuration
 
 Located at `monitoring/prometheus.yml`:
-- **Scrape interval**: 5s for blockchain metrics, 15s for system metrics  
+- **Scrape interval**: 5s for blockchain metrics, 15s for system metrics
 - **Retention**: 200 hours default
 - **Alert rules**: `monitoring/alerts.yml`
 
@@ -129,7 +129,7 @@ Three main dashboards are auto-provisioned:
 
 Key alerts configured:
 - **BlockProductionStall**: No blocks >30s (CRITICAL)
-- **ValidatorOffline**: Missed blocks detected (WARNING)  
+- **ValidatorOffline**: Missed blocks detected (WARNING)
 - **HighMemoryUsage**: >85% memory usage (WARNING)
 - **OracleLatencyHigh**: >1s p95 latency (WARNING)
 
@@ -167,7 +167,7 @@ curl -f http://localhost:9102/metrics  # Explorer metrics
 ### Dashboard Verification
 
 1. Open Grafana: http://localhost:3003
-2. Login: admin/dytallix123  
+2. Login: admin/dytallix123
 3. Navigate to dashboards - should auto-load without manual import
 4. Verify data appears in panels (may show empty initially until metrics accumulate)
 
@@ -244,7 +244,7 @@ curl -f http://localhost:9102/metrics  # Explorer metrics
    - Verify datasource configuration in Grafana
 
 3. **Alerts not firing:**
-   - Check alert rule syntax in Prometheus  
+   - Check alert rule syntax in Prometheus
    - Verify metric names match exactly
    - Check evaluation intervals
 

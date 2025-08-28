@@ -41,29 +41,29 @@ impl DytallixNode for DummyNode {
 
         // Start network layer
         // self.network.start().await?;
-        
+
         // Start consensus engine
         // self.consensus.start().await?;
 
         info!("Dytallix Node started successfully");
         Ok(())
     }
-    
+
     async fn stop(&self) -> Result<(), String> {
         info!("Stopping Dytallix Node...");
-        
+
         // self.consensus.stop().await?;
         // self.network.stop().await?;
-        
+
         info!("Dytallix Node stopped");
         Ok(())
     }
-    
+
     async fn submit_transaction(&self, tx: Transaction) -> Result<(), String> {
         // Add transaction to pool
         let tx_hash = self.transaction_pool.add_transaction(tx).await
             .map_err(|e| format!("Failed to add transaction: {}", e))?;
-        
+
         info!("Transaction {} submitted successfully", tx_hash);
         Ok(())
     }
@@ -80,14 +80,14 @@ impl DytallixNode for DummyNode {
                 signature: dytallix_pqc::Signature {
                     data: Vec::new(),
                     algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
-                    
-                    
+
+
                 },
                 public_key: Vec::new(),
             },
             ai_risk_score: Some(0.2),
         };
-    
+
     fn get_block(&self, hash: &str) -> Option<Block> {
         // Implement block retrieval from storage
         match self.storage.get_block_by_hash(hash) {
@@ -102,7 +102,7 @@ impl DytallixNode for DummyNode {
             }
         }
     }
-    
+
     fn get_status(&self) -> NodeStatus {
         NodeStatus::Running
     }
@@ -178,15 +178,15 @@ impl DummyNode {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    
+
     info!("Welcome to Dytallix - Post-Quantum AI-Enhanced Cryptocurrency");
-    
+
     let node = DummyNode::new().await?;
-    
+
     // Handle graceful shutdown
     let node_clone = Arc::new(node);
     let shutdown_node = Arc::clone(&node_clone);
-    
+
     // Start API server in background
     let api_node = Arc::clone(&node_clone);
     tokio::spawn(async move {
@@ -194,7 +194,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             log::error!("API server error: {}", e);
         }
     });
-    
+
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.expect("Failed to listen for Ctrl+C");
         warn!("Received shutdown signal");
@@ -203,9 +203,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         std::process::exit(0);
     });
-    
+
     node_clone.start().await?;
-    
+
     // Keep the main thread alive
     loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;

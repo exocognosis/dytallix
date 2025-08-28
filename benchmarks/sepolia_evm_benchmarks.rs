@@ -2,7 +2,7 @@
 SEPOLIA EVM CONTRACT BENCHMARKS
 
 This module provides comprehensive benchmarking capabilities for EVM contracts
-deployed on the Sepolia testnet, measuring execution time, gas usage, and 
+deployed on the Sepolia testnet, measuring execution time, gas usage, and
 throughput under various load conditions.
 */
 
@@ -89,7 +89,7 @@ impl SepoliaEvmBenchmark {
         println!("🚀 Starting Sepolia EVM Contract Benchmarks");
         println!("Sepolia RPC URL: {}", self.config.sepolia_rpc_url);
         println!("Contract addresses: {:?}", self.config.contract_addresses);
-        
+
         let start_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
             .as_secs();
@@ -107,7 +107,7 @@ impl SepoliaEvmBenchmark {
 
         // Calculate aggregate results
         let results = self.calculate_aggregate_results(start_time, end_time);
-        
+
         println!("✅ EVM Benchmark completed successfully");
         println!("Total operations: {}", results.total_operations);
         println!("Success rate: {:.2}%", (1.0 - results.error_rate) * 100.0);
@@ -119,7 +119,7 @@ impl SepoliaEvmBenchmark {
 
     async fn run_baseline_performance_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("📊 Running EVM baseline performance test...");
-        
+
         for contract_addr in &self.config.contract_addresses.clone() {
             // Test DytallixBridge lockAsset function
             let lock_asset_metrics = self.benchmark_contract_call(
@@ -133,7 +133,7 @@ impl SepoliaEvmBenchmark {
                 ],
                 false,
             ).await?;
-            
+
             self.results.push(lock_asset_metrics);
 
             // Test WrappedDytallix mint function
@@ -147,7 +147,7 @@ impl SepoliaEvmBenchmark {
                 ],
                 false,
             ).await?;
-            
+
             self.results.push(mint_metrics);
 
             // Test read operations (gas-free)
@@ -157,7 +157,7 @@ impl SepoliaEvmBenchmark {
                 vec!["0x1234567890123456789012345678901234567890".to_string()],
                 true, // Read operation
             ).await?;
-            
+
             self.results.push(balance_metrics);
         }
 
@@ -166,10 +166,10 @@ impl SepoliaEvmBenchmark {
 
     async fn run_gas_optimization_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("⛽ Running gas optimization analysis...");
-        
+
         // Test different gas limits to find optimal settings
         let gas_limits = vec![100_000, 200_000, 300_000, 500_000, 1_000_000];
-        
+
         for gas_limit in gas_limits {
             for contract_addr in &self.config.contract_addresses.clone() {
                 let mut metrics = self.benchmark_contract_call(
@@ -183,7 +183,7 @@ impl SepoliaEvmBenchmark {
                     ],
                     false,
                 ).await?;
-                
+
                 metrics.gas_limit = gas_limit;
                 self.results.push(metrics);
             }
@@ -194,19 +194,19 @@ impl SepoliaEvmBenchmark {
 
     async fn run_load_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("🔥 Running EVM load test with {} concurrent transactions...", self.config.concurrent_transactions);
-        
+
         let mut tasks = Vec::new();
         let contract_addresses = self.config.contract_addresses.clone();
-        
+
         for i in 0..self.config.concurrent_transactions {
             let contract_addr = contract_addresses[i % contract_addresses.len()].clone();
             let client = self.client.clone();
             let rpc_url = self.config.sepolia_rpc_url.clone();
-            
+
             let task = tokio::spawn(async move {
                 Self::execute_concurrent_transaction(client, rpc_url, contract_addr).await
             });
-            
+
             tasks.push(task);
         }
 
@@ -222,13 +222,13 @@ impl SepoliaEvmBenchmark {
 
     async fn run_transaction_throughput_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("🔄 Running transaction throughput test...");
-        
+
         let start_time = Instant::now();
-        
+
         // Run for specified test duration
         while start_time.elapsed().as_secs() < self.config.test_duration_seconds {
             let interval_start = Instant::now();
-            
+
             // Execute batch of transactions
             for contract_addr in &self.config.contract_addresses.clone() {
                 let metrics = self.benchmark_contract_call(
@@ -237,9 +237,9 @@ impl SepoliaEvmBenchmark {
                     vec!["0x1234567890123456789012345678901234567890".to_string()],
                     true, // Read operation for throughput
                 ).await?;
-                
+
                 self.results.push(metrics);
-                
+
                 // Break if interval exceeded
                 if interval_start.elapsed().as_millis() > 1000 {
                     break;
@@ -252,10 +252,10 @@ impl SepoliaEvmBenchmark {
 
     async fn run_block_confirmation_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("⏱️ Running block confirmation time analysis...");
-        
+
         for contract_addr in &self.config.contract_addresses.clone() {
             let tx_start = Instant::now();
-            
+
             // Submit transaction
             let metrics = self.benchmark_contract_call(
                 contract_addr,
@@ -267,15 +267,15 @@ impl SepoliaEvmBenchmark {
                 ],
                 false,
             ).await?;
-            
+
             // If we have a transaction hash, wait for confirmation
             if let Some(tx_hash) = &metrics.transaction_hash {
                 let confirmation_time = self.wait_for_confirmation(tx_hash).await?;
-                
+
                 // Store confirmation time for analysis
                 let mut metrics_with_confirmation = metrics.clone();
                 metrics_with_confirmation.execution_time_ms += confirmation_time;
-                
+
                 self.results.push(metrics_with_confirmation);
             } else {
                 self.results.push(metrics);
@@ -301,9 +301,9 @@ impl SepoliaEvmBenchmark {
 
         // Prepare JSON-RPC call
         let method = if is_read_only { "eth_call" } else { "eth_sendTransaction" };
-        
+
         let call_data = self.encode_function_call(method_signature, &params);
-        
+
         let rpc_request = if is_read_only {
             serde_json::json!({
                 "jsonrpc": "2.0",
@@ -338,17 +338,17 @@ impl SepoliaEvmBenchmark {
             .await;
 
         let execution_time_ms = start_time.elapsed().as_millis() as f64;
-        
+
         let (success, error_message, transaction_hash, gas_used) = match response {
             Ok(resp) => {
                 if resp.status().is_success() {
                     let json: serde_json::Value = resp.json().await.unwrap_or_default();
-                    
+
                     if json.get("error").is_some() {
                         (false, Some(json["error"]["message"].as_str().unwrap_or("Unknown error").to_string()), None, 0)
                     } else {
                         let result = json.get("result").and_then(|r| r.as_str());
-                        
+
                         if is_read_only {
                             (true, None, None, 0) // Read operations don't consume gas
                         } else {
@@ -432,7 +432,7 @@ impl SepoliaEvmBenchmark {
     async fn wait_for_confirmation(&self, tx_hash: &str) -> Result<f64, Box<dyn std::error::Error>> {
         let start_time = Instant::now();
         let max_wait_time = Duration::from_secs(300); // 5 minutes max wait
-        
+
         while start_time.elapsed() < max_wait_time {
             let receipt_request = serde_json::json!({
                 "jsonrpc": "2.0",
@@ -449,7 +449,7 @@ impl SepoliaEvmBenchmark {
                 .await?;
 
             let json: serde_json::Value = response.json().await?;
-            
+
             if let Some(result) = json.get("result") {
                 if !result.is_null() {
                     // Transaction confirmed
@@ -469,9 +469,9 @@ impl SepoliaEvmBenchmark {
         // Simplified function encoding - in production would use proper ABI encoding
         let method_hash = format!("{:x}", md5::compute(method_signature));
         let method_id = &method_hash[0..8];
-        
+
         let mut encoded = format!("0x{}", method_id);
-        
+
         // Simplified parameter encoding
         for param in params {
             if param.starts_with("0x") {
@@ -489,7 +489,7 @@ impl SepoliaEvmBenchmark {
                 }
             }
         }
-        
+
         encoded
     }
 
@@ -497,12 +497,12 @@ impl SepoliaEvmBenchmark {
         let total_operations = self.results.len() as u64;
         let successful_operations = self.results.iter().filter(|m| m.success).count() as u64;
         let failed_operations = total_operations - successful_operations;
-        
+
         let duration_seconds = (end_time - start_time) as f64;
-        let average_tps = if duration_seconds > 0.0 { 
-            total_operations as f64 / duration_seconds 
-        } else { 
-            0.0 
+        let average_tps = if duration_seconds > 0.0 {
+            total_operations as f64 / duration_seconds
+        } else {
+            0.0
         };
 
         // Calculate peak TPS from 1-second intervals
@@ -582,7 +582,7 @@ impl SepoliaEvmBenchmark {
     pub fn export_results_csv(&self, results: &EvmBenchmarkResults) -> String {
         let mut csv = String::new();
         csv.push_str("operation_type,contract_address,method_signature,execution_time_ms,gas_used,gas_limit,success,timestamp,tx_hash\n");
-        
+
         for metric in &results.operation_metrics {
             csv.push_str(&format!(
                 "{},{},{},{},{},{},{},{},{}\n",
@@ -597,7 +597,7 @@ impl SepoliaEvmBenchmark {
                 metric.transaction_hash.as_deref().unwrap_or("")
             ));
         }
-        
+
         csv
     }
 }
@@ -628,7 +628,7 @@ mod tests {
     async fn test_evm_benchmark_configuration() {
         let config = EvmBenchmarkConfig::default();
         let benchmark = SepoliaEvmBenchmark::new(config);
-        
+
         assert!(!benchmark.config.contract_addresses.is_empty());
         assert!(benchmark.config.test_duration_seconds > 0);
         assert!(benchmark.config.gas_limit > 0);
@@ -638,7 +638,7 @@ mod tests {
     fn test_function_encoding() {
         let config = EvmBenchmarkConfig::default();
         let benchmark = SepoliaEvmBenchmark::new(config);
-        
+
         let encoded = benchmark.encode_function_call("balanceOf(address)", &["0x123".to_string()]);
         assert!(encoded.starts_with("0x"));
         assert!(encoded.len() > 10);
@@ -648,7 +648,7 @@ mod tests {
     fn test_evm_metrics_calculation() {
         let config = EvmBenchmarkConfig::default();
         let mut benchmark = SepoliaEvmBenchmark::new(config);
-        
+
         benchmark.results.push(EvmOperationMetrics {
             operation_type: "test".to_string(),
             contract_address: "0x123".to_string(),

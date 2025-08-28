@@ -33,10 +33,10 @@ Hardcoded token-specific cooldown periods:
    ```bash
    # Ubuntu/Debian
    sudo apt install redis-server
-   
+
    # macOS
    brew install redis
-   
+
    # Docker
    docker run -d -p 6379:6379 redis:alpine
    ```
@@ -45,10 +45,10 @@ Hardcoded token-specific cooldown periods:
    ```bash
    # Local Redis
    DLX_RATE_LIMIT_REDIS_URL=redis://localhost:6379
-   
+
    # Redis with authentication
    DLX_RATE_LIMIT_REDIS_URL=redis://username:password@host:port
-   
+
    # Redis Cluster or external service
    DLX_RATE_LIMIT_REDIS_URL=redis://your-redis-host:6379
    ```

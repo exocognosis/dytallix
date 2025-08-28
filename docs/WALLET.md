@@ -49,7 +49,7 @@ address = bech32("dytallix", ripemd160(sha256(pubkey_raw)))
 ### Address Derivation Steps
 
 1. **Public Key Hashing**: `sha256_hash = SHA256(public_key_bytes)`
-2. **Address Hash**: `addr_hash = RIPEMD160(sha256_hash)`  
+2. **Address Hash**: `addr_hash = RIPEMD160(sha256_hash)`
 3. **Bech32 Encoding**: `address = bech32_encode("dytallix", addr_hash)`
 
 ### Address Properties
@@ -218,7 +218,7 @@ if err != nil {
 // Get address
 address := wallet.Address()
 
-// Sign transaction  
+// Sign transaction
 signature, err := wallet.SignTransaction(txBytes)
 ```
 

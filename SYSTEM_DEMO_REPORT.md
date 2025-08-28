@@ -8,7 +8,7 @@ All core Dytallix components are now running and fully operational:
 
 #### 1. 🔗 Blockchain Node (Port 3030)
 - **Status**: ✅ ONLINE
-- **Health Check**: http://localhost:3030/health  
+- **Health Check**: http://localhost:3030/health
 - **Network Stats**: http://localhost:3030/stats
 - **Current Block**: 1234
 - **Total Transactions**: 5678
@@ -37,7 +37,7 @@ All core Dytallix components are now running and fully operational:
 #### 5. 📊 Metrics Collector (Port 3001) - NEW!
 - **Status**: ✅ ONLINE
 - **Metrics API**: http://localhost:3001/metrics
-- **Summary**: http://localhost:3001/summary  
+- **Summary**: http://localhost:3001/summary
 - **System Health**: All 4 services online and healthy
 
 ---
@@ -61,7 +61,7 @@ Visit: **http://localhost:3000**
 # Network health
 curl http://localhost:3030/health
 
-# Network statistics  
+# Network statistics
 curl http://localhost:3030/stats
 
 # Block explorer
@@ -96,7 +96,7 @@ curl -X POST http://localhost:8000/risk-scoring \
 
 ### 🎯 AI Functionality Demonstrated:
 - **Fraud Detection**: Analyzing transactions and classifying risk
-- **Risk Scoring**: Evaluating wallet addresses and transaction patterns  
+- **Risk Scoring**: Evaluating wallet addresses and transaction patterns
 - **Real-time Analytics**: Processing data and providing insights
 
 ### 🔧 Performance Metrics:
@@ -132,7 +132,7 @@ The Dytallix frontend provides a complete blockchain interface with:
 
 ### 3. Monitor the System
 - Watch the live health check status updates
-- Check the log files in `/logs/` directory  
+- Check the log files in `/logs/` directory
 - Monitor service PIDs in `/.pids/` directory
 
 ---

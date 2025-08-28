@@ -435,7 +435,7 @@ impl BridgeMonitoringSystem {
     /// Create a new monitoring system
     pub fn new(config: MonitoringConfig) -> Self {
         let mut event_monitors = HashMap::new();
-        
+
         // Initialize chain monitors
         event_monitors.insert(
             "ethereum".to_string(),
@@ -479,7 +479,7 @@ impl BridgeMonitoringSystem {
         for (chain_name, monitor) in &self.event_monitors {
             let monitor_clone = monitor.clone();
             let chain_name_clone = chain_name.clone();
-            
+
             tokio::spawn(async move {
                 if let Err(e) = monitor_clone.start_monitoring().await {
                     eprintln!("Error monitoring {}: {}", chain_name_clone, e);
@@ -703,17 +703,17 @@ impl ChainEventMonitor {
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error>> {
         let mut is_monitoring = self.is_monitoring.write().await;
         *is_monitoring = true;
-        
+
         // Start monitoring loop
         let events = self.events.clone();
         let last_block = self.last_block.clone();
         let is_monitoring_clone = self.is_monitoring.clone();
-        
+
         tokio::spawn(async move {
             while *is_monitoring_clone.read().await {
                 // Simulate event monitoring
                 tokio::time::sleep(Duration::from_secs(1)).await;
-                
+
                 // In real implementation, this would connect to blockchain nodes
                 // and listen for relevant events
             }
@@ -725,12 +725,12 @@ impl ChainEventMonitor {
     pub async fn add_event(&self, event: ChainEvent) -> Result<(), Box<dyn std::error::Error>> {
         let mut events = self.events.write().await;
         events.push_back(event);
-        
+
         // Keep only recent events (memory management)
         if events.len() > 10000 {
             events.pop_front();
         }
-        
+
         Ok(())
     }
 }
@@ -752,24 +752,24 @@ impl TransactionTracker {
 
     pub async fn update_status(&self, transaction_id: &str, status: TransactionStatus) -> Result<(), Box<dyn std::error::Error>> {
         let mut active = self.active_transactions.write().await;
-        
+
         if let Some(transaction) = active.get_mut(transaction_id) {
             transaction.status = status;
-            
+
             // Move to completed if finished
             if matches!(transaction.status, TransactionStatus::Completed | TransactionStatus::Failed(_) | TransactionStatus::TimedOut) {
                 let completed_tx = transaction.clone();
                 drop(active); // Release the lock
-                
+
                 let mut completed = self.completed_transactions.write().await;
                 completed.push_back(completed_tx);
-                
+
                 // Remove from active
                 let mut active = self.active_transactions.write().await;
                 active.remove(transaction_id);
             }
         }
-        
+
         Ok(())
     }
 }
@@ -933,7 +933,7 @@ mod tests {
     async fn test_monitoring_system_creation() {
         let config = MonitoringConfig::default();
         let monitoring_system = BridgeMonitoringSystem::new(config);
-        
+
         assert_eq!(monitoring_system.event_monitors.len(), 2);
         assert!(monitoring_system.event_monitors.contains_key("ethereum"));
         assert!(monitoring_system.event_monitors.contains_key("cosmos"));
@@ -943,7 +943,7 @@ mod tests {
     async fn test_chain_event_monitor() {
         let monitor = ChainEventMonitor::new("test_chain".to_string());
         assert_eq!(monitor.chain_name, "test_chain");
-        
+
         let event = ChainEvent {
             id: "test_event".to_string(),
             chain: "test_chain".to_string(),
@@ -955,7 +955,7 @@ mod tests {
             gas_used: Some(21000),
             gas_price: Some(20000000000),
         };
-        
+
         let result = monitor.add_event(event).await;
         assert!(result.is_ok());
     }
@@ -963,7 +963,7 @@ mod tests {
     #[tokio::test]
     async fn test_transaction_tracker() {
         let tracker = TransactionTracker::new();
-        
+
         let transaction = TrackedTransaction {
             id: "tx_001".to_string(),
             bridge_id: "bridge_001".to_string(),
@@ -981,10 +981,10 @@ mod tests {
             confirmations: HashMap::new(),
             events: Vec::new(),
         };
-        
+
         let result = tracker.add_transaction(transaction).await;
         assert!(result.is_ok());
-        
+
         let update_result = tracker.update_status("tx_001", TransactionStatus::Completed).await;
         assert!(update_result.is_ok());
     }

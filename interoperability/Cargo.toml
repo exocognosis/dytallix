@@ -32,7 +32,7 @@ futures = "0.3"
 ethers = { version = "2.0", features = ["ws", "rustls"] }
 ethers-contract = "2.0"
 
-# Cosmos/IBC integration  
+# Cosmos/IBC integration
 cosmos-sdk-proto = "0.19"
 ibc-proto = "0.32"
 tendermint = "0.33"

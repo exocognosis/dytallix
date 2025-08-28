@@ -16,7 +16,7 @@ Integrate WASM contract execution into the Dytallix blockchain core, update cont
 
 ### 2. **Contract Deployment Logic**
 - **Updated Method**: `execute_deployment()` in `ConsensusEngine`
-- **WASM Integration**: 
+- **WASM Integration**:
   - Creates `ContractDeployment` struct with WASM-compatible parameters
   - Deploys contracts using `self.wasm_runtime.deploy_contract(deployment).await`
   - Stores contract state in blockchain storage
@@ -97,7 +97,7 @@ ContractCall {
 
 ### Working Components
 - ✅ WASM contract deployment logic
-- ✅ WASM contract call logic  
+- ✅ WASM contract call logic
 - ✅ Transaction processing through consensus engine
 - ✅ Integration test compilation
 - ✅ Type system compatibility

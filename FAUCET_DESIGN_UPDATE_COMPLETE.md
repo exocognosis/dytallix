@@ -113,12 +113,12 @@ quantum-600: #0d9488
 
 The faucet now has a **cohesive visual experience** with the main Dytallix website:
 
-✅ **Same dark theme and color palette**  
-✅ **Consistent card styling and hover effects**  
-✅ **Matching button styles and interactions**  
-✅ **Unified typography and spacing**  
-✅ **Professional, modern appearance**  
-✅ **Seamless brand experience**  
+✅ **Same dark theme and color palette**
+✅ **Consistent card styling and hover effects**
+✅ **Matching button styles and interactions**
+✅ **Unified typography and spacing**
+✅ **Professional, modern appearance**
+✅ **Seamless brand experience**
 
 Users now experience a **unified design system** when navigating from the homepage to the faucet, maintaining brand consistency and professional UX standards.
 

@@ -490,27 +490,27 @@ impl TokenState {
     pub fn new(owner: String, initial_supply: u64) -> Self {
         let mut balances = HashMap::new();
         balances.insert(owner.clone(), initial_supply);
-        
+
         TokenState {
             balances,
             total_supply: initial_supply,
             owner,
         }
     }
-    
+
     pub fn transfer(&mut self, from: &str, to: &str, amount: u64) -> Result<(), String> {
         let from_balance = self.balances.get(from).copied().unwrap_or(0);
         if from_balance < amount {
             return Err("Insufficient balance".to_string());
         }
-        
+
         self.balances.insert(from.to_string(), from_balance - amount);
         let to_balance = self.balances.get(to).copied().unwrap_or(0);
         self.balances.insert(to.to_string(), to_balance + amount);
-        
+
         Ok(())
     }
-    
+
     pub fn balance_of(&self, account: &str) -> u64 {
         self.balances.get(account).copied().unwrap_or(0)
     }
@@ -574,22 +574,22 @@ impl EscrowState {
             ai_risk_score: 0.0,
         }
     }
-    
+
     pub fn release_funds(&mut self, current_time: u64, risk_threshold: f64) -> Result<(), String> {
         if self.released {
             return Err("Funds already released".to_string());
         }
-        
+
         if current_time > self.timeout {
             self.released = true;
             return Ok(());
         }
-        
+
         if self.ai_risk_score < risk_threshold {
             self.released = true;
             return Ok(());
         }
-        
+
         Err("Conditions not met for release".to_string())
     }
 }

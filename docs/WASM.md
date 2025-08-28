@@ -47,9 +47,9 @@ Based on analysis of the codebase, the WASM runtime has significant functionalit
 ### **Phase 1: Core Integration (Week 1)**
 
 #### **Task 1.1: Blockchain Integration**
-**Status**: Not implemented  
-**Priority**: 🔴 Critical  
-**Timeline**: 2-3 days  
+**Status**: Not implemented
+**Priority**: 🔴 Critical
+**Timeline**: 2-3 days
 **Effort**: 24 hours
 
 **Problem**: Smart contract transactions are not integrated with the blockchain consensus engine.
@@ -135,9 +135,9 @@ dytallix-contracts = { path = "../smart-contracts" }
 ```
 
 #### **Task 1.2: Complete Host Function Bindings**
-**Status**: Partially implemented  
-**Priority**: 🟡 High  
-**Timeline**: 1-2 days  
+**Status**: Partially implemented
+**Priority**: 🟡 High
+**Timeline**: 1-2 days
 **Effort**: 16 hours
 
 **Problem**: Missing essential host functions for contract functionality.
@@ -147,9 +147,9 @@ dytallix-contracts = { path = "../smart-contracts" }
 1. **Cross-contract calls**
    ```rust
    // Add to smart-contracts/src/runtime.rs
-   linker.func_wrap("env", "external_call", 
-       |mut caller: Caller<HostCallContext>, 
-        contract_ptr: i32, method_ptr: i32, args_ptr: i32, 
+   linker.func_wrap("env", "external_call",
+       |mut caller: Caller<HostCallContext>,
+        contract_ptr: i32, method_ptr: i32, args_ptr: i32,
         gas_limit: i32| -> i32 {
            // Implementation for calling other contracts
        }
@@ -158,15 +158,15 @@ dytallix-contracts = { path = "../smart-contracts" }
 
 2. **Cryptographic functions**
    ```rust
-   linker.func_wrap("env", "pqc_verify", 
-       |caller: Caller<HostCallContext>, 
+   linker.func_wrap("env", "pqc_verify",
+       |caller: Caller<HostCallContext>,
         msg_ptr: i32, sig_ptr: i32, pubkey_ptr: i32| -> i32 {
            // Implementation for PQC signature verification
        }
    );
 
-   linker.func_wrap("env", "hash_keccak256", 
-       |caller: Caller<HostCallContext>, 
+   linker.func_wrap("env", "hash_keccak256",
+       |caller: Caller<HostCallContext>,
         data_ptr: i32, data_len: i32, output_ptr: i32| -> i32 {
            // Implementation for hashing functions
        }
@@ -175,13 +175,13 @@ dytallix-contracts = { path = "../smart-contracts" }
 
 3. **System information functions**
    ```rust
-   linker.func_wrap("env", "caller_address", 
+   linker.func_wrap("env", "caller_address",
        |caller: Caller<HostCallContext>, output_ptr: i32| -> i32 {
            // Implementation to get caller address
        }
    );
 
-   linker.func_wrap("env", "contract_balance", 
+   linker.func_wrap("env", "contract_balance",
        |caller: Caller<HostCallContext>| -> u64 {
            // Implementation to get contract balance
        }
@@ -194,9 +194,9 @@ dytallix-contracts = { path = "../smart-contracts" }
 3. **Nice-to-have**: `delegatecall`, `staticcall`, `recover_pubkey`
 
 #### **Task 1.3: Enhanced Gas Metering**
-**Status**: Basic implementation exists  
-**Priority**: 🟡 Medium  
-**Timeline**: 1 day  
+**Status**: Basic implementation exists
+**Priority**: 🟡 Medium
+**Timeline**: 1 day
 **Effort**: 8 hours
 
 **Problem**: Gas metering is too simplistic for production use.
@@ -239,9 +239,9 @@ dytallix-contracts = { path = "../smart-contracts" }
 ### **Phase 2: Advanced Features (Week 2)**
 
 #### **Task 2.1: Contract Upgrade System**
-**Status**: Not implemented  
-**Priority**: 🟡 High  
-**Timeline**: 2-3 days  
+**Status**: Not implemented
+**Priority**: 🟡 High
+**Timeline**: 2-3 days
 **Effort**: 20 hours
 
 **Problem**: No mechanism for contract upgrades or versioning.
@@ -286,9 +286,9 @@ dytallix-contracts = { path = "../smart-contracts" }
    ```
 
 #### **Task 2.2: Advanced State Management**
-**Status**: Basic implementation exists  
-**Priority**: 🟡 Medium  
-**Timeline**: 2 days  
+**Status**: Basic implementation exists
+**Priority**: 🟡 Medium
+**Timeline**: 2 days
 **Effort**: 16 hours
 
 **Problem**: State management lacks advanced features for production use.
@@ -333,9 +333,9 @@ dytallix-contracts = { path = "../smart-contracts" }
    ```
 
 #### **Task 2.3: Enhanced Event System**
-**Status**: Basic implementation exists  
-**Priority**: 🟡 Medium  
-**Timeline**: 1 day  
+**Status**: Basic implementation exists
+**Priority**: 🟡 Medium
+**Timeline**: 1 day
 **Effort**: 8 hours
 
 **Problem**: Event system lacks filtering and querying capabilities.
@@ -372,9 +372,9 @@ dytallix-contracts = { path = "../smart-contracts" }
 ### **Phase 3: Developer Experience (Week 3)**
 
 #### **Task 3.1: Contract Development Tools**
-**Status**: Not implemented  
-**Priority**: 🟡 High  
-**Timeline**: 2-3 days  
+**Status**: Not implemented
+**Priority**: 🟡 High
+**Timeline**: 2-3 days
 **Effort**: 20 hours
 
 **Problem**: No developer tools for contract development and testing.
@@ -432,9 +432,9 @@ dytallix-contracts = { path = "../smart-contracts" }
    ```
 
 #### **Task 3.2: CLI Integration**
-**Status**: Partially implemented  
-**Priority**: 🟡 High  
-**Timeline**: 1-2 days  
+**Status**: Partially implemented
+**Priority**: 🟡 High
+**Timeline**: 1-2 days
 **Effort**: 12 hours
 
 **Problem**: CLI tools don't support contract operations.
@@ -477,9 +477,9 @@ dytallix-contracts = { path = "../smart-contracts" }
    ```
 
 #### **Task 3.3: Contract Examples and Templates**
-**Status**: Not implemented  
-**Priority**: 🟡 Medium  
-**Timeline**: 1-2 days  
+**Status**: Not implemented
+**Priority**: 🟡 Medium
+**Timeline**: 1-2 days
 **Effort**: 12 hours
 
 **Problem**: No reference implementations for developers.
@@ -509,9 +509,9 @@ dytallix-contracts = { path = "../smart-contracts" }
 ### **Phase 4: Testing and Integration (Week 4)**
 
 #### **Task 4.1: Comprehensive Test Suite**
-**Status**: Basic tests exist  
-**Priority**: 🔴 Critical  
-**Timeline**: 2-3 days  
+**Status**: Basic tests exist
+**Priority**: 🔴 Critical
+**Timeline**: 2-3 days
 **Effort**: 20 hours
 
 **Problem**: Missing integration tests with blockchain core.
@@ -564,9 +564,9 @@ dytallix-contracts = { path = "../smart-contracts" }
    ```
 
 #### **Task 4.2: Documentation and Examples**
-**Status**: Not implemented  
-**Priority**: 🟡 Medium  
-**Timeline**: 1-2 days  
+**Status**: Not implemented
+**Priority**: 🟡 Medium
+**Timeline**: 1-2 days
 **Effort**: 12 hours
 
 **Problem**: No developer documentation for smart contracts.

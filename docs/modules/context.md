@@ -1,19 +1,19 @@
 # Dytallix Project Context Document
 
-## Name  
-**Dytallix**  
+## Name
+**Dytallix**
 A secure, AI-enhanced, post-quantum cryptocurrency built for the quantum era of finance.
 
 ---
 
-## Vision  
-To create a future-proof digital asset and smart contract platform that combines **Post-Quantum Cryptography (PQC)** and **Artificial Intelligence (AI)** to deliver unmatched security, fraud resistance, adaptive intelligence, and compliance readiness in a decentralized system.  
+## Vision
+To create a future-proof digital asset and smart contract platform that combines **Post-Quantum Cryptography (PQC)** and **Artificial Intelligence (AI)** to deliver unmatched security, fraud resistance, adaptive intelligence, and compliance readiness in a decentralized system.
 
 Dytallix aims to become the go-to infrastructure for **quantum-resilient DeFi**, **intelligent smart contracts**, and **secure digital asset management** in the post-2030 financial landscape.
 
 ---
 
-## Tech Stack  
+## Tech Stack
 
 ### Core Blockchain Layer
 - **Language**: Rust or Go
@@ -42,7 +42,7 @@ Dytallix aims to become the go-to infrastructure for **quantum-resilient DeFi**,
 
 ---
 
-## Features and Functions  
+## Features and Functions
 
 ### ✅ Core Features
 - Quantum-safe transaction signatures (PQC)
@@ -61,7 +61,7 @@ Dytallix aims to become the go-to infrastructure for **quantum-resilient DeFi**,
 
 ---
 
-## Scope & Scale  
+## Scope & Scale
 
 ### Target Users
 - Retail and institutional crypto users

@@ -137,11 +137,11 @@ Dytallix is a platform engineered for resilience and intelligence. By fusing the
 ---
 
 ## References
-1. [NIST PQC Standards](https://csrc.nist.gov/projects/post-quantum-cryptography)  
-2. [Open Quantum Safe Project](https://openquantumsafe.org/)  
-3. [PQClean Repository](https://github.com/PQClean/PQClean)  
-4. [Substrate Framework](https://substrate.io/)  
-5. [ONNX Runtime](https://onnxruntime.ai/)  
-6. [CRYSTALS-Dilithium](https://pq-crystals.org/dilithium/)  
-7. [Falcon](https://falcon-sign.info/)  
+1. [NIST PQC Standards](https://csrc.nist.gov/projects/post-quantum-cryptography)
+2. [Open Quantum Safe Project](https://openquantumsafe.org/)
+3. [PQClean Repository](https://github.com/PQClean/PQClean)
+4. [Substrate Framework](https://substrate.io/)
+5. [ONNX Runtime](https://onnxruntime.ai/)
+6. [CRYSTALS-Dilithium](https://pq-crystals.org/dilithium/)
+7. [Falcon](https://falcon-sign.info/)
 8. [SPHINCS+](https://sphincs.org/)

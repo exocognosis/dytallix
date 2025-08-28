@@ -70,7 +70,7 @@ After successful deployment:
 
 **Critical Alerts** (immediate notification):
 - Node down > 5 minutes
-- Block production stall > 30 seconds  
+- Block production stall > 30 seconds
 - Disk usage > 85%
 - PQC key generation failures
 - Network partition detected
@@ -99,7 +99,7 @@ After successful deployment:
 # Start monitoring services
 ./scripts/monitoring/deploy_monitoring.sh start
 
-# Stop monitoring services  
+# Stop monitoring services
 ./scripts/monitoring/deploy_monitoring.sh stop
 
 # Restart monitoring services

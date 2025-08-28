@@ -54,14 +54,14 @@ These are the minimum gas costs required for each transaction type:
 The total intrinsic gas for a transaction is calculated as:
 
 ```
-intrinsic_gas = base_cost(tx_type) + 
-                (tx_size_bytes * per_byte_cost) + 
+intrinsic_gas = base_cost(tx_type) +
+                (tx_size_bytes * per_byte_cost) +
                 (additional_signatures * per_signature_cost)
 ```
 
 Additional dynamic costs are charged during execution:
 - KV operations
-- Event emissions  
+- Event emissions
 - Future: WASM instruction execution
 
 ## Mempool Admission
@@ -124,7 +124,7 @@ sender_balance -= upfront_fee;
 Gas accounting follows strict deterministic rules:
 
 - **No Time Dependencies**: No system time affects gas calculations
-- **No Randomness**: No random values in gas or fee computations  
+- **No Randomness**: No random values in gas or fee computations
 - **Integer Arithmetic**: All calculations use deterministic integer math
 - **Identical Results**: Same inputs always produce same gas usage and receipts
 

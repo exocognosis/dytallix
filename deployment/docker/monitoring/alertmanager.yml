@@ -14,7 +14,7 @@ route:
       receiver: 'critical-alerts'
       group_wait: 10s
       repeat_interval: 30m
-      
+
     - match:
         severity: warning
       receiver: 'warning-alerts'

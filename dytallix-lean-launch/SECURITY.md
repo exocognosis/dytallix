@@ -33,12 +33,12 @@ This project integrates post-quantum signature schemes (Dilithium3, Falcon-512, 
 ## Browser Threat Model (Primary Concerns)
 | Threat | Mitigation | Residual Risk |
 |--------|------------|---------------|
-| Malicious third-party script (XSS) | Strict CSP (`default-src 'self'`; no external scripts) | Inline style allowance until hashed styles adopted | 
-| WASM tampering / substitution | Manifest hash + optional Ed25519 signature check before instantiation | If both manifest & WASM replaced AND signature disabled | 
-| Memory scraping (in-tab) | Minimize exposure window; zeroize on lock/blur | Active attacker with JS execution can exfiltrate live secrets | 
-| Phishing domain | Encourage bookmark + TLS; integrity banner mismatch warns users | Sophisticated lookalike + user ignores banner | 
-| Supply chain (npm dep compromise) | Minimal runtime deps; vendored crypto C; security audit script | Dependency added later without review | 
-| Timing side-channels | Constant-time primitives in PQClean C; avoid branching on secrets in TS | Browser JIT micro-architectural leakage | 
+| Malicious third-party script (XSS) | Strict CSP (`default-src 'self'`; no external scripts) | Inline style allowance until hashed styles adopted |
+| WASM tampering / substitution | Manifest hash + optional Ed25519 signature check before instantiation | If both manifest & WASM replaced AND signature disabled |
+| Memory scraping (in-tab) | Minimize exposure window; zeroize on lock/blur | Active attacker with JS execution can exfiltrate live secrets |
+| Phishing domain | Encourage bookmark + TLS; integrity banner mismatch warns users | Sophisticated lookalike + user ignores banner |
+| Supply chain (npm dep compromise) | Minimal runtime deps; vendored crypto C; security audit script | Dependency added later without review |
+| Timing side-channels | Constant-time primitives in PQClean C; avoid branching on secrets in TS | Browser JIT micro-architectural leakage |
 
 ## Supply Chain Controls
 - Vendored minimal PQClean sources under `vendor/pqclean/` with recorded upstream commit & LICENSE.

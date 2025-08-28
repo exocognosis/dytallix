@@ -35,10 +35,10 @@ pub trait AIOracle {
         request_type: OracleRequestType,
         data: Vec<u8>,
     ) -> Result<u64>;
-    
+
     /// Get the result of a previous analysis request
     fn get_analysis_result(&self, request_id: u64) -> Result<Option<AIAnalysisResult>>;
-    
+
     /// Check if oracle result is available
     fn is_result_ready(&self, request_id: u64) -> bool;
 }
@@ -83,7 +83,7 @@ pub mod ai_oracle_contract {
         #[ink(constructor)]
         pub fn new() -> Self {
             let mut authorized_services = Mapping::default();
-            
+
             // In a real deployment, this would be configured properly
             // For now, allow the deployer as an authorized service
             let deployer = Self::env().caller();
@@ -116,7 +116,7 @@ pub mod ai_oracle_contract {
             confidence: u8,
         ) -> Result<()> {
             let caller = self.env().caller();
-            
+
             // Verify caller is authorized AI service
             if !self.authorized_services.get(&caller).unwrap_or(false) {
                 return Err(ContractError::NotAuthorized);

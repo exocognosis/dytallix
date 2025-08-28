@@ -59,16 +59,16 @@ async fn main() -> anyhow::Result<()> {
 
     // Load configuration
     let config = Config::load(config_path)?;
-    
+
     // Initialize database
     let database = Database::new(&config.database_url).await?;
-    
+
     // Initialize inference engine
     let inference_engine = InferenceEngine::new(model_path, &config).await?;
-    
+
     // Initialize blockchain monitor
     let blockchain_monitor = BlockchainMonitor::new(&config).await?;
-    
+
     // Start metrics server
     let metrics_server = MetricsServer::new(config.metrics_port);
     let metrics_handle = tokio::spawn(async move {
@@ -149,22 +149,22 @@ impl InferenceProcessor {
     async fn process_transaction(&mut self, transaction: blockchain::Transaction) -> anyhow::Result<()> {
         // Extract features from transaction
         let features = self.inference_engine.extract_features(&transaction).await?;
-        
+
         // Run inference
         let inference_result = self.inference_engine.infer(&features).await?;
-        
+
         // If anomaly detected, create finding and submit to contract
         if inference_result.score >= self.config.min_anomaly_score {
             let finding = self.create_finding(&transaction, &inference_result).await?;
-            
+
             // Store in database
             self.database.store_finding(&finding).await?;
-            
+
             // Submit to blockchain contract
             if self.config.auto_submit_findings {
                 self.blockchain_monitor.submit_finding(&finding).await?;
             }
-            
+
             info!(
                 "Anomaly detected: tx={}, score={:.3}, reasons={:?}",
                 transaction.hash,
@@ -182,7 +182,7 @@ impl InferenceProcessor {
         inference_result: &inference::InferenceResult,
     ) -> anyhow::Result<blockchain::Finding> {
         use crate::blockchain::{Finding, PQSignature};
-        
+
         let finding = Finding {
             tx_hash: transaction.hash.clone(),
             addr: transaction.from.clone(),
