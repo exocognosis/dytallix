@@ -298,3 +298,57 @@ preflight-secrets:
 #   make codeguard.build
 #   make codeguard.dev-up
 #   CODEGUARD_CONTRACT=dytallix1abc123... CODEGUARD_CODE_HASH=0x456def... make codeguard.scan
+#   make critical_gaps
+
+# Critical MVP Gaps automated pipeline
+critical_gaps:
+	@echo "🚀 Starting Critical MVP Gaps automated pipeline..."
+	@echo "This will execute phases 1-4 with automated remediation loops"
+	@echo ""
+	@if ! command -v cargo >/dev/null 2>&1; then \
+		echo "❌ cargo not found - please install Rust toolchain"; \
+		exit 1; \
+	fi
+	@if ! command -v git >/dev/null 2>&1; then \
+		echo "❌ git not found - please install git"; \
+		exit 1; \
+	fi
+	@echo "✅ Dependencies validated"
+	@echo ""
+	@echo "Executing phase orchestrator..."
+	@cd scripts/critical_gaps && ./run_all_phases.sh
+	@echo ""
+	@echo "🎯 Validating final deliverables..."
+	@if [ -f "launch-evidence/final_report/READINESS_REPORT_FINAL.md" ]; then \
+		echo "✅ Final readiness report generated"; \
+		echo "📄 Report location: launch-evidence/final_report/READINESS_REPORT_FINAL.md"; \
+	else \
+		echo "❌ Final readiness report missing"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "🔍 Checking phase artifacts and signatures..."
+	@failed=0; \
+	for phase in 1 2 3 4; do \
+		phase_dir=$$(find launch-evidence -maxdepth 1 -type d -name "phase$${phase}_*" | head -1); \
+		if [ -n "$$phase_dir" ] && [ -f "$$phase_dir/artifacts/manifest.json" ] && [ -f "$$phase_dir/artifacts/manifest.sig" ]; then \
+			echo "✅ Phase $$phase: artifacts present and signed"; \
+		else \
+			echo "❌ Phase $$phase: missing artifacts or signatures"; \
+			failed=1; \
+		fi; \
+	done; \
+	if [ $$failed -eq 1 ]; then \
+		echo ""; \
+		echo "❌ Critical gaps validation FAILED - missing artifacts or signatures"; \
+		echo "Check individual phase directories and BLOCKERS.md files"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "🎉 Critical MVP Gaps implementation SUCCESSFUL!"
+	@echo "All phases completed with signed evidence artifacts."
+	@echo ""
+	@echo "Next steps:"
+	@echo "  1. Review final readiness report: launch-evidence/final_report/READINESS_REPORT_FINAL.md"
+	@echo "  2. Deploy test network: docker-compose -f docker-compose.multi.yml up"
+	@echo "  3. Execute live performance validation"
