@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-08-28T14:44:14Z",
+  "claims": [
+    {
+      "delegator": "addr1",
+      "claimed_amount": "proportional_rewards",
+      "verification": "amount_matches_accrued"
+    },
+    {
+      "delegator": "addr2", 
+      "claimed_amount": "2x_proportional_rewards",
+      "verification": "amount_matches_accrued"
+    }
+  ],
+  "post_claim_verification": "all_accrued_balances_zero"
+}

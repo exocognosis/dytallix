@@ -1,0 +1,7 @@
+{
+  "timestamp": "2025-08-28T14:44:14Z",
+  "blocks_simulated": 10,
+  "total_staking_rewards_distributed": "varies_by_emission_schedule",
+  "reward_distribution_method": "proportional_to_stake",
+  "precision": "fixed_point_scale_1e12"
+}

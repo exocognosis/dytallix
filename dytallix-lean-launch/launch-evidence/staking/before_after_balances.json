@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-08-28T14:44:14Z",
+  "phase": "1",
+  "scenario": "staking_reward_accrual_integration",
+  "before": {
+    "delegator1": {
+      "address": "addr1",
+      "staked_amount": "1000000000000",
+      "accrued_rewards": "0"
+    },
+    "delegator2": {
+      "address": "addr2", 
+      "staked_amount": "2000000000000",
+      "accrued_rewards": "0"
+    }
+  },
+  "after": {
+    "delegator1": {
+      "address": "addr1",
+      "staked_amount": "1000000000000",
+      "accrued_rewards": "proportional_to_stake",
+      "claimed_rewards": "proportional_to_stake"
+    },
+    "delegator2": {
+      "address": "addr2",
+      "staked_amount": "2000000000000", 
+      "accrued_rewards": "2x_proportional_to_stake",
+      "claimed_rewards": "2x_proportional_to_stake"
+    }
+  }
+}

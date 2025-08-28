@@ -930,3 +930,47 @@ pub async fn staking_get_accrued(
 
 pub mod errors;
 pub mod oracle;
+
+/// POST /api/staking/delegate - Delegate tokens to a validator
+pub async fn staking_delegate(
+    Json(payload): Json<serde_json::Value>,
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let delegator_addr = payload["delegator_addr"].as_str().ok_or(ApiError::BadRequest("missing delegator_addr".to_string()))?;
+    let validator_addr = payload["validator_addr"].as_str().ok_or(ApiError::BadRequest("missing validator_addr".to_string()))?;
+    let amount_udgt = payload["amount_udgt"].as_str().ok_or(ApiError::BadRequest("missing amount_udgt".to_string()))?
+        .parse::<u128>().map_err(|_| ApiError::BadRequest("invalid amount_udgt".to_string()))?;
+    
+    let mut staking = ctx.staking.lock().unwrap();
+    staking.delegate(delegator_addr, validator_addr, amount_udgt)
+        .map_err(|e| ApiError::BadRequest(e))?;
+    
+    Ok(Json(json!({
+        "status": "success",
+        "delegator_addr": delegator_addr,
+        "validator_addr": validator_addr,
+        "amount_udgt": amount_udgt.to_string()
+    })))
+}
+
+/// POST /api/staking/undelegate - Undelegate tokens from a validator
+pub async fn staking_undelegate(
+    Json(payload): Json<serde_json::Value>,
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let delegator_addr = payload["delegator_addr"].as_str().ok_or(ApiError::BadRequest("missing delegator_addr".to_string()))?;
+    let validator_addr = payload["validator_addr"].as_str().ok_or(ApiError::BadRequest("missing validator_addr".to_string()))?;
+    let amount_udgt = payload["amount_udgt"].as_str().ok_or(ApiError::BadRequest("missing amount_udgt".to_string()))?
+        .parse::<u128>().map_err(|_| ApiError::BadRequest("invalid amount_udgt".to_string()))?;
+    
+    let mut staking = ctx.staking.lock().unwrap();
+    staking.undelegate(delegator_addr, validator_addr, amount_udgt)
+        .map_err(|e| ApiError::BadRequest(e))?;
+    
+    Ok(Json(json!({
+        "status": "success",
+        "delegator_addr": delegator_addr,
+        "validator_addr": validator_addr,
+        "amount_udgt": amount_udgt.to_string()
+    })))
+}
