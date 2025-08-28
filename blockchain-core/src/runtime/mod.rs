@@ -5,12 +5,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 // Enable smart contracts integration now that the crate compiles
 use crate::crypto::PQCManager; // added
-// use crate::staking::{StakingError, StakingState}; // temporarily disable due to path resolution issues
+                               // use crate::staking::{StakingError, StakingState}; // temporarily disable due to path resolution issues
 use crate::storage::StorageManager;
 use crate::types::{Address, BlockNumber};
 use crate::types::{Transaction, TxReceipt, TxStatus};
-use crate::wasm::WasmEngine; // updated simplified import
 use crate::wasm::host_env::{HostEnv, HostExecutionContext}; // keep host env
+use crate::wasm::WasmEngine; // updated simplified import
 use dytallix_contracts::runtime::{
     ContractCall, ContractDeployment, ContractRuntime, ExecutionResult,
 }; // added
