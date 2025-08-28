@@ -1,15 +1,15 @@
 #[test]
 fn oracle_integration() {
     let tx_hashes = ["hash1", "hash2", "hash3"];
-    
+
     for tx_hash in &tx_hashes {
         let score = get_ai_risk_score(tx_hash);
         assert!(score <= 100);
-        
+
         let retrieved = get_stored_assessment(tx_hash);
         assert_eq!(score, retrieved);
     }
-    
+
     println!("✅ Oracle integration test passed");
 }
 

@@ -359,72 +359,84 @@ mod tests {
     }
 }
 
-    /// Delegate tokens to a validator
-    pub fn delegate(&mut self, delegator_addr: &str, validator_addr: &str, amount_udgt: u128) -> Result<(), String> {
-        if amount_udgt == 0 {
-            return Err("Cannot delegate zero amount".to_string());
-        }
-        
-        // Load existing delegator record and settle any pending rewards
-        let mut record = self.load_delegator_record(delegator_addr);
-        
-        // Settle rewards before changing stake
-        if record.stake_amount > 0 {
-            let pending_rewards = ((self.reward_index - record.last_reward_index) * record.stake_amount) / REWARD_SCALE;
-            record.accrued_rewards = record.accrued_rewards.saturating_add(pending_rewards);
-        }
-        
-        // Update stake
-        record.stake_amount = record.stake_amount.saturating_add(amount_udgt);
-        record.last_reward_index = self.reward_index;
-        
-        // Save updated record
-        self.save_delegator_record(delegator_addr, &record);
-        
-        // Update total stake
-        self.set_total_stake(self.total_stake.saturating_add(amount_udgt));
-        
-        Ok(())
+/// Delegate tokens to a validator
+pub fn delegate(
+    &mut self,
+    delegator_addr: &str,
+    validator_addr: &str,
+    amount_udgt: u128,
+) -> Result<(), String> {
+    if amount_udgt == 0 {
+        return Err("Cannot delegate zero amount".to_string());
     }
 
-    /// Undelegate tokens from a validator (simplified - immediate unbonding for MVP)
-    pub fn undelegate(&mut self, delegator_addr: &str, validator_addr: &str, amount_udgt: u128) -> Result<(), String> {
-        if amount_udgt == 0 {
-            return Err("Cannot undelegate zero amount".to_string());
-        }
-        
-        // Load existing delegator record
-        let mut record = self.load_delegator_record(delegator_addr);
-        
-        if record.stake_amount < amount_udgt {
-            return Err("Insufficient delegated amount".to_string());
-        }
-        
-        // Settle rewards before changing stake
-        if record.stake_amount > 0 {
-            let pending_rewards = ((self.reward_index - record.last_reward_index) * record.stake_amount) / REWARD_SCALE;
-            record.accrued_rewards = record.accrued_rewards.saturating_add(pending_rewards);
-        }
-        
-        // Update stake
-        record.stake_amount = record.stake_amount.saturating_sub(amount_udgt);
-        record.last_reward_index = self.reward_index;
-        
-        // Save updated record
-        self.save_delegator_record(delegator_addr, &record);
-        
-        // Update total stake
-        self.set_total_stake(self.total_stake.saturating_sub(amount_udgt));
-        
-        Ok(())
+    // Load existing delegator record and settle any pending rewards
+    let mut record = self.load_delegator_record(delegator_addr);
+
+    // Settle rewards before changing stake
+    if record.stake_amount > 0 {
+        let pending_rewards =
+            ((self.reward_index - record.last_reward_index) * record.stake_amount) / REWARD_SCALE;
+        record.accrued_rewards = record.accrued_rewards.saturating_add(pending_rewards);
     }
 
-    /// Process unbonding entries (simplified for MVP - no unbonding period)
-    pub fn process_unbonding(&mut self, current_height: u64) -> Vec<(String, u128)> {
-        // For MVP, we implement immediate unbonding
-        // In production, this would process entries with unbonding periods
-        log::info!("Processing unbonding at height {}", current_height);
-        
-        // Return empty vec for now - immediate unbonding means no queue
-        Vec::new()
+    // Update stake
+    record.stake_amount = record.stake_amount.saturating_add(amount_udgt);
+    record.last_reward_index = self.reward_index;
+
+    // Save updated record
+    self.save_delegator_record(delegator_addr, &record);
+
+    // Update total stake
+    self.set_total_stake(self.total_stake.saturating_add(amount_udgt));
+
+    Ok(())
+}
+
+/// Undelegate tokens from a validator (simplified - immediate unbonding for MVP)
+pub fn undelegate(
+    &mut self,
+    delegator_addr: &str,
+    validator_addr: &str,
+    amount_udgt: u128,
+) -> Result<(), String> {
+    if amount_udgt == 0 {
+        return Err("Cannot undelegate zero amount".to_string());
     }
+
+    // Load existing delegator record
+    let mut record = self.load_delegator_record(delegator_addr);
+
+    if record.stake_amount < amount_udgt {
+        return Err("Insufficient delegated amount".to_string());
+    }
+
+    // Settle rewards before changing stake
+    if record.stake_amount > 0 {
+        let pending_rewards =
+            ((self.reward_index - record.last_reward_index) * record.stake_amount) / REWARD_SCALE;
+        record.accrued_rewards = record.accrued_rewards.saturating_add(pending_rewards);
+    }
+
+    // Update stake
+    record.stake_amount = record.stake_amount.saturating_sub(amount_udgt);
+    record.last_reward_index = self.reward_index;
+
+    // Save updated record
+    self.save_delegator_record(delegator_addr, &record);
+
+    // Update total stake
+    self.set_total_stake(self.total_stake.saturating_sub(amount_udgt));
+
+    Ok(())
+}
+
+/// Process unbonding entries (simplified for MVP - no unbonding period)
+pub fn process_unbonding(&mut self, current_height: u64) -> Vec<(String, u128)> {
+    // For MVP, we implement immediate unbonding
+    // In production, this would process entries with unbonding periods
+    log::info!("Processing unbonding at height {}", current_height);
+
+    // Return empty vec for now - immediate unbonding means no queue
+    Vec::new()
+}

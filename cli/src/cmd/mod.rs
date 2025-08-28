@@ -2,6 +2,7 @@ pub mod contract;
 pub mod gov;
 pub mod keys;
 pub mod oracle;
+pub mod pqc;
 pub mod query;
 pub mod stake;
 pub mod tx;
