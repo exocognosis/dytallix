@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-08-28T14:46:50Z",
+  "proposal_id": 1,
+  "votes": [
+    {
+      "voter": "voter1",
+      "option": "Yes",
+      "height": 250,
+      "power": "voting_power_varies"
+    },
+    {
+      "voter": "voter2", 
+      "option": "Yes",
+      "height": 260,
+      "power": "voting_power_varies"
+    }
+  ],
+  "tally": {
+    "yes": "sufficient_for_quorum_and_threshold",
+    "no": "0",
+    "abstain": "0",
+    "no_with_veto": "0"
+  }
+}

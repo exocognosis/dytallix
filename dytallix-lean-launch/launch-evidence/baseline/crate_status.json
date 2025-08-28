@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-08-28T14:41:02Z",
+  "total_crates": 12,
+  "workspace_status": "baseline_check_completed",
+  "crates": [
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix#0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/blockchain-core#dytallix-node@0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/cli#dcli@0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/developer-tools#dytallix-cli@0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/dytallix-lean-launch/node#dytallix-lean-node@0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/explorer/api#dytallix-explorer-api@0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/explorer/indexer#dytallix-explorer-indexer@0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/governance#dytallix-governance@0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/interoperability#dytallix-interoperability@0.9.3",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/pqc-crypto#dytallix-pqc@0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/sdk#dytallix-sdk@0.1.0",
+      "status": "detected"
+    },
+    {
+      "name": "path+file:///home/runner/work/dytallix/dytallix/smart-contracts#dytallix-contracts@0.1.0",
+      "status": "detected"
+    }
+  ]
+}

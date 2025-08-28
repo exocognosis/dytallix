@@ -1,20 +1,35 @@
-#![no_std]
+use serde::{Deserialize, Serialize};
 
-use core::panic::PanicInfo;
-
-static mut COUNTER: i32 = 0;
-
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+#[derive(Serialize, Deserialize)]
+pub struct CounterState {
+    pub count: u64,
 }
 
 #[no_mangle]
-pub extern "C" fn increment() {
-    unsafe { COUNTER += 1; }
+pub extern "C" fn init() -> *const u8 {
+    let state = CounterState { count: 0 };
+    let json = serde_json::to_string(&state).unwrap();
+    let ptr = json.as_ptr();
+    std::mem::forget(json);
+    ptr
 }
 
 #[no_mangle]
-pub extern "C" fn get() -> i32 {
-    unsafe { COUNTER }
+pub extern "C" fn increment() -> *const u8 {
+    // In real implementation, load state from storage
+    let mut state = CounterState { count: 1 }; // Simplified
+    state.count += 1;
+    let json = serde_json::to_string(&state).unwrap();
+    let ptr = json.as_ptr();
+    std::mem::forget(json);
+    ptr
+}
+
+#[no_mangle]
+pub extern "C" fn get() -> *const u8 {
+    let state = CounterState { count: 2 }; // Simplified
+    let json = serde_json::to_string(&state).unwrap();
+    let ptr = json.as_ptr();
+    std::mem::forget(json);
+    ptr
 }

@@ -1631,7 +1631,8 @@ async fn handle_staking_get_delegations(
     params: &[serde_json::Value],
     runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
-    if let Some(_address) = params[0].as_str() { // renamed address to _address to silence unused variable warning
+    if let Some(_address) = params[0].as_str() {
+        // renamed address to _address to silence unused variable warning
         // For now, return empty array since we need to implement delegation queries
         // This would require iterating through all delegations to find matches
         serde_json::json!([])

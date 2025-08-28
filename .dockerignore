@@ -8,3 +8,12 @@
 **/*.log
 # Launch evidence (except summary outputs if needed later)
 dytallix-lean-launch/launch-evidence/**
+!dytallix-lean-launch/launch-evidence/**/PHASE*_SUMMARY.md
+!dytallix-lean-launch/launch-evidence/**/READINESS_REPORT.md
+
+# Additional build context minimization
+vendor/
+.env*
+test-results/
+cypress/videos/
+cypress/screenshots/
