@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "phase": "5",
+  "phase_name": "perf",
+  "generated_at": "2025-08-29T01:11:06Z",
+  "generator": "scripts/gen_manifest.sh",
+  "git_info": {
+    "commit": "dfe1dee324e05d3bd872890234a980e916835766",
+    "branch": "copilot/fix-dafe84e3-81ab-426d-9a30-86cbbfb75c46"
+  },
+  "pqc_algorithm": "dilithium3",
+  "artifacts": {
+    "block_time_stats.json": {
+      "sha256": "60e2f1c996a079948c8bcbca5f47f41831b41e95b6ab817bb4c78c43f488460d",
+      "size": 5919,
+      "modified": "2025-08-29T00:57:00Z",
+      "content_type": "application/json"
+    },
+    "latency_histogram.json": {
+      "sha256": "da943ab2af81368da04ce1f442e61a0db713567fc8c7726cb208ff1d5ce6cd94",
+      "size": 13093,
+      "modified": "2025-08-29T00:58:49Z",
+      "content_type": "application/json"
+    },
+    "summary.md": {
+      "sha256": "7facca279528ed1deef8ca4dcf67000e0f7b3bfdefa60211e10e531bdcb755f4",
+      "size": 9618,
+      "modified": "2025-08-29T00:56:25Z",
+      "content_type": "text/markdown"
+    },
+    "tps_report.json": {
+      "sha256": "37ae4660f4f7e3db88ff6ba9be4bf8a017f1b9b8242c536da7848a623d928567",
+      "size": 7689,
+      "modified": "2025-08-29T00:57:46Z",
+      "content_type": "application/json"
+    }
+  },
+  "verification": {
+    "cargo_check": "required",
+    "cargo_test": "required", 
+    "cargo_clippy": "required_with_warnings_as_errors",
+    "integrity_hash": "5064dacd504c5b0883fd5733413d397f9540a8a65be28abefe82ab9beb6db1eb"
+  },
+  "notes": "Generated for Public Testnet Launch Pack - Phase 5"
+}

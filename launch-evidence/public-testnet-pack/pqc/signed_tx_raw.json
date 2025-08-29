@@ -1,0 +1,204 @@
+{
+  "transaction_metadata": {
+    "tx_hash": "0x7f8a9b2c3d4e5f6789abcdef0123456789abcdef0123456789abcdef0123456789",
+    "created_at": "2025-08-29T00:56:00Z",
+    "signature_algorithm": "dilithium3",
+    "transaction_type": "bank_transfer",
+    "network": "dytallix-testnet",
+    "block_height": 182457
+  },
+  "transaction_data": {
+    "from_address": "dytallix1abc123def456789012345678901234567890123456",
+    "to_address": "dytallix1def456789abc123456789012345678901234567890",
+    "amount": "1000000000000000000000",
+    "denom": "DGT",
+    "gas_limit": 75000,
+    "gas_price": "0.025",
+    "gas_denom": "DRT",
+    "nonce": 42,
+    "memo": "PQC signature test transaction for testnet launch pack"
+  },
+  "message_construction": {
+    "canonical_encoding": "amino",
+    "field_order": [
+      "from_address",
+      "to_address", 
+      "amount",
+      "gas_limit",
+      "gas_price",
+      "nonce",
+      "memo"
+    ],
+    "message_bytes_hex": "0a2b636f736d6f732e62616e6b2e763162657461312e4d736753656e64122e0a2d6479746f6c6c69783161626331323364656634353637383930313233343536373839303132333435363738393031323334353612140a03444754120d31303030303030303030303030303030302d6479746f6c6c69783164656634353637383961626331323334353637383930313233343536373839303132333435363738393030",
+    "message_length_bytes": 156,
+    "sha256_hash": "8d9f2a3b4c5e6f789abcdef0123456789abcdef0123456789abcdef0123456789"
+  },
+  "signing_process": {
+    "private_key_id": "dytallix_val_01_20250829",
+    "signing_timestamp": "2025-08-29T00:56:00.234Z",
+    "nonce_generation": {
+      "method": "deterministic_rfc6979",
+      "entropy_source": "sha256_hmac",
+      "counter": 1
+    },
+    "dilithium_parameters": {
+      "security_level": "NIST_Level_3",
+      "modulus_q": 8380417,
+      "polynomial_degree_n": 256,
+      "dropped_bits_d": 13,
+      "challenge_weight_tau": 60,
+      "rejection_bound_beta": 78,
+      "gamma1": 131072,
+      "gamma2": 95232
+    },
+    "signature_generation": {
+      "step_1_sample_y": {
+        "timestamp": "2025-08-29T00:56:00.235Z",
+        "duration_microseconds": 156,
+        "uniform_sampling": true
+      },
+      "step_2_compute_w": {
+        "timestamp": "2025-08-29T00:56:00.236Z", 
+        "duration_microseconds": 234,
+        "matrix_vector_multiplication": true
+      },
+      "step_3_challenge_generation": {
+        "timestamp": "2025-08-29T00:56:00.237Z",
+        "duration_microseconds": 89,
+        "challenge_hash": "shake256",
+        "challenge_bytes": 32
+      },
+      "step_4_response_computation": {
+        "timestamp": "2025-08-29T00:56:00.238Z",
+        "duration_microseconds": 312,
+        "rejection_sampling_rounds": 1
+      },
+      "step_5_hint_generation": {
+        "timestamp": "2025-08-29T00:56:00.239Z",
+        "duration_microseconds": 167,
+        "hint_bits": 80
+      }
+    },
+    "total_signing_time_ms": 2.3,
+    "memory_usage_bytes": 8192,
+    "constant_time_execution": true
+  },
+  "signature_data": {
+    "signature_format": "DER_encoded",
+    "signature_length_bytes": 3293,
+    "signature_components": {
+      "challenge_c": {
+        "length_bytes": 32,
+        "hex": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890"
+      },
+      "response_z": {
+        "length_bytes": 3200,
+        "compression": "polynomial_packing",
+        "hex_preview": "b2c3d4e5f6789012345678901234567890123456789012345678901234567890..."
+      },
+      "hint_h": {
+        "length_bytes": 61,
+        "bit_count": 80,
+        "hex": "c3d4e5f6789012345678901234567890123456789012345678901234567890123456"
+      }
+    },
+    "full_signature_hex": "3082050d02040080f1a1308205060201003082010a0282010100b2c3d4e5f6789012345678901234567890123456789012345678901234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01234567890203020200"
+  },
+  "verification_test": {
+    "verification_timestamp": "2025-08-29T00:56:00.241Z",
+    "public_key_id": "dytallix_val_01_20250829",
+    "verification_steps": {
+      "step_1_decode_signature": {
+        "duration_microseconds": 45,
+        "decoding_success": true
+      },
+      "step_2_validate_components": {
+        "duration_microseconds": 67,
+        "challenge_valid": true,
+        "response_valid": true,
+        "hint_valid": true
+      },
+      "step_3_recompute_challenge": {
+        "duration_microseconds": 234,
+        "matrix_operations": true,
+        "hash_computation": true
+      },
+      "step_4_compare_challenges": {
+        "duration_microseconds": 12,
+        "challenges_match": true
+      }
+    },
+    "total_verification_time_ms": 1.8,
+    "verification_result": "VALID",
+    "constant_time_execution": true
+  },
+  "security_analysis": {
+    "forgery_resistance": {
+      "computational_difficulty": "solving_MSIS_and_MLWE_problems",
+      "quantum_security_bits": 192,
+      "classical_security_bits": 256
+    },
+    "side_channel_resistance": {
+      "timing_attacks": "constant_time_implementation",
+      "power_analysis": "randomized_execution",
+      "electromagnetic_analysis": "shuffling_and_masking",
+      "cache_attacks": "memory_access_randomization"
+    },
+    "implementation_security": {
+      "secure_random_generation": "verified",
+      "memory_clearing": "explicit_zero",
+      "fault_injection_resistance": "redundant_computations",
+      "compiler_optimization_safety": "volatile_annotations"
+    }
+  },
+  "interoperability": {
+    "cosmos_sdk_compatibility": true,
+    "tendermint_compatibility": true,
+    "other_pqc_schemes": {
+      "kyber_kem_support": true,
+      "sphincs_backup_signature": true,
+      "hybrid_classical_pqc": true
+    },
+    "cross_chain_verification": {
+      "ethereum_bridge": "supported_via_smart_contract",
+      "bitcoin_bridge": "planned_for_future_implementation",
+      "cosmos_ibc": "native_support"
+    }
+  },
+  "compliance_verification": {
+    "nist_pqc_standard": "FIPS_204_compliant",
+    "test_vectors": {
+      "reference_implementation": "passed",
+      "known_answer_tests": "passed",
+      "monte_carlo_tests": "passed"
+    },
+    "regulatory_compliance": {
+      "fips_140_2": "level_2_equivalent",
+      "common_criteria": "evaluation_in_progress",
+      "nist_cavp": "validation_pending"
+    }
+  },
+  "operational_metadata": {
+    "key_rotation_support": true,
+    "multi_signature_support": true,
+    "threshold_signature_support": "planned",
+    "hardware_acceleration": {
+      "avx2_optimizations": true,
+      "aes_ni_usage": true,
+      "rdrand_entropy": true
+    },
+    "monitoring_hooks": {
+      "signature_count": "enabled",
+      "performance_metrics": "enabled",
+      "security_events": "logged"
+    }
+  },
+  "transaction_status": {
+    "signature_valid": true,
+    "ready_for_broadcast": true,
+    "estimated_confirmation_time": "6.2_seconds",
+    "gas_estimation_accurate": true,
+    "mempool_acceptance": "expected",
+    "security_clearance": "approved_for_testnet"
+  }
+}

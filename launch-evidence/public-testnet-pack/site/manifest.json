@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "phase": "8",
+  "phase_name": "site",
+  "generated_at": "2025-08-29T01:11:06Z",
+  "generator": "scripts/gen_manifest.sh",
+  "git_info": {
+    "commit": "dfe1dee324e05d3bd872890234a980e916835766",
+    "branch": "copilot/fix-dafe84e3-81ab-426d-9a30-86cbbfb75c46"
+  },
+  "pqc_algorithm": "dilithium3",
+  "artifacts": {
+    "index.html": {
+      "sha256": "b23d6c90ca1c021e8bd58ae1798c8085bedfc0654a6072c261b7973f939ac203",
+      "size": 25710,
+      "modified": "2025-08-29T01:07:17Z",
+      "content_type": "text/html"
+    },
+    "styles.css": {
+      "sha256": "969ae60b5a6afa77c487625822dbe7a8841a98266cba3a0a76f681bcc7c17599",
+      "size": 17859,
+      "modified": "2025-08-29T01:08:34Z",
+      "content_type": "text/css"
+    }
+  },
+  "verification": {
+    "cargo_check": "required",
+    "cargo_test": "required", 
+    "cargo_clippy": "required_with_warnings_as_errors",
+    "integrity_hash": "49a7c0cb0f9cf83677b95a34ddf7b60e14b4a3a0c9d17845c05350095600d00c"
+  },
+  "notes": "Generated for Public Testnet Launch Pack - Phase 8"
+}

@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "phase": "4",
+  "phase_name": "observability",
+  "generated_at": "2025-08-29T01:11:06Z",
+  "generator": "scripts/gen_manifest.sh",
+  "git_info": {
+    "commit": "dfe1dee324e05d3bd872890234a980e916835766",
+    "branch": "copilot/fix-dafe84e3-81ab-426d-9a30-86cbbfb75c46"
+  },
+  "pqc_algorithm": "dilithium3",
+  "artifacts": {
+    "alerts.md": {
+      "sha256": "a8bf139d9f937e8dab7e5d4cd7a4614bc7a78f9d0d51f9cae4d2de6eccb308a8",
+      "size": 11216,
+      "modified": "2025-08-29T00:55:25Z",
+      "content_type": "text/markdown"
+    },
+    "grafana_dashboard.json": {
+      "sha256": "afec3b03ff06fba08c298eb14d664ede3f60a6d18ae559864c5725153feb6234",
+      "size": 8305,
+      "modified": "2025-08-29T00:54:36Z",
+      "content_type": "application/json"
+    },
+    "prom_snapshot.json": {
+      "sha256": "2060942696741a82dc12c93a8d2bf4961224eacd44f1b92efc08fc429fc6b3bb",
+      "size": 5128,
+      "modified": "2025-08-29T00:54:02Z",
+      "content_type": "application/json"
+    }
+  },
+  "verification": {
+    "cargo_check": "required",
+    "cargo_test": "required", 
+    "cargo_clippy": "required_with_warnings_as_errors",
+    "integrity_hash": "f0a25a8506d5e19b1eb4f1248fa6464a6bbd724df65b00f59db80a7c8a694a2a"
+  },
+  "notes": "Generated for Public Testnet Launch Pack - Phase 4"
+}

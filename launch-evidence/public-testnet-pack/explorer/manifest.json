@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "phase": "1",
+  "phase_name": "explorer",
+  "generated_at": "2025-08-29T01:10:58Z",
+  "generator": "scripts/gen_manifest.sh",
+  "git_info": {
+    "commit": "dfe1dee324e05d3bd872890234a980e916835766",
+    "branch": "copilot/fix-dafe84e3-81ab-426d-9a30-86cbbfb75c46"
+  },
+  "pqc_algorithm": "dilithium3",
+  "artifacts": {
+    "flows.md": {
+      "sha256": "9ac0a706c1f152ff1cfdf03ecca7c13f2e56f9a8caaddcc3c2cbdf912f37e5db",
+      "size": 5298,
+      "modified": "2025-08-29T00:48:49Z",
+      "content_type": "text/markdown"
+    },
+    "screens/.gitkeep": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "modified": "2025-08-29T00:48:55Z"
+    }
+  },
+  "verification": {
+    "cargo_check": "required",
+    "cargo_test": "required", 
+    "cargo_clippy": "required_with_warnings_as_errors",
+    "integrity_hash": "336dd146d4cbf4a2e66d7c75ed3cbf89bbe655b270d9d8eae6de0d7f98f35ad6"
+  },
+  "notes": "Generated for Public Testnet Launch Pack - Phase 1"
+}
