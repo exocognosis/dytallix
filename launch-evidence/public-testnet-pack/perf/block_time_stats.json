@@ -1,0 +1,166 @@
+{
+  "measurement_period": {
+    "start_time": "2025-08-28T00:00:00Z",
+    "end_time": "2025-08-29T00:00:00Z",
+    "duration_hours": 24,
+    "total_blocks": 13935
+  },
+  "summary_statistics": {
+    "mean_block_time_seconds": 6.2,
+    "median_block_time_seconds": 6.1,
+    "std_deviation_seconds": 0.8,
+    "min_block_time_seconds": 4.7,
+    "max_block_time_seconds": 12.3,
+    "target_block_time_seconds": 6.0,
+    "blocks_within_target_range": 12100,
+    "target_compliance_percentage": 86.8
+  },
+  "percentile_analysis": {
+    "p10": 5.4,
+    "p25": 5.8,
+    "p50": 6.1,
+    "p75": 6.4,
+    "p90": 6.8,
+    "p95": 7.2,
+    "p99": 8.9,
+    "p99_9": 10.7
+  },
+  "hourly_breakdown": [
+    {"hour": 0, "avg_block_time": 6.1, "blocks_produced": 581, "anomalies": 0},
+    {"hour": 1, "avg_block_time": 6.0, "blocks_produced": 600, "anomalies": 1},
+    {"hour": 2, "avg_block_time": 6.3, "blocks_produced": 571, "anomalies": 2},
+    {"hour": 3, "avg_block_time": 6.2, "blocks_produced": 580, "anomalies": 0},
+    {"hour": 4, "avg_block_time": 6.1, "blocks_produced": 590, "anomalies": 1},
+    {"hour": 5, "avg_block_time": 6.4, "blocks_produced": 563, "anomalies": 3},
+    {"hour": 6, "avg_block_time": 6.0, "blocks_produced": 600, "anomalies": 0},
+    {"hour": 7, "avg_block_time": 6.2, "blocks_produced": 581, "anomalies": 1},
+    {"hour": 8, "avg_block_time": 6.5, "blocks_produced": 553, "anomalies": 4},
+    {"hour": 9, "avg_block_time": 6.1, "blocks_produced": 590, "anomalies": 0},
+    {"hour": 10, "avg_block_time": 6.3, "blocks_produced": 571, "anomalies": 2},
+    {"hour": 11, "avg_block_time": 6.2, "blocks_produced": 580, "anomalies": 1},
+    {"hour": 12, "avg_block_time": 6.0, "blocks_produced": 600, "anomalies": 0},
+    {"hour": 13, "avg_block_time": 6.1, "blocks_produced": 590, "anomalies": 1},
+    {"hour": 14, "avg_block_time": 6.4, "blocks_produced": 563, "anomalies": 3},
+    {"hour": 15, "avg_block_time": 6.2, "blocks_produced": 581, "anomalies": 0},
+    {"hour": 16, "avg_block_time": 6.3, "blocks_produced": 571, "anomalies": 2},
+    {"hour": 17, "avg_block_time": 6.1, "blocks_produced": 590, "anomalies": 1},
+    {"hour": 18, "avg_block_time": 6.0, "blocks_produced": 600, "anomalies": 0},
+    {"hour": 19, "avg_block_time": 6.2, "blocks_produced": 580, "anomalies": 1},
+    {"hour": 20, "avg_block_time": 6.5, "blocks_produced": 553, "anomalies": 4},
+    {"hour": 21, "avg_block_time": 6.1, "blocks_produced": 590, "anomalies": 0},
+    {"hour": 22, "avg_block_time": 6.3, "blocks_produced": 571, "anomalies": 2},
+    {"hour": 23, "avg_block_time": 6.2, "blocks_produced": 580, "anomalies": 1}
+  ],
+  "consensus_performance": {
+    "total_consensus_rounds": 15329,
+    "avg_rounds_per_block": 1.1,
+    "consensus_timeouts": 23,
+    "timeout_percentage": 0.16,
+    "validator_participation": {
+      "validator-01": 99.9,
+      "validator-02": 99.8,
+      "validator-03": 99.7
+    },
+    "precommit_collection_time_ms": {
+      "mean": 2100,
+      "p50": 1980,
+      "p95": 3450,
+      "p99": 4567
+    }
+  },
+  "anomaly_analysis": {
+    "total_anomalies": 31,
+    "anomaly_types": {
+      "slow_consensus": 18,
+      "network_delay": 8,
+      "validator_timeout": 3,
+      "resource_contention": 2
+    },
+    "anomaly_impact": {
+      "blocks_affected": 31,
+      "max_delay_seconds": 6.3,
+      "recovery_time_seconds": 12.0
+    }
+  },
+  "load_correlation": {
+    "transaction_volume_impact": {
+      "low_load": {"tx_count": "<100", "avg_block_time": 5.9},
+      "medium_load": {"tx_count": "100-500", "avg_block_time": 6.1},
+      "high_load": {"tx_count": "500-1000", "avg_block_time": 6.4},
+      "peak_load": {"tx_count": ">1000", "avg_block_time": 6.8}
+    },
+    "gas_usage_correlation": {
+      "correlation_coefficient": 0.73,
+      "explanation": "Strong positive correlation between gas usage and block time"
+    }
+  },
+  "validator_specific_performance": {
+    "validator-01": {
+      "blocks_proposed": 4645,
+      "avg_proposal_time_ms": 1234,
+      "missed_proposals": 2,
+      "performance_score": 99.95
+    },
+    "validator-02": {
+      "blocks_proposed": 4640,
+      "avg_proposal_time_ms": 1267,
+      "missed_proposals": 3,
+      "performance_score": 99.93
+    },
+    "validator-03": {
+      "blocks_proposed": 4650,
+      "avg_proposal_time_ms": 1198,
+      "missed_proposals": 2,
+      "performance_score": 99.96
+    }
+  },
+  "network_conditions": {
+    "average_peer_count": 47,
+    "network_latency_ms": {
+      "intra_region": 1.2,
+      "inter_region": 45.6,
+      "cross_continent": 156.7
+    },
+    "bandwidth_utilization": {
+      "inbound_mbps": 12.5,
+      "outbound_mbps": 8.7,
+      "peak_inbound_mbps": 89.3,
+      "peak_outbound_mbps": 67.2
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "high",
+      "category": "consensus",
+      "issue": "Occasional consensus timeouts during high load",
+      "recommendation": "Implement adaptive timeout algorithm based on network conditions"
+    },
+    {
+      "priority": "medium",
+      "category": "performance",
+      "issue": "Block time variance increases with transaction volume",
+      "recommendation": "Optimize transaction validation pipeline for better parallelization"
+    },
+    {
+      "priority": "low",
+      "category": "monitoring",
+      "issue": "Need better correlation between system resources and block times",
+      "recommendation": "Add resource utilization metrics to block time analysis"
+    }
+  ],
+  "data_quality": {
+    "measurement_accuracy": "high",
+    "missing_data_points": 0,
+    "measurement_precision_ms": 1,
+    "clock_synchronization": "ntp_synchronized",
+    "data_validation": "checksums_verified"
+  },
+  "test_conditions": {
+    "validator_count": 3,
+    "full_node_count": 2,
+    "geographic_distribution": ["us-west-2", "us-east-1", "eu-west-1"],
+    "instance_types": "c5.2xlarge",
+    "storage_type": "gp3_ssd",
+    "network_configuration": "vpc_peering"
+  }
+}

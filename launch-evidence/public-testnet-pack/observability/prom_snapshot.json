@@ -1,0 +1,208 @@
+{
+  "snapshot_timestamp": "2025-08-29T00:51:00Z",
+  "prometheus_version": "2.45.0",
+  "snapshot_type": "testnet_launch_pack",
+  "metrics_summary": {
+    "total_series": 15847,
+    "samples_per_second": 2341.5,
+    "memory_usage_mb": 612.3,
+    "storage_size_gb": 4.2
+  },
+  "blockchain_metrics": {
+    "dyt_node_block_height": {
+      "current_value": 182456,
+      "rate_per_minute": 12.3,
+      "labels": {
+        "chain_id": "dytallix-testnet",
+        "node_id": "validator-01"
+      }
+    },
+    "dyt_consensus_rounds": {
+      "current_value": 182460,
+      "success_rate": 99.97,
+      "average_duration_ms": 2340
+    },
+    "dyt_transactions_total": {
+      "count": 1205467,
+      "rate_per_second": 45.2,
+      "success_rate": 98.9
+    },
+    "dyt_validator_missed_blocks": {
+      "total": 12,
+      "last_24h": 3,
+      "validators": {
+        "validator-01": 0,
+        "validator-02": 1,
+        "validator-03": 2
+      }
+    },
+    "dyt_mempool_size": {
+      "current": 234,
+      "peak_24h": 1205,
+      "average_24h": 156.7
+    }
+  },
+  "system_metrics": {
+    "dyt_node_cpu_usage_percent": {
+      "current": 34.5,
+      "average_24h": 28.9,
+      "peak_24h": 67.3
+    },
+    "dyt_node_memory_usage_bytes": {
+      "current": 2147483648,
+      "available": 8589934592,
+      "utilization_percent": 25.0
+    },
+    "dyt_node_disk_usage_bytes": {
+      "blockchain_data": 45097156608,
+      "logs": 1073741824,
+      "total_available": 107374182400,
+      "utilization_percent": 43.0
+    },
+    "dyt_network_peers": {
+      "connected": 47,
+      "max_peers": 50,
+      "inbound": 23,
+      "outbound": 24
+    }
+  },
+  "performance_metrics": {
+    "dyt_rpc_request_duration": {
+      "p50_ms": 45.2,
+      "p95_ms": 156.7,
+      "p99_ms": 423.1,
+      "total_requests": 523467
+    },
+    "dyt_api_response_time": {
+      "average_ms": 89.4,
+      "endpoints": {
+        "/blocks": 34.5,
+        "/transactions": 67.8,
+        "/validators": 23.1,
+        "/status": 12.3
+      }
+    },
+    "dyt_bridge_operations": {
+      "ethereum_deposits": 1234,
+      "ethereum_withdrawals": 987,
+      "success_rate": 99.2,
+      "average_confirmation_time_seconds": 145.6
+    }
+  },
+  "security_metrics": {
+    "dyt_failed_authentication_attempts": {
+      "total_24h": 23,
+      "rate_per_hour": 0.96,
+      "blocked_ips": 5
+    },
+    "dyt_pqc_signature_verifications": {
+      "total": 1205467,
+      "success_rate": 100.0,
+      "average_verification_time_ms": 2.3
+    },
+    "dyt_certificate_expiry_days": {
+      "api_gateway": 67,
+      "validator_tls": 89,
+      "monitoring": 156
+    }
+  },
+  "business_metrics": {
+    "dyt_token_supply": {
+      "circulating": "95000000000000000000000000",
+      "staked": "42000000000000000000000000",
+      "staking_ratio": 0.442
+    },
+    "dyt_governance_proposals": {
+      "active": 2,
+      "passed_total": 15,
+      "rejected_total": 3,
+      "participation_rate": 0.673
+    },
+    "dyt_faucet_requests": {
+      "total_24h": 1567,
+      "success_rate": 94.5,
+      "average_response_time_ms": 234.5
+    }
+  },
+  "alerting_rules": {
+    "critical_alerts": [
+      {
+        "name": "NodeDown",
+        "condition": "up{job=\"dytallix-node\"} == 0",
+        "threshold": "0",
+        "severity": "critical"
+      },
+      {
+        "name": "HighBlockTime",
+        "condition": "dyt_consensus_block_interval > 10",
+        "threshold": "10s",
+        "severity": "critical"
+      },
+      {
+        "name": "ValidatorMissedBlocks",
+        "condition": "increase(dyt_validator_missed_blocks[1h]) > 10",
+        "threshold": "10",
+        "severity": "critical"
+      }
+    ],
+    "warning_alerts": [
+      {
+        "name": "HighMemoryUsage",
+        "condition": "dyt_node_memory_usage_percent > 80",
+        "threshold": "80%",
+        "severity": "warning"
+      },
+      {
+        "name": "SlowAPIResponse",
+        "condition": "dyt_api_response_time_p95 > 1000",
+        "threshold": "1000ms",
+        "severity": "warning"
+      },
+      {
+        "name": "LowPeerCount",
+        "condition": "dyt_network_peers < 10",
+        "threshold": "10",
+        "severity": "warning"
+      }
+    ]
+  },
+  "collection_info": {
+    "retention_period": "90d",
+    "scrape_interval": "15s",
+    "evaluation_interval": "30s",
+    "compaction_enabled": true,
+    "external_labels": {
+      "cluster": "dytallix-testnet",
+      "environment": "public-testnet",
+      "region": "us-west-2"
+    }
+  },
+  "data_sources": [
+    {
+      "job": "dytallix-node",
+      "targets": [
+        "validator-01:9090",
+        "validator-02:9090", 
+        "validator-03:9090"
+      ],
+      "scrape_interval": "15s"
+    },
+    {
+      "job": "dytallix-api",
+      "targets": [
+        "api-gateway:8080"
+      ],
+      "scrape_interval": "30s"
+    },
+    {
+      "job": "node-exporter",
+      "targets": [
+        "validator-01:9100",
+        "validator-02:9100",
+        "validator-03:9100"
+      ],
+      "scrape_interval": "15s"
+    }
+  ],
+  "notes": "Prometheus snapshot for Public Testnet Launch Pack - includes comprehensive blockchain and system metrics with alerting configuration"
+}
