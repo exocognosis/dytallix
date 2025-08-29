@@ -1,6 +1,6 @@
 # Dytallix Project Makefile
 
-.PHONY: help build test lint clean verify-token-migration ci install checksum security-audit trivy dev faucet test-unit test-e2e errors
+.PHONY: help build test lint clean verify-token-migration ci install checksum security-audit trivy dev faucet test-unit test-e2e errors check clippy gate package
 
 # Configuration variables
 FRONTEND_DIR?=dytallix-lean-launch
@@ -292,6 +292,26 @@ helm-lint:
 preflight-secrets:
 	bash scripts/preflight_secrets.sh
 
+# Public Testnet Launch Pack targets
+check:
+	@echo "🔍 Running cargo check..."
+	cargo check --workspace --all-targets
+	@echo "✅ Cargo check complete"
+
+clippy:
+	@echo "🔍 Running cargo clippy with warnings as errors..."
+	cargo clippy --workspace --all-targets -- -D warnings
+	@echo "✅ Clippy complete"
+
+gate: check test clippy
+	@echo "🚪 Running gating checks (check + test + clippy -D warnings)..."
+	@echo "✅ All gating checks passed"
+
+package:
+	@echo "📦 Packaging Public Testnet Launch Pack..."
+	@bash scripts/package_public_testnet.sh
+	@echo "✅ Public Testnet Launch Pack packaged"
+
 # Usage examples:
 #   make ci
 #   ALLOW_AUDIT_FAIL=true make security-audit
@@ -299,6 +319,8 @@ preflight-secrets:
 #   make codeguard.dev-up
 #   CODEGUARD_CONTRACT=dytallix1abc123... CODEGUARD_CODE_HASH=0x456def... make codeguard.scan
 #   make critical_gaps
+#   make gate
+#   make package
 
 # Critical MVP Gaps automated pipeline
 critical_gaps:
