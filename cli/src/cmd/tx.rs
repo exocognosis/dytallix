@@ -129,7 +129,7 @@ pub async fn handle_transfer(
 }
 
 // Gas estimation functions
-fn estimate_gas_for_transfer(tx: &Tx, gas_price: u64) -> Result<u64> {
+fn estimate_gas_for_transfer(tx: &Tx, _gas_price: u64) -> Result<u64> {
     let intrinsic = estimate_intrinsic_gas_for_transfer(tx)?;
     // Apply 2x safety factor as per specification
     Ok(intrinsic * 2)
@@ -239,7 +239,7 @@ pub async fn handle_batch(
     Ok(())
 }
 
-fn estimate_gas_for_batch(tx: &Tx, gas_price: u64) -> Result<u64> {
+fn estimate_gas_for_batch(tx: &Tx, _gas_price: u64) -> Result<u64> {
     let intrinsic = estimate_intrinsic_gas_for_batch(tx)?;
     // Apply higher safety factor for batch transactions
     Ok(intrinsic * 3)

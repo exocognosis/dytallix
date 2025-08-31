@@ -6,7 +6,7 @@ use super::{PolkadotBlock, PolkadotTxHash, XcmMessage};
 use crate::BridgeError;
 use std::str::FromStr;
 use subxt::{
-    ext::sp_core::{sr25519::Pair},
+    ext::sp_core::{sr25519::Pair, Pair as PairTrait},
     tx::PairSigner,
     utils::{AccountId32, H256},
     OnlineClient, PolkadotConfig,
