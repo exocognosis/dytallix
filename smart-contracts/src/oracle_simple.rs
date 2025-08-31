@@ -45,7 +45,15 @@ impl SimpleOracle {
             authorized_providers: HashMap::new(),
         }
     }
+}
 
+impl Default for SimpleOracle {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SimpleOracle {
     pub fn submit_request(&mut self, mut request: OracleRequest) -> u64 {
         let request_id = self.next_request_id;
         self.next_request_id += 1;

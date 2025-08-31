@@ -181,7 +181,15 @@ impl AuditReportGenerator {
             report_count: 0,
         }
     }
+}
 
+impl Default for AuditReportGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AuditReportGenerator {
     /// Generate comprehensive audit report
     pub fn generate_report(
         &mut self,

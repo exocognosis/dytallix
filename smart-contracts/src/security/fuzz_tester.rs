@@ -91,7 +91,15 @@ impl FuzzTester {
             max_iterations: 1000,
         }
     }
+}
 
+impl Default for FuzzTester {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FuzzTester {
     /// Test a contract deployment with fuzz testing
     pub async fn test_deployment(
         &mut self,

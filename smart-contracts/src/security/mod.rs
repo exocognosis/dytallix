@@ -105,7 +105,15 @@ impl SecurityAuditor {
             fuzz_tester: FuzzTester::new(),
         }
     }
+}
 
+impl Default for SecurityAuditor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SecurityAuditor {
     /// Perform a comprehensive security audit of a smart contract
     pub async fn audit_contract(&mut self, deployment: &ContractDeployment) -> SecurityAuditResult {
         let mut findings = Vec::new();

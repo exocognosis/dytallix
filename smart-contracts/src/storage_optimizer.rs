@@ -36,7 +36,15 @@ impl OptimizedStorage {
     pub fn new() -> Self {
         Self::with_config(10000, true)
     }
+}
 
+impl Default for OptimizedStorage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl OptimizedStorage {
     /// Create optimized storage with custom configuration
     pub fn with_config(cache_size_limit: usize, compression_enabled: bool) -> Self {
         let mut key_prefix_compression = HashMap::new();
@@ -289,7 +297,15 @@ impl StorageAnalyzer {
             access_patterns: HashMap::new(),
         }
     }
+}
 
+impl Default for StorageAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl StorageAnalyzer {
     /// Record a storage access
     pub fn record_access(
         &mut self,

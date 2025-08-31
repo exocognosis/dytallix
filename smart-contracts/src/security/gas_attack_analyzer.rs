@@ -64,7 +64,15 @@ impl GasAttackAnalyzer {
             thresholds: GasAttackThresholds::default(),
         }
     }
+}
 
+impl Default for GasAttackAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl GasAttackAnalyzer {
     /// Analyze a contract deployment for gas attack vectors
     pub async fn analyze_deployment(
         &mut self,
