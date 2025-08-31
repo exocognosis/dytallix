@@ -85,14 +85,8 @@ pub async fn deploy_contract(
             // Simulate deployment for development
             serde_json::json!({
                 "success": true,
-                "contract_address": {
-                    let addr_hex = hex::encode(&contract_bytes[..8]);
-                    format!("dyt1contract{addr_hex}")
-                },
-                "transaction_hash": {
-                    let tx_hex = hex::encode(&contract_bytes[..16]);
-                    format!("0x{tx_hex}")
-                },
+                "contract_address": format!("dyt1contract{}", hex::encode(&contract_bytes[..8])),
+                "transaction_hash": format!("0x{}", hex::encode(&contract_bytes[..16])),
                 "gas_used": 500000,
                 "block_number": 12345
             })
@@ -194,10 +188,7 @@ pub async fn call_contract(
                 "success": true,
                 "result": format!("Method '{method}' called successfully"),
                 "gas_used": 200000,
-                "transaction_hash": {
-                    let hash_hex = hex::encode(&address.as_bytes()[..16]);
-                    format!("0x{hash_hex}")
-                }
+                "transaction_hash": format!("0x{}", hex::encode(&address.as_bytes()[..16]))
             })
         }
     };
