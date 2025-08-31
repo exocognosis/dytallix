@@ -192,7 +192,7 @@ impl GasOptimizer {
                 } => {
                     if operation.contains(operation_type) && complexity.storage_writes > 1 {
                         // Reduce gas for batched operations
-                        let batch_reduction = ((*batch_size as f64).ln() * 0.1);
+                        let batch_reduction = (*batch_size as f64).ln() * 0.1;
                         optimized_gas =
                             (optimized_gas as f64 * (1.0 - batch_reduction.min(0.3))) as u64;
                         applied_optimizations.push("batch_operations");

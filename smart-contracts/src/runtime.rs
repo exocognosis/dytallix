@@ -485,13 +485,13 @@ impl ContractRuntime {
                 .and_then(|export| export.into_func())
                 .ok_or_else(|| ContractExecutionError {
                     code: ErrorCode::ExecutionFailed,
-                    message: format!("Function '{}' not found", func_name),
+                    message: format!("Function '{func_name}' not found"),
                     gas_used: 0,
                 })?
                 .typed(&mut store)
                 .map_err(|e| ContractExecutionError {
                     code: ErrorCode::ExecutionFailed,
-                    message: format!("Function '{}' not found: {e}", func_name),
+                    message: format!("Function '{func_name}' not found: {e}"),
                     gas_used: 0,
                 })?;
 
@@ -691,7 +691,7 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "storage_set",
-                |caller: Caller<HostCallContext>,
+                |mut caller: Caller<HostCallContext>,
                  key_ptr: i32,
                  key_len: i32,
                  value_ptr: i32,
@@ -773,7 +773,7 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "emit_event",
-                |caller: Caller<HostCallContext>,
+                |mut caller: Caller<HostCallContext>,
                  topic_ptr: i32,
                  topic_len: i32,
                  data_ptr: i32,
