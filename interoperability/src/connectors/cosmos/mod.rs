@@ -26,7 +26,7 @@ pub struct CosmosBlock {
     pub chain_id: String,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CosmosConfig {
     pub rpc_url: String,
     pub grpc_url: String,
@@ -125,7 +125,7 @@ impl CosmosConnector {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_nanos() as u64
-                + 3600_000_000_000, // 1 hour timeout
+                + 3_600_000_000_000, // 1 hour timeout
         };
 
         // Submit IBC transfer transaction

@@ -56,9 +56,9 @@ impl BlockchainClient {
         let mut params = Vec::new();
 
         if let Some(acc) = account {
-            params.push(format!("account={}", acc));
+            params.push(format!("account={acc}"));
         }
-        params.push(format!("limit={}", limit));
+        params.push(format!("limit={limit}"));
 
         if !params.is_empty() {
             url = format!("{}?{}", url, params.join("&"));
