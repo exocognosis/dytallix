@@ -8,7 +8,6 @@ use crate::state::State;
 use crate::storage::tx::Transaction;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use dytallix_node::policy::signature_policy::{PolicyError, PolicyManager};
-use dytallix_pqc::SignatureAlgorithm as PQCSignatureAlgorithm; // added for policy mapping
 
 #[cfg(test)]
 mod gas_tests;
@@ -509,10 +508,8 @@ impl Mempool {
     fn validate_signature_policy(&self, tx: &Transaction) -> Result<(), PolicyError> {
         if let Some(alg) = tx.signature_algorithm() {
             if self.policy_manager.policy().should_enforce_at_mempool() {
-                let pqc_alg = match alg {
-                    crate::storage::tx::SignatureAlgorithm::Dilithium5 => PQCSignatureAlgorithm::Dilithium5,
-                };
-                self.policy_manager.validate_transaction_algorithm(&pqc_alg)?;
+                // No conversion needed since both use the same SignatureAlgorithm from dytallix_pqc
+                self.policy_manager.validate_transaction_algorithm(&alg)?;
             }
         }
         Ok(())

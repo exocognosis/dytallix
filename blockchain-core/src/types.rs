@@ -803,10 +803,7 @@ impl Transaction {
         // In a real implementation, this would use a shared PQC manager instance
         match dytallix_pqc::PQCManager::new() {
             Ok(pqc_manager) => {
-                match pqc_manager.verify(&message, &signature.signature, &signature.public_key) {
-                    Ok(valid) => valid,
-                    Err(_) => false,
-                }
+                pqc_manager.verify(&message, &signature.signature, &signature.public_key).unwrap_or_default()
             }
             Err(_) => false,
         }

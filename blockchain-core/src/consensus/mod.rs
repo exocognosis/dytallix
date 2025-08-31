@@ -78,7 +78,6 @@ pub struct DytallixConsensus;
 mod tests {
     use super::*;
     use serde_json::json;
-    use std::time::Duration;
 
     #[test]
     fn test_ai_oracle_client_creation() {

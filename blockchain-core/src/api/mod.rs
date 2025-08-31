@@ -1629,7 +1629,7 @@ async fn handle_staking_get_validators(
 
 async fn handle_staking_get_delegations(
     params: &[serde_json::Value],
-    runtime: Arc<crate::runtime::DytallixRuntime>,
+    _runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
     if let Some(_address) = params[0].as_str() {
         // renamed address to _address to silence unused variable warning

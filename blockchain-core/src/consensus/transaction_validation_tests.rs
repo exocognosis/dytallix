@@ -7,7 +7,6 @@ use anyhow::Result;
 use std::sync::Arc;
 use tokio;
 
-use crate::consensus::ai_integration::{AIIntegrationConfig, AIIntegrationManager};
 use crate::consensus::ConsensusEngine;
 use crate::crypto::PQCManager;
 use crate::runtime::DytallixRuntime;

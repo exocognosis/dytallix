@@ -4,7 +4,6 @@
 //! with replay protection and response caching enabled.
 
 use anyhow::Result;
-use serde_json;
 
 use crate::consensus::{
     ai_integration::{AIIntegrationConfig, AIIntegrationManager, RiskThresholds},
