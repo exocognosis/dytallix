@@ -363,6 +363,9 @@ pub fn execute(
 }
 
 /// Mint tokens after Ethereum lock confirmation
+// Allow many arguments as this function serves as an external entry point
+// that needs to handle all bridge-related parameters
+#[allow(clippy::too_many_arguments)]
 pub fn execute_mint_tokens(
     deps: DepsMut,
     env: Env,

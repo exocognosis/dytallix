@@ -437,6 +437,9 @@ pub fn execute(
 }
 
 /// Optimized mint tokens function with early returns and reduced storage operations
+// Allow many arguments as this function serves as an external entry point
+// that needs to handle all bridge-related parameters
+#[allow(clippy::too_many_arguments)]
 pub fn execute_mint_tokens_optimized(
     deps: DepsMut,
     env: Env,
@@ -509,7 +512,7 @@ pub fn execute_mint_tokens_optimized(
     let validator_index = state
         .validators
         .iter()
-        .position(|v| v == &info.sender)
+        .position(|v| v == info.sender)
         .unwrap_or(0);
 
     // Set validator confirmation bitmask
@@ -647,7 +650,7 @@ pub fn execute_batch_confirm_bridge(
             let validator_index = state
                 .validators
                 .iter()
-                .position(|v| v == &validator)
+                .position(|v| v == validator)
                 .unwrap_or(0);
 
             // Load existing confirmations
@@ -696,7 +699,7 @@ pub fn execute_confirm_bridge_optimized(
     let validator_index = state
         .validators
         .iter()
-        .position(|v| v == &info.sender)
+        .position(|v| v == info.sender)
         .unwrap_or(0);
 
     let validator_bit = 1u64 << validator_index;

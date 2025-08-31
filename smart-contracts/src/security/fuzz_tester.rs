@@ -91,7 +91,15 @@ impl FuzzTester {
             max_iterations: 1000,
         }
     }
+}
 
+impl Default for FuzzTester {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FuzzTester {
     /// Test a contract deployment with fuzz testing
     pub async fn test_deployment(
         &mut self,
@@ -327,8 +335,7 @@ impl FuzzTester {
                 id: format!("FUZZ-BUFFER-{}", self.generate_id()),
                 title: "Buffer Overflow Vulnerability".to_string(),
                 description: format!(
-                    "Fuzz testing with {} generator revealed potential buffer overflow",
-                    generator_name
+                    "Fuzz testing with {generator_name} generator revealed potential buffer overflow"
                 ),
                 severity: Severity::High,
                 category: VulnerabilityCategory::LogicFlaws,
@@ -381,10 +388,10 @@ impl FuzzTester {
         match strategy {
             MutationStrategy::BitFlip { probability } => {
                 let mut mutated = data.to_vec();
-                for i in 0..mutated.len() {
+                for byte in &mut mutated {
                     if random_f64() < *probability {
                         let bit: u8 = (random_u64() % 8) as u8;
-                        mutated[i] ^= 1 << bit;
+                        *byte ^= 1 << bit;
                     }
                 }
                 mutations.push(mutated);
@@ -420,9 +427,9 @@ impl FuzzTester {
             }
             MutationStrategy::ByteReplace { probability } => {
                 let mut mutated = data.to_vec();
-                for i in 0..mutated.len() {
+                for byte in &mut mutated {
                     if random_f64() < *probability {
-                        mutated[i] = random_u8();
+                        *byte = random_u8();
                     }
                 }
                 mutations.push(mutated);
@@ -502,6 +509,8 @@ impl FuzzTester {
 
 /// Initialization scenarios for testing
 #[derive(Debug, Clone)]
+// Allow enum variant names as they represent different state types
+#[allow(clippy::enum_variant_names)]
 enum InitializationScenario {
     EmptyState,
     MaximumState,

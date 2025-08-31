@@ -181,7 +181,15 @@ impl AuditReportGenerator {
             report_count: 0,
         }
     }
+}
 
+impl Default for AuditReportGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AuditReportGenerator {
     /// Generate comprehensive audit report
     pub fn generate_report(
         &mut self,
@@ -215,7 +223,7 @@ impl AuditReportGenerator {
         let mut markdown = String::new();
 
         // Title and metadata
-        markdown.push_str(&format!("# Smart Contract Security Audit Report\n\n"));
+        markdown.push_str("# Smart Contract Security Audit Report\n\n");
         markdown.push_str(&format!(
             "**Contract:** `{}`\n",
             report.metadata.contract_address
@@ -260,15 +268,15 @@ impl AuditReportGenerator {
                 &report.executive_summary.deployment_recommendation,
             ),
         );
-        markdown.push_str("\n");
+        markdown.push('\n');
 
         // Key Concerns
         if !report.executive_summary.key_concerns.is_empty() {
             markdown.push_str("### Key Security Concerns\n");
             for concern in &report.executive_summary.key_concerns {
-                markdown.push_str(&format!("- {}\n", concern));
+                markdown.push_str(&format!("- {concern}\n"));
             }
-            markdown.push_str("\n");
+            markdown.push('\n');
         }
 
         // Detailed Findings
@@ -287,11 +295,11 @@ impl AuditReportGenerator {
             markdown.push_str(&format!("**Severity:** {}\n", finding.severity.as_str()));
 
             if let Some(location) = &finding.location {
-                markdown.push_str(&format!("**Location:** `{}`\n", location));
+                markdown.push_str(&format!("**Location:** `{location}`\n"));
             }
 
             if let Some(gas_impact) = finding.gas_impact {
-                markdown.push_str(&format!("**Gas Impact:** {} gas units\n", gas_impact));
+                markdown.push_str(&format!("**Gas Impact:** {gas_impact} gas units\n"));
             }
 
             markdown.push_str(&format!("\n**Description:**\n{}\n\n", finding.description));
@@ -299,14 +307,14 @@ impl AuditReportGenerator {
             if !finding.evidence.is_empty() {
                 markdown.push_str("**Evidence:**\n");
                 for evidence in &finding.evidence {
-                    markdown.push_str(&format!("- {}\n", evidence));
+                    markdown.push_str(&format!("- {evidence}\n"));
                 }
-                markdown.push_str("\n");
+                markdown.push('\n');
             }
 
             markdown.push_str("**Recommendations:**\n");
             for recommendation in &finding.recommendations {
-                markdown.push_str(&format!("- {}\n", recommendation));
+                markdown.push_str(&format!("- {recommendation}\n"));
             }
 
             markdown.push_str(&format!(
@@ -316,7 +324,7 @@ impl AuditReportGenerator {
 
             if let Some(poc) = &detailed_finding.proof_of_concept {
                 markdown.push_str("**Proof of Concept:**\n");
-                markdown.push_str(&format!("```\n{}\n```\n\n", poc));
+                markdown.push_str(&format!("```\n{poc}\n```\n\n"));
             }
 
             markdown.push_str("---\n\n");
@@ -349,7 +357,7 @@ impl AuditReportGenerator {
                 ));
                 markdown.push_str(&format!("   {}\n", opt.description));
             }
-            markdown.push_str("\n");
+            markdown.push('\n');
         }
 
         if !report.gas_analysis.attack_vectors.is_empty() {
@@ -362,7 +370,7 @@ impl AuditReportGenerator {
                 markdown.push_str(&format!("  - **Impact:** {}\n", vector.impact));
                 markdown.push_str(&format!("  - **Mitigation:** {}\n", vector.mitigation));
             }
-            markdown.push_str("\n");
+            markdown.push('\n');
         }
 
         // Recommendations
@@ -383,7 +391,7 @@ impl AuditReportGenerator {
                 .collect();
 
             if !priority_recs.is_empty() {
-                markdown.push_str(&format!("### {}\n", title));
+                markdown.push_str(&format!("### {title}\n"));
                 for rec in priority_recs {
                     markdown.push_str(&format!("#### {}\n", rec.title));
                     markdown.push_str(&format!("{}\n\n", rec.description));
@@ -393,7 +401,7 @@ impl AuditReportGenerator {
                         for (i, step) in rec.implementation_steps.iter().enumerate() {
                             markdown.push_str(&format!("{}. {}\n", i + 1, step));
                         }
-                        markdown.push_str("\n");
+                        markdown.push('\n');
                     }
                 }
             }
@@ -425,9 +433,9 @@ impl AuditReportGenerator {
         if !report.appendix.tool_versions.is_empty() {
             markdown.push_str("### Tool Versions\n");
             for (tool, version) in &report.appendix.tool_versions {
-                markdown.push_str(&format!("- **{}:** {}\n", tool, version));
+                markdown.push_str(&format!("- **{tool}:** {version}\n"));
             }
-            markdown.push_str("\n");
+            markdown.push('\n');
         }
 
         markdown.push_str("---\n");
@@ -704,7 +712,7 @@ impl AuditReportGenerator {
                 let mut result =
                     "⚠️ **Deploy with Caution** - Address the following conditions:\n".to_string();
                 for condition in conditions {
-                    result.push_str(&format!("- {}\n", condition));
+                    result.push_str(&format!("- {condition}\n"));
                 }
                 result
             }
@@ -712,14 +720,14 @@ impl AuditReportGenerator {
                 let mut result =
                     "🔧 **Requires Fixes** - Must address critical issues:\n".to_string();
                 for issue in critical_issues {
-                    result.push_str(&format!("- {}\n", issue));
+                    result.push_str(&format!("- {issue}\n"));
                 }
                 result
             }
             DeploymentRecommendation::DoNotDeploy { blocking_issues } => {
                 let mut result = "❌ **Do Not Deploy** - Blocking security issues:\n".to_string();
                 for issue in blocking_issues {
-                    result.push_str(&format!("- {}\n", issue));
+                    result.push_str(&format!("- {issue}\n"));
                 }
                 result
             }
@@ -734,8 +742,7 @@ impl AuditReportGenerator {
 
         if critical_count > 0 {
             concerns.push(format!(
-                "{} critical security vulnerabilities require immediate attention",
-                critical_count
+                "{critical_count} critical security vulnerabilities require immediate attention"
             ));
         }
 
@@ -934,7 +941,7 @@ mod chrono {
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs();
-            format!("2024-01-01 12:00:00 UTC") // Simplified for demo
+            "2024-01-01 12:00:00 UTC".to_string() // Simplified for demo
         }
     }
 }

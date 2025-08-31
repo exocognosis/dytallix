@@ -117,7 +117,15 @@ impl GasOptimizer {
             optimization_strategies: Vec::new(),
         }
     }
+}
 
+impl Default for GasOptimizer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl GasOptimizer {
     /// Create a gas optimizer with custom configuration
     pub fn with_config(config: GasCostConfig) -> Self {
         Self {
@@ -184,7 +192,7 @@ impl GasOptimizer {
                 } => {
                     if operation.contains(operation_type) && complexity.storage_writes > 1 {
                         // Reduce gas for batched operations
-                        let batch_reduction = ((*batch_size as f64).ln() * 0.1) as f64;
+                        let batch_reduction = (*batch_size as f64).ln() * 0.1;
                         optimized_gas =
                             (optimized_gas as f64 * (1.0 - batch_reduction.min(0.3))) as u64;
                         applied_optimizations.push("batch_operations");
@@ -493,7 +501,7 @@ impl MemoryGasCalculator {
         }
 
         let expansion = new_size - old_size;
-        let expansion_words = (expansion + 31) / 32; // Round up to word boundary
+        let expansion_words = expansion.div_ceil(32); // Round up to word boundary
 
         // Quadratic growth cost to discourage excessive memory usage
         expansion_words * 3 + (expansion_words * expansion_words) / 512

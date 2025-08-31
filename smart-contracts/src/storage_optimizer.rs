@@ -9,7 +9,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Storage access pattern metrics
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StorageMetrics {
     pub reads: u64,
     pub writes: u64,
@@ -20,19 +20,7 @@ pub struct StorageMetrics {
     pub cache_misses: u64,
 }
 
-impl Default for StorageMetrics {
-    fn default() -> Self {
-        Self {
-            reads: 0,
-            writes: 0,
-            deletes: 0,
-            key_size_total: 0,
-            value_size_total: 0,
-            cache_hits: 0,
-            cache_misses: 0,
-        }
-    }
-}
+
 
 /// Optimized storage wrapper with caching and compression
 pub struct OptimizedStorage {
@@ -48,7 +36,15 @@ impl OptimizedStorage {
     pub fn new() -> Self {
         Self::with_config(10000, true)
     }
+}
 
+impl Default for OptimizedStorage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl OptimizedStorage {
     /// Create optimized storage with custom configuration
     pub fn with_config(cache_size_limit: usize, compression_enabled: bool) -> Self {
         let mut key_prefix_compression = HashMap::new();
@@ -130,7 +126,7 @@ impl OptimizedStorage {
         for (prefix, code) in &self.key_prefix_compression {
             if key.starts_with(prefix) {
                 let mut compressed = vec![*code];
-                compressed.extend_from_slice(key[prefix.len()..].as_bytes());
+                compressed.extend_from_slice(&key.as_bytes()[prefix.len()..]);
                 return compressed;
             }
         }
@@ -151,7 +147,7 @@ impl OptimizedStorage {
         for (prefix, code) in &self.key_prefix_compression {
             if *code == prefix_code {
                 let suffix = String::from_utf8_lossy(&compressed_key[1..]);
-                return format!("{}{}", prefix, suffix);
+                return format!("{prefix}{suffix}");
             }
         }
 
@@ -239,25 +235,25 @@ impl SerializationOptimizer {
     /// Serialize with binary encoding for compact storage
     pub fn serialize_compact<T: Serialize>(value: &T) -> StdResult<Vec<u8>> {
         bincode::serialize(value)
-            .map_err(|e| StdError::generic_err(format!("Serialization error: {}", e)))
+            .map_err(|e| StdError::generic_err(format!("Serialization error: {e}")))
     }
 
     /// Deserialize from binary encoding
     pub fn deserialize_compact<T: DeserializeOwned>(data: &[u8]) -> StdResult<T> {
         bincode::deserialize(data)
-            .map_err(|e| StdError::generic_err(format!("Deserialization error: {}", e)))
+            .map_err(|e| StdError::generic_err(format!("Deserialization error: {e}")))
     }
 
     /// Serialize with JSON for debugging (less efficient)
     pub fn serialize_json<T: Serialize>(value: &T) -> StdResult<Vec<u8>> {
         serde_json::to_vec(value)
-            .map_err(|e| StdError::generic_err(format!("JSON serialization error: {}", e)))
+            .map_err(|e| StdError::generic_err(format!("JSON serialization error: {e}")))
     }
 
     /// Deserialize from JSON
     pub fn deserialize_json<T: DeserializeOwned>(data: &[u8]) -> StdResult<T> {
         serde_json::from_slice(data)
-            .map_err(|e| StdError::generic_err(format!("JSON deserialization error: {}", e)))
+            .map_err(|e| StdError::generic_err(format!("JSON deserialization error: {e}")))
     }
 
     /// Calculate size difference between JSON and binary
@@ -301,7 +297,15 @@ impl StorageAnalyzer {
             access_patterns: HashMap::new(),
         }
     }
+}
 
+impl Default for StorageAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl StorageAnalyzer {
     /// Record a storage access
     pub fn record_access(
         &mut self,
@@ -367,7 +371,7 @@ impl StorageAnalyzer {
                     recommendation_type: RecommendationType::EnableCaching,
                     description: "High read frequency suggests caching would be beneficial"
                         .to_string(),
-                    estimated_gas_savings: (pattern.reads * 100) as u64, // Estimated savings
+                    estimated_gas_savings: (pattern.reads * 100), // Estimated savings
                 });
             }
 
@@ -378,7 +382,7 @@ impl StorageAnalyzer {
                     recommendation_type: RecommendationType::BatchWrites,
                     description: "High write frequency suggests batching would reduce gas costs"
                         .to_string(),
-                    estimated_gas_savings: (pattern.writes * 50) as u64,
+                    estimated_gas_savings: (pattern.writes * 50),
                 });
             }
 
