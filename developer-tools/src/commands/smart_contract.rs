@@ -55,7 +55,7 @@ pub async fn deploy_contract(
         Err(e) => {
             println!(
                 "{}",
-                format!("❌ Cannot connect to node: {}", e).bright_red()
+                format!("❌ Cannot connect to node: {e}").bright_red()
             );
             return Err(anyhow::anyhow!("Node connection failed"));
         }
@@ -80,13 +80,19 @@ pub async fn deploy_contract(
         Err(e) => {
             println!(
                 "{}",
-                format!("⚠️  Backend deployment failed, using simulation: {}", e).bright_yellow()
+                format!("⚠️  Backend deployment failed, using simulation: {e}").bright_yellow()
             );
             // Simulate deployment for development
             serde_json::json!({
                 "success": true,
-                "contract_address": format!("dyt1contract{}", hex::encode(&contract_bytes[..8])),
-                "transaction_hash": format!("0x{}", hex::encode(&contract_bytes[..16])),
+                "contract_address": {
+                    let addr_hex = hex::encode(&contract_bytes[..8]);
+                    format!("dyt1contract{addr_hex}")
+                },
+                "transaction_hash": {
+                    let tx_hex = hex::encode(&contract_bytes[..16]);
+                    format!("0x{tx_hex}")
+                },
                 "gas_used": 500000,
                 "block_number": 12345
             })
@@ -181,14 +187,17 @@ pub async fn call_contract(
         Err(e) => {
             println!(
                 "{}",
-                format!("⚠️  Backend call failed, using simulation: {}", e).bright_yellow()
+                format!("⚠️  Backend call failed, using simulation: {e}").bright_yellow()
             );
             // Simulate successful call
             serde_json::json!({
                 "success": true,
-                "result": format!("Method '{}' called successfully", method),
+                "result": format!("Method '{method}' called successfully"),
                 "gas_used": 200000,
-                "transaction_hash": format!("0x{}", hex::encode(&address.as_bytes()[..16]))
+                "transaction_hash": {
+                    let hash_hex = hex::encode(&address.as_bytes()[..16]);
+                    format!("0x{hash_hex}")
+                }
             })
         }
     };
@@ -290,7 +299,7 @@ pub async fn contract_events(
     let client = BlockchainClient::new(config.node_url.clone());
 
     // For now, simulate events since the backend isn't fully implemented
-    let mock_events = vec![
+    let mock_events = [
         serde_json::json!({
             "event": "Transfer",
             "block_number": 12345,
@@ -383,7 +392,7 @@ pub async fn list_contract_templates(config: &Config) -> Result<()> {
     println!("{}", "📄 Available Smart Contract Templates".bright_blue());
     println!();
 
-    let templates = vec![
+    let templates = [
         (
             "Simple Token",
             "ERC20-like token with PQC signatures",

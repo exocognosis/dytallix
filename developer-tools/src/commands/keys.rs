@@ -69,7 +69,7 @@ pub async fn generate_pqc_keys(
     // Create keystore entry
     let entry = KeystoreEntry {
         address: address.clone(),
-        algorithm: format!("{:?}", algorithm),
+        algorithm: format!("{algorithm:?}"),
         public_key_b64: B64.encode(&keypair.public_key),
         secret_key_b64: B64.encode(&keypair.secret_key),
         created: Utc::now(),
@@ -159,7 +159,7 @@ fn derive_address(public_key: &[u8]) -> String {
     let addr_bytes = &hash[..20];
     let hex_addr = hex::encode(addr_bytes);
 
-    format!("dyt1{}", hex_addr)
+    format!("dyt1{hex_addr}")
 }
 
 #[cfg(test)]
