@@ -14,7 +14,6 @@ pub use gas_attack_analyzer::*;
 pub use vulnerability_scanner::*;
 
 use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult};
-use crate::types::*;
 use serde::{Deserialize, Serialize};
 
 /// Security audit severity levels

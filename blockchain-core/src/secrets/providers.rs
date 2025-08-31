@@ -142,7 +142,7 @@ impl SecretProvider for EnvProvider {
 /// client library calls.
 pub struct VaultProvider {
     url: String,
-    token: String,
+    _token: String, // underscore
     mount_path: String,
     environment: String,
     initialized: bool,
@@ -161,7 +161,7 @@ impl VaultProvider {
     pub fn new(url: String, token: String, mount_path: String, environment: String) -> Self {
         Self {
             url,
-            token,
+            _token: token, // underscore
             mount_path,
             environment,
             initialized: false,

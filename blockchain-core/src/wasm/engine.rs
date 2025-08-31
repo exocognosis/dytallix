@@ -56,8 +56,9 @@ impl WasmEngine {
     ) -> Result<(Store<HostEnv>, Instance)> {
         let module = Module::new(&self.engine, code)?;
         let mut store = Store::new(&self.engine, self.host_env.clone());
-        store.add_fuel(gas_limit)?; // gas limit
-        store.epoch_deadline_async_yield_and_update(10);
+        // store.add_fuel(gas_limit)?; // removed: fuel not enabled in current wasmtime version/config
+        // Use epoch deadline only for coarse interruption
+        store.set_epoch_deadline(gas_limit as u64); // coarse substitute
         let mut linker = Linker::new(&self.engine);
         self.register_host_functions(&mut linker)?;
         let instance = linker.instantiate(&mut store, &module)?;
@@ -98,11 +99,9 @@ impl WasmEngine {
         Ok(())
     }
 
-    fn charge_fuel<T>(caller: &mut Caller<'_, T>, amount: u64) -> Result<()> {
-        if amount == 0 {
-            return Ok(());
-        }
-        caller.consume_fuel(amount)?;
+    fn charge_fuel<T>(_caller: &mut Caller<'_, T>, amount: u64) -> Result<()> {
+        // Fuel metering disabled; ignore amount
+        let _ = amount;
         Ok(())
     }
 

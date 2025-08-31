@@ -36,13 +36,6 @@ pub struct PolkadotConfig {
     pub unit: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PolkadotChainType {
-    Relay,      // Polkadot/Kusama relay chain
-    Parachain,  // Any parachain
-    Standalone, // Standalone Substrate chain
-}
-
 impl Default for PolkadotConfig {
     fn default() -> Self {
         Self {

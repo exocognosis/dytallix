@@ -16,6 +16,10 @@ use scale::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
+const WASM_ENV_NOTE: &str = "DRTToken WASM extern fns are no-ops on non-wasm32 targets";
+
 /// DRT Token contract state
 #[derive(Debug, Clone, Encode, Decode, Serialize, Deserialize)]
 pub struct DRTToken {
@@ -257,16 +261,17 @@ impl DRTToken {
 
 // WASM-compatible exports for DRT token functions
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn drt_balance_of(
     token_ptr: *const DRTToken,
     address_ptr: *const u8,
     address_len: usize,
 ) -> u64 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn drt_transfer(
     token_ptr: *mut DRTToken,
     from_ptr: *const u8,
@@ -275,11 +280,11 @@ pub extern "C" fn drt_transfer(
     to_len: usize,
     amount: u64,
 ) -> i32 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn drt_mint(
     token_ptr: *mut DRTToken,
     to_ptr: *const u8,
@@ -288,37 +293,36 @@ pub extern "C" fn drt_mint(
     caller_ptr: *const u8,
     caller_len: usize,
 ) -> i32 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn drt_burn(
     token_ptr: *mut DRTToken,
     from_ptr: *const u8,
     from_len: usize,
     amount: u64,
 ) -> i32 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn drt_emission_rate(token_ptr: *const DRTToken) -> u64 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn drt_total_supply(token_ptr: *const DRTToken) -> u64 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn drt_total_burned(token_ptr: *const DRTToken) -> u64 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[cfg(test)]

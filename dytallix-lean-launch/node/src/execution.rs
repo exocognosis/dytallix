@@ -9,7 +9,6 @@ use crate::gas::{intrinsic_gas, Gas, GasError, GasMeter, GasSchedule, TxKind};
 use crate::state::State;
 use crate::storage::receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION};
 use crate::storage::tx::Transaction;
-use std::collections::HashMap;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -224,7 +223,7 @@ pub fn execute_transaction(
         }
     };
 
-    if let Err(gas_error) = ctx.consume_gas(intrinsic_gas, "intrinsic") {
+    if let Err(_gas_error) = ctx.consume_gas(intrinsic_gas, "intrinsic") {
         // Out of gas - revert state but keep fee
         ctx.revert_state_changes(state);
         return ExecutionResult {
@@ -244,7 +243,7 @@ pub fn execute_transaction(
     }
 
     // Step 7: Execute the actual transfer
-    if let Err(gas_error) = execute_transfer(tx, state, &mut ctx) {
+    if let Err(_gas_error) = execute_transfer(tx, state, &mut ctx) {
         // Out of gas during execution - revert state but keep fee
         ctx.revert_state_changes(state);
         return ExecutionResult {
@@ -281,7 +280,7 @@ pub fn execute_transaction(
 }
 
 /// Validate basic transaction fields
-fn validate_transaction(tx: &Transaction, state: &State) -> Result<(), ExecutionError> {
+fn validate_transaction(tx: &Transaction, state: &mut State) -> Result<(), ExecutionError> {
     let current = state.nonce_of(&tx.from);
     if current > tx.nonce {
         return Err(ExecutionError::InvalidNonce {
@@ -436,7 +435,7 @@ mod tests {
         state.set_balance("alice", "udgt", 100_000);
         state.set_balance("bob", "udgt", 50_000);
 
-        let tx = Transaction::with_gas(
+        let tx = Transaction::new(
             "test_hash".to_string(),
             "alice".to_string(),
             "bob".to_string(),
@@ -444,9 +443,8 @@ mod tests {
             10_000,
             0,
             Some("sig".to_string()),
-            25_000,
-            1,
-        );
+        )
+        .with_gas(25_000, 1);
 
         let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
 
@@ -465,7 +463,7 @@ mod tests {
         // Setup insufficient balance
         state.set_balance("alice", "udgt", 1_000); // Not enough for amount + gas
 
-        let tx = Transaction::with_gas(
+        let tx = Transaction::new(
             "test_hash".to_string(),
             "alice".to_string(),
             "bob".to_string(),
@@ -473,9 +471,8 @@ mod tests {
             10_000,
             0,
             Some("sig".to_string()),
-            25_000,
-            1_000, // High gas price
-        );
+        )
+        .with_gas(25_000, 1_000); // High gas price
 
         let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
 

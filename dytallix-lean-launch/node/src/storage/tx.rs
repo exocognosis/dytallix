@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum SignatureAlgorithm {
+    Dilithium5,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
     pub hash: String,
@@ -24,23 +29,22 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    pub fn new(
-        hash: String,
-        from: String,
-        to: String,
+    pub fn base(
+        hash: impl Into<String>,
+        from: impl Into<String>,
+        to: impl Into<String>,
         amount: u128,
         fee: u128,
         nonce: u64,
-        signature: Option<String>,
     ) -> Self {
         Self {
-            hash,
-            from,
-            to,
+            hash: hash.into(),
+            from: from.into(),
+            to: to.into(),
             amount,
             fee,
             nonce,
-            signature,
+            signature: None,
             gas_limit: 0,
             gas_price: 0,
             public_key: None,
@@ -49,61 +53,42 @@ impl Transaction {
         }
     }
 
-    pub fn with_gas(
-        hash: String,
-        from: String,
-        to: String,
+    // New convenience constructor (legacy compatibility with RPC layer)
+    pub fn new(
+        hash: impl Into<String>,
+        from: impl Into<String>,
+        to: impl Into<String>,
         amount: u128,
         fee: u128,
         nonce: u64,
         signature: Option<String>,
-        gas_limit: u64,
-        gas_price: u64,
     ) -> Self {
-        Self {
-            hash,
-            from,
-            to,
-            amount,
-            fee,
-            nonce,
-            signature,
-            gas_limit,
-            gas_price,
-            public_key: None,
-            chain_id: String::new(),
-            memo: String::new(),
-        }
+        let mut tx = Self::base(hash, from, to, amount, fee, nonce);
+        tx.signature = signature;
+        tx
+    }
+
+    pub fn with_signature(mut self, signature: impl Into<String>) -> Self {
+        self.signature = Some(signature.into());
+        self
+    }
+
+    pub fn with_gas(mut self, gas_limit: u64, gas_price: u64) -> Self {
+        self.gas_limit = gas_limit;
+        self.gas_price = gas_price;
+        self
     }
 
     pub fn with_pqc(
-        hash: String,
-        from: String,
-        to: String,
-        amount: u128,
-        fee: u128,
-        nonce: u64,
-        signature: Option<String>,
-        public_key: Option<String>,
-        chain_id: String,
-        memo: String,
-        gas_limit: u64,
-        gas_price: u64,
+        mut self,
+        public_key: impl Into<String>,
+        chain_id: impl Into<String>,
+        memo: impl Into<String>,
     ) -> Self {
-        Self {
-            hash,
-            from,
-            to,
-            amount,
-            fee,
-            nonce,
-            signature,
-            gas_limit,
-            gas_price,
-            public_key,
-            chain_id,
-            memo,
-        }
+        self.public_key = Some(public_key.into());
+        self.chain_id = chain_id.into();
+        self.memo = memo.into();
+        self
     }
 
     /// Get canonical transaction fields for signature verification
@@ -123,8 +108,6 @@ impl Transaction {
     /// For now, we assume all transactions use Dilithium5 as the default
     /// In a full implementation, this would be stored in the transaction metadata
     pub fn signature_algorithm(&self) -> Option<SignatureAlgorithm> {
-        // TODO: Store algorithm in transaction metadata
-        // For now, default to Dilithium5 if a signature is present
         if self.signature.is_some() {
             Some(SignatureAlgorithm::Dilithium5)
         } else {
@@ -144,9 +127,4 @@ pub struct CanonicalTransaction {
     pub nonce: u64,
     pub chain_id: String,
     pub memo: String,
-}
-
-#[derive(Debug, Clone)]
-pub enum SignatureAlgorithm {
-    Dilithium5,
 }

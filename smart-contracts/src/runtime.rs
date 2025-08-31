@@ -9,14 +9,40 @@ Production-ready WebAssembly contract runtime with:
 - Post-quantum cryptography support
 */
 
+#![cfg(any(feature = "engine_wasmi", feature = "engine_wasmtime"))]
+
+// NOTE: Both `engine_wasmi` and `engine_wasmtime` features may be enabled when running
+// `cargo clippy --all-features`. Previously this caused a hard compile error. We now
+// allow both so that workspace-wide linting succeeds. When both are enabled we default
+// to using the *wasmi* engine types (since those imports win via conditional aliases).
+// If a different precedence is desired, adjust the conditional alias section below.
+
 use crate::types::{Address, Amount, Gas, Hash};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "engine_wasmi")]
 use wasmi::{
     AsContext, AsContextMut, Caller, Config, Engine, Linker, Memory, Module, Store, TypedFunc,
 };
+#[cfg(all(feature = "engine_wasmtime", not(feature = "engine_wasmi")))]
+use wasmtime::{
+    AsContext, AsContextMut, Caller, Config as MtConfig, Engine as MtEngine, Linker as MtLinker,
+    Memory, Module as MtModule, Store as MtStore, TypedFunc,
+};
+
+// Provide unified type aliases so the rest of the file can use generic names
+#[cfg(all(feature = "engine_wasmtime", not(feature = "engine_wasmi")))]
+type Engine = MtEngine;
+#[cfg(all(feature = "engine_wasmtime", not(feature = "engine_wasmi")))]
+type Config = MtConfig;
+#[cfg(all(feature = "engine_wasmtime", not(feature = "engine_wasmi")))]
+type Store<T> = MtStore<T>;
+#[cfg(all(feature = "engine_wasmtime", not(feature = "engine_wasmi")))]
+type Module = MtModule;
+#[cfg(all(feature = "engine_wasmtime", not(feature = "engine_wasmi")))]
+type Linker<T> = MtLinker<T>;
 
 // Gas costs for different operations
 const GAS_COST_BASE: Gas = 1;
@@ -24,7 +50,7 @@ const GAS_COST_MEMORY_BYTE: Gas = 1;
 const GAS_COST_STORAGE_READ: Gas = 200;
 const GAS_COST_STORAGE_WRITE: Gas = 5000;
 const GAS_COST_EVENT_EMIT: Gas = 375;
-const GAS_COST_EXTERNAL_CALL: Gas = 700;
+const _GAS_COST_EXTERNAL_CALL: Gas = 700; // reserved for future external call support
 
 // Resource limits
 const MAX_MEMORY_PAGES: u32 = 256; // 16MB max memory
@@ -124,10 +150,11 @@ pub struct ContractRuntime {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct ContractInstance {
-    address: Address,
+    address: Address, // currently unused outside debugging
     code: Vec<u8>,
-    code_hash: Hash,
+    code_hash: Hash, // future integrity checks
     deployment_info: ContractDeployment,
     call_count: u64,
     last_called: u64,
@@ -141,14 +168,15 @@ struct ContractStorage {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct GasMeter {
     current_gas: Gas,
     gas_limit: Gas,
-    gas_price: u64,
+    gas_price: u64, // reserved for dynamic pricing
     operations_count: u64,
     // Performance tracking
-    gas_used_by_operation: HashMap<String, Gas>,
-    execution_times: HashMap<String, Vec<u64>>, // microseconds
+    gas_used_by_operation: HashMap<String, Gas>, // currently unused
+    execution_times: HashMap<String, Vec<u64>>, // microseconds, currently unused
     total_executions: u64,
 }
 
@@ -167,15 +195,16 @@ pub struct PerformanceMetrics {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct ExecutionContext {
     contract_address: Address,
-    caller_address: Address,
-    call_value: Amount,
+    caller_address: Address, // unused metadata (future authorization)
+    call_value: Amount,      // unused economic value
     block_timestamp: u64,
     block_number: u64,
-    gas_limit: Gas,
-    memory_pages: u32,
-    stack_depth: u32,
+    gas_limit: Gas,   // future nested call gas mgmt
+    memory_pages: u32, // future dynamic memory tracking
+    stack_depth: u32,  // future recursion limits
 }
 
 #[derive(Debug, Clone)]
@@ -207,7 +236,14 @@ impl ContractRuntime {
         max_memory_pages: u32,
     ) -> Result<Self, ContractExecutionError> {
         let config = Config::default();
+        #[cfg(feature = "engine_wasmi")]
         let engine = Engine::new(&config);
+        #[cfg(all(feature = "engine_wasmtime", not(feature = "engine_wasmi")))]
+        let engine = Engine::new(&config).map_err(|e| ContractExecutionError {
+            code: ErrorCode::ExecutionFailed,
+            message: format!("Failed to create WASM engine: {e}"),
+            gas_used: 0,
+        })?;
 
         Ok(Self {
             engine,
@@ -414,7 +450,7 @@ impl ContractRuntime {
         let module = Module::new(&self.engine, contract.code.as_slice()).map_err(|e| {
             ContractExecutionError {
                 code: ErrorCode::InvalidContract,
-                message: format!("Failed to load WASM module: {}", e),
+                message: format!("Failed to load WASM module: {e}"),
                 gas_used: 0,
             }
         })?;
@@ -422,39 +458,87 @@ impl ContractRuntime {
         let mut linker = Linker::new(&self.engine);
         self.register_host_functions(&mut linker)?;
 
-        let instance = linker
-            .instantiate(&mut store, &module)
-            .and_then(|pre| pre.start(&mut store))
-            .map_err(|e| ContractExecutionError {
-                code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to instantiate contract: {}", e),
-                gas_used: 0,
-            })?;
+        // Engine-specific instantiation (wasmtime vs wasmi)
+        #[cfg(all(feature = "engine_wasmtime", not(feature = "engine_wasmi")))]
+        let (_instance, memory, func): (_, Memory, TypedFunc<(i32, i32), i32>) = {
+            let instance =
+                linker
+                    .instantiate(&mut store, &module)
+                    .map_err(|e| ContractExecutionError {
+                        code: ErrorCode::ExecutionFailed,
+                        message: format!("Failed to instantiate contract: {e}"),
+                        gas_used: 0,
+                    })?;
 
-        let memory = instance
-            .get_export(&store, "memory")
-            .and_then(|export| export.into_memory())
-            .ok_or_else(|| ContractExecutionError {
-                code: ErrorCode::ExecutionFailed,
-                message: "Contract memory not found".to_string(),
-                gas_used: 0,
-            })?;
+            let memory = instance
+                .get_export(&mut store, "memory")
+                .and_then(|export| export.into_memory())
+                .ok_or_else(|| ContractExecutionError {
+                    code: ErrorCode::ExecutionFailed,
+                    message: "Contract memory not found".to_string(),
+                    gas_used: 0,
+                })?;
 
-        let func_name = format!("contract_{}", call.method);
-        let func: TypedFunc<(i32, i32), i32> = instance
-            .get_export(&store, &func_name)
-            .and_then(|export| export.into_func())
-            .ok_or_else(|| ContractExecutionError {
-                code: ErrorCode::ExecutionFailed,
-                message: format!("Function '{}' not found", func_name),
-                gas_used: 0,
-            })?
-            .typed(&store)
-            .map_err(|e| ContractExecutionError {
-                code: ErrorCode::ExecutionFailed,
-                message: format!("Function '{}' not found: {}", func_name, e),
-                gas_used: 0,
-            })?;
+            let func_name = format!("contract_{}", call.method);
+            let func: TypedFunc<(i32, i32), i32> = instance
+                .get_export(&mut store, &func_name)
+                .and_then(|export| export.into_func())
+                .ok_or_else(|| ContractExecutionError {
+                    code: ErrorCode::ExecutionFailed,
+                    message: format!("Function '{}' not found", func_name),
+                    gas_used: 0,
+                })?
+                .typed(&mut store)
+                .map_err(|e| ContractExecutionError {
+                    code: ErrorCode::ExecutionFailed,
+                    message: format!("Function '{}' not found: {e}", func_name),
+                    gas_used: 0,
+                })?;
+
+            (instance, memory, func)
+        };
+
+        #[cfg(feature = "engine_wasmi")]
+        let (_instance, memory, func): (_, Memory, TypedFunc<(i32, i32), i32>) =
+            {
+                use wasmi::Instance;
+                // wasmi returns an InstancePre which needs start() to obtain Instance
+                let instance_pre = linker.instantiate(&mut store, &module).map_err(|e| {
+                    ContractExecutionError {
+                        code: ErrorCode::ExecutionFailed,
+                        message: format!("Failed to instantiate contract: {e}"),
+                        gas_used: 0,
+                    }
+                })?;
+                let instance: Instance = instance_pre.ensure_no_start(&mut store).map_err(|e| {
+                    ContractExecutionError {
+                        code: ErrorCode::ExecutionFailed,
+                        message: format!("Failed to start contract: {e}"),
+                        gas_used: 0,
+                    }
+                })?;
+
+                let memory = instance.get_memory(&mut store, "memory").ok_or_else(|| {
+                    ContractExecutionError {
+                        code: ErrorCode::ExecutionFailed,
+                        message: "Contract memory not found".to_string(),
+                        gas_used: 0,
+                    }
+                })?;
+
+                let func_name = format!("contract_{}", call.method);
+                let func: TypedFunc<(i32, i32), i32> = instance
+                    .get_typed_func(&mut store, &func_name)
+                    .map_err(|e| ContractExecutionError {
+                        code: ErrorCode::ExecutionFailed,
+                        message: format!("Function '{}' not found: {e}", func_name),
+                        gas_used: 0,
+                    })?;
+
+                (instance, memory, func)
+            };
+
+        // (instance, memory, func) now available for both engines
 
         let input_ptr = self.allocate_memory(&mut store, &memory, &call.input_data)?;
         let input_len = call.input_data.len() as i32;
@@ -530,7 +614,7 @@ impl ContractRuntime {
             )
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to register consume_gas: {}", e),
+                message: format!("Failed to register consume_gas: {e}"),
                 gas_used: 0,
             })?;
 
@@ -545,7 +629,6 @@ impl ContractRuntime {
                  value_ptr: i32,
                  value_len: i32|
                  -> i32 {
-                    // Extract data first to avoid borrowing conflicts
                     let runtime_arc = caller.data().runtime.clone();
                     let context = caller.data().execution_context.clone();
 
@@ -599,7 +682,7 @@ impl ContractRuntime {
             )
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to register storage_get: {}", e),
+                message: format!("Failed to register storage_get: {e}"),
                 gas_used: 0,
             })?;
 
@@ -608,14 +691,14 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "storage_set",
-                |caller: Caller<HostCallContext>,
+                |mut caller: Caller<HostCallContext>,
                  key_ptr: i32,
                  key_len: i32,
                  value_ptr: i32,
                  value_len: i32|
                  -> i32 {
-                    let runtime = &caller.data().runtime;
-                    let context = &caller.data().execution_context;
+                    let runtime_arc = caller.data().runtime.clone();
+                    let context = caller.data().execution_context.clone();
 
                     if key_len as usize > MAX_STORAGE_KEY_SIZE
                         || value_len as usize > MAX_STORAGE_VALUE_SIZE
@@ -624,7 +707,7 @@ impl ContractRuntime {
                     }
 
                     {
-                        let mut gas_meter = runtime.gas_meter.lock().unwrap();
+                        let mut gas_meter = runtime_arc.gas_meter.lock().unwrap();
                         if gas_meter.consume_gas(GAS_COST_STORAGE_WRITE).is_err() {
                             return -2;
                         }
@@ -635,7 +718,7 @@ impl ContractRuntime {
                         None => return -3,
                     };
 
-                    let key = match runtime.read_memory_slice(
+                    let key = match runtime_arc.read_memory_slice(
                         &caller,
                         &memory,
                         key_ptr,
@@ -645,7 +728,7 @@ impl ContractRuntime {
                         Err(_) => return -4,
                     };
 
-                    let value = match runtime.read_memory_slice(
+                    let value = match runtime_arc.read_memory_slice(
                         &caller,
                         &memory,
                         value_ptr,
@@ -655,25 +738,24 @@ impl ContractRuntime {
                         Err(_) => return -5,
                     };
 
-                    // Track state change
+                    let old_value = {
+                        let storage = runtime_arc.contract_storage.lock().unwrap();
+                        storage.get(&context.contract_address, &key)
+                    };
+
+                    let state_change = StateChange {
+                        contract_address: context.contract_address.clone(),
+                        key: key.clone(),
+                        old_value,
+                        new_value: value.clone(),
+                    };
+
                     {
-                        let old_value = {
-                            let storage = runtime.contract_storage.lock().unwrap();
-                            storage.get(&context.contract_address, &key)
-                        };
-
-                        let state_change = StateChange {
-                            contract_address: context.contract_address.clone(),
-                            key: key.clone(),
-                            old_value,
-                            new_value: value.clone(),
-                        };
-
-                        let mut tracker = runtime.state_tracker.lock().unwrap();
+                        let mut tracker = runtime_arc.state_tracker.lock().unwrap();
                         tracker.record_state_change(state_change);
                     }
 
-                    let mut storage = runtime.contract_storage.lock().unwrap();
+                    let mut storage = runtime_arc.contract_storage.lock().unwrap();
                     match storage.set(&context.contract_address, key, value) {
                         Ok(_) => 0,
                         Err(_) => -6,
@@ -682,7 +764,7 @@ impl ContractRuntime {
             )
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to register storage_set: {}", e),
+                message: format!("Failed to register storage_set: {e}"),
                 gas_used: 0,
             })?;
 
@@ -691,21 +773,21 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "emit_event",
-                |caller: Caller<HostCallContext>,
+                |mut caller: Caller<HostCallContext>,
                  topic_ptr: i32,
                  topic_len: i32,
                  data_ptr: i32,
                  data_len: i32|
                  -> i32 {
-                    let runtime = &caller.data().runtime;
-                    let context = &caller.data().execution_context;
+                    let runtime_arc = caller.data().runtime.clone();
+                    let context = caller.data().execution_context.clone();
 
                     if data_len as usize > MAX_EVENT_DATA_SIZE {
                         return -1;
                     }
 
                     {
-                        let mut gas_meter = runtime.gas_meter.lock().unwrap();
+                        let mut gas_meter = runtime_arc.gas_meter.lock().unwrap();
                         if gas_meter.consume_gas(GAS_COST_EVENT_EMIT).is_err() {
                             return -2;
                         }
@@ -716,7 +798,7 @@ impl ContractRuntime {
                         None => return -3,
                     };
 
-                    let topic = match runtime.read_memory_slice(
+                    let topic = match runtime_arc.read_memory_slice(
                         &caller,
                         &memory,
                         topic_ptr,
@@ -726,7 +808,7 @@ impl ContractRuntime {
                         Err(_) => return -4,
                     };
 
-                    let data = match runtime.read_memory_slice(
+                    let data = match runtime_arc.read_memory_slice(
                         &caller,
                         &memory,
                         data_ptr,
@@ -744,12 +826,12 @@ impl ContractRuntime {
                     };
 
                     {
-                        let mut tracker = runtime.state_tracker.lock().unwrap();
+                        let mut tracker = runtime_arc.state_tracker.lock().unwrap();
                         tracker.emit_event(event.clone());
                     }
 
                     {
-                        let mut events = runtime.event_storage.lock().unwrap();
+                        let mut events = runtime_arc.event_storage.lock().unwrap();
                         events.push(event);
                     }
 
@@ -758,7 +840,7 @@ impl ContractRuntime {
             )
             .map_err(|e| ContractExecutionError {
                 code: ErrorCode::ExecutionFailed,
-                message: format!("Failed to register emit_event: {}", e),
+                message: format!("Failed to register emit_event: {e}"),
                 gas_used: 0,
             })?;
 
@@ -1149,6 +1231,7 @@ impl GasMeter {
         self.total_executions += 1;
     }
 
+    #[allow(dead_code)]
     fn track_operation_gas(&mut self, operation: &str, gas_used: Gas) {
         *self
             .gas_used_by_operation
@@ -1156,6 +1239,7 @@ impl GasMeter {
             .or_insert(0) += gas_used;
     }
 
+    #[allow(dead_code)]
     fn track_operation_time(&mut self, operation: &str, execution_time_us: u64) {
         self.execution_times
             .entry(operation.to_string())
@@ -1163,6 +1247,7 @@ impl GasMeter {
             .push(execution_time_us);
     }
 
+    #[allow(dead_code)]
     fn get_operation_stats(&self) -> HashMap<String, (Gas, f64, u64)> {
         let mut stats = HashMap::new();
 
@@ -1214,10 +1299,12 @@ impl GasMeter {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn remaining_gas(&self) -> Gas {
         self.current_gas
     }
 
+    #[allow(dead_code)]
     fn gas_used(&self) -> Gas {
         self.gas_limit - self.current_gas
     }

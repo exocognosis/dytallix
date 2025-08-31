@@ -2,10 +2,20 @@
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::crypto::{ActivePQC, PQC};
+    use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+    use crate::mempool::{verify_envelope, Mempool, RejectionReason, TX_INVALID_SIG};
     use crate::storage::tx::Transaction;
     use base64::{engine::general_purpose::STANDARD as B64, Engine};
+    use crate::state::State;
+    use crate::storage::state::Storage; // added
+    use tempfile::TempDir; // added
+    use std::sync::Arc; // added
+
+    fn create_state() -> State {
+        let temp_dir = TempDir::new().expect("tempdir");
+        let storage = Arc::new(Storage::open(temp_dir.path().to_path_buf()).expect("open storage"));
+        State::new(storage)
+    }
 
     #[test]
     fn test_verify_envelope_valid_signature() {
@@ -13,20 +23,16 @@ mod tests {
         let (sk, pk) = ActivePQC::keypair();
 
         // Create test transaction
-        let mut tx = Transaction::with_pqc(
-            "test_hash".to_string(),
-            "dyt1alice".to_string(),
-            "dyt1bob".to_string(),
-            1000000,                        // 1 DYT
-            1000,                           // fee
-            42,                             // nonce
-            None,                           // signature (to be set)
-            None,                           // public key (to be set)
-            "dytallix-testnet".to_string(), // chain_id
-            "test memo".to_string(),        // memo
-            21000,                          // gas_limit
-            1000,                           // gas_price
-        );
+        let mut tx = Transaction::base(
+            "test_hash",
+            "dyt1alice",
+            "dyt1bob",
+            1_000_000, // amount
+            1_000,     // fee
+            42,        // nonce
+        )
+        .with_gas(21_000, 1_000)
+        .with_pqc(B64.encode(&pk), "dytallix-testnet", "test memo");
 
         // Sign the transaction
         let canonical_tx = tx.canonical_fields();
@@ -34,9 +40,8 @@ mod tests {
         let tx_hash = sha3_256(&tx_bytes);
         let signature = ActivePQC::sign(&sk, &tx_hash);
 
-        // Set signature and public key
+        // Set signature
         tx.signature = Some(B64.encode(&signature));
-        tx.public_key = Some(B64.encode(&pk));
 
         // Verify signature
         assert!(
@@ -51,20 +56,16 @@ mod tests {
         let (sk, pk) = ActivePQC::keypair();
 
         // Create test transaction
-        let mut tx = Transaction::with_pqc(
-            "test_hash".to_string(),
-            "dyt1alice".to_string(),
-            "dyt1bob".to_string(),
-            1000000,                        // 1 DYT
-            1000,                           // fee
-            42,                             // nonce
-            None,                           // signature (to be set)
-            None,                           // public key (to be set)
-            "dytallix-testnet".to_string(), // chain_id
-            "test memo".to_string(),        // memo
-            21000,                          // gas_limit
-            1000,                           // gas_price
-        );
+        let mut tx = Transaction::base(
+            "test_hash",
+            "dyt1alice",
+            "dyt1bob",
+            1_000_000,
+            1_000,
+            42,
+        )
+        .with_gas(21_000, 1_000)
+        .with_pqc(B64.encode(&pk), "dytallix-testnet", "test memo");
 
         // Sign the transaction
         let canonical_tx = tx.canonical_fields();
@@ -77,9 +78,8 @@ mod tests {
             signature[0] ^= 0x01;
         }
 
-        // Set tampered signature and public key
+        // Set tampered signature
         tx.signature = Some(B64.encode(&signature));
-        tx.public_key = Some(B64.encode(&pk));
 
         // Verify signature
         assert!(
@@ -91,20 +91,16 @@ mod tests {
     #[test]
     fn test_verify_envelope_missing_signature() {
         // Create test transaction without signature
-        let tx = Transaction::with_pqc(
-            "test_hash".to_string(),
-            "dyt1alice".to_string(),
-            "dyt1bob".to_string(),
-            1000000,                        // 1 DYT
-            1000,                           // fee
-            42,                             // nonce
-            None,                           // no signature
-            None,                           // no public key
-            "dytallix-testnet".to_string(), // chain_id
-            "test memo".to_string(),        // memo
-            21000,                          // gas_limit
-            1000,                           // gas_price
-        );
+        let tx = Transaction::base(
+            "test_hash",
+            "dyt1alice",
+            "dyt1bob",
+            1_000_000,
+            1_000,
+            42,
+        )
+        .with_gas(21_000, 1_000)
+        .with_pqc("dummy_pk", "dytallix-testnet", "test memo");
 
         // Verify should fail
         assert!(
@@ -115,27 +111,22 @@ mod tests {
 
     #[test]
     fn test_mempool_rejects_invalid_signature() {
-        use crate::state::State;
-
         // Create test state and mempool
-        let state = State::new();
+        let state = create_state();
         let mut mempool = Mempool::new();
 
         // Create transaction with invalid signature
-        let tx = Transaction::with_pqc(
-            "test_hash".to_string(),
-            "dyt1alice".to_string(),
-            "dyt1bob".to_string(),
-            1000000,                                // 1 DYT
-            1000,                                   // fee
-            42,                                     // nonce
-            Some("invalid_signature".to_string()),  // invalid signature
-            Some("invalid_public_key".to_string()), // invalid public key
-            "dytallix-testnet".to_string(),         // chain_id
-            "test memo".to_string(),                // memo
-            21000,                                  // gas_limit
-            1000,                                   // gas_price
-        );
+        let tx = Transaction::base(
+            "test_hash",
+            "dyt1alice",
+            "dyt1bob",
+            1_000_000,
+            1_000,
+            42,
+        )
+        .with_gas(21_000, 1_000)
+        .with_pqc("invalid_public_key", "dytallix-testnet", "test memo")
+        .with_signature("invalid_signature");
 
         // Attempt to add transaction should fail with InvalidSignature
         match mempool.add_transaction(&state, tx) {

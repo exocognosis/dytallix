@@ -1,11 +1,10 @@
 use crate::{
     runtime::staking::StakingModule,
-    state::{AccountState, State},
+    state::{State},
     storage::state::Storage,
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{BTreeMap, HashMap},
     sync::{Arc, Mutex},
 };
 
@@ -77,7 +76,7 @@ pub struct Vote {
     pub proposal_id: u64,
     pub voter: String,
     pub option: VoteOption,
-    pub weight: u128, // DGT balance at time of vote
+    pub weight: u128 // DGT balance at time of vote
 }
 
 /// Deposit on a proposal (for tracking individual deposits)
@@ -477,7 +476,7 @@ impl GovernanceModule {
 
         // Get delegator stake amount
         let delegator_record = staking.load_delegator_record(address);
-        let mut total_power = delegator_record.stake_amount;
+        let total_power = delegator_record.stake_amount;
 
         // If the address is a validator, add self-stake (validator power)
         // Note: We need to check if the address is registered as a validator
@@ -715,7 +714,7 @@ impl GovernanceModule {
     }
 
     fn _get_proposal_votes(&self, proposal_id: u64) -> Result<Vec<Vote>, String> {
-        let prefix = format!("gov:vote:{}:", proposal_id);
+        let _prefix = format!("gov:vote:{}:", proposal_id);
         let mut votes = Vec::new();
 
         // This is a simplified implementation that scans all possible vote keys
@@ -848,10 +847,14 @@ mod tests {
 
     fn setup_test_governance() -> (GovernanceModule, TempDir) {
         let temp_dir = TempDir::new().unwrap();
-        let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
+        let storage = Arc::new(Storage::open(temp_dir.path().to_path_buf()).unwrap()); // use open instead of new
         let state = Arc::new(Mutex::new(State::new(storage.clone())));
 
-        let governance = GovernanceModule::new(storage, state);
+        // Provide minimal staking module instance using real constructor (no Default implementation available)
+        let staking_storage = storage.clone();
+        let staking = Arc::new(Mutex::new(StakingModule::new(staking_storage)));
+
+        let governance = GovernanceModule::new(storage, state, staking);
         (governance, temp_dir)
     }
 

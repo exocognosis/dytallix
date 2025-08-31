@@ -14,7 +14,7 @@ use tracing::{info, warn};
 use zeroize::Zeroize;
 
 use crate::addr::address_from_pk;
-use crate::crypto::{ActivePQC, PQC};
+use crate::crypto::{ActivePQC as ActiveSignatureScheme, PQC};
 
 // ---------- KDF + AEAD wrappers (local minimal to avoid extra modules yet) ----------
 use argon2::{Argon2, Params};
@@ -270,7 +270,7 @@ pub fn create_new_with_algorithm(
 
     let (sk, pk, address) = match algorithm {
         "pqc" => {
-            let (sk, pk) = ActivePQC::keypair();
+            let (sk, pk) = ActiveSignatureScheme::keypair();
             let address = if legacy {
                 crate::addr::legacy_address_from_pk(&pk)
             } else {
@@ -282,7 +282,7 @@ pub fn create_new_with_algorithm(
             // For legacy secp256k1 support - this would need actual secp256k1 implementation
             // For now, fall back to PQC with legacy address format
             warn!("Legacy secp256k1 not implemented, using PQC with legacy address format");
-            let (sk, pk) = ActivePQC::keypair();
+            let (sk, pk) = ActiveSignatureScheme::keypair();
             let address = crate::addr::legacy_address_from_pk(&pk);
             (sk, pk, address)
         }

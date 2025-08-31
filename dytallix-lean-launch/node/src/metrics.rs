@@ -68,7 +68,7 @@ mod tests {
             listen_addr: "127.0.0.1:0".parse().unwrap(), // Use port 0 for dynamic allocation
         };
 
-        let (server, metrics) =
+        let (_server, metrics) =
             MetricsServer::new(config).expect("Failed to create metrics server");
 
         // Test that we can use the metrics

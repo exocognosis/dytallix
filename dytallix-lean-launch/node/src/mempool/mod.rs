@@ -1,14 +1,14 @@
 use std::cmp::Ordering;
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
-use std::sync::RwLock;
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
-use crate::gas::{intrinsic_gas, validate_gas_limit, GasSchedule, TxKind};
+use crate::gas::{validate_gas_limit, GasSchedule, TxKind};
 use crate::state::State;
 use crate::storage::tx::Transaction;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use dytallix_node::policy::signature_policy::{PolicyError, PolicyManager};
+use dytallix_pqc::SignatureAlgorithm as PQCSignatureAlgorithm; // added for policy mapping
 
 #[cfg(test)]
 mod gas_tests;
@@ -118,7 +118,7 @@ pub struct PendingTx {
 /// Priority key for ordering transactions
 /// Primary: gas_price desc, Secondary: nonce asc, Tertiary: tx_hash asc
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct TxPriorityKey {
+pub struct TxPriorityKey { // made public so priority_key method returning it is valid
     gas_price_neg: i64, // negative for descending order
     nonce: u64,
     hash: String,
@@ -409,7 +409,7 @@ impl std::fmt::Display for MempoolError {
 impl std::error::Error for MempoolError {}
 
 /// Verify transaction envelope (signature validation)
-fn verify_envelope(tx: &Transaction) -> bool {
+pub(crate) fn verify_envelope(tx: &Transaction) -> bool {
     match (&tx.signature, &tx.public_key) {
         (Some(signature), Some(public_key)) => {
             // Perform real PQC signature verification
@@ -452,7 +452,7 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
 
 /// Enhanced validation including gas validation (legacy function for backward compatibility)
 pub fn basic_validate(state: &State, tx: &Transaction) -> Result<(), String> {
-    let mut mempool = Mempool::new();
+    let mempool = Mempool::new();
     match mempool.validate_tx_state(state, tx) {
         Ok(()) => Ok(()),
         Err(reason) => Err(reason.to_string()),
@@ -507,10 +507,12 @@ fn estimate_tx_size(tx: &Transaction) -> usize {
 impl Mempool {
     /// Validate transaction signature algorithm against policy
     fn validate_signature_policy(&self, tx: &Transaction) -> Result<(), PolicyError> {
-        // Extract signature algorithm from transaction (legacy tx has no explicit algorithm; accept Dilithium5 default)
         if let Some(alg) = tx.signature_algorithm() {
             if self.policy_manager.policy().should_enforce_at_mempool() {
-                self.policy_manager.validate_transaction_algorithm(&alg)?;
+                let pqc_alg = match alg {
+                    crate::storage::tx::SignatureAlgorithm::Dilithium5 => PQCSignatureAlgorithm::Dilithium5,
+                };
+                self.policy_manager.validate_transaction_algorithm(&pqc_alg)?;
             }
         }
         Ok(())

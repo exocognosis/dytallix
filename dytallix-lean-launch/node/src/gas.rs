@@ -432,17 +432,16 @@ mod integration_tests {
 
     #[test]
     fn test_receipt_creation_for_failed_transaction() {
-        let tx = Transaction::with_gas(
+        let tx = Transaction::base(
             "failed_hash".to_string(),
             "alice".to_string(),
             "bob".to_string(),
             1000,
             10,
             1,
-            Some("signature".to_string()),
-            25000,
-            1500,
-        );
+        )
+        .with_signature("signature".to_string())
+        .with_gas(25_000, 1_500);
 
         let receipt = TxReceipt::failed(
             &tx,
@@ -465,17 +464,16 @@ mod integration_tests {
 
     #[test]
     fn test_explorer_api_gas_fields_serialization() {
-        let tx = Transaction::with_gas(
+        let tx = Transaction::base(
             "api_test_hash".to_string(),
             "alice".to_string(),
             "bob".to_string(),
             1000,
             10,
             1,
-            Some("signature".to_string()),
-            30000,
-            2000,
-        );
+        )
+        .with_signature("signature".to_string())
+        .with_gas(30_000, 2_000);
 
         let receipt = TxReceipt::success(&tx, 22000, 30000, 2000, 100, 1);
 
@@ -494,7 +492,7 @@ mod integration_tests {
     #[test]
     fn test_consensus_divergence_with_different_gas_schedules() {
         // Test that different gas schedules produce different results
-        let mut schedule1 = GasSchedule::default();
+        let schedule1 = GasSchedule::default();
         let mut schedule2 = GasSchedule::default();
 
         // Modify one schedule slightly
@@ -515,6 +513,7 @@ mod integration_tests {
 #[cfg(test)]
 mod regression_tests {
     use super::*;
+    use crate::storage::{tx::Transaction, receipts::TxReceipt};
 
     #[test]
     fn test_gas_table_version_consistency() {
@@ -598,15 +597,15 @@ mod regression_tests {
     #[test]
     fn test_transaction_format_backward_compatibility() {
         // Test that transactions without gas fields are handled correctly
-        let legacy_tx = Transaction::new(
+        let legacy_tx = Transaction::base(
             "legacy_hash".to_string(),
             "alice".to_string(),
             "bob".to_string(),
             1000,
             10,
             1,
-            Some("signature".to_string()),
-        );
+        )
+        .with_signature("signature".to_string());
 
         // Legacy transactions should have default gas values
         assert_eq!(legacy_tx.gas_limit, 0);
@@ -675,17 +674,16 @@ mod regression_tests {
         ];
 
         for (gas_limit, gas_price) in test_cases {
-            let tx = Transaction::with_gas(
+            let tx = Transaction::base(
                 "test_hash".to_string(),
                 "alice".to_string(),
                 "bob".to_string(),
                 1000,
                 10,
                 1,
-                Some("signature".to_string()),
-                gas_limit,
-                gas_price,
-            );
+            )
+            .with_signature("signature".to_string())
+            .with_gas(gas_limit, gas_price);
 
             let receipt = TxReceipt::success(&tx, gas_limit / 2, gas_limit, gas_price, 100, 1);
             let fee = receipt.fee_charged_datt();

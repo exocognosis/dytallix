@@ -1,9 +1,10 @@
 //! Unit tests for Oracle runtime functions
 
 use crate::runtime::oracle::{apply_oracle_risk, current_timestamp, get_oracle_risk, verify_sig};
-use crate::storage::oracle::{AiRiskRecord, OracleStore};
+use crate::storage::oracle::{OracleStore};
 use rocksdb::DB;
 use tempfile::NamedTempFile;
+use base64::Engine; // bring trait into scope for encode()
 
 #[tokio::test]
 async fn test_apply_and_get_oracle_risk() {
@@ -19,7 +20,7 @@ async fn test_apply_and_get_oracle_risk() {
 
     // Test apply
     let result = apply_oracle_risk(&store, tx_hash, score_str, model_id, timestamp, source);
-    assert!(result.is_ok(), "Failed to apply oracle risk: {:?}", result);
+    assert!(result.is_ok(), "Failed to apply oracle risk: {result:?}");
 
     // Test get
     let retrieved = get_oracle_risk(&store, tx_hash);

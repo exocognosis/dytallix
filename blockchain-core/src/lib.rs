@@ -14,3 +14,4 @@ pub mod state_commitment;
 pub mod storage;
 pub mod types;
 pub mod wasm;
+pub mod risk; // PulseGuard module root

@@ -7,8 +7,6 @@ use crate::{Asset, AssetMetadata, BridgeError, BridgeStatus, BridgeTx, BridgeTxI
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{PgPool, Row};
-use std::collections::HashMap;
-use uuid::Uuid;
 
 pub mod models;
 

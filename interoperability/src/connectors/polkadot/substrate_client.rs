@@ -6,13 +6,13 @@ use super::{PolkadotBlock, PolkadotTxHash, XcmMessage};
 use crate::BridgeError;
 use std::str::FromStr;
 use subxt::{
-    ext::sp_core::{crypto::Ss58Codec, sr25519::Pair, Pair as PairTrait},
+    ext::sp_core::{sr25519::Pair},
     tx::PairSigner,
     utils::{AccountId32, H256},
     OnlineClient, PolkadotConfig,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SubstrateConfig {
     pub ws_url: String,
     pub ss58_format: u16,
@@ -234,7 +234,7 @@ impl SubstrateClient {
 
     /// Query native token balance
     async fn query_native_balance(&self, address: &str) -> Result<u64, BridgeError> {
-        let client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+        let _client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
             "Client not initialized".to_string(),
         ))?;
 
@@ -252,7 +252,7 @@ impl SubstrateClient {
 
     /// Query asset balance
     async fn query_asset_balance(&self, address: &str, asset_id: u32) -> Result<u64, BridgeError> {
-        let client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+        let _client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
             "Client not initialized".to_string(),
         ))?;
 
@@ -300,7 +300,7 @@ impl SubstrateClient {
 
     /// Verify transaction by hash
     pub async fn verify_transaction(&self, tx_hash: &PolkadotTxHash) -> Result<bool, BridgeError> {
-        let client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
+        let _client = self.client.as_ref().ok_or(BridgeError::InvalidChain(
             "Client not initialized".to_string(),
         ))?;
 
@@ -309,10 +309,6 @@ impl SubstrateClient {
             .map_err(|e| BridgeError::InvalidTxHash(format!("Invalid hash format: {}", e)))?;
 
         println!("✅ Verifying Polkadot transaction: {}", tx_hash.0);
-
-        // Try to get the block that contains this transaction
-        // Note: This simplified check just validates the hash format
-        // In production, would use proper RPC methods to verify transaction inclusion
 
         match hash.as_bytes().len() {
             32 => {

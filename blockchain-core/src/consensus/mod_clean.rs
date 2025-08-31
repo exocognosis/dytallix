@@ -535,9 +535,7 @@ impl ConsensusEngine {
         Self::validate_block_static(&self.runtime, &self.pqc_manager, block).await
     }
 
-    fn calculate_merkle_root(&self, transactions: &[Transaction]) -> String {
-        Self::calculate_merkle_root_static(transactions)
-    }
+    // Removed unused instance method calculate_merkle_root; use static instead
 
     /// Validate a block with AI-enhanced transaction validation
     pub async fn validate_block_with_ai(&self, block: &Block) -> Result<bool, String> {

@@ -80,7 +80,7 @@ impl ContractState {
 pub struct StorageManager {
     db: Arc<DB>,
     // lightweight in-memory cache for hot account states (optional)
-    account_cache: Arc<RwLock<HashMap<Address, AccountState>>>,
+    _account_cache: Arc<RwLock<HashMap<Address, AccountState>>>, // underscore
 }
 
 const META_CHAIN_ID: &str = "meta:chain_id";
@@ -100,7 +100,7 @@ impl StorageManager {
         let db = DB::open(&opts, db_path)?;
         let mgr = Self {
             db: Arc::new(db),
-            account_cache: Arc::new(RwLock::new(HashMap::new())),
+            _account_cache: Arc::new(RwLock::new(HashMap::new())),
         };
         mgr.ensure_chain_id(&chain_id)?;
         // If height not set treat as fresh and init genesis

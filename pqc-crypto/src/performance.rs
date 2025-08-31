@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+/// Type alias to simplify complex return type used in benchmarking
+pub type BenchOperationResult = (Duration, Duration, Duration, usize, usize);
+
 /// Benchmark results for different PQC algorithms
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PQCBenchmarkResults {
@@ -59,6 +62,7 @@ impl PQCPerformanceBenchmark {
     pub fn run_comprehensive_benchmarks(
         &mut self,
     ) -> Result<PerformanceAnalysis, Box<dyn std::error::Error>> {
+        #[cfg(feature = "benchmark-stdout")]
         println!("🚀 Starting comprehensive PQC performance benchmarks...\n");
 
         let algorithms = vec![
@@ -70,9 +74,11 @@ impl PQCPerformanceBenchmark {
         self.results.clear();
 
         for (name, algorithm) in algorithms {
+            #[cfg(feature = "benchmark-stdout")]
             println!("📊 Benchmarking {}...", name);
             let result = self.benchmark_algorithm(name, &algorithm)?;
             self.results.push(result);
+            #[cfg(feature = "benchmark-stdout")]
             println!("✅ {} benchmark completed\n", name);
         }
 
@@ -161,7 +167,7 @@ impl PQCPerformanceBenchmark {
     fn single_operation_benchmark(
         &mut self,
         algorithm: &SignatureAlgorithm,
-    ) -> Result<(Duration, Duration, Duration, usize, usize), Box<dyn std::error::Error>> {
+    ) -> Result<BenchOperationResult, Box<dyn std::error::Error>> {
         // Key generation benchmark
         let key_gen_start = Instant::now();
         let keypair = self.pqc_manager.generate_validator_keypair(algorithm)?;
@@ -172,11 +178,8 @@ impl PQCPerformanceBenchmark {
             "bench_validator_{}",
             chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
         );
-        self.pqc_manager.add_validator(
-            validator_id.clone(),
-            keypair.public_key.clone(),
-            algorithm.clone(),
-        );
+        self.pqc_manager
+            .add_validator(validator_id.clone(), keypair.public_key.clone(), algorithm.clone());
 
         // Create test payload
         let payload = CrossChainPayload::GenericBridgePayload {

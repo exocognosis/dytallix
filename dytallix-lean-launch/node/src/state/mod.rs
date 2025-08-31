@@ -11,22 +11,14 @@ pub struct AccountState {
 
 impl AccountState {
     /// Get balance for a specific denomination
-    pub fn balance_of(&self, denom: &str) -> u128 {
-        self.balances.get(denom).copied().unwrap_or(0)
-    }
+    pub fn balance_of(&self, denom: &str) -> u128 { self.balances.get(denom).copied().unwrap_or(0) }
 
     /// Get legacy single balance (defaults to udgt for backward compatibility)
-    pub fn legacy_balance(&self) -> u128 {
-        self.balance_of("udgt")
-    }
+    pub fn legacy_balance(&self) -> u128 { self.balance_of("udgt") }
 
     /// Set balance for a specific denomination
     pub fn set_balance(&mut self, denom: &str, amount: u128) {
-        if amount == 0 {
-            self.balances.remove(denom);
-        } else {
-            self.balances.insert(denom.to_string(), amount);
-        }
+        if amount == 0 { self.balances.remove(denom); } else { self.balances.insert(denom.to_string(), amount); }
     }
 
     /// Add to balance for a specific denomination
@@ -39,10 +31,7 @@ impl AccountState {
     pub fn sub_balance(&mut self, denom: &str, amount: u128) -> Result<(), String> {
         let current = self.balance_of(denom);
         if current < amount {
-            return Err(format!(
-                "Insufficient balance in {}: {} < {}",
-                denom, current, amount
-            ));
+            return Err(format!("Insufficient balance in {denom}: {current} < {amount}"));
         }
         self.set_balance(denom, current - amount);
         Ok(())
@@ -57,13 +46,18 @@ pub struct State {
 
 impl Default for State {
     fn default() -> Self {
-        // Use a temporary directory for ephemeral default state
-        let tmp = tempfile::tempdir().expect("failed to create temp dir for default state");
-        let storage = Storage::open(tmp.path().to_path_buf())
-            .expect("failed to open storage for default state");
-        Self {
-            accounts: HashMap::new(),
-            storage: Arc::new(storage),
+        // Fallback default uses an in-memory temporary directory only when tests build with dev-dependency tempfile.
+        // To avoid compile error when tempfile crate not present, gate this with cfg(test).
+        #[cfg(test)]
+        {
+            let tmp = tempfile::tempdir().expect("failed to create temp dir for default state");
+            let storage = Storage::open(tmp.path().to_path_buf())
+                .expect("failed to open storage for default state");
+            return Self { accounts: HashMap::new(), storage: Arc::new(storage) };
+        }
+        #[cfg(not(test))]
+        {
+            panic!("State::default is only available in tests; use State::new with a Storage instance");
         }
     }
 }
@@ -96,9 +90,7 @@ impl State {
 
     pub fn get_account(&mut self, addr: &str) -> AccountState {
         // lazy load DB
-        if let Some(a) = self.accounts.get(addr) {
-            return a.clone();
-        }
+        if let Some(a) = self.accounts.get(addr) { return a.clone(); }
         let balances = self.storage.get_balances_db(addr);
         let nonce = self.storage.get_nonce_db(addr);
         let a = AccountState { balances, nonce };

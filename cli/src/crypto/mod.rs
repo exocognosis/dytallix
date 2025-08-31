@@ -9,6 +9,9 @@ pub trait PQC {
     const ALG: &'static str; // algorithm identifier (e.g. "dilithium5")
 }
 
+#[cfg(all(feature = "pqc-real", feature = "pqc-mock"))]
+compile_error!("Features 'pqc-real' and 'pqc-mock' cannot both be enabled.");
+
 #[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
 mod dilithium;
 #[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]

@@ -1,17 +1,23 @@
 use super::*;
 use crate::state::State;
 use crate::storage::tx::Transaction;
+use crate::storage::state::Storage; // added
+use std::sync::Arc; // added
+use tempfile::TempDir; // added
 
 #[cfg(test)]
 mod mempool_gas_tests {
     use super::*;
 
     fn create_mock_state() -> State {
-        State::new() // Assumes State::new() exists
+        // Create temporary storage for state
+        let temp_dir = TempDir::new().expect("failed to create temp dir for state test");
+        let storage = Arc::new(Storage::open(temp_dir.path().to_path_buf()).expect("failed to open storage"));
+        State::new(storage)
     }
 
     fn create_test_transaction(gas_limit: u64, gas_price: u64) -> Transaction {
-        Transaction::with_gas(
+        Transaction::new(
             "test_hash".to_string(),
             "dytallix1test_from".to_string(),
             "dytallix1test_to".to_string(),
@@ -19,9 +25,8 @@ mod mempool_gas_tests {
             10,
             1,
             Some("test_signature".to_string()),
-            gas_limit,
-            gas_price,
         )
+        .with_gas(gas_limit, gas_price)
     }
 
     #[test]

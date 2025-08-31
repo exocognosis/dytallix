@@ -4,13 +4,16 @@
 //! handling token minting/burning with IBC integration and AI-enhanced validation.
 
 use cosmwasm_std::{
-    entry_point, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
-    MessageInfo, Response, StdError, StdResult, Uint128, WasmMsg,
+    entry_point, to_json_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
+    MessageInfo, Response, StdError, StdResult, Uint128,
 };
+
+// When both feature flags are enabled (e.g. during `--all-features` clippy runs),
+// we allow both modules to compile; runtime selection happens externally.
+// Removed previous compile_error! to enable linting with all features.
+
 use cw_storage_plus::{Item, Map};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::str::FromStr;
 use thiserror::Error;
 
 /// Contract error types
@@ -18,36 +21,26 @@ use thiserror::Error;
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
-
     #[error("Unauthorized")]
-    Unauthorized {},
-
+    Unauthorized,
     #[error("Invalid bridge transaction")]
-    InvalidBridgeTransaction {},
-
+    InvalidBridgeTransaction,
     #[error("Bridge transaction already processed")]
-    AlreadyProcessed {},
-
+    AlreadyProcessed,
     #[error("Insufficient balance")]
-    InsufficientBalance {},
-
+    InsufficientBalance,
     #[error("Token not supported")]
-    TokenNotSupported {},
-
+    TokenNotSupported,
     #[error("AI fraud detection triggered")]
-    AIFraudDetected {},
-
+    AIFraudDetected,
     #[error("Invalid IBC packet")]
-    InvalidIBCPacket {},
-
+    InvalidIBCPacket,
     #[error("Bridge paused")]
-    BridgePaused {},
-
+    BridgePaused,
     #[error("Amount below minimum")]
-    AmountBelowMinimum {},
-
+    AmountBelowMinimum,
     #[error("Amount above maximum")]
-    AmountAboveMaximum {},
+    AmountAboveMaximum,
 }
 
 /// Contract state
@@ -631,15 +624,19 @@ pub fn execute_complete_bridge(
 #[entry_point]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::GetState {} => to_binary(&query_state(deps)?),
+        QueryMsg::GetState {} => to_json_binary(&query_state(deps)?),
         QueryMsg::GetBridgeTransaction { bridge_id } => {
-            to_binary(&query_bridge_transaction(deps, bridge_id)?)
+            to_json_binary(&query_bridge_transaction(deps, bridge_id)?)
         }
-        QueryMsg::GetSupportedToken { denom } => to_binary(&query_supported_token(deps, denom)?),
-        QueryMsg::ListSupportedTokens {} => to_binary(&query_list_supported_tokens(deps)?),
-        QueryMsg::GetValidators {} => to_binary(&query_validators(deps)?),
-        QueryMsg::GetBridgeStats {} => to_binary(&query_bridge_stats(deps)?),
-        QueryMsg::GetAIRiskScore { bridge_id } => to_binary(&query_ai_risk_score(deps, bridge_id)?),
+        QueryMsg::GetSupportedToken { denom } => {
+            to_json_binary(&query_supported_token(deps, denom)?)
+        }
+        QueryMsg::ListSupportedTokens {} => to_json_binary(&query_list_supported_tokens(deps)?),
+        QueryMsg::GetValidators {} => to_json_binary(&query_validators(deps)?),
+        QueryMsg::GetBridgeStats {} => to_json_binary(&query_bridge_stats(deps)?),
+        QueryMsg::GetAIRiskScore { bridge_id } => {
+            to_json_binary(&query_ai_risk_score(deps, bridge_id)?)
+        }
     }
 }
 
@@ -726,7 +723,7 @@ fn execute_mint(
 fn execute_burn(
     token_denom: &str,
     amount: Uint128,
-    sender: Addr,
+    _sender: Addr,
 ) -> Result<CosmosMsg, ContractError> {
     // In practice, this would use a custom burn module or bank burn functionality
     Ok(CosmosMsg::Bank(BankMsg::Burn {

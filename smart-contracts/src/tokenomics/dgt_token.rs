@@ -15,6 +15,10 @@ use scale::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
+const WASM_ENV_NOTE: &str = "DGTToken WASM extern fns are no-ops on non-wasm32 targets";
+
 /// DGT Token contract state
 #[derive(Debug, Clone, Encode, Decode, Serialize, Deserialize)]
 pub struct DGTToken {
@@ -157,16 +161,17 @@ impl DGTToken {
 
 // WASM-compatible exports for DGT token functions
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn dgt_balance_of(
     token_ptr: *const DGTToken,
     address_ptr: *const u8,
     address_len: usize,
 ) -> u64 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn dgt_transfer(
     token_ptr: *mut DGTToken,
     from_ptr: *const u8,
@@ -175,11 +180,11 @@ pub extern "C" fn dgt_transfer(
     to_len: usize,
     amount: u64,
 ) -> i32 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn dgt_approve(
     token_ptr: *mut DGTToken,
     owner_ptr: *const u8,
@@ -188,24 +193,23 @@ pub extern "C" fn dgt_approve(
     spender_len: usize,
     amount: u64,
 ) -> i32 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn dgt_total_supply(token_ptr: *const DGTToken) -> u64 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn dgt_voting_power(
     token_ptr: *const DGTToken,
     address_ptr: *const u8,
     address_len: usize,
 ) -> u64 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[cfg(test)]

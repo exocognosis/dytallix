@@ -228,7 +228,7 @@ pub struct OracleRegistry {
     /// Access control lists
     access_control: Arc<RwLock<OracleAccessControl>>,
     /// PQC manager for cryptographic operations
-    pqc_manager: Arc<PQCManager>,
+    _pqc_manager: Arc<PQCManager>,
     /// Registry statistics
     stats: Arc<RwLock<RegistryStatistics>>,
 }
@@ -279,7 +279,7 @@ impl OracleRegistry {
             config,
             oracles: Arc::new(RwLock::new(HashMap::new())),
             access_control: Arc::new(RwLock::new(OracleAccessControl::default())),
-            pqc_manager: Arc::new(PQCManager::new()?),
+            _pqc_manager: Arc::new(PQCManager::new()?),
             stats: Arc::new(RwLock::new(RegistryStatistics::default())),
         })
     }

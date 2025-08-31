@@ -6,9 +6,9 @@ authors = ["Dytallix Team"]
 description = "Smart contract runtime and examples for Dytallix"
 
 [dependencies]
-# WASM runtime
-wasmi = "0.31"
-wasmtime = { version = "13.0", optional = true }
+# WASM runtime (standardize on wasmtime)
+wasmtime = { version = "19.0", optional = true }
+wasmi = { version = "0.31", optional = true }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -44,14 +44,18 @@ rand = "0.8"
 
 [features]
 # Include cosmwasm feature by default so bridge contract modules compile during workspace tests
-default = ["std", "cosmwasm"]
+default = ["std", "cosmwasm", "engine_wasmtime", "cosmos-bridge-lite"]
+# Provide an optimized bridge variant; user must disable lite to enable optimized
 std = [
     "scale/std",
     "scale-info/std",
     "serde/std",
 ]
-wasmtime-runtime = ["wasmtime"]
+engine_wasmtime = ["wasmtime"]
+engine_wasmi = ["wasmi"]
 cosmwasm = ["cosmwasm-std", "cw-storage-plus"]
+cosmos-bridge-lite = []
+cosmos-bridge-optimized = []
 
 [lib]
 name = "dytallix_contracts"

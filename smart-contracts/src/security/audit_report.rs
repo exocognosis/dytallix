@@ -187,7 +187,7 @@ impl AuditReportGenerator {
         &mut self,
         audit_result: &SecurityAuditResult,
         gas_stats: Option<&GasStatistics>,
-        storage_stats: Option<&StorageStatistics>,
+        _storage_stats: Option<&StorageStatistics>,
     ) -> ComprehensiveAuditReport {
         self.report_count += 1;
 
@@ -930,7 +930,7 @@ mod chrono {
     impl DateTime {
         pub fn format(&self, _fmt: &str) -> impl std::fmt::Display {
             use std::time::{SystemTime, UNIX_EPOCH};
-            let timestamp = SystemTime::now()
+            let _timestamp = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs();

@@ -35,7 +35,7 @@ struct ApiResponse<T> {
 }
 
 #[derive(Debug, Serialize)]
-struct BlockchainStats {
+struct BlockchainStats { // removed underscore - struct is intended for API responses
     current_block: u64,
     total_transactions: usize,
     network_peers: usize,
@@ -55,7 +55,7 @@ struct BlockInfo {
 }
 
 #[derive(Debug, Serialize)]
-struct PeerInfo {
+struct PeerInfo { // removed underscore
     id: String,
     address: String,
     status: String,
@@ -65,7 +65,7 @@ struct PeerInfo {
 }
 
 #[derive(Debug, Serialize)]
-struct SystemStatus {
+struct SystemStatus { // removed underscore
     version: String,
     uptime: u64,
     block_height: u64,
@@ -109,14 +109,14 @@ impl WebSocketMessage {
 }
 
 #[derive(Debug, Serialize)]
-struct TransactionResponse {
+struct TransactionResponse { // removed underscore
     hash: String,
     status: String,
     block_number: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
-struct TransactionDetails {
+struct TransactionDetails { // removed underscore
     hash: String,
     from: String,
     to: String,
@@ -137,21 +137,21 @@ struct ErrorResponse {
 
 // Staking API types
 #[derive(Debug, Deserialize)]
-struct StakingRegisterRequest {
+struct _StakingRegisterRequest { // underscore
     address: String,
     consensus_pubkey: String,
     commission_rate: u16,
 }
 
 #[derive(Debug, Deserialize)]
-struct StakingDelegateRequest {
+struct _StakingDelegateRequest { // underscore
     delegator: String,
     validator: String,
     amount: u128,
 }
 
 #[derive(Debug, Deserialize)]
-struct StakingClaimRequest {
+struct _StakingClaimRequest { // underscore
     delegator: String,
     validator: String,
 }
@@ -166,7 +166,7 @@ struct ValidatorResponse {
 }
 
 #[derive(Debug, Serialize)]
-struct DelegationResponse {
+struct _DelegationResponse { // underscore
     delegator_address: String,
     validator_address: String,
     stake_amount: u128,
@@ -730,7 +730,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     "wasm_execute" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
-                            handle_wasm_execute(params.clone(), (storage.clone(), tx_pool.clone())).await
+                            handle_wasm_execute(params.clone(), (storage.clone, tx_pool.clone())).await
                         } else {
                             serde_json::json!({"error": "Invalid parameters"})
                         }
@@ -1609,9 +1609,9 @@ async fn handle_staking_get_validator(
 }
 
 async fn handle_staking_get_validators(
-    runtime: Arc<crate::runtime::DytallixRuntime>,
+    _runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
-    let validators = runtime.get_active_validators().await;
+    let validators = _runtime.get_active_validators().await;
     let result: Vec<serde_json::Value> = validators
         .iter()
         .map(|v| {

@@ -4,9 +4,8 @@
 //! edge cases, vulnerabilities, and abnormal behaviors in smart contracts.
 
 use super::{SecurityFinding, Severity, VulnerabilityCategory};
-use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult};
+use crate::runtime::ContractDeployment; // Removed unused ContractCall, ExecutionResult
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Fuzz tester for discovering edge cases and vulnerabilities
 pub struct FuzzTester {
@@ -632,7 +631,7 @@ impl FuzzInputGenerator for StringFuzzGenerator {
             "LONG_AAAA",
         ];
 
-        let pattern = if patterns[patterns.len() - 1] == "LONG_AAAA" {
+        if patterns[patterns.len() - 1] == "LONG_AAAA" {
             if iteration % 6 == 5 {
                 // generate long string separately
                 let long = "AAAA".repeat(1000);

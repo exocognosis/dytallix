@@ -10,9 +10,9 @@ mod dilithium;
 #[cfg(feature = "pqc-real")]
 pub use dilithium::Dilithium as ActivePQC;
 
-#[cfg(feature = "pqc-mock")]
+#[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
 mod mock;
-#[cfg(feature = "pqc-mock")]
+#[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
 pub use mock::MockPQC as ActivePQC;
 
 mod hash;

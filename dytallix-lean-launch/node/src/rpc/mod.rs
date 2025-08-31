@@ -5,9 +5,7 @@ use crate::runtime::governance::{GovernanceModule, ProposalType};
 use crate::runtime::staking::StakingModule;
 use crate::storage::oracle::OracleStore;
 use crate::{
-    addr,
-    crypto::{canonical_json, sha3_256, ActivePQC},
-    mempool::{basic_validate, Mempool, MempoolError},
+    mempool::{basic_validate, Mempool},
     state::State,
     storage::blocks::TpsWindow,
     storage::{receipts::TxReceipt, state::Storage, tx::Transaction},
@@ -18,8 +16,6 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
-use base64::{engine::general_purpose::STANDARD as B64, Engine};
-use colored::Colorize; // needed for algorithm.cyan()
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
@@ -270,20 +266,13 @@ pub async fn get_block(
             .and_then(|h| ctx.storage.get_block_by_height(h))
     };
     if let Some(b) = block {
-        // Enrich block metadata (signature + algorithm if available)
-        let mut obj = json!({
+        let obj = json!({
             "hash": b.hash,
             "height": b.header.height,
             "parent": b.header.parent,
             "timestamp": b.header.timestamp,
             "txs": b.txs,
         });
-        if let Some(sig) = b.header.signature.as_ref() {
-            // placeholder: adapt if Option later
-            obj["validator"] = serde_json::json!(b.header.validator);
-            obj["state_root"] = serde_json::json!(b.header.state_root);
-            obj["pqc_algorithm"] = serde_json::json!(sig.algorithm);
-        }
         Ok(Json(obj))
     } else {
         Err(ApiError::NotFound)
@@ -994,12 +983,12 @@ pub async fn staking_undelegate(
 /// POST /api/contract/deploy - Deploy WASM contract
 pub async fn contract_deploy(
     Json(payload): Json<serde_json::Value>,
-    Extension(ctx): Extension<RpcContext>,
+    Extension(_ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let code = payload["code"]
+    let _code = payload["code"]
         .as_str()
         .ok_or(ApiError::BadRequest("missing code".to_string()))?;
-    let init_data = payload["init_data"].as_str().unwrap_or("{}");
+    let _init_data = payload["init_data"].as_str().unwrap_or("{}");
 
     // Simplified deployment - in production would store in state
     let contract_id = format!(
@@ -1021,7 +1010,7 @@ pub async fn contract_deploy(
 /// POST /api/contract/call - Call WASM contract method
 pub async fn contract_call(
     Json(payload): Json<serde_json::Value>,
-    Extension(ctx): Extension<RpcContext>,
+    Extension(_ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let contract_id = payload["contract_id"]
         .as_str()
@@ -1048,7 +1037,7 @@ pub async fn contract_call(
 /// POST /api/ai/score - AI risk scoring stub service
 pub async fn ai_risk_score(
     Json(payload): Json<serde_json::Value>,
-    Extension(ctx): Extension<RpcContext>,
+    Extension(_ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let tx_hash = payload["tx_hash"]
         .as_str()
@@ -1074,7 +1063,7 @@ pub async fn ai_risk_score(
 /// GET /api/ai/risk/{tx_hash} - Get stored AI risk assessment
 pub async fn ai_risk_get(
     Path(tx_hash): Path<String>,
-    Extension(ctx): Extension<RpcContext>,
+    Extension(_ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     // In production, this would query OracleStore
     let risk_score = {

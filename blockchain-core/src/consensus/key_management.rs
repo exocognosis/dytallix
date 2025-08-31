@@ -38,7 +38,7 @@ pub struct NodeKeyStore {
 pub struct KeyManager {
     key_store: Option<NodeKeyStore>,
     key_file_path: String,
-    pqc_manager: std::sync::Arc<PQCManager>,
+    _pqc_manager: std::sync::Arc<PQCManager>, // underscore
 }
 
 impl KeyManager {
@@ -47,7 +47,7 @@ impl KeyManager {
         Self {
             key_store: None,
             key_file_path,
-            pqc_manager,
+            _pqc_manager: pqc_manager,
         }
     }
 

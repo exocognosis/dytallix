@@ -76,21 +76,21 @@ pub enum ConsensusError {
 pub struct ConsensusEngine {
     runtime: Arc<DytallixRuntime>,
     pqc_manager: Arc<PQCManager>,
-    current_block: Arc<RwLock<Option<Block>>>,
-    validators: Arc<RwLock<Vec<String>>>,
+    _current_block: Arc<RwLock<Option<Block>>>, // prefixed underscore
+    _validators: Arc<RwLock<Vec<String>>>, // underscore
     is_validator: bool,
 
     // Core components
-    ai_client: Arc<AIOracleClient>,
+    _ai_client: Arc<AIOracleClient>, // underscore
     ai_integration: Option<Arc<AIIntegrationManager>>,
     transaction_validator: Arc<TransactionValidator>,
     block_processor: Arc<BlockProcessor>,
     key_manager: Arc<RwLock<KeyManager>>,
 
     // Supporting services
-    high_risk_queue: Arc<HighRiskQueue>,
-    audit_trail: Arc<AuditTrailManager>,
-    performance_optimizer: Arc<PerformanceOptimizer>,
+    _high_risk_queue: Arc<HighRiskQueue>, // underscore
+    _audit_trail: Arc<AuditTrailManager>, // underscore
+    _performance_optimizer: Arc<PerformanceOptimizer>, // underscore
 
     // WASM contract runtime
     wasm_runtime: Arc<ContractRuntime>,
@@ -167,17 +167,17 @@ impl ConsensusEngine {
         Ok(Self {
             runtime,
             pqc_manager,
-            current_block,
-            validators: Arc::new(RwLock::new(Vec::new())),
+            _current_block: current_block,
+            _validators: Arc::new(RwLock::new(Vec::new())),
             is_validator: false,
-            ai_client,
+            _ai_client: ai_client,
             ai_integration,
             transaction_validator,
             block_processor,
             key_manager,
-            high_risk_queue,
-            audit_trail,
-            performance_optimizer,
+            _high_risk_queue: high_risk_queue,
+            _audit_trail: audit_trail,
+            _performance_optimizer: performance_optimizer,
             wasm_runtime,
         })
     }
@@ -224,7 +224,7 @@ impl ConsensusEngine {
 
     /// Check AI service health and connectivity
     pub async fn check_ai_service_health(&self) -> Result<bool, Box<dyn std::error::Error>> {
-        let health_status = self.ai_client.health_check().await?;
+        let health_status = self._ai_client.health_check().await?;
         if health_status {
             info!("AI service is healthy and responsive");
         } else {
@@ -238,7 +238,7 @@ impl ConsensusEngine {
         &self,
     ) -> Result<Vec<crate::consensus::ai_oracle_client::AIServiceInfo>, Box<dyn std::error::Error>>
     {
-        let services = self.ai_client.discover_services().await?;
+        let services = self._ai_client.discover_services().await?;
         info!("Discovered {} AI services", services.len());
         for service in &services {
             debug!(
@@ -256,14 +256,14 @@ impl ConsensusEngine {
         data: HashMap<String, Value>,
     ) -> Result<crate::consensus::SignedAIOracleResponse, Box<dyn std::error::Error>> {
         let response = self
-            .ai_client
+            ._ai_client
             .request_ai_analysis(service_type, data)
             .await?;
 
         // Validate response confidence score from metadata
         if let Some(metadata) = &response.response.metadata {
             if let Some(confidence) = metadata.confidence_score {
-                if confidence < self.ai_client.get_config().risk_threshold {
+                if confidence < self._ai_client.get_config().risk_threshold {
                     warn!(
                         "AI analysis confidence score below threshold: {}",
                         confidence
@@ -446,12 +446,12 @@ impl ConsensusEngine {
 
     /// Get validator list
     pub async fn get_validators(&self) -> Vec<String> {
-        self.validators.read().await.clone()
+        self._validators.read().await.clone()
     }
 
     /// Add validator
     pub async fn add_validator(&self, validator: String) {
-        let mut validators = self.validators.write().await;
+        let mut validators = self._validators.write().await;
         if !validators.contains(&validator) {
             validators.push(validator);
         }
@@ -459,23 +459,13 @@ impl ConsensusEngine {
 
     /// Remove validator
     pub async fn remove_validator(&self, validator: &str) {
-        let mut validators = self.validators.write().await;
+        let mut validators = self._validators.write().await;
         validators.retain(|v| v != validator);
-    }
-
-    /// Get runtime reference
-    pub fn get_runtime(&self) -> Arc<DytallixRuntime> {
-        self.runtime.clone()
-    }
-
-    /// Get PQC manager reference
-    pub fn get_pqc_manager(&self) -> Arc<PQCManager> {
-        self.pqc_manager.clone()
     }
 
     /// Get AI client reference
     pub fn get_ai_client(&self) -> Arc<AIOracleClient> {
-        self.ai_client.clone()
+        self._ai_client.clone()
     }
 
     /// Get transaction validator reference

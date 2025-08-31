@@ -101,7 +101,7 @@ impl Indexer {
 
         // Get latest height from RPC
         let latest_height = self.rpc_client.get_latest_height().await?;
-        info!("Latest height from RPC: {}", latest_height);
+        info!("Latest height from RPC: {latest_height}");
 
         // Get latest height from our store
         let store_height = self
@@ -109,7 +109,7 @@ impl Indexer {
             .get_latest_block_height()
             .unwrap_or(None)
             .unwrap_or(0);
-        info!("Latest height in store: {}", store_height);
+        info!("Latest height in store: {store_height}");
 
         // Determine backfill start height
         let start_height = if store_height == 0 {
@@ -123,12 +123,11 @@ impl Indexer {
         // Backfill missing blocks
         if start_height <= latest_height {
             info!(
-                "Backfilling blocks from {} to {}",
-                start_height, latest_height
+                "Backfilling blocks from {start_height} to {latest_height}"
             );
             for height in start_height..=latest_height {
                 if let Err(e) = self.ingest_block(height).await {
-                    warn!("Failed to ingest block {}: {}", height, e);
+                    warn!("Failed to ingest block {height}: {e}");
                 }
             }
         }
@@ -153,14 +152,14 @@ impl Indexer {
                         );
                         for height in (last_height + 1)..=current_height {
                             if let Err(e) = self.ingest_block(height).await {
-                                warn!("Failed to ingest block {}: {}", height, e);
+                                warn!("Failed to ingest block {height}: {e}");
                             }
                         }
                         last_height = current_height;
                     }
                 }
                 Err(e) => {
-                    error!("Failed to get latest height: {}", e);
+                    error!("Failed to get latest height: {e}");
                 }
             }
         }
@@ -172,8 +171,8 @@ impl Indexer {
         for rpc_block in blocks_response.blocks {
             if rpc_block.height != height {
                 warn!(
-                    "Height mismatch: requested {}, got {}",
-                    height, rpc_block.height
+                    "Height mismatch: requested {height}, got {}",
+                    rpc_block.height
                 );
                 continue;
             }
@@ -187,27 +186,27 @@ impl Indexer {
 
             // Store block
             if let Err(e) = self.store.insert_block(&block) {
-                warn!("Failed to insert block {}: {}", height, e);
+                warn!("Failed to insert block {height}: {e}");
                 continue;
             }
 
             // Log to JSONL if enabled
             if let Some(ref mut file) = self.jsonl_file {
                 if let Ok(json) = serde_json::to_string(&block) {
-                    let _ = writeln!(file, "{}", json);
+                    let _ = writeln!(file, "{json}");
                 }
             }
 
             // Ingest transactions
             for tx_hash in rpc_block.txs {
                 if let Err(e) = self.ingest_transaction(&tx_hash, height).await {
-                    warn!("Failed to ingest transaction {}: {}", tx_hash, e);
+                    warn!("Failed to ingest transaction {tx_hash}: {e}");
                 }
             }
 
             info!(
-                "Ingested block {} with {} transactions",
-                height, block.tx_count
+                "Ingested block {height} with {} transactions",
+                block.tx_count
             );
         }
 
@@ -237,12 +236,12 @@ impl Indexer {
                 // Log to JSONL if enabled
                 if let Some(ref mut file) = self.jsonl_file {
                     if let Ok(json) = serde_json::to_string(&tx) {
-                        let _ = writeln!(file, "{}", json);
+                        let _ = writeln!(file, "{json}");
                     }
                 }
             }
             None => {
-                warn!("Transaction {} not found", hash);
+                warn!("Transaction {hash} not found");
             }
         }
 

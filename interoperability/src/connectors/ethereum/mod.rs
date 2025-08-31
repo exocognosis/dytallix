@@ -7,11 +7,8 @@ use ethers::{
     middleware::SignerMiddleware,
     providers::{Http, Provider, Ws},
     signers::{LocalWallet, Signer},
-    types::{Address, H256},
 };
-use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Arc;
 
 pub mod bridge_contract;
@@ -43,7 +40,7 @@ pub struct EthereumBlock {
     pub timestamp: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EthereumConfig {
     pub rpc_url: String,
     pub chain_id: u64,

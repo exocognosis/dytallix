@@ -1,7 +1,7 @@
 use crate::rpc::errors::ApiError;
 use crate::rpc::RpcContext;
-use crate::runtime::oracle::{verify_sig, OracleAiRiskBatchInput, OracleAiRiskInput};
-use crate::storage::oracle::{AiRiskRecord, OracleStore};
+use crate::runtime::oracle::{OracleAiRiskBatchInput, OracleAiRiskInput};
+use crate::storage::oracle::{OracleStore};
 use axum::{Extension, Json};
 use serde_json::json;
 
@@ -63,7 +63,7 @@ pub async fn get_ai_risk_batch(
 /// Get oracle statistics and health information
 #[axum::debug_handler]
 pub async fn oracle_stats(
-    Extension(ctx): Extension<RpcContext>,
+    Extension(_ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     // For now, return basic stats. In a real implementation, we'd track more metrics
     let configured_pubkey = std::env::var("AI_ORACLE_PUBKEY").is_ok();

@@ -3,10 +3,10 @@
 //! This module provides optimized storage access patterns, key compression,
 //! and efficient data serialization to reduce storage costs and improve performance.
 
-use cosmwasm_std::{Addr, StdError, StdResult, Storage, Uint128};
-use cw_storage_plus::{Bound, Item, Map, PrimaryKey};
+use cosmwasm_std::{Addr, StdError, StdResult, Storage};
+use cw_storage_plus::{Map, PrimaryKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 /// Storage access pattern metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]

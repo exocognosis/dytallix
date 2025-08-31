@@ -1,8 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Arc, RwLock};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
-use crate::storage::tx::Transaction;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Gossip configuration constants
 pub const DEFAULT_MEMPOOL_SEEN_TTL_MS: u64 = 300_000; // 5 minutes
@@ -107,7 +105,7 @@ impl TransactionGossip {
         // Clean up expired entries
         self.cleanup_expired_entries(&mut seen_cache);
 
-        let now = SystemTime::now()
+        let _now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;
@@ -131,7 +129,7 @@ impl TransactionGossip {
                     tx_hash.to_string(),
                     SeenEntry {
                         tx_hash: tx_hash.to_string(),
-                        seen_at: now,
+                        seen_at: _now,
                         from_peers,
                     },
                 );
@@ -235,7 +233,7 @@ impl TransactionGossip {
 
         // Also cleanup old broadcast hashes (keep them for TTL duration)
         let mut broadcast_hashes = self.broadcast_hashes.write().unwrap();
-        let now = SystemTime::now()
+        let _now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;

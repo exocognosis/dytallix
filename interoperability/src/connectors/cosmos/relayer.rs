@@ -3,7 +3,6 @@
 //! Handles packet relaying between chains for IBC communication.
 
 use crate::BridgeError;
-use serde::{Deserialize, Serialize};
 
 use super::{CosmosTxHash, IbcPacket};
 

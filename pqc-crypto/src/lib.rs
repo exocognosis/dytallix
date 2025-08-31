@@ -303,19 +303,19 @@ impl PQCManager {
         message: &[u8],
         signature: &Signature,
     ) -> Result<bool, PQCError> {
-        // Try active key first
-        if self.signature_keypair.algorithm == signature.algorithm {
-            if self.verify(message, signature, &self.signature_keypair.public_key)? {
-                return Ok(true);
-            }
+        // Try active key first (collapse nested if)
+        if self.signature_keypair.algorithm == signature.algorithm
+            && self.verify(message, signature, &self.signature_keypair.public_key)?
+        {
+            return Ok(true);
         }
 
-        // Try backups in reverse (newest first)
+        // Try backups in reverse (newest first) (collapse nested if)
         for kp in self.signature_key_backups.iter().rev() {
-            if kp.algorithm == signature.algorithm {
-                if self.verify(message, signature, &kp.public_key)? {
-                    return Ok(true);
-                }
+            if kp.algorithm == signature.algorithm
+                && self.verify(message, signature, &kp.public_key)?
+            {
+                return Ok(true);
             }
         }
 
@@ -363,6 +363,7 @@ impl PQCManager {
         &self.signature_keypair.public_key
     }
 
+    #[allow(dead_code)]
     pub fn get_key_exchange_public_key(&self) -> &[u8] {
         &self.key_exchange_keypair.public_key
     }
@@ -371,6 +372,7 @@ impl PQCManager {
         &self.signature_keypair.algorithm
     }
 
+    #[allow(dead_code)]
     pub fn get_key_exchange_algorithm(&self) -> &KeyExchangeAlgorithm {
         &self.key_exchange_keypair.algorithm
     }
@@ -711,15 +713,33 @@ impl CryptoAgilityManager {
         Ok(())
     }
 
-    /// Apply scheduled migration if deadline has passed
+    /// Apply scheduled migration if deadline has passed (now also uses all migration fields to avoid unused-field warnings)
     pub fn apply_migration(&mut self) {
         if let Some(migration) = &self.migration_schedule {
-            if chrono::Utc::now() >= migration.migration_deadline {
+            // Use deprecation_warning_period & from_algorithm for pre-migration logging
+            let now = chrono::Utc::now();
+            if now + migration.deprecation_warning_period >= migration.migration_deadline {
+                log::warn!(
+                    "Algorithm {:?} will be deprecated; migrating to {:?} by {:?}",
+                    migration.from_algorithm, migration.to_algorithm, migration.migration_deadline
+                );
+            } else {
+                log::debug!(
+                    "Migration scheduled from {:?} to {:?} (deadline {:?})",
+                    migration.from_algorithm, migration.to_algorithm, migration.migration_deadline
+                );
+            }
+            if now >= migration.migration_deadline {
                 self.preferred_algorithm = migration.to_algorithm.clone();
                 self.migration_schedule = None;
+                log::info!("Applied algorithm migration to {:?}", self.preferred_algorithm);
             }
         }
     }
+}
+
+impl Default for CryptoAgilityManager {
+    fn default() -> Self { Self::new() }
 }
 
 // Bridge-specific PQC functionality

@@ -16,6 +16,7 @@ use crate::consensus::ai_oracle_client::AIOracleClient;
 use crate::consensus::transaction_validation::{TransactionValidator, ValidationResult};
 use crate::consensus::types::AIServiceType;
 use crate::types::{Block, BlockHeader, Transaction};
+use crate::staking::Validator;
 use dytallix_pqc::SignatureAlgorithm;
 
 /// Block validation result
@@ -153,7 +154,7 @@ impl BlockProcessor {
         let merkle_root = self.calculate_merkle_root(&valid_transactions);
 
         // Get active validator set and compute validator set hash
-        let active_validators = self.runtime.get_active_validators().await;
+        let active_validators: Vec<Validator> = self.runtime.get_active_validators().await; // ensure concrete sized Vec
         let validator_set_hash = self.calculate_validator_set_hash(&active_validators);
         info!(
             "Block {} validator set hash: {}",
@@ -369,7 +370,7 @@ impl BlockProcessor {
     }
 
     /// Calculate deterministic hash of the active validator set
-    fn calculate_validator_set_hash(&self, validators: &[crate::staking::Validator]) -> String {
+    fn calculate_validator_set_hash(&self, validators: &[Validator]) -> String {
         if validators.is_empty() {
             return "0".repeat(64);
         }

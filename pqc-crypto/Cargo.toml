@@ -57,8 +57,4 @@ dilithium = []
 kyber = []
 falcon = []
 sphincs = []
-
-# Temporarily disable CLI until dependencies are available
-# [[bin]]
-# name = "pqc-bridge-cli"
-# path = "src/bin/pqc_bridge_cli.rs"
+benchmark-stdout = []

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 // Enable smart contracts integration now that the crate compiles
 use crate::crypto::PQCManager; // added
-                               // use crate::staking::{StakingError, StakingState}; // temporarily disable due to path resolution issues
+use crate::staking::{StakingState, StakingError, Validator, Delegation, DelegatorRewardsSummary, DelegatorValidatorRewards};
 use crate::storage::StorageManager;
 use crate::types::{Address, BlockNumber};
 use crate::types::{Transaction, TxReceipt, TxStatus};
@@ -92,7 +92,7 @@ pub struct DytallixRuntime {
     contract_runtime: Arc<ContractRuntime>,
     // WASM engine & env (single reusable engine with shared HostEnv)
     wasm_engine: Arc<WasmEngine>,
-    pqc_manager: Arc<PQCManager>,
+    _pqc_manager: Arc<PQCManager>, // underscore
 }
 
 impl std::fmt::Debug for DytallixRuntime {
@@ -133,7 +133,7 @@ impl DytallixRuntime {
             storage,
             contract_runtime,
             wasm_engine,
-            pqc_manager,
+            _pqc_manager: pqc_manager,
         })
     }
 
@@ -434,7 +434,7 @@ impl DytallixRuntime {
     }
 
     /// Get active validators
-    pub async fn get_active_validators(&self) -> Vec<crate::staking::Validator> {
+    pub async fn get_active_validators(&self) -> Vec<Validator> {
         let state = self.state.read().await;
         state
             .staking
@@ -445,7 +445,7 @@ impl DytallixRuntime {
     }
 
     /// Get validator info
-    pub async fn get_validator(&self, address: &Address) -> Option<crate::staking::Validator> {
+    pub async fn get_validator(&self, address: &Address) -> Option<Validator> {
         let state = self.state.read().await;
         state.staking.validators.get(address).cloned()
     }
@@ -455,7 +455,7 @@ impl DytallixRuntime {
         &self,
         delegator: &Address,
         validator: &Address,
-    ) -> Option<crate::staking::Delegation> {
+    ) -> Option<Delegation> {
         let state = self.state.read().await;
         let delegation_key = format!("{}:{}", delegator, validator);
         state.staking.delegations.get(&delegation_key).cloned()
@@ -547,7 +547,7 @@ impl DytallixRuntime {
     pub async fn get_delegator_rewards_summary(
         &self,
         delegator: &Address,
-    ) -> crate::staking::DelegatorRewardsSummary {
+    ) -> DelegatorRewardsSummary {
         let state = self.state.read().await;
         state.staking.get_delegator_rewards_summary(delegator)
     }
@@ -557,7 +557,7 @@ impl DytallixRuntime {
         &self,
         delegator: &Address,
         validator: &Address,
-    ) -> Result<crate::staking::DelegatorValidatorRewards, StakingError> {
+    ) -> Result<DelegatorValidatorRewards, StakingError> {
         let state = self.state.read().await;
         state
             .staking
@@ -649,7 +649,7 @@ impl DytallixRuntime {
     ) -> TxReceipt {
         use Transaction::*;
         let mut status = TxStatus::Success;
-        let mut gas_used: u64 = 0;
+        let gas_used: u64 = 0; // not mut per clippy warning
         let mut error: Option<String> = None;
         let mut contract_address: Option<String> = None;
         let mut return_data: Option<Vec<u8>> = None;
@@ -749,3 +749,5 @@ impl DytallixRuntime {
         (receipts, gas_sum)
     }
 }
+
+// Remove temporary staking stubs (Validator, Delegation, etc.) now that real staking module is used

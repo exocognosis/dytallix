@@ -26,7 +26,7 @@ pub struct CosmosBlock {
     pub chain_id: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CosmosConfig {
     pub rpc_url: String,
     pub grpc_url: String,

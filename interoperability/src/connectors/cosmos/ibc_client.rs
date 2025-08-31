@@ -5,7 +5,6 @@
 use super::{CosmosBlock, CosmosTxHash};
 use crate::BridgeError;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IbcPacket {

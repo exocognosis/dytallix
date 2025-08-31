@@ -342,11 +342,7 @@ impl BridgePQCManager {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        let time_diff = if current_time > bridge_sig.timestamp {
-            current_time - bridge_sig.timestamp
-        } else {
-            bridge_sig.timestamp - current_time
-        };
+        let time_diff = current_time.abs_diff(bridge_sig.timestamp);
 
         if time_diff > 300 {
             // 5 minutes
@@ -444,7 +440,39 @@ impl BridgePQCManager {
         })
     }
 
-    /// Calculate enhanced payload hash for replay protection
+    /// Calculate payload hash based on chain configuration
+    #[allow(dead_code)]
+    fn calculate_payload_hash(
+        &self,
+        payload: &CrossChainPayload,
+        chain_id: &str,
+    ) -> Result<Vec<u8>, PQCError> {
+        let serialized = serde_json::to_vec(payload)
+            .map_err(|e| PQCError::InvalidKey(format!("Payload serialization error: {}", e)))?;
+
+        let chain_config = self.chain_configs.get(chain_id).ok_or_else(|| {
+            PQCError::UnsupportedAlgorithm(format!("Unknown chain: {}", chain_id))
+        })?;
+
+        match chain_config.hash_algorithm {
+            HashAlgorithm::Blake3 => Ok(blake3::hash(&serialized).as_bytes().to_vec()),
+            HashAlgorithm::SHA256 => {
+                use sha2::{Digest, Sha256};
+                let mut hasher = Sha256::new();
+                hasher.update(&serialized);
+                Ok(hasher.finalize().to_vec())
+            }
+            HashAlgorithm::Keccak256 => {
+                // For now, use SHA256 as placeholder - in production would use keccak256
+                use sha2::{Digest, Sha256};
+                let mut hasher = Sha256::new();
+                hasher.update(&serialized);
+                Ok(hasher.finalize().to_vec())
+            }
+        }
+    }
+
+    #[allow(dead_code)]
     fn calculate_enhanced_payload_hash(
         &self,
         enhanced_payload: &EnhancedPayload,
@@ -452,7 +480,6 @@ impl BridgePQCManager {
         let serialized = serde_json::to_vec(enhanced_payload).map_err(|e| {
             PQCError::InvalidKey(format!("Enhanced payload serialization error: {}", e))
         })?;
-
         let chain_config = self
             .chain_configs
             .get(&enhanced_payload.chain_id)
@@ -462,7 +489,6 @@ impl BridgePQCManager {
                     enhanced_payload.chain_id
                 ))
             })?;
-
         match chain_config.hash_algorithm {
             HashAlgorithm::Blake3 => {
                 let mut hasher = Hasher::new();
@@ -532,37 +558,6 @@ impl BridgePQCManager {
             SignatureAlgorithm::Dilithium5 => 5, // Highest security (256-bit)
             SignatureAlgorithm::Falcon1024 => 5, // Highest security (256-bit)
             SignatureAlgorithm::SphincsSha256128s => 1, // Conservative but lower performance
-        }
-    }
-
-    /// Calculate payload hash based on chain configuration
-    fn calculate_payload_hash(
-        &self,
-        payload: &CrossChainPayload,
-        chain_id: &str,
-    ) -> Result<Vec<u8>, PQCError> {
-        let serialized = serde_json::to_vec(payload)
-            .map_err(|e| PQCError::InvalidKey(format!("Payload serialization error: {}", e)))?;
-
-        let chain_config = self.chain_configs.get(chain_id).ok_or_else(|| {
-            PQCError::UnsupportedAlgorithm(format!("Unknown chain: {}", chain_id))
-        })?;
-
-        match chain_config.hash_algorithm {
-            HashAlgorithm::Blake3 => Ok(blake3::hash(&serialized).as_bytes().to_vec()),
-            HashAlgorithm::SHA256 => {
-                use sha2::{Digest, Sha256};
-                let mut hasher = Sha256::new();
-                hasher.update(&serialized);
-                Ok(hasher.finalize().to_vec())
-            }
-            HashAlgorithm::Keccak256 => {
-                // For now, use SHA256 as placeholder - in production would use keccak256
-                use sha2::{Digest, Sha256};
-                let mut hasher = Sha256::new();
-                hasher.update(&serialized);
-                Ok(hasher.finalize().to_vec())
-            }
         }
     }
 

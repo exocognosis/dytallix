@@ -11,6 +11,7 @@ use sha3::{Digest, Sha3_256};
 pub use crate::types::{Msg, SignedTx, Tx};
 
 // Legacy types for compatibility
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum NonceSpec {
     Auto,

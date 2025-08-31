@@ -4,10 +4,9 @@
 //! gas griefing, DoS attacks, and gas manipulation exploits.
 
 use super::{SecurityFinding, Severity, VulnerabilityCategory};
-use crate::gas_optimizer::{BridgeOperationProfiles, GasOptimizer, OperationComplexity};
+use crate::gas_optimizer::{GasOptimizer, OperationComplexity};
 use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Analyzer for gas-related attack vectors
 pub struct GasAttackAnalyzer {

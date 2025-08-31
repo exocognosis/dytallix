@@ -61,7 +61,12 @@ tokio-tungstenite = "0.20"
 futures-util = "0.3"
 
 # WASM runtime
-wasmtime = "13.0"
+wasmtime = "19.0"
+
+# PulseGuard API
+axum = { version = "0.7", features = ["json","ws"] }
+tokio-stream = "0.1"
+tower-http = { version = "0.5", features = ["trace"] }
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -2,7 +2,7 @@
 //!
 //! Manages wrapped tokens on Ethereum for cross-chain assets from other networks.
 
-use crate::{Asset, BridgeError, WrappedAsset};
+use crate::{Asset, BridgeError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

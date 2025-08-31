@@ -8,7 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 // Import PQC bridge functionality
 use dytallix_pqc::{
-    BridgePQCManager, BridgeSignature, CrossChainPayload, MultiSigValidationResult,
+    BridgePQCManager, BridgeSignature, CrossChainPayload,
 };
 
 // ============================================================================

@@ -372,7 +372,7 @@ impl TransactionValidator {
     }
 
     /// Validate transaction signature algorithm against policy
-    fn validate_signature_policy(&self, tx: &Transaction) -> Result<()> {
+    fn validate_signature_policy(&self, _tx: &Transaction) -> Result<()> {
         // This will need to be implemented based on the actual transaction type structure
         // For now, assume all transactions use Dilithium5 (this should be extracted from actual signature)
         let signature_algorithm = dytallix_pqc::SignatureAlgorithm::Dilithium5;

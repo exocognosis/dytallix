@@ -21,6 +21,10 @@ use scale::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
+const WASM_ENV_NOTE: &str = "EmissionController WASM extern fns are no-ops on non-wasm32 targets";
+
 /// Emission Controller contract state
 #[derive(Debug, Clone, Encode, Decode, Serialize, Deserialize)]
 pub struct EmissionController {
@@ -217,7 +221,7 @@ impl EmissionController {
     /// Claim validator rewards
     pub fn claim_validator_rewards(
         &mut self,
-        validator: Address,
+        _validator: Address,
         amount: Balance,
     ) -> TokenomicsResult<()> {
         if amount > self.validator_pool {
@@ -234,7 +238,7 @@ impl EmissionController {
     /// Claim staker rewards
     pub fn claim_staker_rewards(
         &mut self,
-        staker: Address,
+        _staker: Address,
         amount: Balance,
     ) -> TokenomicsResult<()> {
         if amount > self.staker_pool {
@@ -276,16 +280,17 @@ impl EmissionController {
 
 // WASM-compatible exports for emission controller functions
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn emission_controller_process_emission(
     controller_ptr: *mut EmissionController,
     current_block: u64,
     network_utilization: u32,
 ) -> u64 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn emission_controller_submit_proposal(
     controller_ptr: *mut EmissionController,
     proposal_id: u64,
@@ -293,47 +298,46 @@ pub extern "C" fn emission_controller_submit_proposal(
     proposal_data_ptr: *const u8,
     proposal_data_len: usize,
 ) -> i32 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn emission_controller_execute_proposal(
     controller_ptr: *mut EmissionController,
     proposal_id: u64,
 ) -> i32 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn emission_controller_claim_validator_rewards(
     controller_ptr: *mut EmissionController,
     validator_ptr: *const u8,
     validator_len: usize,
     amount: u64,
 ) -> i32 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn emission_controller_claim_staker_rewards(
     controller_ptr: *mut EmissionController,
     staker_ptr: *const u8,
     staker_len: usize,
     amount: u64,
 ) -> i32 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[no_mangle]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub extern "C" fn emission_controller_get_emission_rate(
     controller_ptr: *const EmissionController,
 ) -> u64 {
-    // Safety: This would be properly handled in a real WASM environment
-    0 // Placeholder implementation
+    0
 }
 
 #[cfg(test)]

@@ -4,14 +4,12 @@
 
 use crate::BridgeError;
 use ethers::{
-    contract::{Contract, ContractCall, EthEvent},
     middleware::SignerMiddleware,
-    providers::{Http, Middleware, Provider, StreamExt, Ws},
-    signers::{LocalWallet, Signer},
-    types::{Address, Filter, H256, U256},
+    providers::{Http, Provider, Ws},
+    signers::LocalWallet,
+    types::{Address, H256, U256},
     utils::parse_ether,
 };
-use futures::Stream;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use std::collections::HashMap;
-use tracing::{error, info, warn};
+use tracing::{info};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryStatistics {
@@ -565,11 +565,11 @@ impl QueryAnalyzer {
         query_stats: &[QueryStatistics],
     ) -> f64 {
         let mut score = 0.0;
-        let mut factors = 0;
+        let mut _factors = 0; // renamed to suppress unused warning
 
         // Cache hit ratio (25% of score)
         score += (health_metrics.cache_hit_ratio / 100.0) * 25.0;
-        factors += 1;
+        _factors += 1;
 
         // Average query time (25% of score)
         let avg_query_time = if query_stats.is_empty() {
@@ -587,7 +587,7 @@ impl QueryAnalyzer {
             5.0
         };
         score += query_score;
-        factors += 1;
+        _factors += 1;
 
         // Connection utilization (20% of score)
         let conn_score = if health_metrics.connection_utilization <= 70.0 {
@@ -598,7 +598,7 @@ impl QueryAnalyzer {
             5.0
         };
         score += conn_score;
-        factors += 1;
+        _factors += 1;
 
         // Deadlocks (15% of score)
         let deadlock_score = if health_metrics.deadlocks_count == 0 {
@@ -609,7 +609,7 @@ impl QueryAnalyzer {
             0.0
         };
         score += deadlock_score;
-        factors += 1;
+        _factors += 1;
 
         // Slow queries (15% of score)
         let slow_query_score = if health_metrics.slow_queries_count == 0 {

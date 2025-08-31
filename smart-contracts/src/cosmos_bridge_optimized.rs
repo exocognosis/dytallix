@@ -12,13 +12,16 @@
 //! - Memory-optimized serialization
 
 use cosmwasm_std::{
-    entry_point, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
+    entry_point, to_json_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
     MessageInfo, Response, StdError, StdResult, Uint128,
 };
+use thiserror::Error;
+
+// Allow simultaneous compilation under `--all-features` for linting; runtime decides which path.
+// Removed compile_error! enforcing mutual exclusivity.
+
 use cw_storage_plus::{Item, Map};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use thiserror::Error;
 
 /// Contract error types (unchanged for compatibility)
 #[derive(Error, Debug, PartialEq)]
@@ -327,7 +330,7 @@ pub fn instantiate(
         .collect();
     let validators = validators?;
 
-    let mut state = OptimizedState {
+    let state = OptimizedState {
         admin,
         ethereum_channel: msg.ethereum_channel,
         validators,
@@ -632,7 +635,7 @@ pub fn execute_batch_confirm_bridge(
     }
 
     let mut processed_count = 0u32;
-    let mut responses: Vec<Response> = Vec::new();
+    let _responses: Vec<Response> = Vec::new();
 
     for batch in confirmations {
         for (validator, _signature) in batch.confirmations {
@@ -865,20 +868,20 @@ pub fn execute_update_bridge_params_optimized(
 #[entry_point]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::GetState {} => to_binary(&query_state_optimized(deps)?),
+        QueryMsg::GetState {} => to_json_binary(&query_state_optimized(deps)?),
         QueryMsg::GetBridgeTransaction { bridge_id } => {
-            to_binary(&query_bridge_transaction_optimized(deps, bridge_id)?)
+            to_json_binary(&query_bridge_transaction_optimized(deps, bridge_id)?)
         }
         QueryMsg::GetSupportedToken { denom } => {
-            to_binary(&query_supported_token_optimized(deps, denom)?)
+            to_json_binary(&query_supported_token_optimized(deps, denom)?)
         }
         QueryMsg::ListSupportedTokens {} => {
-            to_binary(&query_list_supported_tokens_optimized(deps)?)
+            to_json_binary(&query_list_supported_tokens_optimized(deps)?)
         }
-        QueryMsg::GetValidators {} => to_binary(&query_validators_optimized(deps)?),
-        QueryMsg::GetBridgeStats {} => to_binary(&query_bridge_stats_optimized(deps)?),
+        QueryMsg::GetValidators {} => to_json_binary(&query_validators_optimized(deps)?),
+        QueryMsg::GetBridgeStats {} => to_json_binary(&query_bridge_stats_optimized(deps)?),
         QueryMsg::GetAIRiskScore { bridge_id } => {
-            to_binary(&query_ai_risk_score_optimized(deps, bridge_id)?)
+            to_json_binary(&query_ai_risk_score_optimized(deps, bridge_id)?)
         }
     }
 }

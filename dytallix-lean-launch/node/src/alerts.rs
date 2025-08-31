@@ -12,7 +12,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tokio::time::{interval, sleep};
+use tokio::time::interval;
 
 #[cfg(feature = "alerts")]
 use reqwest::Client;

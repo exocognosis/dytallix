@@ -1,4 +1,5 @@
 //! Dytallix Blockchain Node Main
+#![allow(async_fn_in_trait)]
 
 use std::sync::Arc;
 use log::{info, warn};

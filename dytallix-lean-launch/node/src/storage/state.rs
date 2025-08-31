@@ -29,10 +29,7 @@ impl Storage {
         self.db
             .put("meta:height", block.header.height.to_be_bytes())?;
         self.db.put("meta:best_hash", block.hash.as_bytes())?;
-        for r in receipts {
-            self.db
-                .put(format!("rcpt:{}", r.tx_hash), serde_json::to_vec(r)?)?;
-        }
+        for r in receipts { self.db.put(format!("rcpt:{}", r.tx_hash), serde_json::to_vec(r)?)?; }
         Ok(())
     }
     pub fn height(&self) -> u64 {
@@ -60,33 +57,29 @@ impl Storage {
             .unwrap_or_else(|| "genesis".to_string())
     }
     pub fn get_block_by_height(&self, h: u64) -> Option<Block> {
-        let hash = self.db.get(format!("blk_num:{:016x}", h)).ok().flatten()?;
+        let hash = self.db.get(format!("blk_num:{h:016x}")).ok().flatten()?;
         self.get_block_by_hash(String::from_utf8_lossy(&hash).to_string())
     }
     pub fn get_block_by_hash(&self, hash: String) -> Option<Block> {
         self.db
-            .get(format!("blk_hash:{}", hash))
+            .get(format!("blk_hash:{hash}"))
             .ok()
             .flatten()
             .and_then(|b| bincode::deserialize(&b).ok())
     }
     pub fn put_tx(&self, tx: &Transaction) -> anyhow::Result<()> {
-        self.db
-            .put(format!("tx:{}", tx.hash), bincode::serialize(tx)?)?;
+        self.db.put(format!("tx:{}", tx.hash), bincode::serialize(tx)?)?;
         Ok(())
     }
     pub fn put_pending_receipt(&self, r: &TxReceipt) -> anyhow::Result<()> {
-        self.db
-            .put(format!("rcpt:{}", r.tx_hash), serde_json::to_vec(r)?)?;
+        self.db.put(format!("rcpt:{}", r.tx_hash), serde_json::to_vec(r)?)?;
         Ok(())
     }
     pub fn get_receipt(&self, hash: &str) -> Option<TxReceipt> {
-        let k = format!("rcpt:{}", hash);
+        let k = format!("rcpt:{hash}");
         match self.db.get(&k) {
             Ok(Some(raw)) => {
-                if raw.is_empty() {
-                    return None;
-                }
+                if raw.is_empty() { return None; }
                 serde_json::from_slice(&raw)
                     .or_else(|_| bincode::deserialize(&raw))
                     .ok()
@@ -111,11 +104,11 @@ impl Storage {
     /// Get multi-denomination balances for an address
     pub fn get_balances_db(&self, addr: &str) -> BTreeMap<String, u128> {
         self.db
-            .get(format!("acct:balances:{}", addr))
+            .get(format!("acct:balances:{addr}"))
             .ok()
             .flatten()
             .and_then(|b| bincode::deserialize::<BTreeMap<String, u128>>(&b).ok())
-            .unwrap_or_else(BTreeMap::new)
+            .unwrap_or_default()
     }
 
     /// Set multi-denomination balances for an address
@@ -125,7 +118,7 @@ impl Storage {
         balances: &BTreeMap<String, u128>,
     ) -> anyhow::Result<()> {
         self.db.put(
-            format!("acct:balances:{}", addr),
+            format!("acct:balances:{addr}"),
             bincode::serialize(balances)?,
         )?;
         Ok(())
@@ -135,13 +128,11 @@ impl Storage {
     pub fn get_balance_db(&self, addr: &str) -> u128 {
         // Check if new multi-denom format exists first
         let balances = self.get_balances_db(addr);
-        if !balances.is_empty() {
-            return balances.get("udgt").copied().unwrap_or(0);
-        }
+        if !balances.is_empty() { return balances.get("udgt").copied().unwrap_or(0); }
 
         // Fallback to legacy single balance format
         self.db
-            .get(format!("acct:bal:{}", addr))
+            .get(format!("acct:bal:{addr}"))
             .ok()
             .flatten()
             .and_then(|b| bincode::deserialize::<u128>(&b).ok())
@@ -156,13 +147,12 @@ impl Storage {
         self.set_balances_db(addr, &balances)?;
 
         // Also keep legacy format for compatibility during migration
-        self.db
-            .put(format!("acct:bal:{}", addr), bincode::serialize(&bal)?)?;
+        self.db.put(format!("acct:bal:{addr}"), bincode::serialize(&bal)?)?;
         Ok(())
     }
     pub fn get_nonce_db(&self, addr: &str) -> u64 {
         self.db
-            .get(format!("acct:nonce:{}", addr))
+            .get(format!("acct:nonce:{addr}"))
             .ok()
             .flatten()
             .and_then(|b| bincode::deserialize::<u64>(&b).ok())
@@ -170,7 +160,7 @@ impl Storage {
     }
     pub fn set_nonce_db(&self, addr: &str, nonce: u64) -> anyhow::Result<()> {
         self.db
-            .put(format!("acct:nonce:{}", addr), bincode::serialize(&nonce)?)?;
+            .put(format!("acct:nonce:{addr}"), bincode::serialize(&nonce)?)?;
         Ok(())
     }
 }
