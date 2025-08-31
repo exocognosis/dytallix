@@ -448,10 +448,10 @@ impl BridgePQCManager {
         chain_id: &str,
     ) -> Result<Vec<u8>, PQCError> {
         let serialized = serde_json::to_vec(payload)
-            .map_err(|e| PQCError::InvalidKey(format!("Payload serialization error: {}", e)))?;
+            .map_err(|e| PQCError::InvalidKey(format!("Payload serialization error: {e}")))?;
 
         let chain_config = self.chain_configs.get(chain_id).ok_or_else(|| {
-            PQCError::UnsupportedAlgorithm(format!("Unknown chain: {}", chain_id))
+            PQCError::UnsupportedAlgorithm(format!("Unknown chain: {chain_id}"))
         })?;
 
         match chain_config.hash_algorithm {
@@ -478,7 +478,7 @@ impl BridgePQCManager {
         enhanced_payload: &EnhancedPayload,
     ) -> Result<Vec<u8>, PQCError> {
         let serialized = serde_json::to_vec(enhanced_payload).map_err(|e| {
-            PQCError::InvalidKey(format!("Enhanced payload serialization error: {}", e))
+            PQCError::InvalidKey(format!("Enhanced payload serialization error: {e}"))
         })?;
         let chain_config = self
             .chain_configs

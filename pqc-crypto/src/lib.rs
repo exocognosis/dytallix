@@ -386,7 +386,7 @@ impl PQCManager {
         self.signature_key_backups
             .push(self.signature_keypair.clone());
         self.signature_keypair = generate_signature_keypair(&algorithm)?;
-        log::info!("Switched to signature algorithm: {:?}", algorithm);
+        log::info!("Switched to signature algorithm: {algorithm:?}");
         Ok(())
     }
 
@@ -399,7 +399,7 @@ impl PQCManager {
         self.key_exchange_key_backups
             .push(self.key_exchange_keypair.clone());
         self.key_exchange_keypair = generate_key_exchange_keypair(&algorithm)?;
-        log::info!("Switched to key exchange algorithm: {:?}", algorithm);
+        log::info!("Switched to key exchange algorithm: {algorithm:?}");
         Ok(())
     }
 
@@ -432,8 +432,7 @@ impl PQCManager {
         let algorithm = self.signature_keypair.algorithm.clone();
         self.signature_keypair = generate_signature_keypair(&algorithm)?;
         log::info!(
-            "Rotated signature key for algorithm: {:?} (old key zeroized & encrypted)",
-            algorithm
+            "Rotated signature key for algorithm: {algorithm:?} (old key zeroized & encrypted)"
         );
         Ok(())
     }
@@ -444,7 +443,7 @@ impl PQCManager {
         self.key_exchange_key_backups
             .push(self.key_exchange_keypair.clone());
         self.key_exchange_keypair = generate_key_exchange_keypair(&algorithm)?;
-        log::info!("Rotated key exchange key for algorithm: {:?}", algorithm);
+        log::info!("Rotated key exchange key for algorithm: {algorithm:?}");
         Ok(())
     }
 

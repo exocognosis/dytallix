@@ -75,11 +75,11 @@ impl PQCPerformanceBenchmark {
 
         for (name, algorithm) in algorithms {
             #[cfg(feature = "benchmark-stdout")]
-            println!("📊 Benchmarking {}...", name);
+            println!("📊 Benchmarking {name}...");
             let result = self.benchmark_algorithm(name, &algorithm)?;
             self.results.push(result);
             #[cfg(feature = "benchmark-stdout")]
-            println!("✅ {} benchmark completed\n", name);
+            println!("✅ {name} benchmark completed\n");
         }
 
         let gas_estimations = self.estimate_gas_costs(&self.results)?;
@@ -488,7 +488,7 @@ impl PQCPerformanceBenchmark {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let json_data = serde_json::to_string_pretty(analysis)?;
         std::fs::write(filename, json_data)?;
-        println!("📄 Results exported to: {}", filename);
+        println!("📄 Results exported to: {filename}");
         Ok(())
     }
 }
@@ -502,7 +502,7 @@ pub fn run_pqc_performance_benchmarks() -> Result<(), Box<dyn std::error::Error>
 
     // Export results
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-    let filename = format!("pqc_benchmark_results_{}.json", timestamp);
+    let filename = format!("pqc_benchmark_results_{timestamp}.json");
     benchmark.export_results(&analysis, &filename)?;
 
     Ok(())
