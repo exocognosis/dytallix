@@ -5,7 +5,7 @@ const Roadmap = () => {
     {
       phase: "Phase 1: Foundation",
       status: "completed",
-      quarter: "Q1 2024",
+      quarter: "Q4 2025", // updated from Q1 2026
       items: [
         "Core blockchain architecture implementation",
         "Post-quantum cryptographic integration",
@@ -15,8 +15,8 @@ const Roadmap = () => {
     },
     {
       phase: "Phase 2: AI Integration",
-      status: "completed",
-      quarter: "Q2 2024",
+      status: "in-progress", // changed from completed
+      quarter: "Q4 2025", // changed from Q1 2026
       items: [
         "AI anomaly detection system",
         "Smart contract security scanner",
@@ -27,7 +27,7 @@ const Roadmap = () => {
     {
       phase: "Phase 3: Enhancement",
       status: "in-progress",
-      quarter: "Q3 2024",
+      quarter: "Q1 2026",
       items: [
         "Advanced smart contract capabilities",
         "Cross-chain bridge development",
@@ -38,7 +38,7 @@ const Roadmap = () => {
     {
       phase: "Phase 4: Ecosystem",
       status: "planned",
-      quarter: "Q4 2024",
+      quarter: "Q2 2026",
       items: [
         "DeFi protocol integrations",
         "NFT marketplace support",
@@ -49,7 +49,7 @@ const Roadmap = () => {
     {
       phase: "Phase 5: Mainnet",
       status: "planned",
-      quarter: "Q1 2025",
+      quarter: "Q2 2026",
       items: [
         "Mainnet launch preparation",
         "Security audits completion",
@@ -60,7 +60,7 @@ const Roadmap = () => {
     {
       phase: "Phase 6: Growth",
       status: "planned",
-      quarter: "Q2 2025",
+      quarter: "Q3-4 2026",
       items: [
         "Enterprise partnerships",
         "Layer 2 scaling solutions",
