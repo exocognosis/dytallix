@@ -344,7 +344,7 @@ impl EnhancedAIIntegrationManager {
         Ok(signature_valid && is_accurate)
     }
 
-    async fn check_auto_slashing(&self, oracle_id: &str, signature_valid: bool, is_accurate: bool) {
+    async fn check_auto_slashing(&self, oracle_id: &str, _signature_valid: bool, _is_accurate: bool) {
         if let Some(oracle) = self
             .oracle_registry
             .get_oracle(&oracle_id.to_string())

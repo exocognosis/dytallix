@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum SignatureAlgorithm {
-    Dilithium5,
-}
+// Use canonical SignatureAlgorithm from dytallix_pqc crate
+pub use dytallix_pqc::SignatureAlgorithm;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
