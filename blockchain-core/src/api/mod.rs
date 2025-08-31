@@ -730,7 +730,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     "wasm_execute" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
-                            handle_wasm_execute(params.clone(), (storage.clone, tx_pool.clone())).await
+                            handle_wasm_execute(params.clone(), (storage.clone(), tx_pool.clone())).await // fixed clone() call
                         } else {
                             serde_json::json!({"error": "Invalid parameters"})
                         }
