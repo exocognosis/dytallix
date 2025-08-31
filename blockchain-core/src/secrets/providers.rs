@@ -68,7 +68,7 @@ impl EnvProvider {
 
     fn format_key(&self, name: &str) -> String {
         let key = match &self.prefix {
-            Some(prefix) => format!("{}{}", prefix, name),
+            Some(prefix) => format!("{prefix}{name}"),
             None => name.to_string(),
         };
 

@@ -499,10 +499,10 @@ impl StorageManager {
         Ok(out)
     }
     fn receipt_height_index_key(height: u64, index: u32) -> String {
-        format!("rcpi:{:016x}:{}", height, index)
+        format!("rcpi:{height:016x}:{index}")
     }
     fn receipt_tx_lookup_key(tx_hash: &str) -> String {
-        format!("rcpx:{}", tx_hash)
+        format!("rcpx:{tx_hash}")
     }
 
     /// Store receipts in new indexed form (height/index and tx_hash -> (height,index))

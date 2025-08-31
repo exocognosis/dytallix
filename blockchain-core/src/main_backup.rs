@@ -63,7 +63,7 @@ impl DytallixNode for DummyNode {
     async fn submit_transaction(&self, tx: Transaction) -> Result<(), String> {
         // Add transaction to pool
         let tx_hash = self.transaction_pool.add_transaction(tx).await
-            .map_err(|e| format!("Failed to add transaction: {}", e))?;
+            .map_err(|e| format!("Failed to add transaction: {e}"))?;
 
         info!("Transaction {} submitted successfully", tx_hash);
         Ok(())
@@ -117,7 +117,7 @@ impl DytallixNode for DummyNode {
             }
             Err(e) => {
                 log::error!("Error retrieving balance for address {}: {}", address, e);
-                Err(format!("Failed to retrieve balance: {}", e))
+                Err(format!("Failed to retrieve balance: {e}"))
             }
         }
     }
