@@ -40,7 +40,7 @@ pub struct EthereumBlock {
     pub timestamp: u64,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct EthereumConfig {
     pub rpc_url: String,
     pub chain_id: u64,

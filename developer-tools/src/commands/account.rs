@@ -1,3 +1,4 @@
+
 use crate::config::Config;
 use crate::crypto::CryptoManager;
 use crate::tokens::{format_amount_with_symbol, micro_to_display, DGT_TOKEN};
@@ -108,11 +109,11 @@ pub async fn create_account(name: Option<String>, config: &Config) -> Result<()>
     println!("  Address: {}", address.bright_cyan());
     println!(
         "  Signature Algorithm: {}",
-        format!("{:?}", signature_alg).bright_blue()
+        format!("{signature_alg:?}").bright_blue()
     );
     println!(
         "  Key Exchange Algorithm: {}",
-        format!("{:?}", key_exchange_alg).bright_blue()
+        format!("{key_exchange_alg:?}").bright_blue()
     );
     println!(
         "  Protected: {}",
@@ -187,7 +188,7 @@ pub async fn account_balance(account: String, config: &Config) -> Result<()> {
     if let Some(account_info) = crypto_manager.get_account_info(&account)? {
         println!(
             "{}",
-            format!("💰 Balance for account: {}", account).bright_blue()
+            format!("💰 Balance for account: {account}").bright_blue()
         );
         println!("Address: {}", account_info.address.bright_cyan());
 
@@ -243,7 +244,7 @@ pub async fn account_balance(account: String, config: &Config) -> Result<()> {
     } else {
         println!(
             "{}",
-            format!("Account '{}' not found", account).bright_red()
+            format!("Account '{account}' not found").bright_red()
         );
         return Err(anyhow::anyhow!("Account not found"));
     }
@@ -261,7 +262,7 @@ pub async fn export_account(
     if crypto_manager.get_account_info(&account)?.is_none() {
         println!(
             "{}",
-            format!("Account '{}' not found", account).bright_red()
+            format!("Account '{account}' not found").bright_red()
         );
         return Err(anyhow::anyhow!("Account not found"));
     }
@@ -289,15 +290,15 @@ pub async fn export_account(
 
     let output_file = output.unwrap_or_else(|| {
         if include_private_keys {
-            format!("{}_full_export.json", account)
+            format!("{account}_full_export.json")
         } else {
-            format!("{}_public_export.json", account)
+            format!("{account}_public_export.json")
         }
     });
 
     println!(
         "{}",
-        format!("📤 Exporting account: {}", account).bright_blue()
+        format!("📤 Exporting account: {account}").bright_blue()
     );
 
     let export_data = crypto_manager.export_account(&account, include_private_keys)?;
@@ -322,7 +323,7 @@ pub async fn import_account(file: String, config: &Config) -> Result<()> {
 
     println!(
         "{}",
-        format!("📥 Importing account from: {}", file).bright_blue()
+        format!("📥 Importing account from: {file}").bright_blue()
     );
 
     let account_data = fs::read_to_string(&file)?;
@@ -375,7 +376,7 @@ pub async fn sign_message(account: String, message: String, config: &Config) -> 
     if crypto_manager.get_account_info(&account)?.is_none() {
         println!(
             "{}",
-            format!("Account '{}' not found", account).bright_red()
+            format!("Account '{account}' not found").bright_red()
         );
         return Err(anyhow::anyhow!("Account not found"));
     }
@@ -416,7 +417,7 @@ pub async fn verify_signature(
         Some("falcon1024") | Some("Falcon1024") => SignatureAlgorithm::Falcon1024,
         Some("sphincs") | Some("SphincsSha256128s") => SignatureAlgorithm::SphincsSha256128s,
         Some(alg) => {
-            println!("{}", format!("Unknown algorithm: {}", alg).bright_red());
+            println!("{}", format!("Unknown algorithm: {alg}").bright_red());
             return Err(anyhow::anyhow!("Unknown algorithm"));
         }
     };

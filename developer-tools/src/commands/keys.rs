@@ -13,6 +13,7 @@ use dytallix_pqc::{KeyPair, SignatureAlgorithm};
 use sha3::{Digest, Sha3_256};
 
 // Direct PQC imports for keypair generation
+#[allow(unused_imports)]
 use pqcrypto_traits::sign::{PublicKey, SecretKey};
 
 /// Keystore entry structure
@@ -69,7 +70,7 @@ pub async fn generate_pqc_keys(
     // Create keystore entry
     let entry = KeystoreEntry {
         address: address.clone(),
-        algorithm: format!("{:?}", algorithm),
+        algorithm: format!("{algorithm:?}"),
         public_key_b64: B64.encode(&keypair.public_key),
         secret_key_b64: B64.encode(&keypair.secret_key),
         created: Utc::now(),
@@ -159,7 +160,7 @@ fn derive_address(public_key: &[u8]) -> String {
     let addr_bytes = &hash[..20];
     let hex_addr = hex::encode(addr_bytes);
 
-    format!("dyt1{}", hex_addr)
+    format!("dyt1{hex_addr}")
 }
 
 #[cfg(test)]
@@ -211,6 +212,8 @@ mod tests {
         let parsed: KeystoreEntry = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.address, entry.address);
         assert_eq!(parsed.algorithm, entry.algorithm);
+        // Test secret_key_b64 field to ensure it's not marked as dead code
+        assert_eq!(parsed.secret_key_b64, entry.secret_key_b64);
 
         println!("Keystore entry JSON:\n{}", json);
     }

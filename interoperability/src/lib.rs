@@ -163,7 +163,7 @@ pub struct DytallixBridge {
 
 impl DytallixBridge {
     pub fn new() -> Self {
-        let mut pqc_manager =
+        let pqc_manager =
             BridgePQCManager::new().expect("Failed to initialize BridgePQCManager");
 
         let mut bridge = Self {
@@ -1452,12 +1452,12 @@ impl DytallixIBC {
             std::thread::sleep(std::time::Duration::from_millis(network_delay_ms));
 
             // Record performance metrics
-            let mut monitor = self.performance_monitor.clone();
+            let _monitor = self.performance_monitor.clone();
             let latency_ms = start_time.elapsed().as_millis() as u64;
             let success = rand::random::<f64>() < 0.95; // 95% success rate simulation
 
             // This would be called from an async context in real implementation
-            // monitor.record_transaction(latency_ms, success);
+            // _monitor.record_transaction(latency_ms, success);
 
             if success {
                 println!("✅ IBC packet transmitted successfully in {}ms", latency_ms);

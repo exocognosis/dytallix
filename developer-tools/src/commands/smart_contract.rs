@@ -1,3 +1,4 @@
+
 use crate::client::{BlockchainClient, ContractCallData, DeploymentData};
 use crate::config::Config;
 use anyhow::Result;
@@ -55,7 +56,7 @@ pub async fn deploy_contract(
         Err(e) => {
             println!(
                 "{}",
-                format!("❌ Cannot connect to node: {}", e).bright_red()
+                format!("❌ Cannot connect to node: {e}").bright_red()
             );
             return Err(anyhow::anyhow!("Node connection failed"));
         }
@@ -80,7 +81,7 @@ pub async fn deploy_contract(
         Err(e) => {
             println!(
                 "{}",
-                format!("⚠️  Backend deployment failed, using simulation: {}", e).bright_yellow()
+                format!("⚠️  Backend deployment failed, using simulation: {e}").bright_yellow()
             );
             // Simulate deployment for development
             serde_json::json!({
@@ -181,12 +182,12 @@ pub async fn call_contract(
         Err(e) => {
             println!(
                 "{}",
-                format!("⚠️  Backend call failed, using simulation: {}", e).bright_yellow()
+                format!("⚠️  Backend call failed, using simulation: {e}").bright_yellow()
             );
             // Simulate successful call
             serde_json::json!({
                 "success": true,
-                "result": format!("Method '{}' called successfully", method),
+                "result": format!("Method '{method}' called successfully"),
                 "gas_used": 200000,
                 "transaction_hash": format!("0x{}", hex::encode(&address.as_bytes()[..16]))
             })
@@ -290,7 +291,7 @@ pub async fn contract_events(
     let client = BlockchainClient::new(config.node_url.clone());
 
     // For now, simulate events since the backend isn't fully implemented
-    let mock_events = vec![
+    let mock_events = [
         serde_json::json!({
             "event": "Transfer",
             "block_number": 12345,
@@ -383,7 +384,7 @@ pub async fn list_contract_templates(config: &Config) -> Result<()> {
     println!("{}", "📄 Available Smart Contract Templates".bright_blue());
     println!();
 
-    let templates = vec![
+    let templates = [
         (
             "Simple Token",
             "ERC20-like token with PQC signatures",

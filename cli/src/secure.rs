@@ -37,14 +37,14 @@ pub fn install_signal_handlers() {
 /// `verify_fn` can apply additional policy (length/complexity). It must NOT leak secrets.
 pub fn prompt_passphrase_with_retry<F>(
     confirm: bool,
-    mut max_retries: u8,
+    max_retries: u8,
     backoff_ms: u64,
     verify_fn: F,
 ) -> Result<String>
 where
     F: Fn(&str) -> bool,
 {
-    let hidden = true; // always hidden for now; could add env toggle
+    let _hidden = true; // always hidden for now; could add env toggle
     let mut attempt: u8 = 0;
     loop {
         attempt += 1;

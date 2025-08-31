@@ -12,6 +12,12 @@ pub use substrate_client::{SubstrateClient, SubstrateConfig};
 pub use xcm_handler::{XcmHandler, XcmInstruction, XcmMessage};
 
 // Polkadot-specific types
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum PolkadotChainType {
+    Relay,
+    Parachain,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolkadotAddress(pub String);
 

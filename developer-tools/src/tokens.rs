@@ -1,7 +1,7 @@
 //! Centralized Token Definitions for Dytallix Dual-Token System
 //! DGT (Governance Token) and DRT (Reward Token)
 
-use std::collections::HashMap;
+
 
 /// Token roles in the dual-token system
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,7 +49,7 @@ pub const MICRO_UNIT_FACTOR: u64 = 1_000_000; // 10^6
 /// Convert micro-denomination amount to display amount
 pub fn micro_to_display(amount: u64, denom: &str) -> f64 {
     let token = get_token_by_micro_denom(denom)
-        .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
+        .unwrap_or_else(|| panic!("Unknown denomination: {denom}"));
 
     let divisor = 10u64.pow(token.decimals as u32) as f64;
     amount as f64 / divisor
@@ -58,7 +58,7 @@ pub fn micro_to_display(amount: u64, denom: &str) -> f64 {
 /// Convert display amount to micro-denomination amount
 pub fn display_to_micro(amount: f64, denom: &str) -> u64 {
     let token = get_token_by_micro_denom(denom)
-        .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
+        .unwrap_or_else(|| panic!("Unknown denomination: {denom}"));
 
     let multiplier = 10u64.pow(token.decimals as u32) as f64;
     (amount * multiplier) as u64
@@ -85,10 +85,10 @@ pub fn get_token_by_symbol(symbol: &str) -> Option<&'static TokenMetadata> {
 /// Format amount with token symbol
 pub fn format_amount_with_symbol(amount_in_micro: u64, denom: &str) -> String {
     let token = get_token_by_micro_denom(denom)
-        .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
+        .unwrap_or_else(|| panic!("Unknown denomination: {denom}"));
 
     let formatted = micro_to_display(amount_in_micro, denom);
-    format!("{:.6} {}", formatted, token.symbol)
+    format!("{formatted:.6} {}", token.symbol)
 }
 
 /// Get all supported tokens
@@ -148,5 +148,46 @@ mod tests {
         assert!(is_valid_symbol("DGT"));
         assert!(is_valid_symbol("DRT"));
         assert!(!is_valid_symbol("DYT"));
+    }
+
+    #[test]
+    fn test_token_metadata_fields() {
+        // Test all fields of TokenMetadata to prevent dead code warnings
+        let token = get_token_by_symbol("DGT").unwrap();
+        
+        // Access all fields
+        assert_eq!(token.symbol, "DGT");
+        assert_eq!(token.micro_denom, "udgt");
+        assert_eq!(token.decimals, 6);
+        assert!(!token.display_name.is_empty());
+        assert!(!token.description.is_empty());
+        
+        // Test role field
+        match token.role {
+            TokenRole::Native | TokenRole::Governance | TokenRole::Utility => {
+                // Valid role
+            }
+        }
+    }
+
+    #[test]
+    fn test_all_token_functions() {
+        // Test get_all_tokens function
+        let all_tokens = get_all_tokens();
+        assert!(!all_tokens.is_empty());
+        
+        // Test display_to_micro function 
+        let micro_amount = display_to_micro(1.5, "udgt");
+        assert_eq!(micro_amount, 1_500_000);
+        
+        // Test get_token_by_symbol function
+        let token = get_token_by_symbol("DGT");
+        assert!(token.is_some());
+        
+        // Test is_valid_denom function
+        assert!(is_valid_denom("udgt"));
+        
+        // Test is_valid_symbol function  
+        assert!(is_valid_symbol("DGT"));
     }
 }

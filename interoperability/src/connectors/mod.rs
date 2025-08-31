@@ -358,7 +358,7 @@ pub enum TransferStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{AssetMetadata, BridgeStatus, BridgeTxId};
+
 
     #[tokio::test]
     async fn test_connector_manager_creation() {

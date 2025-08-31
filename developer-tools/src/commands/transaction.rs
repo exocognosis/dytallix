@@ -1,7 +1,8 @@
+
 use crate::client::{BlockchainClient, TransactionRequest};
 use crate::config::Config;
 use crate::crypto::CryptoManager;
-use crate::tokens::{display_to_micro, format_amount_with_symbol, micro_to_display, DGT_TOKEN};
+use crate::tokens::{format_amount_with_symbol};
 use anyhow::Result;
 use colored::*;
 use dialoguer::{Confirm, Select};
@@ -45,7 +46,7 @@ pub async fn send_transaction(
                 .iter()
                 .map(|a| {
                     let preview = if a.len() > 16 { &a[..16] } else { a };
-                    format!("{} ({})", a, preview)
+                    format!("{a} ({preview})")
                 })
                 .collect();
 
@@ -99,7 +100,7 @@ pub async fn send_transaction(
         Err(e) => {
             println!(
                 "{}",
-                format!("⚠️  Could not check balance: {}", e).bright_yellow()
+                format!("⚠️  Could not check balance: {e}").bright_yellow()
             );
         }
     }
@@ -171,7 +172,7 @@ pub async fn send_transaction(
         Err(e) => {
             println!(
                 "{}",
-                format!("❌ Failed to submit transaction: {}", e).bright_red()
+                format!("❌ Failed to submit transaction: {e}").bright_red()
             );
         }
     }
@@ -239,7 +240,7 @@ pub async fn get_transaction(hash: String, config: &Config) -> Result<()> {
         Err(e) => {
             println!(
                 "{}",
-                format!("❌ Failed to fetch transaction: {}", e).bright_red()
+                format!("❌ Failed to fetch transaction: {e}").bright_red()
             );
         }
     }
@@ -321,7 +322,7 @@ pub async fn list_transactions(account: Option<String>, limit: u64, config: &Con
         Err(e) => {
             println!(
                 "{}",
-                format!("❌ Failed to list transactions: {}", e).bright_red()
+                format!("❌ Failed to list transactions: {e}").bright_red()
             );
         }
     }

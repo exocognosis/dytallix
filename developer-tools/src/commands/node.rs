@@ -1,5 +1,6 @@
 use crate::client::BlockchainClient;
 use crate::config::Config;
+
 use anyhow::Result;
 use colored::*;
 use std::time::Duration;
@@ -133,7 +134,7 @@ pub async fn node_status(config: &Config) -> Result<()> {
     println!("\n{}", "🔮 AI Oracle Status:".bright_blue());
     let ai_client = reqwest::Client::new();
     match ai_client
-        .get(&format!("{}/health", config.ai_url))
+        .get(format!("{}/health", config.ai_url))
         .send()
         .await
     {
@@ -245,7 +246,7 @@ pub async fn node_info(config: &Config) -> Result<()> {
 async fn is_node_running(config: &Config) -> bool {
     let client = reqwest::Client::new();
     match client
-        .get(&format!("{}/health", config.node_url))
+        .get(format!("{}/health", config.node_url))
         .send()
         .await
     {
