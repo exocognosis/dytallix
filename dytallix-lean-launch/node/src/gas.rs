@@ -176,11 +176,7 @@ pub fn intrinsic_gas(
         .per_additional_signature
         .saturating_mul(additional_signatures as Gas);
 
-    base_cost
-        .saturating_add(size_cost)
-        .saturating_add(sig_cost)
-        .try_into()
-        .map_err(|_| GasError::Overflow)
+    Ok(base_cost.saturating_add(size_cost).saturating_add(sig_cost))
 }
 
 // Gas validation for mempool admission
@@ -493,10 +489,10 @@ mod integration_tests {
     fn test_consensus_divergence_with_different_gas_schedules() {
         // Test that different gas schedules produce different results
         let schedule1 = GasSchedule::default();
-        let mut schedule2 = GasSchedule::default();
-
-        // Modify one schedule slightly
-        schedule2.transfer_base = 600; // Changed from 500
+        let schedule2 = GasSchedule {
+            transfer_base: 600,
+            ..GasSchedule::default()
+        }; // Changed from 500
 
         let tx_size = 200;
         let additional_sigs = 0;
@@ -513,7 +509,7 @@ mod integration_tests {
 #[cfg(test)]
 mod regression_tests {
     use super::*;
-    use crate::storage::{tx::Transaction, receipts::TxReceipt};
+    use crate::storage::{receipts::TxReceipt, tx::Transaction};
 
     #[test]
     fn test_gas_table_version_consistency() {

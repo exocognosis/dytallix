@@ -7,6 +7,8 @@ import { Command } from 'commander'
 import chalk from 'chalk'
 import { keygenCommand } from './commands/keygen.js'
 import { balancesCommand } from './commands/balances.js'
+import { keysCommand } from './commands/keys.js'
+import { queryCommand } from './commands/query.js'
 import { signCommand } from './commands/sign.js'
 import { broadcastCommand } from './commands/broadcast.js'
 import { transferCommand } from './commands/transfer.js'
@@ -26,7 +28,9 @@ program
 
 // Commands
 program.addCommand(keygenCommand)
+program.addCommand(keysCommand)
 program.addCommand(balancesCommand)
+program.addCommand(queryCommand)
 program.addCommand(signCommand)
 program.addCommand(broadcastCommand)
 program.addCommand(transferCommand)

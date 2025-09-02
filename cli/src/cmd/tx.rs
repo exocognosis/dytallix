@@ -93,8 +93,8 @@ pub async fn handle_transfer(
         println!("{{\"intrinsic_gas\": {}, \"gas_limit\": {}, \"gas_price\": {}, \"estimated_fee_datt\": {}}}",
                  intrinsic_gas, gas_limit, c.gas_price, gas_limit * c.gas_price);
     } else {
-        println!("Intrinsic gas: {}", intrinsic_gas);
-        println!("Gas limit: {}", gas_limit);
+        println!("Intrinsic gas: {intrinsic_gas}");
+        println!("Gas limit: {gas_limit}");
         println!("Gas price: {} datt", c.gas_price);
         println!(
             "Estimated fee: {} datt ({:.9} DGT)",
@@ -211,8 +211,8 @@ pub async fn handle_batch(
         println!("{{\"intrinsic_gas\": {}, \"gas_limit\": {}, \"gas_price\": {}, \"estimated_fee_datt\": {}}}",
                  intrinsic_gas, gas_limit, c.gas_price, gas_limit * c.gas_price);
     } else {
-        println!("Batch intrinsic gas: {}", intrinsic_gas);
-        println!("Gas limit: {}", gas_limit);
+        println!("Batch intrinsic gas: {intrinsic_gas}");
+        println!("Gas limit: {gas_limit}");
         println!("Gas price: {} datt", c.gas_price);
         println!(
             "Estimated fee: {} datt ({:.9} DGT)",
@@ -229,12 +229,10 @@ pub async fn handle_batch(
         } else {
             println!("hash={} status={}", br.hash, br.status);
         }
+    } else if fmt.is_json() {
+        print_json_array(&[&stx])?;
     } else {
-        if fmt.is_json() {
-            print_json_array(&[&stx])?;
-        } else {
-            println!("signed_tx hash={}", stx.tx_hash()?);
-        }
+        println!("signed_tx hash={}", stx.tx_hash()?);
     }
     Ok(())
 }

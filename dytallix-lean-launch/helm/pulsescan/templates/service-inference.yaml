@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pulsescan.fullname" . }}-inference
+  labels:
+    {{- include "pulsescan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: inference
+spec:
+  type: {{ .Values.inference.service.type }}
+  selector:
+    {{- include "pulsescan.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: inference
+  ports:
+    - name: metrics
+      port: {{ .Values.inference.service.port }}
+      targetPort: {{ .Values.inference.service.targetPort }}
+      protocol: TCP
+

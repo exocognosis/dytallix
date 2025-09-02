@@ -62,6 +62,12 @@ impl Default for GasTable {
     }
 }
 
+impl Default for HostEnv {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HostEnv {
     pub fn new() -> Self {
         panic!("HostEnv::new() without PQCManager removed. Use HostEnv::with_pqc(pqc_manager)");

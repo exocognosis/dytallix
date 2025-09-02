@@ -1,5 +1,4 @@
 use clap::{Arg, Command};
-use std::env;
 use tracing::{info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -181,13 +180,14 @@ impl InferenceProcessor {
         transaction: &blockchain::Transaction,
         inference_result: &inference::InferenceResult,
     ) -> anyhow::Result<blockchain::Finding> {
-        use crate::blockchain::{Finding, PQSignature};
+        use crate::blockchain::Finding;
 
         let finding = Finding {
             tx_hash: transaction.hash.clone(),
             addr: transaction.from.clone(),
             score: inference_result.score,
             reasons: inference_result.reasons.clone(),
+            signature_pq: None,
             timestamp: chrono::Utc::now().timestamp() as u64,
             metadata: Some(serde_json::to_string(&inference_result.metadata)?),
         };

@@ -40,7 +40,7 @@ mod simple_verification_test {
     #[test]
     fn test_algorithm_enumeration() {
         // Test that we can enumerate the algorithms we support
-        let algorithms = vec!["Dilithium5", "Falcon1024", "SphincsSha256128s"];
+        let algorithms = ["Dilithium5", "Falcon1024", "SphincsSha256128s"];
 
         assert_eq!(algorithms.len(), 3);
         assert!(algorithms.contains(&"Dilithium5"));
@@ -53,7 +53,7 @@ mod simple_verification_test {
     #[test]
     fn test_chain_support() {
         // Test supported chains
-        let supported_chains = vec!["ethereum", "cosmos", "polkadot"];
+        let supported_chains = ["ethereum", "cosmos", "polkadot"];
 
         assert!(supported_chains.contains(&"ethereum"));
         assert!(supported_chains.contains(&"cosmos"));

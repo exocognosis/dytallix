@@ -1,11 +1,14 @@
-use std::time::Duration;
-use tokio::time::sleep;
+// removed unused imports
 
-use dytallix_lean_launch_node::mempool::{Mempool, MempoolConfig};
-use dytallix_lean_launch_node::p2p::TransactionGossip;
-use dytallix_lean_launch_node::state::State;
-use dytallix_lean_launch_node::storage::tx::Transaction;
+use dytallix_lean_node::mempool::{Mempool, MempoolConfig};
+use dytallix_lean_node::p2p::TransactionGossip;
+use dytallix_lean_node::state::State;
+use dytallix_lean_node::storage::state::Storage;
+use dytallix_lean_node::storage::tx::Transaction;
+use std::sync::Arc;
+use tempfile::TempDir;
 
+#[allow(clippy::too_many_arguments)]
 fn create_test_transaction(
     hash: &str,
     from: &str,
@@ -16,30 +19,27 @@ fn create_test_transaction(
     gas_limit: u64,
     gas_price: u64,
 ) -> Transaction {
-    Transaction {
-        hash: hash.to_string(),
-        from: from.to_string(),
-        to: to.to_string(),
-        amount,
-        fee,
-        nonce,
-        signature: Some("test_signature".to_string()),
-        gas_limit,
-        gas_price,
-    }
+    Transaction::new(hash, from, to, amount, fee, nonce, None)
+        .with_gas(gas_limit, gas_price)
+        .with_signature("test_signature")
 }
 
 fn create_mock_state() -> State {
-    let mut state = State::new_for_test();
-    state.set_account_balance("sender1", 1000000);
-    state.set_account_balance("sender2", 500000);
+    let tmp = TempDir::new().unwrap();
+    let storage = Arc::new(Storage::open(tmp.path().join("node.db")).unwrap());
+    let mut state = State::new(storage);
+    state.set_balance("sender1", "udgt", 1_000_000);
+    state.set_balance("sender2", "udgt", 500_000);
     state
 }
 
+#[allow(dead_code)]
 fn create_mock_state_with_many_accounts(num_accounts: usize) -> State {
-    let mut state = State::new_for_test();
+    let tmp = TempDir::new().unwrap();
+    let storage = Arc::new(Storage::open(tmp.path().join("node.db")).unwrap());
+    let mut state = State::new(storage);
     for i in 0..num_accounts {
-        state.set_account_balance(&format!("sender{}", i), 1000000);
+        state.set_balance(&format!("sender{i}"), "udgt", 1_000_000);
     }
     state
 }
@@ -62,9 +62,10 @@ async fn test_admit_then_include() {
     assert_eq!(snapshot[0].hash, tx.hash);
 
     // Remove after inclusion
-    mempool.drop_hashes(&[tx.hash]);
+    let h = tx.hash.clone();
+    mempool.drop_hashes(&[h.clone()]);
     assert_eq!(mempool.len(), 0);
-    assert!(!mempool.contains(&tx.hash));
+    assert!(!mempool.contains(&h));
 }
 
 #[tokio::test]
@@ -97,14 +98,14 @@ async fn test_pool_limits() {
     // Add transactions up to limit
     for i in 0..3 {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
+            &format!("hash{i}"),
             "sender1",
             "receiver",
             1000,
             100,
             i,
             21000,
-            1000 + i as u64, // Different gas prices for deterministic ordering
+            1000 + i, // Different gas prices for deterministic ordering
         );
         assert!(mempool.add_transaction(&state, tx).is_ok());
     }
@@ -140,14 +141,14 @@ async fn test_byte_limits() {
     let mut added_count = 0;
     for i in 0..10 {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
+            &format!("hash{i}"),
             "sender1",
             "receiver",
             1000,
             100,
             i,
             21000,
-            1000 + i as u64,
+            1000 + i,
         );
 
         if mempool.add_transaction(&state, tx).is_ok() {
@@ -208,19 +209,18 @@ async fn test_concurrent_operations() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
 
-    // Simulate concurrent transaction additions
-    let mut handles = vec![];
+    // Simulate sequential additions (concurrency omitted in unit test)
 
     for i in 0..10 {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
+            &format!("hash{i}"),
             "sender1",
             "receiver",
             1000,
             100,
             i,
             21000,
-            1000 + i as u64,
+            1000 + i,
         );
 
         // Add transaction
@@ -253,14 +253,14 @@ async fn test_mempool_state_consistency() {
     // Add transactions
     for i in 0..5 {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
+            &format!("hash{i}"),
             "sender1",
             "receiver",
             1000,
             100,
             i,
             21000,
-            1000 + i as u64,
+            1000 + i,
         );
         assert!(mempool.add_transaction(&state, tx).is_ok());
     }

@@ -29,7 +29,10 @@ impl Storage {
         self.db
             .put("meta:height", block.header.height.to_be_bytes())?;
         self.db.put("meta:best_hash", block.hash.as_bytes())?;
-        for r in receipts { self.db.put(format!("rcpt:{}", r.tx_hash), serde_json::to_vec(r)?)?; }
+        for r in receipts {
+            self.db
+                .put(format!("rcpt:{}", r.tx_hash), serde_json::to_vec(r)?)?;
+        }
         Ok(())
     }
     pub fn height(&self) -> u64 {
@@ -68,18 +71,22 @@ impl Storage {
             .and_then(|b| bincode::deserialize(&b).ok())
     }
     pub fn put_tx(&self, tx: &Transaction) -> anyhow::Result<()> {
-        self.db.put(format!("tx:{}", tx.hash), bincode::serialize(tx)?)?;
+        self.db
+            .put(format!("tx:{}", tx.hash), bincode::serialize(tx)?)?;
         Ok(())
     }
     pub fn put_pending_receipt(&self, r: &TxReceipt) -> anyhow::Result<()> {
-        self.db.put(format!("rcpt:{}", r.tx_hash), serde_json::to_vec(r)?)?;
+        self.db
+            .put(format!("rcpt:{}", r.tx_hash), serde_json::to_vec(r)?)?;
         Ok(())
     }
     pub fn get_receipt(&self, hash: &str) -> Option<TxReceipt> {
         let k = format!("rcpt:{hash}");
         match self.db.get(&k) {
             Ok(Some(raw)) => {
-                if raw.is_empty() { return None; }
+                if raw.is_empty() {
+                    return None;
+                }
                 serde_json::from_slice(&raw)
                     .or_else(|_| bincode::deserialize(&raw))
                     .ok()
@@ -128,7 +135,9 @@ impl Storage {
     pub fn get_balance_db(&self, addr: &str) -> u128 {
         // Check if new multi-denom format exists first
         let balances = self.get_balances_db(addr);
-        if !balances.is_empty() { return balances.get("udgt").copied().unwrap_or(0); }
+        if !balances.is_empty() {
+            return balances.get("udgt").copied().unwrap_or(0);
+        }
 
         // Fallback to legacy single balance format
         self.db
@@ -147,7 +156,8 @@ impl Storage {
         self.set_balances_db(addr, &balances)?;
 
         // Also keep legacy format for compatibility during migration
-        self.db.put(format!("acct:bal:{addr}"), bincode::serialize(&bal)?)?;
+        self.db
+            .put(format!("acct:bal:{addr}"), bincode::serialize(&bal)?)?;
         Ok(())
     }
     pub fn get_nonce_db(&self, addr: &str) -> u64 {

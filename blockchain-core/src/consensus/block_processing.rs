@@ -15,8 +15,8 @@ use crate::consensus::ai_integration::AIIntegrationManager;
 use crate::consensus::ai_oracle_client::AIOracleClient;
 use crate::consensus::transaction_validation::{TransactionValidator, ValidationResult};
 use crate::consensus::types::AIServiceType;
-use crate::types::{Block, BlockHeader, Transaction};
 use crate::staking::Validator;
+use crate::types::{Block, BlockHeader, Transaction};
 use dytallix_pqc::SignatureAlgorithm;
 
 /// Block validation result
@@ -115,12 +115,9 @@ impl BlockProcessor {
 
         // Process staking rewards for this block
         if let Err(e) = self.runtime.process_block_rewards(block_number).await {
-            warn!(
-                "Failed to process staking rewards for block {}: {}",
-                block_number, e
-            );
+            warn!("Failed to process staking rewards for block {block_number}: {e}");
         } else {
-            info!("Processed staking rewards for block {}", block_number);
+            info!("Processed staking rewards for block {block_number}");
         }
 
         // Validate all transactions first
@@ -138,16 +135,13 @@ impl BlockProcessor {
                 }
                 Err(e) => {
                     rejected_count += 1;
-                    error!("Transaction validation error: {}", e);
+                    error!("Transaction validation error: {e}");
                 }
             }
         }
 
         if rejected_count > 0 {
-            warn!(
-                "Rejected {} transactions during block proposal",
-                rejected_count
-            );
+            warn!("Rejected {rejected_count} transactions during block proposal");
         }
 
         // Calculate Merkle root
@@ -156,10 +150,7 @@ impl BlockProcessor {
         // Get active validator set and compute validator set hash
         let active_validators: Vec<Validator> = self.runtime.get_active_validators().await; // ensure concrete sized Vec
         let validator_set_hash = self.calculate_validator_set_hash(&active_validators);
-        info!(
-            "Block {} validator set hash: {}",
-            block_number, validator_set_hash
-        );
+        info!("Block {block_number} validator set hash: {validator_set_hash}");
 
         // Get current block for previous hash
         let previous_hash = if let Some(block) = current_block.as_ref() {
@@ -212,7 +203,7 @@ impl BlockProcessor {
 
         // 1. Basic block validation
         if let Err(e) = self.validate_basic_block(block) {
-            result.add_error(format!("Basic block validation failed: {}", e));
+            result.add_error(format!("Basic block validation failed: {e}"));
             return Ok(result);
         }
 
@@ -235,7 +226,7 @@ impl BlockProcessor {
                     transaction_results.push(tx_result);
                 }
                 Err(e) => {
-                    result.add_error(format!("Transaction validation error: {}", e));
+                    result.add_error(format!("Transaction validation error: {e}"));
                 }
             }
         }
@@ -259,7 +250,7 @@ impl BlockProcessor {
                     result.ai_analysis = Some(ai_result);
                 }
                 Err(e) => {
-                    result.add_warning(format!("AI block validation failed: {}", e));
+                    result.add_warning(format!("AI block validation failed: {e}"));
                 }
             }
         }

@@ -1,15 +1,15 @@
 // Allow future async trait lint if introduced and silence currently discussed lints
 #![allow(clippy::module_name_repetitions)]
 
-use tokio::sync::{mpsc, broadcast};
-use crate::risk::pulseguard::{RiskEvent, FeatureVector};
-use crate::risk::pulseguard::features::temporal::TemporalWindowEngine;
+use crate::risk::pulseguard::alerts::queue::{AlertQueue, StdoutSink};
 use crate::risk::pulseguard::features::structural::StructuralEngine;
+use crate::risk::pulseguard::features::temporal::TemporalWindowEngine;
 use crate::risk::pulseguard::graph::dag::DynamicDag;
 use crate::risk::pulseguard::models::ensemble::Ensemble;
-use crate::risk::pulseguard::alerts::queue::{AlertQueue, StdoutSink};
 use crate::risk::pulseguard::RiskScore;
+use crate::risk::pulseguard::{FeatureVector, RiskEvent};
 use log::info;
+use tokio::sync::{broadcast, mpsc};
 
 pub struct PulseGuardEngine {
     pub event_tx: mpsc::Sender<RiskEvent>,
@@ -19,7 +19,7 @@ pub struct PulseGuardEngine {
 impl PulseGuardEngine {
     pub fn new(buffer: usize) -> (Self, tokio::task::JoinHandle<()>) {
         let (event_tx, mut event_rx) = mpsc::channel::<RiskEvent>(buffer);
-        let (alert_tx, _)= broadcast::channel::<RiskScore>(1024);
+        let (alert_tx, _) = broadcast::channel::<RiskScore>(1024);
         let alert_tx_clone = alert_tx.clone();
         let handle = tokio::spawn(async move {
             let mut temporal = TemporalWindowEngine::new();

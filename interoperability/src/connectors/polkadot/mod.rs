@@ -118,10 +118,7 @@ impl PolkadotConnector {
         message: &XcmMessage,
         origin_para_id: Option<u32>,
     ) -> Result<PolkadotTxHash, BridgeError> {
-        println!(
-            "📦 Handling incoming XCM message from parachain {:?}",
-            origin_para_id
-        );
+        println!("📦 Handling incoming XCM message from parachain {origin_para_id:?}");
 
         // Process XCM instructions
         let tx_hash = self.xcm_handler.execute_message(message).await?;

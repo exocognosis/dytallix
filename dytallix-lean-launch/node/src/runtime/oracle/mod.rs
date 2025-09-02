@@ -167,7 +167,7 @@ pub async fn post_ai_risk(
         ingested_at,
         &source,
     ) {
-        eprintln!("Failed to apply oracle risk: {}", e);
+        eprintln!("Failed to apply oracle risk: {e}");
         ctx.metrics.record_oracle_submission("error");
         return Err(ApiError::Internal);
     }
@@ -201,7 +201,7 @@ pub async fn post_ai_risk_batch(
     for (idx, risk_input) in inp.records.iter().enumerate() {
         // Validate each record
         if !(0.0..=1.0).contains(&risk_input.risk_score) {
-            errors.push(format!("Record {}: risk_score out of range", idx));
+            errors.push(format!("Record {idx}: risk_score out of range"));
             continue;
         }
 
@@ -213,11 +213,11 @@ pub async fn post_ai_risk_batch(
                     risk_input.tx_hash, risk_input.risk_score, risk_input.model_id
                 );
                 if !verify_sig(&payload, sig, pk) {
-                    errors.push(format!("Record {}: invalid signature", idx));
+                    errors.push(format!("Record {idx}: invalid signature"));
                     continue;
                 }
             } else {
-                errors.push(format!("Record {}: missing required signature", idx));
+                errors.push(format!("Record {idx}: missing required signature"));
                 continue;
             }
         }
@@ -233,7 +233,7 @@ pub async fn post_ai_risk_batch(
             ingested_at,
             &source,
         ) {
-            errors.push(format!("Record {}: {}", idx, e));
+            errors.push(format!("Record {idx}: {e}"));
             continue;
         }
 

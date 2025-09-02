@@ -122,9 +122,7 @@ impl Indexer {
 
         // Backfill missing blocks
         if start_height <= latest_height {
-            info!(
-                "Backfilling blocks from {start_height} to {latest_height}"
-            );
+            info!("Backfilling blocks from {start_height} to {latest_height}");
             for height in start_height..=latest_height {
                 if let Err(e) = self.ingest_block(height).await {
                     warn!("Failed to ingest block {height}: {e}");

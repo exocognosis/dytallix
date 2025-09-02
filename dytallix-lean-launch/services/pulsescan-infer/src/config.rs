@@ -32,6 +32,18 @@ pub struct FeatureConfig {
     pub velocity_window_minutes: u64,
 }
 
+impl Default for FeatureConfig {
+    fn default() -> Self {
+        Self {
+            enable_graph_features: true,
+            enable_temporal_features: true,
+            enable_behavioral_features: true,
+            lookback_window_hours: 24,
+            velocity_window_minutes: 60,
+        }
+    }
+}
+
 impl Config {
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let content = fs::read_to_string(path)?;

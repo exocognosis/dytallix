@@ -7,7 +7,6 @@ use warp::Filter;
 
 mod models;
 
-use dytallix_explorer_indexer::models::{Block, Transaction};
 use dytallix_explorer_indexer::store::Store;
 
 #[derive(Debug, Clone)]

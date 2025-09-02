@@ -949,7 +949,6 @@ mod chrono {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::ContractDeployment;
 
     #[test]
     fn test_report_generator_creation() {

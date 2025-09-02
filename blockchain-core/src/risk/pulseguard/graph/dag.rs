@@ -1,5 +1,5 @@
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum EdgeType {
@@ -34,7 +34,7 @@ impl DynamicDag {
         let mut visited = std::collections::HashSet::new();
         let mut q = VecDeque::new();
         q.push_back((node.to_string(), 0));
-        
+
         while let Some((n, d)) = q.pop_front() {
             if d == k {
                 continue;
@@ -53,12 +53,13 @@ impl DynamicDag {
     pub fn suspicious_path(&self, start: &str, max_hops: usize) -> Option<Vec<String>> {
         let mut path = vec![start.to_string()];
         let mut current = start.to_string();
-        
+
         for _ in 0..max_hops {
             if let Some(edges) = self.adj.get(&current) {
-                if let Some(e) = edges.iter().find(|e| {
-                    matches!(e.edge_type, EdgeType::Bridge | EdgeType::Swap)
-                }) {
+                if let Some(e) = edges
+                    .iter()
+                    .find(|e| matches!(e.edge_type, EdgeType::Bridge | EdgeType::Swap))
+                {
                     current = e.to.clone();
                     path.push(current.clone());
                     continue;
@@ -66,7 +67,7 @@ impl DynamicDag {
             }
             break;
         }
-        
+
         if path.len() > 1 {
             Some(path)
         } else {

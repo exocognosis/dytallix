@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+#[allow(dead_code)]
 pub enum InferenceError {
     #[error("Model loading error: {0}")]
     ModelLoading(String),
@@ -31,4 +32,7 @@ pub enum InferenceError {
 
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("Prometheus error: {0}")]
+    Prometheus(#[from] prometheus::Error),
 }

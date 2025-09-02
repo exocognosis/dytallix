@@ -74,7 +74,7 @@ impl GenesisBlockCreator {
         // Create mint transactions for each DGT allocation
         for (index, allocation) in self.config.dgt_allocations.iter().enumerate() {
             let tx = Transaction::Transfer(crate::types::TransferTransaction {
-                hash: format!("genesis_mint_{}", index),
+                hash: format!("genesis_mint_{index}"),
                 from: "genesis_mint".to_string(), // Special genesis minter address
                 to: allocation.address.clone(),
                 amount: allocation.amount,
@@ -230,12 +230,11 @@ impl GenesisInitializer {
                 let allocation = &config.dgt_allocations[index];
                 if tx.to != allocation.address || tx.amount != allocation.amount {
                     return Err(format!(
-                        "Genesis transaction {} does not match allocation",
-                        index
+                        "Genesis transaction {index} does not match allocation"
                     ));
                 }
             } else {
-                return Err(format!("Genesis transaction {} is not a transfer", index));
+                return Err(format!("Genesis transaction {index} is not a transfer"));
             }
         }
 

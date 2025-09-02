@@ -32,11 +32,16 @@ hex = { workspace = true }
 # Added for integration tests referencing these crates
 dytallix-pqc = { path = "pqc-crypto" }
 dytallix-interoperability = { path = "interoperability" }
+# Node/core crate for examples and tests
+dytallix-node = { path = "blockchain-core" }
 # PQC Wallet SDK dependencies
 argon2 = "0.5"
 ripemd = "0.1"
 zeroize = { version = "1", features = ["derive"] }
 rand = "0.8"
+# Added for passphrase_input_demo example
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 [dev-dependencies]
 # For examples / tests that need secure password input and memory zeroization

@@ -74,8 +74,7 @@ fn test_emission_staking_integration() {
     // Verify reward accumulation is meaningful
     assert!(
         final_reward_index > 0,
-        "Reward index should increase over {} blocks",
-        num_blocks
+        "Reward index should increase over {num_blocks} blocks",
     );
     assert!(
         total_staking_rewards > 0,
@@ -89,17 +88,12 @@ fn test_emission_staking_integration() {
 
     // Verify precision is maintained
     let expected_delegator_share = (total_staking_rewards * delegator_stake) / validator_stake;
-    let difference = if claimable_rewards > expected_delegator_share {
-        claimable_rewards - expected_delegator_share
-    } else {
-        expected_delegator_share - claimable_rewards
-    };
+    let difference = claimable_rewards.abs_diff(expected_delegator_share);
 
     // Allow for small rounding errors due to integer arithmetic
     assert!(
         difference <= 1,
-        "Delegator reward calculation error {} should be ≤ 1 unit",
-        difference
+        "Delegator reward calculation error {difference} should be ≤ 1 unit",
     );
 }
 
@@ -280,24 +274,20 @@ fn test_emission_event_consistency() {
 
             // Allow for ±1% deviation due to rounding and remainder allocation
             assert!(
-                block_rewards_pct >= 59 && block_rewards_pct <= 61,
-                "Block rewards should be ~60% at height {}",
-                height
+                (59..=61).contains(&block_rewards_pct),
+                "Block rewards should be ~60% at height {height}",
             );
             assert!(
-                staking_rewards_pct >= 24 && staking_rewards_pct <= 26,
-                "Staking rewards should be ~25% at height {}",
-                height
+                (24..=26).contains(&staking_rewards_pct),
+                "Staking rewards should be ~25% at height {height}",
             );
             assert!(
-                ai_incentives_pct >= 9 && ai_incentives_pct <= 11,
-                "AI incentives should be ~10% at height {}",
-                height
+                (9..=11).contains(&ai_incentives_pct),
+                "AI incentives should be ~10% at height {height}",
             );
             assert!(
-                bridge_ops_pct >= 4 && bridge_ops_pct <= 6,
-                "Bridge ops should be ~5% at height {}",
-                height
+                (4..=6).contains(&bridge_ops_pct),
+                "Bridge ops should be ~5% at height {height}",
             );
 
             // Verify circulating supply increases monotonically
@@ -305,14 +295,12 @@ fn test_emission_event_consistency() {
                 if let Some(prev_event) = emission.get_event(height - 1) {
                     assert!(
                         event.circulating_supply > prev_event.circulating_supply,
-                        "Circulating supply should increase at height {}",
-                        height
+                        "Circulating supply should increase at height {height}",
                     );
                     assert_eq!(
                         event.circulating_supply,
                         prev_event.circulating_supply + event.total_emitted,
-                        "Circulating supply increment should equal emission at height {}",
-                        height
+                        "Circulating supply increment should equal emission at height {height}",
                     );
                 }
             }
@@ -370,8 +358,7 @@ fn test_staking_rewards_precision() {
         // Verify claimable amount is reasonable
         assert!(
             claimable > 0,
-            "Delegator with {} stake should earn some rewards",
-            delegator_stake
+            "Delegator with {delegator_stake} stake should earn some rewards",
         );
 
         // Verify precision - claimable should be proportional to stake
@@ -382,9 +369,7 @@ fn test_staking_rewards_precision() {
         let ratio_error = (stake_ratio - expected_ratio).abs();
         assert!(
             ratio_error < TOLERANCE,
-            "Stake ratio precision error {} exceeds tolerance for stake {}",
-            ratio_error,
-            delegator_stake
+            "Stake ratio precision error {ratio_error} exceeds tolerance for stake {delegator_stake}",
         );
     }
 }

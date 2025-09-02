@@ -143,7 +143,7 @@ impl StakingConfig {
             slash_downtime: self.downtime_slash_rate,
             emission_per_block: self.emission_per_block,
             // Newly required fields
-            downtime_threshold: self.offline_threshold as u64,
+            downtime_threshold: self.offline_threshold,
             signed_blocks_window: defaults.signed_blocks_window,
             min_signed_per_window: defaults.min_signed_per_window,
         }
@@ -331,8 +331,7 @@ impl GenesisConfig {
         let total_dgt: Amount = self.dgt_allocations.iter().map(|a| a.amount).sum();
         if total_dgt != 1_000_000_000_000_000_000 {
             return Err(format!(
-                "DGT total supply must be 1 billion, got {}",
-                total_dgt
+                "DGT total supply must be 1 billion, got {total_dgt}"
             ));
         }
 

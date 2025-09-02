@@ -1,11 +1,12 @@
 use axum::response::IntoResponse;
 
 use dytallix_lean_node::rpc::errors::ApiError;
-use dytallix_lean_node::storage::receipts::{TxReceipt, TxStatus};
+use dytallix_lean_node::storage::receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION};
 
 #[test]
 fn receipt_string_u128_fields() {
     let r = TxReceipt {
+        receipt_version: RECEIPT_FORMAT_VERSION,
         tx_hash: "0xabc".into(),
         status: TxStatus::Success,
         block_height: Some(1),
@@ -16,6 +17,11 @@ fn receipt_string_u128_fields() {
         fee: 2000000000000000000u128,
         nonce: 1,
         error: None,
+        gas_used: 0,
+        gas_limit: 0,
+        gas_price: 0,
+        gas_refund: 0,
+        success: true,
     };
     let s = serde_json::to_string(&r).unwrap();
     assert!(s.contains("\"amount\":\"1000000000000000000\""));

@@ -1,3 +1,3 @@
 pub mod tx;
 
-pub use tx::{Msg, SignedTx, Tx, ValidationError};
+pub use tx::{Msg, SignedTx, ValidationError};

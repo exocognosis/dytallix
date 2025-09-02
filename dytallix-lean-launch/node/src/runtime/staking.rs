@@ -122,7 +122,10 @@ impl StakingModule {
             .ok()
             .flatten()
             .and_then(|v| bincode::deserialize::<DelegatorRewardRecord>(&v).ok())
-            .unwrap_or(DelegatorRewardRecord { last_reward_index: self.reward_index, ..Default::default() })
+            .unwrap_or(DelegatorRewardRecord {
+                last_reward_index: self.reward_index,
+                ..Default::default()
+            })
     }
 
     /// Save delegator reward record to storage
@@ -247,9 +250,9 @@ impl StakingModule {
 
         // Settle rewards before changing stake
         if record.stake_amount > 0 {
-            let pending_rewards =
-                ((self.reward_index - record.last_reward_index) * record.stake_amount)
-                    / REWARD_SCALE;
+            let pending_rewards = ((self.reward_index - record.last_reward_index)
+                * record.stake_amount)
+                / REWARD_SCALE;
             record.accrued_rewards = record.accrued_rewards.saturating_add(pending_rewards);
         }
 
@@ -286,9 +289,9 @@ impl StakingModule {
 
         // Settle rewards before changing stake
         if record.stake_amount > 0 {
-            let pending_rewards =
-                ((self.reward_index - record.last_reward_index) * record.stake_amount)
-                    / REWARD_SCALE;
+            let pending_rewards = ((self.reward_index - record.last_reward_index)
+                * record.stake_amount)
+                / REWARD_SCALE;
             record.accrued_rewards = record.accrued_rewards.saturating_add(pending_rewards);
         }
 

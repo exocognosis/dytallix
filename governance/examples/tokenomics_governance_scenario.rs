@@ -10,9 +10,7 @@ This example shows:
 
 use chrono::Utc;
 use dytallix_contracts::tokenomics::{DGTToken, DRTToken, EmissionController, EmissionParameters};
-use dytallix_governance::{
-    Ballot, DaoGovernance, EmissionRate, FileBasedGovernance, ProposalType, TokenomicsProposal,
-};
+use dytallix_governance::{Ballot, DaoGovernance, FileBasedGovernance, TokenomicsProposal};
 use std::path::PathBuf;
 
 fn main() {
@@ -98,11 +96,8 @@ impl TokenomicsGovernanceExample {
             tokenomics_proposal,
         )?;
 
-        println!("Created governance proposal #{}", proposal_id);
-        println!(
-            "Proposal: Increase DRT emission rate to {} per block",
-            new_emission_rate
-        );
+        println!("Created governance proposal #{proposal_id}");
+        println!("Proposal: Increase DRT emission rate to {new_emission_rate} per block");
         println!();
 
         // Step 3: Simulate community voting
@@ -216,7 +211,7 @@ impl TokenomicsGovernanceExample {
             tokenomics_proposal,
         )?;
 
-        println!("Created complex governance proposal #{}", proposal_id);
+        println!("Created complex governance proposal #{proposal_id}");
         println!("New base emission rate: {}", new_params.base_emission_rate);
         println!("New max emission rate: {}", new_params.max_emission_rate);
         println!("New min emission rate: {}", new_params.min_emission_rate);
@@ -246,7 +241,7 @@ impl TokenomicsGovernanceExample {
             let adaptive_rate = self
                 .emission_controller
                 .calculate_adaptive_rate(utilization);
-            println!("{}: {} DRT per block", description, adaptive_rate);
+            println!("{description}: {adaptive_rate} DRT per block");
         }
 
         println!();
@@ -254,7 +249,7 @@ impl TokenomicsGovernanceExample {
         // Process emission for a block
         let total_emitted = self.emission_controller.process_emission(100, 6000)?;
         println!("Processed emission for block 100 with 60% utilization:");
-        println!("  Total emitted: {} DRT", total_emitted);
+        println!("  Total emitted: {total_emitted} DRT");
         println!(
             "  Validator pool: {} DRT",
             self.emission_controller.validator_pool_balance()

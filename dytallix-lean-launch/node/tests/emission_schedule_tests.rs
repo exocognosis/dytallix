@@ -38,8 +38,7 @@ fn test_distribution_sum_matches_total() {
             let pool_sum: u128 = event.pools.values().sum();
             assert_eq!(
                 pool_sum, event.total_emitted,
-                "Distribution sum must equal total emission at height {}",
-                height
+                "Distribution sum must equal total emission at height {height}"
             );
         }
     }
@@ -151,9 +150,7 @@ fn test_reward_index_precision() {
 
     assert!(
         error < TOLERANCE,
-        "Precision error {} exceeds tolerance {}",
-        error,
-        TOLERANCE
+        "Precision error {error} exceeds tolerance {TOLERANCE}"
     );
 }
 

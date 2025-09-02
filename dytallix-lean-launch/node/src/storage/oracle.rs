@@ -14,10 +14,14 @@ pub struct AiRiskRecord {
     pub source: String,   // Oracle source identifier
 }
 
-pub struct OracleStore<'a> { pub db: &'a DB }
+pub struct OracleStore<'a> {
+    pub db: &'a DB,
+}
 
 impl<'a> OracleStore<'a> {
-    fn key(tx_hash: &str) -> String { format!("oracle:ai:{tx_hash}") }
+    fn key(tx_hash: &str) -> String {
+        format!("oracle:ai:{tx_hash}")
+    }
 
     pub fn put_ai_risk(&self, rec: &AiRiskRecord) -> anyhow::Result<()> {
         self.validate_record(rec)?;

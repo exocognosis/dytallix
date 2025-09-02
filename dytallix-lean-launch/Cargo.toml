@@ -2,5 +2,6 @@
 members = [
     "dytallixd",
     "node",
+    "services/pulsescan-infer",
 ]
 resolver = "2"

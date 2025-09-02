@@ -18,8 +18,8 @@ export class GovernanceService {
     if (options.limit) params.set('limit', options.limit)
     if (options.page) params.set('page', options.page)
     if (options.status) params.set('status', options.status)
-    
-    return api.get(`/governance/proposals?${params.toString()}`)
+    // Backend RPC exposes this under /api/governance/proposals
+    return api.get(`/governance/proposals`)
   }
 
   /**
@@ -28,6 +28,7 @@ export class GovernanceService {
    * @returns {Promise<Object>} Proposal details
    */
   async getProposal(proposalId) {
+    // Backend RPC: /gov/proposal/:id
     return api.get(`/governance/proposals/${proposalId}`)
   }
 
@@ -93,7 +94,8 @@ export class GovernanceService {
    * @returns {Promise<Object>} Governance parameters
    */
   async getParams() {
-    return api.get('/governance/params')
+    // Use RPC route exposed by node as /gov/config behind /api proxy
+    return api.get('/governance/config')
   }
 }
 

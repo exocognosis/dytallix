@@ -114,8 +114,7 @@ impl NodeConfig {
         match secret_manager.get_secret("database/password").await {
             Ok(db_password) => {
                 config.database_url = format!(
-                    "postgresql://{}:{}@{}:{}/{}",
-                    db_username, db_password, db_host, db_port, db_name
+                    "postgresql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}"
                 );
                 debug!("Database URL constructed from secrets");
             }

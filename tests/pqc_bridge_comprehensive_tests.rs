@@ -45,7 +45,7 @@ mod pqc_bridge_tests {
 
     #[test]
     fn test_multi_algorithm_signature_verification() {
-        let mut bridge = DytallixBridge::new();
+        let bridge = DytallixBridge::new();
 
         // Test with different PQC algorithms
         let algorithms = vec![
@@ -60,9 +60,9 @@ mod pqc_bridge_tests {
                 amount: 500000,
                 decimals: 6,
                 metadata: AssetMetadata {
-                    name: format!("Test Token {}", name),
+                    name: format!("Test Token {name}"),
                     symbol: format!("TEST{}", name.to_uppercase()),
-                    description: format!("Test token for {} algorithm", name),
+                    description: format!("Test token for {name} algorithm"),
                     icon_url: None,
                 },
             };
@@ -74,11 +74,10 @@ mod pqc_bridge_tests {
             );
             assert!(
                 result.is_ok(),
-                "Asset locking should work with {} algorithm",
-                name
+                "Asset locking should work with {name} algorithm"
             );
 
-            println!("✅ {} algorithm signature verification passed", name);
+            println!("✅ {name} algorithm signature verification passed");
         }
     }
 
@@ -276,7 +275,7 @@ mod pqc_bridge_tests {
         assert!(pqc_manager.get_chain_config("cosmos").is_some());
 
         println!("✅ Cross-chain format compatibility verified");
-        println!("  - Supported chains: {:?}", supported_chains);
+        println!("  - Supported chains: {supported_chains:?}");
     }
 
     #[test]
@@ -322,14 +321,14 @@ mod pqc_bridge_tests {
         let mut pqc_manager = BridgePQCManager::new().unwrap();
 
         // Test multiple algorithms for crypto-agility
-        let algorithms = vec![
+        let algorithms = [
             SignatureAlgorithm::Dilithium5,
             SignatureAlgorithm::Falcon1024,
             SignatureAlgorithm::SphincsSha256128s,
         ];
 
         for (i, algorithm) in algorithms.iter().enumerate() {
-            let validator_id = format!("agility_validator_{}", i);
+            let validator_id = format!("agility_validator_{i}");
             let keypair = pqc_manager.generate_validator_keypair(algorithm).unwrap();
 
             pqc_manager.add_validator(
@@ -339,7 +338,7 @@ mod pqc_bridge_tests {
             );
 
             let payload = CrossChainPayload::GenericBridgePayload {
-                asset_id: format!("AGILITY_TEST_{}", i),
+                asset_id: format!("AGILITY_TEST_{i}"),
                 amount: 1000000,
                 source_chain: "ethereum".to_string(),
                 dest_chain: "cosmos".to_string(),
@@ -355,8 +354,8 @@ mod pqc_bridge_tests {
                 .verify_bridge_signature(&signature, &payload)
                 .unwrap();
 
-            assert!(is_valid, "Signature should be valid for {:?}", algorithm);
-            println!("✅ Crypto-agility test passed for {:?}", algorithm);
+            assert!(is_valid, "Signature should be valid for {algorithm:?}");
+            println!("✅ Crypto-agility test passed for {algorithm:?}");
         }
     }
 }
@@ -424,13 +423,12 @@ mod pqc_performance_tests {
             let duration = start.elapsed();
             let avg_time = duration / iterations;
 
-            println!("  {} - Avg time: {:?}", name, avg_time);
+            println!("  {name} - Avg time: {avg_time:?}");
 
             // Assert reasonable performance (should complete within reasonable time)
             assert!(
                 avg_time.as_millis() < 1000,
-                "{} signature should complete within 1 second",
-                name
+                "{name} signature should complete within 1 second"
             );
         }
 
@@ -448,7 +446,7 @@ mod pqc_performance_tests {
                 .generate_validator_keypair(&SignatureAlgorithm::Dilithium5)
                 .unwrap();
             pqc_manager.add_validator(
-                format!("benchmark_validator_{}", i),
+                format!("benchmark_validator_{i}"),
                 keypair.public_key.clone(),
                 SignatureAlgorithm::Dilithium5,
             );
@@ -468,7 +466,7 @@ mod pqc_performance_tests {
         let mut signatures = Vec::new();
         for i in 1..=5 {
             let signature = pqc_manager
-                .sign_bridge_payload(&payload, "ethereum", &format!("benchmark_validator_{}", i))
+                .sign_bridge_payload(&payload, "ethereum", &format!("benchmark_validator_{i}"))
                 .unwrap();
             signatures.push(signature);
         }
@@ -489,7 +487,7 @@ mod pqc_performance_tests {
 
         println!("\n📊 Multi-Signature Verification Benchmark:");
         println!("==========================================");
-        println!("  5 signatures verified in avg time: {:?}", avg_time);
+        println!("  5 signatures verified in avg time: {avg_time:?}");
 
         // Multi-sig verification should complete within reasonable time
         assert!(
@@ -515,10 +513,7 @@ mod pqc_performance_tests {
         ];
 
         for (name, est_gas, sig_size) in algorithms {
-            println!(
-                "  {} - Est. Gas: {} units, Signature size: {} bytes",
-                name, est_gas, sig_size
-            );
+            println!("  {name} - Est. Gas: {est_gas} units, Signature size: {sig_size} bytes");
 
             // Calculate estimated costs (assuming 20 gwei gas price)
             let gas_price_gwei = 20;
@@ -527,10 +522,7 @@ mod pqc_performance_tests {
             let cost_eth = cost_wei as f64 / 1e18;
             let cost_usd = cost_eth * eth_price_usd as f64;
 
-            println!(
-                "    -> Est. cost: {:.8} ETH (${:.4} USD)",
-                cost_eth, cost_usd
-            );
+            println!("    -> Est. cost: {cost_eth:.8} ETH (${cost_usd:.4} USD)");
         }
 
         println!("✅ Gas cost estimation simulation completed");

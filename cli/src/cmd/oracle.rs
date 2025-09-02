@@ -125,19 +125,17 @@ async fn submit_single(
 
     if output_format.is_json() {
         println!("{}", serde_json::to_string_pretty(&response)?);
+    } else if response["ok"].as_bool().unwrap_or(false) {
+        println!("✅ Successfully submitted AI risk score for {tx_hash}");
+        println!("   Model: {model_id}");
+        println!("   Risk Score: {risk_score:.3}");
+        if let Some(conf) = confidence {
+            println!("   Confidence: {conf:.3}");
+        }
     } else {
-        if response["ok"].as_bool().unwrap_or(false) {
-            println!("✅ Successfully submitted AI risk score for {}", tx_hash);
-            println!("   Model: {}", model_id);
-            println!("   Risk Score: {:.3}", risk_score);
-            if let Some(conf) = confidence {
-                println!("   Confidence: {:.3}", conf);
-            }
-        } else {
-            println!("❌ Failed to submit AI risk score");
-            if let Some(error) = response.get("error") {
-                println!("   Error: {}", error);
-            }
+        println!("❌ Failed to submit AI risk score");
+        if let Some(error) = response.get("error") {
+            println!("   Error: {error}");
         }
     }
 
@@ -217,15 +215,15 @@ async fn submit_batch(
         let failed = response["failed"].as_u64().unwrap_or(0);
 
         println!("📊 Batch submission complete:");
-        println!("   ✅ Successfully processed: {}", processed);
-        println!("   ❌ Failed: {}", failed);
+        println!("   ✅ Successfully processed: {processed}");
+        println!("   ❌ Failed: {failed}");
 
         if let Some(failed_hashes) = response["failed_hashes"].as_array() {
             if !failed_hashes.is_empty() {
                 println!("   Failed transaction hashes:");
                 for hash in failed_hashes {
                     if let Some(hash_str) = hash.as_str() {
-                        println!("     - {}", hash_str);
+                        println!("     - {hash_str}");
                     }
                 }
             }
@@ -236,7 +234,7 @@ async fn submit_batch(
                 println!("   Validation errors:");
                 for error in validation_errors {
                     if let Some(error_str) = error.as_str() {
-                        println!("     - {}", error_str);
+                        println!("     - {error_str}");
                     }
                 }
             }
@@ -253,40 +251,38 @@ async fn query_risk(client: &RpcClient, tx_hash: &str, output_format: OutputForm
         ));
     }
 
-    let url = format!("/tx/{}", tx_hash);
+    let url = format!("/tx/{tx_hash}");
     let response = client.get(&url).await?;
 
     if output_format.is_json() {
         println!("{}", serde_json::to_string_pretty(&response)?);
+    } else if let Some(ai_risk_score) = response.get("ai_risk_score") {
+        println!("🎯 AI Risk Assessment for {tx_hash}");
+        println!(
+            "   Risk Score: {:.3}",
+            ai_risk_score.as_f64().unwrap_or(0.0)
+        );
+
+        if let Some(model_id) = response.get("ai_model_id").and_then(|v| v.as_str()) {
+            println!("   Model ID: {model_id}");
+        }
+
+        if let Some(confidence) = response.get("ai_confidence").and_then(|v| v.as_f64()) {
+            println!("   Confidence: {confidence:.3}");
+        }
+
+        // Show transaction status if available
+        if let Some(status) = response.get("status").and_then(|v| v.as_str()) {
+            println!("   Transaction Status: {status}");
+        }
     } else {
-        if let Some(ai_risk_score) = response.get("ai_risk_score") {
-            println!("🎯 AI Risk Assessment for {}", tx_hash);
-            println!(
-                "   Risk Score: {:.3}",
-                ai_risk_score.as_f64().unwrap_or(0.0)
-            );
+        println!("ℹ️  No AI risk score found for transaction {tx_hash}");
 
-            if let Some(model_id) = response.get("ai_model_id").and_then(|v| v.as_str()) {
-                println!("   Model ID: {}", model_id);
-            }
-
-            if let Some(confidence) = response.get("ai_confidence").and_then(|v| v.as_f64()) {
-                println!("   Confidence: {:.3}", confidence);
-            }
-
-            // Show transaction status if available
-            if let Some(status) = response.get("status").and_then(|v| v.as_str()) {
-                println!("   Transaction Status: {}", status);
-            }
+        // Check if transaction exists
+        if response.get("hash").is_some() {
+            println!("   (Transaction exists but no risk assessment available)");
         } else {
-            println!("ℹ️  No AI risk score found for transaction {}", tx_hash);
-
-            // Check if transaction exists
-            if response.get("hash").is_some() {
-                println!("   (Transaction exists but no risk assessment available)");
-            } else {
-                println!("   (Transaction not found)");
-            }
+            println!("   (Transaction not found)");
         }
     }
 
@@ -314,7 +310,7 @@ async fn get_stats(client: &RpcClient, output_format: OutputFormat) -> Result<()
         }
 
         if let Some(schema_version) = response.get("schema_version").and_then(|v| v.as_str()) {
-            println!("📋 Schema Version: {}", schema_version);
+            println!("📋 Schema Version: {schema_version}");
         }
 
         if let Some(endpoints) = response
@@ -324,7 +320,7 @@ async fn get_stats(client: &RpcClient, output_format: OutputFormat) -> Result<()
             println!("🌐 Supported Endpoints:");
             for endpoint in endpoints {
                 if let Some(endpoint_str) = endpoint.as_str() {
-                    println!("   - {}", endpoint_str);
+                    println!("   - {endpoint_str}");
                 }
             }
         }
@@ -335,19 +331,19 @@ async fn get_stats(client: &RpcClient, output_format: OutputFormat) -> Result<()
                 .get("risk_score_range")
                 .and_then(|v| v.as_str())
             {
-                println!("   Risk Score Range: {}", risk_range);
+                println!("   Risk Score Range: {risk_range}");
             }
             if let Some(conf_range) = validation_rules
                 .get("confidence_range")
                 .and_then(|v| v.as_str())
             {
-                println!("   Confidence Range: {}", conf_range);
+                println!("   Confidence Range: {conf_range}");
             }
             if let Some(hash_format) = validation_rules
                 .get("tx_hash_format")
                 .and_then(|v| v.as_str())
             {
-                println!("   TX Hash Format: {}", hash_format);
+                println!("   TX Hash Format: {hash_format}");
             }
             if let Some(model_required) = validation_rules
                 .get("model_id_required")

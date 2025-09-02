@@ -42,7 +42,7 @@ impl SubstrateClient {
         let client = OnlineClient::<PolkadotConfig>::from_url(&config.ws_url)
             .await
             .map_err(|e| {
-                BridgeError::InvalidChain(format!("Failed to connect to Substrate: {}", e))
+                BridgeError::InvalidChain(format!("Failed to connect to Substrate: {e}"))
             })?;
 
         println!("✅ Connected to Substrate network: {}", config.ws_url);
@@ -57,7 +57,7 @@ impl SubstrateClient {
     /// Set signing keypair for transaction submission
     pub fn set_signer(&mut self, seed_phrase: &str) -> Result<(), BridgeError> {
         let pair = Pair::from_string(seed_phrase, None)
-            .map_err(|e| BridgeError::InvalidKey(format!("Invalid seed phrase: {}", e)))?;
+            .map_err(|e| BridgeError::InvalidKey(format!("Invalid seed phrase: {e}")))?;
 
         let signer = PairSigner::new(pair);
         self.signer = Some(signer);
@@ -82,11 +82,8 @@ impl SubstrateClient {
             .as_ref()
             .ok_or(BridgeError::InvalidKey("Signer not set".to_string()))?;
 
-        println!(
-            "📤 Submitting extrinsic to Substrate chain: {}::{}",
-            pallet, call
-        );
-        println!("📦 Args: {:?}", args);
+        println!("📤 Submitting extrinsic to Substrate chain: {pallet}::{call}");
+        println!("📦 Args: {args:?}");
 
         // For now, simulate the transaction submission
         // In a full implementation, this would construct and submit the actual extrinsic
@@ -99,16 +96,16 @@ impl SubstrateClient {
                 }
 
                 let _dest = AccountId32::from_str(&args[0]).map_err(|e| {
-                    BridgeError::InvalidAddress(format!("Invalid destination address: {}", e))
+                    BridgeError::InvalidAddress(format!("Invalid destination address: {e}"))
                 })?;
 
                 let _amount: u128 = args[1]
                     .parse()
-                    .map_err(|e| BridgeError::InvalidArguments(format!("Invalid amount: {}", e)))?;
+                    .map_err(|e| BridgeError::InvalidArguments(format!("Invalid amount: {e}")))?;
 
                 // Simulate successful transaction
                 let tx_hash = format!("0x{:064x}", rand::random::<u64>());
-                println!("✅ Balance transfer prepared (hash: {})", tx_hash);
+                println!("✅ Balance transfer prepared (hash: {tx_hash})");
                 Ok(PolkadotTxHash(tx_hash))
             }
 
@@ -116,12 +113,12 @@ impl SubstrateClient {
                 // XCM message submission
                 println!("📤 Preparing XCM message submission");
                 let tx_hash = format!("0x{:064x}", rand::random::<u64>());
-                println!("✅ XCM message prepared (hash: {})", tx_hash);
+                println!("✅ XCM message prepared (hash: {tx_hash})");
                 Ok(PolkadotTxHash(tx_hash))
             }
 
             _ => {
-                println!("⚠️ Unsupported extrinsic: {}::{} (simulated)", pallet, call);
+                println!("⚠️ Unsupported extrinsic: {pallet}::{call} (simulated)");
                 let tx_hash = format!("0x{:064x}", rand::random::<u64>());
                 Ok(PolkadotTxHash(tx_hash))
             }
@@ -143,7 +140,7 @@ impl SubstrateClient {
             .as_ref()
             .ok_or(BridgeError::InvalidKey("Signer not set".to_string()))?;
 
-        println!("📤 Submitting XCM message to parachain {}", destination);
+        println!("📤 Submitting XCM message to parachain {destination}");
 
         match message {
             XcmMessage {
@@ -169,7 +166,7 @@ impl SubstrateClient {
 
         // Simulate XCM message submission
         let tx_hash = format!("0x{:064x}", rand::random::<u64>());
-        println!("✅ XCM message submitted with hash: {}", tx_hash);
+        println!("✅ XCM message submitted with hash: {tx_hash}");
         Ok(PolkadotTxHash(tx_hash))
     }
 
@@ -198,24 +195,24 @@ impl SubstrateClient {
             .as_ref()
             .ok_or(BridgeError::InvalidKey("Signer not set".to_string()))?;
 
-        println!("💸 Initiating transfer: {} to {}", amount, to);
+        println!("💸 Initiating transfer: {amount} to {to}");
 
         let _dest = AccountId32::from_str(to).map_err(|e| {
-            BridgeError::InvalidAddress(format!("Invalid destination address: {}", e))
+            BridgeError::InvalidAddress(format!("Invalid destination address: {e}"))
         })?;
 
         match asset_id {
             Some(asset_id) => {
-                println!("💎 Asset {} transfer of {} units", asset_id, amount);
+                println!("💎 Asset {asset_id} transfer of {amount} units");
             }
             None => {
-                println!("🪙 Native token transfer of {} units", amount);
+                println!("🪙 Native token transfer of {amount} units");
             }
         }
 
         // Simulate transaction submission
         let tx_hash = format!("0x{:064x}", rand::random::<u64>());
-        println!("✅ Transfer submitted with hash: {}", tx_hash);
+        println!("✅ Transfer submitted with hash: {tx_hash}");
         Ok(PolkadotTxHash(tx_hash))
     }
 
@@ -239,14 +236,14 @@ impl SubstrateClient {
         ))?;
 
         let _account = AccountId32::from_str(address)
-            .map_err(|e| BridgeError::InvalidAddress(format!("Invalid address: {}", e)))?;
+            .map_err(|e| BridgeError::InvalidAddress(format!("Invalid address: {e}")))?;
 
-        println!("🔍 Querying native balance for account: {}", address);
+        println!("🔍 Querying native balance for account: {address}");
 
         // For now, simulate balance query
         // In full implementation, this would query the system.account storage
         let balance = 1000000000000u64; // 1 DOT (12 decimals)
-        println!("✅ Native balance: {}", balance);
+        println!("✅ Native balance: {balance}");
         Ok(balance)
     }
 
@@ -257,16 +254,13 @@ impl SubstrateClient {
         ))?;
 
         let _account = AccountId32::from_str(address)
-            .map_err(|e| BridgeError::InvalidAddress(format!("Invalid address: {}", e)))?;
+            .map_err(|e| BridgeError::InvalidAddress(format!("Invalid address: {e}")))?;
 
-        println!(
-            "🔍 Querying asset {} balance for account: {}",
-            asset_id, address
-        );
+        println!("🔍 Querying asset {asset_id} balance for account: {address}");
 
         // Simulate asset balance query
         let balance = 1000000u64;
-        println!("✅ Asset {} balance: {}", asset_id, balance);
+        println!("✅ Asset {asset_id} balance: {balance}");
         Ok(balance)
     }
 
@@ -278,7 +272,7 @@ impl SubstrateClient {
 
         let latest_block =
             client.blocks().at_latest().await.map_err(|e| {
-                BridgeError::InvalidChain(format!("Failed to get latest block: {}", e))
+                BridgeError::InvalidChain(format!("Failed to get latest block: {e}"))
             })?;
 
         let block_number = latest_block.number();
@@ -292,7 +286,7 @@ impl SubstrateClient {
 
         Ok(PolkadotBlock {
             number: block_number as u64,
-            hash: format!("{:?}", block_hash),
+            hash: format!("{block_hash:?}"),
             timestamp,
             para_id: None,
         })
@@ -306,7 +300,7 @@ impl SubstrateClient {
 
         // Parse the hash
         let hash = H256::from_str(&tx_hash.0)
-            .map_err(|e| BridgeError::InvalidTxHash(format!("Invalid hash format: {}", e)))?;
+            .map_err(|e| BridgeError::InvalidTxHash(format!("Invalid hash format: {e}")))?;
 
         println!("✅ Verifying Polkadot transaction: {}", tx_hash.0);
 

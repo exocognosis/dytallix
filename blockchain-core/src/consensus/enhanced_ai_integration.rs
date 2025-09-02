@@ -159,10 +159,7 @@ impl EnhancedAIIntegrationManager {
         supported_services: Vec<String>,
         contact_info: Option<String>,
     ) -> Result<()> {
-        info!(
-            "Registering oracle {} with stake {}",
-            oracle_address, stake_amount
-        );
+        info!("Registering oracle {oracle_address} with stake {stake_amount}");
 
         // Register with the oracle registry
         self.oracle_registry
@@ -178,14 +175,14 @@ impl EnhancedAIIntegrationManager {
             )
             .await?;
 
-        info!("Oracle {} registered successfully", oracle_address);
+        info!("Oracle {oracle_address} registered successfully");
         Ok(())
     }
 
     /// Activate an oracle (admin function)
     pub async fn activate_oracle(&self, oracle_address: &Address) -> Result<()> {
         self.oracle_registry.activate_oracle(oracle_address).await?;
-        info!("Oracle {} activated", oracle_address);
+        info!("Oracle {oracle_address} activated");
         Ok(())
     }
 
@@ -299,7 +296,7 @@ impl EnhancedAIIntegrationManager {
         let auth_result = self.validate_oracle_authorization(oracle_id).await;
         if !auth_result.is_authorized {
             if let Some(error) = &auth_result.error {
-                warn!("Oracle {} authorization failed: {}", oracle_id, error);
+                warn!("Oracle {oracle_id} authorization failed: {error}");
             }
             return Ok(false);
         }
@@ -311,10 +308,7 @@ impl EnhancedAIIntegrationManager {
         {
             Ok(()) => true,
             Err(e) => {
-                error!(
-                    "Signature verification failed for oracle {}: {}",
-                    oracle_id, e
-                );
+                error!("Signature verification failed for oracle {oracle_id}: {e}");
                 return Ok(false);
             }
         };
@@ -329,10 +323,7 @@ impl EnhancedAIIntegrationManager {
             .update_reputation(oracle_id, response_time, is_accurate, signature_valid)
             .await
         {
-            warn!(
-                "Failed to update reputation for oracle {}: {}",
-                oracle_id, e
-            );
+            warn!("Failed to update reputation for oracle {oracle_id}: {e}");
         }
 
         // Step 4: Check for automatic slashing conditions
@@ -344,7 +335,12 @@ impl EnhancedAIIntegrationManager {
         Ok(signature_valid && is_accurate)
     }
 
-    async fn check_auto_slashing(&self, oracle_id: &str, _signature_valid: bool, _is_accurate: bool) {
+    async fn check_auto_slashing(
+        &self,
+        oracle_id: &str,
+        _signature_valid: bool,
+        _is_accurate: bool,
+    ) {
         if let Some(oracle) = self
             .oracle_registry
             .get_oracle(&oracle_id.to_string())
@@ -381,12 +377,9 @@ impl EnhancedAIIntegrationManager {
                     .slash_oracle(&oracle_id.to_string(), reason.clone(), false)
                     .await
                 {
-                    error!("Failed to slash oracle {}: {}", oracle_id, e);
+                    error!("Failed to slash oracle {oracle_id}: {e}");
                 } else {
-                    warn!(
-                        "Auto-slashing initiated for oracle {}: {}",
-                        oracle_id, reason
-                    );
+                    warn!("Auto-slashing initiated for oracle {oracle_id}: {reason}");
                 }
             }
         }
@@ -498,7 +491,7 @@ impl EnhancedAIIntegrationManager {
         self.oracle_registry
             .slash_oracle(oracle_address, reason, immediate)
             .await?;
-        info!("Oracle {} manually slashed", oracle_address);
+        info!("Oracle {oracle_address} manually slashed");
         Ok(())
     }
 
@@ -507,7 +500,7 @@ impl EnhancedAIIntegrationManager {
         self.oracle_registry
             .whitelist_oracle(oracle_address.clone())
             .await?;
-        info!("Oracle {} added to whitelist", oracle_address);
+        info!("Oracle {oracle_address} added to whitelist");
         Ok(())
     }
 
@@ -516,7 +509,7 @@ impl EnhancedAIIntegrationManager {
         self.oracle_registry
             .blacklist_oracle(oracle_address.clone(), reason.clone())
             .await?;
-        info!("Oracle {} blacklisted: {}", oracle_address, reason);
+        info!("Oracle {oracle_address} blacklisted: {reason}");
         Ok(())
     }
 }

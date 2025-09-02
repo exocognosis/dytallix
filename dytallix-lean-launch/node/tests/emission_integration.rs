@@ -16,7 +16,7 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
     let dir = tempdir().unwrap();
     let storage = Arc::new(Storage::open(dir.path().join("node.db")).unwrap());
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
-    let mempool = Arc::new(Mutex::new(Mempool::new(100)));
+    let mempool = Arc::new(Mutex::new(Mempool::new()));
     let tps = Arc::new(Mutex::new(TpsWindow::new(60)));
     let ws = WsHub::new();
     let emission = Arc::new(Mutex::new(EmissionEngine::new(
@@ -27,8 +27,9 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
     let governance = Arc::new(Mutex::new(GovernanceModule::new(
         storage.clone(),
         state.clone(),
+        staking.clone(),
     )));
-    let metrics = Arc::new(dytallix_lean_node::metrics::Metrics::new());
+    let metrics = Arc::new(dytallix_lean_node::metrics::Metrics::new().expect("metrics"));
     let ctx = dytallix_lean_node::rpc::RpcContext {
         storage,
         mempool,

@@ -1,0 +1,21 @@
+{{- if .Values.explorer.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: dytallix-explorer
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dytallix-explorer
+  minReplicas: {{ .Values.explorer.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.explorer.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.explorer.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+

@@ -20,6 +20,12 @@ pub struct TokenomicsTestHarness {
     pub network_utilization: u32,
 }
 
+impl Default for TokenomicsTestHarness {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TokenomicsTestHarness {
     /// Set up a complete tokenomics test environment
     pub fn new() -> Self {
@@ -147,7 +153,7 @@ mod tokenomics_integration_tests {
                 .emission_controller
                 .calculate_adaptive_rate(utilization);
 
-            println!("{}: {} DRT per block", description, rate);
+            println!("{description}: {rate} DRT per block");
 
             // Verify rate is within bounds
             let params = harness.emission_controller.get_emission_params();
@@ -332,7 +338,7 @@ mod tokenomics_integration_tests {
 
     #[test]
     fn test_emission_bounds_enforcement() {
-        let mut harness = TokenomicsTestHarness::new();
+        let harness = TokenomicsTestHarness::new();
 
         // Test edge cases for adaptive emission
         let extreme_scenarios = vec![(0, "Zero utilization"), (10000, "Maximum utilization")];
@@ -343,18 +349,16 @@ mod tokenomics_integration_tests {
                 .calculate_adaptive_rate(utilization);
             let params = harness.emission_controller.get_emission_params();
 
-            println!("{}: {} DRT per block", description, rate);
+            println!("{description}: {rate} DRT per block");
 
             // Ensure rate respects bounds even in extreme scenarios
             assert!(
                 rate >= params.min_emission_rate,
-                "Rate below minimum for {}",
-                description
+                "Rate below minimum for {description}"
             );
             assert!(
                 rate <= params.max_emission_rate,
-                "Rate above maximum for {}",
-                description
+                "Rate above maximum for {description}"
             );
         }
     }
@@ -405,7 +409,7 @@ mod tokenomics_performance_tests {
         }
 
         let duration = start.elapsed();
-        println!("101 emission rate calculations took: {:?}", duration);
+        println!("101 emission rate calculations took: {duration:?}");
 
         // Should complete quickly (under 1ms for 101 calculations)
         assert!(duration.as_millis() < 1);
@@ -421,19 +425,19 @@ mod tokenomics_performance_tests {
         // Perform batch transfers
         for i in 0..100 {
             let from = "dyt1alice".to_string();
-            let to = format!("dyt1user{}", i);
+            let to = format!("dyt1user{i}");
             let amount = 10;
 
             let result = harness.dgt_token.transfer(from, to, amount);
 
             // Some transfers will fail due to insufficient balance, which is expected
             if i < 10 {
-                assert!(result.is_ok(), "Transfer {} should succeed", i);
+                assert!(result.is_ok(), "Transfer {i} should succeed");
             }
         }
 
         let duration = start.elapsed();
-        println!("100 transfer attempts took: {:?}", duration);
+        println!("100 transfer attempts took: {duration:?}");
     }
 
     #[test]
@@ -451,8 +455,8 @@ mod tokenomics_performance_tests {
         }
 
         let duration = start.elapsed();
-        println!("1000 blocks emission processing took: {:?}", duration);
-        println!("Total emitted: {} DRT", total_emitted);
+        println!("1000 blocks emission processing took: {duration:?}");
+        println!("Total emitted: {total_emitted} DRT");
 
         // Should complete in reasonable time (under 100ms)
         assert!(duration.as_millis() < 100);
@@ -618,7 +622,7 @@ mod tokenomics_fuzz_tests {
 
     #[test]
     fn test_random_emission_scenarios() {
-        let mut harness = TokenomicsTestHarness::new();
+        let harness = TokenomicsTestHarness::new();
         let mut rng = rand::thread_rng();
 
         // Test with random network utilization values

@@ -34,6 +34,8 @@ impl Default for GossipConfig {
 /// Seen cache entry with TTL
 #[derive(Debug, Clone)]
 struct SeenEntry {
+    #[allow(dead_code)]
+    // hash is redundant given HashMap key but kept for potential debugging / metrics
     tx_hash: String,
     seen_at: u64,
     from_peers: HashSet<String>,
@@ -42,6 +44,7 @@ struct SeenEntry {
 /// Peer outbound queue with throttling
 #[derive(Debug)]
 struct PeerQueue {
+    #[allow(dead_code)] // retained for potential logging / metrics
     peer_id: String,
     pending_txs: VecDeque<String>, // Transaction hashes
     last_sent: u64,
@@ -241,6 +244,12 @@ impl TransactionGossip {
         // For simplicity, clear all broadcast hashes older than TTL
         // In production, you'd want to track timestamps per hash
         broadcast_hashes.clear();
+    }
+}
+
+impl Default for TransactionGossip {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

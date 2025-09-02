@@ -1,1 +1,2 @@
-pub mod temporal;pub mod structural;
+pub mod structural;
+pub mod temporal;

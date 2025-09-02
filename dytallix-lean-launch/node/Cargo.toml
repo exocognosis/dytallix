@@ -52,9 +52,27 @@ tempfile = "3"
 rand = "0.7"
 
 [features]
+# Lean default: only core + PQC
 default = ["pqc-real"]
+# Existing features
 pqc-real = ["pqcrypto-dilithium", "pqcrypto-traits"]
 pqc-mock = []
 legacy-submit = [] # Dev-only legacy submit logic (OFF by default)
 metrics = ["prometheus", "clap"] # Observability features
 alerts = ["reqwest"] # Alerting system with webhook support
+# Newly added granular runtime features
+governance = []
+staking = []
+oracle = []
+contracts = []
+ai = []
+# Convenience umbrella feature for a full node build
+full-node = [
+  "governance",
+  "staking",
+  "oracle",
+  "metrics",
+  "alerts",
+  "contracts",
+  "ai",
+]

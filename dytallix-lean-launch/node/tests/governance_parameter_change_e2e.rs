@@ -1,16 +1,20 @@
 use dytallix_lean_node::runtime::governance::{
-    GovernanceConfig, GovernanceModule, ProposalType, VoteOption,
+    GovernanceModule, ProposalStatus, ProposalType, VoteOption,
 };
+use dytallix_lean_node::runtime::staking::StakingModule;
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::state::Storage;
 use std::sync::{Arc, Mutex};
+use tempfile::tempdir;
 
 #[test]
 fn governance_parameter_change_e2e() {
-    // Setup
-    let storage = Arc::new(Storage::memory());
-    let state = Arc::new(Mutex::new(State::new()));
-    let mut governance = GovernanceModule::new(storage.clone(), state.clone());
+    // Setup backed by temp storage
+    let dir = tempdir().unwrap();
+    let storage = Arc::new(Storage::open(dir.path().join("node.db")).unwrap());
+    let state = Arc::new(Mutex::new(State::new(storage.clone())));
+    let staking = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
+    let mut governance = GovernanceModule::new(storage.clone(), state.clone(), staking);
 
     // Test proposal submission
     let proposal_id = governance
@@ -38,33 +42,22 @@ fn governance_parameter_change_e2e() {
         )
         .expect("Failed to deposit");
 
-    // Transition to voting period (in practice this happens via end_block)
-    {
-        let mut proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
-        proposal.status = dytallix_lean_node::runtime::governance::ProposalStatus::VotingPeriod;
-        proposal.voting_start_height = 200;
-        proposal.voting_end_height = 500;
-        governance._store_proposal(&proposal).unwrap();
-    }
-
-    // Vote on proposal (achieving quorum and threshold)
+    // Vote on proposal within the configured voting period
     governance
         .vote(
-            250, // height
+            450, // height inside voting window (submit_height + deposit_period .. + voting_period)
             "voter1",
             proposal_id,
             VoteOption::Yes,
-            "udgt",
         )
         .expect("Failed to vote");
 
     governance
         .vote(
-            260, // height
+            460, // height inside voting window
             "voter2",
             proposal_id,
             VoteOption::Yes,
-            "udgt",
         )
         .expect("Failed to vote");
 
@@ -73,28 +66,18 @@ fn governance_parameter_change_e2e() {
     assert_eq!(initial_gas_limit, 21_000);
 
     // Process proposal at end of voting period
+    // Tally and execute via end_block after voting end
     governance
-        .end_block(501)
+        .end_block(701)
         .expect("Failed to process end_block");
 
     // Verify proposal passed and parameter changed
     let proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
-    assert_eq!(
-        proposal.status,
-        dytallix_lean_node::runtime::governance::ProposalStatus::Passed
-    );
-
-    // Execute the proposal
-    governance
-        .execute_proposal(proposal_id)
-        .expect("Failed to execute proposal");
+    assert_eq!(proposal.status, ProposalStatus::Executed);
 
     // Verify parameter was changed
     let new_gas_limit = governance.get_config().gas_limit;
     assert_eq!(new_gas_limit, 50_000);
 
-    println!(
-        "✅ Parameter change test passed: gas_limit {} -> {}",
-        initial_gas_limit, new_gas_limit
-    );
+    println!("✅ Parameter change test passed: gas_limit {initial_gas_limit} -> {new_gas_limit}");
 }

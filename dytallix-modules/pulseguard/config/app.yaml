@@ -1,0 +1,9 @@
+version: v0.1.0
+server:
+  port: 8090
+env:
+  rpc_url: ""
+  feature_window: 200
+  alert_threshold: 0.8
+  sink_url: ""
+

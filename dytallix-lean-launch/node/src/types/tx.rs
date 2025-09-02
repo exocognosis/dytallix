@@ -54,7 +54,8 @@ impl Msg {
         Ok(())
     }
 
-    pub fn from_address(&self) -> &str {
+    #[allow(clippy::wrong_self_convention)]
+    pub fn sender(&self) -> &str {
         match self {
             Msg::Send { from, .. } => from,
         }
@@ -188,7 +189,7 @@ impl SignedTx {
     }
 
     pub fn first_from_address(&self) -> Option<&str> {
-        self.tx.msgs.first().map(|m| m.from_address())
+        self.tx.msgs.first().map(|m| m.sender())
     }
 }
 

@@ -1,11 +1,8 @@
 // Legacy tx.rs - kept for backward compatibility
 // New canonical types are in types/tx.rs
 
-use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
-use anyhow::{anyhow, Result};
-use base64::{engine::general_purpose::STANDARD as B64, Engine};
-use serde::{Deserialize, Deserializer, Serialize};
-use sha3::{Digest, Sha3_256};
+use anyhow::Result;
+use serde::{Deserialize, Deserializer};
 
 // Re-export canonical types
 pub use crate::types::{Msg, SignedTx, Tx};

@@ -134,7 +134,7 @@ impl EmissionEngine {
     }
 
     fn pool_key(pool: &str) -> String {
-        format!("emission:pool:{}", pool)
+        format!("emission:pool:{pool}")
     }
 
     fn height_key() -> &'static str {
@@ -142,7 +142,7 @@ impl EmissionEngine {
     }
 
     fn event_key(height: u64) -> String {
-        format!("emission:event:{}", height)
+        format!("emission:event:{height}")
     }
 
     fn circulating_supply_key() -> &'static str {

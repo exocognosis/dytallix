@@ -49,7 +49,7 @@ pub struct Validator {
 }
 
 /// Per-delegator reward tracking for comprehensive reward management
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DelegatorRewards {
     /// Accrued but unclaimed uDRT rewards
     pub accrued_unclaimed: u128,
@@ -57,16 +57,6 @@ pub struct DelegatorRewards {
     pub total_claimed: u128,
     /// Last global reward_index snapshot for this delegator
     pub last_index: u128,
-}
-
-impl Default for DelegatorRewards {
-    fn default() -> Self {
-        Self {
-            accrued_unclaimed: 0,
-            total_claimed: 0,
-            last_index: 0,
-        }
-    }
 }
 
 /// Delegation record for a specific delegator-validator pair
@@ -125,7 +115,7 @@ impl Default for StakingParams {
 }
 
 /// Main staking state manager
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StakingState {
     /// All registered validators
     pub validators: HashMap<Address, Validator>,
@@ -144,21 +134,6 @@ pub struct StakingState {
     /// Global reward index (scaled by REWARD_SCALE) for per-delegator reward calculation
     #[serde(default)]
     pub global_reward_index: u128,
-}
-
-impl Default for StakingState {
-    fn default() -> Self {
-        Self {
-            validators: HashMap::new(),
-            delegations: HashMap::new(),
-            params: StakingParams::default(),
-            total_stake: 0,
-            current_height: 0,
-            pending_events: Vec::new(),
-            pending_staking_emission: 0,
-            global_reward_index: 0,
-        }
-    }
 }
 
 /// Errors that can occur in the staking system
@@ -321,7 +296,7 @@ impl StakingState {
             .ok_or(StakingError::ValidatorNotFound)?;
 
         // Create delegation key
-        let delegation_key = format!("{}:{}", delegator, validator);
+        let delegation_key = format!("{delegator}:{validator}");
 
         // Check if delegation already exists (reject for MVP)
         if self.delegations.contains_key(&delegation_key) {
@@ -491,7 +466,7 @@ impl StakingState {
         let delegations_to_remove: Vec<String> = self
             .delegations
             .keys()
-            .filter(|key| key.ends_with(&format!(":{}", validator_address)))
+            .filter(|key| key.ends_with(&format!(":{validator_address}")))
             .cloned()
             .collect();
 
@@ -525,7 +500,7 @@ impl StakingState {
             // Emit events after releasing mutable borrow
             self.emit_event(ValidatorEvent::ValidatorJailed {
                 validator_address: validator_address.clone(),
-                reason: format!("Downtime: {} consecutive missed blocks", missed_blocks),
+                reason: format!("Downtime: {missed_blocks} consecutive missed blocks"),
                 block_height: self.current_height,
             });
             self.emit_event(ValidatorEvent::ValidatorStatusChanged {
@@ -715,7 +690,7 @@ impl StakingState {
         delegator: &Address,
         validator_address: &Address,
     ) -> Result<u128, StakingError> {
-        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation_key = format!("{delegator}:{validator_address}");
         let delegation = self
             .delegations
             .get_mut(&delegation_key)
@@ -744,7 +719,7 @@ impl StakingState {
         delegator: &Address,
         validator_address: &Address,
     ) -> Result<(u128, u128), StakingError> {
-        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation_key = format!("{delegator}:{validator_address}");
 
         // Use new global index settlement
         let pending = self.calculate_pending_rewards_global(delegator, validator_address)?;
@@ -769,7 +744,7 @@ impl StakingState {
         delegator: &Address,
         validator_address: &Address,
     ) -> Result<u128, StakingError> {
-        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation_key = format!("{delegator}:{validator_address}");
         let delegation = self
             .delegations
             .get(&delegation_key)
@@ -790,7 +765,7 @@ impl StakingState {
         delegator: &Address,
         validator_address: &Address,
     ) -> Result<u128, StakingError> {
-        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation_key = format!("{delegator}:{validator_address}");
         let delegation = self
             .delegations
             .get(&delegation_key)
@@ -819,7 +794,7 @@ impl StakingState {
         // First settle all pending rewards
         self.settle_delegator(delegator, validator_address)?;
 
-        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation_key = format!("{delegator}:{validator_address}");
         let delegation = self
             .delegations
             .get_mut(&delegation_key)
@@ -850,7 +825,7 @@ impl StakingState {
         let delegator_delegations: Vec<String> = self
             .delegations
             .keys()
-            .filter(|key| key.starts_with(&format!("{}:", delegator)))
+            .filter(|key| key.starts_with(&format!("{delegator}:")))
             .cloned()
             .collect();
 
@@ -1025,7 +1000,7 @@ impl StakingState {
         delegator: &Address,
         validator_address: &Address,
     ) -> Result<DelegatorValidatorRewards, StakingError> {
-        let delegation_key = format!("{}:{}", delegator, validator_address);
+        let delegation_key = format!("{delegator}:{validator_address}");
         let delegation = self
             .delegations
             .get(&delegation_key)
@@ -1037,7 +1012,7 @@ impl StakingState {
         Ok(DelegatorValidatorRewards {
             validator: validator_address.clone(),
             stake: delegation.stake_amount,
-            pending: pending,
+            pending,
             accrued_unclaimed: delegation.rewards.accrued_unclaimed,
             total_claimed: delegation.rewards.total_claimed,
             last_index: delegation.rewards.last_index,
@@ -1054,7 +1029,7 @@ impl StakingState {
 
         // Find all delegations for this delegator
         for (delegation_key, delegation) in &self.delegations {
-            if delegation_key.starts_with(&format!("{}:", delegator)) {
+            if delegation_key.starts_with(&format!("{delegator}:")) {
                 let validator_address = &delegation.validator_address;
 
                 // Calculate pending rewards for this position

@@ -92,7 +92,7 @@ impl FeatureExtractor {
         Ok(features)
     }
 
-    async fn calculate_velocity_1h(&self, transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_velocity_1h(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
         // Simplified implementation - would query database for actual velocity
         Ok(0.5) // Placeholder
     }
@@ -134,7 +134,7 @@ impl FeatureExtractor {
         use chrono::{DateTime, Utc, Timelike, Datelike, Weekday};
 
         let datetime = DateTime::from_timestamp(transaction.timestamp as i64, 0)
-            .unwrap_or_else(|| Utc::now());
+            .unwrap_or_else(Utc::now);
 
         let hour_of_day = datetime.hour() as f64 / 24.0;
         let day_of_week = datetime.weekday().num_days_from_monday() as f64 / 7.0;

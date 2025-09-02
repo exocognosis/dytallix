@@ -88,19 +88,10 @@ pub struct AlertPayload {
 }
 
 /// Internal state for each alert rule
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct RuleState {
     consecutive_failures: u32,
     firing: bool,
-}
-
-impl Default for RuleState {
-    fn default() -> Self {
-        Self {
-            consecutive_failures: 0,
-            firing: false,
-        }
-    }
 }
 
 /// Configuration for TPS drop alert rule
@@ -154,8 +145,18 @@ fn default_validator_consecutive() -> u32 {
     1
 }
 
+fn default_enabled() -> bool {
+    true
+}
+fn default_evaluation_interval_secs() -> u64 {
+    15
+}
+fn default_log_on_fire() -> bool {
+    true
+}
+
 /// Rule-specific configurations
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct RulesConfig {
     #[serde(default)]
     pub tps_drop: TpsDropConfig,
@@ -174,7 +175,6 @@ impl Default for TpsDropConfig {
         }
     }
 }
-
 impl Default for OracleTimeoutConfig {
     fn default() -> Self {
         Self {
@@ -184,7 +184,6 @@ impl Default for OracleTimeoutConfig {
         }
     }
 }
-
 impl Default for ValidatorOfflineConfig {
     fn default() -> Self {
         Self {
@@ -194,13 +193,14 @@ impl Default for ValidatorOfflineConfig {
         }
     }
 }
-
-impl Default for RulesConfig {
+impl Default for AlertsConfig {
     fn default() -> Self {
         Self {
-            tps_drop: TpsDropConfig::default(),
-            oracle_timeout: OracleTimeoutConfig::default(),
-            validator_offline: ValidatorOfflineConfig::default(),
+            enabled: default_enabled(),
+            evaluation_interval_secs: default_evaluation_interval_secs(),
+            webhook_url: None,
+            log_on_fire: default_log_on_fire(),
+            rules: RulesConfig::default(),
         }
     }
 }
@@ -217,28 +217,6 @@ pub struct AlertsConfig {
     pub log_on_fire: bool,
     #[serde(default)]
     pub rules: RulesConfig,
-}
-
-fn default_enabled() -> bool {
-    true
-}
-fn default_evaluation_interval_secs() -> u64 {
-    5
-}
-fn default_log_on_fire() -> bool {
-    true
-}
-
-impl Default for AlertsConfig {
-    fn default() -> Self {
-        Self {
-            enabled: default_enabled(),
-            evaluation_interval_secs: default_evaluation_interval_secs(),
-            webhook_url: None,
-            log_on_fire: default_log_on_fire(),
-            rules: RulesConfig::default(),
-        }
-    }
 }
 
 /// Prometheus metrics for the alerting system
@@ -498,7 +476,7 @@ impl AlertsEngine {
         };
 
         // Update metrics
-        let rule_name = format!("{:?}", alert_kind).to_lowercase();
+        let rule_name = format!("{alert_kind:?}").to_lowercase();
         self.metrics
             .set_rule_firing(&rule_name, event_type == "firing");
         self.metrics.inc_alert_event(&rule_name, event_type);
@@ -595,6 +573,7 @@ mod tests {
             self.tps.store(tps, Ordering::Relaxed);
         }
 
+        #[allow(dead_code)]
         fn set_oracle_latency_ms(&self, latency: Option<f64>) {
             *self.oracle_latency_ms.lock().unwrap() = latency;
         }

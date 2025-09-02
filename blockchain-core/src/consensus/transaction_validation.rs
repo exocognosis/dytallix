@@ -140,7 +140,7 @@ impl TransactionValidator {
 
         // 1. Basic validation
         if let Err(e) = self.validate_basic_transaction(tx) {
-            result.add_error(format!("Basic validation failed: {}", e));
+            result.add_error(format!("Basic validation failed: {e}"));
             return Ok(result);
         }
 
@@ -151,7 +151,7 @@ impl TransactionValidator {
                     result = result.with_ai_analysis(ai_result);
                 }
                 Err(e) => {
-                    result.add_warning(format!("AI validation failed: {}", e));
+                    result.add_warning(format!("AI validation failed: {e}"));
                 }
             }
         }
@@ -178,7 +178,7 @@ impl TransactionValidator {
                 .enqueue_transaction(tx.clone(), tx.hash(), ai_result, risk_decision)
                 .await
             {
-                result.add_warning(format!("Failed to add to high-risk queue: {}", e));
+                result.add_warning(format!("Failed to add to high-risk queue: {e}"));
             }
         }
 
@@ -217,7 +217,7 @@ impl TransactionValidator {
             )
             .await
         {
-            result.add_warning(format!("Failed to log to audit trail: {}", e));
+            result.add_warning(format!("Failed to log to audit trail: {e}"));
         }
 
         // 6. Update performance metrics
@@ -272,8 +272,7 @@ impl TransactionValidator {
             };
 
             info!(
-                "Transaction validation completed: risk={:.2}, fraud={:.2}, priority={}",
-                risk_score, fraud_probability, risk_priority
+                "Transaction validation completed: risk={risk_score:.2}, fraud={fraud_probability:.2}, priority={risk_priority}"
             );
 
             // Add to high-risk queue if needed
@@ -298,7 +297,7 @@ impl TransactionValidator {
                     .enqueue_transaction(tx.clone(), tx.hash(), ai_result, risk_decision)
                     .await
                 {
-                    warn!("Failed to add high-risk transaction to queue: {}", e);
+                    warn!("Failed to add high-risk transaction to queue: {e}");
                 }
             }
         }
@@ -338,7 +337,7 @@ impl TransactionValidator {
         let mut result = ValidationResult::success();
 
         if let Err(e) = self.validate_basic_transaction(tx) {
-            result.add_error(format!("Basic validation failed: {}", e));
+            result.add_error(format!("Basic validation failed: {e}"));
         }
 
         result.validation_time_ms = start_time.elapsed().as_millis() as u64;

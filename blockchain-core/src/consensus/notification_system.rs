@@ -174,10 +174,7 @@ impl NotificationSystem {
             notification.acknowledged_at = Some(Utc::now());
             notification.acknowledged_by = Some(officer_id.clone());
 
-            info!(
-                "Notification {} acknowledged by {}",
-                notification_id, officer_id
-            );
+            info!("Notification {notification_id} acknowledged by {officer_id}");
             Ok(())
         } else {
             Err(anyhow::anyhow!(
@@ -253,7 +250,7 @@ impl NotificationSystem {
         let removed_count = initial_count - notifications.len();
 
         if removed_count > 0 {
-            info!("Cleaned up {} old notifications", removed_count);
+            info!("Cleaned up {removed_count} old notifications");
         }
 
         Ok(removed_count)
@@ -268,10 +265,9 @@ impl NotificationSystem {
                 risk_score,
                 priority: tx_priority,
             } => {
-                let title = format!("🚨 New {:?} Priority Transaction", tx_priority);
+                let title = format!("🚨 New {tx_priority:?} Priority Transaction");
                 let message = format!(
-                    "A new {:?} priority transaction has been queued for manual review. Queue ID: {}, Transaction: {}, Risk Score: {:.2}",
-                    tx_priority, queue_id, transaction_hash, risk_score
+                    "A new {tx_priority:?} priority transaction has been queued for manual review. Queue ID: {queue_id}, Transaction: {transaction_hash}, Risk Score: {risk_score:.2}"
                 );
                 let notification_priority = match tx_priority {
                     ReviewPriority::Critical => NotificationPriority::Critical,
@@ -288,8 +284,7 @@ impl NotificationSystem {
             } => {
                 let title = "⏰ Transaction Expired".to_string();
                 let message = format!(
-                    "Transaction {} (Queue ID: {}) has expired in the review queue without being processed.",
-                    transaction_hash, queue_id
+                    "Transaction {transaction_hash} (Queue ID: {queue_id}) has expired in the review queue without being processed."
                 );
                 (title, message, NotificationPriority::Medium)
             }
@@ -300,8 +295,7 @@ impl NotificationSystem {
             } => {
                 let title = "⏰ Review Timeout".to_string();
                 let message = format!(
-                    "Transaction {} has exceeded the maximum review time. Officer: {}",
-                    queue_id, officer_id
+                    "Transaction {queue_id} has exceeded the maximum review time. Officer: {officer_id}"
                 );
                 (title, message, NotificationPriority::High)
             }
@@ -312,8 +306,7 @@ impl NotificationSystem {
             } => {
                 let title = "⚠️ Queue Capacity Warning".to_string();
                 let message = format!(
-                    "The high-risk transaction queue is approaching capacity: {}/{} transactions",
-                    current_size, max_size
+                    "The high-risk transaction queue is approaching capacity: {current_size}/{max_size} transactions"
                 );
                 (title, message, NotificationPriority::High)
             }
@@ -324,8 +317,7 @@ impl NotificationSystem {
             } => {
                 let title = "✅ Transaction Approved".to_string();
                 let message = format!(
-                    "Transaction {} (Queue ID: {}) has been approved by officer {}",
-                    transaction_hash, queue_id, officer_id
+                    "Transaction {transaction_hash} (Queue ID: {queue_id}) has been approved by officer {officer_id}"
                 );
                 (title, message, NotificationPriority::Low)
             }
@@ -337,8 +329,7 @@ impl NotificationSystem {
             } => {
                 let title = "❌ Transaction Rejected".to_string();
                 let message = format!(
-                    "Transaction {} (Queue ID: {}) has been rejected by officer {}. Reason: {}",
-                    transaction_hash, queue_id, officer_id, reason
+                    "Transaction {transaction_hash} (Queue ID: {queue_id}) has been rejected by officer {officer_id}. Reason: {reason}"
                 );
                 (title, message, NotificationPriority::Low)
             }
@@ -349,13 +340,12 @@ impl NotificationSystem {
             } => {
                 let title = "👨‍💼 Manual Review Assigned".to_string();
                 let message = format!(
-                    "Transaction {} (Queue ID: {}) has been assigned to officer {} for manual review",
-                    transaction_hash, queue_id, officer_id
+                    "Transaction {transaction_hash} (Queue ID: {queue_id}) has been assigned to officer {officer_id} for manual review"
                 );
                 (title, message, NotificationPriority::Medium)
             }
             NotificationType::SystemAlert { message, severity } => {
-                let title = format!("🚨 System Alert ({:?})", severity);
+                let title = format!("🚨 System Alert ({severity:?})");
                 let priority = match severity {
                     crate::consensus::notification_types::AlertSeverity::Critical => {
                         NotificationPriority::Critical
@@ -413,7 +403,7 @@ impl NotificationSystem {
                     delivered = true;
                 }
                 Err(e) => {
-                    warn!("Failed to send email notification: {}", e);
+                    warn!("Failed to send email notification: {e}");
                 }
             }
         }
@@ -429,7 +419,7 @@ impl NotificationSystem {
                     delivered = true;
                 }
                 Err(e) => {
-                    warn!("Failed to send webhook notification: {}", e);
+                    warn!("Failed to send webhook notification: {e}");
                 }
             }
         }
@@ -472,7 +462,7 @@ impl NotificationSystem {
         // to the configured webhook URL with the notification data
 
         if let Some(webhook_url) = &self.config.webhook_url {
-            info!("🔗 [WEBHOOK PLACEHOLDER] URL: {}", webhook_url);
+            info!("🔗 [WEBHOOK PLACEHOLDER] URL: {webhook_url}");
             info!(
                 "🔗 [WEBHOOK PLACEHOLDER] Payload: {}",
                 serde_json::to_string(notification)?
@@ -515,7 +505,7 @@ impl QueueNotificationIntegration {
                 .send_notification(notification_type)
                 .await
             {
-                error!("Failed to send notification: {}", e);
+                error!("Failed to send notification: {e}");
             }
         }
         Ok(())

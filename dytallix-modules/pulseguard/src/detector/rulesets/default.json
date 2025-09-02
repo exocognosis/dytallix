@@ -1,0 +1,7 @@
+{
+  "heuristics": {
+    "high_value_threshold": 100.0,
+    "high_gas_threshold": 1000000
+  }
+}
+

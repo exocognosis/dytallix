@@ -22,6 +22,12 @@ pub struct InMemoryContractStore {
     nonce: u64,
 }
 
+impl Default for InMemoryContractStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InMemoryContractStore {
     pub fn new() -> Self {
         Self {

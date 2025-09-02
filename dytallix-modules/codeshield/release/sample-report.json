@@ -1,0 +1,8 @@
+{
+  "meta": {"tool": "CodeShield", "version": "v0.1.0"},
+  "findings": [
+    {"rule_id": "EXEC-REENTRANCY", "severity": "HIGH", "location": "ReentrancyDemo.withdraw", "snippet": "External call before state update (possible reentrancy)", "remediation": "Validate inputs and reorder state updates after external calls", "rank_score": 0.9},
+    {"rule_id": "GAS-LOOP-EXTCALL", "severity": "MEDIUM", "location": "ReentrancyDemo.massPayout", "snippet": "External calls in loops can be expensive and unsafe", "remediation": "Batch operations, consider pull over push, avoid external calls in loops", "rank_score": 0.7}
+  ]
+}
+

@@ -1,0 +1,10 @@
+{
+  "totalSupply": 1000000000,
+  "allocations": {
+    "communityTreasury": 0.40,
+    "stakingRewards": 0.25,
+    "devTeam": 0.15,
+    "validators": 0.10,
+    "ecosystemFund": 0.10
+  }
+}

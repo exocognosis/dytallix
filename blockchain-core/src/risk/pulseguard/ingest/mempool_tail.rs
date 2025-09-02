@@ -1,9 +1,9 @@
-use tokio::sync::mpsc::Sender;
-use serde_json::json;
-use crate::risk::pulseguard::RiskEvent;
 use crate::risk::pulseguard::now_ms;
+use crate::risk::pulseguard::RiskEvent;
 use crate::types::Transaction;
 use log::{debug, trace};
+use serde_json::json;
+use tokio::sync::mpsc::Sender;
 
 pub async fn stream_mempool(tx: Sender<RiskEvent>, mem: Vec<Transaction>) {
     for t in mem {
@@ -20,15 +20,19 @@ pub async fn stream_mempool(tx: Sender<RiskEvent>, mem: Vec<Transaction>) {
             from: t.from().clone(),
             to: to_addr,
             amount: amount_u128,
-            timestamp: (now_ms()/1000) as u64,
-            metadata: enriched
+            timestamp: (now_ms() / 1000) as u64,
+            metadata: enriched,
         };
-        if tx.send(ev).await.is_err() { debug!("mempool channel closed"); break; }
+        if tx.send(ev).await.is_err() {
+            debug!("mempool channel closed");
+            break;
+        }
         trace!("mempool event queued");
     }
 }
 
-fn enrich(t: &Transaction) -> serde_json::Value { // placeholder enrichment (address tags, clusters, historical stats)
+fn enrich(t: &Transaction) -> serde_json::Value {
+    // placeholder enrichment (address tags, clusters, historical stats)
     let _ = t; // suppress unused warning until real enrichment
     json!({
         "source":"mempool",

@@ -301,8 +301,7 @@ impl XcmHandler {
             })
         } else {
             Err(BridgeError::InvalidTransaction(format!(
-                "Invalid address format: {}",
-                address
+                "Invalid address format: {address}"
             )))
         }
     }

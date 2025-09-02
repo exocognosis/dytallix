@@ -1,3 +1,4 @@
+#[allow(clippy::upper_case_acronyms)]
 pub trait PQC {
     fn keypair() -> (Vec<u8>, Vec<u8>); // (sk, pk)
     fn sign(sk: &[u8], msg: &[u8]) -> Vec<u8>;

@@ -8,7 +8,7 @@ use argon2::{Algorithm, Argon2, Params, Version};
 use ripemd::{Digest as RipemdDigest, Ripemd160};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::ZeroizeOnDrop;
 
 // Re-export PQC types from the existing pqc-crypto crate
 pub use dytallix_pqc::{KeyPair, PQCError, PQCManager, Signature, SignatureAlgorithm};
@@ -20,7 +20,7 @@ const DEFAULT_PARALLELISM: u32 = 1;
 
 /// Fixed domain-separated salt for deterministic mode
 /// Uses sha256("dytallix|v1|root")[0..16]
-const DETERMINISTIC_SALT: [u8; 16] = [
+pub(crate) const DETERMINISTIC_SALT: [u8; 16] = [
     0x8c, 0x4f, 0x2e, 0x1d, 0x9a, 0x7b, 0x6c, 0x3e, 0x5f, 0x0e, 0x8d, 0x2c, 0x4b, 0x9a, 0x1e, 0x7f,
 ];
 
@@ -177,7 +177,7 @@ fn generate_dilithium5_keypair(seed: &[u8]) -> Result<KeyPair> {
 
 /// Derive address from public key using sha256 -> ripemd160 -> bech32
 /// Format: bech32("dytallix", ripemd160(sha256(pubkey_raw)))
-fn derive_address(public_key: &[u8]) -> Result<String> {
+pub(crate) fn derive_address(public_key: &[u8]) -> Result<String> {
     // Step 1: SHA256 hash of public key
     let mut hasher = Sha256::new();
     hasher.update(public_key);
@@ -185,7 +185,7 @@ fn derive_address(public_key: &[u8]) -> Result<String> {
 
     // Step 2: RIPEMD160 hash of SHA256 result
     let mut ripemd_hasher = Ripemd160::new();
-    ripemd_hasher.update(&sha256_hash);
+    ripemd_hasher.update(sha256_hash);
     let ripemd_hash = ripemd_hasher.finalize();
 
     // Step 3: Encode with bech32 using "dytallix" prefix
@@ -208,7 +208,7 @@ fn encode_bech32(prefix: &str, data: &[u8]) -> Result<String> {
     // Simplified bech32 encoding - in production, use a proper bech32 library
     // For now, we'll create a simplified format that meets the requirement
     let encoded = hex::encode(data);
-    Ok(format!("{}{}", prefix, encoded))
+    Ok(format!("{prefix}{encoded}"))
 }
 
 /// Utilities for testing and validation

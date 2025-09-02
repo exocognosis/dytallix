@@ -12,39 +12,24 @@ use std::{
 };
 use tokio::time::interval;
 
-mod mempool;
-mod rpc;
-mod runtime {
-    pub mod bridge;
-    pub mod emission;
-    pub mod governance;
-    pub mod oracle;
-    pub mod staking;
-} // added emission, governance, and staking modules
-mod alerts; // alerting subsystem
-mod execution;
-mod gas; // gas accounting system
-mod metrics; // observability module
-mod state;
-mod storage;
-mod util; // added util module declaration
-mod ws; // deterministic execution engine
-use crate::alerts::{load_alerts_config, AlertsEngine, NodeMetricsGatherer};
-use crate::execution::execute_transaction;
-use crate::gas::GasSchedule;
-use crate::metrics::{parse_metrics_config, MetricsServer};
-use crate::runtime::emission::EmissionEngine;
-use crate::runtime::governance::GovernanceModule;
-use crate::runtime::staking::StakingModule;
-use mempool::Mempool;
-use rpc::RpcContext;
-use state::State;
-use storage::{
+// Replace crate:: module imports with library crate path so binary can access lib modules
+use dytallix_lean_node::alerts::{load_alerts_config, AlertsEngine, NodeMetricsGatherer};
+use dytallix_lean_node::execution::execute_transaction;
+use dytallix_lean_node::gas::GasSchedule;
+use dytallix_lean_node::mempool::Mempool;
+use dytallix_lean_node::metrics::{parse_metrics_config, MetricsServer};
+use dytallix_lean_node::rpc::{self, RpcContext};
+use dytallix_lean_node::runtime::emission::EmissionEngine;
+use dytallix_lean_node::runtime::bridge; // import bridge module for validator init
+use dytallix_lean_node::runtime::governance::GovernanceModule;
+use dytallix_lean_node::runtime::staking::StakingModule;
+use dytallix_lean_node::state::State;
+use dytallix_lean_node::storage::{
     blocks::{Block, TpsWindow},
     receipts::{TxReceipt, TxStatus},
     state::Storage,
 };
-use ws::server::{ws_handler, WsHub};
+use dytallix_lean_node::ws::server::{ws_handler, WsHub};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -67,14 +52,11 @@ async fn main() -> anyhow::Result<()> {
     let chain_id = std::env::var("DYT_CHAIN_ID").unwrap_or("dyt-local-1".to_string());
 
     std::fs::create_dir_all(&data_dir)?;
-    let storage = Arc::new(Storage::open(PathBuf::from(format!(
-        "{}/node.db",
-        data_dir
-    )))?);
+    let storage = Arc::new(Storage::open(PathBuf::from(format!("{data_dir}/node.db")))?);
     // Chain ID persistence
     if let Some(stored) = storage.get_chain_id() {
         if stored != chain_id {
-            eprintln!("Chain ID mismatch stored={} env={}", stored, chain_id);
+            eprintln!("Chain ID mismatch stored={stored} env={chain_id}");
             std::process::exit(1);
         }
     } else {
@@ -89,7 +71,7 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let mempool = Arc::new(Mutex::new(Mempool::new(10_000)));
+    let mempool = Arc::new(Mutex::new(Mempool::new()));
     let ws_hub = WsHub::new();
     let tps_window = Arc::new(Mutex::new(TpsWindow::new(60)));
 
@@ -112,6 +94,14 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(not(feature = "metrics"))]
     let mut alerts_engine = AlertsEngine::new(alerts_config.clone())?;
 
+    // Runtime feature flags (default disabled)
+    let enable_governance = std::env::var("DYT_ENABLE_GOVERNANCE")
+        .map(|v| v == "1" || v.to_lowercase() == "true")
+        .unwrap_or(false);
+    let enable_staking = std::env::var("DYT_ENABLE_STAKING")
+        .map(|v| v == "1" || v.to_lowercase() == "true")
+        .unwrap_or(false);
+
     let staking_module = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
 
     let ctx = RpcContext {
@@ -129,12 +119,13 @@ async fn main() -> anyhow::Result<()> {
             state.clone(),
             staking_module.clone(),
         ))),
-        staking: staking_module,
+        staking: staking_module.clone(),
         metrics: metrics.clone(),
+        features: dytallix_lean_node::rpc::FeatureFlags { governance: enable_governance, staking: enable_staking },
     };
 
     // Initialize bridge validators if provided
-    runtime::bridge::ensure_bridge_validators(&storage.db).ok();
+    bridge::ensure_bridge_validators(&storage.db).ok();
 
     // Block producer task
     let producer_ctx = ctx.clone();
@@ -156,18 +147,20 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap()
                 .apply_until(next_height);
 
-            // Apply staking rewards from emission
-            let staking_rewards = producer_ctx
-                .emission
-                .lock()
-                .unwrap()
-                .get_latest_staking_rewards();
-            if staking_rewards > 0 {
-                producer_ctx
-                    .staking
+            // Apply staking rewards from emission (only if staking enabled)
+            if producer_ctx.features.staking {
+                let staking_rewards = producer_ctx
+                    .emission
                     .lock()
                     .unwrap()
-                    .apply_external_emission(staking_rewards);
+                    .get_latest_staking_rewards();
+                if staking_rewards > 0 {
+                    producer_ctx
+                        .staking
+                        .lock()
+                        .unwrap()
+                        .apply_external_emission(staking_rewards);
+                }
             }
             let snapshot = { producer_ctx.mempool.lock().unwrap().take_snapshot(max_txs) };
             if snapshot.is_empty() && !empty_blocks {
@@ -179,7 +172,7 @@ async fn main() -> anyhow::Result<()> {
 
             // Execute transactions using deterministic execution engine
             let mut receipts: Vec<TxReceipt> = vec![];
-            let mut applied: Vec<storage::tx::Transaction> = vec![];
+            let mut applied: Vec<dytallix_lean_node::storage::tx::Transaction> = vec![];
             {
                 let mut st = producer_ctx.state.lock().unwrap();
                 for (tx_index, tx) in snapshot.iter().enumerate() {
@@ -252,15 +245,25 @@ async fn main() -> anyhow::Result<()> {
                 .update_current_block_gas(total_gas_used);
 
             // Update emission pool metrics
-            let emission_snapshot = producer_ctx.emission.snapshot();
+            let emission_snapshot = producer_ctx.emission.lock().unwrap().snapshot();
             let total_emission_pool: u128 = emission_snapshot.pools.values().sum();
             producer_ctx
                 .metrics
                 .update_emission_pool(total_emission_pool as f64);
+            // Update emissions ops metrics (height, pending uDRT total, last apply ts)
+            let now_ts = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_else(|_| Duration::from_secs(0))
+                .as_secs();
+            producer_ctx
+                .metrics
+                .update_emission_apply(emission_snapshot.height, total_emission_pool, now_ts);
 
-            // Process governance end block
-            if let Err(e) = producer_ctx.governance.lock().unwrap().end_block(height) {
-                eprintln!("Governance end_block error at height {}: {}", height, e);
+            // Process governance end block if feature enabled
+            if producer_ctx.features.governance {
+                if let Err(e) = producer_ctx.governance.lock().unwrap().end_block(height) {
+                    eprintln!("Governance end_block error at height {height}: {e}");
+                }
             }
 
             producer_ctx
@@ -295,23 +298,32 @@ async fn main() -> anyhow::Result<()> {
         .route("/tx/:hash", get(rpc::get_tx))
         .route("/stats", get(rpc::stats))
         .route("/peers", get(rpc::peers))
-        .route("/oracle/ai_risk", post(rpc::oracle::submit_ai_risk))
-        .route(
-            "/oracle/ai_risk_batch",
-            post(rpc::oracle::submit_ai_risk_batch),
-        )
-        .route(
-            "/oracle/ai_risk_query_batch",
-            post(rpc::oracle::get_ai_risk_batch),
-        )
-        .route("/oracle/stats", get(rpc::oracle::oracle_stats))
         .route("/bridge/ingest", post(rpc::bridge_ingest))
         .route("/bridge/halt", post(rpc::bridge_halt))
         .route("/bridge/state", get(rpc::bridge_state))
         .route("/emission/claim", post(rpc::emission_claim))
         .route("/api/rewards", get(rpc::get_rewards))
         .route("/api/rewards/:height", get(rpc::get_rewards_by_height))
-        .route("/api/stats", get(rpc::stats_with_emission))
+        .route("/api/stats", get(rpc::stats_with_emission));
+
+    // Oracle routes
+    #[cfg(feature = "oracle")]
+    {
+        app = app
+            .route("/oracle/ai_risk", post(rpc::oracle::submit_ai_risk))
+            .route(
+                "/oracle/ai_risk_batch",
+                post(rpc::oracle::submit_ai_risk_batch),
+            )
+            .route(
+                "/oracle/ai_risk_query_batch",
+                post(rpc::oracle::get_ai_risk_batch),
+            )
+            .route("/oracle/stats", get(rpc::oracle::oracle_stats));
+    }
+
+    // Governance routes (always exposed; tx endpoints return 501 if disabled)
+    app = app
         .route("/gov/submit", post(rpc::gov_submit_proposal))
         .route("/gov/deposit", post(rpc::gov_deposit))
         .route("/gov/vote", post(rpc::gov_vote))
@@ -330,13 +342,17 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/governance/total-voting-power",
             get(rpc::gov_get_total_voting_power),
-        )
+        );
+
+    // Staking routes (always exposed; tx endpoints return 501 if disabled)
+    app = app
         .route("/api/staking/claim", post(rpc::staking_claim))
         .route(
             "/api/staking/accrued/:address",
             get(rpc::staking_get_accrued),
-        )
-        .layer(Extension(ctx));
+        );
+
+    app = app.layer(Extension(ctx));
     if ws_enabled {
         app = app.route("/ws", get(ws_handler).layer(Extension(ws_hub)));
     }
@@ -345,7 +361,7 @@ async fn main() -> anyhow::Result<()> {
     if metrics_config.enabled {
         let metrics_server_task = tokio::spawn(async move {
             if let Err(e) = metrics_server.start().await {
-                eprintln!("Metrics server error: {}", e);
+                eprintln!("Metrics server error: {e}");
             }
         });
 
@@ -358,7 +374,7 @@ async fn main() -> anyhow::Result<()> {
         let metrics_gatherer = Arc::new(NodeMetricsGatherer::new(tps_window.clone()));
         let alerts_task = tokio::spawn(async move {
             if let Err(e) = alerts_engine.start(metrics_gatherer).await {
-                eprintln!("Alerts engine error: {}", e);
+                eprintln!("Alerts engine error: {e}");
             }
         });
 

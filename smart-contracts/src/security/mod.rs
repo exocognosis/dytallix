@@ -245,7 +245,6 @@ pub struct SecurityAuditorStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::ContractDeployment;
 
     #[test]
     fn test_severity_ordering() {

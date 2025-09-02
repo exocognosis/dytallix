@@ -4,12 +4,12 @@
 mod tests {
     use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
     use crate::mempool::{verify_envelope, Mempool, RejectionReason, TX_INVALID_SIG};
-    use crate::storage::tx::Transaction;
-    use base64::{engine::general_purpose::STANDARD as B64, Engine};
     use crate::state::State;
     use crate::storage::state::Storage; // added
-    use tempfile::TempDir; // added
-    use std::sync::Arc; // added
+    use crate::storage::tx::Transaction;
+    use base64::{engine::general_purpose::STANDARD as B64, Engine};
+    use std::sync::Arc;
+    use tempfile::TempDir; // added // added
 
     fn create_state() -> State {
         let temp_dir = TempDir::new().expect("tempdir");
@@ -56,16 +56,9 @@ mod tests {
         let (sk, pk) = ActivePQC::keypair();
 
         // Create test transaction
-        let mut tx = Transaction::base(
-            "test_hash",
-            "dyt1alice",
-            "dyt1bob",
-            1_000_000,
-            1_000,
-            42,
-        )
-        .with_gas(21_000, 1_000)
-        .with_pqc(B64.encode(&pk), "dytallix-testnet", "test memo");
+        let mut tx = Transaction::base("test_hash", "dyt1alice", "dyt1bob", 1_000_000, 1_000, 42)
+            .with_gas(21_000, 1_000)
+            .with_pqc(B64.encode(&pk), "dytallix-testnet", "test memo");
 
         // Sign the transaction
         let canonical_tx = tx.canonical_fields();
@@ -91,16 +84,9 @@ mod tests {
     #[test]
     fn test_verify_envelope_missing_signature() {
         // Create test transaction without signature
-        let tx = Transaction::base(
-            "test_hash",
-            "dyt1alice",
-            "dyt1bob",
-            1_000_000,
-            1_000,
-            42,
-        )
-        .with_gas(21_000, 1_000)
-        .with_pqc("dummy_pk", "dytallix-testnet", "test memo");
+        let tx = Transaction::base("test_hash", "dyt1alice", "dyt1bob", 1_000_000, 1_000, 42)
+            .with_gas(21_000, 1_000)
+            .with_pqc("dummy_pk", "dytallix-testnet", "test memo");
 
         // Verify should fail
         assert!(
@@ -116,17 +102,10 @@ mod tests {
         let mut mempool = Mempool::new();
 
         // Create transaction with invalid signature
-        let tx = Transaction::base(
-            "test_hash",
-            "dyt1alice",
-            "dyt1bob",
-            1_000_000,
-            1_000,
-            42,
-        )
-        .with_gas(21_000, 1_000)
-        .with_pqc("invalid_public_key", "dytallix-testnet", "test memo")
-        .with_signature("invalid_signature");
+        let tx = Transaction::base("test_hash", "dyt1alice", "dyt1bob", 1_000_000, 1_000, 42)
+            .with_gas(21_000, 1_000)
+            .with_pqc("invalid_public_key", "dytallix-testnet", "test memo")
+            .with_signature("invalid_signature");
 
         // Attempt to add transaction should fail with InvalidSignature
         match mempool.add_transaction(&state, tx) {

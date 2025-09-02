@@ -98,14 +98,13 @@ impl EthereumConnector {
     /// Initialize Web3 connections
     pub async fn initialize(&mut self) -> Result<(), BridgeError> {
         // Initialize HTTP client
-        let provider = Provider::<Http>::try_from(&self.config.rpc_url).map_err(|e| {
-            BridgeError::ConnectionFailed(format!("Provider creation failed: {}", e))
-        })?;
+        let provider = Provider::<Http>::try_from(&self.config.rpc_url)
+            .map_err(|e| BridgeError::ConnectionFailed(format!("Provider creation failed: {e}")))?;
 
         if let Some(private_key) = &self.config.private_key {
             let wallet: LocalWallet = private_key
                 .parse()
-                .map_err(|e| BridgeError::InvalidChain(format!("Invalid private key: {}", e)))?;
+                .map_err(|e| BridgeError::InvalidChain(format!("Invalid private key: {e}")))?;
             let wallet = wallet.with_chain_id(self.config.chain_id);
 
             let client = Arc::new(SignerMiddleware::new(provider.clone(), wallet.clone()));
@@ -161,8 +160,8 @@ impl EthereumConnector {
             )
             .await?;
 
-        println!("✅ Asset locked on Ethereum. Tx hash: {:?}", tx_hash);
-        Ok(EthereumTxHash(format!("{:?}", tx_hash)))
+        println!("✅ Asset locked on Ethereum. Tx hash: {tx_hash:?}");
+        Ok(EthereumTxHash(format!("{tx_hash:?}")))
     }
 
     /// Release (mint) wrapped asset on Ethereum
@@ -223,11 +222,8 @@ impl EthereumConnector {
             )
             .await?;
 
-        println!(
-            "✅ Wrapped asset released on Ethereum. Tx hash: {:?}",
-            tx_hash
-        );
-        Ok(EthereumTxHash(format!("{:?}", tx_hash)))
+        println!("✅ Wrapped asset released on Ethereum. Tx hash: {tx_hash:?}");
+        Ok(EthereumTxHash(format!("{tx_hash:?}")))
     }
 
     /// Mint wrapped asset on Ethereum
@@ -286,11 +282,8 @@ impl EthereumConnector {
             )
             .await?;
 
-        println!(
-            "✅ Wrapped asset minted on Ethereum. Tx hash: {:?}",
-            tx_hash
-        );
-        Ok(EthereumTxHash(format!("{:?}", tx_hash)))
+        println!("✅ Wrapped asset minted on Ethereum. Tx hash: {tx_hash:?}");
+        Ok(EthereumTxHash(format!("{tx_hash:?}")))
     }
 
     /// Monitor Ethereum for bridge events
@@ -298,10 +291,7 @@ impl EthereumConnector {
         &self,
         from_block: Option<u64>,
     ) -> Result<Vec<EthereumBridgeEvent>, BridgeError> {
-        println!(
-            "👀 Monitoring Ethereum bridge events from block {:?}",
-            from_block
-        );
+        println!("👀 Monitoring Ethereum bridge events from block {from_block:?}");
 
         // Get recent lock events
         let lock_events = self
@@ -384,8 +374,7 @@ impl EthereumConnector {
             "USDC" => Ok("0xA0b86a33E6441E5A4C5C3BD1C6B06B65a80D8a7b".to_string()), // USDC on Sepolia
             "USDT" => Ok("0xfaD6367E52450d800bE70CEbc9735b2Ac24BB80a".to_string()), // USDT on Sepolia
             _ => Err(BridgeError::InvalidTransaction(format!(
-                "Unknown asset: {}",
-                asset_id
+                "Unknown asset: {asset_id}"
             ))),
         }
     }

@@ -28,7 +28,7 @@ async fn main() {
         "validators" => handle_validator_commands(&args[2..]).await,
         "help" | "--help" | "-h" => print_usage(),
         _ => {
-            println!("Error: Unknown command '{}'", command);
+            println!("Error: Unknown command '{command}'");
             print_usage();
             process::exit(1);
         }
@@ -122,12 +122,12 @@ async fn handle_bridge_commands(args: &[String]) {
                 Ok(tx_id) => {
                     println!("✅ Asset locked successfully!");
                     println!("Transaction ID: {}", tx_id.0);
-                    println!("Asset: {} {}", amount, asset_id);
-                    println!("Destination: {} ({})", dest_chain, dest_address);
+                    println!("Asset: {amount} {asset_id}");
+                    println!("Destination: {dest_chain} ({dest_address})");
                     println!("Status: Pending validator signatures");
                 }
                 Err(e) => {
-                    println!("❌ Failed to lock asset: {:?}", e);
+                    println!("❌ Failed to lock asset: {e:?}");
                 }
             }
         }
@@ -158,7 +158,7 @@ async fn handle_bridge_commands(args: &[String]) {
                 metadata: AssetMetadata {
                     name: format!("Wrapped {} Token", asset_id.to_uppercase()),
                     symbol: format!("w{}", asset_id.to_uppercase()),
-                    description: format!("Wrapped {} from {}", asset_id, origin_chain),
+                    description: format!("Wrapped {asset_id} from {origin_chain}"),
                     icon_url: Some("https://dytallix.io/assets/wrapped-token-icon.png".to_string()),
                 },
             };
@@ -170,10 +170,10 @@ async fn handle_bridge_commands(args: &[String]) {
                     println!("Amount: {}", wrapped_asset.amount);
                     println!("Origin Chain: {}", wrapped_asset.original_chain);
                     println!("Wrapped Contract: {}", wrapped_asset.wrapped_contract);
-                    println!("Destination: {}", dest_address);
+                    println!("Destination: {dest_address}");
                 }
                 Err(e) => {
-                    println!("❌ Failed to mint wrapped asset: {:?}", e);
+                    println!("❌ Failed to mint wrapped asset: {e:?}");
                 }
             }
         }
@@ -189,10 +189,10 @@ async fn handle_bridge_commands(args: &[String]) {
                 Ok(status) => {
                     println!("✅ Transaction Status:");
                     println!("TX ID: {}", tx_id.0);
-                    println!("Status: {:?}", status);
+                    println!("Status: {status:?}");
                 }
                 Err(e) => {
-                    println!("❌ Failed to verify transaction: {:?}", e);
+                    println!("❌ Failed to verify transaction: {e:?}");
                 }
             }
         }
@@ -207,11 +207,11 @@ async fn handle_bridge_commands(args: &[String]) {
             match bridge.emergency_halt(reason) {
                 Ok(_) => {
                     println!("🚨 EMERGENCY HALT ACTIVATED");
-                    println!("Reason: {}", reason);
+                    println!("Reason: {reason}");
                     println!("All bridge operations suspended");
                 }
                 Err(e) => {
-                    println!("❌ Failed to halt bridge: {:?}", e);
+                    println!("❌ Failed to halt bridge: {e:?}");
                 }
             }
         }
@@ -221,7 +221,7 @@ async fn handle_bridge_commands(args: &[String]) {
                 println!("✅ Bridge operations resumed");
             }
             Err(e) => {
-                println!("❌ Failed to resume bridge: {:?}", e);
+                println!("❌ Failed to resume bridge: {e:?}");
             }
         },
 
@@ -268,7 +268,7 @@ async fn handle_ibc_commands(args: &[String]) {
                     println!("Data: {}", args[5]);
                 }
                 Err(e) => {
-                    println!("❌ Failed to send IBC packet: {:?}", e);
+                    println!("❌ Failed to send IBC packet: {e:?}");
                 }
             }
         }
@@ -288,7 +288,7 @@ async fn handle_ibc_commands(args: &[String]) {
                     println!("State: {:?}", channel.state);
                 }
                 Err(e) => {
-                    println!("❌ Failed to create IBC channel: {:?}", e);
+                    println!("❌ Failed to create IBC channel: {e:?}");
                 }
             }
         }
@@ -305,7 +305,7 @@ async fn handle_ibc_commands(args: &[String]) {
                     println!("Channel ID: {}", args[1]);
                 }
                 Err(e) => {
-                    println!("❌ Failed to close IBC channel: {:?}", e);
+                    println!("❌ Failed to close IBC channel: {e:?}");
                 }
             }
         }
@@ -350,10 +350,10 @@ async fn handle_status_commands(args: &[String]) {
                     println!("📋 Transaction Status");
                     println!("===================");
                     println!("TX ID: {}", tx_id.0);
-                    println!("Status: {:?}", status);
+                    println!("Status: {status:?}");
                 }
                 Err(e) => {
-                    println!("❌ Transaction not found: {:?}", e);
+                    println!("❌ Transaction not found: {e:?}");
                 }
             }
         }
@@ -362,7 +362,7 @@ async fn handle_status_commands(args: &[String]) {
             println!("🔗 Supported Chains");
             println!("==================");
             for chain in bridge.get_supported_chains() {
-                println!("• {}", chain);
+                println!("• {chain}");
             }
         }
 

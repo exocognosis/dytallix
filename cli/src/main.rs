@@ -111,7 +111,7 @@ async fn main() -> Result<()> {
                 if fmt.is_json() {
                     println!("{}", serde_json::to_string_pretty(&cfg)?);
                 } else {
-                    println!("Updated {}", key);
+                    println!("Updated {key}");
                 }
             }
         },

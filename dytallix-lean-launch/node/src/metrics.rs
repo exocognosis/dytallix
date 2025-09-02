@@ -5,7 +5,7 @@
 
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 #[cfg(feature = "metrics")]
 use prometheus::{
@@ -133,7 +133,7 @@ impl Default for MetricsConfig {
 /// Main metrics context containing all metric collectors
 #[cfg(feature = "metrics")]
 pub struct Metrics {
-    registry: Registry,
+    pub registry: Registry, // made public for test access; consider exposing gather() instead
 
     // Block metrics - new dyt_ prefixed metrics
     pub dyt_block_height: IntGauge,
@@ -198,6 +198,11 @@ pub struct Metrics {
 
     // System metrics
     pub build_info: IntGauge,
+
+    // Emissions ops metrics (uDRT)
+    pub drt_emission_applied_height: IntGauge,
+    pub drt_emission_pending_claims: IntGauge,
+    pub drt_emission_last_apply_timestamp_seconds: IntGauge,
 }
 
 #[cfg(feature = "metrics")]
@@ -459,6 +464,27 @@ impl Metrics {
         ))?;
         registry.register(Box::new(build_info.clone()))?;
 
+        // Emissions ops metrics
+        let drt_emission_applied_height = IntGauge::with_opts(Opts::new(
+            "drt_emission_applied_height",
+            "Last block height at which emissions were applied",
+        ))?;
+        registry.register(Box::new(drt_emission_applied_height.clone()))?;
+
+        let drt_emission_pending_claims = IntGauge::with_opts(Opts::new(
+            "drt_emission_pending_claims",
+            "Total pending uDRT across emission pools",
+        ))?;
+        registry.register(Box::new(drt_emission_pending_claims.clone()))?;
+
+        let drt_emission_last_apply_timestamp_seconds = IntGauge::with_opts(Opts::new(
+            "drt_emission_last_apply_timestamp_seconds",
+            "Unix timestamp of last emissions apply",
+        ))?;
+        registry.register(Box::new(
+            drt_emission_last_apply_timestamp_seconds.clone(),
+        ))?;
+
         // Set build info to 1
         build_info.set(1);
 
@@ -503,6 +529,9 @@ impl Metrics {
             last_oracle_update,
             emission_pool_size,
             build_info,
+            drt_emission_applied_height,
+            drt_emission_pending_claims,
+            drt_emission_last_apply_timestamp_seconds,
         })
     }
 
@@ -570,8 +599,8 @@ impl Metrics {
     pub fn record_oracle_update(&self, latency: Duration) {
         self.oracle_latency.observe(latency.as_secs_f64());
         self.oracle_latency_seconds.observe(latency.as_secs_f64());
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
         self.last_oracle_update.set(now as i64);
@@ -587,9 +616,24 @@ impl Metrics {
         self.emission_pool_size.set(pool_size);
     }
 
+    /// Update emissions apply progress/telemetry
+    pub fn update_emission_apply(&self, height: u64, pending_udrt_total: u128, ts: u64) {
+        self.drt_emission_applied_height.set(height as i64);
+        self
+            .drt_emission_pending_claims
+            .set(pending_udrt_total as i64);
+        self
+            .drt_emission_last_apply_timestamp_seconds
+            .set(ts as i64);
+    }
+
     /// Update current block gas
     pub fn update_current_block_gas(&self, gas: u64) {
         self.current_block_gas.set(gas as i64);
+    }
+
+    pub fn gather(&self) -> Vec<prometheus::proto::MetricFamily> {
+        self.registry.gather()
     }
 }
 
@@ -621,6 +665,7 @@ impl Metrics {
     pub fn record_oracle_update(&self, _latency: Duration) {}
     pub fn record_oracle_submission(&self, _status: &str) {}
     pub fn update_emission_pool(&self, _pool_size: f64) {}
+    pub fn update_emission_apply(&self, _height: u64, _pending_udrt_total: u128, _ts: u64) {}
     pub fn update_current_block_gas(&self, _gas: u64) {}
 }
 

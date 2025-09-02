@@ -3,13 +3,14 @@ use crate::runtime::bridge;
 use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::{GovernanceModule, ProposalType};
 use crate::runtime::staking::StakingModule;
+#[cfg(feature = "oracle")]
 use crate::storage::oracle::OracleStore;
+use crate::types::{Msg, SignedTx, ValidationError};
 use crate::{
     mempool::{basic_validate, Mempool},
     state::State,
     storage::blocks::TpsWindow,
     storage::{receipts::TxReceipt, state::Storage, tx::Transaction},
-    types::{SignedTx, ValidationError},
     ws::server::WsHub,
 };
 use axum::{
@@ -20,6 +21,10 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+pub mod errors; // restored errors module export
+#[cfg(feature = "oracle")]
+pub mod oracle;
 
 #[derive(Clone)]
 pub struct RpcContext {
@@ -32,6 +37,13 @@ pub struct RpcContext {
     pub governance: Arc<Mutex<GovernanceModule>>,
     pub staking: Arc<Mutex<StakingModule>>,
     pub metrics: Arc<crate::metrics::Metrics>,
+    pub features: FeatureFlags,
+}
+
+#[derive(Clone, Copy)]
+pub struct FeatureFlags {
+    pub governance: bool,
+    pub staking: bool,
 }
 
 #[derive(Deserialize)]
@@ -46,12 +58,12 @@ fn validate_signed_tx(
     account_state: &crate::state::AccountState,
 ) -> Result<(), ValidationError> {
     // Verify signature
-    if let Err(_) = signed_tx.verify() {
+    if signed_tx.verify().is_err() {
         return Err(ValidationError::InvalidSignature);
     }
 
     // Validate transaction
-    if let Err(_) = signed_tx.tx.validate(expected_chain_id) {
+    if signed_tx.tx.validate(expected_chain_id).is_err() {
         return Err(ValidationError::InvalidChainId {
             expected: expected_chain_id.to_string(),
             got: signed_tx.tx.chain_id.clone(),
@@ -77,7 +89,7 @@ fn validate_signed_tx(
     // Add amounts from messages
     for msg in &signed_tx.tx.msgs {
         match msg {
-            crate::types::Msg::Send { denom, amount, .. } => {
+            Msg::Send { denom, amount, .. } => {
                 // Convert DGT/DRT to micro denominations
                 let micro_denom = match denom.to_ascii_uppercase().as_str() {
                     "DGT" => "udgt",
@@ -195,7 +207,7 @@ pub async fn submit(
                 }
                 crate::mempool::RejectionReason::Duplicate(_) => ApiError::DuplicateTx,
                 crate::mempool::RejectionReason::PolicyViolation(msg) => {
-                    ApiError::BadRequest(format!("policy violation: {}", msg))
+                    ApiError::BadRequest(format!("policy violation: {msg}"))
                 }
                 crate::mempool::RejectionReason::InternalError(_) => ApiError::Internal,
             });
@@ -287,7 +299,6 @@ pub async fn get_transaction_receipt(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     if let Some(r) = ctx.storage.get_receipt(&hash) {
         let mut v = serde_json::to_value(&r).unwrap();
-        // Attach PQC algorithm placeholder for future (tx signatures currently separate)
         v["pqc_algorithm"] = serde_json::json!("Dilithium5");
         return Ok(Json(v));
     }
@@ -353,34 +364,52 @@ pub async fn get_tx(
     ctx: axum::Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     if let Some(r) = ctx.storage.get_receipt(&hash) {
-        let mut v = serde_json::to_value(r).unwrap();
-        let store = OracleStore {
-            db: &ctx.storage.db,
-        };
-        if let Some(ai) = store.get_ai_risk(&hash) {
-            v["ai_risk_score"] = serde_json::json!(ai.risk_score);
-            v["ai_model_id"] = serde_json::json!(ai.model_id);
-            if let Some(confidence) = ai.confidence {
-                v["ai_confidence"] = serde_json::json!(confidence);
+        let v = {
+            #[cfg(feature = "oracle")]
+            let mut tmp = serde_json::to_value(r).unwrap();
+            #[cfg(not(feature = "oracle"))]
+            let tmp = serde_json::to_value(r).unwrap();
+            #[cfg(feature = "oracle")]
+            {
+                let store = OracleStore {
+                    db: &ctx.storage.db,
+                };
+                if let Some(ai) = store.get_ai_risk(&hash) {
+                    tmp["ai_risk_score"] = serde_json::json!(ai.risk_score);
+                    tmp["ai_model_id"] = serde_json::json!(ai.model_id);
+                    if let Some(confidence) = ai.confidence {
+                        tmp["ai_confidence"] = serde_json::json!(confidence);
+                    }
+                }
             }
-        }
-        Ok(Json(v))
-    } else if ctx.mempool.lock().unwrap().contains(&hash) {
-        let store = OracleStore {
-            db: &ctx.storage.db,
+            tmp
         };
-        let mut base = serde_json::json!({"status":"pending","hash": hash });
-        if let Some(ai) = store.get_ai_risk(&hash) {
-            base["ai_risk_score"] = serde_json::json!(ai.risk_score);
-            base["ai_model_id"] = serde_json::json!(ai.model_id);
-            if let Some(confidence) = ai.confidence {
-                base["ai_confidence"] = serde_json::json!(confidence);
-            }
-        }
-        Ok(Json(base))
-    } else {
-        Err(ApiError::NotFound)
+        return Ok(Json(v));
     }
+    if ctx.mempool.lock().unwrap().contains(&hash) {
+        let base = {
+            #[cfg(feature = "oracle")]
+            let mut tmp = serde_json::json!({"status":"pending","hash": hash });
+            #[cfg(not(feature = "oracle"))]
+            let tmp = serde_json::json!({"status":"pending","hash": hash });
+            #[cfg(feature = "oracle")]
+            {
+                let store = OracleStore {
+                    db: &ctx.storage.db,
+                };
+                if let Some(ai) = store.get_ai_risk(&hash) {
+                    tmp["ai_risk_score"] = serde_json::json!(ai.risk_score);
+                    tmp["ai_model_id"] = serde_json::json!(ai.model_id);
+                    if let Some(confidence) = ai.confidence {
+                        tmp["ai_confidence"] = serde_json::json!(confidence);
+                    }
+                }
+            }
+            tmp
+        };
+        return Ok(Json(base));
+    }
+    Err(ApiError::NotFound)
 }
 
 pub async fn stats(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value> {
@@ -443,11 +472,11 @@ pub async fn emission_claim(
     }
 }
 
-// Governance RPC endpoints
 pub async fn gov_submit_proposal(
     Extension(ctx): Extension<RpcContext>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    if !ctx.features.governance { return Err(ApiError::NotImplemented("governance feature disabled".into())); }
     use crate::runtime::governance::ProposalType;
 
     let title = body
@@ -467,12 +496,10 @@ pub async fn gov_submit_proposal(
         .and_then(|v| v.as_str())
         .ok_or(ApiError::Internal)?;
     let height = ctx.storage.height();
-
     let proposal_type = ProposalType::ParameterChange {
         key: key.to_string(),
         value: value.to_string(),
     };
-
     match ctx.governance.lock().unwrap().submit_proposal(
         height,
         title.to_string(),
@@ -480,10 +507,7 @@ pub async fn gov_submit_proposal(
         proposal_type,
     ) {
         Ok(proposal_id) => Ok(Json(json!({"proposal_id": proposal_id}))),
-        Err(e) => {
-            eprintln!("Governance submit error: {}", e);
-            Err(ApiError::Internal)
-        }
+        Err(_) => Err(ApiError::Internal),
     }
 }
 
@@ -491,6 +515,7 @@ pub async fn gov_deposit(
     Extension(ctx): Extension<RpcContext>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    if !ctx.features.governance { return Err(ApiError::NotImplemented("governance feature disabled".into())); }
     let depositor = body
         .get("depositor")
         .and_then(|v| v.as_str())
@@ -513,7 +538,7 @@ pub async fn gov_deposit(
     {
         Ok(()) => Ok(Json(json!({"success": true}))),
         Err(e) => {
-            eprintln!("Governance deposit error: {}", e);
+            eprintln!("Governance deposit error: {e}");
             Err(ApiError::Internal)
         }
     }
@@ -523,6 +548,7 @@ pub async fn gov_vote(
     Extension(ctx): Extension<RpcContext>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    if !ctx.features.governance { return Err(ApiError::NotImplemented("governance feature disabled".into())); }
     use crate::runtime::governance::VoteOption;
 
     let voter = body
@@ -555,7 +581,7 @@ pub async fn gov_vote(
     {
         Ok(()) => Ok(Json(json!({"success": true}))),
         Err(e) => {
-            eprintln!("Governance vote error: {}", e);
+            eprintln!("Governance vote error: {e}");
             Err(ApiError::Internal)
         }
     }
@@ -569,7 +595,7 @@ pub async fn gov_get_proposal(
         Ok(Some(proposal)) => Ok(Json(serde_json::to_value(proposal).unwrap())),
         Ok(None) => Err(ApiError::Internal),
         Err(e) => {
-            eprintln!("Governance get proposal error: {}", e);
+            eprintln!("Governance get proposal error: {e}");
             Err(ApiError::Internal)
         }
     }
@@ -582,10 +608,17 @@ pub async fn gov_tally(
     match ctx.governance.lock().unwrap().tally(proposal_id) {
         Ok(tally) => Ok(Json(serde_json::to_value(tally).unwrap())),
         Err(e) => {
-            eprintln!("Governance tally error: {}", e);
+            eprintln!("Governance tally error: {e}");
             Err(ApiError::Internal)
         }
     }
+}
+#[cfg(not(feature = "governance"))]
+pub async fn gov_tally(
+    _ctx: Extension<RpcContext>,
+    _path: Path<u64>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    Err(ApiError::BadRequest("governance feature disabled".into()))
 }
 
 pub async fn gov_get_config(
@@ -629,7 +662,7 @@ pub async fn gov_list_proposals(
                 let proposal_summary = json!({
                     "id": proposal.id,
                     "type": match &proposal.proposal_type {
-                        ProposalType::ParameterChange { key, .. } => format!("ParameterChange({})", key)
+                        ProposalType::ParameterChange { key, .. } => format!("ParameterChange({key})")
                     },
                     "title": proposal.title,
                     "status": proposal.status,
@@ -655,7 +688,7 @@ pub async fn gov_list_proposals(
             })))
         }
         Err(e) => {
-            eprintln!("Failed to get proposals: {}", e);
+            eprintln!("Failed to get proposals: {e}");
             Err(ApiError::Internal)
         }
     }
@@ -688,7 +721,7 @@ pub async fn gov_get_proposal_votes(
             })))
         }
         Err(e) => {
-            eprintln!("Failed to get proposal votes: {}", e);
+            eprintln!("Failed to get proposal votes: {e}");
             Err(ApiError::Internal)
         }
     }
@@ -707,7 +740,7 @@ pub async fn gov_get_voting_power(
             "voting_power": voting_power.to_string()
         }))),
         Err(e) => {
-            eprintln!("Failed to get voting power for {}: {}", address, e);
+            eprintln!("Failed to get voting power for {address}: {e}");
             Err(ApiError::Internal)
         }
     }
@@ -729,7 +762,7 @@ pub async fn gov_get_total_voting_power(
             })))
         }
         Err(e) => {
-            eprintln!("Failed to get total voting power: {}", e);
+            eprintln!("Failed to get total voting power: {e}");
             Err(ApiError::Internal)
         }
     }
@@ -743,24 +776,22 @@ pub struct RewardsQuery {
     pub start_height: Option<u64>,
 }
 
-/// GET /api/rewards - Get recent emission events with pagination
+/// GET /api/rewards - Get recent emission events with pagination (staking optional)
+#[cfg(feature = "staking")]
 pub async fn get_rewards(
     Extension(ctx): Extension<RpcContext>,
     Query(params): Query<RewardsQuery>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let limit = params.limit.unwrap_or(50).min(500); // Default 50, max 500
+    let limit = params.limit.unwrap_or(50).min(500);
     let current_height = ctx.storage.height();
     let start_height = params.start_height.unwrap_or(current_height);
-
     let mut events = Vec::new();
     let emission = ctx.emission.lock().unwrap();
-
     for height in (1..=start_height.min(current_height))
         .rev()
         .take(limit as usize)
     {
         if let Some(event) = emission.get_event(height) {
-            // Format numbers as strings to prevent JS precision issues
             let formatted_event = json!({
                 "height": event.height,
                 "timestamp": event.timestamp,
@@ -777,22 +808,44 @@ pub async fn get_rewards(
             events.push(formatted_event);
         }
     }
-
-    // Get staking stats
     let (total_stake, reward_index, pending_emission) = ctx.staking.lock().unwrap().get_stats();
-
     Ok(Json(json!({
         "events": events,
-        "pagination": {
-            "limit": limit,
-            "start_height": start_height,
-            "total_available": current_height,
-        },
+        "pagination": {"limit": limit, "start_height": start_height, "total_available": current_height},
         "staking_stats": {
             "total_stake": total_stake.to_string(),
             "reward_index": reward_index.to_string(),
             "pending_emission": pending_emission.to_string(),
         }
+    })))
+}
+#[cfg(not(feature = "staking"))]
+pub async fn get_rewards(
+    Extension(ctx): Extension<RpcContext>,
+    Query(params): Query<RewardsQuery>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let limit = params.limit.unwrap_or(50).min(500);
+    let current_height = ctx.storage.height();
+    let start_height = params.start_height.unwrap_or(current_height);
+    let mut events = Vec::new();
+    let emission = ctx.emission.lock().unwrap();
+    for height in (1..=start_height.min(current_height))
+        .rev()
+        .take(limit as usize)
+    {
+        if let Some(event) = emission.get_event(height) {
+            events.push(json!({
+                "height": event.height,
+                "timestamp": event.timestamp,
+                "total_emitted": event.total_emitted.to_string(),
+                "circulating_supply": event.circulating_supply.to_string(),
+            }));
+        }
+    }
+    Ok(Json(json!({
+        "events": events,
+        "pagination": {"limit": limit, "start_height": start_height, "total_available": current_height},
+        "staking_stats": {"total_stake": "0", "reward_index": "0", "pending_emission": "0"}
     })))
 }
 
@@ -825,7 +878,7 @@ pub async fn get_rewards_by_height(
     }
 }
 
-/// Enhanced stats endpoint with emission data
+/// Enhanced stats endpoint with emission data (staking optional)
 pub async fn stats_with_emission(
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
@@ -843,7 +896,11 @@ pub async fn stats_with_emission(
     let latest_emission_event = ctx.emission.lock().unwrap().get_event(current_height);
 
     // Get staking stats
-    let (total_stake, reward_index, pending_emission) = ctx.staking.lock().unwrap().get_stats();
+    let (total_stake, reward_index, pending_emission) = if ctx.features.staking {
+        ctx.staking.lock().unwrap().get_stats()
+    } else {
+        (0, 0, 0)
+    };
 
     Ok(Json(json!({
         "height": ctx.storage.height(),
@@ -856,11 +913,7 @@ pub async fn stats_with_emission(
             "total_emitted": event.total_emitted.to_string(),
             "circulating_supply": event.circulating_supply.to_string(),
         })),
-        "staking": {
-            "total_stake": total_stake.to_string(),
-            "reward_index": reward_index.to_string(),
-            "pending_emission": pending_emission.to_string(),
-        }
+        "staking": {"total_stake": total_stake.to_string(), "reward_index": reward_index.to_string(), "pending_emission": pending_emission.to_string()},
     })))
 }
 
@@ -869,37 +922,30 @@ pub async fn staking_claim(
     Extension(ctx): Extension<RpcContext>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    if !ctx.features.staking {
+        return Err(ApiError::NotImplemented("staking feature disabled".into()));
+    }
     let address = body
         .get("address")
         .and_then(|v| v.as_str())
         .ok_or(ApiError::BadRequest("Missing address field".to_string()))?;
-
     let mut staking = ctx.staking.lock().unwrap();
     let claimed = staking.claim_rewards(address);
-
     if claimed > 0 {
-        // Credit DRT tokens to the address
         if let Ok(mut state) = ctx.state.lock() {
             state.credit(address, "udrt", claimed);
         }
     }
-
-    // Get current reward index and new balance for response
     let reward_index = staking.get_stats().1;
-    drop(staking); // Release lock before getting balance
-
+    drop(staking);
     let new_balance = if let Ok(state) = ctx.state.lock() {
         state.get_balance(address, "udrt")
     } else {
         0
     };
-
-    Ok(Json(json!({
-        "address": address,
-        "claimed": claimed.to_string(),
-        "new_balance": new_balance.to_string(),
-        "reward_index": reward_index.to_string(),
-    })))
+    Ok(Json(
+        json!({"address": address, "claimed": claimed.to_string(), "new_balance": new_balance.to_string(), "reward_index": reward_index.to_string()}),
+    ))
 }
 
 /// GET /api/staking/accrued/:address - Get accrued rewards for an address
@@ -907,24 +953,25 @@ pub async fn staking_get_accrued(
     Extension(ctx): Extension<RpcContext>,
     Path(address): Path<String>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let staking = ctx.staking.lock().unwrap();
-    let accrued = staking.get_accrued_rewards(&address);
-
+    let (accrued, reward_index) = if ctx.features.staking {
+        let staking = ctx.staking.lock().unwrap();
+        (staking.get_accrued_rewards(&address), staking.get_stats().1)
+    } else {
+        (0, 0)
+    };
     Ok(Json(json!({
         "address": address,
         "accrued_rewards": accrued.to_string(),
-        "reward_index": staking.get_stats().1.to_string(),
+        "reward_index": reward_index.to_string(),
     })))
 }
-
-pub mod errors;
-pub mod oracle;
 
 /// POST /api/staking/delegate - Delegate tokens to a validator
 pub async fn staking_delegate(
     Json(payload): Json<serde_json::Value>,
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    if !ctx.features.staking { return Err(ApiError::NotImplemented("staking feature disabled".into())); }
     let delegator_addr = payload["delegator_addr"]
         .as_str()
         .ok_or(ApiError::BadRequest("missing delegator_addr".to_string()))?;
@@ -936,18 +983,13 @@ pub async fn staking_delegate(
         .ok_or(ApiError::BadRequest("missing amount_udgt".to_string()))?
         .parse::<u128>()
         .map_err(|_| ApiError::BadRequest("invalid amount_udgt".to_string()))?;
-
     let mut staking = ctx.staking.lock().unwrap();
     staking
         .delegate(delegator_addr, validator_addr, amount_udgt)
-        .map_err(|e| ApiError::BadRequest(e))?;
-
-    Ok(Json(json!({
-        "status": "success",
-        "delegator_addr": delegator_addr,
-        "validator_addr": validator_addr,
-        "amount_udgt": amount_udgt.to_string()
-    })))
+        .map_err(ApiError::BadRequest)?;
+    Ok(Json(
+        json!({"status":"success","delegator_addr":delegator_addr,"validator_addr":validator_addr,"amount_udgt": amount_udgt.to_string()}),
+    ))
 }
 
 /// POST /api/staking/undelegate - Undelegate tokens from a validator
@@ -955,6 +997,7 @@ pub async fn staking_undelegate(
     Json(payload): Json<serde_json::Value>,
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    if !ctx.features.staking { return Err(ApiError::NotImplemented("staking feature disabled".into())); }
     let delegator_addr = payload["delegator_addr"]
         .as_str()
         .ok_or(ApiError::BadRequest("missing delegator_addr".to_string()))?;
@@ -966,18 +1009,13 @@ pub async fn staking_undelegate(
         .ok_or(ApiError::BadRequest("missing amount_udgt".to_string()))?
         .parse::<u128>()
         .map_err(|_| ApiError::BadRequest("invalid amount_udgt".to_string()))?;
-
     let mut staking = ctx.staking.lock().unwrap();
     staking
         .undelegate(delegator_addr, validator_addr, amount_udgt)
-        .map_err(|e| ApiError::BadRequest(e))?;
-
-    Ok(Json(json!({
-        "status": "success",
-        "delegator_addr": delegator_addr,
-        "validator_addr": validator_addr,
-        "amount_udgt": amount_udgt.to_string()
-    })))
+        .map_err(ApiError::BadRequest)?;
+    Ok(Json(
+        json!({"status":"success","delegator_addr":delegator_addr,"validator_addr":validator_addr,"amount_udgt": amount_udgt.to_string()}),
+    ))
 }
 
 /// POST /api/contract/deploy - Deploy WASM contract

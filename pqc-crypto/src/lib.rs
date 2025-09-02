@@ -720,25 +720,34 @@ impl CryptoAgilityManager {
             if now + migration.deprecation_warning_period >= migration.migration_deadline {
                 log::warn!(
                     "Algorithm {:?} will be deprecated; migrating to {:?} by {:?}",
-                    migration.from_algorithm, migration.to_algorithm, migration.migration_deadline
+                    migration.from_algorithm,
+                    migration.to_algorithm,
+                    migration.migration_deadline
                 );
             } else {
                 log::debug!(
                     "Migration scheduled from {:?} to {:?} (deadline {:?})",
-                    migration.from_algorithm, migration.to_algorithm, migration.migration_deadline
+                    migration.from_algorithm,
+                    migration.to_algorithm,
+                    migration.migration_deadline
                 );
             }
             if now >= migration.migration_deadline {
                 self.preferred_algorithm = migration.to_algorithm.clone();
                 self.migration_schedule = None;
-                log::info!("Applied algorithm migration to {:?}", self.preferred_algorithm);
+                log::info!(
+                    "Applied algorithm migration to {:?}",
+                    self.preferred_algorithm
+                );
             }
         }
     }
 }
 
 impl Default for CryptoAgilityManager {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 // Bridge-specific PQC functionality

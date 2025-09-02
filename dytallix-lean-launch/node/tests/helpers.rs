@@ -13,7 +13,7 @@ pub fn dummy_hash(tag: &str) -> String {
 
 #[allow(dead_code)]
 pub fn make_tx(from: &str, to: &str, amount: u128, fee: u128, nonce: u64) -> Transaction {
-    let hash = blake3_tx_hash(format!("{}:{}:{}:{}:{}", from, to, amount, fee, nonce).as_bytes());
+    let hash = blake3_tx_hash(format!("{from}:{to}:{amount}:{fee}:{nonce}").as_bytes());
     Transaction::new(
         hash,
         from.to_string(),

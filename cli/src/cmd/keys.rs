@@ -66,7 +66,7 @@ fn read_password(pf: Option<&PathBuf>, prompt: &str) -> Result<String> {
         return Ok(std::fs::read_to_string(p)?.trim().to_string());
     }
     use rpassword::read_password;
-    print!("{}", prompt);
+    print!("{prompt}");
     use std::io::Write;
     std::io::stdout().flush().ok();
     let pw = read_password()?;
@@ -184,7 +184,7 @@ pub async fn handle(cli_home: &str, fmt: OutputFormat, kc: KeysCmd) -> Result<()
             if fmt.is_json() {
                 print_json(&serde_json::json!({"result":"password_changed","name":name}))?;
             } else {
-                println!("Password changed for {}", name);
+                println!("Password changed for {name}");
             }
         }
         KeyAction::Export { name } => {

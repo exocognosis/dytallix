@@ -35,7 +35,8 @@ struct ApiResponse<T> {
 }
 
 #[derive(Debug, Serialize)]
-struct BlockchainStats { // removed underscore - struct is intended for API responses
+struct BlockchainStats {
+    // removed underscore - struct is intended for API responses
     current_block: u64,
     total_transactions: usize,
     network_peers: usize,
@@ -55,7 +56,8 @@ struct BlockInfo {
 }
 
 #[derive(Debug, Serialize)]
-struct PeerInfo { // removed underscore
+struct PeerInfo {
+    // removed underscore
     id: String,
     address: String,
     status: String,
@@ -65,7 +67,8 @@ struct PeerInfo { // removed underscore
 }
 
 #[derive(Debug, Serialize)]
-struct SystemStatus { // removed underscore
+struct SystemStatus {
+    // removed underscore
     version: String,
     uptime: u64,
     block_height: u64,
@@ -109,14 +112,16 @@ impl WebSocketMessage {
 }
 
 #[derive(Debug, Serialize)]
-struct TransactionResponse { // removed underscore
+struct TransactionResponse {
+    // removed underscore
     hash: String,
     status: String,
     block_number: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
-struct TransactionDetails { // removed underscore
+struct TransactionDetails {
+    // removed underscore
     hash: String,
     from: String,
     to: String,
@@ -137,21 +142,24 @@ struct ErrorResponse {
 
 // Staking API types
 #[derive(Debug, Deserialize)]
-struct _StakingRegisterRequest { // underscore
+struct _StakingRegisterRequest {
+    // underscore
     address: String,
     consensus_pubkey: String,
     commission_rate: u16,
 }
 
 #[derive(Debug, Deserialize)]
-struct _StakingDelegateRequest { // underscore
+struct _StakingDelegateRequest {
+    // underscore
     delegator: String,
     validator: String,
     amount: u128,
 }
 
 #[derive(Debug, Deserialize)]
-struct _StakingClaimRequest { // underscore
+struct _StakingClaimRequest {
+    // underscore
     delegator: String,
     validator: String,
 }
@@ -166,7 +174,8 @@ struct ValidatorResponse {
 }
 
 #[derive(Debug, Serialize)]
-struct _DelegationResponse { // underscore
+struct _DelegationResponse {
+    // underscore
     delegator_address: String,
     validator_address: String,
     stake_amount: u128,
@@ -307,7 +316,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     )
                     .into_response()),
                     Err(e) => {
-                        error!("balance error: {}", e);
+                        error!("balance error: {e}");
                         Ok(warp::reply::with_status(
                             warp::reply::json(&ApiResponse::<()> {
                                 success: false,
@@ -449,8 +458,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                                     success: false,
                                     data: None,
                                     error: Some(format!(
-                                        "invalid_nonce:expected:{}:got:{}",
-                                        sender_nonce, n
+                                        "invalid_nonce:expected:{sender_nonce}:got:{n}"
                                     )),
                                 }),
                                 warp::http::StatusCode::UNPROCESSABLE_ENTITY,
@@ -570,7 +578,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     .store_transaction(&crate::types::Transaction::Transfer(tx.clone()))
                     .await
                 {
-                    error!("store tx err: {}", e);
+                    error!("store tx err: {e}");
                 }
                 Ok::<_, warp::Rejection>(
                     warp::reply::with_status(
@@ -603,7 +611,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                 let qs: Vec<(String,String)> = url::form_urlencoded::parse(query.as_bytes()).into_owned().collect();
                 let mut limit = 10usize; let mut from: Option<u64> = None;
                 for (k,v) in qs { if k=="limit" { if let Ok(l)= v.parse::<usize>() { limit = l.min(100);} } else if k=="from" { if let Ok(h)= v.parse::<u64>() { from = Some(h); } } }
-                match storage.list_blocks_desc(limit, from).await { Ok(list) => { let out: Vec<_> = list.into_iter().map(|b| serde_json::json!({"number": b.header.number, "hash": b.hash(), "parent_hash": b.header.parent_hash, "timestamp": b.header.timestamp, "tx_count": b.transactions.len()})).collect(); Ok::<_, warp::Rejection>(warp::reply::with_status(warp::reply::json(&ApiResponse::success(out)), warp::http::StatusCode::OK).into_response()) }, Err(e)=> { error!("blocks err: {}", e); Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("internal_error".into()) }), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response()) } }
+                match storage.list_blocks_desc(limit, from).await { Ok(list) => { let out: Vec<_> = list.into_iter().map(|b| serde_json::json!({"number": b.header.number, "hash": b.hash(), "parent_hash": b.header.parent_hash, "timestamp": b.header.timestamp, "tx_count": b.transactions.len()})).collect(); Ok::<_, warp::Rejection>(warp::reply::with_status(warp::reply::json(&ApiResponse::success(out)), warp::http::StatusCode::OK).into_response()) }, Err(e)=> { error!("blocks err: {e}"); Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("internal_error".into()) }), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response()) } }
             })
             .map(|reply: warp::reply::Response| reply) // identity
             .boxed()
@@ -617,7 +625,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::any().map(move || storage_block.clone()))
         .and_then(|id: String, storage: Arc<crate::storage::StorageManager>| async move {
             let res = if id == "latest" { let h = storage.get_height().unwrap_or(0); storage.get_block_by_height(h).await } else if id.starts_with("0x") { storage.get_block_by_hash(&id).await } else if let Ok(num) = id.parse::<u64>() { storage.get_block_by_height(num).await } else { Ok(None) };
-            match res { Ok(Some(block)) => { let resp = serde_json::json!({"number": block.header.number, "hash": block.hash(), "parent_hash": block.header.parent_hash, "timestamp": block.header.timestamp, "transactions": block.transactions.iter().map(|t| t.hash()).collect::<Vec<_>>()}); Ok::<_, warp::Rejection>(warp::reply::with_status(warp::reply::json(&ApiResponse::success(resp)), warp::http::StatusCode::OK).into_response()) }, Ok(None)=> Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("not_found".into()) }), warp::http::StatusCode::NOT_FOUND).into_response()), Err(e)=> { error!("block err: {}", e); Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("internal_error".into()) }), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response()) } }
+            match res { Ok(Some(block)) => { let resp = serde_json::json!({"number": block.header.number, "hash": block.hash(), "parent_hash": block.header.parent_hash, "timestamp": block.header.timestamp, "transactions": block.transactions.iter().map(|t| t.hash()).collect::<Vec<_>>()}); Ok::<_, warp::Rejection>(warp::reply::with_status(warp::reply::json(&ApiResponse::success(resp)), warp::http::StatusCode::OK).into_response()) }, Ok(None)=> Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("not_found".into()) }), warp::http::StatusCode::NOT_FOUND).into_response()), Err(e)=> { error!("block err: {e}"); Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("internal_error".into()) }), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response()) } }
         })
         .boxed();
 
@@ -772,7 +780,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     "staking_claim_all_rewards" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
-                            if params.len() >= 1 {
+                            if !params.is_empty() {
                                 handle_staking_claim_all_rewards(params, runtime.clone()).await
                             } else {
                                 serde_json::json!({"error": "Invalid parameters"})
@@ -1046,7 +1054,7 @@ async fn handle_websocket(
                 Ok(msg) => {
                     if msg.is_text() {
                         if let Ok(text) = msg.to_str() {
-                            info!("Received WebSocket message: {}", text);
+                            info!("Received WebSocket message: {text}");
 
                             // Handle subscription requests
                             if text.contains("subscribe") {
@@ -1064,7 +1072,7 @@ async fn handle_websocket(
                     }
                 }
                 Err(e) => {
-                    error!("WebSocket error: {}", e);
+                    error!("WebSocket error: {e}");
                     break;
                 }
             }
@@ -1076,7 +1084,7 @@ async fn handle_websocket(
         while let Ok(message) = ws_rx.recv().await {
             let json_msg = serde_json::to_string(&message).unwrap_or_default();
             if let Err(e) = ws_sink.send(warp::ws::Message::text(json_msg)).await {
-                error!("Failed to send WebSocket message: {}", e);
+                error!("Failed to send WebSocket message: {e}");
                 break;
             }
         }
@@ -1466,7 +1474,7 @@ fn generate_contract_address(code_hash: &[u8]) -> String {
 
 fn generate_instance_address(code_hash: &str) -> String {
     let timestamp = chrono::Utc::now().timestamp();
-    let input = format!("{}_{}", code_hash, timestamp);
+    let input = format!("{code_hash}_{timestamp}");
     let hash = blake3::hash(input.as_bytes());
     format!("instance_{}", hex::encode(&hash.as_bytes()[..16]))
 }

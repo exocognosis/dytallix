@@ -7,9 +7,7 @@ use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // Import PQC bridge functionality
-use dytallix_pqc::{
-    BridgePQCManager, BridgeSignature, CrossChainPayload,
-};
+use dytallix_pqc::{BridgePQCManager, BridgeSignature, CrossChainPayload};
 
 // ============================================================================
 // Core Types and Structures
@@ -161,10 +159,15 @@ pub struct DytallixBridge {
     pqc_manager: BridgePQCManager,
 }
 
+impl Default for DytallixBridge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DytallixBridge {
     pub fn new() -> Self {
-        let pqc_manager =
-            BridgePQCManager::new().expect("Failed to initialize BridgePQCManager");
+        let pqc_manager = BridgePQCManager::new().expect("Failed to initialize BridgePQCManager");
 
         let mut bridge = Self {
             validators: HashMap::new(),
@@ -311,8 +314,7 @@ impl DytallixBridge {
         {
             Ok(result) => Ok(result.consensus_reached),
             Err(e) => Err(BridgeError::PQCVerificationFailed(format!(
-                "PQC verification failed: {:?}",
-                e
+                "PQC verification failed: {e:?}"
             ))),
         }
     }
@@ -362,7 +364,7 @@ impl DytallixBridge {
 
         // Calculate payload hash for verification
         let payload_hash = serde_json::to_vec(payload).map_err(|e| {
-            BridgeError::SerializationError(format!("Payload serialization error: {}", e))
+            BridgeError::SerializationError(format!("Payload serialization error: {e}"))
         })?;
         let hash = blake3::hash(&payload_hash);
 
@@ -446,8 +448,7 @@ impl DytallixBridge {
                 }
                 Err(e) => {
                     println!(
-                        "Warning: Failed to get signature from validator {}: {:?}",
-                        validator_id, e
+                        "Warning: Failed to get signature from validator {validator_id}: {e:?}"
                     );
                     continue;
                 }
@@ -554,7 +555,7 @@ impl DytallixBridge {
 
     fn set_bridge_halted_state(&self, halted: bool) -> Result<(), BridgeError> {
         // In production, this would update the bridge contract state
-        println!("⚡ Setting bridge halted state to: {}", halted);
+        println!("⚡ Setting bridge halted state to: {halted}");
 
         // Update bridge state in smart contract
         self.update_bridge_contract_state("halted", &halted.to_string())?;
@@ -586,8 +587,7 @@ impl DytallixBridge {
         let consensus_reached = resume_votes >= required_votes;
 
         println!(
-            "Resume votes: {}/{}, required: {}, consensus: {}",
-            resume_votes, total_active_validators, required_votes, consensus_reached
+            "Resume votes: {resume_votes}/{total_active_validators}, required: {required_votes}, consensus: {consensus_reached}"
         );
 
         Ok(consensus_reached)
@@ -615,7 +615,7 @@ impl DytallixBridge {
     // Helper methods for bridge operations
     fn calculate_bridge_tx_hash(&self, bridge_tx: &BridgeTx) -> Result<Vec<u8>, BridgeError> {
         let serialized = serde_json::to_vec(bridge_tx)
-            .map_err(|e| BridgeError::UnknownError(format!("Serialization error: {}", e)))?;
+            .map_err(|e| BridgeError::UnknownError(format!("Serialization error: {e}")))?;
         Ok(blake3::hash(&serialized).as_bytes().to_vec())
     }
 
@@ -626,7 +626,7 @@ impl DytallixBridge {
     ) -> Result<PQCSignature, BridgeError> {
         // In production, this would make an API call to the validator
         let validator = self.validators.get(validator_id).ok_or_else(|| {
-            BridgeError::ValidatorSignatureFailed(format!("Validator {} not found", validator_id))
+            BridgeError::ValidatorSignatureFailed(format!("Validator {validator_id} not found"))
         })?;
 
         // Simulate signature generation
@@ -674,7 +674,7 @@ impl DytallixBridge {
         _value: &T,
     ) -> Result<(), BridgeError> {
         // In production, this would persist to database
-        println!("💾 Persisting to {}.{}: serialized data", table, key);
+        println!("💾 Persisting to {table}.{key}: serialized data");
         Ok(())
     }
 
@@ -697,10 +697,7 @@ impl DytallixBridge {
         address: &str,
     ) -> Result<(), BridgeError> {
         // In production, this would call the wrapped token contract
-        println!(
-            "📞 Calling wrapped contract: {}({}, {})",
-            method, asset_id, address
-        );
+        println!("📞 Calling wrapped contract: {method}({asset_id}, {address})");
         Ok(())
     }
 
@@ -718,7 +715,7 @@ impl DytallixBridge {
 
     fn update_tvl_metrics(&self, asset_id: &str) -> Result<(), BridgeError> {
         // In production, this would update TVL metrics for monitoring
-        println!("📊 Updating TVL metrics for asset: {}", asset_id);
+        println!("📊 Updating TVL metrics for asset: {asset_id}");
         Ok(())
     }
 
@@ -729,22 +726,19 @@ impl DytallixBridge {
         _data: &T,
     ) -> Result<(), BridgeError> {
         // In production, this would send P2P messages to validators
-        println!(
-            "📡 Sending {} notification to validator {}",
-            msg_type, validator_id
-        );
+        println!("📡 Sending {msg_type} notification to validator {validator_id}");
         Ok(())
     }
 
     fn update_bridge_contract_state(&self, key: &str, value: &str) -> Result<(), BridgeError> {
         // In production, this would update bridge contract state
-        println!("⚙️ Updating bridge contract state: {} = {}", key, value);
+        println!("⚙️ Updating bridge contract state: {key} = {value}");
         Ok(())
     }
 
     fn get_validator_resume_vote(&self, validator_id: &str) -> Result<bool, BridgeError> {
         // In production, this would query validator for their vote
-        println!("🗳️ Getting resume vote from validator {}", validator_id);
+        println!("🗳️ Getting resume vote from validator {validator_id}");
         Ok(true) // Simulate positive vote for demo
     }
 
@@ -822,7 +816,7 @@ impl PQCBridge for DytallixBridge {
         let wrapped_asset = WrappedAsset {
             original_asset_id: asset.id,
             original_chain: origin_chain.to_string(),
-            wrapped_contract: format!("wrapped_{}_{}", origin_chain, dest_address),
+            wrapped_contract: format!("wrapped_{origin_chain}_{dest_address}"),
             amount: asset.amount,
             wrapping_timestamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -864,7 +858,7 @@ impl PQCBridge for DytallixBridge {
 
     fn emergency_halt(&self, reason: &str) -> Result<(), BridgeError> {
         // Implement emergency halt mechanism with validator consensus
-        println!("🚨 EMERGENCY HALT INITIATED: {}", reason);
+        println!("🚨 EMERGENCY HALT INITIATED: {reason}");
 
         // Log halt reason and timestamp
         let halt_record = EmergencyHaltRecord {
@@ -993,6 +987,12 @@ pub struct PerformanceMonitor {
     start_time: SystemTime,
 }
 
+impl Default for PerformanceMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerformanceMonitor {
     pub fn new() -> Self {
         Self {
@@ -1079,13 +1079,10 @@ impl CosmosClient {
         ))
         .await;
 
-        let tx_hash = format!("cosmos_tx_{}", hex::encode(&rand::random::<[u8; 16]>()));
+        let tx_hash = format!("cosmos_tx_{}", hex::encode(rand::random::<[u8; 16]>()));
         let elapsed = start_time.elapsed().as_millis() as u64;
 
-        println!(
-            "✅ IBC packet sent successfully in {}ms, tx: {}",
-            elapsed, tx_hash
-        );
+        println!("✅ IBC packet sent successfully in {elapsed}ms, tx: {tx_hash}");
         Ok(tx_hash)
     }
 
@@ -1094,7 +1091,7 @@ impl CosmosClient {
         packet_commitment: &str,
     ) -> Result<Option<Vec<u8>>, IBCError> {
         // Real acknowledgment query using CosmJS
-        println!("🔍 Querying packet acknowledgment: {}", packet_commitment);
+        println!("🔍 Querying packet acknowledgment: {packet_commitment}");
 
         // Simulate real query with network delay
         tokio::time::sleep(tokio::time::Duration::from_millis(
@@ -1113,6 +1110,12 @@ impl CosmosClient {
         } else {
             Ok(None)
         }
+    }
+}
+
+impl Default for RelayerConfig {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1179,6 +1182,12 @@ pub struct DytallixIBC {
     performance_monitor: PerformanceMonitor,
 }
 
+impl Default for DytallixIBC {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DytallixIBC {
     pub fn new() -> Self {
         let pqc_manager = BridgePQCManager::new().expect("Failed to initialize IBC PQC manager");
@@ -1221,8 +1230,7 @@ impl DytallixIBC {
         self.relayer_config.base_polling_interval_ms = polling_interval_ms;
 
         println!(
-            "🤖 Applied AI optimization: batch_size={}, connections={}, interval={}ms",
-            batch_size, concurrent_connections, polling_interval_ms
+            "🤖 Applied AI optimization: batch_size={batch_size}, connections={concurrent_connections}, interval={polling_interval_ms}ms"
         );
     }
 
@@ -1276,8 +1284,7 @@ impl DytallixIBC {
             {
                 Ok(is_valid) => Ok(is_valid),
                 Err(e) => Err(IBCError::PQCVerificationFailed(format!(
-                    "PQC verification failed: {:?}",
-                    e
+                    "PQC verification failed: {e:?}"
                 ))),
             }
         } else {
@@ -1314,7 +1321,7 @@ impl DytallixIBC {
 
         // Calculate payload hash
         let payload_hash = serde_json::to_vec(payload)
-            .map_err(|e| IBCError::UnknownError(format!("Payload serialization error: {}", e)))?;
+            .map_err(|e| IBCError::UnknownError(format!("Payload serialization error: {e}")))?;
         let hash = blake3::hash(&payload_hash);
 
         Ok(BridgeSignature {
@@ -1460,11 +1467,10 @@ impl DytallixIBC {
             // _monitor.record_transaction(latency_ms, success);
 
             if success {
-                println!("✅ IBC packet transmitted successfully in {}ms", latency_ms);
+                println!("✅ IBC packet transmitted successfully in {latency_ms}ms");
             } else {
                 return Err(IBCError::UnknownError(format!(
-                    "Transmission failed after {}ms",
-                    latency_ms
+                    "Transmission failed after {latency_ms}ms"
                 )));
             }
         } else {
@@ -1480,7 +1486,7 @@ impl DytallixIBC {
 
         // Serialize packet for transmission
         let serialized = serde_json::to_vec(packet)
-            .map_err(|e| IBCError::UnknownError(format!("Packet serialization error: {}", e)))?;
+            .map_err(|e| IBCError::UnknownError(format!("Packet serialization error: {e}")))?;
 
         // Send via networking layer (P2P, relayer, etc.)
         self.send_to_relayer(&packet.dest_channel, &serialized)?;
@@ -1596,7 +1602,7 @@ impl DytallixIBC {
 
     fn update_packet_state(&self, commitment_key: &str, state: &str) -> Result<(), IBCError> {
         // Update packet state in persistent storage
-        println!("📝 Updating packet state: {} -> {}", commitment_key, state);
+        println!("📝 Updating packet state: {commitment_key} -> {state}");
         Ok(())
     }
 
@@ -1622,7 +1628,7 @@ impl DytallixIBC {
 
     fn cleanup_packet_commitment(&self, commitment_key: &str) -> Result<(), IBCError> {
         // Clean up packet commitment from storage
-        println!("🧹 Cleaning up packet commitment: {}", commitment_key);
+        println!("🧹 Cleaning up packet commitment: {commitment_key}");
         Ok(())
     }
 
@@ -1646,7 +1652,7 @@ impl DytallixIBC {
         _channel: &IBCChannel,
     ) -> Result<(), IBCError> {
         // Store channel state in persistent storage
-        println!("💾 Storing channel state: {}_{}", port, channel_id);
+        println!("💾 Storing channel state: {port}_{channel_id}");
 
         // In production, store in database
         // let key = format!("{}_{}", port, channel_id);
@@ -1658,7 +1664,7 @@ impl DytallixIBC {
     fn initialize_channel_sequences(&self, channel: &IBCChannel) -> Result<(), IBCError> {
         // Initialize sequence numbers for the channel
         let channel_key = format!("{}_{}", channel.port, channel.id);
-        println!("🔢 Initializing sequences for channel: {}", channel_key);
+        println!("🔢 Initializing sequences for channel: {channel_key}");
 
         // In production, store in persistent storage
         // self.next_sequence.insert(channel_key, 1);
@@ -1677,7 +1683,7 @@ impl DytallixIBC {
 
     fn find_channel_by_id(&self, channel_id: &str) -> Result<IBCChannel, IBCError> {
         // Find channel by ID in storage
-        println!("🔍 Finding channel by ID: {}", channel_id);
+        println!("🔍 Finding channel by ID: {channel_id}");
 
         // In production, search through persistent storage
         // For demo, return a placeholder channel
@@ -1694,7 +1700,7 @@ impl DytallixIBC {
 
     fn cleanup_channel_data(&self, channel_id: &str) -> Result<(), IBCError> {
         // Clean up channel-related data
-        println!("🧹 Cleaning up data for channel: {}", channel_id);
+        println!("🧹 Cleaning up data for channel: {channel_id}");
         Ok(())
     }
 
@@ -1744,8 +1750,7 @@ impl IBCModule for DytallixIBC {
         if let Some(channel) = self.channels.get(&channel_key) {
             if !matches!(channel.state, ChannelState::Open) {
                 return Err(IBCError::ChannelNotFound(format!(
-                    "Channel {} is not open",
-                    channel_key
+                    "Channel {channel_key} is not open"
                 )));
             }
         } else {
@@ -1790,8 +1795,7 @@ impl IBCModule for DytallixIBC {
         if let Some(channel) = self.channels.get(&channel_key) {
             if !matches!(channel.state, ChannelState::Open) {
                 return Err(IBCError::ChannelNotFound(format!(
-                    "Channel {} is not open",
-                    channel_key
+                    "Channel {channel_key} is not open"
                 )));
             }
         } else {
@@ -1847,7 +1851,7 @@ impl IBCModule for DytallixIBC {
         // Clean up commitment storage
         self.cleanup_packet_commitment(&commitment_key)?;
 
-        println!("✅ IBC packet acknowledged: {}", commitment_key);
+        println!("✅ IBC packet acknowledged: {commitment_key}");
 
         Ok(())
     }
@@ -1878,7 +1882,7 @@ impl IBCModule for DytallixIBC {
             self.cleanup_packet_commitment(&commitment_key)?;
         }
 
-        println!("⏰ IBC packet timed out: {}", commitment_key);
+        println!("⏰ IBC packet timed out: {commitment_key}");
 
         Ok(())
     }
@@ -1908,7 +1912,7 @@ impl IBCModule for DytallixIBC {
         // Emit channel creation event
         self.emit_channel_event("ChannelOpenInit", &channel)?;
 
-        println!("🆕 IBC channel created: {} on port {}", channel_id, port);
+        println!("🆕 IBC channel created: {channel_id} on port {port}");
 
         Ok(channel)
     }
@@ -1920,8 +1924,7 @@ impl IBCModule for DytallixIBC {
         // Verify channel can be closed (must be in Open state)
         if !matches!(channel.state, ChannelState::Open) {
             return Err(IBCError::ChannelNotFound(format!(
-                "Channel {} is not in Open state",
-                channel_id
+                "Channel {channel_id} is not in Open state"
             )));
         }
 
@@ -1938,7 +1941,7 @@ impl IBCModule for DytallixIBC {
         // Emit channel close event
         self.emit_channel_event("ChannelClose", &closed_channel)?;
 
-        println!("🔒 IBC channel closed: {}", channel_id);
+        println!("🔒 IBC channel closed: {channel_id}");
         Ok(())
     }
 }

@@ -13,7 +13,6 @@ use std::{fs, path::PathBuf};
 use tracing::{info, warn};
 use zeroize::Zeroize;
 
-use crate::addr::address_from_pk;
 use crate::crypto::{ActivePQC as ActiveSignatureScheme, PQC};
 
 // ---------- KDF + AEAD wrappers (local minimal to avoid extra modules yet) ----------

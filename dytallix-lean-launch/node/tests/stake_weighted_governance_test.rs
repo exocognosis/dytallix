@@ -1,26 +1,27 @@
-use crate::runtime::governance::*;
-use crate::runtime::staking::StakingModule;
-use crate::state::State;
-use crate::storage::state::Storage;
+use dytallix_lean_node::runtime::governance::*;
+use dytallix_lean_node::runtime::staking::StakingModule;
+use dytallix_lean_node::state::State;
+use dytallix_lean_node::storage::state::Storage;
 use std::sync::{Arc, Mutex};
 use tempfile::TempDir;
 
-fn setup_test_governance_with_staking() -> (GovernanceModule, StakingModule, TempDir) {
+fn setup_test_governance_with_staking(
+) -> (GovernanceModule, Arc<Mutex<State>>, StakingModule, TempDir) {
     let temp_dir = TempDir::new().unwrap();
     let storage = Arc::new(Storage::open(temp_dir.path().join("test.db")).unwrap());
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     let staking_module = StakingModule::new(storage.clone());
     let staking_arc = Arc::new(Mutex::new(staking_module));
 
-    let governance = GovernanceModule::new(storage, state, staking_arc.clone());
+    let governance = GovernanceModule::new(storage, state.clone(), staking_arc.clone());
     let staking = Arc::try_unwrap(staking_arc).unwrap().into_inner().unwrap();
 
-    (governance, staking, temp_dir)
+    (governance, state, staking, temp_dir)
 }
 
 #[test]
 fn test_stake_weighted_voting_power() {
-    let (governance, mut staking, _temp_dir) = setup_test_governance_with_staking();
+    let (governance, _state, mut staking, _temp_dir) = setup_test_governance_with_staking();
 
     // Setup staking state
     staking.update_delegator_stake("voter1", 500_000_000_000); // 500 DGT
@@ -39,7 +40,7 @@ fn test_stake_weighted_voting_power() {
 
 #[test]
 fn test_stake_weighted_tally_quorum_not_met() {
-    let (mut governance, mut staking, _temp_dir) = setup_test_governance_with_staking();
+    let (mut governance, state, mut staking, _temp_dir) = setup_test_governance_with_staking();
 
     // Setup staking: total 1T DGT staked
     staking.total_stake = 1_000_000_000_000;
@@ -60,7 +61,7 @@ fn test_stake_weighted_tally_quorum_not_met() {
 
     // Add deposit to reach voting period
     {
-        let mut state = governance.state.lock().unwrap();
+        let mut state = state.lock().unwrap();
         let mut account = state.get_account("depositor");
         account.add_balance("udgt", 2_000_000_000); // 2000 DGT
         state.accounts.insert("depositor".to_string(), account);
@@ -91,7 +92,7 @@ fn test_stake_weighted_tally_quorum_not_met() {
 
 #[test]
 fn test_stake_weighted_tally_veto_triggered() {
-    let (mut governance, mut staking, _temp_dir) = setup_test_governance_with_staking();
+    let (mut governance, state, mut staking, _temp_dir) = setup_test_governance_with_staking();
 
     // Setup staking: total 1T DGT staked
     staking.total_stake = 1_000_000_000_000;
@@ -112,7 +113,7 @@ fn test_stake_weighted_tally_veto_triggered() {
 
     // Add deposit to reach voting period
     {
-        let mut state = governance.state.lock().unwrap();
+        let mut state = state.lock().unwrap();
         let mut account = state.get_account("depositor");
         account.add_balance("udgt", 2_000_000_000);
         state.accounts.insert("depositor".to_string(), account);
@@ -147,7 +148,7 @@ fn test_stake_weighted_tally_veto_triggered() {
 
 #[test]
 fn test_stake_weighted_tally_successful_pass() {
-    let (mut governance, mut staking, _temp_dir) = setup_test_governance_with_staking();
+    let (mut governance, state, mut staking, _temp_dir) = setup_test_governance_with_staking();
 
     // Setup staking: total 1T DGT staked
     staking.total_stake = 1_000_000_000_000;
@@ -169,7 +170,7 @@ fn test_stake_weighted_tally_successful_pass() {
 
     // Add deposit to reach voting period
     {
-        let mut state = governance.state.lock().unwrap();
+        let mut state = state.lock().unwrap();
         let mut account = state.get_account("depositor");
         account.add_balance("udgt", 2_000_000_000);
         state.accounts.insert("depositor".to_string(), account);
@@ -211,7 +212,7 @@ fn test_stake_weighted_tally_successful_pass() {
 
 #[test]
 fn test_parameter_change_events() {
-    let (mut governance, mut staking, _temp_dir) = setup_test_governance_with_staking();
+    let (mut governance, state, mut staking, _temp_dir) = setup_test_governance_with_staking();
 
     // Setup minimal staking for voting
     staking.total_stake = 1_000_000_000_000;
@@ -231,7 +232,7 @@ fn test_parameter_change_events() {
 
     // Add deposit and vote
     {
-        let mut state = governance.state.lock().unwrap();
+        let mut state = state.lock().unwrap();
         let mut account = state.get_account("depositor");
         account.add_balance("udgt", 2_000_000_000);
         state.accounts.insert("depositor".to_string(), account);
@@ -270,7 +271,7 @@ fn test_parameter_change_events() {
 
 #[test]
 fn test_governable_parameters_validation() {
-    let (governance, _staking, _temp_dir) = setup_test_governance_with_staking();
+    let (governance, _state, _staking, _temp_dir) = setup_test_governance_with_staking();
 
     // Test allowed parameters
     let allowed_params = governance.get_governable_parameters();
@@ -278,17 +279,16 @@ fn test_governable_parameters_validation() {
     assert!(allowed_params.contains(&"consensus.max_gas_per_block".to_string()));
 
     // Test parameter value retrieval
-    let gas_limit_value = governance.get_parameter_value("gas_limit").unwrap();
-    assert_eq!(gas_limit_value, "21000"); // Default value
+    assert_eq!(governance.get_config().gas_limit, 21_000);
 }
 
 #[test]
 fn test_stake_weighted_vs_token_balance_difference() {
-    let (mut governance, mut staking, _temp_dir) = setup_test_governance_with_staking();
+    let (mut governance, state, mut staking, _temp_dir) = setup_test_governance_with_staking();
 
     // Setup: user has DGT balance but no staking power
     {
-        let mut state = governance.state.lock().unwrap();
+        let mut state = state.lock().unwrap();
         let mut account = state.get_account("rich_user");
         account.add_balance("udgt", 1_000_000_000_000); // 1M DGT balance
         state.accounts.insert("rich_user".to_string(), account);

@@ -122,3 +122,7 @@ dytallix-telemetry-*.tgz
 
 # Telemetry analysis artifacts
 telemetry_analysis/output/
+
+# Prevent accidental commit of real env files under ops
+ops/secrets/*.env
+!ops/secrets/*.env.example

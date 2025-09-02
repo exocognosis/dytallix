@@ -33,21 +33,27 @@ inference:
 
   nodeSelector: {}
   tolerations: []
-  affinity: {}
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: ["pulsescan"]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: ["inference"]
+            topologyKey: kubernetes.io/hostname
+
+  # Name of Kubernetes Secret to import env from (DATABASE_URL, REDIS_URL, ...)
+  envFromSecret: "pulsescan-secrets"
 
   env:
     - name: RUST_LOG
       value: "info"
-    - name: DATABASE_URL
-      valueFrom:
-        secretKeyRef:
-          name: pulsescan-secrets
-          key: database-url
-    - name: REDIS_URL
-      valueFrom:
-        secretKeyRef:
-          name: pulsescan-secrets
-          key: redis-url
     - name: BLOCKCHAIN_RPC_URL
       value: "http://dytallix-node:26657"
     - name: CONTRACT_ADDRESS
@@ -122,48 +128,37 @@ api:
 
   nodeSelector: {}
   tolerations: []
-  affinity: {}
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: ["pulsescan"]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: ["api"]
+            topologyKey: kubernetes.io/hostname
+
+  # Name of Kubernetes Secret to import env from (DB_HOST, DB_NAME, DB_USERNAME, DB_PASSWORD, REDIS_URL, API_KEY, ...)
+  envFromSecret: "pulsescan-secrets"
 
   env:
     - name: NODE_ENV
       value: "production"
     - name: PORT
       value: "3001"
-    - name: DB_HOST
-      valueFrom:
-        secretKeyRef:
-          name: pulsescan-secrets
-          key: db-host
-    - name: DB_NAME
-      value: "pulsescan"
-    - name: DB_USERNAME
-      valueFrom:
-        secretKeyRef:
-          name: pulsescan-secrets
-          key: db-username
-    - name: DB_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: pulsescan-secrets
-          key: db-password
-    - name: REDIS_URL
-      valueFrom:
-        secretKeyRef:
-          name: pulsescan-secrets
-          key: redis-url
-    - name: API_KEY
-      valueFrom:
-        secretKeyRef:
-          name: pulsescan-secrets
-          key: api-key
 
 # PostgreSQL Database
 postgresql:
   enabled: true
   auth:
-    postgresPassword: "postgres"
+    # Use existing Secret for credentials (no passwords in Git)
+    existingSecret: "pulsescan-postgresql"
     username: "pulsescan"
-    password: "pulsescan123"
     database: "pulsescan"
   primary:
     persistence:
@@ -178,7 +173,8 @@ redis:
   enabled: true
   auth:
     enabled: true
-    password: "redis123"
+    # Use existing Secret for password (no passwords in Git)
+    existingSecret: "pulsescan-redis"
   master:
     persistence:
       enabled: true
@@ -202,14 +198,7 @@ configMaps:
     contract-address: "dytallix1contractaddress..."
     network-id: "dytallix-testnet"
 
-secrets:
-  pulsescan-secrets:
-    database-url: "postgresql://pulsescan:pulsescan123@pulsescan-postgresql:5432/pulsescan"
-    redis-url: "redis://:redis123@pulsescan-redis-master:6379"
-    db-host: "pulsescan-postgresql"
-    db-username: "pulsescan"
-    db-password: "pulsescan123"
-    api-key: "your-secure-api-key-here"
+secrets: {}
 
 # Autoscaling
 autoscaling:

@@ -27,14 +27,14 @@ impl BridgeStorage {
     /// Create new bridge storage with database connection and optional cache
     pub async fn new(database_url: &str) -> Result<Self, BridgeError> {
         let pool = PgPool::connect(database_url).await.map_err(|e| {
-            BridgeError::ConnectionError(format!("Database connection failed: {}", e))
+            BridgeError::ConnectionError(format!("Database connection failed: {e}"))
         })?;
 
         // Run migrations
         sqlx::migrate!("./migrations")
             .run(&pool)
             .await
-            .map_err(|e| BridgeError::ConnectionError(format!("Migration failed: {}", e)))?;
+            .map_err(|e| BridgeError::ConnectionError(format!("Migration failed: {e}")))?;
 
         // Initialize query analyzer
         let query_analyzer = Some(QueryAnalyzer::new(pool.clone()));
@@ -55,7 +55,7 @@ impl BridgeStorage {
 
         // Initialize Redis cache
         let cache = BridgeCache::new(cache_config).await.map_err(|e| {
-            BridgeError::ConnectionError(format!("Cache initialization failed: {}", e))
+            BridgeError::ConnectionError(format!("Cache initialization failed: {e}"))
         })?;
 
         storage.cache = Some(cache);
@@ -79,7 +79,7 @@ impl BridgeStorage {
 
         let signatures_json =
             serde_json::to_value(&bridge_tx.validator_signatures).map_err(|e| {
-                BridgeError::SerializationError(format!("Failed to serialize signatures: {}", e))
+                BridgeError::SerializationError(format!("Failed to serialize signatures: {e}"))
             })?;
 
         let metadata = serde_json::json!({
@@ -109,7 +109,7 @@ impl BridgeStorage {
             .execute(&self.pool)
             .await
             .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to store bridge transaction: {}", e))
+                BridgeError::NetworkError(format!("Failed to store bridge transaction: {e}"))
             })?;
 
         // Cache the transaction if cache is available
@@ -169,7 +169,7 @@ impl BridgeStorage {
             .fetch_optional(&self.pool)
             .await
             .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to fetch bridge transaction: {}", e))
+                BridgeError::NetworkError(format!("Failed to fetch bridge transaction: {e}"))
             })?;
 
         if let Some(row) = row {
@@ -262,7 +262,7 @@ impl BridgeStorage {
             .execute(&self.pool)
             .await
             .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to update bridge transaction: {}", e))
+                BridgeError::NetworkError(format!("Failed to update bridge transaction: {e}"))
             })?;
 
         Ok(())
@@ -291,7 +291,7 @@ impl BridgeStorage {
             .execute(&self.pool)
             .await
             .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to store validator signature: {}", e))
+                BridgeError::NetworkError(format!("Failed to store validator signature: {e}"))
             })?;
 
         // Update the bridge transaction's signatures cache
@@ -317,7 +317,7 @@ impl BridgeStorage {
             .fetch_all(&self.pool)
             .await
             .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to fetch validator signatures: {}", e))
+                BridgeError::NetworkError(format!("Failed to fetch validator signatures: {e}"))
             })?;
 
         let mut signatures = Vec::new();
@@ -333,7 +333,7 @@ impl BridgeStorage {
         }
 
         let signatures_json = serde_json::to_value(&signatures).map_err(|e| {
-            BridgeError::SerializationError(format!("Failed to serialize signatures: {}", e))
+            BridgeError::SerializationError(format!("Failed to serialize signatures: {e}"))
         })?;
 
         let update_query = r#"
@@ -349,8 +349,7 @@ impl BridgeStorage {
             .await
             .map_err(|e| {
                 BridgeError::NetworkError(format!(
-                    "Failed to update bridge transaction signatures: {}",
-                    e
+                    "Failed to update bridge transaction signatures: {e}"
                 ))
             })?;
 
@@ -384,7 +383,7 @@ impl BridgeStorage {
             .execute(&self.pool)
             .await
             .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to store asset metadata: {}", e))
+                BridgeError::NetworkError(format!("Failed to store asset metadata: {e}"))
             })?;
 
         Ok(())
@@ -405,7 +404,7 @@ impl BridgeStorage {
             .fetch_all(&self.pool)
             .await
             .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to fetch pending transactions: {}", e))
+                BridgeError::NetworkError(format!("Failed to fetch pending transactions: {e}"))
             })?;
 
         let mut transactions = Vec::new();
@@ -466,9 +465,7 @@ impl BridgeStorage {
             .bind(config)
             .execute(&self.pool)
             .await
-            .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to store chain config: {}", e))
-            })?;
+            .map_err(|e| BridgeError::NetworkError(format!("Failed to store chain config: {e}")))?;
 
         Ok(())
     }
@@ -485,9 +482,7 @@ impl BridgeStorage {
             .bind(chain_name)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to fetch chain config: {}", e))
-            })?;
+            .map_err(|e| BridgeError::NetworkError(format!("Failed to fetch chain config: {e}")))?;
 
         if let Some(row) = row {
             Ok(Some(row.get("config_data")))
@@ -511,9 +506,7 @@ impl BridgeStorage {
             .bind(value)
             .execute(&self.pool)
             .await
-            .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to store bridge state: {}", e))
-            })?;
+            .map_err(|e| BridgeError::NetworkError(format!("Failed to store bridge state: {e}")))?;
 
         Ok(())
     }
@@ -530,9 +523,7 @@ impl BridgeStorage {
             .bind(key)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to fetch bridge state: {}", e))
-            })?;
+            .map_err(|e| BridgeError::NetworkError(format!("Failed to fetch bridge state: {e}")))?;
 
         if let Some(row) = row {
             Ok(Some(row.get("value")))
@@ -558,7 +549,7 @@ impl BridgeStorage {
             .fetch_one(&self.pool)
             .await
             .map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to fetch bridge statistics: {}", e))
+                BridgeError::NetworkError(format!("Failed to fetch bridge statistics: {e}"))
             })?;
 
         Ok(BridgeStatistics {
@@ -575,7 +566,7 @@ impl BridgeStorage {
     pub async fn enable_performance_monitoring(&self) -> Result<(), BridgeError> {
         if let Some(analyzer) = &self.query_analyzer {
             analyzer.enable_query_tracking().await.map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to enable query tracking: {}", e))
+                BridgeError::NetworkError(format!("Failed to enable query tracking: {e}"))
             })?;
         }
         Ok(())
@@ -585,7 +576,7 @@ impl BridgeStorage {
     pub async fn get_performance_analysis(&self) -> Result<PerformanceAnalysisReport, BridgeError> {
         if let Some(analyzer) = &self.query_analyzer {
             analyzer.generate_performance_report().await.map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to generate performance report: {}", e))
+                BridgeError::NetworkError(format!("Failed to generate performance report: {e}"))
             })
         } else {
             Err(BridgeError::NetworkError(
@@ -600,7 +591,7 @@ impl BridgeStorage {
     ) -> Result<crate::query_analysis::DatabaseHealthMetrics, BridgeError> {
         if let Some(analyzer) = &self.query_analyzer {
             analyzer.get_database_health_metrics().await.map_err(|e| {
-                BridgeError::NetworkError(format!("Failed to get health metrics: {}", e))
+                BridgeError::NetworkError(format!("Failed to get health metrics: {e}"))
             })
         } else {
             Err(BridgeError::NetworkError(

@@ -1,0 +1,8 @@
+{
+  "name": "tokenomics",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node test/Vesting.test.js && node test/Emission.test.js && node test/Burn.test.js && node test/Staking.test.js"
+  }
+}

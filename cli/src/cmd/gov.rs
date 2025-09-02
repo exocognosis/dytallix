@@ -86,9 +86,9 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
             }
 
             // Use default title and description if not provided
-            let final_title = title.unwrap_or_else(|| format!("Parameter Change: {}", param_key));
+            let final_title = title.unwrap_or_else(|| format!("Parameter Change: {param_key}"));
             let final_description =
-                description.unwrap_or_else(|| format!("Change {} to {}", param_key, param_value));
+                description.unwrap_or_else(|| format!("Change {param_key} to {param_value}"));
 
             // First submit the proposal
             let submit_payload = json!({
@@ -100,7 +100,7 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
 
             match post_json(rpc, "gov/submit", &submit_payload).await {
                 Ok(response) => {
-                    emit(fmt, &format!("Proposal submitted: {}", response));
+                    emit(fmt, &format!("Proposal submitted: {response}"));
 
                     // If there's an initial deposit, try to parse the proposal ID and make a deposit
                     if let Some(deposit_amount) = deposit {
@@ -120,13 +120,12 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
                                     match post_json(rpc, "gov/deposit", &deposit_payload).await {
                                         Ok(deposit_response) => emit(
                                             fmt,
-                                            &format!("Initial deposit made: {}", deposit_response),
+                                            &format!("Initial deposit made: {deposit_response}"),
                                         ),
                                         Err(e) => emit(
                                             fmt,
                                             &format!(
-                                                "Warning: Could not make initial deposit: {}",
-                                                e
+                                                "Warning: Could not make initial deposit: {e}"
                                             ),
                                         ),
                                     }
@@ -135,7 +134,7 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
                         }
                     }
                 }
-                Err(e) => emit(fmt, &format!("Error submitting proposal: {}", e)),
+                Err(e) => emit(fmt, &format!("Error submitting proposal: {e}")),
             }
         }
         GovAction::Deposit {
@@ -150,8 +149,8 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
             });
 
             match post_json(rpc, "gov/deposit", &payload).await {
-                Ok(response) => emit(fmt, &format!("Deposit successful: {}", response)),
-                Err(e) => emit(fmt, &format!("Error making deposit: {}", e)),
+                Ok(response) => emit(fmt, &format!("Deposit successful: {response}")),
+                Err(e) => emit(fmt, &format!("Error making deposit: {e}")),
             }
         }
         GovAction::Vote {
@@ -166,50 +165,49 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: GovCmd) -> Result<()> {
             });
 
             match post_json(rpc, "gov/vote", &payload).await {
-                Ok(response) => emit(fmt, &format!("Vote cast: {}", response)),
-                Err(e) => emit(fmt, &format!("Error casting vote: {}", e)),
+                Ok(response) => emit(fmt, &format!("Vote cast: {response}")),
+                Err(e) => emit(fmt, &format!("Error casting vote: {e}")),
             }
         }
         GovAction::Show { proposal } => {
-            match crate::rpc::get_json(rpc, &format!("gov/proposal/{}", proposal)).await {
-                Ok(response) => emit(fmt, &format!("Proposal details: {}", response)),
-                Err(e) => emit(fmt, &format!("Error getting proposal: {}", e)),
+            match crate::rpc::get_json(rpc, &format!("gov/proposal/{proposal}")).await {
+                Ok(response) => emit(fmt, &format!("Proposal details: {response}")),
+                Err(e) => emit(fmt, &format!("Error getting proposal: {e}")),
             }
         }
         GovAction::Tally { proposal } => {
-            match crate::rpc::get_json(rpc, &format!("gov/tally/{}", proposal)).await {
-                Ok(response) => emit(fmt, &format!("Vote tally: {}", response)),
-                Err(e) => emit(fmt, &format!("Error getting tally: {}", e)),
+            match crate::rpc::get_json(rpc, &format!("gov/tally/{proposal}")).await {
+                Ok(response) => emit(fmt, &format!("Vote tally: {response}")),
+                Err(e) => emit(fmt, &format!("Error getting tally: {e}")),
             }
         }
         GovAction::Config => match crate::rpc::get_json(rpc, "gov/config").await {
-            Ok(response) => emit(fmt, &format!("Governance config: {}", response)),
-            Err(e) => emit(fmt, &format!("Error getting config: {}", e)),
+            Ok(response) => emit(fmt, &format!("Governance config: {response}")),
+            Err(e) => emit(fmt, &format!("Error getting config: {e}")),
         },
         GovAction::Proposals => match crate::rpc::get_json(rpc, "api/governance/proposals").await {
-            Ok(response) => emit(fmt, &format!("All proposals: {}", response)),
-            Err(e) => emit(fmt, &format!("Error getting proposals: {}", e)),
+            Ok(response) => emit(fmt, &format!("All proposals: {response}")),
+            Err(e) => emit(fmt, &format!("Error getting proposals: {e}")),
         },
         GovAction::Votes { proposal } => {
-            match crate::rpc::get_json(rpc, &format!("api/governance/proposals/{}/votes", proposal))
+            match crate::rpc::get_json(rpc, &format!("api/governance/proposals/{proposal}/votes"))
                 .await
             {
-                Ok(response) => emit(fmt, &format!("Proposal votes: {}", response)),
-                Err(e) => emit(fmt, &format!("Error getting votes: {}", e)),
+                Ok(response) => emit(fmt, &format!("Proposal votes: {response}")),
+                Err(e) => emit(fmt, &format!("Error getting votes: {e}")),
             }
         }
         GovAction::VotingPower { address } => {
-            match crate::rpc::get_json(rpc, &format!("api/governance/voting-power/{}", address))
-                .await
+            match crate::rpc::get_json(rpc, &format!("api/governance/voting-power/{address}")).await
             {
-                Ok(response) => emit(fmt, &format!("Voting power: {}", response)),
-                Err(e) => emit(fmt, &format!("Error getting voting power: {}", e)),
+                Ok(response) => emit(fmt, &format!("Voting power: {response}")),
+                Err(e) => emit(fmt, &format!("Error getting voting power: {e}")),
             }
         }
         GovAction::TotalVotingPower => {
             match crate::rpc::get_json(rpc, "api/governance/total-voting-power").await {
-                Ok(response) => emit(fmt, &format!("Total voting power: {}", response)),
-                Err(e) => emit(fmt, &format!("Error getting total voting power: {}", e)),
+                Ok(response) => emit(fmt, &format!("Total voting power: {response}")),
+                Err(e) => emit(fmt, &format!("Error getting total voting power: {e}")),
             }
         }
     }
@@ -220,6 +218,6 @@ fn emit(fmt: OutputFormat, msg: &str) {
     if fmt.is_json() {
         println!("{{\"result\":\"{}\"}}", msg.replace('"', "\\\""));
     } else {
-        println!("{}", msg);
+        println!("{msg}");
     }
 }

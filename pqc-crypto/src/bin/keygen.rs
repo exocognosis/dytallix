@@ -9,6 +9,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|| "pqc_keys.json".to_string());
     pqc_manager.save_to_file(&output_file)?;
 
-    println!("Keys generated and saved to: {}", output_file);
+    println!("Keys generated and saved to: {output_file}");
     Ok(())
 }

@@ -1,0 +1,25 @@
+{{- if .Values.podDisruptionBudget.inference.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "pulsescan.fullname" . }}-inference
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.inference.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "pulsescan.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: inference
+{{- end }}
+---
+{{- if .Values.podDisruptionBudget.api.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "pulsescan.fullname" . }}-api
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.api.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "pulsescan.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+{{- end }}

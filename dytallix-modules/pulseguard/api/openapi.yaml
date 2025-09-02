@@ -1,0 +1,116 @@
+openapi: 3.0.3
+info:
+  title: PulseGuard API
+  version: v0.1.0
+  description: |
+    Self-hosted anomaly and fraud detector. Computes unsupervised anomaly score with heuristics overlay.
+servers:
+  - url: http://localhost:8090
+paths:
+  /health:
+    get:
+      summary: Service health
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  version:
+                    type: string
+  /score:
+    post:
+      summary: Score transaction or batch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoreRequest'
+      responses:
+        '200':
+          description: Score result with explainability and PQC attestation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreResponse'
+        '400': { description: Bad request }
+  /stream/webhook:
+    post:
+      summary: Register a webhook sink for alerts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string }
+      responses:
+        '200':
+          description: Registered sink
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  registered: { type: string }
+components:
+  schemas:
+    ScoreRequest:
+      type: object
+      properties:
+        tx:
+          $ref: '#/components/schemas/Tx'
+        batch:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tx'
+    Tx:
+      type: object
+      properties:
+        hash: { type: string }
+        from: { type: string }
+        to: { type: string }
+        value: { type: number }
+        gas: { type: integer }
+        timestamp: { type: integer }
+        nonce: { type: integer }
+    Explainability:
+      type: object
+      properties:
+        top_features:
+          type: array
+          items: { type: string }
+        dag_paths:
+          type: array
+          items:
+            type: array
+            items: { type: string }
+        graph_metrics:
+          type: object
+          additionalProperties:
+            type: number
+    Attestation:
+      type: object
+      properties:
+        checksum: { type: string }
+        alg: { type: string }
+        signature: { type: string, nullable: true }
+    ScoreResponse:
+      type: object
+      properties:
+        score: { type: number }
+        label: { type: string, enum: [normal, alert] }
+        reasons:
+          type: array
+          items: { type: string }
+        explainability:
+          $ref: '#/components/schemas/Explainability'
+        attestation:
+          $ref: '#/components/schemas/Attestation'

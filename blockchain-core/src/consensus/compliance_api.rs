@@ -156,7 +156,7 @@ impl ComplianceAPI {
         let start_time = std::time::Instant::now();
         let report_id = uuid::Uuid::new_v4().to_string();
 
-        info!("Generating compliance report with ID: {}", report_id);
+        info!("Generating compliance report with ID: {report_id}");
 
         // Convert API request to internal query format
         let query = self.convert_request_to_query(request.clone())?;
@@ -165,7 +165,7 @@ impl ComplianceAPI {
         let (entries, summary) = match self.audit_manager.query_audit_entries(query.clone()).await {
             Ok(result) => result,
             Err(e) => {
-                error!("Failed to generate compliance report: {}", e);
+                error!("Failed to generate compliance report: {e}");
                 return Ok(ComplianceReportResponse {
                     success: false,
                     error: Some(e.to_string()),
@@ -194,7 +194,7 @@ impl ComplianceAPI {
         let total_entries = summary.total_entries;
         let page_size = query.limit;
         let current_page = (query.offset / page_size) + 1;
-        let total_pages = (total_entries + page_size - 1) / page_size;
+        let total_pages = total_entries.div_ceil(page_size);
 
         let pagination = PaginationInfo {
             current_page,
@@ -270,7 +270,7 @@ impl ComplianceAPI {
         {
             Ok(data) => data,
             Err(e) => {
-                error!("Failed to export compliance data: {}", e);
+                error!("Failed to export compliance data: {e}");
                 return Ok(ExportResponse {
                     success: false,
                     error: Some(e.to_string()),
@@ -297,7 +297,7 @@ impl ComplianceAPI {
         // 4. Apply compression if requested
         // 5. Handle access controls and permissions
 
-        let download_url = format!("/api/compliance/export/download/{}", report_id);
+        let download_url = format!("/api/compliance/export/download/{report_id}");
         let expires_at = Utc::now() + chrono::Duration::hours(24); // 24 hour expiration
 
         let metadata = ReportMetadata {
@@ -361,7 +361,7 @@ impl ComplianceAPI {
                 }))
             }
             Err(e) => {
-                error!("Failed to update compliance status: {}", e);
+                error!("Failed to update compliance status: {e}");
                 Ok(serde_json::json!({
                     "success": false,
                     "error": e.to_string(),
@@ -376,7 +376,7 @@ impl ComplianceAPI {
         &self,
         transaction_hash: &str,
     ) -> Result<serde_json::Value> {
-        info!("Getting audit trail for transaction: {}", transaction_hash);
+        info!("Getting audit trail for transaction: {transaction_hash}");
 
         let entries = self
             .audit_manager
@@ -404,7 +404,7 @@ impl ComplianceAPI {
 
         match self.audit_manager.archive_old_entries().await {
             Ok(archived_count) => {
-                info!("Successfully archived {} entries", archived_count);
+                info!("Successfully archived {archived_count} entries");
                 Ok(serde_json::json!({
                     "success": true,
                     "archived_count": archived_count,
@@ -412,7 +412,7 @@ impl ComplianceAPI {
                 }))
             }
             Err(e) => {
-                error!("Failed to archive entries: {}", e);
+                error!("Failed to archive entries: {e}");
                 Ok(serde_json::json!({
                     "success": false,
                     "error": e.to_string()

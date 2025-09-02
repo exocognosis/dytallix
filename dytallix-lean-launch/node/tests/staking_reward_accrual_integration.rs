@@ -142,7 +142,7 @@ fn test_zero_stake_pending_emission() {
 
     // Apply emissions while no stake exists - should accumulate in pending
     emission.apply_until(3);
-    for block in 1..=3 {
+    for _block in 1..=3 {
         let staking_rewards = emission.get_latest_staking_rewards();
         staking.apply_external_emission(staking_rewards);
     }

@@ -31,6 +31,11 @@ spec:
         - name: inference
           image: "{{ .Values.inference.image.repository }}:{{ .Values.inference.image.tag }}"
           imagePullPolicy: {{ .Values.inference.image.pullPolicy }}
+          {{- if .Values.inference.envFromSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.inference.envFromSecret }}
+          {{- end }}
           ports:
             - name: metrics
               containerPort: {{ .Values.inference.service.targetPort }}

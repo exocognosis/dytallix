@@ -1,9 +1,9 @@
 // Example usage of the Dytallix staking system
 // This demonstrates the complete workflow for validators and delegators
 
-use blockchain_core::genesis::GenesisConfig;
-use blockchain_core::runtime::{DytallixRuntime, RuntimeState};
-use blockchain_core::staking::{StakingState, ValidatorStatus};
+use dytallix_node::genesis::GenesisConfig;
+use dytallix_node::runtime::{DytallixRuntime, RuntimeState};
+use dytallix_node::staking::{StakingState, ValidatorStatus};
 
 fn main() {
     println!("🚀 Dytallix Staking System Example");

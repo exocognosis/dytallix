@@ -175,10 +175,7 @@ pub fn execute_transaction(
                 0,
                 gas_limit,
                 gas_price,
-                format!(
-                    "InsufficientFunds: required {}, available {}",
-                    total_required, sender_balance
-                ),
+                format!("InsufficientFunds: required {total_required}, available {sender_balance}"),
                 block_height,
                 tx_index,
             ),

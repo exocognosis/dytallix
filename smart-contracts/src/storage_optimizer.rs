@@ -20,8 +20,6 @@ pub struct StorageMetrics {
     pub cache_misses: u64,
 }
 
-
-
 /// Optimized storage wrapper with caching and compression
 pub struct OptimizedStorage {
     cache: HashMap<Vec<u8>, Vec<u8>>,

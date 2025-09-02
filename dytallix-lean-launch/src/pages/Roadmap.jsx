@@ -98,6 +98,29 @@ const Roadmap = () => {
           </p>
         </div>
 
+        {/* Module Status */}
+        <div className="card" style={{ marginBottom: 24 }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 12 }}>Module Status</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {[
+              { name: 'Governance (read-only)', status: 'Live', color: '#86EFAC' },
+              { name: 'Staking (queries only)', status: 'Live', color: '#86EFAC' },
+              { name: 'Oracle Indicators', status: 'Live', color: '#86EFAC' },
+              { name: 'Contracts', status: 'Stub', color: '#FCD34D' },
+              { name: 'Advanced Contracts', status: 'Next', color: '#93C5FD' }
+            ].map((m) => (
+              <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 9999, background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.22)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color }} />
+                <span style={{ fontWeight: 700 }}>{m.name}</span>
+                <span className="muted" style={{ fontSize: '0.85rem' }}>{m.status}</span>
+              </div>
+            ))}
+          </div>
+          <div className="muted" style={{ marginTop: 8, fontSize: '0.9rem' }}>
+            Governance and staking transactions are flag-gated. Queries remain available by design.
+          </div>
+        </div>
+
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div style={{ position: 'relative' }}>
             {/* Timeline line */}

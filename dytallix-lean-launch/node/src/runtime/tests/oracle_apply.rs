@@ -1,10 +1,13 @@
 //! Unit tests for Oracle runtime functions
 
+// Wrap whole file to avoid dangling feature-specific imports when oracle feature disabled
+#![cfg(feature = "oracle")]
+
 use crate::runtime::oracle::{apply_oracle_risk, current_timestamp, get_oracle_risk, verify_sig};
-use crate::storage::oracle::{OracleStore};
+use crate::storage::oracle::OracleStore;
+use base64::Engine;
 use rocksdb::DB;
-use tempfile::NamedTempFile;
-use base64::Engine; // bring trait into scope for encode()
+use tempfile::NamedTempFile; // bring trait into scope for encode()
 
 #[tokio::test]
 async fn test_apply_and_get_oracle_risk() {

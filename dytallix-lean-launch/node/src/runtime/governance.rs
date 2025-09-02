@@ -1,12 +1,6 @@
-use crate::{
-    runtime::staking::StakingModule,
-    state::{State},
-    storage::state::Storage,
-};
+use crate::{runtime::staking::StakingModule, state::State, storage::state::Storage};
 use serde::{Deserialize, Serialize};
-use std::{
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 /// Governance configuration with sensible defaults
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,7 +70,7 @@ pub struct Vote {
     pub proposal_id: u64,
     pub voter: String,
     pub option: VoteOption,
-    pub weight: u128 // DGT balance at time of vote
+    pub weight: u128, // DGT balance at time of vote
 }
 
 /// Deposit on a proposal (for tracking individual deposits)
@@ -539,7 +533,7 @@ impl GovernanceModule {
                     .map_err(|_| "Invalid gas_limit value: must be a valid u64".to_string())?;
 
                 // Validation: gas limit should be reasonable (between 1K and 100M)
-                if gas_limit < 1_000 || gas_limit > 100_000_000 {
+                if !(1_000..=100_000_000).contains(&gas_limit) {
                     return Err("gas_limit must be between 1,000 and 100,000,000".to_string());
                 }
 
@@ -560,7 +554,7 @@ impl GovernanceModule {
                 })?;
 
                 // Validation: max gas per block should be reasonable (between 1M and 1B)
-                if max_gas_per_block < 1_000_000 || max_gas_per_block > 1_000_000_000 {
+                if !(1_000_000..=1_000_000_000).contains(&max_gas_per_block) {
                     return Err(
                         "consensus.max_gas_per_block must be between 1,000,000 and 1,000,000,000"
                             .to_string(),
@@ -591,7 +585,7 @@ impl GovernanceModule {
         match key {
             "gas_limit" => Ok(self.config.gas_limit.to_string()),
             "consensus.max_gas_per_block" => Ok(self.config.max_gas_per_block.to_string()),
-            _ => Err(format!("Unknown parameter: {}", key)),
+            _ => Err(format!("Unknown parameter: {key}")),
         }
     }
 
@@ -628,7 +622,7 @@ impl GovernanceModule {
         let last_id = self
             .storage
             .db
-            .get("gov:last_proposal_id".to_string())
+            .get("gov:last_proposal_id")
             .ok()
             .flatten()
             .and_then(|b| bincode::deserialize::<u64>(&b).ok())
@@ -654,7 +648,7 @@ impl GovernanceModule {
         let last_id = self
             .storage
             .db
-            .get("gov:last_proposal_id".to_string())
+            .get("gov:last_proposal_id")
             .ok()
             .flatten()
             .and_then(|b| bincode::deserialize::<u64>(&b).ok())
@@ -662,7 +656,7 @@ impl GovernanceModule {
 
         let next_id = last_id + 1;
         let _ = self.storage.db.put(
-            "gov:last_proposal_id".to_string(),
+            "gov:last_proposal_id",
             bincode::serialize(&next_id).unwrap(),
         );
         next_id
@@ -671,50 +665,50 @@ impl GovernanceModule {
     fn store_proposal(&self, proposal: &Proposal) -> Result<(), String> {
         let key = format!("gov:proposal:{}", proposal.id);
         let data = bincode::serialize(proposal)
-            .map_err(|e| format!("Failed to serialize proposal: {}", e))?;
+            .map_err(|e| format!("Failed to serialize proposal: {e}"))?;
         self.storage
             .db
             .put(key, data)
-            .map_err(|e| format!("Failed to store proposal: {}", e))?;
+            .map_err(|e| format!("Failed to store proposal: {e}"))?;
         Ok(())
     }
 
     fn _get_proposal(&self, proposal_id: u64) -> Result<Option<Proposal>, String> {
-        let key = format!("gov:proposal:{}", proposal_id);
+        let key = format!("gov:proposal:{proposal_id}");
         match self.storage.db.get(key) {
             Ok(Some(data)) => {
                 let proposal = bincode::deserialize::<Proposal>(&data)
-                    .map_err(|e| format!("Failed to deserialize proposal: {}", e))?;
+                    .map_err(|e| format!("Failed to deserialize proposal: {e}"))?;
                 Ok(Some(proposal))
             }
             Ok(None) => Ok(None),
-            Err(e) => Err(format!("Failed to get proposal: {}", e)),
+            Err(e) => Err(format!("Failed to get proposal: {e}")),
         }
     }
 
     fn store_vote(&self, vote: &Vote) -> Result<(), String> {
         let key = format!("gov:vote:{}:{}", vote.proposal_id, vote.voter);
         let data =
-            bincode::serialize(vote).map_err(|e| format!("Failed to serialize vote: {}", e))?;
+            bincode::serialize(vote).map_err(|e| format!("Failed to serialize vote: {e}"))?;
         self.storage
             .db
             .put(key, data)
-            .map_err(|e| format!("Failed to store vote: {}", e))?;
+            .map_err(|e| format!("Failed to store vote: {e}"))?;
         Ok(())
     }
 
     fn has_voted(&self, proposal_id: u64, voter: &str) -> Result<bool, String> {
-        let key = format!("gov:vote:{}:{}", proposal_id, voter);
+        let key = format!("gov:vote:{proposal_id}:{voter}");
         Ok(self
             .storage
             .db
             .get(key)
-            .map_err(|e| format!("Failed to check vote: {}", e))?
+            .map_err(|e| format!("Failed to check vote: {e}"))?
             .is_some())
     }
 
     fn _get_proposal_votes(&self, proposal_id: u64) -> Result<Vec<Vote>, String> {
-        let _prefix = format!("gov:vote:{}:", proposal_id);
+        let _prefix = format!("gov:vote:{proposal_id}:");
         let mut votes = Vec::new();
 
         // This is a simplified implementation that scans all possible vote keys
@@ -723,8 +717,8 @@ impl GovernanceModule {
 
         // Get all accounts to check for votes
         let state = self.state.lock().unwrap();
-        for (voter_addr, _) in &state.accounts {
-            let vote_key = format!("gov:vote:{}:{}", proposal_id, voter_addr);
+        for voter_addr in state.accounts.keys() {
+            let vote_key = format!("gov:vote:{proposal_id}:{voter_addr}");
             if let Ok(Some(data)) = self.storage.db.get(vote_key) {
                 if let Ok(vote) = bincode::deserialize::<Vote>(&data) {
                     votes.push(vote);
@@ -739,7 +733,7 @@ impl GovernanceModule {
         let last_id = self
             .storage
             .db
-            .get("gov:last_proposal_id".to_string())
+            .get("gov:last_proposal_id")
             .ok()
             .flatten()
             .and_then(|b| bincode::deserialize::<u64>(&b).ok())
@@ -750,11 +744,11 @@ impl GovernanceModule {
 
     fn store_config(&self) -> Result<(), String> {
         let data = bincode::serialize(&self.config)
-            .map_err(|e| format!("Failed to serialize config: {}", e))?;
+            .map_err(|e| format!("Failed to serialize config: {e}"))?;
         self.storage
             .db
-            .put("gov:config".to_string(), data)
-            .map_err(|e| format!("Failed to store config: {}", e))?;
+            .put("gov:config", data)
+            .map_err(|e| format!("Failed to store config: {e}"))?;
         Ok(())
     }
 
@@ -766,12 +760,12 @@ impl GovernanceModule {
 
     fn store_deposit(&self, deposit: &Deposit) -> Result<(), String> {
         let key = format!("gov:deposit:{}:{}", deposit.proposal_id, deposit.depositor);
-        let data = bincode::serialize(deposit)
-            .map_err(|e| format!("Failed to serialize deposit: {}", e))?;
+        let data =
+            bincode::serialize(deposit).map_err(|e| format!("Failed to serialize deposit: {e}"))?;
         self.storage
             .db
             .put(key, data)
-            .map_err(|e| format!("Failed to store deposit: {}", e))?;
+            .map_err(|e| format!("Failed to store deposit: {e}"))?;
         Ok(())
     }
 
@@ -780,8 +774,8 @@ impl GovernanceModule {
 
         // Get all accounts to check for deposits (similar to vote retrieval)
         let state = self.state.lock().unwrap();
-        for (depositor_addr, _) in &state.accounts {
-            let deposit_key = format!("gov:deposit:{}:{}", proposal_id, depositor_addr);
+        for depositor_addr in state.accounts.keys() {
+            let deposit_key = format!("gov:deposit:{proposal_id}:{depositor_addr}");
             if let Ok(Some(data)) = self.storage.db.get(deposit_key) {
                 if let Ok(deposit) = bincode::deserialize::<Deposit>(&data) {
                     deposits.push(deposit);

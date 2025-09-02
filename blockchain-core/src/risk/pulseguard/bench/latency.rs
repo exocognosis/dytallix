@@ -1,6 +1,6 @@
-use std::time::Instant;
 use crate::risk::pulseguard::models::ensemble::Ensemble;
 use crate::risk::pulseguard::FeatureVector;
+use std::time::Instant;
 
 pub fn quick_bench() -> (f32, f32, f32) {
     let ensemble = Ensemble::new();

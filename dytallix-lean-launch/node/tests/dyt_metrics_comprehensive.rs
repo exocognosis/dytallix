@@ -1,7 +1,6 @@
-use std::sync::Arc;
-use std::time::Duration;
-
-use dytallix_lean_launch_node::metrics::{Metrics, MetricsConfig, MetricsServer};
+#[cfg(feature = "metrics")]
+use dytallix_lean_node::metrics::{Metrics, MetricsConfig, MetricsServer};
+use std::sync::Arc; // added for Arc usage
 
 /// Test that all required dyt_ metrics are exposed correctly
 #[cfg(feature = "metrics")]
@@ -131,7 +130,7 @@ async fn test_prometheus_format_dyt_metrics() {
 
     // Export metrics in Prometheus format
     let encoder = TextEncoder::new();
-    let metric_families = metrics.registry.gather();
+    let metric_families = metrics.registry.gather(); // TODO: expose public gather method; temporarily allow access by making field pub or adding method
     let output = encoder.encode_to_string(&metric_families).unwrap();
 
     // Verify that all required dyt_ metrics are present
@@ -152,8 +151,7 @@ async fn test_prometheus_format_dyt_metrics() {
     for metric in &required_metrics {
         assert!(
             output.contains(metric),
-            "Missing required metric: {}",
-            metric
+            "Missing required metric: {metric}"
         );
     }
 
@@ -182,7 +180,7 @@ async fn test_metrics_endpoint_dyt_metrics() {
         listen_addr: "127.0.0.1:0".parse().unwrap(), // Use port 0 for dynamic allocation
     };
 
-    let (server, metrics) = MetricsServer::new(config).expect("Failed to create metrics server");
+    let (_server, metrics) = MetricsServer::new(config).expect("Failed to create metrics server");
 
     // Record some dyt_ metrics
     metrics.dyt_block_height.set(42);

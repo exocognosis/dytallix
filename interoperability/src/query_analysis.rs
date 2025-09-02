@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use std::collections::HashMap;
-use tracing::{info};
+use tracing::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryStatistics {
@@ -328,7 +328,7 @@ impl QueryAnalyzer {
                         "Query takes {:.2}ms on average and has been called {} times. Consider optimization.",
                         query.mean_time_ms, query.calls
                     ),
-                    expected_improvement: format!("Potential 30-70% query time reduction"),
+                    expected_improvement: "Potential 30-70% query time reduction".to_string(),
                     implementation_difficulty: "medium".to_string(),
                     suggested_action: self.generate_query_optimization_suggestion(query),
                     ai_confidence_score: self.calculate_confidence_score(query),
@@ -469,8 +469,7 @@ impl QueryAnalyzer {
             query_stats.iter().map(|q| q.mean_time_ms).sum::<f64>() / query_stats.len() as f64;
         if avg_query_time > 50.0 {
             insights.push(format!(
-                "⚠️ Average query time ({:.2}ms) is above optimal threshold (50ms). Consider query optimization.",
-                avg_query_time
+                "⚠️ Average query time ({avg_query_time:.2}ms) is above optimal threshold (50ms). Consider query optimization."
             ));
         }
 
@@ -478,8 +477,7 @@ impl QueryAnalyzer {
         let high_freq_queries = query_stats.iter().filter(|q| q.calls > 1000).count();
         if high_freq_queries > 0 {
             insights.push(format!(
-                "🔄 {} high-frequency queries detected. These are prime candidates for caching.",
-                high_freq_queries
+                "🔄 {high_freq_queries} high-frequency queries detected. These are prime candidates for caching."
             ));
         }
 

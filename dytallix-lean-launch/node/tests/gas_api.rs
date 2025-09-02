@@ -9,12 +9,12 @@ use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION};
 use dytallix_lean_node::storage::state::Storage;
 use dytallix_lean_node::storage::tx::Transaction;
-use serde_json::{json, Value};
-use std::path::PathBuf;
+// removed unused serde_json::json, Value, and PathBuf imports
 use std::sync::Arc;
 
 fn create_test_state() -> State {
-    let storage = Arc::new(Storage::open(PathBuf::from(":memory:")).unwrap());
+    let dir = tempfile::tempdir().unwrap();
+    let storage = Arc::new(Storage::open(dir.path().join("node.db")).unwrap());
     State::new(storage)
 }
 
@@ -25,17 +25,9 @@ fn test_receipt_json_serialization() {
 
     state.set_balance("alice", "udgt", 100_000);
 
-    let tx = Transaction::with_gas(
-        "test_hash_12345".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_500,
-        7_500,
-        5,
-        Some("signature_data".to_string()),
-        30_000,
-        1_200,
-    );
+    let tx = Transaction::new("test_hash_12345", "alice", "bob", 1_500, 7_500, 5, None)
+        .with_gas(30_000, 1_200)
+        .with_signature("signature_data");
 
     let result = execute_transaction(&tx, &mut state, 150, 2, &gas_schedule);
     let receipt = result.receipt;
@@ -115,17 +107,9 @@ fn test_gas_fields_in_failed_transaction() {
     state.set_balance("alice", "udgt", 100_000);
 
     // Transaction that will fail due to OOM
-    let tx = Transaction::with_gas(
-        "oom_hash".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_000,
-        5_000,
-        0,
-        Some("sig".to_string()),
-        100,   // Very low gas limit
-        2_000, // High gas price
-    );
+    let tx = Transaction::new("oom_hash", "alice", "bob", 1_000, 5_000, 0, None)
+        .with_gas(100, 2_000)
+        .with_signature("sig");
 
     let result = execute_transaction(&tx, &mut state, 200, 1, &gas_schedule);
     let receipt = result.receipt;
@@ -188,17 +172,9 @@ fn test_fee_charged_calculation() {
 
     state.set_balance("alice", "udgt", 100_000);
 
-    let tx = Transaction::with_gas(
-        "fee_test".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_000,
-        5_000,
-        0,
-        Some("sig".to_string()),
-        25_000,
-        1_500,
-    );
+    let tx = Transaction::new("fee_test", "alice", "bob", 1_000, 5_000, 0, None)
+        .with_gas(25_000, 1_500)
+        .with_signature("sig");
 
     let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
     let receipt = result.receipt;
@@ -213,17 +189,9 @@ fn test_fee_charged_calculation() {
     // Verify it's the same for both success and failure cases
     state.set_balance("charlie", "udgt", 1_000); // Insufficient for gas
 
-    let tx_fail = Transaction::with_gas(
-        "fail_test".to_string(),
-        "charlie".to_string(),
-        "alice".to_string(),
-        500,
-        1_000,
-        0,
-        Some("sig".to_string()),
-        50_000, // High gas limit
-        2_000,  // High gas price -> too expensive
-    );
+    let tx_fail = Transaction::new("fail_test", "charlie", "alice", 500, 1_000, 0, None)
+        .with_gas(50_000, 2_000)
+        .with_signature("sig");
 
     let result_fail = execute_transaction(&tx_fail, &mut state, 100, 1, &gas_schedule);
     let receipt_fail = result_fail.receipt;
@@ -242,26 +210,10 @@ fn test_receipt_version_consistency() {
     state.set_balance("alice", "udgt", 100_000);
 
     let transactions = vec![
-        Transaction::with_gas(
-            "tx1".to_string(),
-            "alice".to_string(),
-            "bob".to_string(),
-            1_000,
-            5_000,
-            0,
-            Some("sig".to_string()),
-            25_000,
-            1_000,
-        ),
-        Transaction::new(
-            "tx2".to_string(),
-            "alice".to_string(),
-            "bob".to_string(),
-            500,
-            3_000,
-            1,
-            Some("sig".to_string()),
-        ),
+        Transaction::new("tx1", "alice", "bob", 1_000, 5_000, 0, None)
+            .with_gas(25_000, 1_000)
+            .with_signature("sig"),
+        Transaction::new("tx2", "alice", "bob", 500, 3_000, 1, None).with_signature("sig"),
     ];
 
     for (i, tx) in transactions.iter().enumerate() {
@@ -284,17 +236,9 @@ fn test_json_schema_validation() {
 
     state.set_balance("alice", "udgt", 100_000);
 
-    let tx = Transaction::with_gas(
-        "schema_test".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_000,
-        5_000,
-        0,
-        Some("sig".to_string()),
-        25_000,
-        1_000,
-    );
+    let tx = Transaction::new("schema_test", "alice", "bob", 1_000, 5_000, 0, None)
+        .with_gas(25_000, 1_000)
+        .with_signature("sig");
 
     let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
     let receipt = result.receipt;
@@ -321,28 +265,24 @@ fn test_json_schema_validation() {
     for (field_name, expected_type) in required_fields {
         assert!(
             json_value.get(field_name).is_some(),
-            "Missing field: {}",
-            field_name
+            "Missing field: {field_name}"
         );
 
         let field_value = &json_value[field_name];
         match expected_type {
             "number" => assert!(
                 field_value.is_number(),
-                "Field {} should be number",
-                field_name
+                "Field {field_name} should be number"
             ),
             "string" => assert!(
                 field_value.is_string(),
-                "Field {} should be string",
-                field_name
+                "Field {field_name} should be string"
             ),
             "boolean" => assert!(
                 field_value.is_boolean(),
-                "Field {} should be boolean",
-                field_name
+                "Field {field_name} should be boolean"
             ),
-            _ => panic!("Unknown expected type: {}", expected_type),
+            _ => panic!("Unknown expected type: {expected_type}"),
         }
     }
 

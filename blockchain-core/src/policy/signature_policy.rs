@@ -26,13 +26,13 @@ impl std::fmt::Display for PolicyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PolicyError::AlgorithmNotAllowed(alg) => {
-                write!(f, "Algorithm {:?} is not in the allowed list", alg)
+                write!(f, "Algorithm {alg:?} is not in the allowed list")
             }
             PolicyError::LegacyAlgorithmRejected(name) => {
-                write!(f, "Legacy algorithm {} is explicitly rejected", name)
+                write!(f, "Legacy algorithm {name} is explicitly rejected")
             }
             PolicyError::UnknownAlgorithm(name) => {
-                write!(f, "Unknown algorithm: {}", name)
+                write!(f, "Unknown algorithm: {name}")
             }
             PolicyError::PolicyNotConfigured => {
                 write!(f, "Signature policy not configured")
@@ -142,7 +142,7 @@ impl SignaturePolicy {
     pub fn allowed_algorithm_names(&self) -> Vec<String> {
         self.allowed_algorithms
             .iter()
-            .map(|alg| format!("{:?}", alg))
+            .map(|alg| format!("{alg:?}"))
             .collect()
     }
 

@@ -1,0 +1,20 @@
+{{- if .Values.autoscaling.inference.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "pulsescan.fullname" . }}-inference
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "pulsescan.fullname" . }}-inference
+  minReplicas: {{ .Values.autoscaling.inference.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.inference.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.inference.targetCPUUtilizationPercentage }}
+{{- end }}

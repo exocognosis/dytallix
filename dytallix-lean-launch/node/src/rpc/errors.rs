@@ -16,6 +16,7 @@ pub enum ApiError {
     MempoolFull,
     NotFound,
     Internal,
+    NotImplemented(String),
     Validation(ValidationError),
     BadRequest(String),
 }
@@ -30,6 +31,7 @@ impl IntoResponse for ApiError {
             ApiError::MempoolFull => (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error":"MEMPOOL_FULL","message":"mempool full"}))).into_response(),
             ApiError::NotFound => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error":"NOT_FOUND","message":"resource not found"}))).into_response(),
             ApiError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error":"INTERNAL_ERROR","message":"internal error"}))).into_response(),
+            ApiError::NotImplemented(msg) => (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({"error":"NOT_IMPLEMENTED","message": msg}))).into_response(),
             ApiError::Validation(validation_error) => {
                 let status = match validation_error.http_status() {
                     422 => StatusCode::UNPROCESSABLE_ENTITY,

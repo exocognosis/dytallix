@@ -3,7 +3,7 @@ use tokio::sync::mpsc;
 use crate::error::InferenceError;
 use crate::config::Config;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Transaction {
     pub hash: String,
     pub from: String,
@@ -28,8 +28,11 @@ pub struct Finding {
 
 #[derive(Debug, Clone)]
 pub struct BlockchainMonitor {
+    #[allow(dead_code)]
     rpc_client: reqwest::Client,
+    #[allow(dead_code)]
     rpc_url: String,
+    #[allow(dead_code)]
     contract_address: String,
 }
 
@@ -94,6 +97,7 @@ impl BlockchainMonitor {
         Ok(format!("tx_{:016x}", rand::random::<u64>()))
     }
 
+    #[allow(dead_code)]
     pub async fn query_contract_state(&self) -> Result<ContractState, InferenceError> {
         // Simulate contract query
         Ok(ContractState {
@@ -111,17 +115,4 @@ pub struct ContractState {
     pub admin: String,
 }
 
-impl Default for Transaction {
-    fn default() -> Self {
-        Self {
-            hash: String::new(),
-            from: String::new(),
-            to: String::new(),
-            amount: String::new(),
-            gas_price: String::new(),
-            gas_limit: String::new(),
-            timestamp: 0,
-            block_height: 0,
-        }
-    }
-}
+// Default derived above

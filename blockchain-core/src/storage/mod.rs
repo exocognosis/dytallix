@@ -116,8 +116,7 @@ impl StorageManager {
                 let stored_str = String::from_utf8(stored)?;
                 if stored_str != expected {
                     return Err(format!(
-                        "Chain ID mismatch: existing {} expected {}",
-                        stored_str, expected
+                        "Chain ID mismatch: existing {stored_str} expected {expected}"
                     )
                     .into());
                 }
@@ -188,25 +187,25 @@ impl StorageManager {
     }
 
     fn account_key(address: &str) -> String {
-        format!("acct:{}", address)
+        format!("acct:{address}")
     }
     fn block_hash_key(hash: &str) -> String {
-        format!("blk_hash:{}", hash)
+        format!("blk_hash:{hash}")
     }
     fn block_num_key(num: u64) -> String {
-        format!("blk_num:{:016x}", num)
+        format!("blk_num:{num:016x}")
     }
     fn tx_key(hash: &str) -> String {
-        format!("tx:{}", hash)
+        format!("tx:{hash}")
     }
     fn rcpt_key(hash: &str) -> String {
-        format!("rcpt:{}", hash)
+        format!("rcpt:{hash}")
     }
     fn contract_key(address: &str) -> String {
-        format!("contract:{}", address)
+        format!("contract:{address}")
     }
     fn receipt_key(hash: &str) -> String {
-        format!("receipt:{}", hash)
+        format!("receipt:{hash}")
     }
 
     pub fn store_account_state(

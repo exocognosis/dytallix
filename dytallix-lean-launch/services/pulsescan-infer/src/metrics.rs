@@ -1,7 +1,5 @@
-use prometheus::{Encoder, TextEncoder, Counter, Histogram, Gauge, Registry};
-use std::collections::HashMap;
-use tokio::net::TcpListener;
-use warp::{Filter, Reply};
+use prometheus::{Encoder, TextEncoder, Counter, Histogram, HistogramOpts, Gauge, Registry};
+use warp::{Filter};
 use crate::error::InferenceError;
 
 #[derive(Clone)]
@@ -49,6 +47,7 @@ impl MetricsServer {
     }
 }
 
+#[allow(dead_code)]
 pub struct Metrics {
     pub findings_total: Counter,
     pub inference_duration: Histogram,
@@ -58,6 +57,7 @@ pub struct Metrics {
     pub database_operations: Counter,
 }
 
+#[allow(dead_code)]
 impl Metrics {
     pub fn new(registry: &Registry) -> Result<Self, InferenceError> {
         let findings_total = Counter::new(
@@ -66,10 +66,10 @@ impl Metrics {
         )?;
         registry.register(Box::new(findings_total.clone()))?;
 
-        let inference_duration = Histogram::new(
+        let inference_duration = Histogram::with_opts(HistogramOpts::new(
             "pulsescan_inference_duration_seconds",
-            "Time spent running inference"
-        )?;
+            "Time spent running inference",
+        ))?;
         registry.register(Box::new(inference_duration.clone()))?;
 
         let model_accuracy = Gauge::new(
@@ -78,10 +78,10 @@ impl Metrics {
         )?;
         registry.register(Box::new(model_accuracy.clone()))?;
 
-        let feature_extraction_duration = Histogram::new(
+        let feature_extraction_duration = Histogram::with_opts(HistogramOpts::new(
             "pulsescan_feature_extraction_duration_seconds",
-            "Time spent extracting features"
-        )?;
+            "Time spent extracting features",
+        ))?;
         registry.register(Box::new(feature_extraction_duration.clone()))?;
 
         let blockchain_submissions = Counter::new(
@@ -106,7 +106,7 @@ impl Metrics {
         })
     }
 
-    pub fn record_finding(&self, severity: &str) {
+    pub fn record_finding(&self, _severity: &str) {
         self.findings_total.inc();
     }
 

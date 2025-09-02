@@ -125,7 +125,7 @@ impl AIOracleClient {
             } else if response.status().is_server_error() && attempts < self.config.max_retries - 1
             {
                 attempts += 1;
-                warn!("Server error on attempt {}, retrying...", attempts);
+                warn!("Server error on attempt {attempts}, retrying...");
                 tokio::time::sleep(Duration::from_millis(self.config.retry_delay_ms)).await;
                 continue;
             } else {
@@ -230,10 +230,7 @@ impl AIOracleClient {
         if let Some(metadata) = &response.response.metadata {
             if let Some(confidence) = metadata.confidence_score {
                 if confidence < self.config.risk_threshold {
-                    warn!(
-                        "AI analysis confidence score below threshold: {}",
-                        confidence
-                    );
+                    warn!("AI analysis confidence score below threshold: {confidence}");
                 }
             }
         }

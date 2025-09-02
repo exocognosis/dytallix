@@ -187,8 +187,7 @@ impl std::fmt::Display for ReplayProtectionError {
             } => {
                 write!(
                     f,
-                    "Nonce {} from oracle {} was already used at {}",
-                    nonce, oracle_id, first_used
+                    "Nonce {nonce} from oracle {oracle_id} was already used at {first_used}"
                 )
             }
             ReplayProtectionError::ResponseTooOld {
@@ -197,8 +196,7 @@ impl std::fmt::Display for ReplayProtectionError {
             } => {
                 write!(
                     f,
-                    "Response timestamp {} is older than {} seconds",
-                    timestamp, max_age_seconds
+                    "Response timestamp {timestamp} is older than {max_age_seconds} seconds"
                 )
             }
             ReplayProtectionError::ResponseTooFuture {
@@ -207,24 +205,23 @@ impl std::fmt::Display for ReplayProtectionError {
             } => {
                 write!(
                     f,
-                    "Response timestamp {} is more than {} seconds in the future",
-                    timestamp, tolerance_seconds
+                    "Response timestamp {timestamp} is more than {tolerance_seconds} seconds in the future"
                 )
             }
             ReplayProtectionError::CacheFull {
                 current_size,
                 max_size,
             } => {
-                write!(f, "Cache is full ({}/{})", current_size, max_size)
+                write!(f, "Cache is full ({current_size}/{max_size})")
             }
             ReplayProtectionError::InvalidTimestamp {
                 timestamp_str,
                 error,
             } => {
-                write!(f, "Invalid timestamp '{}': {}", timestamp_str, error)
+                write!(f, "Invalid timestamp '{timestamp_str}': {error}")
             }
             ReplayProtectionError::HashError { error } => {
-                write!(f, "Hash computation failed: {}", error)
+                write!(f, "Hash computation failed: {error}")
             }
         }
     }
@@ -252,10 +249,7 @@ pub struct ReplayProtectionManager {
 impl ReplayProtectionManager {
     /// Create a new replay protection manager
     pub fn new(config: ReplayProtectionConfig) -> Self {
-        info!(
-            "Initializing replay protection manager with config: {:?}",
-            config
-        );
+        info!("Initializing replay protection manager with config: {config:?}");
 
         Self {
             config,
@@ -316,7 +310,7 @@ impl ReplayProtectionManager {
             stats.current_nonce_cache_size = nonce_cache.len();
         }
 
-        debug!("Nonce {} validated for oracle {}", nonce, oracle_id);
+        debug!("Nonce {nonce} validated for oracle {oracle_id}");
         Ok(())
     }
 
@@ -338,10 +332,7 @@ impl ReplayProtectionManager {
                 stats.total_timestamp_violations += 1;
             }
 
-            warn!(
-                "Response timestamp too old: {} from oracle {}",
-                timestamp, oracle_id
-            );
+            warn!("Response timestamp too old: {timestamp} from oracle {oracle_id}");
             return Err(ReplayProtectionError::ResponseTooOld {
                 timestamp,
                 max_age_seconds: self.config.max_response_age_seconds,
@@ -355,10 +346,7 @@ impl ReplayProtectionManager {
                 stats.total_timestamp_violations += 1;
             }
 
-            warn!(
-                "Response timestamp too far in future: {} from oracle {}",
-                timestamp, oracle_id
-            );
+            warn!("Response timestamp too far in future: {timestamp} from oracle {oracle_id}");
             return Err(ReplayProtectionError::ResponseTooFuture {
                 timestamp,
                 tolerance_seconds: self.config.timestamp_tolerance_seconds,
@@ -376,7 +364,7 @@ impl ReplayProtectionManager {
 
         timestamp_cache.insert(timestamp, entry);
 
-        debug!("Timestamp {} validated for oracle {}", timestamp, oracle_id);
+        debug!("Timestamp {timestamp} validated for oracle {oracle_id}");
         Ok(())
     }
 
@@ -386,7 +374,7 @@ impl ReplayProtectionManager {
     ) -> Result<String, ReplayProtectionError> {
         let serialized =
             serde_json::to_string(request).map_err(|e| ReplayProtectionError::HashError {
-                error: format!("Failed to serialize request: {}", e),
+                error: format!("Failed to serialize request: {e}"),
             })?;
 
         let mut hasher = Sha3_256::new();
@@ -419,7 +407,7 @@ impl ReplayProtectionManager {
                         stats.total_hits as f64 / (stats.total_hits + stats.total_misses) as f64;
                 }
 
-                debug!("Cache hit for request hash: {}", request_hash);
+                debug!("Cache hit for request hash: {request_hash}");
                 return Some(entry.response.clone());
             } else {
                 // Cache entry expired, remove it
@@ -431,7 +419,7 @@ impl ReplayProtectionManager {
                     stats.current_cache_size = response_cache.len();
                 }
 
-                debug!("Cache entry expired for request hash: {}", request_hash);
+                debug!("Cache entry expired for request hash: {request_hash}");
             }
         }
 
@@ -443,7 +431,7 @@ impl ReplayProtectionManager {
                 stats.total_hits as f64 / (stats.total_hits + stats.total_misses) as f64;
         }
 
-        debug!("Cache miss for request hash: {}", request_hash);
+        debug!("Cache miss for request hash: {request_hash}");
         None
     }
 
@@ -494,10 +482,7 @@ impl ReplayProtectionManager {
             // Approximate overhead
         }
 
-        debug!(
-            "Cached response for request hash: {} from oracle: {}",
-            request_hash, oracle_id
-        );
+        debug!("Cached response for request hash: {request_hash} from oracle: {oracle_id}");
         Ok(())
     }
 
@@ -530,7 +515,7 @@ impl ReplayProtectionManager {
             stats.current_cache_size = response_cache.len();
         }
 
-        debug!("Evicted {} oldest cache entries", entries_to_remove);
+        debug!("Evicted {entries_to_remove} oldest cache entries");
         Ok(())
     }
 
@@ -550,10 +535,7 @@ impl ReplayProtectionManager {
             stats.current_cache_size = response_cache.len();
         }
 
-        info!(
-            "Invalidated {} cache entries for oracle: {}",
-            removed_count, oracle_id
-        );
+        info!("Invalidated {removed_count} cache entries for oracle: {oracle_id}");
         removed_count
     }
 
@@ -571,7 +553,7 @@ impl ReplayProtectionManager {
             stats.current_cache_size = 0;
         }
 
-        info!("Invalidated all {} cache entries", removed_count);
+        info!("Invalidated all {removed_count} cache entries");
         removed_count
     }
 
@@ -593,7 +575,7 @@ impl ReplayProtectionManager {
             let nonces_removed = initial_size - nonce_cache.len();
             total_removed += nonces_removed;
 
-            debug!("Cleaned up {} expired nonces", nonces_removed);
+            debug!("Cleaned up {nonces_removed} expired nonces");
         }
 
         // Clean up expired responses
@@ -608,7 +590,7 @@ impl ReplayProtectionManager {
             let responses_removed = initial_size - response_cache.len();
             total_removed += responses_removed;
 
-            debug!("Cleaned up {} expired cached responses", responses_removed);
+            debug!("Cleaned up {responses_removed} expired cached responses");
         }
 
         // Clean up old timestamps
@@ -624,7 +606,7 @@ impl ReplayProtectionManager {
             let timestamps_removed = initial_size - timestamp_cache.len();
             total_removed += timestamps_removed;
 
-            debug!("Cleaned up {} old timestamps", timestamps_removed);
+            debug!("Cleaned up {timestamps_removed} old timestamps");
         }
 
         // Update last cleanup time and statistics
@@ -644,10 +626,7 @@ impl ReplayProtectionManager {
         }
 
         if total_removed > 0 {
-            info!(
-                "Cleanup completed: removed {} total expired entries",
-                total_removed
-            );
+            info!("Cleanup completed: removed {total_removed} total expired entries");
         }
 
         Ok(total_removed)

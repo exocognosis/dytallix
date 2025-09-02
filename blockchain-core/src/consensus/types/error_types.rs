@@ -363,12 +363,12 @@ impl From<AIOracleError> for AIResponseError {
             }
             AIOracleError::Timeout { timeout_ms } => AIResponseError::new(
                 "TIMEOUT".to_string(),
-                format!("Request timeout after {}ms", timeout_ms),
+                format!("Request timeout after {timeout_ms}ms"),
                 category,
                 retryable,
             ),
             AIOracleError::Http { status, message } => {
-                AIResponseError::new(format!("HTTP_{}", status), message, category, retryable)
+                AIResponseError::new(format!("HTTP_{status}"), message, category, retryable)
             }
             AIOracleError::Serialization { message } => AIResponseError::new(
                 "SERIALIZATION_ERROR".to_string(),
@@ -402,7 +402,7 @@ impl From<AIOracleError> for AIResponseError {
             ),
             AIOracleError::MaxRetriesExceeded { attempts, .. } => AIResponseError::new(
                 "MAX_RETRIES_EXCEEDED".to_string(),
-                format!("Max retries exceeded: {} attempts failed", attempts),
+                format!("Max retries exceeded: {attempts} attempts failed"),
                 category,
                 retryable,
             ),

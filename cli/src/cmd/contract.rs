@@ -13,7 +13,7 @@ use base64::Engine;
 use clap::{Args, Subcommand};
 use serde_json::Value;
 use std::path::PathBuf;
-use tracing::{error, info};
+use tracing::info;
 
 use crate::output::OutputFormat;
 use crate::rpc::RpcClient;
@@ -412,7 +412,7 @@ impl ContractArgs {
                     OutputFormat::Text => {
                         if let Some(result) = response.as_object() {
                             println!("Contract Code Information:");
-                            println!("  Hash: {}", hash);
+                            println!("  Hash: {hash}");
                             println!(
                                 "  Size: {} bytes",
                                 result.get("size").unwrap_or(&Value::Number(0.into()))
@@ -437,7 +437,7 @@ impl ContractArgs {
                     OutputFormat::Text => {
                         if let Some(result) = response.as_object() {
                             println!("Contract Instance Information:");
-                            println!("  Address: {}", address);
+                            println!("  Address: {address}");
                             println!(
                                 "  Code Hash: {}",
                                 result.get("code_hash").unwrap_or(&Value::Null)
@@ -473,8 +473,8 @@ impl ContractArgs {
                     OutputFormat::Text => {
                         if let Some(result) = response.as_object() {
                             println!("Contract Storage:");
-                            println!("  Contract: {}", contract);
-                            println!("  Key: {}", key);
+                            println!("  Contract: {contract}");
+                            println!("  Key: {key}");
                             println!("  Value: {}", result.get("value").unwrap_or(&Value::Null));
                         }
                     }
@@ -597,7 +597,7 @@ impl ContractArgs {
 
                 if let Some(result) = response.as_object() {
                     println!("WASM Contract State:");
-                    println!("  Contract: {}", address);
+                    println!("  Contract: {address}");
                     println!(
                         "  Value: {}",
                         result.get("result_json").unwrap_or(&Value::Null)

@@ -223,7 +223,7 @@ mod tests {
         for height in [1, 3, 2] {
             let block = Block {
                 height,
-                hash: format!("hash_{}", height),
+                hash: format!("hash_{height}"),
                 time: "2024-01-01T00:00:00Z".to_string(),
                 tx_count: 0,
             };

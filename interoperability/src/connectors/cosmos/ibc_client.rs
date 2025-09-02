@@ -76,7 +76,7 @@ impl CosmosIbcClient {
     pub fn set_signing_key(&mut self, private_key_hex: &str) -> Result<(), BridgeError> {
         // Validate hex format first
         let key_bytes = hex::decode(private_key_hex)
-            .map_err(|e| BridgeError::InvalidKey(format!("Invalid hex private key: {}", e)))?;
+            .map_err(|e| BridgeError::InvalidKey(format!("Invalid hex private key: {e}")))?;
 
         // Determine key type by length
         match key_bytes.len() {
@@ -140,7 +140,7 @@ impl CosmosIbcClient {
 
         // Parse the IBC transfer data from packet
         let transfer_data: IBCTransferData = serde_json::from_slice(&packet.data)
-            .map_err(|e| BridgeError::TransactionFailed(format!("Invalid transfer data: {}", e)))?;
+            .map_err(|e| BridgeError::TransactionFailed(format!("Invalid transfer data: {e}")))?;
 
         println!("📡 Sending IBC transfer:");
         println!(
@@ -164,7 +164,7 @@ impl CosmosIbcClient {
         // Simulate network delay
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
-        println!("✅ IBC transfer broadcast successfully: {}", tx_hash);
+        println!("✅ IBC transfer broadcast successfully: {tx_hash}");
         Ok(CosmosTxHash(tx_hash))
     }
 
@@ -186,7 +186,7 @@ impl CosmosIbcClient {
             "   Packet: {} -> {}",
             packet.source_channel, packet.dest_channel
         );
-        println!("   Proof height: {}", proof_height);
+        println!("   Proof height: {proof_height}");
         println!("   Proof size: {} bytes", proof.len());
 
         // TODO: Real implementation would:
@@ -197,7 +197,7 @@ impl CosmosIbcClient {
         // 5. Store packet receipt
 
         let tx_hash = format!("RECV_TX_{:016X}", rand::random::<u64>());
-        println!("✅ IBC packet received successfully: {}", tx_hash);
+        println!("✅ IBC packet received successfully: {tx_hash}");
         Ok(CosmosTxHash(tx_hash))
     }
 
@@ -227,7 +227,7 @@ impl CosmosIbcClient {
         // 4. Execute cleanup logic
 
         let tx_hash = format!("ACK_TX_{:016X}", rand::random::<u64>());
-        println!("✅ IBC packet acknowledged successfully: {}", tx_hash);
+        println!("✅ IBC packet acknowledged successfully: {tx_hash}");
         Ok(CosmosTxHash(tx_hash))
     }
 
@@ -268,12 +268,11 @@ impl CosmosIbcClient {
         // Validate address format
         if !address.starts_with("cosmos") && !address.starts_with("osmo") {
             return Err(BridgeError::InvalidAddress(format!(
-                "Invalid Cosmos address: {}",
-                address
+                "Invalid Cosmos address: {address}"
             )));
         }
 
-        println!("🔍 Querying balance for {} (denom: {})", address, denom);
+        println!("🔍 Querying balance for {address} (denom: {denom})");
 
         // TODO: Real implementation would:
         // 1. Query /cosmos/bank/v1beta1/balances/{address}
@@ -281,7 +280,7 @@ impl CosmosIbcClient {
         // 3. Parse amount
 
         let balance = 1000000u64; // Simulate 1 token with 6 decimals
-        println!("✅ Balance: {} {}", balance, denom);
+        println!("✅ Balance: {balance} {denom}");
         Ok(balance)
     }
 
@@ -308,7 +307,7 @@ impl CosmosIbcClient {
             || tx_hash.0.starts_with("RECV_TX_")
             || tx_hash.0.starts_with("ACK_TX_");
 
-        println!("✅ Transaction verification result: {}", is_valid);
+        println!("✅ Transaction verification result: {is_valid}");
         Ok(is_valid)
     }
 
@@ -324,7 +323,7 @@ impl CosmosIbcClient {
             ));
         }
 
-        println!("🔍 Querying IBC channel: {} / {}", port, channel);
+        println!("🔍 Querying IBC channel: {port} / {channel}");
 
         // TODO: Real implementation would:
         // 1. Query /ibc/core/channel/v1/channels/{channel}/ports/{port}
@@ -358,7 +357,7 @@ impl CosmosIbcClient {
 
         println!("🚀 Deploying CosmWasm bridge contract:");
         println!("   Code size: {} bytes", code_bytes.len());
-        println!("   Init message: {}", init_msg);
+        println!("   Init message: {init_msg}");
 
         // TODO: Real implementation would:
         // 1. Create MsgStoreCode message
@@ -368,7 +367,7 @@ impl CosmosIbcClient {
         // 5. Return contract address
 
         let contract_address = format!("osmo1{:040x}", rand::random::<u128>());
-        println!("✅ Bridge contract deployed at: {}", contract_address);
+        println!("✅ Bridge contract deployed at: {contract_address}");
         Ok(contract_address)
     }
 
@@ -389,8 +388,8 @@ impl CosmosIbcClient {
         }
 
         println!("📞 Executing bridge contract method:");
-        println!("   Contract: {}", contract_addr);
-        println!("   Message: {}", execute_msg);
+        println!("   Contract: {contract_addr}");
+        println!("   Message: {execute_msg}");
 
         // TODO: Real implementation would:
         // 1. Create MsgExecuteContract message
@@ -398,7 +397,7 @@ impl CosmosIbcClient {
         // 3. Return transaction hash
 
         let tx_hash = format!("COSMOS_EXEC_{:016X}", rand::random::<u64>());
-        println!("✅ Contract execution submitted: {}", tx_hash);
+        println!("✅ Contract execution submitted: {tx_hash}");
         Ok(CosmosTxHash(tx_hash))
     }
 }

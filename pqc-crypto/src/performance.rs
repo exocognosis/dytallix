@@ -178,8 +178,11 @@ impl PQCPerformanceBenchmark {
             "bench_validator_{}",
             chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
         );
-        self.pqc_manager
-            .add_validator(validator_id.clone(), keypair.public_key.clone(), algorithm.clone());
+        self.pqc_manager.add_validator(
+            validator_id.clone(),
+            keypair.public_key.clone(),
+            algorithm.clone(),
+        );
 
         // Create test payload
         let payload = CrossChainPayload::GenericBridgePayload {
@@ -557,8 +560,8 @@ mod tests {
         assert!(sphincs_gas > 0);
 
         println!("✅ Gas cost estimation test completed");
-        println!("  - Dilithium5: {} gas", dilithium_gas);
-        println!("  - Falcon1024: {} gas", falcon_gas);
-        println!("  - SPHINCS+: {} gas", sphincs_gas);
+        println!("  - Dilithium5: {dilithium_gas} gas");
+        println!("  - Falcon1024: {falcon_gas} gas");
+        println!("  - SPHINCS+: {sphincs_gas} gas");
     }
 }

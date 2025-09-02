@@ -1,15 +1,17 @@
 use serde_json::json;
-use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use tempfile::tempdir;
 
 use dytallix_lean_node::mempool::Mempool;
+use dytallix_lean_node::metrics::Metrics;
 use dytallix_lean_node::rpc::RpcContext;
-use dytallix_lean_node::state::{AccountState, State};
+use dytallix_lean_node::runtime::emission::EmissionEngine;
+use dytallix_lean_node::runtime::governance::GovernanceModule;
+use dytallix_lean_node::runtime::staking::StakingModule;
+use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::blocks::TpsWindow;
 use dytallix_lean_node::storage::state::Storage;
 use dytallix_lean_node::ws::server::WsHub;
-use dytallix_lean_node::EmissionEngine;
 
 // Mock the RPC endpoint behavior for testing
 async fn test_balance_endpoint() {
@@ -24,11 +26,21 @@ async fn test_balance_endpoint() {
     state.credit(addr, "udrt", 2_000_000); // 2 DRT
 
     // Create RPC context
-    let mempool = Arc::new(Mutex::new(Mempool::new(1000)));
+    let mempool = Arc::new(Mutex::new(Mempool::new()));
     let state_mutex = Arc::new(Mutex::new(state));
     let ws = WsHub::new();
-    let tps = Arc::new(Mutex::new(TpsWindow::new()));
-    let emission = Arc::new(EmissionEngine::new());
+    let tps = Arc::new(Mutex::new(TpsWindow::new(60)));
+    let emission = Arc::new(Mutex::new(EmissionEngine::new(
+        storage.clone(),
+        state_mutex.clone(),
+    )));
+    let staking = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
+    let governance = Arc::new(Mutex::new(GovernanceModule::new(
+        storage.clone(),
+        state_mutex.clone(),
+        staking.clone(),
+    )));
+    let metrics = Arc::new(Metrics::new().expect("metrics"));
 
     let ctx = RpcContext {
         storage,
@@ -37,6 +49,9 @@ async fn test_balance_endpoint() {
         ws,
         tps,
         emission,
+        governance,
+        staking,
+        metrics,
     };
 
     // Test multi-denomination response (no specific denom requested)
@@ -115,7 +130,7 @@ fn test_denomination_validation() {
 
     for denom in denoms {
         let up = denom.to_ascii_uppercase();
-        assert!(up == "DGT" || up == "DRT", "Invalid denom: {}", denom);
+        assert!(up == "DGT" || up == "DRT", "Invalid denom: {denom}");
 
         // Test conversion to micro denominations
         let micro_denom = match up.as_str() {

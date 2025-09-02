@@ -30,7 +30,7 @@ impl ContractRuntime {
             Ok(runtime) => Ok(Self {
                 inner: Arc::new(runtime),
             }),
-            Err(e) => Err(format!("Failed to create contract runtime: {}", e)),
+            Err(e) => Err(format!("Failed to create contract runtime: {e}")),
         }
     }
 
@@ -53,11 +53,11 @@ impl ContractRuntime {
 
         match self.inner.deploy_contract(wasm_deployment).await {
             Ok(address) => {
-                info!("Contract deployed successfully to address: {}", address);
+                info!("Contract deployed successfully to address: {address}");
                 Ok(address)
             }
             Err(e) => {
-                error!("Contract deployment failed: {:?}", e);
+                error!("Contract deployment failed: {e:?}");
                 Err(format!("Deployment failed: {}", e.message))
             }
         }
@@ -107,7 +107,7 @@ impl ContractRuntime {
                     // Convert binary key to hex for JSON readability
                     let key_hex = hex::encode(&sc.key);
                     let entry = serde_json::json!({
-                        "old": sc.old_value.as_ref().map(|v| hex::encode(v)),
+                        "old": sc.old_value.as_ref().map(hex::encode),
                         "new": hex::encode(&sc.new_value)
                     });
                     state_changes_map.insert(key_hex, entry);
@@ -124,7 +124,7 @@ impl ContractRuntime {
                 })
             }
             Err(e) => {
-                warn!("Contract execution failed: {:?}", e);
+                warn!("Contract execution failed: {e:?}");
                 Ok(ExecutionResult {
                     success: false,
                     return_value: Vec::new(),

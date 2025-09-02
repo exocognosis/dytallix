@@ -323,7 +323,7 @@ impl PerformanceOptimizer {
             batches.insert(insert_pos, batch);
         }
 
-        debug!("Added transaction to batch queue (merged: {})", merged);
+        debug!("Added transaction to batch queue (merged: {merged})");
         Ok(batch_id)
     }
 
@@ -386,7 +386,7 @@ impl PerformanceOptimizer {
             metrics.fallback_activations += 1;
         }
 
-        warn!("Activated fallback mode: {:?}", mode);
+        warn!("Activated fallback mode: {mode:?}");
         Ok(())
     }
 
@@ -571,7 +571,7 @@ impl PerformanceOptimizer {
         });
 
         if removed_count > 0 {
-            info!("Cleaned up {} expired cache entries", removed_count);
+            info!("Cleaned up {removed_count} expired cache entries");
         }
 
         Ok(removed_count)
@@ -658,7 +658,7 @@ impl PerformanceOptimizer {
             cache.remove(key);
         }
 
-        debug!("Evicted {} cache entries", evict_count);
+        debug!("Evicted {evict_count} cache entries");
     }
 
     /// Assess risk based on transaction patterns

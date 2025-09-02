@@ -24,17 +24,19 @@ pub enum AIServiceType {
 }
 
 /// Priority levels for AI requests
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum RequestPriority {
     Low,
+    #[default]
     Normal,
     High,
     Critical,
 }
 
 /// Response status for AI service responses
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum ResponseStatus {
+    #[default]
     Success,
     Failure,
     Timeout,
@@ -193,17 +195,6 @@ pub struct FallbackResponse {
 }
 
 // Default implementations
-impl Default for ResponseStatus {
-    fn default() -> Self {
-        ResponseStatus::Success
-    }
-}
-
-impl Default for RequestPriority {
-    fn default() -> Self {
-        RequestPriority::Normal
-    }
-}
 
 // Display implementations
 impl std::fmt::Display for ResponseStatus {
@@ -378,11 +369,7 @@ impl AIResponsePayload {
     /// Get the age of the response in seconds
     pub fn age_seconds(&self) -> u64 {
         let now = chrono::Utc::now().timestamp() as u64;
-        if now > self.timestamp {
-            now - self.timestamp
-        } else {
-            0
-        }
+        now.saturating_sub(self.timestamp)
     }
 
     /// Check if the response is fresh (within 5 minutes)
@@ -503,6 +490,12 @@ impl AIRequestPayload {
     /// Deserialize from JSON
     pub fn from_json(data: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(data)
+    }
+}
+
+impl Default for AIRequestMetadata {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

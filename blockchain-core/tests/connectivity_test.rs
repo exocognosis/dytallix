@@ -1,5 +1,4 @@
-use dytallix_node::consensus::{AIOracleClient, AIServiceConfig, ConnectionPoolConfig};
-use std::time::Duration;
+use dytallix_node::consensus::{AIOracleClient, AIServiceConfig};
 
 #[tokio::test]
 async fn test_ai_oracle_connectivity() {
@@ -13,7 +12,7 @@ async fn test_ai_oracle_connectivity() {
     let result = client.health_check().await; // updated method name
     assert!(result.is_ok());
 
-    println!("Connectivity test result: {:?}", result);
+    println!("Connectivity test result: {result:?}");
 }
 
 #[tokio::test]
@@ -28,7 +27,7 @@ async fn test_ai_oracle_connectivity_with_timeout() {
     let result = client.health_check().await;
     assert!(result.is_ok());
 
-    println!("Connectivity test with timeout result: {:?}", result);
+    println!("Connectivity test with timeout result: {result:?}");
 }
 
 #[tokio::test]

@@ -1,8 +1,7 @@
-
 use crate::client::{BlockchainClient, TransactionRequest};
 use crate::config::Config;
 use crate::crypto::CryptoManager;
-use crate::tokens::{format_amount_with_symbol};
+use crate::tokens::format_amount_with_symbol;
 use anyhow::Result;
 use colored::*;
 use dialoguer::{Confirm, Select};

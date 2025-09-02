@@ -3,7 +3,7 @@
 //! This test module validates that the signature policy layer correctly
 //! enforces PQC-only transactions across mempool and consensus.
 
-use blockchain_core::policy::{PolicyError, PolicyManager, SignaturePolicy};
+use dytallix_node::policy::{PolicyError, PolicyManager, SignaturePolicy};
 use dytallix_pqc::SignatureAlgorithm;
 use std::collections::HashSet;
 

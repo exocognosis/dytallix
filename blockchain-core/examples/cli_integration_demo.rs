@@ -33,7 +33,7 @@ fn demonstrate_old_way() {
         "  API Key: {}...",
         &api_key[..std::cmp::min(10, api_key.len())]
     );
-    println!("  RPC URL: {}", rpc_url);
+    println!("  RPC URL: {rpc_url}");
 }
 
 async fn demonstrate_new_way() {

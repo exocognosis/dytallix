@@ -16,7 +16,7 @@ pub fn legacy_address_from_pk(pk: &[u8]) -> String {
     cs_hasher.update(body_bytes);
     let cs = cs_hasher.finalize();
     let checksum = hex::encode(&cs[..2]);
-    format!("dyt1{}{}", body_hex, checksum)
+    format!("dyt1{body_hex}{checksum}")
 }
 
 // New PQC address derivation using bech32 format
@@ -35,12 +35,12 @@ pub fn pqc_address_from_pk(pk: &[u8]) -> String {
 
     // Step 2: RIPEMD160 hash of SHA256 result
     let mut ripemd_hasher = Ripemd160::new();
-    ripemd_hasher.update(&sha256_hash);
+    ripemd_hasher.update(sha256_hash);
     let ripemd_hash = ripemd_hasher.finalize();
 
     // Step 3: Encode with bech32 using "dytallix" prefix
     // For now using simplified encoding until we add bech32 library
-    format!("dytallix{}", hex::encode(&ripemd_hash))
+    format!("dytallix{}", hex::encode(ripemd_hash))
 }
 
 #[cfg(test)]

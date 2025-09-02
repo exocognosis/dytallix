@@ -30,14 +30,25 @@ fn test_router(ctx: RpcContext) -> Router {
 fn build_ctx(num_validators: usize) -> (RpcContext, Vec<Keypair>) {
     let dir = tempdir().unwrap();
     let storage = Arc::new(Storage::open(dir.path().join("node.db")).unwrap());
-    let mempool = Arc::new(Mutex::new(Mempool::new(1000)));
+    let mempool = Arc::new(Mutex::new(Mempool::new()));
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     let tps = Arc::new(Mutex::new(TpsWindow::new(60)));
     let ws = WsHub::new();
-    let emission = std::sync::Arc::new(dytallix_lean_node::EmissionEngine::new(
+    use dytallix_lean_node::runtime::emission::EmissionEngine;
+    let emission = Arc::new(Mutex::new(EmissionEngine::new(
         storage.clone(),
         state.clone(),
-    ));
+    )));
+    use dytallix_lean_node::metrics::Metrics;
+    use dytallix_lean_node::runtime::governance::GovernanceModule;
+    use dytallix_lean_node::runtime::staking::StakingModule;
+    let staking = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
+    let governance = Arc::new(Mutex::new(GovernanceModule::new(
+        storage.clone(),
+        state.clone(),
+        staking.clone(),
+    )));
+    let metrics = Arc::new(Metrics::new().expect("metrics init"));
     let ctx = RpcContext {
         storage: storage.clone(),
         mempool,
@@ -45,6 +56,9 @@ fn build_ctx(num_validators: usize) -> (RpcContext, Vec<Keypair>) {
         ws,
         tps,
         emission,
+        governance,
+        staking,
+        metrics,
     }; // added emission
        // gen validators
     let mut keypairs = vec![];
@@ -56,7 +70,7 @@ fn build_ctx(num_validators: usize) -> (RpcContext, Vec<Keypair>) {
     }
     for (i, kp) in keypairs.iter().enumerate() {
         vals.push(BridgeValidator {
-            id: format!("v{}", i),
+            id: format!("v{i}"),
             pubkey: B64.encode(kp.public.as_bytes()),
         });
     }
@@ -96,9 +110,9 @@ async fn bridge_ingest_flow() {
     let mut msg_insufficient = base_msg.clone();
     let mut sigs = vec![];
     let mut signers = vec![];
-    for i in 0..2 {
-        sigs.push(sign(&format!("v{}", i), &kps[i], &base_msg));
-        signers.push(format!("v{}", i));
+    for (i, kp) in kps.iter().take(2).enumerate() {
+        sigs.push(sign(&format!("v{i}"), kp, &base_msg));
+        signers.push(format!("v{i}"));
     }
     msg_insufficient["signatures"] =
         serde_json::Value::Array(sigs.iter().map(|s| json!(s)).collect());
@@ -123,9 +137,9 @@ async fn bridge_ingest_flow() {
     let mut msg_quorum = base_msg.clone();
     let mut sigs = vec![];
     let mut signers = vec![];
-    for i in 0..3 {
-        sigs.push(sign(&format!("v{}", i), &kps[i], &base_msg));
-        signers.push(format!("v{}", i));
+    for (i, kp) in kps.iter().take(3).enumerate() {
+        sigs.push(sign(&format!("v{i}"), kp, &base_msg));
+        signers.push(format!("v{i}"));
     }
     msg_quorum["signatures"] = serde_json::Value::Array(sigs.iter().map(|s| json!(s)).collect());
     msg_quorum["signers"] = serde_json::Value::Array(signers.iter().map(|s| json!(s)).collect());

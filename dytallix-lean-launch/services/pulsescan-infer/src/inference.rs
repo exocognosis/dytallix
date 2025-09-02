@@ -31,6 +31,7 @@ pub struct AnomalyModel {
     weights: Array2<f32>,
     bias: Array1<f32>,
     feature_names: Vec<String>,
+    #[allow(dead_code)]
     thresholds: Vec<f64>,
 }
 
@@ -45,7 +46,7 @@ impl InferenceEngine {
     }
 
     pub async fn extract_features(&self, transaction: &crate::blockchain::Transaction) -> Result<Vec<f64>, InferenceError> {
-        use crate::features::{FeatureExtractor, TransactionFeatures};
+        use crate::features::FeatureExtractor;
 
         let extractor = FeatureExtractor::new(&self.config.features);
         let features = extractor.extract(transaction).await?;
@@ -99,7 +100,7 @@ impl InferenceEngine {
         // Simplified rule-based reasoning
         // In practice, this would use SHAP values or similar explainability techniques
 
-        if features.len() > 0 && features[0] > 0.8 {
+        if !features.is_empty() && features[0] > 0.8 {
             reasons.push("high_velocity_pattern".to_string());
         }
 
@@ -137,7 +138,7 @@ impl InferenceEngine {
                 let name = self.model.feature_names
                     .get(i)
                     .cloned()
-                    .unwrap_or_else(|| format!("feature_{}", i));
+                    .unwrap_or_else(|| format!("feature_{i}"));
                 (name, value)
             })
             .collect();
@@ -151,7 +152,7 @@ impl InferenceEngine {
 }
 
 impl AnomalyModel {
-    pub async fn load(model_path: &str) -> Result<Self, InferenceError> {
+    pub async fn load(_model_path: &str) -> Result<Self, InferenceError> {
         // In a real implementation, this would load from a serialized model file
         // For now, we'll create a simple dummy model
 
@@ -164,7 +165,7 @@ impl AnomalyModel {
         let bias = Array1::from_vec(vec![0.0]);
 
         let feature_names = (0..feature_count)
-            .map(|i| format!("feature_{}", i))
+            .map(|i| format!("feature_{i}"))
             .collect();
 
         let thresholds = vec![0.5, 0.7, 0.9]; // Low, medium, high thresholds

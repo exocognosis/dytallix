@@ -3,7 +3,7 @@ use dytallix_node::crypto::PQCManager;
 use dytallix_node::runtime::DytallixRuntime;
 use dytallix_node::storage::StorageManager;
 use dytallix_node::types::{
-    Block, CallTransaction, DeployTransaction, PQCTransactionSignature, Transaction,
+    CallTransaction, DeployTransaction, PQCTransactionSignature, Transaction,
 };
 use dytallix_pqc::{Signature, SignatureAlgorithm};
 use std::sync::Arc;

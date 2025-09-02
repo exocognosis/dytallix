@@ -1,4 +1,3 @@
-
 use crate::client::{BlockchainClient, ContractCallData, DeploymentData};
 use crate::config::Config;
 use anyhow::Result;
@@ -54,10 +53,7 @@ pub async fn deploy_contract(
             }
         }
         Err(e) => {
-            println!(
-                "{}",
-                format!("❌ Cannot connect to node: {e}").bright_red()
-            );
+            println!("{}", format!("❌ Cannot connect to node: {e}").bright_red());
             return Err(anyhow::anyhow!("Node connection failed"));
         }
     }
@@ -350,7 +346,7 @@ fn save_contract_info(address: &str, contract_file: &str, params: Option<&Value>
         "deployed_at": chrono::Utc::now().to_rfc3339()
     });
 
-    let info_file = config_dir.join(format!("{}.json", address));
+    let info_file = config_dir.join(format!("{address}.json"));
     std::fs::write(info_file, serde_json::to_string_pretty(&contract_info)?)?;
 
     Ok(())
@@ -412,7 +408,7 @@ pub async fn list_contract_templates(config: &Config) -> Result<()> {
             "{}. {} {}",
             (i + 1).to_string().bright_cyan(),
             name.bright_white(),
-            format!("({})", file).bright_black()
+            format!("({file})").bright_black()
         );
         println!("   {}", description.bright_yellow());
         println!();
@@ -432,7 +428,7 @@ pub async fn init_from_template(
 ) -> Result<()> {
     println!(
         "{}",
-        format!("🏗️  Initializing contract from template: {}", template_name).bright_blue()
+        format!("🏗️  Initializing contract from template: {template_name}").bright_blue()
     );
 
     let output_path =
@@ -456,7 +452,7 @@ pub async fn init_from_template(
     );
     println!("Location: {}", output_path.bright_cyan());
     println!("\n{}", "📋 Next steps:".bright_blue());
-    println!("  1. cd {}", output_path);
+    println!("  1. cd {output_path}");
     println!("  2. cargo build --target wasm32-unknown-unknown --release");
     println!("  3. dytallix-cli contract deploy target/wasm32-unknown-unknown/release/*.wasm");
 
@@ -530,9 +526,9 @@ pub extern "C" fn balance_of(account: *const u8, account_len: usize) -> u64 {
 }
 "#;
 
-    std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
-    std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
-    std::fs::create_dir_all(format!("{}/src", output_path))?;
+    std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
+    std::fs::create_dir_all(format!("{output_path}/src"))?;
 
     Ok(())
 }
@@ -608,9 +604,9 @@ pub extern "C" fn release_funds() -> u32 {
 }
 "#;
 
-    std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
-    std::fs::create_dir_all(format!("{}/src", output_path))?;
-    std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    std::fs::create_dir_all(format!("{output_path}/src"))?;
+    std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
 
     Ok(())
 }
@@ -661,9 +657,9 @@ pub extern "C" fn vote(proposal_id: *const u8, proposal_len: usize, vote: u32) -
 }
 "#;
 
-    std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
-    std::fs::create_dir_all(format!("{}/src", output_path))?;
-    std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    std::fs::create_dir_all(format!("{output_path}/src"))?;
+    std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
 
     Ok(())
 }
@@ -703,9 +699,9 @@ pub extern "C" fn get_price() -> u64 {
 }
 "#;
 
-    std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
-    std::fs::create_dir_all(format!("{}/src", output_path))?;
-    std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    std::fs::create_dir_all(format!("{output_path}/src"))?;
+    std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
 
     Ok(())
 }

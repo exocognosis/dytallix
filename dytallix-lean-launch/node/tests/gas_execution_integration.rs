@@ -6,7 +6,6 @@ across block production and replay scenarios.
 use dytallix_lean_node::execution::execute_transaction;
 use dytallix_lean_node::gas::GasSchedule;
 use dytallix_lean_node::state::State;
-use dytallix_lean_node::storage::receipts::TxStatus;
 use dytallix_lean_node::storage::state::Storage;
 use dytallix_lean_node::storage::tx::Transaction;
 use std::path::PathBuf;
@@ -33,28 +32,12 @@ fn test_block_replay_determinism() {
 
     // Create identical transactions
     let txs = vec![
-        Transaction::with_gas(
-            "tx1".to_string(),
-            "alice".to_string(),
-            "bob".to_string(),
-            1_000,
-            5_000,
-            0,
-            Some("sig1".to_string()),
-            25_000,
-            1_000,
-        ),
-        Transaction::with_gas(
-            "tx2".to_string(),
-            "bob".to_string(),
-            "alice".to_string(),
-            500,
-            3_000,
-            0,
-            Some("sig2".to_string()),
-            20_000,
-            800,
-        ),
+        Transaction::new("tx1", "alice", "bob", 1_000, 5_000, 0, None)
+            .with_gas(25_000, 1_000)
+            .with_signature("sig1"),
+        Transaction::new("tx2", "bob", "alice", 500, 3_000, 0, None)
+            .with_gas(20_000, 800)
+            .with_signature("sig2"),
     ];
 
     // Execute on both states
@@ -107,53 +90,29 @@ fn test_multiple_txs_mixed_success_failure() {
 
     let transactions = vec![
         // Success case
-        Transaction::with_gas(
-            "tx_success".to_string(),
-            "alice".to_string(),
-            "bob".to_string(),
-            1_000,
-            5_000,
-            0,
-            Some("sig".to_string()),
-            25_000,
-            1_000,
-        ),
+        Transaction::new("tx_success", "alice", "bob", 1_000, 5_000, 0, None)
+            .with_gas(25_000, 1_000)
+            .with_signature("sig"),
         // Insufficient funds case
-        Transaction::with_gas(
-            "tx_insufficient".to_string(),
-            "charlie".to_string(),
-            "alice".to_string(),
-            10_000, // More than charlie has
+        Transaction::new(
+            "tx_insufficient",
+            "charlie",
+            "alice",
+            10_000,
             5_000,
             0,
-            Some("sig".to_string()),
-            25_000,
-            1_000,
-        ),
+            None,
+        )
+        .with_gas(25_000, 1_000)
+        .with_signature("sig"),
         // Out of gas case (very low gas limit)
-        Transaction::with_gas(
-            "tx_oom".to_string(),
-            "alice".to_string(),
-            "bob".to_string(),
-            1_000,
-            5_000,
-            1,
-            Some("sig".to_string()),
-            50, // Very low gas limit
-            1_000,
-        ),
+        Transaction::new("tx_oom", "alice", "bob", 1_000, 5_000, 1, None)
+            .with_gas(50, 1_000)
+            .with_signature("sig"),
         // Another success case
-        Transaction::with_gas(
-            "tx_success2".to_string(),
-            "bob".to_string(),
-            "alice".to_string(),
-            500,
-            3_000,
-            0,
-            Some("sig".to_string()),
-            30_000,
-            800,
-        ),
+        Transaction::new("tx_success2", "bob", "alice", 500, 3_000, 0, None)
+            .with_gas(30_000, 800)
+            .with_signature("sig"),
     ];
 
     let initial_alice_balance = state.balance_of("alice", "udgt");
@@ -211,17 +170,17 @@ fn test_deterministic_gas_consumption() {
         state1.set_balance(from, "udgt", 100_000);
         state2.set_balance(from, "udgt", 100_000);
 
-        let tx = Transaction::with_gas(
-            "test_hash".to_string(),
+        let tx = Transaction::new(
+            "test_hash",
             from.to_string(),
             to.to_string(),
             amount,
             5_000,
             0,
-            Some("sig".to_string()),
-            gas_limit,
-            gas_price,
-        );
+            None,
+        )
+        .with_gas(gas_limit, gas_price)
+        .with_signature("sig");
 
         // Execute multiple times
         let result1 = execute_transaction(&tx, &mut state1, 100, 0, &gas_schedule);
@@ -241,39 +200,15 @@ fn test_execution_order_determinism() {
 
     // Create transactions that could affect each other
     let transactions = vec![
-        Transaction::with_gas(
-            "tx1".to_string(),
-            "alice".to_string(),
-            "bob".to_string(),
-            1_000,
-            5_000,
-            0,
-            Some("sig".to_string()),
-            25_000,
-            1_000,
-        ),
-        Transaction::with_gas(
-            "tx2".to_string(),
-            "bob".to_string(),
-            "charlie".to_string(),
-            500,
-            3_000,
-            0,
-            Some("sig".to_string()),
-            20_000,
-            800,
-        ),
-        Transaction::with_gas(
-            "tx3".to_string(),
-            "alice".to_string(),
-            "charlie".to_string(),
-            2_000,
-            4_000,
-            1,
-            Some("sig".to_string()),
-            30_000,
-            1_200,
-        ),
+        Transaction::new("tx1", "alice", "bob", 1_000, 5_000, 0, None)
+            .with_gas(25_000, 1_000)
+            .with_signature("sig"),
+        Transaction::new("tx2", "bob", "charlie", 500, 3_000, 0, None)
+            .with_gas(20_000, 800)
+            .with_signature("sig"),
+        Transaction::new("tx3", "alice", "charlie", 2_000, 4_000, 1, None)
+            .with_gas(30_000, 1_200)
+            .with_signature("sig"),
     ];
 
     // Execute in order on state1
@@ -330,17 +265,9 @@ fn test_state_isolation_between_transactions() {
     state.set_balance("alice", "udgt", 50_000);
 
     // First transaction that will fail due to OOM
-    let tx_fail = Transaction::with_gas(
-        "tx_fail".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_000,
-        5_000,
-        0,
-        Some("sig".to_string()),
-        50, // Very low gas
-        1_000,
-    );
+    let tx_fail = Transaction::new("tx_fail", "alice", "bob", 1_000, 5_000, 0, None)
+        .with_gas(50, 1_000)
+        .with_signature("sig");
 
     let initial_balance = state.balance_of("alice", "udgt");
     let result_fail = execute_transaction(&tx_fail, &mut state, 100, 0, &gas_schedule);
@@ -354,17 +281,9 @@ fn test_state_isolation_between_transactions() {
     assert_eq!(state.balance_of("alice", "udgt"), initial_balance - gas_fee);
 
     // Second transaction that will succeed
-    let tx_success = Transaction::with_gas(
-        "tx_success".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_000,
-        5_000,
-        1, // Incremented nonce
-        Some("sig".to_string()),
-        25_000, // Sufficient gas
-        1_000,
-    );
+    let tx_success = Transaction::new("tx_success", "alice", "bob", 1_000, 5_000, 1, None)
+        .with_gas(25_000, 1_000)
+        .with_signature("sig");
 
     let result_success = execute_transaction(&tx_success, &mut state, 100, 1, &gas_schedule);
     assert!(result_success.success);

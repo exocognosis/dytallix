@@ -28,8 +28,12 @@ impl Database {
     pub async fn new(database_url: &str) -> Result<Self, InferenceError> {
         let pool = PgPool::connect(database_url).await?;
 
-        // Run migrations if needed
-        sqlx::migrate!("./migrations").run(&pool).await.ok();
+        // Run migrations if present on disk (skip if missing)
+        if std::path::Path::new("./migrations").exists() {
+            if let Ok(migrator) = sqlx::migrate::Migrator::new(std::path::Path::new("./migrations")).await {
+                let _ = migrator.run(&pool).await;
+            }
+        }
 
         Ok(Self { pool })
     }
@@ -44,7 +48,7 @@ impl Database {
 
         let metadata = serde_json::to_value(&finding.metadata)?;
 
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             INSERT INTO findings (
                 tx_hash, address, score, severity, reasons,
@@ -53,24 +57,25 @@ impl Database {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id
             "#,
-            finding.tx_hash,
-            finding.addr,
-            finding.score,
-            severity,
-            &finding.reasons,
-            finding.signature_pq.as_ref(),
-            metadata,
-            0i64, // Will be updated when submitted to blockchain
-            finding.timestamp as i64
         )
+        .bind(&finding.tx_hash)
+        .bind(&finding.addr)
+        .bind(finding.score)
+        .bind(severity)
+        .bind(&finding.reasons)
+        .bind(&finding.signature_pq)
+        .bind(metadata)
+        .bind(0i64)
+        .bind(finding.timestamp as i64)
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(row.id)
+        Ok(row.try_get::<i64, _>("id")?)
     }
 
+    #[allow(dead_code)]
     pub async fn get_address_stats(&self, address: &str) -> Result<AddressStats, InferenceError> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             SELECT
                 COUNT(*) as total_findings,
@@ -81,43 +86,45 @@ impl Database {
             FROM findings
             WHERE address = $1
             "#,
-            address
         )
+        .bind(address)
         .fetch_one(&self.pool)
         .await?;
 
         Ok(AddressStats {
-            total_findings: row.total_findings.unwrap_or(0) as u64,
-            high_risk_findings: row.high_risk_findings.unwrap_or(0) as u64,
-            average_score: row.average_score.unwrap_or(0.0),
-            first_seen: row.first_seen,
-            last_seen: row.last_seen,
+            total_findings: row.try_get::<i64, _>("total_findings").unwrap_or(0) as u64,
+            high_risk_findings: row.try_get::<i64, _>("high_risk_findings").unwrap_or(0) as u64,
+            average_score: row.try_get::<f64, _>("average_score").unwrap_or(0.0),
+            first_seen: row.try_get::<Option<chrono::DateTime<chrono::Utc>>, _>("first_seen").ok().flatten(),
+            last_seen: row.try_get::<Option<chrono::DateTime<chrono::Utc>>, _>("last_seen").ok().flatten(),
         })
     }
 
+    #[allow(dead_code)]
     pub async fn get_velocity_stats(&self, address: &str, window_hours: i64) -> Result<VelocityStats, InferenceError> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             SELECT
                 COUNT(*) as transaction_count,
                 SUM(CAST(metadata->>'amount' AS DECIMAL)) as total_volume
             FROM findings
             WHERE address = $1
-            AND timestamp_created > NOW() - INTERVAL '%d hours'
+            AND timestamp_created > NOW() - ($2 * INTERVAL '1 hour')
             "#,
-            address,
-            window_hours
         )
+        .bind(address)
+        .bind(window_hours)
         .fetch_one(&self.pool)
         .await?;
 
         Ok(VelocityStats {
-            transaction_count: row.transaction_count.unwrap_or(0) as u64,
-            total_volume: row.total_volume.unwrap_or(0.0),
+            transaction_count: row.try_get::<i64, _>("transaction_count").unwrap_or(0) as u64,
+            total_volume: row.try_get::<f64, _>("total_volume").unwrap_or(0.0),
             window_hours: window_hours as u64,
         })
     }
 
+    #[allow(dead_code)]
     pub async fn store_transaction_features(
         &self,
         tx_hash: &str,
@@ -126,7 +133,7 @@ impl Database {
     ) -> Result<(), InferenceError> {
         let features_json = serde_json::to_value(features)?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO transaction_features (tx_hash, address, features)
             VALUES ($1, $2, $3)
@@ -134,10 +141,10 @@ impl Database {
                 features = EXCLUDED.features,
                 extracted_at = NOW()
             "#,
-            tx_hash,
-            address,
-            features_json
         )
+        .bind(tx_hash)
+        .bind(address)
+        .bind(features_json)
         .execute(&self.pool)
         .await?;
 

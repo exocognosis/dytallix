@@ -581,7 +581,7 @@ struct GriefingIndicators {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult, StateChange};
+    use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult};
 
     #[test]
     fn test_gas_analyzer_creation() {
@@ -591,7 +591,7 @@ mod tests {
 
     #[test]
     fn test_excessive_gas_limit_detection() {
-        let mut analyzer = GasAttackAnalyzer::new();
+        let analyzer = GasAttackAnalyzer::new();
 
         let deployment = ContractDeployment {
             address: "test".to_string(),

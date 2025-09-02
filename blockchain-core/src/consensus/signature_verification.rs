@@ -47,20 +47,20 @@ impl From<anyhow::Error> for VerificationError {
 impl std::fmt::Display for VerificationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            VerificationError::InvalidSignature(msg) => write!(f, "Invalid signature: {}", msg),
-            VerificationError::OracleNotFound(msg) => write!(f, "Oracle not found: {}", msg),
-            VerificationError::OracleNotTrusted(msg) => write!(f, "Oracle not trusted: {}", msg),
-            VerificationError::CertificateError(msg) => write!(f, "Certificate error: {}", msg),
-            VerificationError::ResponseExpired(msg) => write!(f, "Response expired: {}", msg),
-            VerificationError::ReplayAttack(msg) => write!(f, "Replay attack: {}", msg),
+            VerificationError::InvalidSignature(msg) => write!(f, "Invalid signature: {msg}"),
+            VerificationError::OracleNotFound(msg) => write!(f, "Oracle not found: {msg}"),
+            VerificationError::OracleNotTrusted(msg) => write!(f, "Oracle not trusted: {msg}"),
+            VerificationError::CertificateError(msg) => write!(f, "Certificate error: {msg}"),
+            VerificationError::ResponseExpired(msg) => write!(f, "Response expired: {msg}"),
+            VerificationError::ReplayAttack(msg) => write!(f, "Replay attack: {msg}"),
             VerificationError::SignatureVerificationFailed(msg) => {
-                write!(f, "Signature verification failed: {}", msg)
+                write!(f, "Signature verification failed: {msg}")
             }
             VerificationError::RequestResponseMismatch(msg) => {
-                write!(f, "Request-response mismatch: {}", msg)
+                write!(f, "Request-response mismatch: {msg}")
             }
-            VerificationError::TimestampError(msg) => write!(f, "Timestamp error: {}", msg),
-            VerificationError::VerificationFailed(msg) => write!(f, "Verification failed: {}", msg),
+            VerificationError::TimestampError(msg) => write!(f, "Timestamp error: {msg}"),
+            VerificationError::VerificationFailed(msg) => write!(f, "Verification failed: {msg}"),
         }
     }
 }
@@ -303,30 +303,20 @@ impl SignatureVerifier {
         }
 
         // Check signature age
-        let signature_age = if now > signed_response.signature.signature_timestamp {
-            now - signed_response.signature.signature_timestamp
-        } else {
-            0
-        };
+        let signature_age = now.saturating_sub(signed_response.signature.signature_timestamp);
 
         if signature_age > self.config.max_signature_age + self.config.clock_skew_tolerance {
             return Err(VerificationError::TimestampError(format!(
-                "Signature too old: {} seconds",
-                signature_age
+                "Signature too old: {signature_age} seconds"
             )));
         }
 
         // Check response age
-        let response_age = if now > signed_response.response.timestamp {
-            now - signed_response.response.timestamp
-        } else {
-            0
-        };
+        let response_age = now.saturating_sub(signed_response.response.timestamp);
 
         if response_age > self.config.max_response_age + self.config.clock_skew_tolerance {
             return Err(VerificationError::TimestampError(format!(
-                "Response too old: {} seconds",
-                response_age
+                "Response too old: {response_age} seconds"
             )));
         }
 
@@ -418,16 +408,14 @@ impl SignatureVerifier {
             // Check certificate validity period
             if now < cert.valid_from || now > cert.valid_until {
                 return Err(VerificationError::CertificateError(format!(
-                    "Certificate {} in chain is not valid at current time",
-                    i
+                    "Certificate {i} in chain is not valid at current time"
                 )));
             }
 
             // Check certificate subject matches oracle
             if cert.subject_oracle_id != oracle_identity.oracle_id {
                 return Err(VerificationError::CertificateError(format!(
-                    "Certificate {} subject does not match oracle ID",
-                    i
+                    "Certificate {i} subject does not match oracle ID"
                 )));
             }
         }
@@ -464,8 +452,7 @@ impl SignatureVerifier {
         // Get signable data
         let signable_data = signed_response.get_signable_data().map_err(|e| {
             VerificationError::SignatureVerificationFailed(format!(
-                "Failed to create signable data: {}",
-                e
+                "Failed to create signable data: {e}"
             ))
         })?;
 
@@ -482,8 +469,7 @@ impl SignatureVerifier {
             )
             .map_err(|e| {
                 VerificationError::SignatureVerificationFailed(format!(
-                    "PQC verification failed: {}",
-                    e
+                    "PQC verification failed: {e}"
                 ))
             })?;
 

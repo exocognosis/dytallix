@@ -1,12 +1,17 @@
+#[cfg(feature = "metrics")]
 use std::sync::Arc;
-use tokio::time::{sleep, Duration};
+// removed unused tokio::time sleep and Duration imports
+use tempfile::TempDir;
 
-use dytallix_lean_launch_node::mempool::{Mempool, RejectionReason};
-use dytallix_lean_launch_node::metrics::{Metrics, MetricsConfig};
-use dytallix_lean_launch_node::p2p::TransactionGossip;
-use dytallix_lean_launch_node::state::State;
-use dytallix_lean_launch_node::storage::tx::Transaction;
+use dytallix_lean_node::mempool::Mempool;
+#[cfg(feature = "metrics")]
+use dytallix_lean_node::metrics::Metrics;
+#[cfg(feature = "metrics")]
+use dytallix_lean_node::p2p::TransactionGossip;
+use dytallix_lean_node::state::State;
+use dytallix_lean_node::storage::tx::Transaction;
 
+#[allow(clippy::too_many_arguments)]
 fn create_test_transaction(
     hash: &str,
     from: &str,
@@ -17,23 +22,27 @@ fn create_test_transaction(
     gas_limit: u64,
     gas_price: u64,
 ) -> Transaction {
-    Transaction {
-        hash: hash.to_string(),
-        from: from.to_string(),
-        to: to.to_string(),
-        amount,
-        fee,
-        nonce,
-        signature: Some("test_signature".to_string()),
-        gas_limit,
-        gas_price,
-    }
+    Transaction::new(hash, from, to, amount, fee, nonce, None)
+        .with_gas(gas_limit, gas_price)
+        .with_signature("test_signature")
 }
 
 fn create_mock_state() -> State {
-    let mut state = State::new_for_test();
-    state.set_account_balance("sender1", 1000000);
-    state.set_account_balance("sender2", 500000);
+    let tmp = TempDir::new().unwrap();
+    let storage = std::sync::Arc::new(
+        dytallix_lean_node::storage::state::Storage::open(tmp.path().join("node.db")).unwrap(),
+    );
+    let mut state = State::new(storage);
+    {
+        let mut acc = state.get_account("sender1");
+        acc.set_balance("udgt", 1_000_000);
+        state.accounts.insert("sender1".to_string(), acc);
+    }
+    {
+        let mut acc = state.get_account("sender2");
+        acc.set_balance("udgt", 500_000);
+        state.accounts.insert("sender2".to_string(), acc);
+    }
     state
 }
 
@@ -132,7 +141,7 @@ async fn test_mempool_eviction_metrics() {
     let metrics = Arc::new(Metrics::new().expect("Failed to create metrics"));
 
     // Create mempool with very small capacity
-    let config = dytallix_lean_launch_node::mempool::MempoolConfig {
+    let config = dytallix_lean_node::mempool::MempoolConfig {
         max_txs: 2,
         ..Default::default()
     };
@@ -192,7 +201,7 @@ async fn test_gossip_duplicate_metrics() {
 
     // Test multiple duplicates
     for i in 3..=5 {
-        assert!(!gossip.should_gossip(tx_hash, Some(&format!("peer{}", i))));
+        assert!(!gossip.should_gossip(tx_hash, Some(&format!("peer{i}"))));
         metrics.record_gossip_duplicate();
     }
 
@@ -213,14 +222,14 @@ async fn test_mempool_watermark_metrics() {
 
     for i in 0..10 {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
+            &format!("hash{i}"),
             "sender1",
             "receiver",
             1000,
             100,
             i,
             21000,
-            1000 + i as u64 * 100, // Increasing gas prices
+            1000 + i * 100, // Increasing gas prices
         );
 
         if mempool.add_transaction(&state, tx).is_ok() {
@@ -246,8 +255,7 @@ async fn test_mempool_watermark_metrics() {
     );
 
     println!(
-        "Max size: {}, Max bytes: {}, Min gas price: {}",
-        max_size, max_bytes, min_gas_price
+        "Max size: {max_size}, Max bytes: {max_bytes}, Min gas price: {min_gas_price}"
     );
 }
 
@@ -267,14 +275,14 @@ async fn test_comprehensive_metrics_flow() {
     // Phase 1: Add valid transactions
     for i in 0..5 {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
+            &format!("hash{i}"),
             "sender1",
             "receiver",
             1000,
             100,
             i,
             21000,
-            1000 + i as u64 * 200,
+            1000 + i * 200,
         );
 
         // Check gossip
@@ -345,13 +353,13 @@ async fn test_comprehensive_metrics_flow() {
     );
 
     // Verify rejection metrics
-    for (reason, count) in rejections_by_reason {
+    for (reason, count) in &rejections_by_reason {
         assert_eq!(
             metrics
                 .mempool_rejected_total
-                .with_label_values(&[reason])
+                .with_label_values(&[*reason])
                 .get(),
-            count
+            *count
         );
     }
 

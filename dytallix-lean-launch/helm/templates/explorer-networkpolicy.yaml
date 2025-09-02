@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dytallix-explorer
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dytallix-lean-launch
+      app.kubernetes.io/component: explorer
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: {{ .Values.explorer.service.port }}
+          protocol: TCP
+  egress:
+    - {}
+

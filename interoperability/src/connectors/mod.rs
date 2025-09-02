@@ -105,10 +105,7 @@ impl ConnectorManager {
         dest_chain: &str,
         bridge_tx: &BridgeTx,
     ) -> Result<TransferResult, BridgeError> {
-        println!(
-            "🌉 Processing transfer from {} to {}",
-            source_chain, dest_chain
-        );
+        println!("🌉 Processing transfer from {source_chain} to {dest_chain}");
 
         // Determine chain types and execute appropriate transfer logic
         match (
@@ -140,8 +137,7 @@ impl ConnectorManager {
                     .await
             }
             _ => Err(BridgeError::UnsupportedChain(format!(
-                "Transfer from {} to {} not supported",
-                source_chain, dest_chain
+                "Transfer from {source_chain} to {dest_chain} not supported"
             ))),
         }
     }
@@ -358,7 +354,6 @@ pub enum TransferStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[tokio::test]
     async fn test_connector_manager_creation() {

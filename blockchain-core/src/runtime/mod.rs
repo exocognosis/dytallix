@@ -5,7 +5,10 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 // Enable smart contracts integration now that the crate compiles
 use crate::crypto::PQCManager; // added
-use crate::staking::{StakingState, StakingError, Validator, Delegation, DelegatorRewardsSummary, DelegatorValidatorRewards};
+use crate::staking::{
+    Delegation, DelegatorRewardsSummary, DelegatorValidatorRewards, StakingError, StakingState,
+    Validator,
+};
 use crate::storage::StorageManager;
 use crate::types::{Address, BlockNumber};
 use crate::types::{Transaction, TxReceipt, TxStatus};
@@ -61,7 +64,7 @@ impl RuntimeState {
         for allocation in &genesis.dgt_allocations {
             state
                 .balances
-                .insert(allocation.address.clone(), allocation.amount as u64);
+                .insert(allocation.address.clone(), allocation.amount);
         }
 
         // Initialize genesis validators
@@ -159,7 +162,7 @@ impl DytallixRuntime {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut state = self.state.write().await;
         state.balances.insert(address.to_string(), amount);
-        debug!("Set balance for {}: {}", address, amount);
+        debug!("Set balance for {address}: {amount}");
         Ok(())
     }
 
@@ -183,7 +186,7 @@ impl DytallixRuntime {
             .insert(from.to_string(), from_balance - amount);
         state.balances.insert(to.to_string(), to_balance + amount);
 
-        info!("Transfer: {} -> {} amount: {}", from, to, amount);
+        info!("Transfer: {from} -> {to} amount: {amount}");
         Ok(())
     }
 
@@ -204,7 +207,7 @@ impl DytallixRuntime {
         address: &str,
         code: Vec<u8>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Deploying contract at address: {}", address);
+        info!("Deploying contract at address: {address}");
 
         // Create deployment info
         let deployment = ContractDeployment {
@@ -225,16 +228,13 @@ impl DytallixRuntime {
             .contract_runtime
             .deploy_contract(deployment)
             .await
-            .map_err(|e| format!("Contract deployment failed: {}", e))?;
+            .map_err(|e| format!("Contract deployment failed: {e}"))?;
 
         // Also store in legacy state for backward compatibility
         let mut state = self.state.write().await;
         state.contracts.insert(address.to_string(), code);
 
-        info!(
-            "Contract deployed successfully at address: {}",
-            deployed_address
-        );
+        info!("Contract deployed successfully at address: {deployed_address}");
         Ok(())
     }
 
@@ -276,7 +276,7 @@ impl DytallixRuntime {
             .contract_runtime
             .call_contract(contract_call)
             .await
-            .map_err(|e| format!("Contract execution failed: {}", e))?;
+            .map_err(|e| format!("Contract execution failed: {e}"))?;
 
         if execution_result.success {
             debug!(
@@ -286,7 +286,7 @@ impl DytallixRuntime {
 
             // Log events if any
             for event in &execution_result.events {
-                info!("Contract event: {:?}", event);
+                info!("Contract event: {event:?}");
             }
 
             Ok(execution_result.return_data)
@@ -309,10 +309,7 @@ impl DytallixRuntime {
         gas_limit: u64,
         value: u64,
     ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
-        debug!(
-            "Calling contract method {} at {} from {}",
-            method, address, caller
-        );
+        debug!("Calling contract method {method} at {address} from {caller}");
 
         let contract_call = ContractCall {
             contract_address: address.to_string(),
@@ -331,7 +328,7 @@ impl DytallixRuntime {
             .contract_runtime
             .call_contract(contract_call)
             .await
-            .map_err(|e| format!("Contract call failed: {}", e))?;
+            .map_err(|e| format!("Contract call failed: {e}"))?;
 
         Ok(execution_result)
     }
@@ -350,10 +347,7 @@ impl DytallixRuntime {
         gas_limit: u64,
         initial_state: Vec<u8>,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        info!(
-            "Deploying contract at address: {} from deployer: {}",
-            address, deployer
-        );
+        info!("Deploying contract at address: {address} from deployer: {deployer}");
 
         let deployment = ContractDeployment {
             address: address.to_string(),
@@ -372,16 +366,13 @@ impl DytallixRuntime {
             .contract_runtime
             .deploy_contract(deployment)
             .await
-            .map_err(|e| format!("Contract deployment failed: {}", e))?;
+            .map_err(|e| format!("Contract deployment failed: {e}"))?;
 
         // Update legacy state
         let mut state = self.state.write().await;
         state.contracts.insert(address.to_string(), code);
 
-        info!(
-            "Contract deployed successfully at address: {}",
-            deployed_address
-        );
+        info!("Contract deployed successfully at address: {deployed_address}");
         Ok(deployed_address)
     }
 
@@ -429,7 +420,7 @@ impl DytallixRuntime {
         // Create delegation
         state.staking.delegate(delegator, validator, amount)?;
 
-        debug!("Delegated {} uDGT", amount);
+        debug!("Delegated {amount} uDGT");
         Ok(())
     }
 
@@ -457,7 +448,7 @@ impl DytallixRuntime {
         validator: &Address,
     ) -> Option<Delegation> {
         let state = self.state.read().await;
-        let delegation_key = format!("{}:{}", delegator, validator);
+        let delegation_key = format!("{delegator}:{validator}");
         state.staking.delegations.get(&delegation_key).cloned()
     }
 
@@ -493,7 +484,7 @@ impl DytallixRuntime {
         validator: &Address,
     ) -> Result<u128, StakingError> {
         let state = self.state.read().await;
-        let delegation_key = format!("{}:{}", delegator, validator);
+        let delegation_key = format!("{delegator}:{validator}");
         let delegation = state
             .staking
             .delegations
@@ -517,7 +508,7 @@ impl DytallixRuntime {
             state
                 .drt_balances
                 .insert(delegator.clone(), current_drt + rewards);
-            debug!("Credited {} uDRT rewards to {}", rewards, delegator);
+            debug!("Credited {rewards} uDRT rewards to {delegator}");
         }
 
         Ok(rewards)
@@ -534,10 +525,7 @@ impl DytallixRuntime {
             state
                 .drt_balances
                 .insert(delegator.clone(), current_drt + total_rewards);
-            debug!(
-                "Credited {} uDRT total rewards to {}",
-                total_rewards, delegator
-            );
+            debug!("Credited {total_rewards} uDRT total rewards to {delegator}");
         }
 
         Ok(total_rewards)

@@ -41,11 +41,21 @@ pub struct BridgeStore<'a> {
     pub db: &'a DB,
 }
 impl<'a> BridgeStore<'a> {
-    fn key_halted() -> &'static str { "bridge:halted" }
-    fn key_validators() -> &'static str { "bridge:validators" }
-    fn key_custody(asset: &str) -> String { format!("bridge:custody:{asset}") }
-    fn key_pending(id: &str) -> String { format!("bridge:pending:{id}") }
-    fn key_applied(id: &str) -> String { format!("bridge:applied:{id}") }
+    fn key_halted() -> &'static str {
+        "bridge:halted"
+    }
+    fn key_validators() -> &'static str {
+        "bridge:validators"
+    }
+    fn key_custody(asset: &str) -> String {
+        format!("bridge:custody:{asset}")
+    }
+    fn key_pending(id: &str) -> String {
+        format!("bridge:pending:{id}")
+    }
+    fn key_applied(id: &str) -> String {
+        format!("bridge:applied:{id}")
+    }
 
     pub fn is_halted(&self) -> bool {
         self.db
@@ -108,7 +118,8 @@ impl<'a> BridgeStore<'a> {
         let iter = self.db.prefix_iterator(b"bridge:pending:");
         for kv in iter.flatten() {
             if let Ok(key) = std::str::from_utf8(&kv.0) {
-                if let Some(id) = key.rsplit(':').next() { // use rsplit + next (O(1))
+                if let Some(id) = key.rsplit(':').next() {
+                    // use rsplit + next (O(1))
                     out.push(id.to_string());
                 }
             }
@@ -134,7 +145,8 @@ impl<'a> BridgeStore<'a> {
         let iter = self.db.iterator(rocksdb::IteratorMode::Start);
         for kv in iter.flatten() {
             if let Ok(key) = std::str::from_utf8(&kv.0) {
-                if let Some(rest) = key.strip_prefix("bridge:custody:") { // avoid starts_with+split
+                if let Some(rest) = key.strip_prefix("bridge:custody:") {
+                    // avoid starts_with+split
                     if let Ok(v) = bincode::deserialize::<u128>(&kv.1) {
                         custody.insert(rest.to_string(), v);
                     }
@@ -164,7 +176,9 @@ pub fn verify_bridge_message(
     msg: &BridgeMessage,
     validators: &[BridgeValidator],
 ) -> Result<(), String> {
-    if msg.signatures.len() != msg.signers.len() { return Err("SignersSignaturesLengthMismatch".into()); }
+    if msg.signatures.len() != msg.signers.len() {
+        return Err("SignersSignaturesLengthMismatch".into());
+    }
     // Map validators
     let map: HashMap<String, String> = validators
         .iter()
@@ -177,14 +191,23 @@ pub fn verify_bridge_message(
         msg.id, msg.source_chain, msg.dest_chain, msg.asset, msg.amount, msg.recipient
     );
     for (i, signer) in msg.signers.iter().enumerate() {
-        if unique_signers.contains(signer) { continue; }
-        let pk_b64 = match map.get(signer) { Some(p) => p, None => continue };
+        if unique_signers.contains(signer) {
+            continue;
+        }
+        let pk_b64 = match map.get(signer) {
+            Some(p) => p,
+            None => continue,
+        };
         let sig_b64 = &msg.signatures[i];
-        let (Ok(pk_bytes), Ok(sig_bytes)) = (B64.decode(pk_b64), B64.decode(sig_b64)) else { continue };
+        let (Ok(pk_bytes), Ok(sig_bytes)) = (B64.decode(pk_b64), B64.decode(sig_b64)) else {
+            continue;
+        };
         let (Ok(pk), Ok(sig)) = (
             PublicKey::from_bytes(&pk_bytes),
             Signature::from_bytes(&sig_bytes),
-        ) else { continue };
+        ) else {
+            continue;
+        };
         if pk.verify(payload.as_bytes(), &sig).is_ok() {
             unique_signers.insert(signer.clone());
             valid_count += 1;
@@ -192,5 +215,11 @@ pub fn verify_bridge_message(
     }
     let total = validators.len() as f32;
     let needed = ((total * 2.0) / 3.0).ceil() as u32; // >= 2/3
-    if valid_count >= needed { Ok(()) } else { Err(format!("InsufficientQuorum valid={valid_count} needed={needed}")) }
+    if valid_count >= needed {
+        Ok(())
+    } else {
+        Err(format!(
+            "InsufficientQuorum valid={valid_count} needed={needed}"
+        ))
+    }
 }

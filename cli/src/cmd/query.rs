@@ -36,7 +36,7 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: QueryCmd) -> Result<()> {
         QueryWhat::Balance { address, denom } => {
             let mut url = format!("{}/balance/{}", client.base, address);
             if let Some(d) = denom {
-                url = format!("{}?denom={}", url, d);
+                url = format!("{url}?denom={d}");
             }
             let res = reqwest::get(url).await?;
             if !res.status().is_success() {
@@ -53,7 +53,7 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: QueryCmd) -> Result<()> {
                         "Address: {}",
                         v.get("address").unwrap_or(&serde_json::Value::Null)
                     );
-                    println!("Denomination: {}", denom_val);
+                    println!("Denomination: {denom_val}");
                     println!(
                         "Balance: {}",
                         v.get("balance").unwrap_or(&serde_json::Value::Null)
@@ -79,10 +79,10 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: QueryCmd) -> Result<()> {
                         }
                     }
                     if let Some(legacy) = v.get("legacy_balance") {
-                        println!("Legacy balance (udgt): {}", legacy);
+                        println!("Legacy balance (udgt): {legacy}");
                     }
                 } else {
-                    println!("{}", v);
+                    println!("{v}");
                 }
             }
         }
@@ -96,7 +96,7 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: QueryCmd) -> Result<()> {
             if fmt.is_json() {
                 print_json(&v)?;
             } else {
-                println!("{}", v);
+                println!("{v}");
             }
         }
         QueryWhat::Block { id } => {
@@ -109,7 +109,7 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: QueryCmd) -> Result<()> {
             if fmt.is_json() {
                 print_json(&v)?;
             } else {
-                println!("{}", v);
+                println!("{v}");
             }
         }
         QueryWhat::Validators => {
@@ -119,7 +119,7 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: QueryCmd) -> Result<()> {
             if fmt.is_json() {
                 print_json(&v)?;
             } else {
-                println!("{}", v);
+                println!("{v}");
             }
         }
         QueryWhat::Proposals => {
@@ -129,7 +129,7 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: QueryCmd) -> Result<()> {
             if fmt.is_json() {
                 print_json(&v)?;
             } else {
-                println!("{}", v);
+                println!("{v}");
             }
         }
         QueryWhat::Emission => {
@@ -176,7 +176,7 @@ pub async fn run(rpc: &str, fmt: OutputFormat, cmd: QueryCmd) -> Result<()> {
             if fmt.is_json() {
                 print_json(&v)?;
             } else {
-                println!("{}", v);
+                println!("{v}");
             }
         }
     }
@@ -187,31 +187,31 @@ fn display_emission_info(v: &serde_json::Value) {
     println!("Emission Information:");
 
     if let Some(current_rate) = v.get("current_emission_rate") {
-        println!("  Current Rate: {} DGT per block", current_rate);
+        println!("  Current Rate: {current_rate} DGT per block");
     }
 
     if let Some(total_supply) = v.get("total_supply") {
-        println!("  Total Supply: {} DGT", total_supply);
+        println!("  Total Supply: {total_supply} DGT");
     }
 
     if let Some(circulating) = v.get("circulating_supply") {
-        println!("  Circulating: {} DGT", circulating);
+        println!("  Circulating: {circulating} DGT");
     }
 
     if let Some(next_reduction) = v.get("next_reduction_block") {
-        println!("  Next Reduction Block: {}", next_reduction);
+        println!("  Next Reduction Block: {next_reduction}");
     }
 
     if let Some(reduction_factor) = v.get("reduction_factor") {
-        println!("  Reduction Factor: {}", reduction_factor);
+        println!("  Reduction Factor: {reduction_factor}");
     }
 
     if let Some(blocks_until_reduction) = v.get("blocks_until_reduction") {
-        println!("  Blocks Until Reduction: {}", blocks_until_reduction);
+        println!("  Blocks Until Reduction: {blocks_until_reduction}");
     }
 
     // Fallback: display raw JSON if structure is different
     if v.get("current_emission_rate").is_none() && v.get("total_supply").is_none() {
-        println!("{}", v);
+        println!("{v}");
     }
 }

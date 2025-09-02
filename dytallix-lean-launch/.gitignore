@@ -112,6 +112,8 @@ reports/
 
 # Ensure no secrets or local override envs
 ops/*.env
+ops/secrets/*.env
+!ops/secrets/*.env.example
 scripts/*.env
 reports/*.tmp
 

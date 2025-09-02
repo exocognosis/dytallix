@@ -24,9 +24,10 @@ import StakeBalancer from './pages/StakeBalancer.jsx'
 import NetFlux from './pages/NetFlux.jsx'
 import CodeShield from './pages/CodeShield.jsx'
 import ToasterProvider from './components/common/Toaster.jsx'
-import GovernanceList from './pages/governance/GovernanceList.jsx'
-import GovernanceDetail from './pages/governance/GovernanceDetail.jsx'
-import ContractsPage from './pages/contracts/ContractsPage.jsx'
+import Governance from './pages/Governance.jsx'
+import TxPage from './pages/Tx.jsx'
+import BlockPage from './pages/Block.jsx'
+import ContractsPage from './pages/Contracts.jsx'
 import StakingPage from './pages/staking/StakingPage.jsx'
 import TransactionsPage from './pages/transactions/TransactionsPage.jsx'
 import AccountsPage from './pages/accounts/AccountsPage.jsx'
@@ -47,7 +48,9 @@ function App() {
             <Route path="/faucet" element={<Faucet />} />
             <Route path="/deploy" element={<Deploy />} />
             <Route path="/explorer" element={<Explorer />} />
-            <Route path="/explorer/tx/:hash" element={<Explorer />} />
+            <Route path="/explorer/tx/:hash" element={<TxPage />} />
+            <Route path="/tx/:hash" element={<TxPage />} />
+            <Route path="/block/:id" element={<BlockPage />} />
             <Route path="/explorer/address/:addr" element={<Explorer />} />
             <Route path="/explorer/contract/:addr" element={<Explorer />} />
             <Route path="/status" element={<Dashboard />} />
@@ -63,8 +66,8 @@ function App() {
             <Route path="/changelog" element={<Changelog />} />
             
             {/* Enhanced Explorer Routes */}
-            <Route path="/governance" element={<GovernanceList />} />
-            <Route path="/governance/:proposalId" element={<GovernanceDetail />} />
+            <Route path="/governance" element={<Governance />} />
+            <Route path="/governance/:proposalId" element={<Governance />} />
             <Route path="/contracts" element={<ContractsPage />} />
             <Route path="/contracts/:contractAddress" element={<ContractsPage />} />
             <Route path="/staking" element={<StakingPage />} />

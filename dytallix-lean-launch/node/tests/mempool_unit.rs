@@ -1,7 +1,11 @@
-use super::*;
-use crate::state::State;
-use crate::storage::tx::Transaction;
+use dytallix_lean_node::mempool::{Mempool, MempoolConfig, PendingTx, RejectionReason};
+use dytallix_lean_node::state::State;
+use dytallix_lean_node::storage::state::Storage;
+use dytallix_lean_node::storage::tx::Transaction;
+use std::sync::Arc;
+use tempfile::TempDir;
 
+#[allow(clippy::too_many_arguments)]
 fn create_test_transaction(
     hash: &str,
     from: &str,
@@ -12,24 +16,17 @@ fn create_test_transaction(
     gas_limit: u64,
     gas_price: u64,
 ) -> Transaction {
-    Transaction {
-        hash: hash.to_string(),
-        from: from.to_string(),
-        to: to.to_string(),
-        amount,
-        fee,
-        nonce,
-        signature: Some("test_signature".to_string()),
-        gas_limit,
-        gas_price,
-    }
+    Transaction::new(hash, from, to, amount, fee, nonce, None)
+        .with_gas(gas_limit, gas_price)
+        .with_signature("test_signature")
 }
 
 fn create_mock_state() -> State {
-    let mut state = State::new_for_test();
-    // Add test account with balance and nonce
-    state.set_account_balance("sender1", 1000000);
-    state.set_account_balance("sender2", 500000);
+    let tmp = TempDir::new().unwrap();
+    let storage = Arc::new(Storage::open(tmp.path().join("node.db")).unwrap());
+    let mut state = State::new(storage);
+    state.set_balance("sender1", "udgt", 1_000_000);
+    state.set_balance("sender2", "udgt", 500_000);
     state
 }
 
@@ -129,7 +126,7 @@ fn test_dedup_same_hash() {
 
     // Second transaction with same hash should be rejected as duplicate
     let result = mempool.add_transaction(&state, tx2);
-    assert!(matches!(result, Err(RejectionReason::Duplicate)));
+    assert!(matches!(result, Err(RejectionReason::Duplicate(_))));
 }
 
 #[test]

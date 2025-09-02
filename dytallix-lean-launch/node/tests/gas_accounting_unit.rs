@@ -6,16 +6,16 @@ and other core gas accounting functionality.
 */
 
 use dytallix_lean_node::execution::{execute_transaction, ExecutionContext};
-use dytallix_lean_node::gas::{GasError, GasSchedule};
+use dytallix_lean_node::gas::GasSchedule;
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::receipts::{TxStatus, RECEIPT_FORMAT_VERSION};
 use dytallix_lean_node::storage::state::Storage;
 use dytallix_lean_node::storage::tx::Transaction;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 fn create_test_state() -> State {
-    let storage = Arc::new(Storage::open(PathBuf::from(":memory:")).unwrap());
+    let dir = tempfile::tempdir().unwrap();
+    let storage = Arc::new(Storage::open(dir.path().join("node.db")).unwrap());
     State::new(storage)
 }
 
@@ -25,19 +25,11 @@ fn test_upfront_fee_deduction_success() {
     let gas_schedule = GasSchedule::default();
 
     // Setup sufficient balance
-    state.set_balance("alice", "udgt", 100_000);
+    state.set_balance("alice", "udgt", 100_000_000);
 
-    let tx = Transaction::with_gas(
-        "test_hash".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_000,
-        10_000, // Legacy fee field
-        0,
-        Some("sig".to_string()),
-        25_000, // gas_limit
-        1_000,  // gas_price
-    );
+    let tx = Transaction::new("test_hash", "alice", "bob", 1_000, 10_000, 0, None)
+        .with_gas(25_000, 1_000)
+        .with_signature("sig");
 
     let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
 
@@ -49,7 +41,7 @@ fn test_upfront_fee_deduction_success() {
 
     // Verify upfront fee was charged
     let upfront_fee = 25_000u128 * 1_000u128; // gas_limit * gas_price
-    let expected_balance = 100_000 - upfront_fee - 1_000; // initial - fee - amount
+    let expected_balance = 100_000_000u128 - upfront_fee - 1_000u128; // initial - fee - amount
     assert_eq!(state.balance_of("alice", "udgt"), expected_balance);
 }
 
@@ -61,17 +53,9 @@ fn test_upfront_fee_deduction_failure_insufficient() {
     // Setup insufficient balance
     state.set_balance("alice", "udgt", 1_000); // Not enough for gas fee
 
-    let tx = Transaction::with_gas(
-        "test_hash".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        500,
-        10_000, // Legacy fee
-        0,
-        Some("sig".to_string()),
-        25_000, // gas_limit
-        1_000,  // gas_price -> 25M total fee needed
-    );
+    let tx = Transaction::new("test_hash", "alice", "bob", 500, 10_000, 0, None)
+        .with_gas(25_000, 1_000)
+        .with_signature("sig");
 
     let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
 
@@ -99,17 +83,9 @@ fn test_oom_full_revert() {
     state.set_balance("bob", "udgt", 50_000);
 
     // Create transaction with very low gas limit to trigger OOM
-    let tx = Transaction::with_gas(
-        "test_hash".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_000,
-        10_000,
-        0,
-        Some("sig".to_string()),
-        100, // Very low gas limit - should cause OOM
-        1_000,
-    );
+    let tx = Transaction::new("test_hash", "alice", "bob", 1_000, 10_000, 0, None)
+        .with_gas(100, 1_000)
+        .with_signature("sig");
 
     let initial_alice_balance = state.balance_of("alice", "udgt");
     let initial_bob_balance = state.balance_of("bob", "udgt");
@@ -138,17 +114,9 @@ fn test_receipt_fields() {
 
     state.set_balance("alice", "udgt", 100_000);
 
-    let tx = Transaction::with_gas(
-        "test_hash_123".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        2_000,
-        5_000,
-        42, // nonce
-        Some("signature_data".to_string()),
-        30_000,
-        500,
-    );
+    let tx = Transaction::new("test_hash_123", "alice", "bob", 2_000, 5_000, 42, None)
+        .with_gas(30_000, 500)
+        .with_signature("signature_data");
 
     let result = execute_transaction(&tx, &mut state, 150, 3, &gas_schedule);
 
@@ -186,15 +154,8 @@ fn test_legacy_transaction_compatibility() {
     state.set_balance("alice", "udgt", 100_000);
 
     // Legacy transaction with gas_limit=0, gas_price=0
-    let tx = Transaction::new(
-        "legacy_hash".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_000,
-        5_000, // fee
-        0,
-        Some("sig".to_string()),
-    );
+    let tx = Transaction::new("legacy_hash", "alice", "bob", 1_000, 5_000, 0, None)
+        .with_signature("sig");
 
     let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
 
@@ -224,17 +185,9 @@ fn test_invalid_nonce_handling() {
     state.set_balance("alice", "udgt", 100_000);
     // Nonce is 0 initially, but transaction has nonce 5
 
-    let tx = Transaction::with_gas(
-        "test_hash".to_string(),
-        "alice".to_string(),
-        "bob".to_string(),
-        1_000,
-        10_000,
-        5, // Wrong nonce
-        Some("sig".to_string()),
-        25_000,
-        1_000,
-    );
+    let tx = Transaction::new("test_hash", "alice", "bob", 1_000, 10_000, 5, None)
+        .with_gas(25_000, 1_000)
+        .with_signature("sig");
 
     let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
 

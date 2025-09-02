@@ -1,8 +1,8 @@
-use tokio::sync::mpsc::Sender;
-use serde_json::json;
-use crate::risk::pulseguard::{RiskEvent, now_ms};
+use crate::risk::pulseguard::{now_ms, RiskEvent};
 use crate::types::{Block, Transaction};
 use log::{debug, trace};
+use serde_json::json;
+use tokio::sync::mpsc::Sender;
 
 pub async fn stream_finalized(tx: Sender<RiskEvent>, blocks: Vec<Block>) {
     for b in blocks {
@@ -19,8 +19,8 @@ pub async fn stream_finalized(tx: Sender<RiskEvent>, blocks: Vec<Block>) {
                 from: t.from().clone(),
                 to: to_addr,
                 amount: amount_u128,
-                timestamp: (now_ms()/1000) as u64,
-                metadata: enrich_finalized(b.header.number)
+                timestamp: (now_ms() / 1000) as u64,
+                metadata: enrich_finalized(b.header.number),
             };
             if tx.send(ev).await.is_err() {
                 debug!("finalized channel closed");

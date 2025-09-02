@@ -14,6 +14,12 @@ impl std::fmt::Debug for WasmEngine {
     }
 }
 
+impl Default for WasmEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WasmEngine {
     pub fn new_with_env(host_env: HostEnv) -> Self {
         let mut config = Config::new();
@@ -58,7 +64,7 @@ impl WasmEngine {
         let mut store = Store::new(&self.engine, self.host_env.clone());
         // store.add_fuel(gas_limit)?; // removed: fuel not enabled in current wasmtime version/config
         // Use epoch deadline only for coarse interruption
-        store.set_epoch_deadline(gas_limit as u64); // coarse substitute
+        store.set_epoch_deadline(gas_limit); // coarse substitute
         let mut linker = Linker::new(&self.engine);
         self.register_host_functions(&mut linker)?;
         let instance = linker.instantiate(&mut store, &module)?;
@@ -121,7 +127,7 @@ impl WasmEngine {
                   -> i32 {
                 let gas_cost = env.gas_table().storage_get;
                 let _ = Self::charge_fuel(&mut caller, gas_cost);
-                match (|| -> Result<i32> {
+                (|| -> Result<i32> {
                     let key = Self::read_mem(&mut caller, key_ptr, key_len)?;
                     if let Some(val) = env.storage_get(&key) {
                         let take = std::cmp::min(val.len(), max_len as usize);
@@ -130,10 +136,8 @@ impl WasmEngine {
                     } else {
                         Ok(-1)
                     }
-                })() {
-                    Ok(r) => r,
-                    Err(_) => -1,
-                }
+                })()
+                .unwrap_or(-1)
             },
         )?;
 
@@ -149,17 +153,15 @@ impl WasmEngine {
                   val_len: i32|
                   -> i32 {
                 let gas_cost =
-                    env_set.gas_table().storage_set + ((val_len.max(0) as u64 + 31) / 32) * 5;
+                    env_set.gas_table().storage_set + (val_len.max(0) as u64).div_ceil(32) * 5;
                 let _ = Self::charge_fuel(&mut caller, gas_cost);
-                match (|| -> Result<i32> {
+                (|| -> Result<i32> {
                     let key = Self::read_mem(&mut caller, key_ptr, key_len)?;
                     let val = Self::read_mem(&mut caller, val_ptr, val_len)?;
                     env_set.storage_set(key, val);
                     Ok(0)
-                })() {
-                    Ok(r) => r,
-                    Err(_) => 1,
-                }
+                })()
+                .unwrap_or(1)
             },
         )?;
 
@@ -171,13 +173,11 @@ impl WasmEngine {
             move |mut caller: Caller<'_, T>, key_ptr: i32, key_len: i32| -> i32 {
                 let gas_cost = env_del.gas_table().storage_delete;
                 let _ = Self::charge_fuel(&mut caller, gas_cost);
-                match (|| -> Result<i32> {
+                (|| -> Result<i32> {
                     let key = Self::read_mem(&mut caller, key_ptr, key_len)?;
                     Ok(if env_del.storage_delete(&key) { 1 } else { 0 })
-                })() {
-                    Ok(r) => r,
-                    Err(_) => -1,
-                }
+                })()
+                .unwrap_or(-1)
             },
         )?;
 
@@ -187,19 +187,17 @@ impl WasmEngine {
             "env",
             "crypto_hash",
             move |mut caller: Caller<'_, T>, data_ptr: i32, data_len: i32, out_ptr: i32| -> i32 {
-                let chunks = (data_len.max(0) as u64 + 31) / 32;
+                let chunks = (data_len.max(0) as u64).div_ceil(32);
                 let gas_cost =
                     env_hash.gas_table().crypto_hash + chunks * env_hash.gas_table().crypto_hash;
                 let _ = Self::charge_fuel(&mut caller, gas_cost);
-                match (|| -> Result<i32> {
+                (|| -> Result<i32> {
                     let data = Self::read_mem(&mut caller, data_ptr, data_len)?;
                     let hash = env_hash.blake3_hash(&data);
                     Self::write_mem(&mut caller, out_ptr, &hash)?;
                     Ok(0)
-                })() {
-                    Ok(r) => r,
-                    Err(_) => 1,
-                }
+                })()
+                .unwrap_or(1)
             },
         )?;
 
@@ -279,7 +277,7 @@ impl WasmEngine {
             "env",
             "debug_log",
             move |mut caller: Caller<'_, T>, msg_ptr: i32, msg_len: i32| {
-                let gas_cost = env_log.gas_table().log + ((msg_len.max(0) as u64 + 63) / 64) * 5;
+                let gas_cost = env_log.gas_table().log + (msg_len.max(0) as u64).div_ceil(64) * 5;
                 let _ = Self::charge_fuel(&mut caller, gas_cost);
                 if let Ok(bytes) = Self::read_mem(&mut caller, msg_ptr, msg_len) {
                     if let Ok(msg) = String::from_utf8(bytes) {

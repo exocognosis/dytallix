@@ -19,5 +19,6 @@ fn deploy_counter_contract() -> String {
 }
 
 fn call_contract_method(method: &str) -> String {
-    format!("method_{}_success", method) // Simplified
+    // use inline formatting per clippy
+    format!("method_{method}_success")
 }

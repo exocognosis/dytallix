@@ -1,4 +1,3 @@
-
 use crate::client::BlockchainClient;
 use crate::config::Config;
 use anyhow::Result;
@@ -111,8 +110,7 @@ pub async fn analyze_fraud(input: String, config: &Config) -> Result<()> {
         Err(e) => {
             println!(
                 "{}",
-                format!("⚠️  AI service unavailable ({e}), using offline analysis")
-                    .bright_yellow()
+                format!("⚠️  AI service unavailable ({e}), using offline analysis").bright_yellow()
             );
             get_mock_fraud_response(&analysis_data)
         }

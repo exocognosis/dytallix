@@ -188,7 +188,7 @@ mod tests {
             "Address derivation should be deterministic"
         );
 
-        println!("Test address: {}", address);
+        println!("Test address: {address}");
     }
 
     #[test]
@@ -215,6 +215,6 @@ mod tests {
         // Test secret_key_b64 field to ensure it's not marked as dead code
         assert_eq!(parsed.secret_key_b64, entry.secret_key_b64);
 
-        println!("Keystore entry JSON:\n{}", json);
+        println!("Keystore entry JSON:\n{json}");
     }
 }

@@ -176,7 +176,7 @@ struct GasMeter {
     operations_count: u64,
     // Performance tracking
     gas_used_by_operation: HashMap<String, Gas>, // currently unused
-    execution_times: HashMap<String, Vec<u64>>, // microseconds, currently unused
+    execution_times: HashMap<String, Vec<u64>>,  // microseconds, currently unused
     total_executions: u64,
 }
 
@@ -202,7 +202,7 @@ struct ExecutionContext {
     call_value: Amount,      // unused economic value
     block_timestamp: u64,
     block_number: u64,
-    gas_limit: Gas,   // future nested call gas mgmt
+    gas_limit: Gas,    // future nested call gas mgmt
     memory_pages: u32, // future dynamic memory tracking
     stack_depth: u32,  // future recursion limits
 }
@@ -691,7 +691,7 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "storage_set",
-                |caller: Caller<HostCallContext>,
+                |mut caller: Caller<HostCallContext>,
                  key_ptr: i32,
                  key_len: i32,
                  value_ptr: i32,
@@ -773,7 +773,7 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "emit_event",
-                |caller: Caller<HostCallContext>,
+                |mut caller: Caller<HostCallContext>,
                  topic_ptr: i32,
                  topic_len: i32,
                  data_ptr: i32,

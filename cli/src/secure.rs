@@ -98,6 +98,6 @@ fn backoff(ms: u64) {
 }
 fn print_prompt(s: &str) -> Result<()> {
     use std::io::Write;
-    print!("{}", s);
+    print!("{s}");
     std::io::stdout().flush().map_err(|e| anyhow!(e))
 }

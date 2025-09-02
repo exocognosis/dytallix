@@ -3,6 +3,7 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
 import inquirer from 'inquirer'
+import { keypair } from '../../../../sdk/src/pqcMock'
 
 export const keygenCommand = new Command('keygen')
   .description('Generate a new PQC keypair')
@@ -42,31 +43,15 @@ export const keygenCommand = new Command('keygen')
         }
       ])
 
-      // TODO: Integrate with actual PQC crypto library
-      // For now, generate mock data
-      const mockAddress = `dytallix1${Array.from(crypto.getRandomValues(new Uint8Array(20)))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')}`
-
-      const mockKeystore = {
-        version: 1,
-        address: mockAddress,
-        algorithm: options.algo,
-        label: options.label,
-        encrypted_key: 'mock_encrypted_key_data',
-        kdf: 'scrypt',
-        created_at: new Date().toISOString()
-      }
+      // For MVP: use mock PQC generator; address derived as dyt1 + pk hex
+      const { pk } = keypair()
+      const addr = 'dyt1' + Buffer.from(pk).toString('hex').slice(0, 38)
 
       if (globalOpts.output === 'json') {
-        console.log(JSON.stringify({
-          address: mockAddress,
-          algorithm: options.algo,
-          label: options.label
-        }, null, 2))
+        console.log(JSON.stringify({ address: addr, algorithm: options.algo, label: options.label }, null, 2))
       } else {
         console.log(chalk.green('✅ Key generated successfully!'))
-        console.log(chalk.bold('Address:'), mockAddress)
+        console.log(chalk.bold('Address:'), addr)
         console.log(chalk.bold('Algorithm:'), options.algo)
         console.log(chalk.bold('Label:'), options.label)
       }

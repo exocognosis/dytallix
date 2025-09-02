@@ -78,14 +78,14 @@ pub enum CacheKey {
 impl CacheKey {
     pub fn to_string(&self, prefix: &str) -> String {
         match self {
-            CacheKey::BridgeTransaction(id) => format!("{}:tx:{}", prefix, id),
-            CacheKey::ValidatorSignatures(tx_id) => format!("{}:sigs:{}", prefix, tx_id),
-            CacheKey::AssetMetadata(asset_id) => format!("{}:asset:{}", prefix, asset_id),
-            CacheKey::BridgeStatistics => format!("{}:stats", prefix),
-            CacheKey::QueryResult(hash) => format!("{}:query:{}", prefix, hash),
-            CacheKey::ChainConfig(chain) => format!("{}:chain:{}", prefix, chain),
-            CacheKey::PerformanceMetrics => format!("{}:perf", prefix),
-            CacheKey::HealthCheck => format!("{}:health", prefix),
+            CacheKey::BridgeTransaction(id) => format!("{prefix}:tx:{id}"),
+            CacheKey::ValidatorSignatures(tx_id) => format!("{prefix}:sigs:{tx_id}"),
+            CacheKey::AssetMetadata(asset_id) => format!("{prefix}:asset:{asset_id}"),
+            CacheKey::BridgeStatistics => format!("{prefix}:stats"),
+            CacheKey::QueryResult(hash) => format!("{prefix}:query:{hash}"),
+            CacheKey::ChainConfig(chain) => format!("{prefix}:chain:{chain}"),
+            CacheKey::PerformanceMetrics => format!("{prefix}:perf"),
+            CacheKey::HealthCheck => format!("{prefix}:health"),
         }
     }
 }
@@ -623,7 +623,7 @@ impl BridgeCache {
 
     /// Helper methods
     async fn increment_access_count(&self, key: &str) -> Result<(), redis::RedisError> {
-        let access_key = format!("{}:access", key);
+        let access_key = format!("{key}:access");
         let mut conn = self.pool.get().await.map_err(|e| {
             redis::RedisError::from((redis::ErrorKind::IoError, "Pool get failed", e.to_string()))
         })?;

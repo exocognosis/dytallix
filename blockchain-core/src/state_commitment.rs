@@ -24,7 +24,7 @@ pub fn commit<K: AsRef<[u8]>, V: AsRef<[u8]>>(pairs: &[(K, V)]) -> [u8; 32] {
         .collect();
     // Build binary Merkle
     while leaves.len() > 1 {
-        let mut next = Vec::with_capacity((leaves.len() + 1) / 2);
+        let mut next = Vec::with_capacity(leaves.len().div_ceil(2));
         for chunk in leaves.chunks(2) {
             if chunk.len() == 1 {
                 next.push(chunk[0]);

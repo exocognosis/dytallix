@@ -34,16 +34,14 @@ fn test_static_emission_schedule() {
         if let Some(event) = engine.get_event(height) {
             assert_eq!(
                 event.total_emitted, 1_000_000,
-                "Static emission should be constant at height {}",
-                height
+                "Static emission should be constant at height {height}"
             );
 
             // Verify distribution
             let pool_sum: u128 = event.pools.values().sum();
             assert_eq!(
                 pool_sum, event.total_emitted,
-                "Distribution sum must equal total emission at height {}",
-                height
+                "Distribution sum must equal total emission at height {height}"
             );
         }
     }
@@ -93,8 +91,7 @@ fn test_phased_emission_schedule() {
         if let Some(event) = engine.get_event(height) {
             assert_eq!(
                 event.total_emitted, 2_000_000,
-                "Phase 1 emission should be 2 DRT at height {}",
-                height
+                "Phase 1 emission should be 2 DRT at height {height}"
             );
         }
     }
@@ -106,8 +103,7 @@ fn test_phased_emission_schedule() {
         if let Some(event) = engine.get_event(height) {
             assert_eq!(
                 event.total_emitted, 1_500_000,
-                "Phase 2 emission should be 1.5 DRT at height {}",
-                height
+                "Phase 2 emission should be 1.5 DRT at height {height}"
             );
         }
     }
@@ -119,8 +115,7 @@ fn test_phased_emission_schedule() {
         if let Some(event) = engine.get_event(height) {
             assert_eq!(
                 event.total_emitted, 1_000_000,
-                "Phase 3 emission should be 1 DRT at height {}",
-                height
+                "Phase 3 emission should be 1 DRT at height {height}"
             );
         }
     }
@@ -158,8 +153,7 @@ fn test_phased_emission_no_active_phase() {
         if let Some(event) = engine.get_event(height) {
             assert_eq!(
                 event.total_emitted, 0,
-                "No emission should occur before phase starts at height {}",
-                height
+                "No emission should occur before phase starts at height {height}"
             );
         }
     }
@@ -251,8 +245,7 @@ fn test_emission_schedule_with_staking_integration() {
         // With 25% going to staking, and 4 DRT total emission, we expect 1 DRT staking rewards
         assert_eq!(
             staking_rewards, 1_000_000,
-            "Staking rewards should be 1 DRT (25% of 4 DRT) at height {}",
-            height
+            "Staking rewards should be 1 DRT (25% of 4 DRT) at height {height}"
         );
 
         total_staking_rewards += staking_rewards;

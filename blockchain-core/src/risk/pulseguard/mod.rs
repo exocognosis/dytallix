@@ -1,17 +1,17 @@
-pub mod api;
-pub mod ingest;
-pub mod graph;
-pub mod features;
-pub mod models;
-pub mod explain;
 pub mod alerts;
-pub mod pqc;
+pub mod api;
 pub mod bench;
-pub mod usecases;
+pub mod engine;
+pub mod explain;
+pub mod features;
+pub mod graph;
+pub mod ingest;
+pub mod models;
 pub mod ops;
-pub mod engine; // processing pipeline engine
+pub mod pqc;
+pub mod usecases; // processing pipeline engine
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,14 +35,23 @@ pub struct FeatureVector {
 
 impl FeatureVector {
     pub fn new(tx_hash: String, feature_names: Vec<String>, features: Vec<f32>) -> Self {
-        Self { version: 1, tx_hash, feature_names, features, generated_at: SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64 }
+        Self {
+            version: 1,
+            tx_hash,
+            feature_names,
+            features,
+            generated_at: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64,
+        }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskScore {
     pub tx_hash: String,
-    pub score: f32, // 0-100
+    pub score: f32,      // 0-100
     pub confidence: f32, // 0-1
     pub reasons: Vec<String>,
     pub top_features: Vec<(String, f32)>,
@@ -53,8 +62,22 @@ pub struct RiskScore {
 
 impl RiskScore {
     pub fn new(tx_hash: String) -> Self {
-        Self { tx_hash, score: 0.0, confidence: 0.0, reasons: vec![], top_features: vec![], paths: vec![], p95_budget_ms: 100, elapsed_ms: 0 }
+        Self {
+            tx_hash,
+            score: 0.0,
+            confidence: 0.0,
+            reasons: vec![],
+            top_features: vec![],
+            paths: vec![],
+            p95_budget_ms: 100,
+            elapsed_ms: 0,
+        }
     }
 }
 
-pub fn now_ms() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() }
+pub fn now_ms() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+}

@@ -4,10 +4,16 @@ pub mod crypto; // new crypto module
 pub mod execution; // deterministic execution engine
 pub mod gas; // gas accounting system
 pub mod mempool;
-pub mod metrics; // observability module
+pub mod metrics; // observability module (internally feature-gated)
 pub mod p2p;
 pub mod rpc;
 pub mod runtime;
+#[cfg(feature = "governance")]
+pub use runtime::governance;
+#[cfg(feature = "oracle")]
+pub use runtime::oracle;
+#[cfg(feature = "staking")]
+pub use runtime::staking;
 pub mod state;
 pub mod storage;
 pub mod types; // canonical transaction types

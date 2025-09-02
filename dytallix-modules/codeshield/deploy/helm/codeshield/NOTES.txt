@@ -1,0 +1,15 @@
+1. Get the application URL by running these commands:
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+
+  export RELEASE={{ .Release.Name }}
+  export NAMESPACE={{ .Release.Namespace }}
+
+  # ClusterIP
+  kubectl port-forward svc/{{ include "codeshield.fullname" . }} 8080:{{ .Values.service.port }} -n $NAMESPACE
+  echo "Open http://127.0.0.1:8080/health"
+
+2. Test the API:
+
+  curl -sS http://127.0.0.1:8080/health
+

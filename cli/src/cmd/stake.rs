@@ -183,7 +183,7 @@ async fn register_validator(
                                 json!({"status": "success", "message": "Self-delegation completed", "amount": self_stake})
                             );
                         } else {
-                            println!("✓ Self-delegated {} uDGT", self_stake);
+                            println!("✓ Self-delegated {self_stake} uDGT");
                         }
                     }
                     Err(e) => {
@@ -193,7 +193,7 @@ async fn register_validator(
                                 json!({"status": "error", "message": format!("Self-delegation failed: {}", e)})
                             );
                         } else {
-                            println!("✗ Self-delegation failed: {}", e);
+                            println!("✗ Self-delegation failed: {e}");
                         }
                     }
                 }
@@ -206,7 +206,7 @@ async fn register_validator(
                     json!({"status": "error", "message": format!("Validator registration failed: {}", e)})
                 );
             } else {
-                println!("✗ Validator registration failed: {}", e);
+                println!("✗ Validator registration failed: {e}");
             }
         }
     }
@@ -236,7 +236,7 @@ async fn delegate(
                     json!({"status": "success", "delegator": from, "validator": validator, "amount": amount})
                 );
             } else {
-                println!("✓ Delegated {} uDGT from {} to {}", amount, from, validator);
+                println!("✓ Delegated {amount} uDGT from {from} to {validator}");
             }
         }
         Err(e) => {
@@ -246,7 +246,7 @@ async fn delegate(
                     json!({"status": "error", "message": format!("Delegation failed: {}", e)})
                 );
             } else {
-                println!("✗ Delegation failed: {}", e);
+                println!("✗ Delegation failed: {e}");
             }
         }
     }
@@ -275,18 +275,18 @@ async fn show_stake(client: &RpcClient, fmt: OutputFormat, address: String) -> R
             })
         );
     } else {
-        println!("Staking information for: {}", address);
+        println!("Staking information for: {address}");
 
         if let Ok(validator) = validator_result {
             if !validator.is_null() {
-                println!("  Validator: {}", validator);
+                println!("  Validator: {validator}");
             }
         }
 
         if let Ok(delegations) = delegation_result {
             if let Some(arr) = delegations.as_array() {
                 if !arr.is_empty() {
-                    println!("  Delegations: {}", delegations);
+                    println!("  Delegations: {delegations}");
                 } else {
                     println!("  No delegations found");
                 }
@@ -303,16 +303,14 @@ async fn list_validators(client: &RpcClient, fmt: OutputFormat) -> Result<()> {
     match result {
         Ok(validators) => {
             if fmt.is_json() {
-                println!("{}", validators);
-            } else {
-                if let Some(arr) = validators.as_array() {
-                    println!("Active Validators ({})", arr.len());
-                    for (i, validator) in arr.iter().enumerate() {
-                        println!("  {}. {}", i + 1, validator);
-                    }
-                } else {
-                    println!("No validators found");
+                println!("{validators}");
+            } else if let Some(arr) = validators.as_array() {
+                println!("Active Validators ({})", arr.len());
+                for (i, validator) in arr.iter().enumerate() {
+                    println!("  {}. {}", i + 1, validator);
                 }
+            } else {
+                println!("No validators found");
             }
         }
         Err(e) => {
@@ -322,7 +320,7 @@ async fn list_validators(client: &RpcClient, fmt: OutputFormat) -> Result<()> {
                     json!({"status": "error", "message": format!("Failed to get validators: {}", e)})
                 );
             } else {
-                println!("✗ Failed to get validators: {}", e);
+                println!("✗ Failed to get validators: {e}");
             }
         }
     }
@@ -348,7 +346,7 @@ async fn claim_rewards(
             if fmt.is_json() {
                 println!("{}", json!({"status": "success", "rewards": rewards}));
             } else {
-                println!("✓ Claimed {} uDRT rewards", rewards);
+                println!("✓ Claimed {rewards} uDRT rewards");
             }
         }
         Err(e) => {
@@ -358,7 +356,7 @@ async fn claim_rewards(
                     json!({"status": "error", "message": format!("Failed to claim rewards: {}", e)})
                 );
             } else {
-                println!("✗ Failed to claim rewards: {}", e);
+                println!("✗ Failed to claim rewards: {e}");
             }
         }
     }
@@ -372,20 +370,18 @@ async fn show_stats(client: &RpcClient, fmt: OutputFormat) -> Result<()> {
     match result {
         Ok(stats) => {
             if fmt.is_json() {
-                println!("{}", stats);
+                println!("{stats}");
+            } else if let (Some(total_stake), Some(total_validators), Some(active_validators)) = (
+                stats["total_stake"].as_u64(),
+                stats["total_validators"].as_u64(),
+                stats["active_validators"].as_u64(),
+            ) {
+                println!("Staking Statistics:");
+                println!("  Total Stake: {total_stake} uDGT");
+                println!("  Total Validators: {total_validators}");
+                println!("  Active Validators: {active_validators}");
             } else {
-                if let (Some(total_stake), Some(total_validators), Some(active_validators)) = (
-                    stats["total_stake"].as_u64(),
-                    stats["total_validators"].as_u64(),
-                    stats["active_validators"].as_u64(),
-                ) {
-                    println!("Staking Statistics:");
-                    println!("  Total Stake: {} uDGT", total_stake);
-                    println!("  Total Validators: {}", total_validators);
-                    println!("  Active Validators: {}", active_validators);
-                } else {
-                    println!("Invalid stats response: {}", stats);
-                }
+                println!("Invalid stats response: {stats}");
             }
         }
         Err(e) => {
@@ -395,7 +391,7 @@ async fn show_stats(client: &RpcClient, fmt: OutputFormat) -> Result<()> {
                     json!({"status": "error", "message": format!("Failed to get stats: {}", e)})
                 );
             } else {
-                println!("✗ Failed to get staking stats: {}", e);
+                println!("✗ Failed to get staking stats: {e}");
             }
         }
     }
@@ -414,17 +410,15 @@ async fn claim_simple(client: &RpcClient, fmt: OutputFormat, address: String) ->
     match result {
         Ok(response) => {
             if fmt.is_json() {
-                println!("{}", response);
+                println!("{response}");
+            } else if let (Some(claimed), Some(new_balance)) = (
+                response.get("claimed").and_then(|v| v.as_str()),
+                response.get("new_balance").and_then(|v| v.as_str()),
+            ) {
+                println!("✓ Successfully claimed {claimed} uDRT");
+                println!("  New DRT balance: {new_balance} uDRT");
             } else {
-                if let (Some(claimed), Some(new_balance)) = (
-                    response.get("claimed").and_then(|v| v.as_str()),
-                    response.get("new_balance").and_then(|v| v.as_str()),
-                ) {
-                    println!("✓ Successfully claimed {} uDRT", claimed);
-                    println!("  New DRT balance: {} uDRT", new_balance);
-                } else {
-                    println!("✓ Claim successful: {}", response);
-                }
+                println!("✓ Claim successful: {response}");
             }
         }
         Err(e) => {
@@ -434,7 +428,7 @@ async fn claim_simple(client: &RpcClient, fmt: OutputFormat, address: String) ->
                     json!({"status": "error", "message": format!("Failed to claim rewards: {}", e)})
                 );
             } else {
-                println!("✗ Failed to claim rewards: {}", e);
+                println!("✗ Failed to claim rewards: {e}");
             }
         }
     }
@@ -444,20 +438,16 @@ async fn claim_simple(client: &RpcClient, fmt: OutputFormat, address: String) ->
 
 /// Show accrued staking rewards for an address
 async fn show_rewards(client: &RpcClient, fmt: OutputFormat, address: String) -> Result<()> {
-    let result = client
-        .get(&format!("/api/staking/accrued/{}", address))
-        .await;
+    let result = client.get(&format!("/api/staking/accrued/{address}")).await;
 
     match result {
         Ok(response) => {
             if fmt.is_json() {
-                println!("{}", response);
+                println!("{response}");
+            } else if let Some(accrued) = response.get("accrued_rewards").and_then(|v| v.as_str()) {
+                println!("Accrued rewards for {address}: {accrued} uDRT");
             } else {
-                if let Some(accrued) = response.get("accrued_rewards").and_then(|v| v.as_str()) {
-                    println!("Accrued rewards for {}: {} uDRT", address, accrued);
-                } else {
-                    println!("Accrued rewards: {}", response);
-                }
+                println!("Accrued rewards: {response}");
             }
         }
         Err(e) => {
@@ -467,7 +457,7 @@ async fn show_rewards(client: &RpcClient, fmt: OutputFormat, address: String) ->
                     json!({"status": "error", "message": format!("Failed to get accrued rewards: {}", e)})
                 );
             } else {
-                println!("✗ Failed to get accrued rewards: {}", e);
+                println!("✗ Failed to get accrued rewards: {e}");
             }
         }
     }
@@ -484,13 +474,11 @@ async fn claim_all_rewards(client: &RpcClient, fmt: OutputFormat, delegator: Str
     match result {
         Ok(response) => {
             if fmt.is_json() {
-                println!("{}", response);
+                println!("{response}");
+            } else if let Some(amount) = response.get("total_claimed").and_then(|v| v.as_str()) {
+                println!("✓ Claimed {amount} uDRT total rewards for {delegator}");
             } else {
-                if let Some(amount) = response.get("total_claimed").and_then(|v| v.as_str()) {
-                    println!("✓ Claimed {} uDRT total rewards for {}", amount, delegator);
-                } else {
-                    println!("✓ All rewards claimed: {}", response);
-                }
+                println!("✓ All rewards claimed: {response}");
             }
         }
         Err(e) => {
@@ -500,7 +488,7 @@ async fn claim_all_rewards(client: &RpcClient, fmt: OutputFormat, delegator: Str
                     json!({"status": "error", "message": format!("Failed to claim all rewards: {}", e)})
                 );
             } else {
-                println!("✗ Failed to claim all rewards: {}", e);
+                println!("✗ Failed to claim all rewards: {e}");
             }
         }
     }
@@ -514,16 +502,16 @@ async fn show_comprehensive_rewards(
     fmt: OutputFormat,
     delegator: String,
 ) -> Result<()> {
-    let result = client.get(&format!("/staking/rewards/{}", delegator)).await;
+    let result = client.get(&format!("/staking/rewards/{delegator}")).await;
 
     match result {
         Ok(response) => {
             if fmt.is_json() {
-                println!("{}", response);
+                println!("{response}");
             } else {
                 // Pretty print the comprehensive reward information
                 if let Some(summary) = response.get("summary") {
-                    println!("Rewards Summary for {}:", delegator);
+                    println!("Rewards Summary for {delegator}:");
                     println!(
                         "  Total Stake: {} uDGT",
                         summary
@@ -589,7 +577,7 @@ async fn show_comprehensive_rewards(
                         }
                     }
                 } else {
-                    println!("Rewards info: {}", response);
+                    println!("Rewards info: {response}");
                 }
             }
         }
@@ -600,7 +588,7 @@ async fn show_comprehensive_rewards(
                     json!({"status": "error", "message": format!("Failed to get reward information: {}", e)})
                 );
             } else {
-                println!("✗ Failed to get reward information: {}", e);
+                println!("✗ Failed to get reward information: {e}");
             }
         }
     }
@@ -610,8 +598,8 @@ async fn show_comprehensive_rewards(
 
 fn out(fmt: OutputFormat, msg: &str) {
     if fmt.is_json() {
-        println!("{{\"message\":\"{}\"}}", msg);
+        println!("{{\"message\":\"{msg}\"}}");
     } else {
-        println!("{}", msg);
+        println!("{msg}");
     }
 }

@@ -85,7 +85,7 @@ async fn handle_get_secret(args: GetSecretArgs) -> Result<()> {
     match mock_secrets.get(&args.name) {
         Some(value) => {
             if args.value_only {
-                println!("{}", value);
+                println!("{value}");
             } else {
                 println!("Secret '{}': {}", args.name, value);
             }
@@ -93,7 +93,7 @@ async fn handle_get_secret(args: GetSecretArgs) -> Result<()> {
         None => {
             if let Some(default) = args.default {
                 if args.value_only {
-                    println!("{}", default);
+                    println!("{default}");
                 } else {
                     println!(
                         "Secret '{}' not found, using default: {}",
@@ -127,10 +127,10 @@ async fn handle_list_secrets(args: ListSecretsArgs) -> Result<()> {
     for name in secret_names {
         if let Some(pattern) = &args.pattern {
             if name.contains(pattern) {
-                println!("  {}", name);
+                println!("  {name}");
             }
         } else {
-            println!("  {}", name);
+            println!("  {name}");
         }
     }
 
@@ -149,7 +149,7 @@ async fn handle_health_check(args: HealthArgs) -> Result<()> {
         } else {
             "✗ Unhealthy"
         };
-        println!("  {}: {}", provider, status);
+        println!("  {provider}: {status}");
 
         if args.verbose && healthy {
             match provider {
@@ -197,9 +197,9 @@ async fn handle_info(args: InfoArgs) -> Result<()> {
     ];
 
     for (provider_name, info) in provider_info {
-        println!("\n{}:", provider_name);
+        println!("\n{provider_name}:");
         for (key, value) in info {
-            println!("  {}: {}", key, value);
+            println!("  {key}: {value}");
         }
     }
 
@@ -236,9 +236,9 @@ async fn handle_test(args: TestArgs) -> Result<()> {
 
         for (secret_name, should_exist) in test_secrets {
             if should_exist {
-                println!("✓ Secret '{}' found", secret_name);
+                println!("✓ Secret '{secret_name}' found");
             } else {
-                println!("✓ Secret '{}' correctly not found", secret_name);
+                println!("✓ Secret '{secret_name}' correctly not found");
             }
         }
 

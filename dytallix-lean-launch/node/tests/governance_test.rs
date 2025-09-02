@@ -1,23 +1,23 @@
-use crate::runtime::governance::*;
-use crate::runtime::staking::StakingModule;
-use crate::state::State;
-use crate::storage::state::Storage;
+use dytallix_lean_node::runtime::governance::*;
+use dytallix_lean_node::runtime::staking::StakingModule;
+use dytallix_lean_node::state::State;
+use dytallix_lean_node::storage::state::Storage;
 use std::sync::{Arc, Mutex};
 use tempfile::TempDir;
 
-fn setup_test_governance() -> (GovernanceModule, TempDir) {
+fn setup_test_governance() -> (GovernanceModule, Arc<Mutex<State>>, TempDir) {
     let temp_dir = TempDir::new().unwrap();
     let storage = Arc::new(Storage::open(temp_dir.path().join("test.db")).unwrap());
     let state = Arc::new(Mutex::new(State::new(storage.clone())));
     let staking = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
 
-    let governance = GovernanceModule::new(storage, state, staking);
-    (governance, temp_dir)
+    let governance = GovernanceModule::new(storage, state.clone(), staking);
+    (governance, state, temp_dir)
 }
 
 #[test]
 fn test_governance_submit_proposal() {
-    let (mut governance, _temp_dir) = setup_test_governance();
+    let (mut governance, _state, _temp_dir) = setup_test_governance();
 
     let proposal_id = governance
         .submit_proposal(
@@ -44,11 +44,11 @@ fn test_governance_submit_proposal() {
 
 #[test]
 fn test_governance_deposit_flow() {
-    let (mut governance, _temp_dir) = setup_test_governance();
+    let (mut governance, state, _temp_dir) = setup_test_governance();
 
     // Setup account with DGT balance
     {
-        let mut state = governance.state.lock().unwrap();
+        let mut state = state.lock().unwrap();
         let mut account = state.get_account("depositor1");
         account.add_balance("udgt", 2_000_000_000); // 2000 DGT
         state.accounts.insert("depositor1".to_string(), account);
@@ -76,18 +76,18 @@ fn test_governance_deposit_flow() {
     assert_eq!(proposal.total_deposit, 1_000_000_000);
 
     // Check balance was deducted
-    let state = governance.state.lock().unwrap();
+    let mut state = state.lock().unwrap();
     let account = state.get_account("depositor1");
     assert_eq!(account.balance_of("udgt"), 1_000_000_000); // 2000 - 1000 = 1000 DGT remaining
 }
 
 #[test]
 fn test_governance_voting_flow() {
-    let (mut governance, _temp_dir) = setup_test_governance();
+    let (mut governance, state, _temp_dir) = setup_test_governance();
 
     // Setup voters with DGT balances
     {
-        let mut state = governance.state.lock().unwrap();
+        let mut state = state.lock().unwrap();
 
         let mut voter1 = state.get_account("voter1");
         voter1.add_balance("udgt", 500_000_000); // 500 DGT
@@ -114,12 +114,10 @@ fn test_governance_voting_flow() {
         )
         .unwrap();
 
-    // Manually set to voting period for test
-    {
-        let mut proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
-        proposal.status = ProposalStatus::VotingPeriod;
-        governance.store_proposal(&proposal).unwrap();
-    }
+    // Deposit to transition into voting period
+    governance
+        .deposit(150, "voter1", proposal_id, 1_000_000_000, "udgt")
+        .unwrap();
 
     // Cast votes
     governance
@@ -144,7 +142,7 @@ fn test_governance_voting_flow() {
 
 #[test]
 fn test_governance_parameter_execution() {
-    let (mut governance, _temp_dir) = setup_test_governance();
+    let (mut governance, state, _temp_dir) = setup_test_governance();
 
     let proposal_id = governance
         .submit_proposal(
@@ -161,15 +159,32 @@ fn test_governance_parameter_execution() {
     // Check initial gas limit
     assert_eq!(governance.get_config().gas_limit, 21_000);
 
-    // Manually set to passed status for test
+    // Fund a depositor and voters
     {
-        let mut proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
-        proposal.status = ProposalStatus::Passed;
-        governance.store_proposal(&proposal).unwrap();
+        let mut st = state.lock().unwrap();
+        let mut d = st.get_account("depositorZ");
+        d.add_balance("udgt", 2_000_000_000);
+        st.accounts.insert("depositorZ".to_string(), d);
+        let mut v1 = st.get_account("voterA");
+        v1.add_balance("udgt", 600_000_000);
+        st.accounts.insert("voterA".to_string(), v1);
+        let mut v2 = st.get_account("voterB");
+        v2.add_balance("udgt", 500_000_000);
+        st.accounts.insert("voterB".to_string(), v2);
     }
-
-    // Execute the proposal
-    governance.execute(proposal_id).unwrap();
+    // Deposit to reach voting
+    governance
+        .deposit(150, "depositorZ", proposal_id, 1_000_000_000, "udgt")
+        .unwrap();
+    // Cast votes
+    governance
+        .vote(450, "voterA", proposal_id, VoteOption::Yes)
+        .unwrap();
+    governance
+        .vote(451, "voterB", proposal_id, VoteOption::Yes)
+        .unwrap();
+    // Process end_block beyond voting end to execute
+    governance.end_block(800).unwrap();
 
     // Check gas limit was updated
     assert_eq!(governance.get_config().gas_limit, 50_000);
@@ -180,7 +195,7 @@ fn test_governance_parameter_execution() {
 
 #[test]
 fn test_governance_end_block_processing() {
-    let (mut governance, _temp_dir) = setup_test_governance();
+    let (mut governance, _state, _temp_dir) = setup_test_governance();
 
     let proposal_id = governance
         .submit_proposal(

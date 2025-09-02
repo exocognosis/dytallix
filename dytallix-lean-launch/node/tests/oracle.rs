@@ -10,9 +10,12 @@ fn oracle_store_roundtrip() {
         tx_hash: "0xabc".into(),
         model_id: "test-model-v1".into(),
         risk_score: 0.55,
+        score_str: "0.55".into(),
         confidence: Some(0.85),
         signature: None,
         oracle_pubkey: None,
+        ingested_at: 0,
+        source: "test".into(),
     };
     store
         .db
@@ -36,9 +39,12 @@ fn oracle_validation_tests() {
         tx_hash: "0x123abc".into(),
         model_id: "model-v1".into(),
         risk_score: 0.5,
+        score_str: "0.5".into(),
         confidence: Some(0.8),
         signature: None,
         oracle_pubkey: None,
+        ingested_at: 0,
+        source: "test".into(),
     };
     assert!(oracle_store.put_ai_risk(&valid_rec).is_ok());
 
@@ -47,9 +53,12 @@ fn oracle_validation_tests() {
         tx_hash: "0x456def".into(),
         model_id: "model-v1".into(),
         risk_score: 1.5, // Invalid - out of range
+        score_str: "1.5".into(),
         confidence: Some(0.8),
         signature: None,
         oracle_pubkey: None,
+        ingested_at: 0,
+        source: "test".into(),
     };
     assert!(oracle_store.put_ai_risk(&invalid_score).is_err());
 
@@ -58,9 +67,12 @@ fn oracle_validation_tests() {
         tx_hash: "0x789ghi".into(),
         model_id: "model-v1".into(),
         risk_score: 0.5,
+        score_str: "0.5".into(),
         confidence: Some(1.2), // Invalid - out of range
         signature: None,
         oracle_pubkey: None,
+        ingested_at: 0,
+        source: "test".into(),
     };
     assert!(oracle_store.put_ai_risk(&invalid_confidence).is_err());
 
@@ -69,9 +81,12 @@ fn oracle_validation_tests() {
         tx_hash: "0xaabbcc".into(),
         model_id: "".into(), // Invalid - empty
         risk_score: 0.5,
+        score_str: "0.5".into(),
         confidence: Some(0.8),
         signature: None,
         oracle_pubkey: None,
+        ingested_at: 0,
+        source: "test".into(),
     };
     assert!(oracle_store.put_ai_risk(&empty_model).is_err());
 
@@ -80,9 +95,12 @@ fn oracle_validation_tests() {
         tx_hash: "invalid_hash".into(), // Invalid - doesn't start with 0x
         model_id: "model-v1".into(),
         risk_score: 0.5,
+        score_str: "0.5".into(),
         confidence: Some(0.8),
         signature: None,
         oracle_pubkey: None,
+        ingested_at: 0,
+        source: "test".into(),
     };
     assert!(oracle_store.put_ai_risk(&invalid_hash).is_err());
 }
@@ -98,25 +116,34 @@ fn oracle_batch_operations() {
             tx_hash: "0x111".into(),
             model_id: "model-v1".into(),
             risk_score: 0.1,
+            score_str: "0.1".into(),
             confidence: Some(0.9),
             signature: None,
             oracle_pubkey: None,
+            ingested_at: 0,
+            source: "test".into(),
         },
         AiRiskRecord {
             tx_hash: "0x222".into(),
             model_id: "model-v2".into(),
             risk_score: 0.8,
+            score_str: "0.8".into(),
             confidence: None,
             signature: None,
             oracle_pubkey: None,
+            ingested_at: 0,
+            source: "test".into(),
         },
         AiRiskRecord {
             tx_hash: "0x333".into(),
             model_id: "model-v1".into(),
             risk_score: 2.0, // Invalid - should fail
+            score_str: "2.0".into(),
             confidence: Some(0.5),
             signature: None,
             oracle_pubkey: None,
+            ingested_at: 0,
+            source: "test".into(),
         },
     ];
 

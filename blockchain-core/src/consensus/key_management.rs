@@ -84,7 +84,7 @@ impl KeyManager {
                 }
             }
             Err(e) => {
-                error!("Error reading key file: {}", e);
+                error!("Error reading key file: {e}");
                 warn!("Generating new PQC keys");
                 self.generate_and_store_keys()
             }
@@ -235,7 +235,7 @@ impl KeyManager {
             let json_data = serde_json::to_string_pretty(store)?;
             fs::write(backup_file, json_data)?;
 
-            info!("Backed up PQC keys to {}", backup_path);
+            info!("Backed up PQC keys to {backup_path}");
             Ok(())
         } else {
             Err(anyhow!("No keys to backup"))
@@ -258,7 +258,7 @@ impl KeyManager {
         fs::write(&self.key_file_path, json_data)?;
 
         self.key_store = Some(store);
-        info!("Restored PQC keys from backup: {}", backup_path);
+        info!("Restored PQC keys from backup: {backup_path}");
 
         Ok(())
     }

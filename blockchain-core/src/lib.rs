@@ -7,11 +7,11 @@ pub mod genesis;
 pub mod genesis_integration;
 pub mod networking;
 pub mod policy;
+pub mod risk;
 pub mod runtime;
 pub mod secrets;
 pub mod staking;
 pub mod state_commitment;
 pub mod storage;
 pub mod types;
-pub mod wasm;
-pub mod risk; // PulseGuard module root
+pub mod wasm; // PulseGuard module root

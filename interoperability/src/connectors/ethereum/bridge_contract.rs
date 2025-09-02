@@ -99,7 +99,7 @@ impl EthereumBridgeContract {
         let tx = call
             .send()
             .await
-            .map_err(|e| BridgeError::TransactionFailed(format!("Lock asset failed: {}", e)))?;
+            .map_err(|e| BridgeError::TransactionFailed(format!("Lock asset failed: {e}")))?;
 
         Ok(tx.tx_hash())
     }
@@ -136,7 +136,7 @@ impl EthereumBridgeContract {
         let tx = call
             .send()
             .await
-            .map_err(|e| BridgeError::TransactionFailed(format!("Release asset failed: {}", e)))?;
+            .map_err(|e| BridgeError::TransactionFailed(format!("Release asset failed: {e}")))?;
 
         Ok(tx.tx_hash())
     }
@@ -165,7 +165,7 @@ impl EthereumBridgeContract {
         let call = contract.mint_wrapped_token(token_addr, U256::from(amount), recipient_addr);
 
         let tx = call.send().await.map_err(|e| {
-            BridgeError::TransactionFailed(format!("Mint wrapped token failed: {}", e))
+            BridgeError::TransactionFailed(format!("Mint wrapped token failed: {e}"))
         })?;
 
         Ok(tx.tx_hash())
@@ -207,7 +207,7 @@ impl EthereumBridgeContract {
         };
 
         let events = filter.query().await.map_err(|e| {
-            BridgeError::TransactionFailed(format!("Query lock events failed: {}", e))
+            BridgeError::TransactionFailed(format!("Query lock events failed: {e}"))
         })?;
 
         Ok(events)
@@ -234,7 +234,7 @@ impl EthereumBridgeContract {
         };
 
         let events = filter.query().await.map_err(|e| {
-            BridgeError::TransactionFailed(format!("Query release events failed: {}", e))
+            BridgeError::TransactionFailed(format!("Query release events failed: {e}"))
         })?;
 
         Ok(events)
@@ -256,7 +256,7 @@ impl EthereumBridgeContract {
             .get_asset_balance(asset_addr)
             .call()
             .await
-            .map_err(|e| BridgeError::TransactionFailed(format!("Get balance failed: {}", e)))?;
+            .map_err(|e| BridgeError::TransactionFailed(format!("Get balance failed: {e}")))?;
 
         Ok(balance)
     }
@@ -274,7 +274,7 @@ impl EthereumBridgeContract {
             .call()
             .await
             .map_err(|e| {
-                BridgeError::TransactionFailed(format!("Check transaction failed: {}", e))
+                BridgeError::TransactionFailed(format!("Check transaction failed: {e}"))
             })?;
 
         Ok(processed)

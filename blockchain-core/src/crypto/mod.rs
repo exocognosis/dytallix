@@ -119,7 +119,7 @@ impl PQCManager {
                 info!("Switching to SPHINCS+ (not yet implemented)");
                 Err("SPHINCS+ not yet implemented".into())
             }
-            _ => Err(format!("Unsupported signature algorithm: {}", algorithm).into()),
+            _ => Err(format!("Unsupported signature algorithm: {algorithm}").into()),
         }
     }
 

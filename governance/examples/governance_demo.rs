@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         48 // 48 hours voting period
     )?;
 
-    println!("✅ Proposal created with ID: {}", proposal_id);
+    println!("✅ Proposal created with ID: {proposal_id}");
 
     // Get proposal details
     if let Some(proposal) = governance.get_proposal(proposal_id)? {
@@ -103,7 +103,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match governance.vote(proposal_id, duplicate_vote) {
         Ok(_) => println!("❌ This should not happen!"),
         Err(GovernanceError::AlreadyVoted) => println!("✅ Duplicate vote correctly rejected"),
-        Err(e) => println!("❌ Unexpected error: {:?}", e),
+        Err(e) => println!("❌ Unexpected error: {e:?}"),
     }
 
     println!("\n✨ Demo completed successfully!");

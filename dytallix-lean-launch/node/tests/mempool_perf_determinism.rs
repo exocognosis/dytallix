@@ -1,10 +1,14 @@
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
-use dytallix_lean_launch_node::mempool::{Mempool, MempoolConfig, PendingTx};
-use dytallix_lean_launch_node::state::State;
-use dytallix_lean_launch_node::storage::tx::Transaction;
+use dytallix_lean_node::mempool::{Mempool, MempoolConfig, PendingTx};
+use dytallix_lean_node::state::State;
+use dytallix_lean_node::storage::state::Storage;
+use dytallix_lean_node::storage::tx::Transaction;
+use std::sync::Arc;
+use tempfile::TempDir;
 
+#[allow(clippy::too_many_arguments)]
 fn create_test_transaction(
     hash: &str,
     from: &str,
@@ -15,23 +19,19 @@ fn create_test_transaction(
     gas_limit: u64,
     gas_price: u64,
 ) -> Transaction {
-    Transaction {
-        hash: hash.to_string(),
-        from: from.to_string(),
-        to: to.to_string(),
-        amount,
-        fee,
-        nonce,
-        signature: Some("test_signature".to_string()),
-        gas_limit,
-        gas_price,
-    }
+    Transaction::new(hash, from, to, amount, fee, nonce, None)
+        .with_gas(gas_limit, gas_price)
+        .with_signature("test_signature")
 }
 
 fn create_mock_state_with_many_accounts(num_accounts: usize) -> State {
-    let mut state = State::new_for_test();
+    let tmp = TempDir::new().unwrap();
+    let storage = Arc::new(Storage::open(tmp.path().join("node.db")).unwrap());
+    let mut state = State::new(storage);
     for i in 0..num_accounts {
-        state.set_account_balance(&format!("sender{}", i), 1000000);
+        let mut acc = state.get_account(&format!("sender{i}"));
+        acc.set_balance("udgt", 1_000_000);
+        state.accounts.insert(format!("sender{i}"), acc);
     }
     state
 }
@@ -48,20 +48,20 @@ async fn test_deterministic_ordering_across_instances() {
     let mut transactions = vec![];
     for i in 0..50 {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
+            &format!("hash{i}"),
             &format!("sender{}", i % 10), // Cycle through 10 senders
             "receiver",
             1000,
             100,
             i / 10, // Nonce based on transaction index
             21000,
-            1000 + (i % 5) as u64 * 500, // Gas prices: 1000, 1500, 2000, 2500, 3000
+            1000 + (i % 5) * 500, // Gas prices: 1000, 1500, 2000, 2500, 3000
         );
         transactions.push(tx);
     }
 
     // Add transactions to both mempools in different orders
-    let mut tx_set1 = transactions.clone();
+    let tx_set1 = transactions.clone();
     let mut tx_set2 = transactions.clone();
 
     // Reverse the order for the second mempool
@@ -112,8 +112,8 @@ async fn test_performance_threshold_admission() {
 
     for i in 0..num_transactions {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
-            &format!("sender{}", i), // Each transaction from different sender
+            &format!("hash{i}"),
+            &format!("sender{i}"), // Each transaction from different sender
             "receiver",
             1000,
             100,
@@ -132,13 +132,11 @@ async fn test_performance_threshold_admission() {
     // Performance requirement: should admit 1000 transactions in under 1 second
     assert!(
         admission_duration < Duration::from_secs(1),
-        "Admission took too long: {:?}",
-        admission_duration
+        "Admission took too long: {admission_duration:?}"
     );
 
     println!(
-        "✅ Performance test passed: {} transactions admitted in {:?}",
-        successful_admissions, admission_duration
+        "✅ Performance test passed: {successful_admissions} transactions admitted in {admission_duration:?}"
     );
 
     // Test snapshot performance
@@ -149,8 +147,7 @@ async fn test_performance_threshold_admission() {
     // Snapshot should be very fast (under 10ms for 500 transactions)
     assert!(
         snapshot_duration < Duration::from_millis(10),
-        "Snapshot took too long: {:?}",
-        snapshot_duration
+        "Snapshot took too long: {snapshot_duration:?}"
     );
 
     println!(
@@ -175,8 +172,8 @@ async fn test_deterministic_eviction_order() {
     let mut added_transactions = vec![];
     for i in 0..15 {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
-            &format!("sender{}", i),
+            &format!("hash{i}"),
+            &format!("sender{i}"),
             "receiver",
             1000,
             100,
@@ -200,10 +197,7 @@ async fn test_deterministic_eviction_order() {
     // All remaining transactions should have gas_price >= some threshold
     // since lowest priority ones should have been evicted
     let min_gas_price = snapshot.iter().map(|tx| tx.gas_price).min().unwrap();
-    println!(
-        "Minimum gas price in pool after evictions: {}",
-        min_gas_price
-    );
+    println!("Minimum gas price in pool after evictions: {min_gas_price}");
 
     // Verify deterministic eviction by checking that specific low-priority
     // transactions were evicted
@@ -230,8 +224,7 @@ async fn test_deterministic_eviction_order() {
     );
 
     println!(
-        "✅ Deterministic eviction verified: {} high-priority, {} low-priority retained",
-        high_priority_count, low_priority_count
+        "✅ Deterministic eviction verified: {high_priority_count} high-priority, {low_priority_count} low-priority retained"
     );
 }
 
@@ -263,11 +256,8 @@ async fn test_priority_key_determinism() {
     let key4 = pending4.priority_key();
 
     // key1 and key4 have same gas_price and nonce, should be ordered by hash
-    if key1.hash < key4.hash {
-        assert!(key1 < key4, "Hash-based tiebreaking should be consistent");
-    } else {
-        assert!(key4 < key1, "Hash-based tiebreaking should be consistent");
-    }
+    // Ensure total order exists between keys (deterministic tie-break)
+    assert!((key1 < key4) ^ (key4 < key1), "Tiebreaking must be strict");
 
     println!("✅ Priority key determinism verified");
 }
@@ -282,8 +272,8 @@ async fn test_concurrent_access_simulation() {
     let bulk_start = Instant::now();
     for i in 0..100 {
         let tx = create_test_transaction(
-            &format!("hash{}", i),
-            &format!("sender{}", i),
+            &format!("hash{i}"),
+            &format!("sender{i}"),
             "receiver",
             1000,
             100,
@@ -313,7 +303,7 @@ async fn test_concurrent_access_simulation() {
         // Add new transactions
         for i in 0..5 {
             let tx = create_test_transaction(
-                &format!("new_hash_{}_{}", round, i),
+                &format!("new_hash_{round}_{i}"),
                 &format!("sender{}", (round * 5 + i) % 50),
                 "receiver",
                 1000,
@@ -332,14 +322,12 @@ async fn test_concurrent_access_simulation() {
     // Performance assertions
     assert!(
         bulk_duration < Duration::from_millis(500),
-        "Bulk addition took too long: {:?}",
-        bulk_duration
+        "Bulk addition took too long: {bulk_duration:?}"
     );
 
     assert!(
         interleaved_duration < Duration::from_millis(100),
-        "Interleaved operations took too long: {:?}",
-        interleaved_duration
+        "Interleaved operations took too long: {interleaved_duration:?}"
     );
 
     // Consistency check

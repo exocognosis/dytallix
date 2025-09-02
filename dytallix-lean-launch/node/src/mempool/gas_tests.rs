@@ -1,7 +1,7 @@
 use super::*;
 use crate::state::State;
-use crate::storage::tx::Transaction;
 use crate::storage::state::Storage; // added
+use crate::storage::tx::Transaction;
 use std::sync::Arc; // added
 use tempfile::TempDir; // added
 
@@ -9,10 +9,12 @@ use tempfile::TempDir; // added
 mod mempool_gas_tests {
     use super::*;
 
+    #[allow(dead_code)]
     fn create_mock_state() -> State {
         // Create temporary storage for state
         let temp_dir = TempDir::new().expect("failed to create temp dir for state test");
-        let storage = Arc::new(Storage::open(temp_dir.path().to_path_buf()).expect("failed to open storage"));
+        let storage =
+            Arc::new(Storage::open(temp_dir.path().to_path_buf()).expect("failed to open storage"));
         State::new(storage)
     }
 

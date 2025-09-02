@@ -30,6 +30,6 @@ pub fn print_text_line(s: impl AsRef<str>) {
 
 pub fn print_text_list(lines: &[String]) {
     for l in lines {
-        println!("{}", l);
+        println!("{l}");
     }
 }

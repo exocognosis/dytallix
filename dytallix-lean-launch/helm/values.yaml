@@ -1,0 +1,150 @@
+# Global ingress and TLS settings
+global:
+  ingress:
+    enabled: true
+    className: nginx
+    # ClusterIssuer used by cert-manager: letsencrypt-staging | letsencrypt-prod
+    clusterIssuer: letsencrypt-prod
+    # Common annotations applied to all ingresses
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+      # Security headers (helps SSL Labs rating). Adjust CSP if needed for Explorer.
+      nginx.ingress.kubernetes.io/server-snippet: |
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header Referrer-Policy "no-referrer" always;
+
+# RPC (Node) ingress
+rpc:
+  ingress:
+    enabled: true
+    host: rpc.dytallix.dev
+    tlsSecret: rpc-dytallix-dev-tls
+    annotations: {}
+  service:
+    name: dytallix-node
+    port: 3030
+  image:
+    repository: dytallix/dytallix-node
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  envFromSecret: rpc-secrets
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 8Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 1
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: ["dytallix-lean-launch"]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: ["rpc"]
+            topologyKey: kubernetes.io/hostname
+  nodeSelector: {}
+  tolerations: []
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 100Gi
+
+# Explorer ingress
+explorer:
+  ingress:
+    enabled: true
+    host: explorer.dytallix.dev
+    tlsSecret: explorer-dytallix-dev-tls
+    annotations: {}
+  service:
+    name: dytallix-explorer
+    port: 80
+  image:
+    repository: dytallix/explorer
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  envFromSecret: explorer-secrets
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 1
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: ["dytallix-lean-launch"]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: ["explorer"]
+            topologyKey: kubernetes.io/hostname
+  nodeSelector: {}
+  tolerations: []
+
+# Pulsescan Infer (AI) ingress
+ai:
+  ingress:
+    enabled: true
+    host: ai.dytallix.dev
+    tlsSecret: ai-dytallix-dev-tls
+    annotations: {}
+  service:
+    # This should point to the Pulsescan inference Service
+    name: pulsescan-inference
+# Runtime feature flags
+features:
+  governance:
+    enabled: false
+  staking:
+    enabled: false
+
+# Emissions cron (ops)
+emissions:
+  cron:
+    enabled: false
+    schedule: "*/5 * * * *"
+    logPvc:
+      size: 1Gi
+      retentionDays: 14
+    port: 9090
+  networkPolicy:
+    enabled: true
+    allowFromIngress: true
+    extraIngress: []

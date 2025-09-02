@@ -2,6 +2,8 @@
 
 import { Command } from 'commander'
 import chalk from 'chalk'
+import { DytClient } from '../../../../sdk/src/client'
+import { keypair, signTxMock, buildSendTx } from '../../../../sdk/src/index'
 
 export const transferCommand = new Command('transfer')
   .description('Send tokens to another address')
@@ -51,42 +53,22 @@ export const transferCommand = new Command('transfer')
         console.log(chalk.gray(`Memo: ${options.memo}`))
       }
 
-      // TODO: Build transaction payload
-      const payload = {
-        type: 'transfer',
-        body: {
-          from: options.from,
-          to: options.to,
-          amount: (amount * 1000000).toString(), // Convert to micro units
-          denom: options.denom,
-          memo: options.memo
-        }
-      }
-
-      // TODO: Sign transaction
-      // TODO: Broadcast transaction
-      
-      const mockResult = {
-        txHash: '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join(''),
-        height: Math.floor(Math.random() * 1000000) + 100000
-      }
+      const client = new DytClient(globalOpts.rpc)
+      // Build tx with nonce 0 (first tx)
+      const chainId = globalOpts.chainId
+      const amountMicro = Math.round(amount * 1e6).toString()
+      const tx = buildSendTx(chainId, 0, options.from, options.to, options.denom.toUpperCase() === 'UDRT' ? 'DRT' : 'DGT', amountMicro, options.memo)
+      // Mock signing path (devnet)
+      const { sk, pk } = keypair()
+      const signed = signTxMock(tx, sk, pk)
+      const res = await client.submitSignedTx(signed)
 
       if (globalOpts.output === 'json') {
-        console.log(JSON.stringify({
-          ...mockResult,
-          transfer: {
-            from: options.from,
-            to: options.to,
-            amount: options.amount,
-            denom: options.denom
-          }
-        }, null, 2))
+        console.log(JSON.stringify(res, null, 2))
       } else {
-        console.log(chalk.green('✅ Transfer completed successfully!'))
-        console.log(chalk.bold('Transaction Hash:'), mockResult.txHash)
-        console.log(chalk.bold('Block Height:'), mockResult.height)
+        console.log(chalk.green('✅ Transfer submitted!'))
+        console.log(chalk.bold('Transaction Hash:'), res.hash)
+        console.log(chalk.bold('Status:'), res.status)
         console.log(chalk.cyan('Transfer:'), `${options.amount} ${options.denom.toUpperCase()} from ${options.from} to ${options.to}`)
       }
 

@@ -32,7 +32,7 @@ fn quorum_math_and_signature_validation() {
     let mut vals = vec![];
     let mut kps = vec![];
     for i in 0..5 {
-        let (v, k) = mk_validator(&format!("v{}", i));
+        let (v, k) = mk_validator(&format!("v{i}"));
         vals.push(v);
         kps.push(k);
     }
@@ -48,7 +48,7 @@ fn quorum_math_and_signature_validation() {
     };
     // Add only 3 signatures (below 4 quorum)
     for i in 0..3 {
-        msg.signers.push(format!("v{}", i));
+        msg.signers.push(format!("v{i}"));
         msg.signatures.push(sign_payload(&kps[i as usize], &msg));
     }
     let err = verify_bridge_message(&msg, &vals).unwrap_err();
@@ -65,7 +65,7 @@ fn duplicate_signers_not_counted() {
     let mut vals = vec![];
     let mut kps = vec![];
     for i in 0..3 {
-        let (v, k) = mk_validator(&format!("v{}", i));
+        let (v, k) = mk_validator(&format!("v{i}"));
         vals.push(v);
         kps.push(k);
     }

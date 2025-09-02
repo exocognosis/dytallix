@@ -34,6 +34,8 @@ ndarray = "0.15"
 prometheus = "0.13"
 metrics = "0.21"
 metrics-prometheus = "0.6"
+warp = { version = "0.3", default-features = false, features = ["tls"] }
+toml = "0.8"
 
 [dependencies.cosmwasm-std]
 version = "1.5"

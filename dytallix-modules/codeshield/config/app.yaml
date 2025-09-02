@@ -1,0 +1,9 @@
+version: v0.1.0
+driver: basic
+limits:
+  max_file_mb: 15
+  timeout_sec: 60
+server:
+  port: 8080
+rules_path: /app/src/scanner/rules
+

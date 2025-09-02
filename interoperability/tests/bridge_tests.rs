@@ -327,12 +327,12 @@ async fn test_bridge_concurrent_operations() {
         let bridge_clone = bridge.clone(); // Note: This would require Clone implementation
         let handle = tokio::spawn(async move {
             let asset = Asset {
-                id: format!("TOKEN_{}", i),
+                id: format!("TOKEN_{i}"),
                 amount: 1000 + i as u64,
                 decimals: 18,
                 metadata: AssetMetadata {
-                    name: format!("Test Token {}", i),
-                    symbol: format!("TEST{}", i),
+                    name: format!("Test Token {i}"),
+                    symbol: format!("TEST{i}"),
                     description: "Concurrent test token".to_string(),
                     icon_url: None,
                 },

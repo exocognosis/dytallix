@@ -1,4 +1,3 @@
-
 use crate::config::Config;
 use crate::crypto::CryptoManager;
 use crate::tokens::{format_amount_with_symbol, micro_to_display, DGT_TOKEN};
@@ -242,10 +241,7 @@ pub async fn account_balance(account: String, config: &Config) -> Result<()> {
         );
         println!("  Created: {}", format_timestamp(account_info.created_at));
     } else {
-        println!(
-            "{}",
-            format!("Account '{account}' not found").bright_red()
-        );
+        println!("{}", format!("Account '{account}' not found").bright_red());
         return Err(anyhow::anyhow!("Account not found"));
     }
 
@@ -260,10 +256,7 @@ pub async fn export_account(
     let crypto_manager = CryptoManager::new()?;
 
     if crypto_manager.get_account_info(&account)?.is_none() {
-        println!(
-            "{}",
-            format!("Account '{account}' not found").bright_red()
-        );
+        println!("{}", format!("Account '{account}' not found").bright_red());
         return Err(anyhow::anyhow!("Account not found"));
     }
 
@@ -374,10 +367,7 @@ pub async fn sign_message(account: String, message: String, config: &Config) -> 
     let mut crypto_manager = CryptoManager::new()?;
 
     if crypto_manager.get_account_info(&account)?.is_none() {
-        println!(
-            "{}",
-            format!("Account '{account}' not found").bright_red()
-        );
+        println!("{}", format!("Account '{account}' not found").bright_red());
         return Err(anyhow::anyhow!("Account not found"));
     }
 

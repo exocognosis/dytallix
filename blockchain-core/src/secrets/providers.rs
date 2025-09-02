@@ -111,7 +111,7 @@ impl SecretProvider for EnvProvider {
             }
             Err(env::VarError::NotUnicode(_)) => Err(SecretError::ProviderError {
                 provider: self.provider_name().to_string(),
-                message: format!("Environment variable {} contains invalid Unicode", key),
+                message: format!("Environment variable {key} contains invalid Unicode"),
             }),
         }
     }
@@ -201,33 +201,33 @@ impl VaultProvider {
 
         // Database secrets
         self.stub_data.insert(
-            format!("{}/database/host", base_path),
+            format!("{base_path}/database/host"),
             "localhost".to_string(),
         );
         self.stub_data
-            .insert(format!("{}/database/port", base_path), "5432".to_string());
+            .insert(format!("{base_path}/database/port"), "5432".to_string());
         self.stub_data.insert(
-            format!("{}/database/username", base_path),
+            format!("{base_path}/database/username"),
             format!("dytallix_{}", self.environment),
         );
         self.stub_data.insert(
-            format!("{}/database/password", base_path),
+            format!("{base_path}/database/password"),
             "stub_db_password_replace_in_prod".to_string(),
         );
 
         // API secrets
         self.stub_data.insert(
-            format!("{}/api/api_key", base_path),
+            format!("{base_path}/api/api_key"),
             "stub_api_key_replace_in_prod".to_string(),
         );
         self.stub_data.insert(
-            format!("{}/api/jwt_secret", base_path),
+            format!("{base_path}/api/jwt_secret"),
             "stub_jwt_secret_replace_in_prod".to_string(),
         );
 
         // Configuration
         self.stub_data.insert(
-            format!("{}/config/log_level", base_path),
+            format!("{base_path}/config/log_level"),
             if self.environment == "dev" {
                 "debug"
             } else {
@@ -236,7 +236,7 @@ impl VaultProvider {
             .to_string(),
         );
         self.stub_data.insert(
-            format!("{}/config/debug_mode", base_path),
+            format!("{base_path}/config/debug_mode"),
             (self.environment == "dev").to_string(),
         );
     }

@@ -1,5 +1,4 @@
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use std::time::Duration;
 
 /// Faucet integration test for API contract validation
@@ -11,7 +10,7 @@ use std::time::Duration;
 async fn test_faucet_api_contract() {
     let base_url =
         std::env::var("FAUCET_URL").unwrap_or_else(|_| "http://localhost:8787".to_string());
-    let faucet_endpoint = format!("{}/api/faucet", base_url);
+    let faucet_endpoint = format!("{base_url}/api/faucet");
 
     // Wait for server to be ready
     wait_for_server(&base_url).await;
@@ -33,12 +32,12 @@ async fn test_faucet_api_contract() {
 /// Wait for the faucet server to be ready
 async fn wait_for_server(base_url: &str) {
     let client = reqwest::Client::new();
-    let status_endpoint = format!("{}/api/status", base_url);
+    let status_endpoint = format!("{base_url}/api/status");
 
     for attempt in 1..=30 {
         match client.get(&status_endpoint).send().await {
             Ok(response) if response.status().is_success() => {
-                println!("✅ Server is ready after {} attempts", attempt);
+                println!("✅ Server is ready after {attempt} attempts");
                 return;
             }
             _ => {
@@ -320,9 +319,7 @@ fn validate_error_response_structure(body: &Value) {
     let error_code = body["error"].as_str().unwrap();
     assert!(
         valid_errors.contains(&error_code),
-        "Error code '{}' should be one of: {:?}",
-        error_code,
-        valid_errors
+        "Error code '{error_code}' should be one of: {valid_errors:?}"
     );
 }
 
@@ -337,24 +334,21 @@ fn validate_token_fields(token: &Value) {
     let symbol = token["symbol"].as_str().unwrap();
     assert!(
         ["DGT", "DRT"].contains(&symbol),
-        "Symbol should be DGT or DRT, got: {}",
-        symbol
+        "Symbol should be DGT or DRT, got: {symbol}"
     );
 
     // Validate amount format (should be numeric string)
     let amount = token["amount"].as_str().unwrap();
     assert!(
         amount.parse::<f64>().is_ok(),
-        "Amount should be numeric string, got: {}",
-        amount
+        "Amount should be numeric string, got: {amount}"
     );
 
     // Validate transaction hash format (should be hex string starting with 0x)
     let tx_hash = token["txHash"].as_str().unwrap();
     assert!(
         tx_hash.starts_with("0x"),
-        "txHash should start with '0x', got: {}",
-        tx_hash
+        "txHash should start with '0x', got: {tx_hash}"
     );
     assert_eq!(
         tx_hash.len(),
@@ -364,8 +358,7 @@ fn validate_token_fields(token: &Value) {
     );
     assert!(
         tx_hash[2..].chars().all(|c| c.is_ascii_hexdigit()),
-        "txHash should contain only hex digits after '0x', got: {}",
-        tx_hash
+        "txHash should contain only hex digits after '0x', got: {tx_hash}"
     );
 }
 
@@ -374,7 +367,7 @@ fn validate_token_fields(token: &Value) {
 async fn test_faucet_edge_cases() {
     let base_url =
         std::env::var("FAUCET_URL").unwrap_or_else(|_| "http://localhost:8787".to_string());
-    let faucet_endpoint = format!("{}/api/faucet", base_url);
+    let faucet_endpoint = format!("{base_url}/api/faucet");
 
     wait_for_server(&base_url).await;
 

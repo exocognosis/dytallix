@@ -201,11 +201,7 @@ impl AIResponseSignature {
     /// Get the signature age in seconds
     pub fn age_seconds(&self) -> u64 {
         let now = chrono::Utc::now().timestamp() as u64;
-        if now > self.signature_timestamp {
-            now - self.signature_timestamp
-        } else {
-            0
-        }
+        now.saturating_sub(self.signature_timestamp)
     }
 
     /// Check if the signature is recent (within the given seconds)
@@ -332,11 +328,7 @@ impl OracleIdentity {
         match self.last_activity {
             Some(last) => {
                 let now = chrono::Utc::now().timestamp() as u64;
-                if now > last {
-                    now - last
-                } else {
-                    0
-                }
+                now.saturating_sub(last)
             }
             None => u64::MAX, // If never active, return max value
         }

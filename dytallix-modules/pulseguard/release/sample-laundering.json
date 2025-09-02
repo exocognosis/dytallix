@@ -1,0 +1,12 @@
+{
+  "meta": {"tool": "PulseGuard", "version": "v0.1.0", "scenario": "multi-hop-laundering"},
+  "score": 0.91,
+  "label": "alert",
+  "reasons": ["risky_graph_structure"],
+  "explainability": {
+    "top_features": ["recency", "gas"],
+    "dag_paths": [["0xa", "0xb", "0xc", "0xd"]],
+    "graph_metrics": {"avg_degree_centrality": 0.31}
+  }
+}
+

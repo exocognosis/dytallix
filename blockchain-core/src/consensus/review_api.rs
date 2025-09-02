@@ -145,7 +145,7 @@ impl TransactionReviewApi {
         self.queue
             .approve_transaction(queue_id, request.officer_id, request.notes)
             .await?;
-        info!("Transaction {} approved via API", queue_id);
+        info!("Transaction {queue_id} approved via API");
         Ok(())
     }
 
@@ -158,7 +158,7 @@ impl TransactionReviewApi {
         self.queue
             .reject_transaction(queue_id, request.officer_id, request.reason)
             .await?;
-        info!("Transaction {} rejected via API", queue_id);
+        info!("Transaction {queue_id} rejected via API");
         Ok(())
     }
 
@@ -169,7 +169,7 @@ impl TransactionReviewApi {
             .bulk_approve(request.transaction_ids, request.officer_id)
             .await?;
         let count = approved.len();
-        info!("Bulk approved {} transactions via API", count);
+        info!("Bulk approved {count} transactions via API");
         Ok(count)
     }
 
@@ -182,7 +182,7 @@ impl TransactionReviewApi {
             .queue
             .bulk_reject(request.transaction_ids, request.officer_id, reason)
             .await?;
-        info!("Bulk rejected {} transactions via API", count);
+        info!("Bulk rejected {count} transactions via API");
         Ok(count)
     }
 
@@ -265,7 +265,7 @@ impl TransactionReviewApi {
                 "Auto-approve (should not be in queue)".to_string()
             }
             crate::consensus::ai_integration::RiskProcessingDecision::AutoReject { reason } => {
-                format!("Auto-reject: {}", reason)
+                format!("Auto-reject: {reason}")
             }
         };
 
@@ -375,7 +375,7 @@ pub mod endpoints {
                 success: true,
                 data: Some(count),
                 error: None,
-                message: Some(format!("Bulk approved {} transactions", count)),
+                message: Some(format!("Bulk approved {count} transactions")),
             }),
             Err(e) => Ok(ApiResponse {
                 success: false,
@@ -396,7 +396,7 @@ pub mod endpoints {
                 success: true,
                 data: Some(count),
                 error: None,
-                message: Some(format!("Bulk rejected {} transactions", count)),
+                message: Some(format!("Bulk rejected {count} transactions")),
             }),
             Err(e) => Ok(ApiResponse {
                 success: false,

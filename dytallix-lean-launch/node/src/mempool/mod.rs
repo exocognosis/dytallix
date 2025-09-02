@@ -56,20 +56,20 @@ impl RejectionReason {
 impl std::fmt::Display for RejectionReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RejectionReason::Duplicate(hash) => write!(f, "duplicate tx {}", hash),
+            RejectionReason::Duplicate(hash) => write!(f, "duplicate tx {hash}"),
             RejectionReason::InvalidSignature => write!(f, "invalid signature"),
             RejectionReason::NonceGap { expected, got } => {
-                write!(f, "nonce gap: expected {}, got {}", expected, got)
+                write!(f, "nonce gap: expected {expected}, got {got}")
             }
             RejectionReason::InsufficientFunds => write!(f, "insufficient funds"),
             RejectionReason::UnderpricedGas { min, got } => {
-                write!(f, "underpriced gas: min {}, got {}", min, got)
+                write!(f, "underpriced gas: min {min}, got {got}")
             }
             RejectionReason::OversizedTx { max, got } => {
-                write!(f, "oversized transaction: max {}, got {}", max, got)
+                write!(f, "oversized transaction: max {max}, got {got}")
             }
-            RejectionReason::PolicyViolation(msg) => write!(f, "policy violation: {}", msg),
-            RejectionReason::InternalError(msg) => write!(f, "internal error: {}", msg),
+            RejectionReason::PolicyViolation(msg) => write!(f, "policy violation: {msg}"),
+            RejectionReason::InternalError(msg) => write!(f, "internal error: {msg}"),
         }
     }
 }
@@ -117,7 +117,8 @@ pub struct PendingTx {
 /// Priority key for ordering transactions
 /// Primary: gas_price desc, Secondary: nonce asc, Tertiary: tx_hash asc
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TxPriorityKey { // made public so priority_key method returning it is valid
+pub struct TxPriorityKey {
+    // made public so priority_key method returning it is valid
     gas_price_neg: i64, // negative for descending order
     nonce: u64,
     hash: String,
@@ -206,10 +207,7 @@ impl Mempool {
 
         // 1.5. Policy enforcement - validate signature algorithm if policy is configured
         if let Err(policy_error) = self.validate_signature_policy(&tx) {
-            return Err(RejectionReason::PolicyViolation(format!(
-                "{}",
-                policy_error
-            )));
+            return Err(RejectionReason::PolicyViolation(format!("{policy_error}")));
         }
 
         // 2. Duplicate check
@@ -278,7 +276,7 @@ impl Mempool {
 
         // Gas validation
         if tx.gas_limit > 0 || tx.gas_price > 0 {
-            validate_gas(tx).map_err(|e| RejectionReason::InternalError(e))?;
+            validate_gas(tx).map_err(RejectionReason::InternalError)?;
         }
 
         Ok(())
@@ -348,6 +346,10 @@ impl Mempool {
         self.tx_lookup.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn total_bytes(&self) -> usize {
         self.total_bytes
     }
@@ -400,7 +402,7 @@ impl std::fmt::Display for MempoolError {
         match self {
             MempoolError::Duplicate => write!(f, "duplicate"),
             MempoolError::Full => write!(f, "full"),
-            MempoolError::Rejection(reason) => write!(f, "{}", reason),
+            MempoolError::Rejection(reason) => write!(f, "{reason}"),
         }
     }
 }
@@ -426,17 +428,17 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
     // 1. Decode base64 signature and public key
     let sig_bytes = B64
         .decode(signature)
-        .map_err(|e| format!("invalid signature encoding: {}", e))?;
+        .map_err(|e| format!("invalid signature encoding: {e}"))?;
     let pk_bytes = B64
         .decode(public_key)
-        .map_err(|e| format!("invalid public key encoding: {}", e))?;
+        .map_err(|e| format!("invalid public key encoding: {e}"))?;
 
     // 2. Create canonical transaction for signing
     let canonical_tx = tx.canonical_fields();
 
     // 3. Serialize to canonical JSON
     let tx_bytes = canonical_json(&canonical_tx)
-        .map_err(|e| format!("failed to serialize transaction: {}", e))?;
+        .map_err(|e| format!("failed to serialize transaction: {e}"))?;
 
     // 4. Hash with SHA3-256
     let tx_hash = sha3_256(&tx_bytes);
@@ -478,7 +480,7 @@ fn validate_gas(tx: &Transaction) -> Result<(), String> {
         tx.gas_limit,
         &schedule,
     )
-    .map_err(|e| format!("GasValidationError: {}", e))?;
+    .map_err(|e| format!("GasValidationError: {e}"))?;
 
     // Check gas price is reasonable (non-zero)
     if tx.gas_price == 0 {
@@ -513,5 +515,11 @@ impl Mempool {
             }
         }
         Ok(())
+    }
+}
+
+impl Default for Mempool {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -450,9 +450,10 @@ impl BridgePQCManager {
         let serialized = serde_json::to_vec(payload)
             .map_err(|e| PQCError::InvalidKey(format!("Payload serialization error: {e}")))?;
 
-        let chain_config = self.chain_configs.get(chain_id).ok_or_else(|| {
-            PQCError::UnsupportedAlgorithm(format!("Unknown chain: {chain_id}"))
-        })?;
+        let chain_config = self
+            .chain_configs
+            .get(chain_id)
+            .ok_or_else(|| PQCError::UnsupportedAlgorithm(format!("Unknown chain: {chain_id}")))?;
 
         match chain_config.hash_algorithm {
             HashAlgorithm::Blake3 => Ok(blake3::hash(&serialized).as_bytes().to_vec()),
@@ -684,7 +685,7 @@ mod tests {
                 .generate_validator_keypair(&SignatureAlgorithm::Dilithium5)
                 .unwrap();
             bridge_manager.add_validator(
-                format!("validator_{}", i),
+                format!("validator_{i}"),
                 validator_keypair.public_key.clone(),
                 SignatureAlgorithm::Dilithium5,
             );
@@ -703,7 +704,7 @@ mod tests {
         let mut signatures = Vec::new();
         for i in 1..=3 {
             let bridge_signature = bridge_manager
-                .sign_bridge_payload(&payload, "ethereum", &format!("validator_{}", i))
+                .sign_bridge_payload(&payload, "ethereum", &format!("validator_{i}"))
                 .unwrap();
             signatures.push(bridge_signature);
         }
