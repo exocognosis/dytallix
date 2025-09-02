@@ -64,6 +64,7 @@ alerts = ["reqwest"] # Alerting system with webhook support
 oracle = []
 contracts = []
 ai = []
+staking = []
 # Convenience umbrella feature for a full node build
 full-node = [
   "oracle",
@@ -71,4 +72,5 @@ full-node = [
   "alerts",
   "contracts",
   "ai",
+  "staking",
 ]

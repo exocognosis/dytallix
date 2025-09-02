@@ -800,20 +800,29 @@ pub async fn get_rewards(
         .take(limit as usize)
     {
         if let Some(event) = emission.get_event(height) {
-            let formatted_event = json!({
-                "height": event.height,
-                "timestamp": event.timestamp,
-                "total_emitted": event.total_emitted.to_string(),
-                "pools": {
-                    "block_rewards": event.pools.get("block_rewards").unwrap_or(&0).to_string(),
-                    "staking_rewards": event.pools.get("staking_rewards").unwrap_or(&0).to_string(),
-                    "ai_module_incentives": event.pools.get("ai_module_incentives").unwrap_or(&0).to_string(),
-                    "bridge_operations": event.pools.get("bridge_operations").unwrap_or(&0).to_string(),
-                },
-                "reward_index_after": event.reward_index_after.map(|v| v.to_string()),
-                "circulating_supply": event.circulating_supply.to_string(),
-            });
-            events.push(formatted_event);
+            if ctx.features.staking {
+                let formatted_event = json!({
+                    "height": event.height,
+                    "timestamp": event.timestamp,
+                    "total_emitted": event.total_emitted.to_string(),
+                    "pools": {
+                        "block_rewards": event.pools.get("block_rewards").unwrap_or(&0).to_string(),
+                        "staking_rewards": event.pools.get("staking_rewards").unwrap_or(&0).to_string(),
+                        "ai_module_incentives": event.pools.get("ai_module_incentives").unwrap_or(&0).to_string(),
+                        "bridge_operations": event.pools.get("bridge_operations").unwrap_or(&0).to_string(),
+                    },
+                    "reward_index_after": event.reward_index_after.map(|v| v.to_string()),
+                    "circulating_supply": event.circulating_supply.to_string(),
+                });
+                events.push(formatted_event);
+            } else {
+                events.push(json!({
+                    "height": event.height,
+                    "timestamp": event.timestamp,
+                    "total_emitted": event.total_emitted.to_string(),
+                    "circulating_supply": event.circulating_supply.to_string(),
+                }));
+            }
         }
     }
     // Staking stats: real values if staking enabled; otherwise zeros
@@ -830,35 +839,6 @@ pub async fn get_rewards(
             "reward_index": reward_index.to_string(),
             "pending_emission": pending_emission.to_string(),
         }
-    })))
-}
-#[cfg(not(feature = "staking"))]
-pub async fn get_rewards(
-    Extension(ctx): Extension<RpcContext>,
-    Query(params): Query<RewardsQuery>,
-) -> Result<Json<serde_json::Value>, ApiError> {
-    let limit = params.limit.unwrap_or(50).min(500);
-    let current_height = ctx.storage.height();
-    let start_height = params.start_height.unwrap_or(current_height);
-    let mut events = Vec::new();
-    let emission = ctx.emission.lock().unwrap();
-    for height in (1..=start_height.min(current_height))
-        .rev()
-        .take(limit as usize)
-    {
-        if let Some(event) = emission.get_event(height) {
-            events.push(json!({
-                "height": event.height,
-                "timestamp": event.timestamp,
-                "total_emitted": event.total_emitted.to_string(),
-                "circulating_supply": event.circulating_supply.to_string(),
-            }));
-        }
-    }
-    Ok(Json(json!({
-        "events": events,
-        "pagination": {"limit": limit, "start_height": start_height, "total_available": current_height},
-        "staking_stats": {"total_stake": "0", "reward_index": "0", "pending_emission": "0"}
     })))
 }
 

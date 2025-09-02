@@ -59,6 +59,7 @@ fn build_ctx(num_validators: usize) -> (RpcContext, Vec<Keypair>) {
         governance,
         staking,
         metrics,
+        features: dytallix_lean_node::rpc::FeatureFlags { governance: true, staking: true },
     }; // added emission
        // gen validators
     let mut keypairs = vec![];
