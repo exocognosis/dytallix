@@ -26,6 +26,21 @@ pub mod errors; // restored errors module export
 #[cfg(feature = "oracle")]
 pub mod oracle;
 
+/// GET /account/:addr - Return account details including nonce and balances
+pub async fn get_account(
+    Extension(ctx): Extension<RpcContext>,
+    Path(addr): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let mut state = ctx.state.lock().unwrap();
+    let nonce = state.nonce_of(&addr);
+    let balances = state.balances_of(&addr);
+    Ok(Json(json!({
+        "address": addr,
+        "nonce": nonce,
+        "balances": balances
+    })))
+}
+
 #[derive(Clone)]
 pub struct RpcContext {
     pub storage: Arc<Storage>,
@@ -613,13 +628,7 @@ pub async fn gov_tally(
         }
     }
 }
-#[cfg(not(feature = "governance"))]
-pub async fn gov_tally(
-    _ctx: Extension<RpcContext>,
-    _path: Path<u64>,
-) -> Result<Json<serde_json::Value>, ApiError> {
-    Err(ApiError::BadRequest("governance feature disabled".into()))
-}
+// Runtime flags control behavior; queries remain available regardless of compile features
 
 pub async fn gov_get_config(
     Extension(ctx): Extension<RpcContext>,
@@ -777,7 +786,6 @@ pub struct RewardsQuery {
 }
 
 /// GET /api/rewards - Get recent emission events with pagination (staking optional)
-#[cfg(feature = "staking")]
 pub async fn get_rewards(
     Extension(ctx): Extension<RpcContext>,
     Query(params): Query<RewardsQuery>,
@@ -808,7 +816,12 @@ pub async fn get_rewards(
             events.push(formatted_event);
         }
     }
-    let (total_stake, reward_index, pending_emission) = ctx.staking.lock().unwrap().get_stats();
+    // Staking stats: real values if staking enabled; otherwise zeros
+    let (total_stake, reward_index, pending_emission) = if ctx.features.staking {
+        ctx.staking.lock().unwrap().get_stats()
+    } else {
+        (0, 0, 0)
+    };
     Ok(Json(json!({
         "events": events,
         "pagination": {"limit": limit, "start_height": start_height, "total_available": current_height},

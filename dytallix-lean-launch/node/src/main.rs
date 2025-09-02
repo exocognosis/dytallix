@@ -295,6 +295,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/blocks", get(rpc::list_blocks))
         .route("/block/:id", get(rpc::get_block))
         .route("/balance/:addr", get(rpc::get_balance))
+        .route("/account/:addr", get(rpc::get_account))
         .route("/tx/:hash", get(rpc::get_tx))
         .route("/stats", get(rpc::stats))
         .route("/peers", get(rpc::peers))

@@ -4,7 +4,7 @@ global:
     enabled: true
     className: nginx
     # ClusterIssuer used by cert-manager: letsencrypt-staging | letsencrypt-prod
-    clusterIssuer: letsencrypt-prod
+    clusterIssuer: letsencrypt-staging
     # Common annotations applied to all ingresses
     annotations:
       kubernetes.io/ingress.class: nginx
@@ -128,6 +128,7 @@ ai:
   service:
     # This should point to the Pulsescan inference Service
     name: pulsescan-inference
+    port: 9090
 # Runtime feature flags
 features:
   governance:
@@ -144,6 +145,16 @@ emissions:
       size: 1Gi
       retentionDays: 14
     port: 9090
+    image: alpine:3.19
+    serviceAccountName: dytallix-emissions
+    rpcUrl: "http://dytallix-rpc.dytallix.svc.cluster.local:3030"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
   networkPolicy:
     enabled: true
     allowFromIngress: true

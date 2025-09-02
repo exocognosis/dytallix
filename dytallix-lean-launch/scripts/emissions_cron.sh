@@ -1,76 +1,78 @@
 #!/usr/bin/env sh
 set -eu
 
-# Environment
-# RPC: Node RPC base (default http://dytallix-node:3030)
-# SCHEDULE: Path to emissions_schedule.yaml
-# LOG_DIR: Directory for audit logs (default /var/log/dytallix-emissions)
+# Idempotent emissions runner
+# Requires: curl, jq, yq
 
-RPC="${RPC:-http://dytallix-node:3030}"
-SCHEDULE="${SCHEDULE:-/etc/dyt/emissions/schedule.yaml}"
-LOG_DIR="${LOG_DIR:-/var/log/dytallix-emissions}"
-DATE="$(date -u +%Y%m%d)"
-LOG_FILE="$LOG_DIR/$DATE.log"
+: "${RPC:=http://dytallix-rpc.dytallix.svc.cluster.local:3030}"
+: "${SCHEDULE:=/etc/dyt/emissions/schedule.yaml}"
+: "${LOG_DIR:=/var/log/dytallix-emissions}"
 
-mkdir -p "$LOG_DIR"
-touch "$LOG_FILE"
+mkdir -p "$LOG_DIR/.state"
+LOG_FILE="$LOG_DIR/$(date -u +%Y%m%d).log"
 
-need() { command -v "$1" >/dev/null 2>&1 || { echo "missing $1" >&2; exit 1; }; }
+log() { echo "[emissions] $*" | tee -a "$LOG_FILE"; }
+
+# Tools check
+need() { command -v "$1" >/dev/null 2>&1 || { log "Missing tool: $1"; exit 1; }; }
 need curl; need jq; need yq
 
-ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+# Cleanup old logs if retention is set (ENV: RETENTION_DAYS)
+if [ -n "${RETENTION_DAYS:-}" ]; then
+  find "$LOG_DIR" -maxdepth 1 -type f -name '*.log' -mtime "+$RETENTION_DAYS" -print -delete || true
+fi
 
-log_json() {
-  # args: status, msg (kv JSON on stdin merged)
-  STATUS="$1"; shift
-  EXTRA="$1"; shift || true
-  printf '{"ts":"%s","status":"%s",%s}\n' "$(ts)" "$STATUS" "$EXTRA" >> "$LOG_FILE"
-}
+# Get current height
+HEIGHT=$(curl -fsS "$RPC/api/stats" | jq -r '.height')
+if [ -z "$HEIGHT" ] || [ "$HEIGHT" = "null" ]; then
+  log "Failed to fetch chain height from $RPC"; exit 1
+fi
+log "height=$HEIGHT"
 
-echo "[emissions] Using RPC=$RPC SCHEDULE=$SCHEDULE LOG_FILE=$LOG_FILE"
-
-# Fetch current chain height
-HEIGHT=$(curl -fsS "$RPC/api/stats" | jq -r '.height // 0')
-echo "[emissions] Current height: $HEIGHT"
-
-# Iterate schedule entries with height <= current height
-COUNT=$(yq '.entries | length' "$SCHEDULE" 2>/dev/null || echo 0)
-if [ "$COUNT" -eq 0 ]; then
-  echo "[emissions] No schedule entries found"
+# If schedule file missing, exit gracefully
+if [ ! -s "$SCHEDULE" ]; then
+  log "No schedule file found at $SCHEDULE; nothing to do"
   exit 0
 fi
 
-APPLIED=0
-for i in $(seq 0 $((COUNT-1))); do
-  entry_height=$(yq ".entries[$i].height" "$SCHEDULE")
-  pool=$(yq -r ".entries[$i].pool // \"staking_rewards\"" "$SCHEDULE")
-  to=$(yq -r ".entries[$i].to" "$SCHEDULE")
-  amount=$(yq -r ".entries[$i].amount_udrt" "$SCHEDULE")
+# Iterate scheduled claims
+COUNT=$(yq '.entries | length' "$SCHEDULE" 2>/dev/null || echo 0)
+if [ "$COUNT" -eq 0 ]; then
+  log "No entries in schedule"; exit 0
+fi
 
-  # Skip if beyond height
-  if [ "$entry_height" -gt "$HEIGHT" ]; then
-    continue
-  fi
+i=0
+while [ $i -lt $COUNT ]; do
+  entry=$(yq ".entries[$i]" "$SCHEDULE")
+  e_height=$(echo "$entry" | yq '.height')
+  pool=$(echo "$entry" | yq -r '.pool')
+  to=$(echo "$entry" | yq -r '.to')
+  amt=$(echo "$entry" | yq -r '.amount_udrt')
+  [ "$e_height" = "null" ] && e_height=0
+  [ "$amt" = "null" ] && amt=0
+  key="${e_height}_${pool}_${to}_${amt}"
+  stamp="$LOG_DIR/.state/$key.stamp"
 
-  # Idempotency key
-  key="$entry_height:$pool:$to:$amount"
-  if grep -R "\"key\":\"$key\"" "$LOG_DIR" >/dev/null 2>&1; then
-    echo "[emissions] Skip already applied: $key"
-    continue
-  fi
-
-  # Apply claim via RPC
-  body=$(printf '{"pool":"%s","amount":%s,"to":"%s"}' "$pool" "$amount" "$to")
-  resp=$(curl -fsS -X POST "$RPC/emission/claim" -H 'content-type: application/json' -d "$body" || true)
-  code=$?
-  if [ $code -eq 0 ]; then
-    remaining=$(echo "$resp" | jq -r '.remaining // empty' 2>/dev/null || true)
-    log_json ok "\"key\":\"$key\",\"height\":$entry_height,\"pool\":\"$pool\",\"to\":\"$to\",\"amount_udrt\":$amount,\"remaining\":\"$remaining\""
-    APPLIED=$((APPLIED+1))
+  if [ "$e_height" -le "$HEIGHT" ]; then
+    if [ -f "$stamp" ]; then
+      log "skip height=$e_height pool=$pool to=$to amount_udrt=$amt status=already_applied"
+    else
+      # Apply emission claim
+      body=$(printf '{"pool":"%s","amount":%s,"to":"%s"}' "$pool" "$amt" "$to")
+      resp=$(curl -fsS -X POST "$RPC/emission/claim" -H 'Content-Type: application/json' -d "$body" || true)
+      if echo "$resp" | jq -e . >/dev/null 2>&1; then
+        remaining=$(echo "$resp" | jq -r '.remaining // ""')
+        log "apply height=$e_height denom=uDRT pool=$pool to=$to amount_udrt=$amt remaining=${remaining} status=applied"
+        date -u +%FT%TZ > "$stamp"
+      else
+        log "apply height=$e_height denom=uDRT pool=$pool to=$to amount_udrt=$amt status=error resp=$(printf %s "$resp" | tr '\n' ' ')"
+      fi
+    fi
   else
-    log_json error "\"key\":\"$key\",\"height\":$entry_height,\"pool\":\"$pool\",\"to\":\"$to\",\"amount_udrt\":$amount,\"error\":\"claim_failed\""
+    log "future height=$e_height pool=$pool to=$to amount_udrt=$amt status=pending"
   fi
+  i=$((i+1))
 done
 
-echo "[emissions] Applied $APPLIED entries up to height $HEIGHT"
+log "done height=$HEIGHT"
 

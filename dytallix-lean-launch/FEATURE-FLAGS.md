@@ -43,6 +43,6 @@ How to Enable
       --set features.staking.enabled=true
 
 Notes
-- Code compiles with governance and staking modules always present; runtime flags determine behavior.
+- Compile-time cfg for governance/staking has been removed; modules are always compiled.
+- Runtime flags determine whether mutation endpoints execute and whether staking emissions are applied.
 - Queries read any existing on-chain state; when disabled, no new governance or staking state transitions are executed.
-

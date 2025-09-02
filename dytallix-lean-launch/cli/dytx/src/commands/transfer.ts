@@ -3,7 +3,9 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
 import { DytClient } from '../../../../sdk/src/client'
-import { keypair, signTxMock, buildSendTx } from '../../../../sdk/src/index'
+import { signTxMock, buildSendTx } from '../../../../sdk/src/index'
+import inquirer from 'inquirer'
+import { decryptSecretKey, findKeystoreByAddress, loadKeystoreByName } from '../keystore.js'
 
 export const transferCommand = new Command('transfer')
   .description('Send tokens to another address')
@@ -12,7 +14,7 @@ export const transferCommand = new Command('transfer')
   .option('--amount <amount>', 'Amount to send')
   .option('--denom <denom>', 'Token denomination (udgt|udrt)', 'udgt')
   .option('--memo <memo>', 'Transaction memo', '')
-  .option('--keystore <file>', 'Keystore file')
+  .option('--keystore <nameOrPath>', 'Keystore name (from keys list) or file path')
   .action(async (options, command) => {
     try {
       const globalOpts = command.parent.opts()
@@ -54,13 +56,34 @@ export const transferCommand = new Command('transfer')
       }
 
       const client = new DytClient(globalOpts.rpc)
-      // Build tx with nonce 0 (first tx)
-      const chainId = globalOpts.chainId
+      // Resolve nonce from RPC account endpoint
+      const acct = await client.getAccount(options.from)
+      const nonce = Number(acct.nonce || 0)
+      const chainId = globalOpts.chainId || (await client.getStats()).chain_id
       const amountMicro = Math.round(amount * 1e6).toString()
-      const tx = buildSendTx(chainId, 0, options.from, options.to, options.denom.toUpperCase() === 'UDRT' ? 'DRT' : 'DGT', amountMicro, options.memo)
-      // Mock signing path (devnet)
-      const { sk, pk } = keypair()
-      const signed = signTxMock(tx, sk, pk)
+      const tx = buildSendTx(chainId, nonce, options.from, options.to, options.denom.toUpperCase() === 'UDRT' ? 'DRT' : 'DGT', amountMicro, options.memo)
+
+      // Load keystore (by name or by matching address) and decrypt
+      let rec: any
+      const fs = await import('fs')
+      if (options.keystore) {
+        if (fs.existsSync(options.keystore)) {
+          rec = JSON.parse(fs.readFileSync(options.keystore, 'utf8'))
+        } else {
+          // treat as keystore name
+          rec = loadKeystoreByName(options.keystore)
+        }
+      } else {
+        const found = findKeystoreByAddress(options.from)
+        if (!found) throw new Error('No keystore found for --from address; provide --keystore <nameOrPath>')
+        rec = found.rec
+      }
+      const { passphrase } = await inquirer.prompt<{ passphrase: string }>([
+        { type: 'password', name: 'passphrase', message: 'Enter keystore passphrase:', mask: '*' }
+      ])
+      const sk = decryptSecretKey(rec, passphrase)
+      const pk = Buffer.from(rec.pubkey_b64, 'base64')
+      const signed = signTxMock(tx, sk, new Uint8Array(pk))
       const res = await client.submitSignedTx(signed)
 
       if (globalOpts.output === 'json') {

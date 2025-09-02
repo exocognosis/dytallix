@@ -15,6 +15,12 @@ export class DytClient {
     return r.json()
   }
 
+  async getAccount(address: string) {
+    const r = await fetch(`${this.rpc}/account/${encodeURIComponent(address)}`)
+    if (!r.ok) throw new Error(`RPC ${r.status}`)
+    return r.json()
+  }
+
   async getGovParams() {
     const r = await fetch(`${this.rpc}/gov/config`)
     if (!r.ok) throw new Error(`RPC ${r.status}`)
@@ -34,4 +40,3 @@ export class DytClient {
     return r.json()
   }
 }
-

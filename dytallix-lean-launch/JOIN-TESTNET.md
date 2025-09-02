@@ -13,10 +13,10 @@ cd dytallix-lean-launch/cli/dytx
 npm i
 ```
 
-Generate a PQC address (dilithium default, mock supported for dev)
+Generate a PQC address (encrypted keystore; dilithium label, mock signer under the hood for now)
 ```
-node ./dist/index.js keys add --algo dilithium
-# or for dev signing: --algo mock
+node ./dist/index.js keys add --name mykey --algo dilithium
+# You will be prompted for a passphrase; keystore is saved under ~/.dytx/keystore/mykey.json
 ```
 
 Fund via faucet
@@ -26,11 +26,15 @@ Fund via faucet
 node ./dist/index.js query bank balance <your-address> --rpc https://rpc.dytallix.dev
 ```
 
-Submit a self‑transfer (dev mode, mock signing)
-- For MVP, transaction signing is provided via a mock signer compatible with nodes built with `pqc-mock`.
-- Build the node with `--features pqc-mock` for local/dev clusters.
+Submit a self‑transfer (nonce fetched from RPC; keystore decrypted at runtime)
+- The CLI fetches the account nonce from `/account/:addr` before signing.
+- Provide `--keystore mykey` to select a stored key (or omit to auto-match by address).
 ```
-node ./dist/index.js transfer --from <addr> --to <addr> --amount 0.123 --denom udgt --rpc https://rpc.dytallix.dev
+node ./dist/index.js transfer \
+  --from <addr> --to <addr> \
+  --amount 0.123 --denom udgt \
+  --keystore mykey \
+  --rpc https://rpc.dytallix.dev
 ```
 - Inspect in explorer once included.
 
@@ -40,6 +44,7 @@ node ./dist/index.js query gov params --rpc https://rpc.dytallix.dev
 ```
 
 Notes
-- Production nodes use Dilithium signatures (`pqc-real`). The SDK includes a mock signer for developer networks. A Dilithium signer will be added via native module/WASM in a follow‑up.
-- Nonces: first transaction from a fresh address uses nonce=0.
+- Keystore files are AES-256-GCM encrypted with PBKDF2-HMAC-SHA256 (210k iters).
+- Production nodes use Dilithium signatures (`pqc-real`). The CLI currently signs using the SDK mock signer compatible with dev/test clusters; Dilithium signing will be added via native/WASM in a follow‑up.
+- Nonces: the CLI queries `/account/:addr` to obtain the correct nonce before signing.
 - Amount units: CLI uses base micro‑denoms (udgt/udrt) and converts from decimal to micro.

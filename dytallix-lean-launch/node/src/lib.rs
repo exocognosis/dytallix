@@ -8,11 +8,11 @@ pub mod metrics; // observability module (internally feature-gated)
 pub mod p2p;
 pub mod rpc;
 pub mod runtime;
-#[cfg(feature = "governance")]
+// Expose governance module unconditionally; runtime flags gate behavior
 pub use runtime::governance;
 #[cfg(feature = "oracle")]
 pub use runtime::oracle;
-#[cfg(feature = "staking")]
+// Expose staking module unconditionally; runtime flags gate behavior
 pub use runtime::staking;
 pub mod state;
 pub mod storage;

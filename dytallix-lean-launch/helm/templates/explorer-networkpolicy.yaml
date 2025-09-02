@@ -11,6 +11,7 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Allow from ingress controller
     - from:
         - namespaceSelector:
             matchLabels:
@@ -18,6 +19,42 @@ spec:
       ports:
         - port: {{ .Values.explorer.service.port }}
           protocol: TCP
+    # Allow from same namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+      ports:
+        - port: {{ .Values.explorer.service.port }}
+          protocol: TCP
   egress:
-    - {}
-
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow to same namespace services (RPC, Redis) on needed ports
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+      ports:
+        - port: 3030
+          protocol: TCP
+        - port: 6379
+          protocol: TCP
+    # Allow outbound HTTPS if calling external APIs
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+          protocol: TCP
