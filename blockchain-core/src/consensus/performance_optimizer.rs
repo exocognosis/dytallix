@@ -713,7 +713,8 @@ impl PerformanceOptimizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::TransferTransaction;
+    use crate::types::{TransferTransaction, PQCTransactionSignature};
+    use dytallix_pqc::{Signature, SignatureAlgorithm};
 
     fn create_test_transaction(amount: u64) -> Transaction {
         Transaction::Transfer(TransferTransaction {
@@ -724,11 +725,9 @@ mod tests {
             fee: 10,
             nonce: 1,
             timestamp: Utc::now().timestamp() as u64,
-            signature: crate::types::PQCTransactionSignature {
-                dilithium_signature: vec![],
-                falcon_signature: vec![],
-                sphincs_signature: vec![],
-                algorithm_used: "dilithium".to_string(),
+            signature: PQCTransactionSignature {
+                signature: Signature { data: vec![], algorithm: SignatureAlgorithm::Dilithium5 },
+                public_key: vec![],
             },
             ai_risk_score: None,
         })

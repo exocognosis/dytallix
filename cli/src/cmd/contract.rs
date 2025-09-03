@@ -342,6 +342,7 @@ impl ContractArgs {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn execute_contract(
         &self,
         rpc_client: &RpcClient,
@@ -354,20 +355,18 @@ impl ContractArgs {
     ) -> Result<()> {
         info!("Executing contract {} function: {}", contract, function);
 
-        // Parse function arguments
-        let function_args: Value =
-            serde_json::from_str(args).map_err(|e| anyhow!("Invalid args JSON: {}", e))?;
+        let function_args: Value = serde_json::from_str(args)
+            .map_err(|e| anyhow!("Invalid args JSON: {}", e))?;
 
-        // Create execution request
         let request = serde_json::json!({
             "contract_address": contract,
             "function": function,
             "args": function_args,
             "from": from,
             "gas_limit": gas,
+            "gas_price": 1u64,
         });
 
-        // Submit execution transaction
         let response = rpc_client.call("contract_execute", &[request]).await?;
 
         match output {
@@ -518,94 +517,35 @@ impl ContractArgs {
         match wasm_command {
             WasmCommand::Deploy { wasm_file, gas } => {
                 info!("Deploying WASM contract from: {}", wasm_file.display());
-
-                // Read WASM file
                 let code = std::fs::read(wasm_file)
                     .map_err(|e| anyhow!("Failed to read WASM file: {}", e))?;
-
-                // Create deployment request
                 let request = serde_json::json!({
                     "code_base64": base64::engine::general_purpose::STANDARD.encode(&code),
                     "gas_limit": gas,
                 });
-
-                // Submit to WASM deploy endpoint
                 let response = rpc_client.call("wasm_deploy", &[request]).await?;
-
-                if let Some(result) = response.as_object() {
-                    println!("WASM Contract Deployment:");
-                    println!(
-                        "  Address: {}",
-                        result.get("address").unwrap_or(&Value::Null)
-                    );
-                    println!(
-                        "  Code Hash: {}",
-                        result.get("code_hash").unwrap_or(&Value::Null)
-                    );
-                    println!(
-                        "  Gas Used: {}",
-                        result.get("gas_used").unwrap_or(&Value::Null)
-                    );
-                }
+                println!("{}", serde_json::to_string_pretty(&response)?);
             }
-
-            WasmCommand::Exec {
-                address,
-                method,
-                gas,
-            } => {
-                info!("Executing WASM contract {} method: {}", address, method);
-
-                // Create execution request
+            WasmCommand::Exec { address, method, gas } => {
+                info!("Executing WASM method {} on {}", method, address);
                 let request = serde_json::json!({
-                    "address": address,
+                    "contract_address": address,
                     "method": method,
-                    "args_json": {},
+                    "args": serde_json::json!({}),
                     "gas_limit": gas,
                 });
-
-                // Submit to WASM execute endpoint
                 let response = rpc_client.call("wasm_execute", &[request]).await?;
-
-                if let Some(result) = response.as_object() {
-                    println!("WASM Contract Execution:");
-                    println!(
-                        "  Result: {}",
-                        result.get("result_json").unwrap_or(&Value::Null)
-                    );
-                    println!(
-                        "  Gas Used: {}",
-                        result.get("gas_used").unwrap_or(&Value::Null)
-                    );
-                    println!("  Height: {}", result.get("height").unwrap_or(&Value::Null));
-                }
+                println!("{}", serde_json::to_string_pretty(&response)?);
             }
-
             WasmCommand::Query { address } => {
-                info!("Querying WASM contract state: {}", address);
-
-                // Create query request for get() method (counter-specific)
                 let request = serde_json::json!({
-                    "address": address,
-                    "method": "get",
-                    "args_json": {},
-                    "gas_limit": 10000,
+                    "contract_address": address,
+                    "query": serde_json::json!({}),
                 });
-
-                // Submit to WASM execute endpoint (get is an execution)
-                let response = rpc_client.call("wasm_execute", &[request]).await?;
-
-                if let Some(result) = response.as_object() {
-                    println!("WASM Contract State:");
-                    println!("  Contract: {address}");
-                    println!(
-                        "  Value: {}",
-                        result.get("result_json").unwrap_or(&Value::Null)
-                    );
-                }
+                let response = rpc_client.call("wasm_query", &[request]).await?;
+                println!("{}", serde_json::to_string_pretty(&response)?);
             }
         }
-
         Ok(())
     }
 }

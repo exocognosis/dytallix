@@ -288,6 +288,14 @@ impl AIOracleClient {
 
         Ok(best_service)
     }
+
+    pub fn base_url(&self) -> &str {
+        &self.config.base_url
+    }
+
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_secs(self.config.timeout_seconds)
+    }
 }
 
 impl Default for AIOracleClient {

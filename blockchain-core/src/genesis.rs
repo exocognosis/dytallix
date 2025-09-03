@@ -624,4 +624,7 @@ mod tests {
             genesis.staking.downtime_slash_rate as f64 / 100.0
         );
     }
+
+    #[cfg(test)]
+    pub const TEST_GENESIS_FLAG: bool = true;
 }

@@ -217,7 +217,6 @@ pub struct ConsensusEngine {
     runtime: Arc<DytallixRuntime>,
     pqc_manager: Arc<PQCManager>,
     current_block: Arc<RwLock<Option<Block>>>,
-    validators: Arc<RwLock<Vec<String>>>,
     is_validator: bool,
     ai_client: AIOracleClient,
     ai_integration: Option<Arc<ai_integration::AIIntegrationManager>>,
@@ -298,8 +297,7 @@ impl ConsensusEngine {
             runtime,
             pqc_manager,
             current_block: Arc::new(RwLock::new(None)),
-            validators: Arc::new(RwLock::new(Vec::new())),
-            is_validator: true, // For development
+            is_validator: false,
             ai_client,
             ai_integration,
             high_risk_queue,
@@ -414,7 +412,7 @@ impl ConsensusEngine {
 
         let runtime = Arc::clone(&self.runtime);
         let pqc_manager = Arc::clone(&self.pqc_manager);
-        let current_block = Arc::clone(&self.current_block);
+        let current_block = Arc::clone(&self.current_block); // fixed field name
 
         tokio::spawn(async move {
             let mut block_number = 0u64;
@@ -524,7 +522,7 @@ impl ConsensusEngine {
         Self::create_block_proposal(
             &self.runtime,
             &self.pqc_manager,
-            &self.current_block,
+            &self.current_block, // fixed field name
             transactions,
             0,
         )
@@ -1201,6 +1199,7 @@ impl ConsensusEngine {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn format_transfer_transaction_message(tx: &TransferTransaction) -> Vec<u8> {
         format!(
             "{}:{}:{}:{}:{}:{}",
@@ -1209,6 +1208,7 @@ impl ConsensusEngine {
         .into_bytes()
     }
 
+    #[allow(dead_code)]
     fn validate_transaction_signature_static(
         pqc_manager: &Arc<PQCManager>,
         tx: &Transaction,
@@ -1382,7 +1382,7 @@ impl ConsensusEngine {
                                 oracle_id: oracle_id.clone(),
                                 response_id: response_id.clone(),
                             },
-                            processing_decision_clone.clone(),
+                            processing_decision_clone,
                             risk_priority,
                             oracle_id.clone(),
                             response_id.clone(),
@@ -1991,7 +1991,7 @@ impl ConsensusEngine {
     pub fn get_performance_optimizer(
         &self,
     ) -> &Arc<crate::consensus::performance_optimizer::PerformanceOptimizer> {
-        &self.performance_optimizer
+        &self.performance_optimizer // fixed field name
     }
 
     /// Process pending batches of transactions

@@ -1,7 +1,7 @@
 use blake3::Hasher;
 use ripemd::{Digest as RipemdDigest, Ripemd160};
 use sha2::Sha256;
-use sha3::{Digest, Sha3_256};
+use sha3::Sha3_256;
 
 // Legacy address derivation for existing wallets (Blake3-based)
 // Format: dyt1 + hex( blake3("dyt.addr.v1" || pk) )[0..38] (19 bytes) + 4 hex chars checksum (sha3 over body)

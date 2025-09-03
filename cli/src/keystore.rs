@@ -90,7 +90,7 @@ impl UnlockedKey {
 }
 
 pub struct SecretGuard {
-    name: String,
+    _name: String, // renamed to suppress unused field warning
     sk: Vec<u8>,
     pk: Vec<u8>,
     pub address: String,
@@ -154,7 +154,7 @@ pub fn get_unlocked(name: &str) -> Option<SecretGuard> {
         uk.mark_used();
         w[pos] = uk.clone();
         return Some(SecretGuard {
-            name: uk.name,
+            _name: uk.name,
             sk: uk.sk.clone(),
             pk: uk.pk.clone(),
             address: uk.address,

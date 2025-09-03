@@ -190,6 +190,7 @@ impl VaultProvider {
         Ok(Self::new(url, token, mount_path, environment))
     }
 
+    #[allow(dead_code)]
     fn get_vault_path(&self, name: &str) -> String {
         format!("{}/dytallix/{}/{}", self.mount_path, self.environment, name)
     }

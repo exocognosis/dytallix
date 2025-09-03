@@ -9,6 +9,11 @@ mod crypto;
 mod runtime;
 mod storage;
 mod types;
+// Added modules required by runtime/api when compiled as bin (lib already exports these)
+mod staking;
+mod wasm; // PulseGuard WASM engine & host env
+mod genesis;
+mod contracts; // smart contract integration types
 // mod consensus;  // Temporarily disabled
 // mod networking;  // Temporarily disabled
 

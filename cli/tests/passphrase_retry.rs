@@ -12,5 +12,5 @@ fn dummy_env_settings() {
         .arg("echo \"\" | DX_PASSPHRASE_MAX_RETRIES=2 DX_PASSPHRASE_BACKOFF_MS=10 DX_CI_NO_CONFIRM=1 cargo run --example passphrase_input_demo > /dev/null 2>&1 || true")
         .status()
         .expect("spawn");
-    assert!(status.success() || true); // non-fatal placeholder
+    assert!(status.success());
 }

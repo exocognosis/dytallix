@@ -400,6 +400,7 @@ async fn show_stats(client: &RpcClient, fmt: OutputFormat) -> Result<()> {
 }
 
 /// Claim staking rewards (simplified version using our new endpoint)
+#[allow(dead_code)]
 async fn claim_simple(client: &RpcClient, fmt: OutputFormat, address: String) -> Result<()> {
     let payload = json!({
         "address": address

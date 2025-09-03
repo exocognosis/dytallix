@@ -75,6 +75,20 @@ tokio-test = "0.4"
 default = ["std"]
 std = []
 runtime-benchmarks = []
+api-websocket = [] # New feature to gate websocket/API placeholder types & constructors
+staking = [] # Added staking feature flag to silence unexpected_cfg
+legacy-consensus = [] # Gates legacy consensus tests & helpers
+legacy-wasm = [] # Gate legacy wasm scaffolding if needed
+legacy-tests = [] # Broad legacy test suite enable switch
+
+# New lean launch gating features for test consolidation
+ai = []                # Gates AI-heavy integration tests & experimental AI modules
+oracle = ["ai"]        # Oracle-related verification / signature tests (depends on ai)
+advanced-consensus = [] # Gates advanced / experimental consensus optimization tests
+metrics = []            # Gates metrics-heavy integration tests (already applied in test files)
+
+# Combined convenience feature
+legacy-all = ["legacy-consensus","legacy-wasm","legacy-tests"]
 
 [[example]]
 name = "health_check_demo"

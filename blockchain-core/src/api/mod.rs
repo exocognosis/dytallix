@@ -10,6 +10,27 @@ use tokio::sync::broadcast;
 use warp::reply::Reply;
 use warp::Filter; // ensure accessible
 
+// Replace direct dytallix_contracts runtime imports with wrapper exposed via crate::contracts
+use crate::contracts::{ContractRuntime, ContractDeployment, ContractCall};
+
+#[derive(Debug, Serialize)]
+struct ErrorResponse {
+    error: String,
+    message: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct BlockInfo {
+    number: u64,
+    hash: String,
+    parent_hash: String,
+    timestamp: u64,
+    transactions: Vec<String>,
+    size: u64,
+    gas_used: u64,
+    gas_limit: u64,
+}
+
 #[derive(Debug, Deserialize)]
 struct TransferRequest {
     from: String,
@@ -34,6 +55,7 @@ struct ApiResponse<T> {
     error: Option<String>,
 }
 
+#[cfg_attr(not(feature = "api-websocket"), allow(dead_code))]
 #[derive(Debug, Serialize)]
 struct BlockchainStats {
     // removed underscore - struct is intended for API responses
@@ -43,18 +65,7 @@ struct BlockchainStats {
     mempool_size: usize,
 }
 
-#[derive(Debug, Serialize)]
-struct BlockInfo {
-    number: u64,
-    hash: String,
-    parent_hash: String,
-    timestamp: u64,
-    transactions: Vec<String>,
-    size: usize,
-    gas_used: u64,
-    gas_limit: u64,
-}
-
+#[cfg_attr(not(feature = "api-websocket"), allow(dead_code))]
 #[derive(Debug, Serialize)]
 struct PeerInfo {
     // removed underscore
@@ -66,6 +77,7 @@ struct PeerInfo {
     protocol_version: String,
 }
 
+#[cfg_attr(not(feature = "api-websocket"), allow(dead_code))]
 #[derive(Debug, Serialize)]
 struct SystemStatus {
     // removed underscore
@@ -94,6 +106,7 @@ impl WebSocketMessage {
         }
     }
 
+    #[allow(dead_code)]
     fn new_transaction(tx: &TransactionDetails) -> Self {
         Self {
             message_type: "new_transaction".to_string(),
@@ -102,6 +115,7 @@ impl WebSocketMessage {
         }
     }
 
+    #[allow(dead_code)]
     fn status_update(status: &SystemStatus) -> Self {
         Self {
             message_type: "status_update".to_string(),
@@ -111,6 +125,7 @@ impl WebSocketMessage {
     }
 }
 
+#[cfg_attr(not(feature = "api-websocket"), allow(dead_code))]
 #[derive(Debug, Serialize)]
 struct TransactionResponse {
     // removed underscore
@@ -119,6 +134,7 @@ struct TransactionResponse {
     block_number: Option<u64>,
 }
 
+#[cfg_attr(not(feature = "api-websocket"), allow(dead_code))]
 #[derive(Debug, Serialize)]
 struct TransactionDetails {
     // removed underscore
@@ -134,13 +150,7 @@ struct TransactionDetails {
     confirmations: u64,
 }
 
-#[derive(Debug, Serialize)]
-struct ErrorResponse {
-    error: String,
-    message: String,
-}
-
-// Staking API types
+#[cfg_attr(not(feature = "staking"), allow(dead_code))]
 #[derive(Debug, Deserialize)]
 struct _StakingRegisterRequest {
     // underscore
@@ -149,6 +159,7 @@ struct _StakingRegisterRequest {
     commission_rate: u16,
 }
 
+#[cfg_attr(not(feature = "staking"), allow(dead_code))]
 #[derive(Debug, Deserialize)]
 struct _StakingDelegateRequest {
     // underscore
@@ -157,6 +168,7 @@ struct _StakingDelegateRequest {
     amount: u128,
 }
 
+#[cfg_attr(not(feature = "staking"), allow(dead_code))]
 #[derive(Debug, Deserialize)]
 struct _StakingClaimRequest {
     // underscore
@@ -164,6 +176,7 @@ struct _StakingClaimRequest {
     validator: String,
 }
 
+#[cfg_attr(not(feature = "staking"), allow(dead_code))]
 #[derive(Debug, Serialize)]
 struct ValidatorResponse {
     address: String,
@@ -173,6 +186,7 @@ struct ValidatorResponse {
     self_stake: u128,
 }
 
+#[cfg_attr(not(feature = "staking"), allow(dead_code))]
 #[derive(Debug, Serialize)]
 struct _DelegationResponse {
     // underscore
@@ -198,6 +212,7 @@ impl<T> ApiResponse<T> {
         }
     }
 
+    #[allow(dead_code)]
     fn error(message: String) -> Self {
         Self {
             success: false,
@@ -738,7 +753,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     "wasm_execute" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
-                            handle_wasm_execute(params.clone(), (storage.clone(), tx_pool.clone())).await // fixed clone() call
+                            handle_wasm_execute(params.clone(), (storage.clone(), tx_pool.clone())).await
                         } else {
                             serde_json::json!({"error": "Invalid parameters"})
                         }
@@ -1118,8 +1133,8 @@ async fn handle_contract_deploy(
             }
 
             // Create runtime and deploy contract
-            if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
-                let deployment = crate::contracts::ContractDeployment {
+            if let Ok(runtime) = ContractRuntime::new(1_000_000, 16) {
+                let deployment = ContractDeployment {
                     code: code.clone(),
                     metadata: serde_json::json!({}),
                     deployer: params
@@ -1195,38 +1210,34 @@ async fn handle_contract_execute(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value {
+) -> serde_json::Value { // unify
     let (_storage, _tx_pool) = ctx;
 
     if let Some(contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
-        if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
-            let call = crate::contracts::ContractCall {
-                contract_id: contract_address.to_string(),
-                function: params
-                    .get("function")
-                    .and_then(|f| f.as_str())
-                    .unwrap_or("execute")
-                    .to_string(),
-                args: params.get("args").cloned().unwrap_or(serde_json::json!({})),
+        if let Ok(runtime) = ContractRuntime::new(1_000_000, 16) {
+            // Extract args raw JSON for both args/args_json fields
+            let args_json = params.get("args").cloned().unwrap_or(serde_json::json!({}));
+            let method_name = params
+                .get("function")
+                .and_then(|f| f.as_str())
+                .unwrap_or("execute")
+                .to_string();
+            let call = ContractCall { // include all required fields from wrapper struct
+                contract_id: contract_address.to_string(), // use address as id for now
+                function: method_name.clone(),
+                args: args_json.clone(),
+                contract_address: contract_address.to_string(),
+                method: method_name,
                 caller: params
                     .get("from")
                     .and_then(|f| f.as_str())
                     .unwrap_or("unknown")
                     .to_string(),
+                input_data: serde_json::to_vec(&args_json).unwrap_or_default(),
                 gas_limit: params
                     .get("gas_limit")
                     .and_then(|g| g.as_u64())
                     .unwrap_or(100_000),
-                contract_address: contract_address.to_string(),
-                method: params
-                    .get("function")
-                    .and_then(|f| f.as_str())
-                    .unwrap_or("execute")
-                    .to_string(),
-                input_data: params
-                    .get("args")
-                    .and_then(|a| serde_json::to_vec(a).ok())
-                    .unwrap_or_default(),
                 value: params.get("value").and_then(|v| v.as_u64()).unwrap_or(0),
                 timestamp: chrono::Utc::now().timestamp() as u64,
             };
@@ -1234,7 +1245,7 @@ async fn handle_contract_execute(
             return match runtime.call_contract(call).await {
                 Ok(result) => serde_json::json!({
                     "success": result.success,
-                    "return_value": hex::encode(&result.return_value),
+                    "return_value": hex::encode(&result.return_data), // updated field
                     "gas_used": result.gas_used,
                     "events": result.events
                 }),
@@ -1275,15 +1286,15 @@ async fn handle_contract_get_instance(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value {
+) -> serde_json::Value { // unify return type
     let (_storage, _tx_pool) = ctx;
 
     if let Some(address) = params.get("address").and_then(|a| a.as_str()) {
-        if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
-            if let Some(info) = runtime.get_contract_info(address) {
+        if let Ok(runtime) = ContractRuntime::new(1_000_000, 16) {
+            let addr = address.to_string();
+            if let Some(info) = runtime.get_contract_info(&addr) {
                 return serde_json::json!({
                     "address": info.address,
-                    "code_hash": info.code_hash,
                     "deployer": info.deployer,
                     "gas_limit": info.gas_limit,
                     "deployed_at": info.timestamp
@@ -1303,14 +1314,15 @@ async fn handle_contract_get_storage(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value {
+) -> serde_json::Value { // fixed return type path
     let (_storage, _tx_pool) = ctx;
 
     if let Some(contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
         if let Some(key_hex) = params.get("key").and_then(|k| k.as_str()) {
             if let Ok(key) = hex::decode(key_hex) {
-                if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
-                    if let Some(value) = runtime.get_contract_storage(contract_address, &key) {
+                if let Ok(runtime) = ContractRuntime::new(1_000_000, 16) {
+                    let addr = contract_address.to_string();
+                    if let Some(value) = runtime.get_contract_storage(&addr, &key) { // corrected method
                         return serde_json::json!({
                             "value": hex::encode(&value)
                         });
@@ -1332,7 +1344,7 @@ async fn handle_contract_list(
 ) -> serde_json::Value {
     let (_storage, _tx_pool) = ctx;
 
-    if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
+    if let Ok(runtime) = ContractRuntime::new(1_000_000, 16) {
         let contracts = runtime.list_contracts();
         let contract_list: Vec<serde_json::Value> = contracts
             .iter()
@@ -1340,8 +1352,9 @@ async fn handle_contract_list(
                 runtime.get_contract_info(addr).map(|info| {
                     serde_json::json!({
                         "address": info.address,
-                        "code_hash": info.code_hash,
-                        "deployer": info.deployer
+                        "deployer": info.deployer,
+                        "gas_limit": info.gas_limit,
+                        "timestamp": info.timestamp
                     })
                 })
             })
@@ -1360,41 +1373,34 @@ async fn handle_wasm_deploy(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value {
+) -> serde_json::Value { // unify
     let (_storage, _tx_pool) = ctx;
-
-    // Extract deployment parameters from WASM-specific format
     if let Some(code_base64) = params.get("code_base64").and_then(|c| c.as_str()) {
-        // Decode base64 WASM code
         if let Ok(code) = base64::engine::general_purpose::STANDARD.decode(code_base64) {
-            // Validate WASM code
             if code.len() < 8 || &code[0..4] != b"\x00asm" {
                 return serde_json::json!({"error": "Invalid WASM code"});
             }
-
-            // Create runtime and deploy contract
-            if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
-                let deployment = crate::contracts::ContractDeployment {
+            if let Ok(runtime) = ContractRuntime::new(1_000_000, 16) {
+                let deployment = ContractDeployment {
                     code: code.clone(),
                     metadata: serde_json::json!({}),
-                    deployer: "wasm_deployer".to_string(), // TODO: Extract from auth
+                    deployer: "wasm_deployer".to_string(),
                     gas_limit: params
                         .get("gas_limit")
                         .and_then(|g| g.as_u64())
                         .unwrap_or(500_000),
                     address: generate_contract_address(blake3::hash(&code).as_bytes()),
-                    initial_state: vec![], // Empty initial state for WASM
+                    initial_state: vec![],
                     timestamp: chrono::Utc::now().timestamp() as u64,
                     ai_audit_score: None,
                 };
-
                 match runtime.deploy_contract(deployment).await {
                     Ok(address) => {
                         let code_hash = blake3::hash(&code);
                         return serde_json::json!({
                             "address": address,
                             "code_hash": hex::encode(code_hash.as_bytes()),
-                            "gas_used": 50000 // TODO: Get actual gas used
+                            "gas_used": 50000
                         });
                     }
                     Err(e) => {
@@ -1408,7 +1414,6 @@ async fn handle_wasm_deploy(
             return serde_json::json!({"error": "Failed to decode base64 WASM code"});
         }
     }
-
     serde_json::json!({"error": "Invalid WASM deployment parameters"})
 }
 
@@ -1418,43 +1423,37 @@ async fn handle_wasm_execute(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value {
+) -> serde_json::Value { // unify
     let (_storage, _tx_pool) = ctx;
 
-    // Extract execution parameters
     if let (Some(address), Some(method)) = (
         params.get("address").and_then(|a| a.as_str()),
         params.get("method").and_then(|m| m.as_str()),
     ) {
-        // Create runtime and execute contract
-        if let Ok(runtime) = crate::contracts::ContractRuntime::new(1_000_000, 16) {
-            let call = crate::contracts::ContractCall {
+        if let Ok(runtime) = ContractRuntime::new(1_000_000, 16) {
+            let args_json = params.get("args_json").cloned().unwrap_or(serde_json::json!({}));
+            let method_name = method.to_string();
+            let call = ContractCall {
                 contract_id: address.to_string(),
-                function: method.to_string(),
-                args: params
-                    .get("args_json")
-                    .cloned()
-                    .unwrap_or(serde_json::json!({})),
+                function: method_name.clone(),
+                args: args_json.clone(),
                 contract_address: address.to_string(),
+                method: method_name,
                 caller: "wasm_caller".to_string(),
-                method: method.to_string(),
-                input_data: params
-                    .get("args_json")
-                    .and_then(|args| serde_json::to_vec(args).ok())
-                    .unwrap_or_default(),
+                input_data: serde_json::to_vec(&args_json).unwrap_or_default(),
                 gas_limit: params
                     .get("gas_limit")
                     .and_then(|g| g.as_u64())
                     .unwrap_or(20_000),
-                value: 0, // No value transfer for basic WASM calls
+                value: 0,
                 timestamp: chrono::Utc::now().timestamp() as u64,
             };
 
             return match runtime.call_contract(call).await {
                 Ok(result) => serde_json::json!({
-                    "result_json": result.return_value,
+                    "result_json": result.return_data,
                     "gas_used": result.gas_used,
-                    "height": 1 // TODO: Get actual block height
+                    "height": 1
                 }),
                 Err(e) => serde_json::json!({"error": format!("Execution failed: {}", e)}),
             };

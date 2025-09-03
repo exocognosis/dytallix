@@ -29,10 +29,7 @@ fn batch_ok() {
         NonceSpec::Auto => {}
         _ => panic!("nonce"),
     }
-    if let BatchMsg::Send { denom, amount, .. } = &b.messages[0] {
-        assert_eq!(denom, "DGT");
-        assert_eq!(*amount, 1);
-    } else {
-        panic!()
-    }
+    let BatchMsg::Send { denom, amount, .. } = &b.messages[0];
+    assert_eq!(denom, "DGT");
+    assert_eq!(*amount, 1);
 }

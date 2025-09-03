@@ -15,18 +15,15 @@ pub fn install_signal_handlers() {
         tokio::spawn(async move {
             let mut sigint = signal(SignalKind::interrupt()).expect("sigint");
             let mut sigterm = signal(SignalKind::terminate()).expect("sigterm");
-            loop {
-                tokio::select! {
-                    _ = sigint.recv() => {
-                        keystore::purge();
-                        warn!("event=signal kind=SIGINT action=purge_keystore");
-                        break;
-                    },
-                    _ = sigterm.recv() => {
-                        keystore::purge();
-                        warn!("event=signal kind=SIGTERM action=purge_keystore");
-                        break;
-                    }
+            // Single-shot select; no need for loop, remove it to satisfy clippy::never_loop
+            tokio::select! {
+                _ = sigint.recv() => {
+                    keystore::purge();
+                    warn!("event=signal kind=SIGINT action=purge_keystore");
+                },
+                _ = sigterm.recv() => {
+                    keystore::purge();
+                    warn!("event=signal kind=SIGTERM action=purge_keystore");
                 }
             }
         });

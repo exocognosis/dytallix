@@ -24,7 +24,7 @@ pub enum AIServiceType {
 }
 
 /// Priority levels for AI requests
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum RequestPriority {
     Low,
     #[default]
@@ -416,6 +416,21 @@ impl AIResponsePayload {
     /// Get the confidence score if available
     pub fn confidence_score(&self) -> Option<f64> {
         self.metadata.as_ref().and_then(|m| m.confidence_score)
+    }
+
+    /// Check if the response has timed out
+    pub fn is_timeout(&self) -> bool {
+        self.status == ResponseStatus::Timeout
+    }
+
+    /// Get the model version from metadata
+    pub fn model_version(&self) -> Option<&str> {
+        self.metadata.as_ref().map(|m| m.model_version.as_str())
+    }
+
+    /// Get the oracle reputation from metadata
+    pub fn oracle_reputation(&self) -> Option<f64> {
+        self.metadata.as_ref().and_then(|m| m.oracle_reputation)
     }
 }
 

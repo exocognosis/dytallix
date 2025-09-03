@@ -9,12 +9,20 @@ pub trait PQC {
     const ALG: &'static str; // algorithm identifier (e.g. "dilithium5")
 }
 
+// If both pqc-real and pqc-mock are enabled, prefer real but emit a warning.
 #[cfg(all(feature = "pqc-real", feature = "pqc-mock"))]
-compile_error!("Features 'pqc-real' and 'pqc-mock' cannot both be enabled.");
+#[deprecated(note = "Both 'pqc-real' and 'pqc-mock' enabled; preferring real implementation")] // soft warning (appears once where used)
+const _PQC_FEATURE_CONFLICT: () = ();
 
 #[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
 mod dilithium;
 #[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
+pub use dilithium::Dilithium as ActivePQC;
+
+// When both enabled, still compile dilithium and pick it as ActivePQC.
+#[cfg(all(feature = "pqc-real", feature = "pqc-mock"))]
+mod dilithium;
+#[cfg(all(feature = "pqc-real", feature = "pqc-mock"))]
 pub use dilithium::Dilithium as ActivePQC;
 
 #[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]

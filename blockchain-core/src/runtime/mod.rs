@@ -17,6 +17,7 @@ use crate::wasm::WasmEngine; // updated simplified import
 use dytallix_contracts::runtime::{
     ContractCall, ContractDeployment, ContractRuntime, ExecutionResult,
 }; // added
+use crate::genesis; // import module to simplify path references
 
 pub mod oracle;
 
@@ -54,7 +55,7 @@ impl Default for RuntimeState {
 
 impl RuntimeState {
     /// Initialize runtime state with genesis configuration
-    pub fn from_genesis(genesis: &crate::genesis::GenesisConfig) -> Self {
+    pub fn from_genesis(genesis: &genesis::GenesisConfig) -> Self { // updated path
         let mut state = Self::default();
 
         // Initialize staking with genesis parameters
@@ -118,7 +119,7 @@ impl DytallixRuntime {
 
     fn new_with_genesis_inner(
         storage: Arc<StorageManager>,
-        genesis: Option<&crate::genesis::GenesisConfig>,
+        genesis: Option<&genesis::GenesisConfig>, // updated path
         wasm_engine: Arc<WasmEngine>,
         pqc_manager: Arc<PQCManager>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
@@ -142,7 +143,7 @@ impl DytallixRuntime {
 
     pub fn new_with_genesis(
         storage: Arc<StorageManager>,
-        genesis: Option<&crate::genesis::GenesisConfig>,
+        genesis: Option<&genesis::GenesisConfig>, // updated path
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let pqc_manager = Arc::new(PQCManager::new()?);
         let host_env = HostEnv::with_pqc(pqc_manager.clone());

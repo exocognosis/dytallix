@@ -886,12 +886,7 @@ mod tests {
                 fee: 10,
                 nonce: 1,
                 timestamp: 1234567890,
-                signature: PQCTransactionSignature {
-                    dilithium_signature: vec![],
-                    falcon_signature: vec![],
-                    sphincs_signature: vec![],
-                    algorithm_used: "dilithium".to_string(),
-                },
+                signature: PQCTransactionSignature { signature: dytallix_pqc::Signature { data: vec![], algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5 }, public_key: vec![] },
                 ai_risk_score: Some(0.9),
             });
 
@@ -961,12 +956,7 @@ mod tests {
                 fee: 20,
                 nonce: 1,
                 timestamp: 1234567890,
-                signature: PQCTransactionSignature {
-                    dilithium_signature: vec![],
-                    falcon_signature: vec![],
-                    sphincs_signature: vec![],
-                    algorithm_used: "dilithium".to_string(),
-                },
+                signature: PQCTransactionSignature { signature: dytallix_pqc::Signature { data: vec![], algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5 }, public_key: vec![] },
                 ai_risk_score: Some(0.95),
             });
 

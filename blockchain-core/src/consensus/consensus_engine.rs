@@ -74,8 +74,8 @@ pub enum ConsensusError {
 /// Main Consensus Engine
 #[derive(Debug)]
 pub struct ConsensusEngine {
-    runtime: Arc<DytallixRuntime>,
-    pqc_manager: Arc<PQCManager>,
+    _runtime: Arc<DytallixRuntime>,
+    _pqc_manager: Arc<PQCManager>,
     _current_block: Arc<RwLock<Option<Block>>>, // prefixed underscore
     _validators: Arc<RwLock<Vec<String>>>,      // underscore
     is_validator: bool,
@@ -165,8 +165,8 @@ impl ConsensusEngine {
         );
 
         Ok(Self {
-            runtime,
-            pqc_manager,
+            _runtime: runtime,
+            _pqc_manager: pqc_manager,
             _current_block: current_block,
             _validators: Arc::new(RwLock::new(Vec::new())),
             is_validator: false,

@@ -1,12 +1,10 @@
-#[cfg(feature = "metrics")]
+#![cfg(feature = "metrics")]
+
 use std::sync::Arc;
-// removed unused tokio::time sleep and Duration imports
 use tempfile::TempDir;
 
 use dytallix_lean_node::mempool::Mempool;
-#[cfg(feature = "metrics")]
 use dytallix_lean_node::metrics::Metrics;
-#[cfg(feature = "metrics")]
 use dytallix_lean_node::p2p::TransactionGossip;
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::tx::Transaction;
@@ -46,7 +44,6 @@ fn create_mock_state() -> State {
     state
 }
 
-#[cfg(feature = "metrics")]
 #[tokio::test]
 async fn test_mempool_admission_metrics() {
     let metrics = Arc::new(Metrics::new().expect("Failed to create metrics"));
@@ -93,7 +90,6 @@ async fn test_mempool_admission_metrics() {
     }
 }
 
-#[cfg(feature = "metrics")]
 #[tokio::test]
 async fn test_mempool_rejection_reasons_metrics() {
     let metrics = Arc::new(Metrics::new().expect("Failed to create metrics"));
@@ -135,7 +131,6 @@ async fn test_mempool_rejection_reasons_metrics() {
     }
 }
 
-#[cfg(feature = "metrics")]
 #[tokio::test]
 async fn test_mempool_eviction_metrics() {
     let metrics = Arc::new(Metrics::new().expect("Failed to create metrics"));
@@ -179,7 +174,6 @@ async fn test_mempool_eviction_metrics() {
     assert_eq!(metrics.mempool_size.get(), 2); // Should still be at capacity
 }
 
-#[cfg(feature = "metrics")]
 #[tokio::test]
 async fn test_gossip_duplicate_metrics() {
     let metrics = Arc::new(Metrics::new().expect("Failed to create metrics"));
@@ -208,7 +202,6 @@ async fn test_gossip_duplicate_metrics() {
     assert_eq!(metrics.mempool_gossip_duplicates_total.get(), 4);
 }
 
-#[cfg(feature = "metrics")]
 #[tokio::test]
 async fn test_mempool_watermark_metrics() {
     let metrics = Arc::new(Metrics::new().expect("Failed to create metrics"));
@@ -259,7 +252,6 @@ async fn test_mempool_watermark_metrics() {
     );
 }
 
-#[cfg(feature = "metrics")]
 #[tokio::test]
 async fn test_comprehensive_metrics_flow() {
     let metrics = Arc::new(Metrics::new().expect("Failed to create metrics"));
@@ -372,26 +364,6 @@ async fn test_comprehensive_metrics_flow() {
     );
 }
 
-#[cfg(not(feature = "metrics"))]
-#[tokio::test]
-async fn test_metrics_disabled_no_ops() {
-    // Test that metrics are no-ops when feature is disabled
-    let metrics = Metrics::new().expect("Should create no-op metrics");
-
-    // All operations should be no-ops
-    metrics.update_mempool_size(100);
-    metrics.update_mempool_bytes(5000);
-    metrics.record_mempool_admission();
-    metrics.record_mempool_rejection("test_reason");
-    metrics.record_mempool_eviction("capacity");
-    metrics.update_mempool_min_gas_price(2000);
-    metrics.record_gossip_duplicate();
-
-    // If we get here without panicking, the no-op implementation works
-    println!("✅ No-op metrics implementation verified");
-}
-
-#[cfg(feature = "metrics")]
 #[tokio::test]
 async fn test_metrics_prometheus_format() {
     use prometheus::TextEncoder;

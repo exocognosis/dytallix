@@ -189,9 +189,15 @@ pub struct Metrics {
     pub dyt_emission_pool_amount: prometheus::GaugeVec,
     pub dyt_emission_pool_balance: prometheus::GaugeVec,
 
+    // Emission metrics - DRT-prefixed (dual-tokenomics)
+    pub drt_emission_pool_amount: prometheus::GaugeVec,
+    pub drt_emission_pool_balance: prometheus::GaugeVec,
+
     // Validator metrics - new dyt_ prefixed
     pub dyt_validator_missed_blocks_total: prometheus::IntCounterVec,
     pub dyt_validator_voting_power: prometheus::GaugeVec,
+    // Governance/Staking metrics - DGT-prefixed (dual-tokenomics)
+    pub dgt_validator_voting_power: prometheus::GaugeVec,
 
     // Legacy emission metrics
     pub emission_pool_size: Gauge,
@@ -431,6 +437,25 @@ impl Metrics {
         )?;
         registry.register(Box::new(dyt_emission_pool_balance.clone()))?;
 
+        // Emission metrics - DRT-prefixed (mirrors of dyt_* for migration)
+        let drt_emission_pool_amount = prometheus::GaugeVec::new(
+            Opts::new(
+                "drt_emission_pool_amount",
+                "Current amount in DRT emission pools by pool type",
+            ),
+            &["pool_type"],
+        )?;
+        registry.register(Box::new(drt_emission_pool_amount.clone()))?;
+
+        let drt_emission_pool_balance = prometheus::GaugeVec::new(
+            Opts::new(
+                "drt_emission_pool_balance",
+                "Current balance in DRT emission pools by pool",
+            ),
+            &["pool"],
+        )?;
+        registry.register(Box::new(drt_emission_pool_balance.clone()))?;
+
         // Validator metrics - using dyt_ prefix
         let dyt_validator_missed_blocks_total = prometheus::IntCounterVec::new(
             Opts::new(
@@ -449,6 +474,16 @@ impl Metrics {
             &["validator"],
         )?;
         registry.register(Box::new(dyt_validator_voting_power.clone()))?;
+
+        // Governance/Staking metrics - DGT-prefixed (migration alias)
+        let dgt_validator_voting_power = prometheus::GaugeVec::new(
+            Opts::new(
+                "dgt_validator_voting_power",
+                "Current voting power of validators (DGT governance context)",
+            ),
+            &["validator"],
+        )?;
+        registry.register(Box::new(dgt_validator_voting_power.clone()))?;
 
         // Legacy emission metric
         let emission_pool_size = Gauge::with_opts(Opts::new(
@@ -505,8 +540,11 @@ impl Metrics {
             dyt_oracle_request_latency_seconds,
             dyt_emission_pool_amount,
             dyt_emission_pool_balance,
+            drt_emission_pool_amount,
+            drt_emission_pool_balance,
             dyt_validator_missed_blocks_total,
             dyt_validator_voting_power,
+            dgt_validator_voting_power,
             // Legacy metrics
             total_blocks,
             current_block_height,

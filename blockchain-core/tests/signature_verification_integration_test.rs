@@ -50,32 +50,37 @@ impl TestData {
 
         let ai_response = AIResponsePayload {
             id: "test-response-1".to_string(),
-            request_id: "test-request-1".to_string(),
-            service_type: AIServiceType::RiskScoring,
-            response_data: serde_json::json!({
+            success: true,
+            result_data: serde_json::json!({
                 "risk_score": 0.3,
                 "confidence": 0.95,
                 "factors": ["low_amount", "verified_sender"]
             }),
-            timestamp: chrono::Utc::now().timestamp() as u64,
-            processing_time_ms: 150,
-            status: ResponseStatus::Success,
-            metadata: None,
             error: None,
-            signature: Some("test-signature".to_string()),
-            oracle_id: Some("test-oracle-1".to_string()),
+            timestamp: chrono::Utc::now().timestamp() as u64,
         };
 
         let signed_response = SignedAIOracleResponse {
             response: ai_response.clone(),
-            signature: Signature {
-                data: vec![13, 14, 15, 16],
-                algorithm: SignatureAlgorithm::Dilithium5,
-            },
-            oracle_public_key: oracle_public_key.clone(),
-            oracle_id: "test-oracle-1".to_string(),
-            certificate_chain: vec![],
+            signature: dytallix_blockchain_core::consensus::types::AIResponseSignature::new(
+                dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                vec![13, 14, 15, 16],
+                vec![1, 2, 3, 4],
+            ),
             nonce: 12345,
+            expires_at: chrono::Utc::now().timestamp() as u64 + 300,
+            oracle_identity: dytallix_blockchain_core::consensus::types::OracleIdentity {
+                oracle_id: "test-oracle-1".to_string(),
+                public_key: oracle_public_key.clone(),
+                reputation_score: 0.95,
+                certificate_chain: vec![],
+                last_active: chrono::Utc::now().timestamp() as u64,
+                total_requests: 100,
+                successful_requests: 95,
+                failed_requests: 5,
+                metadata: None,
+            },
+            verification_data: None,
         };
 
         Self {
