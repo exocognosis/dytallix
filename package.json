@@ -7,7 +7,10 @@
     "build:faucet": "npm --prefix dytallix-lean-launch run build",
     "self-test": "bash scripts/test-pqc.sh",
     "gen:pqclean-manifest": "node scripts/gen-pqclean-manifest.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "evidence:hashes": "bash scripts/pqc/generate_hash_list.sh",
+    "evidence:tamper": "bash scripts/pqc/run_tamper_test.sh",
+    "drill:rollback": "bash scripts/ops/rollback_drill.sh"
   },
   "devDependencies": {
     "jest": "^29.7.0"
