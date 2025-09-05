@@ -19,6 +19,7 @@ zeroize = { version = "1.8", features = ["derive"] }
 sha3 = "0.10"
 hex = "0.4"
 blake3 = "1.5"
+base64 = "0.22"
 
 # Time handling for nonce/timestamp
 chrono = { version = "0.4", features = ["serde"] }
@@ -58,3 +59,4 @@ kyber = []
 falcon = []
 sphincs = []
 benchmark-stdout = []
+pqc-real = []

@@ -2,18 +2,18 @@ use clap::{Arg, Command};
 use tracing::{info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod blockchain;
 mod config;
 mod error;
-mod models;
 mod features;
 mod inference;
-mod blockchain;
 mod metrics;
+mod models;
 mod storage;
 
+use crate::blockchain::BlockchainMonitor;
 use crate::config::Config;
 use crate::inference::InferenceEngine;
-use crate::blockchain::BlockchainMonitor;
 use crate::metrics::MetricsServer;
 use crate::storage::Database;
 
@@ -84,9 +84,7 @@ async fn main() -> anyhow::Result<()> {
         config.clone(),
     );
 
-    let processor_handle = tokio::spawn(async move {
-        processor.run().await
-    });
+    let processor_handle = tokio::spawn(async move { processor.run().await });
 
     // Wait for shutdown signal
     tokio::select! {
@@ -145,7 +143,10 @@ impl InferenceProcessor {
         Ok(())
     }
 
-    async fn process_transaction(&mut self, transaction: blockchain::Transaction) -> anyhow::Result<()> {
+    async fn process_transaction(
+        &mut self,
+        transaction: blockchain::Transaction,
+    ) -> anyhow::Result<()> {
         // Extract features from transaction
         let features = self.inference_engine.extract_features(&transaction).await?;
 
@@ -166,9 +167,7 @@ impl InferenceProcessor {
 
             info!(
                 "Anomaly detected: tx={}, score={:.3}, reasons={:?}",
-                transaction.hash,
-                inference_result.score,
-                inference_result.reasons
+                transaction.hash, inference_result.score, inference_result.reasons
             );
         }
 

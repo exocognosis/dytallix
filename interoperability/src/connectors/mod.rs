@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Universal chain connector trait
+#[allow(async_fn_in_trait)]
 pub trait ChainConnector {
     type Config;
     type Address;

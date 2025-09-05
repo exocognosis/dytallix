@@ -267,26 +267,31 @@ pub fn create_new_with_algorithm(
         return Err(anyhow!("name exists"));
     }
 
-    let (sk, pk, address) = match algorithm {
+    // Allocate variables first to avoid potential unsized tuple temporary issues in older compilers
+    let sk: Vec<u8>;
+    let pk: Vec<u8>;
+    let address: String;
+
+    match algorithm {
         "pqc" => {
-            let (sk, pk) = ActiveSignatureScheme::keypair();
-            let address = if legacy {
-                crate::addr::legacy_address_from_pk(&pk)
+            let (sk_gen, pk_gen) = ActiveSignatureScheme::keypair();
+            address = if legacy {
+                crate::addr::legacy_address_from_pk(&pk_gen)
             } else {
-                crate::addr::address_from_pk(&pk)
+                crate::addr::address_from_pk(&pk_gen)
             };
-            (sk, pk, address)
+            sk = sk_gen;
+            pk = pk_gen;
         }
         "secp256k1" => {
-            // For legacy secp256k1 support - this would need actual secp256k1 implementation
-            // For now, fall back to PQC with legacy address format
             warn!("Legacy secp256k1 not implemented, using PQC with legacy address format");
-            let (sk, pk) = ActiveSignatureScheme::keypair();
-            let address = crate::addr::legacy_address_from_pk(&pk);
-            (sk, pk, address)
+            let (sk_gen, pk_gen) = ActiveSignatureScheme::keypair();
+            address = crate::addr::legacy_address_from_pk(&pk_gen);
+            sk = sk_gen;
+            pk = pk_gen;
         }
         _ => return Err(anyhow!("Unsupported algorithm: {}", algorithm)),
-    };
+    }
 
     let kp = KdfParams::default();
     let enc = encrypt_sk(password, &sk, kp)?;

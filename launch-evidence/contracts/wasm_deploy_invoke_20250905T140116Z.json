@@ -1,0 +1,13 @@
+{
+  "ts": "20250905T140116Z",
+  "mode": "simulated",
+  "codeHash": "NO_WASM_FILE_20250905T140116Z",
+  "contractAddress": "simulated-NO_WASM_FILE_20250905T140116Z",
+  "deployTx": "SIMULATED_DEPLOY_NO_WASM_FILE_20250905T140116Z",
+  "invokeTx": "SIMULATED_INVOKE_NO_WASM_FILE_20250905T140116Z",
+  "beforeState": {"count":76},
+  "afterState": {"count":77},
+  "beforeCounter": 76,
+  "afterCounter": 77,
+  "incrementValid": true
+}

@@ -1,23 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import '../styles/global.css'
+// Replace placeholder imports with real client
+import { getOverview, getTimeseries, openDashboardSocket, isFiniteNumber } from '../../frontend/src/lib/metricsClient.ts'
 
-// Strengthened placeholder utilities & fallbacks to prevent runtime crashes
 const DEFAULT_RANGE = '1h'
 const DEFAULT_REFRESH_MS = 10000
 const persistRange = () => {}
 const persistRefresh = () => {}
-const getOverview = () => Promise.resolve({})
-const getTimeseries = () => Promise.resolve({ points: [] })
 // Ensure we ALWAYS return an object with a no-op close so cleanup is safe
-const openDashboardSocket = (handlers = {}) => {
-  try {
-    // If a real implementation gets injected later it can override this.
-    // For now just simulate an interface.
-    return { close: () => {}, send: () => {} }
-  } catch (e) {
-    return { close: () => {} }
-  }
-}
 const logEvent = () => {}
 const logApiError = () => 1
 
@@ -215,7 +205,7 @@ const Dashboard = () => {
   }, [])
 
   const health = useMemo(() => overview ? deriveHealth(overview) : 'healthy', [overview])
-  const lastUpdated = useMemo(() => overview?.updatedAt ? new Date(overview.updatedAt).toLocaleString() : '—', [overview])
+  const lastUpdated = useMemo(() => overview?.updatedAt ? new Date(overview.updatedAt).toISOString() : '—', [overview])
 
   // Peer stats derived from series
   const peerStats = useMemo(() => {
@@ -272,13 +262,13 @@ const Dashboard = () => {
           <Skeleton height={120} />
         ) : (
           <div className="grid grid-3">
-            <MetricCard label="Block Height" value={overview?.height?.toLocaleString?.() || overview?.height || '—'} href={`/explorer?block=${overview?.height || ''}`} />
-            <MetricCard label="TPS" value={overview?.tps ?? '—'} />
-            <MetricCard label="Block Time (avg)" value={`${overview?.blockTime ?? '—'}s`} />
-            <MetricCard label="Peer Count" value={overview?.peers ?? '—'} />
-            <MetricCard label="Validator Count" value={overview?.validators ?? '—'} />
-            <MetricCard label="Finality / Latency" value={`${overview?.finality ?? '—'}s`} />
-            <MetricCard label="Mempool Size" value={overview?.mempool ?? '—'} />
+            <MetricCard label="Block Height" value={isFiniteNumber(overview?.height) ? overview.height.toLocaleString() : '—'} href={`/explorer?block=${overview?.height || ''}`} />
+            <MetricCard label="TPS" value={isFiniteNumber(overview?.tps) ? overview.tps : '—'} />
+            <MetricCard label="Block Time (avg)" value={isFiniteNumber(overview?.blockTime) ? `${overview.blockTime}s` : '—'} />
+            <MetricCard label="Peer Count" value={isFiniteNumber(overview?.peers) ? overview.peers : '—'} />
+            <MetricCard label="Validator Count" value={isFiniteNumber(overview?.validators) ? overview.validators : '—'} />
+            <MetricCard label="Finality / Latency" value={isFiniteNumber(overview?.finality) ? `${overview.finality}s` : '—'} />
+            <MetricCard label="Mempool Size" value={isFiniteNumber(overview?.mempool) ? overview.mempool : '—'} />
             <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div className="muted" style={{ fontSize: 13, fontWeight: 700 }}>Status</div>
@@ -291,9 +281,9 @@ const Dashboard = () => {
 
         {/* Resource row */}
         <div className="grid grid-3" style={{ marginTop: 24 }}>
-          <MetricCard label="Node CPU %" value={overview?.cpu != null ? `${overview.cpu}%` : '—'} />
-          <MetricCard label="Node Memory %" value={overview?.memory != null ? `${overview.memory}%` : '—'} />
-          <MetricCard label="Disk I/O" value={overview?.diskIO != null ? `${overview.diskIO} MB/s` : '—'} />
+          <MetricCard label="Node CPU %" value={isFiniteNumber(overview?.cpu) ? `${overview.cpu}%` : '—'} />
+          <MetricCard label="Node Memory %" value={isFiniteNumber(overview?.memory) ? `${overview.memory}%` : '—'} />
+          <MetricCard label="Disk I/O" value={isFiniteNumber(overview?.diskIO) ? `${overview.diskIO} MB/s` : '—'} />
         </div>
 
         {/* Charts */}

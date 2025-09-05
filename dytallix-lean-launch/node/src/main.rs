@@ -19,8 +19,8 @@ use dytallix_lean_node::gas::GasSchedule;
 use dytallix_lean_node::mempool::Mempool;
 use dytallix_lean_node::metrics::{parse_metrics_config, MetricsServer};
 use dytallix_lean_node::rpc::{self, RpcContext};
-use dytallix_lean_node::runtime::emission::EmissionEngine;
 use dytallix_lean_node::runtime::bridge; // import bridge module for validator init
+use dytallix_lean_node::runtime::emission::EmissionEngine;
 use dytallix_lean_node::runtime::governance::GovernanceModule;
 use dytallix_lean_node::runtime::staking::StakingModule;
 use dytallix_lean_node::state::State;
@@ -121,7 +121,10 @@ async fn main() -> anyhow::Result<()> {
         ))),
         staking: staking_module.clone(),
         metrics: metrics.clone(),
-        features: dytallix_lean_node::rpc::FeatureFlags { governance: enable_governance, staking: enable_staking },
+        features: dytallix_lean_node::rpc::FeatureFlags {
+            governance: enable_governance,
+            staking: enable_staking,
+        },
     };
 
     // Initialize bridge validators if provided
@@ -255,9 +258,11 @@ async fn main() -> anyhow::Result<()> {
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_else(|_| Duration::from_secs(0))
                 .as_secs();
-            producer_ctx
-                .metrics
-                .update_emission_apply(emission_snapshot.height, total_emission_pool, now_ts);
+            producer_ctx.metrics.update_emission_apply(
+                emission_snapshot.height,
+                total_emission_pool,
+                now_ts,
+            );
 
             // Process governance end block if feature enabled
             if producer_ctx.features.governance {

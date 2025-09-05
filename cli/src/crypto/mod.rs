@@ -9,28 +9,24 @@ pub trait PQC {
     const ALG: &'static str; // algorithm identifier (e.g. "dilithium5")
 }
 
-// If both pqc-real and pqc-mock are enabled, prefer real but emit a warning.
+// When both pqc-real and pqc-mock are enabled, prefer real implementation without failing compile.
+// We emit a doc comment instead of a hard error to allow `--all-features` clippy runs.
 #[cfg(all(feature = "pqc-real", feature = "pqc-mock"))]
-#[deprecated(note = "Both 'pqc-real' and 'pqc-mock' enabled; preferring real implementation")] // soft warning (appears once where used)
-const _PQC_FEATURE_CONFLICT: () = ();
+#[allow(dead_code)]
+const _PQC_FEATURE_NOTE: &str = "Both 'pqc-real' and 'pqc-mock' enabled; using real Dilithium implementation";
 
-#[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
+#[cfg(feature = "pqc-real")]
 mod dilithium;
-#[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
+#[cfg(feature = "pqc-real")]
 pub use dilithium::Dilithium as ActivePQC;
 
-// When both enabled, still compile dilithium and pick it as ActivePQC.
-#[cfg(all(feature = "pqc-real", feature = "pqc-mock"))]
-mod dilithium;
-#[cfg(all(feature = "pqc-real", feature = "pqc-mock"))]
-pub use dilithium::Dilithium as ActivePQC;
-
-#[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
+// If real not selected, fall back to mock
+#[cfg(all(not(feature = "pqc-real"), feature = "pqc-mock"))]
 mod mock;
-#[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
+#[cfg(all(not(feature = "pqc-real"), feature = "pqc-mock"))]
 pub use mock::MockPQC as ActivePQC;
 
-// Fallback: if neither feature is set, enable mock for compilation
+// If neither feature set, default to mock for minimal builds.
 #[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-mock")))]
 mod mock;
 #[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-mock")))]

@@ -374,3 +374,17 @@ critical_gaps:
 	@echo "  1. Review final readiness report: launch-evidence/final_report/READINESS_REPORT_FINAL.md"
 	@echo "  2. Deploy test network: docker-compose -f docker-compose.multi.yml up"
 	@echo "  3. Execute live performance validation"
+
+# Launch Evidence Orchestrator targets (phase0..phase6, all-evidence)
+# Automatically selects orchestrator location (prefers scripts/ wrapper if present)
+ORCH := $(firstword $(wildcard scripts/evidence_orchestrator.sh) dytallix-lean-launch/scripts/evidence_orchestrator.sh)
+
+.PHONY: phase0 phase1 phase2 phase3 phase4 phase5 phase6 all-evidence
+phase0: ; @bash $(ORCH) phase0
+phase1: ; @bash $(ORCH) phase1
+phase2: ; @bash $(ORCH) phase2
+phase3: ; @bash $(ORCH) phase3
+phase4: ; @bash $(ORCH) phase4
+phase5: ; @bash $(ORCH) phase5
+phase6: ; @bash $(ORCH) phase6
+all-evidence: ; @bash $(ORCH) all

@@ -1,6 +1,6 @@
+use crate::error::InferenceError;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
-use crate::error::InferenceError;
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -30,7 +30,9 @@ impl Database {
 
         // Run migrations if present on disk (skip if missing)
         if std::path::Path::new("./migrations").exists() {
-            if let Ok(migrator) = sqlx::migrate::Migrator::new(std::path::Path::new("./migrations")).await {
+            if let Ok(migrator) =
+                sqlx::migrate::Migrator::new(std::path::Path::new("./migrations")).await
+            {
                 let _ = migrator.run(&pool).await;
             }
         }
@@ -38,7 +40,10 @@ impl Database {
         Ok(Self { pool })
     }
 
-    pub async fn store_finding(&self, finding: &crate::blockchain::Finding) -> Result<i64, InferenceError> {
+    pub async fn store_finding(
+        &self,
+        finding: &crate::blockchain::Finding,
+    ) -> Result<i64, InferenceError> {
         let severity = match finding.score {
             s if s >= 0.9 => "critical",
             s if s >= 0.7 => "high",
@@ -95,13 +100,23 @@ impl Database {
             total_findings: row.try_get::<i64, _>("total_findings").unwrap_or(0) as u64,
             high_risk_findings: row.try_get::<i64, _>("high_risk_findings").unwrap_or(0) as u64,
             average_score: row.try_get::<f64, _>("average_score").unwrap_or(0.0),
-            first_seen: row.try_get::<Option<chrono::DateTime<chrono::Utc>>, _>("first_seen").ok().flatten(),
-            last_seen: row.try_get::<Option<chrono::DateTime<chrono::Utc>>, _>("last_seen").ok().flatten(),
+            first_seen: row
+                .try_get::<Option<chrono::DateTime<chrono::Utc>>, _>("first_seen")
+                .ok()
+                .flatten(),
+            last_seen: row
+                .try_get::<Option<chrono::DateTime<chrono::Utc>>, _>("last_seen")
+                .ok()
+                .flatten(),
         })
     }
 
     #[allow(dead_code)]
-    pub async fn get_velocity_stats(&self, address: &str, window_hours: i64) -> Result<VelocityStats, InferenceError> {
+    pub async fn get_velocity_stats(
+        &self,
+        address: &str,
+        window_hours: i64,
+    ) -> Result<VelocityStats, InferenceError> {
         let row = sqlx::query(
             r#"
             SELECT

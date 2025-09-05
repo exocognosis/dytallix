@@ -47,5 +47,5 @@ pub struct RpcTransaction {
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 pub struct RpcLatestResponse {
-    pub height: u64,
+    pub height: u64, // used externally; keep field
 }

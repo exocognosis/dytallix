@@ -1,4 +1,4 @@
-use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+use crate::crypto::{canonical_json, sha3_256, ActivePQC};
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use serde::{Deserialize, Serialize};
@@ -217,6 +217,7 @@ impl SignedTx {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::crypto::PQC; // only needed in tests for keypair trait bound
 
     #[test]
     fn test_msg_validation() {

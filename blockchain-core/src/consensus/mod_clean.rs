@@ -1349,7 +1349,6 @@ impl ConsensusEngine {
                     response_id,
                     ..
                 }) => {
-                    let processing_decision_clone = processing_decision.clone();
                     let tx_hash = self.calculate_transaction_hash(tx);
 
                     // Determine risk priority based on risk score and fraud probability
@@ -1406,7 +1405,7 @@ impl ConsensusEngine {
                             // Create AI result for queue
                             let verified_result = ai_integration::AIVerificationResult::Verified {
                                 risk_score,
-                                processing_decision: processing_decision_clone.clone(),
+                                processing_decision: processing_decision.clone(),
                                 fraud_probability,
                                 confidence,
                                 oracle_id: oracle_id.clone(),
@@ -1420,12 +1419,14 @@ impl ConsensusEngine {
                                     tx.clone(),
                                     tx_hash.clone(),
                                     verified_result,
-                                    processing_decision_clone,
+                                    processing_decision.clone(),
                                 )
                                 .await
                             {
                                 Ok(queue_id) => {
-                                    info!("Transaction {tx_hash} queued for manual review (queue ID: {queue_id}): {reason}");
+                                    info!(
+                                        "Transaction {tx_hash} queued for manual review (queue ID: {queue_id}): {reason}"
+                                    );
                                     // Return false for now - transaction will be processed after manual approval
                                     Ok(false)
                                 }
@@ -1439,9 +1440,7 @@ impl ConsensusEngine {
                         ai_integration::RiskProcessingDecision::AutoReject { reason } => {
                             warn!(
                                 "Transaction auto-rejected by AI: {} (risk: {:.3}, fraud: {:.3})",
-                                reason,
-                                risk_score.unwrap_or(0.0),
-                                fraud_probability.unwrap_or(0.0)
+                                reason, risk_score.unwrap_or(0.0), fraud_probability.unwrap_or(0.0)
                             );
                             Ok(false)
                         }
@@ -1875,7 +1874,7 @@ impl ConsensusEngine {
                         Ok(true)
                     }
                     ai_integration::RiskProcessingDecision::RequireReview { ref reason } => {
-                        // Add to high-risk queue
+                        // Queue the transaction for manual review using the high-risk queue
                         match self
                             .high_risk_queue
                             .enqueue_transaction(
@@ -1890,11 +1889,13 @@ impl ConsensusEngine {
                                 info!(
                                     "Transaction {tx_hash} queued for manual review (queue ID: {queue_id}): {reason}"
                                 );
-                                Ok(false) // Transaction will be processed after manual approval
+                                // Transaction will be processed after manual approval
+                                Ok(false)
                             }
                             Err(e) => {
                                 warn!("Failed to queue transaction for review: {e}");
-                                Ok(false) // Reject if queueing fails
+                                // Reject if queueing fails
+                                Ok(false)
                             }
                         }
                     }
@@ -1997,12 +1998,12 @@ impl ConsensusEngine {
             .audit_trail
             .record_ai_decision(crate::consensus::audit_trail::RecordAiDecisionArgs {
                 transaction: tx,
-                transaction_hash: tx_hash.to_string(),
+                transaction_hash: self.calculate_transaction_hash(tx),
                 ai_result: ai_result.clone(),
-                risk_decision: decision,
+                risk_decision: decision.clone(),
                 risk_priority: priority,
-                oracle_id,
-                request_id: response_id,
+                oracle_id: oracle_id.clone(),
+                request_id: response_id.clone(),
                 block_number: None,
             })
             .await;

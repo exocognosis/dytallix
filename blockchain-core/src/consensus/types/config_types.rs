@@ -217,7 +217,9 @@ pub struct CircuitBreakerContext {
 }
 
 impl Default for CircuitBreakerContext {
-    fn default() -> Self { Self::new(0.5, 60) }
+    fn default() -> Self {
+        Self::new(0.5, 60)
+    }
 }
 
 impl CircuitBreakerContext {
@@ -284,11 +286,31 @@ impl CircuitBreakerContext {
         self.state = new_state;
     }
 
-    pub fn is_closed(&self) -> bool { self.state == CircuitBreakerState::Closed }
-    pub fn is_open(&self) -> bool { self.state == CircuitBreakerState::Open }
-    pub fn should_allow_request(&self) -> bool { self.is_closed() }
-    pub fn record_failure(&mut self) { self.stats.record_failure(); if self.should_open() { self.update_state(CircuitBreakerState::Open); } }
-    pub fn record_success(&mut self, _latency_ms: u64) { self.stats.record_success(); if self.state == CircuitBreakerState::HalfOpen && self.should_close() { self.update_state(CircuitBreakerState::Closed); } }
-    pub fn failure_rate(&self) -> f64 { self.stats.failure_rate }
-    pub fn stats(&self) -> &CircuitBreakerStats { &self.stats }
+    pub fn is_closed(&self) -> bool {
+        self.state == CircuitBreakerState::Closed
+    }
+    pub fn is_open(&self) -> bool {
+        self.state == CircuitBreakerState::Open
+    }
+    pub fn should_allow_request(&self) -> bool {
+        self.is_closed()
+    }
+    pub fn record_failure(&mut self) {
+        self.stats.record_failure();
+        if self.should_open() {
+            self.update_state(CircuitBreakerState::Open);
+        }
+    }
+    pub fn record_success(&mut self, _latency_ms: u64) {
+        self.stats.record_success();
+        if self.state == CircuitBreakerState::HalfOpen && self.should_close() {
+            self.update_state(CircuitBreakerState::Closed);
+        }
+    }
+    pub fn failure_rate(&self) -> f64 {
+        self.stats.failure_rate
+    }
+    pub fn stats(&self) -> &CircuitBreakerStats {
+        &self.stats
+    }
 }

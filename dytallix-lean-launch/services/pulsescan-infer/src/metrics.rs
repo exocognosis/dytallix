@@ -1,6 +1,6 @@
-use prometheus::{Encoder, TextEncoder, Counter, Histogram, HistogramOpts, Gauge, Registry};
-use warp::{Filter};
 use crate::error::InferenceError;
+use prometheus::{Counter, Encoder, Gauge, Histogram, HistogramOpts, Registry, TextEncoder};
+use warp::Filter;
 
 #[derive(Clone)]
 pub struct MetricsServer {
@@ -16,32 +16,26 @@ impl MetricsServer {
     }
 
     pub async fn start(self) -> Result<(), InferenceError> {
-        let metrics_route = warp::path("metrics")
-            .and(warp::get())
-            .map(move || {
-                let encoder = TextEncoder::new();
-                let metric_families = self.registry.gather();
-                let mut buffer = Vec::new();
-                encoder.encode(&metric_families, &mut buffer).unwrap();
-                String::from_utf8(buffer).unwrap()
-            });
+        let metrics_route = warp::path("metrics").and(warp::get()).map(move || {
+            let encoder = TextEncoder::new();
+            let metric_families = self.registry.gather();
+            let mut buffer = Vec::new();
+            encoder.encode(&metric_families, &mut buffer).unwrap();
+            String::from_utf8(buffer).unwrap()
+        });
 
-        let health_route = warp::path("health")
-            .and(warp::get())
-            .map(|| {
-                warp::reply::json(&serde_json::json!({
-                    "status": "healthy",
-                    "timestamp": chrono::Utc::now()
-                }))
-            });
+        let health_route = warp::path("health").and(warp::get()).map(|| {
+            warp::reply::json(&serde_json::json!({
+                "status": "healthy",
+                "timestamp": chrono::Utc::now()
+            }))
+        });
 
         let routes = metrics_route.or(health_route);
 
         tracing::info!("Starting metrics server on port {}", self.port);
 
-        warp::serve(routes)
-            .run(([0, 0, 0, 0], self.port))
-            .await;
+        warp::serve(routes).run(([0, 0, 0, 0], self.port)).await;
 
         Ok(())
     }
@@ -62,7 +56,7 @@ impl Metrics {
     pub fn new(registry: &Registry) -> Result<Self, InferenceError> {
         let findings_total = Counter::new(
             "pulsescan_findings_total",
-            "Total number of findings detected"
+            "Total number of findings detected",
         )?;
         registry.register(Box::new(findings_total.clone()))?;
 
@@ -72,10 +66,7 @@ impl Metrics {
         ))?;
         registry.register(Box::new(inference_duration.clone()))?;
 
-        let model_accuracy = Gauge::new(
-            "pulsescan_model_accuracy",
-            "Current model accuracy"
-        )?;
+        let model_accuracy = Gauge::new("pulsescan_model_accuracy", "Current model accuracy")?;
         registry.register(Box::new(model_accuracy.clone()))?;
 
         let feature_extraction_duration = Histogram::with_opts(HistogramOpts::new(
@@ -86,13 +77,13 @@ impl Metrics {
 
         let blockchain_submissions = Counter::new(
             "pulsescan_blockchain_submissions_total",
-            "Total blockchain submissions"
+            "Total blockchain submissions",
         )?;
         registry.register(Box::new(blockchain_submissions.clone()))?;
 
         let database_operations = Counter::new(
             "pulsescan_database_operations_total",
-            "Total database operations"
+            "Total database operations",
         )?;
         registry.register(Box::new(database_operations.clone()))?;
 

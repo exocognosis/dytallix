@@ -1,7 +1,7 @@
+use crate::config::Config;
+use crate::error::InferenceError;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
-use crate::error::InferenceError;
-use crate::config::Config;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Transaction {
