@@ -1,0 +1,12 @@
+{
+  "proposalId": "1213",
+  "submitTx": "SIMULATED_SUBMIT_1213",
+  "votes": [{"tx":"SIMULATED_VOTE_1213","option":"yes"}],
+  "finalStatus": "Passed",
+  "enactedAt": "20250905T144333Z",
+  "ts": "20250905T144333Z",
+  "mode": "simulated",
+  "simulateReason": "",
+  "pollIntervalSec": 4,
+  "pollMax": 40
+}
