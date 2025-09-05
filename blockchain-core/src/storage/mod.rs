@@ -43,7 +43,7 @@ pub struct ContractMetadata {
 }
 
 impl ContractState {
-    pub fn new(
+    pub fn _new(
         code: Vec<u8>,
         deployer: Address,
         deployment_block: BlockNumber,
@@ -61,16 +61,16 @@ impl ContractState {
             },
         }
     }
-    pub fn set_storage(&mut self, key: Vec<u8>, value: Vec<u8>) {
+    pub fn _set_storage(&mut self, key: Vec<u8>, value: Vec<u8>) {
         self.storage.insert(key, value);
     }
-    pub fn get_storage(&self, key: &[u8]) -> Option<&Vec<u8>> {
+    pub fn _get_storage(&self, key: &[u8]) -> Option<&Vec<u8>> {
         self.storage.get(key)
     }
-    pub fn increment_calls(&mut self) {
+    pub fn _increment_calls(&mut self) {
         self.metadata.call_count += 1;
     }
-    pub fn update_timestamp(&mut self, timestamp: Timestamp) {
+    pub fn _update_timestamp(&mut self, timestamp: Timestamp) {
         self.metadata.last_modified = timestamp;
     }
 }
@@ -86,6 +86,8 @@ pub struct StorageManager {
 const META_CHAIN_ID: &str = "meta:chain_id";
 const META_HEIGHT: &str = "meta:height";
 const META_BEST_HASH: &str = "meta:best_hash";
+
+pub type _KVSnapshotResult = Result<Vec<(Vec<u8>, Vec<u8>)>, Box<dyn std::error::Error>>;
 
 impl StorageManager {
     /// Open or create storage at data_dir. If empty, will initialize genesis (balances)
@@ -143,8 +145,10 @@ impl StorageManager {
                                 entry.get("amount").and_then(|v| v.as_u64()),
                             ) {
                                 if addr.starts_with("dyt1") {
-                                    let mut acct = AccountState::default();
-                                    acct.balance = amount;
+                                    let acct = AccountState {
+                                        balance: amount,
+                                        ..Default::default()
+                                    };
                                     self.store_account_state(addr, &acct)?;
                                 }
                             }
@@ -159,7 +163,7 @@ impl StorageManager {
         Ok(())
     }
 
-    fn set_height(&self, h: u64) -> Result<(), Box<dyn std::error::Error>> {
+    fn _set_height(&self, h: u64) -> Result<(), Box<dyn std::error::Error>> {
         self.db.put(META_HEIGHT, h.to_be_bytes())?;
         Ok(())
     }
@@ -174,11 +178,11 @@ impl StorageManager {
             })
             .unwrap_or(0))
     }
-    fn set_best_hash(&self, hash: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn _set_best_hash(&self, hash: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.db.put(META_BEST_HASH, hash.as_bytes())?;
         Ok(())
     }
-    pub fn get_best_hash(&self) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn _get_best_hash(&self) -> Result<String, Box<dyn std::error::Error>> {
         Ok(self
             .db
             .get(META_BEST_HASH)?
@@ -201,7 +205,7 @@ impl StorageManager {
     fn rcpt_key(hash: &str) -> String {
         format!("rcpt:{hash}")
     }
-    fn contract_key(address: &str) -> String {
+    fn _contract_key(address: &str) -> String {
         format!("contract:{address}")
     }
     fn receipt_key(hash: &str) -> String {
@@ -236,7 +240,7 @@ impl StorageManager {
         Ok(self.get_account_state(address)?.balance)
     }
     /// External API: Set (overwrite) address balance (used only in tests / genesis)
-    pub async fn set_address_balance(
+    pub async fn _set_address_balance(
         &self,
         address: &str,
         balance: u64,
@@ -254,7 +258,7 @@ impl StorageManager {
     }
 
     /// Apply a transfer inclusion (validates nonce & balances) and mutate state
-    pub fn apply_transfer(&self, tx: &crate::types::TransferTransaction) -> Result<(), String> {
+    pub fn _apply_transfer(&self, tx: &crate::types::TransferTransaction) -> Result<(), String> {
         let mut sender = self
             .get_account_state(&tx.from)
             .map_err(|e| e.to_string())?;
@@ -277,7 +281,7 @@ impl StorageManager {
     }
 
     /// Store block + its transactions + receipts, update metadata
-    pub fn store_block(&self, block: &Block) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn _store_block(&self, block: &Block) -> Result<(), Box<dyn std::error::Error>> {
         let hash = block.hash();
         let height = block.header.number;
         // Store each transaction & receipt placeholder (success assumed if already applied)
@@ -317,8 +321,8 @@ impl StorageManager {
         self.db
             .put(Self::block_hash_key(&hash), bincode::serialize(block)?)?;
         self.db.put(Self::block_num_key(height), hash.as_bytes())?;
-        self.set_height(height)?;
-        self.set_best_hash(&hash)?;
+        self._set_height(height)?;
+        self._set_best_hash(&hash)?;
         Ok(())
     }
 
@@ -390,7 +394,7 @@ impl StorageManager {
     }
 
     /// Store a transaction receipt under receipt:{hash}
-    pub async fn store_receipt(
+    pub async fn _store_receipt(
         &self,
         receipt: &TxReceipt,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -414,27 +418,27 @@ impl StorageManager {
     }
 
     /// Store a full contract state (code + storage + metadata)
-    pub async fn store_contract(
+    pub async fn _store_contract(
         &self,
         address: &str,
         state: &ContractState,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let enc = bincode::serialize(state)?;
-        self.db.put(Self::contract_key(address), enc)?;
+        self.db.put(Self::_contract_key(address), enc)?;
         Ok(())
     }
 
     /// Check whether a contract exists
-    pub async fn contract_exists(&self, address: &str) -> Result<bool, Box<dyn std::error::Error>> {
-        Ok(self.db.get(Self::contract_key(address))?.is_some())
+    pub async fn _contract_exists(&self, address: &str) -> Result<bool, Box<dyn std::error::Error>> {
+        Ok(self.db.get(Self::_contract_key(address))?.is_some())
     }
 
     /// Retrieve a contract state
-    pub async fn get_contract(
+    pub async fn _get_contract(
         &self,
         address: &str,
     ) -> Result<Option<ContractState>, Box<dyn std::error::Error>> {
-        if let Some(raw) = self.db.get(Self::contract_key(address))? {
+        if let Some(raw) = self.db.get(Self::_contract_key(address))? {
             Ok(Some(bincode::deserialize(&raw)?))
         } else {
             Ok(None)
@@ -442,24 +446,24 @@ impl StorageManager {
     }
 
     /// Generic put helper (used by runtime persistence)
-    pub async fn put(&self, key: &[u8], value: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn _put(&self, key: &[u8], value: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         self.db.put(key, value)?;
         Ok(())
     }
     /// Generic get helper (used by runtime persistence)
-    pub async fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
+    pub async fn _get(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
         Ok(self.db.get(key)?)
     }
 
     /// Legacy compatibility (was in-memory). Now uses RocksDB key prefixes.
-    pub async fn clear(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn _clear(&self) -> Result<(), Box<dyn std::error::Error>> {
         // Not efficient; for tests only.
         self.db.flush()?; // leave data (full deletion would require destroying DB)
         Ok(())
     }
 
     /// Destroy RocksDB at path for tests/dev only (closes and deletes underlying directory)
-    pub fn destroy_for_tests(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn _destroy_for_tests(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut opts = Options::default();
         opts.create_if_missing(true);
         if Path::new(path).exists() {
@@ -471,51 +475,49 @@ impl StorageManager {
 
     /// Snapshot all key/value pairs relevant for state root commitment.
     /// Currently includes all RocksDB entries except meta:* keys.
-    pub fn snapshot_kv(&self) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Box<dyn std::error::Error>> {
+    pub fn _snapshot_kv(&self) -> _KVSnapshotResult {
         use rocksdb::IteratorMode;
         let mut out = Vec::new();
         let iter = self.db.iterator(IteratorMode::Start);
-        for item in iter {
-            if let Ok((k, v)) = item {
-                // Exclude meta & ephemeral prefixes from state commitment
-                if k.starts_with(b"meta:") {
-                    continue;
-                }
-                if k.starts_with(b"rcpt:") {
-                    continue;
-                } // legacy receipts (non-consensus)
-                if k.starts_with(b"receipt:") {
-                    continue;
-                } // volatile per-tx receipts
-                if k.starts_with(b"tx:") {
-                    continue;
-                } // mempool / tx objects
-                out.push((k.to_vec(), v.to_vec()));
+        for (k, v) in iter.flatten() {
+            // Exclude meta & ephemeral prefixes from state commitment
+            if k.starts_with(b"meta:") {
+                continue;
             }
+            if k.starts_with(b"rcpt:") {
+                continue;
+            } // legacy receipts (non-consensus)
+            if k.starts_with(b"receipt:") {
+                continue;
+            } // volatile per-tx receipts
+            if k.starts_with(b"tx:") {
+                continue;
+            } // mempool / tx objects
+            out.push((k.to_vec(), v.to_vec()));
         }
         // Canonical sort lexicographically by key bytes
         out.sort_by(|a, b| a.0.cmp(&b.0));
         Ok(out)
     }
-    fn receipt_height_index_key(height: u64, index: u32) -> String {
+    fn _receipt_height_index_key(height: u64, index: u32) -> String {
         format!("rcpi:{height:016x}:{index}")
     }
-    fn receipt_tx_lookup_key(tx_hash: &str) -> String {
+    fn _receipt_tx_lookup_key(tx_hash: &str) -> String {
         format!("rcpx:{tx_hash}")
     }
 
     /// Store receipts in new indexed form (height/index and tx_hash -> (height,index))
-    pub fn store_receipts_indexed(
+    pub fn _store_receipts_indexed(
         &self,
         height: u64,
         receipts: &[TxReceipt],
     ) -> Result<(), Box<dyn std::error::Error>> {
         for (i, r) in receipts.iter().enumerate() {
-            let key_hi = Self::receipt_height_index_key(height, i as u32);
+            let key_hi = Self::_receipt_height_index_key(height, i as u32);
             if self.db.get(&key_hi)?.is_none() {
                 self.db.put(key_hi.as_bytes(), bincode::serialize(r)?)?;
             }
-            let key_tx = Self::receipt_tx_lookup_key(&r.tx_hash);
+            let key_tx = Self::_receipt_tx_lookup_key(&r.tx_hash);
             if self.db.get(&key_tx)?.is_none() {
                 self.db
                     .put(key_tx.as_bytes(), bincode::serialize(&(height, i as u32))?)?;
@@ -530,13 +532,13 @@ impl StorageManager {
     }
 
     /// Lookup receipt via index map then load
-    pub fn get_receipt_via_index(
+    pub fn _get_receipt_via_index(
         &self,
         tx_hash: &str,
     ) -> Result<Option<TxReceipt>, Box<dyn std::error::Error>> {
-        if let Some(raw_idx) = self.db.get(Self::receipt_tx_lookup_key(tx_hash))? {
+        if let Some(raw_idx) = self.db.get(Self::_receipt_tx_lookup_key(tx_hash))? {
             let (h, idx): (u64, u32) = bincode::deserialize(&raw_idx)?;
-            let key_hi = Self::receipt_height_index_key(h, idx);
+            let key_hi = Self::_receipt_height_index_key(h, idx);
             if let Some(raw_r) = self.db.get(key_hi)? {
                 return Ok(Some(bincode::deserialize(&raw_r)?));
             }
@@ -554,7 +556,7 @@ impl StorageManager {
 
 // --- Helper: build a simple block from transactions (used by background producer) ---
 // Refactored: caller must supply precomputed state_root (from injected snapshot) and timestamp.
-pub fn build_block_with_state(
+pub fn _build_block_with_state(
     parent_hash: String,
     number: u64,
     txs: Vec<Transaction>,
@@ -603,6 +605,9 @@ mod tests {
             timestamp: 123,
             index: 0,
             error: None,
+            contract_address: None,
+            logs: vec![],
+            return_data: None,
         };
         mgr.store_receipt(&rcpt).await.unwrap();
         let fetched = mgr.get_receipt(&rcpt.tx_hash).await.unwrap().unwrap();

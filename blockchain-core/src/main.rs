@@ -1,8 +1,8 @@
+#![allow(dead_code)]
 use log::{error, info, warn};
 use std::path::Path;
 use std::process;
 use std::sync::Arc;
-use tokio;
 
 mod api;
 mod crypto;
@@ -23,7 +23,7 @@ use crate::types::{Block, NodeStatus, Transaction, TransactionPool};
 
 pub struct DummyNode {
     // runtime: Arc<Result<DytallixRuntime, Box<dyn std::error::Error>>>,  // Temporarily disabled
-    pqc_manager: Arc<PQCManager>,
+    _pqc_manager: Arc<PQCManager>,
     transaction_pool: Arc<TransactionPool>,
 }
 
@@ -34,7 +34,7 @@ impl DummyNode {
 
         Ok(Self {
             // runtime,  // Temporarily disabled
-            pqc_manager,
+            _pqc_manager: pqc_manager,
             transaction_pool,
         })
     }
@@ -56,9 +56,9 @@ impl DummyNode {
             .transaction_pool
             .add_transaction(tx)
             .await
-            .map_err(|e| format!("Failed to add transaction: {}", e))?;
+            .map_err(|e| format!("Failed to add transaction: {e}"))?;
 
-        info!("Transaction {} submitted successfully", tx_hash);
+        info!("Transaction {tx_hash} submitted successfully");
         Ok(())
     }
 
@@ -97,7 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arc::new(n)
         }
         Err(e) => {
-            error!("Failed to initialize DummyNode: {}", e);
+            error!("Failed to initialize DummyNode: {e}");
             process::exit(1);
         }
     };
@@ -107,7 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start node
     info!("Starting node services...");
     if let Err(e) = node_clone.start().await {
-        error!("Failed to start node: {}", e);
+        error!("Failed to start node: {e}");
         process::exit(1);
     }
     info!("Node services started successfully");
@@ -118,7 +118,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting API server on port 3030...");
     tokio::spawn(async move {
         if let Err(e) = api::start_api_server().await {
-            error!("API server failed to start: {}", e);
+            error!("API server failed to start: {e}");
             process::exit(1);
         }
     });

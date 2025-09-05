@@ -772,7 +772,7 @@ mod tests {
             ai_audit_score: Some(0.8),
         };
 
-        let findings = tester.test_deployment(&deployment).await;
+        let _findings = tester.test_deployment(&deployment).await;
         // Should have generated some test cases
         assert_eq!(tester.get_test_count(), 1);
     }

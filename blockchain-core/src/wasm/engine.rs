@@ -3,6 +3,7 @@ use anyhow::{anyhow, Result};
 use wasmtime::{Caller, Config, Engine, Instance, Linker, Memory, Module, Store};
 
 // Manual Debug impl because wasmtime::Engine is not Debug
+#[allow(dead_code)]
 pub struct WasmEngine {
     engine: Engine,
     host_env: HostEnv,
@@ -48,9 +49,11 @@ impl WasmEngine {
         panic!("Use new_with_env(host_env)");
     }
 
+    #[allow(dead_code)]
     pub fn set_context(&self, ctx: HostExecutionContext) {
         self.host_env.set_context(ctx);
     }
+    #[allow(dead_code)]
     pub fn env(&self) -> HostEnv {
         self.host_env.clone()
     }
@@ -218,7 +221,7 @@ impl WasmEngine {
                   -> i32 {
                 let gas_cost = env_verify.gas_table().crypto_verify;
                 let _ = Self::charge_fuel(&mut caller, gas_cost);
-                match (|| -> Result<i32> {
+                (|| -> Result<i32> {
                     let sig = Self::read_mem(&mut caller, sig_ptr, sig_len)?;
                     let msg = Self::read_mem(&mut caller, msg_ptr, msg_len)?;
                     let pk = Self::read_mem(&mut caller, pub_ptr, pub_len)?;
@@ -229,10 +232,8 @@ impl WasmEngine {
                     } else {
                         0
                     })
-                })() {
-                    Ok(r) => r,
-                    Err(_) => 0,
-                }
+                })()
+                .unwrap_or_default()
             },
         )?;
 

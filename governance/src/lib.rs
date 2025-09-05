@@ -193,6 +193,7 @@ impl FileBasedGovernance {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn update_proposal_status(&mut self, proposal_id: u64) -> Result<(), GovernanceError> {
         // Check if voting period has expired
         let now = Utc::now();

@@ -18,6 +18,7 @@ pub struct RelayerConfig {
 
 /// IBC relayer for packet forwarding between chains
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CosmosRelayer {
     config: RelayerConfig,
     pending_packets: Vec<PendingPacket>,

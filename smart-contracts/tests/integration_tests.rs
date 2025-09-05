@@ -6,7 +6,6 @@ including contract deployment, execution, state management, and AI integration.
 */
 
 use dytallix_contracts::runtime::*;
-use dytallix_contracts::types::*;
 use std::sync::Arc;
 
 // Mock AI Analyzer for testing
@@ -68,7 +67,7 @@ async fn test_complete_contract_lifecycle() {
 
     let deploy_result = runtime.deploy_contract(deployment.clone()).await;
     if let Err(ref e) = deploy_result {
-        println!("Deployment failed: {:?}", e);
+        println!("Deployment failed: {e:?}");
     }
     assert!(deploy_result.is_ok());
     let contract_address = deploy_result.unwrap();
@@ -235,7 +234,7 @@ async fn test_contract_storage_operations() {
 
     // Test storage operations (this tests the internal storage, not WASM host functions)
     let key = b"test_key".to_vec();
-    let value = b"test_value".to_vec();
+    let _value = b"test_value".to_vec();
 
     // Initially, key should not exist
     let initial_value = runtime.get_contract_state(&contract_address, &key);
@@ -289,11 +288,11 @@ async fn test_concurrent_contract_operations() {
         let runtime_clone = Arc::clone(&runtime);
         let handle = task::spawn(async move {
             let deployment = ContractDeployment {
-                address: format!("dyt1concurrent_test_{}", i),
+                address: format!("dyt1concurrent_test_{i}"),
                 code: vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00],
                 initial_state: Vec::new(),
                 gas_limit: 100_000,
-                deployer: format!("dyt1deployer_{}", i),
+                deployer: format!("dyt1deployer_{i}"),
                 timestamp: 1234567890 + i as u64,
                 ai_audit_score: Some(0.9),
             };

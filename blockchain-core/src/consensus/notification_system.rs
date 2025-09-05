@@ -524,6 +524,8 @@ mod tests {
 
         let notification_type = NotificationType::NewHighRiskTransaction {
             queue_id: Uuid::new_v4(),
+            transaction_hash: "test_hash".to_string(),
+            risk_score: 0.9,
             priority: ReviewPriority::High,
         };
 
@@ -543,6 +545,7 @@ mod tests {
         let notification_type = NotificationType::QueueCapacityWarning {
             current_size: 950,
             max_size: 1000,
+            warning_level: 3,
         };
 
         let notification_id = system.send_notification(notification_type).await.unwrap();
@@ -570,6 +573,8 @@ mod tests {
         for i in 0..3 {
             let notification_type = NotificationType::NewHighRiskTransaction {
                 queue_id: Uuid::new_v4(),
+                transaction_hash: format!("test_hash_{}", i),
+                risk_score: 0.9,
                 priority: if i == 0 {
                     ReviewPriority::Critical
                 } else {

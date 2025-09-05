@@ -10,14 +10,14 @@ use super::{Asset, PolkadotTxHash};
 /// XCM instruction types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum XcmInstruction {
-    WithdrawAsset(MultiAsset),
+    WithdrawAsset(Box<MultiAsset>),
     DepositAsset {
-        assets: MultiAsset,
+        assets: Box<MultiAsset>,
         max_assets: u32,
         beneficiary: MultiLocation,
     },
-    ReserveAssetDeposited(MultiAsset),
-    ReceiveTeleportedAsset(MultiAsset),
+    ReserveAssetDeposited(Box<MultiAsset>),
+    ReceiveTeleportedAsset(Box<MultiAsset>),
     Transact {
         origin_type: OriginKind,
         require_weight_at_most: u64,
@@ -46,7 +46,7 @@ pub struct MultiAsset {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AssetId {
-    Concrete(MultiLocation),
+    Concrete(Box<MultiLocation>),
     Abstract(Vec<u8>),
 }
 
@@ -112,6 +112,7 @@ pub enum OriginKind {
 
 /// XCM message handler for cross-chain operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct XcmHandler {
     current_para_id: Option<u32>,
 }
@@ -140,20 +141,20 @@ impl XcmHandler {
 
         // Create asset representation
         let multi_asset = MultiAsset {
-            id: AssetId::Concrete(MultiLocation {
+            id: AssetId::Concrete(Box::new(MultiLocation {
                 parents: 0,
                 interior: InteriorMultiLocation::X1(Junction::GeneralKey(
                     asset.id.as_bytes().to_vec(),
                 )),
-            }),
+            })),
             fun: Fungibility::Fungible(asset.amount as u128),
         };
 
         // Create XCM instructions
         let instructions = vec![
-            XcmInstruction::WithdrawAsset(multi_asset.clone()),
+            XcmInstruction::WithdrawAsset(Box::new(multi_asset.clone())),
             XcmInstruction::DepositAsset {
-                assets: multi_asset,
+                assets: Box::new(multi_asset),
                 max_assets: 1,
                 beneficiary,
             },
@@ -180,17 +181,17 @@ impl XcmHandler {
         let beneficiary = self.parse_address(dest_address, dest_para_id)?;
 
         let multi_asset = MultiAsset {
-            id: AssetId::Concrete(MultiLocation {
+            id: AssetId::Concrete(Box::new(MultiLocation {
                 parents: 1, // Parent chain
                 interior: InteriorMultiLocation::Here,
-            }),
+            })),
             fun: Fungibility::Fungible(asset.amount as u128),
         };
 
         let instructions = vec![
-            XcmInstruction::ReceiveTeleportedAsset(multi_asset.clone()),
+            XcmInstruction::ReceiveTeleportedAsset(Box::new(multi_asset.clone())),
             XcmInstruction::DepositAsset {
-                assets: multi_asset,
+                assets: Box::new(multi_asset),
                 max_assets: 1,
                 beneficiary,
             },

@@ -163,17 +163,18 @@ pub struct PolicyManager {
     policy: Arc<SignaturePolicy>,
 }
 
+impl Default for PolicyManager {
+    fn default() -> Self {
+        Self::new(SignaturePolicy::default())
+    }
+}
+
 impl PolicyManager {
     /// Create a new policy manager with given policy
     pub fn new(policy: SignaturePolicy) -> Self {
         Self {
             policy: Arc::new(policy),
         }
-    }
-
-    /// Create with default policy
-    pub fn default() -> Self {
-        Self::new(SignaturePolicy::default())
     }
 
     /// Get the current policy

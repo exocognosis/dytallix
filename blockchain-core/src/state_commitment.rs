@@ -52,7 +52,7 @@ mod tests {
         let r = commit::<&[u8], &[u8]>(&[]);
         assert_eq!(
             hex::encode(r),
-            hex::encode(blake3::hash(b"DYTALLIX/STATE/EMPTY"))
+            hex::encode(blake3::hash(b"DYTALLIX/STATE/EMPTY").as_bytes())
         );
     }
     #[test]

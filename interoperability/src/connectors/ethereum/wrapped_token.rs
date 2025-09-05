@@ -116,6 +116,7 @@ pub enum WrappedTokenParam {
 
 /// Registry for managing wrapped token contracts
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct WrappedTokenRegistry {
     contracts: HashMap<String, WrappedTokenContract>, // asset_id -> contract
     deployment_config: WrappedTokenDeploymentConfig,

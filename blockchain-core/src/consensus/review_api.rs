@@ -443,13 +443,20 @@ mod tests {
             fee: 10,
             nonce: 1,
             timestamp: Utc::now().timestamp() as u64,
-            signature: vec![0x01, 0x02, 0x03],
+            signature: crate::types::PQCTransactionSignature {
+                signature: dytallix_pqc::Signature {
+                    data: vec![0x01, 0x02, 0x03],
+                    algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                },
+                public_key: vec![0x04, 0x05, 0x06],
+            },
+            ai_risk_score: None,
         })
     }
 
     fn create_test_ai_result() -> AIVerificationResult {
         AIVerificationResult::Verified {
-            risk_score: 0.85,
+            risk_score: Some(0.85),
             confidence: Some(0.95),
             oracle_id: "test-oracle".to_string(),
             response_id: "test-response".to_string(),
@@ -474,7 +481,12 @@ mod tests {
         };
 
         queue
-            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .enqueue_transaction(
+                transaction,
+                hex::encode(tx_hash),
+                ai_result,
+                risk_decision,
+            )
             .await
             .unwrap();
 
@@ -499,7 +511,12 @@ mod tests {
         };
 
         let queue_id = queue
-            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .enqueue_transaction(
+                transaction,
+                hex::encode(tx_hash),
+                ai_result,
+                risk_decision,
+            )
             .await
             .unwrap();
 
@@ -540,7 +557,12 @@ mod tests {
         };
 
         queue
-            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .enqueue_transaction(
+                transaction,
+                hex::encode(tx_hash),
+                ai_result,
+                risk_decision,
+            )
             .await
             .unwrap();
 

@@ -877,7 +877,7 @@ pub fn execute_emergency_recovery(
 mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, from_binary};
+    use cosmwasm_std::{coins, from_json};
 
     #[test]
     fn proper_initialization() {
@@ -914,7 +914,7 @@ mod tests {
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         let res = query(deps.as_ref(), mock_env(), QueryMsg::GetState {}).unwrap();
-        let state: State = from_binary(&res).unwrap();
+        let state: State = from_json(&res).unwrap();
         assert_eq!(state.admin, "admin");
     }
 }

@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex};
 use wasmtime::Linker; // Removed unused imports: Caller, Engine
 
 #[derive(Clone, Debug, Default)]
+#[allow(dead_code)]
 pub struct HostExecutionContext {
     pub block_height: u64,
     pub block_time: i64,
@@ -38,6 +39,7 @@ impl std::fmt::Debug for HostEnv {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub struct GasTable {
     pub storage_get: u64,
     pub storage_set: u64,
@@ -84,12 +86,14 @@ impl HostEnv {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_context(&self, ctx: HostExecutionContext) {
         if let Ok(mut guard) = self.inner.ctx.lock() {
             *guard = ctx;
         }
     }
 
+    #[allow(dead_code)]
     pub fn context(&self) -> HostExecutionContext {
         self.inner
             .ctx
@@ -98,6 +102,7 @@ impl HostEnv {
             .unwrap_or_else(|_| HostExecutionContext::default())
     }
 
+    #[allow(dead_code)]
     pub fn gas_table(&self) -> GasTable {
         self.inner.gas_table
     }
@@ -115,6 +120,7 @@ impl HostEnv {
     pub fn push_log(&self, msg: String) {
         self.inner.logs.lock().unwrap().push(msg);
     }
+    #[allow(dead_code)]
     pub fn take_logs(&self) -> Vec<String> {
         self.inner.logs.lock().unwrap().drain(..).collect()
     }

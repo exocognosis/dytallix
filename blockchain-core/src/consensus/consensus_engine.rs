@@ -500,7 +500,7 @@ impl ConsensusEngine {
         let contract_address = format!("contract_{}", deploy_tx.hash);
 
         // Check if contract already exists
-        if storage.contract_exists(&contract_address).await? {
+        if storage._contract_exists(&contract_address).await? {
             return Ok(ExecutionResult::failure(
                 "Contract already exists".to_string(),
             ));
@@ -530,7 +530,7 @@ impl ConsensusEngine {
         };
 
         // Create contract state for blockchain storage
-        let contract_state = ContractState::new(
+        let contract_state = ContractState::_new(
             deploy_tx.contract_code.clone(),
             deploy_tx.from.clone(),
             0, // TODO: Get actual block number
@@ -539,7 +539,7 @@ impl ConsensusEngine {
 
         // Store contract state in blockchain storage
         storage
-            .store_contract(&contract_address, &contract_state)
+            ._store_contract(&contract_address, &contract_state)
             .await?;
 
         info!("Contract deployed successfully at {deployed_address}");
@@ -564,7 +564,7 @@ impl ConsensusEngine {
         );
 
         // Check if contract exists
-        if !storage.contract_exists(&call_tx.to).await? {
+        if !storage._contract_exists(&call_tx.to).await? {
             return Ok(ExecutionResult::failure(format!(
                 "Contract not found: {}",
                 call_tx.to
@@ -573,7 +573,7 @@ impl ConsensusEngine {
 
         // Get contract state
         let mut contract_state = storage
-            .get_contract(&call_tx.to)
+            ._get_contract(&call_tx.to)
             .await?
             .ok_or_else(|| ConsensusError::ContractNotFound(call_tx.to.clone()))?;
 
@@ -603,18 +603,18 @@ impl ConsensusEngine {
         };
 
         // Update contract state
-        contract_state.increment_calls();
-        contract_state.update_timestamp(call_tx.timestamp);
+        contract_state._increment_calls();
+        contract_state._update_timestamp(call_tx.timestamp);
 
         // Apply state changes from WASM execution
         for (key, value) in &execution_result.state_changes {
             let key_bytes = key.as_bytes().to_vec();
             let value_bytes = serde_json::to_vec(value).unwrap_or_default();
-            contract_state.set_storage(key_bytes, value_bytes);
+            contract_state._set_storage(key_bytes, value_bytes);
         }
 
         // Store updated state
-        storage.store_contract(&call_tx.to, &contract_state).await?;
+        storage._store_contract(&call_tx.to, &contract_state).await?;
 
         info!(
             "Contract call executed successfully: gas_used={}, success={}",
@@ -639,7 +639,7 @@ impl ConsensusEngine {
         contract_address: &str,
         storage: &StorageManager,
     ) -> Result<Option<ContractState>, ConsensusError> {
-        Ok(storage.get_contract(contract_address).await?)
+        Ok(storage._get_contract(contract_address).await?)
     }
 
     /// Deploy contract (convenience method)

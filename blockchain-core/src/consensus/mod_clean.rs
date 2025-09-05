@@ -1060,7 +1060,7 @@ impl ConsensusEngine {
 
         // Check for required fields based on service type
         match ai_request_tx.service_type {
-            crate::types::AIServiceType::KYC | crate::types::AIServiceType::AML => {
+            crate::types::AIServiceType::Kyc | crate::types::AIServiceType::Aml => {
                 if ai_request_tx.payload.get("identity").is_none() {
                     return Ok(false);
                 }
@@ -1194,7 +1194,7 @@ impl ConsensusEngine {
         }
 
         // Save state to storage
-        runtime.save_state().await.map_err(|e| e.to_string())?;
+        runtime._save_state().await.map_err(|e| e.to_string())?;
 
         Ok(())
     }
@@ -1372,21 +1372,23 @@ impl ConsensusEngine {
                     let audit_result = self
                         .audit_trail
                         .record_ai_decision(
-                            tx,
-                            tx_hash.clone(),
-                            ai_integration::AIVerificationResult::Verified {
-                                risk_score,
-                                processing_decision: processing_decision_clone.clone(),
-                                fraud_probability,
-                                confidence,
+                            crate::consensus::audit_trail::RecordAiDecisionArgs {
+                                transaction: tx,
+                                transaction_hash: tx_hash.clone(),
+                                ai_result: ai_integration::AIVerificationResult::Verified {
+                                    risk_score,
+                                    processing_decision: processing_decision_clone.clone(),
+                                    fraud_probability,
+                                    confidence,
+                                    oracle_id: oracle_id.clone(),
+                                    response_id: response_id.clone(),
+                                },
+                                risk_decision: processing_decision_clone.clone(),
+                                risk_priority,
                                 oracle_id: oracle_id.clone(),
-                                response_id: response_id.clone(),
+                                request_id: response_id.clone(),
+                                block_number: None, // Block number not available during validation
                             },
-                            processing_decision_clone,
-                            risk_priority,
-                            oracle_id.clone(),
-                            response_id.clone(),
-                            None, // Block number not available during validation
                         )
                         .await;
 
@@ -1457,20 +1459,25 @@ impl ConsensusEngine {
                     let audit_result = self
                         .audit_trail
                         .record_ai_decision(
-                            tx,
-                            tx_hash,
-                            ai_integration::AIVerificationResult::Failed {
-                                error: error.clone(),
-                                oracle_id: oracle_id.clone(),
-                                response_id: response_id.clone(),
+                            crate::consensus::audit_trail::RecordAiDecisionArgs {
+                                transaction: tx,
+                                transaction_hash: tx_hash,
+                                ai_result: ai_integration::AIVerificationResult::Failed {
+                                    error: error.clone(),
+                                    oracle_id: oracle_id.clone(),
+                                    response_id: response_id.clone(),
+                                },
+                                risk_decision: ai_integration::RiskProcessingDecision::AutoReject {
+                                    reason: format!("AI validation failed: {error}"),
+                                },
+                                risk_priority:
+                                    crate::consensus::notification_types::ReviewPriority::High,
+                                oracle_id: oracle_id.clone().unwrap_or_else(|| "unknown".to_string()),
+                                request_id: response_id
+                                    .clone()
+                                    .unwrap_or_else(|| "unknown".to_string()),
+                                block_number: None,
                             },
-                            ai_integration::RiskProcessingDecision::AutoReject {
-                                reason: format!("AI validation failed: {error}"),
-                            },
-                            crate::consensus::notification_types::ReviewPriority::High,
-                            oracle_id.clone().unwrap_or_else(|| "unknown".to_string()),
-                            response_id.clone().unwrap_or_else(|| "unknown".to_string()),
-                            None,
                         )
                         .await;
 
@@ -1492,24 +1499,28 @@ impl ConsensusEngine {
                     let audit_result = self
                         .audit_trail
                         .record_ai_decision(
-                            tx,
-                            tx_hash,
-                            ai_integration::AIVerificationResult::Unavailable {
-                                error: error.clone(),
-                                fallback_allowed,
+                            crate::consensus::audit_trail::RecordAiDecisionArgs {
+                                transaction: tx,
+                                transaction_hash: tx_hash,
+                                ai_result: ai_integration::AIVerificationResult::Unavailable {
+                                    error: error.clone(),
+                                    fallback_allowed,
+                                },
+                                risk_decision: if fallback_allowed {
+                                    ai_integration::RiskProcessingDecision::AutoApprove
+                                } else {
+                                    ai_integration::RiskProcessingDecision::AutoReject {
+                                        reason:
+                                            "AI service unavailable and fallback not allowed"
+                                                .to_string(),
+                                    }
+                                },
+                                risk_priority:
+                                    crate::consensus::notification_types::ReviewPriority::Medium,
+                                oracle_id: "unavailable".to_string(),
+                                request_id: uuid::Uuid::new_v4().to_string(),
+                                block_number: None,
                             },
-                            if fallback_allowed {
-                                ai_integration::RiskProcessingDecision::AutoApprove
-                            } else {
-                                ai_integration::RiskProcessingDecision::AutoReject {
-                                    reason: "AI service unavailable and fallback not allowed"
-                                        .to_string(),
-                                }
-                            },
-                            crate::consensus::notification_types::ReviewPriority::Medium,
-                            "unavailable".to_string(),
-                            uuid::Uuid::new_v4().to_string(),
-                            None,
                         )
                         .await;
 
@@ -1531,16 +1542,19 @@ impl ConsensusEngine {
                     let audit_result = self
                         .audit_trail
                         .record_ai_decision(
-                            tx,
-                            tx_hash,
-                            ai_integration::AIVerificationResult::Skipped {
-                                reason: reason.clone(),
+                            crate::consensus::audit_trail::RecordAiDecisionArgs {
+                                transaction: tx,
+                                transaction_hash: tx_hash,
+                                ai_result: ai_integration::AIVerificationResult::Skipped {
+                                    reason: reason.clone(),
+                                },
+                                risk_decision: ai_integration::RiskProcessingDecision::AutoApprove,
+                                risk_priority:
+                                    crate::consensus::notification_types::ReviewPriority::Low,
+                                oracle_id: "skipped".to_string(),
+                                request_id: uuid::Uuid::new_v4().to_string(),
+                                block_number: None,
                             },
-                            ai_integration::RiskProcessingDecision::AutoApprove,
-                            crate::consensus::notification_types::ReviewPriority::Low,
-                            "skipped".to_string(),
-                            uuid::Uuid::new_v4().to_string(),
-                            None,
                         )
                         .await;
 
@@ -1560,20 +1574,23 @@ impl ConsensusEngine {
                     let audit_result = self
                         .audit_trail
                         .record_ai_decision(
-                            tx,
-                            tx_hash,
-                            ai_integration::AIVerificationResult::Failed {
-                                error: format!("Analysis error: {e}"),
-                                oracle_id: None,
-                                response_id: None,
+                            crate::consensus::audit_trail::RecordAiDecisionArgs {
+                                transaction: tx,
+                                transaction_hash: tx_hash,
+                                ai_result: ai_integration::AIVerificationResult::Failed {
+                                    error: format!("Analysis error: {e}"),
+                                    oracle_id: None,
+                                    response_id: None,
+                                },
+                                risk_decision: ai_integration::RiskProcessingDecision::AutoReject {
+                                    reason: format!("AI analysis error: {e}"),
+                                },
+                                risk_priority:
+                                    crate::consensus::notification_types::ReviewPriority::High,
+                                oracle_id: "error".to_string(),
+                                request_id: uuid::Uuid::new_v4().to_string(),
+                                block_number: None,
                             },
-                            ai_integration::RiskProcessingDecision::AutoReject {
-                                reason: format!("AI analysis error: {e}"),
-                            },
-                            crate::consensus::notification_types::ReviewPriority::High,
-                            "error".to_string(),
-                            uuid::Uuid::new_v4().to_string(),
-                            None,
                         )
                         .await;
 
@@ -1645,6 +1662,33 @@ impl ConsensusEngine {
             let _ = self
                 .record_fallback_audit_trail(tx, &tx_hash, &fallback_result)
                 .await;
+
+            // Record audit trail for fallback decision
+            let decision = match fallback_result {
+                ai_integration::AIVerificationResult::Verified {
+                    ref processing_decision,
+                    ..
+                } => processing_decision.clone(),
+                _ => ai_integration::RiskProcessingDecision::AutoApprove,
+            };
+            if let Err(e) = self
+                .audit_trail
+                .record_ai_decision(
+                    crate::consensus::audit_trail::RecordAiDecisionArgs {
+                        transaction: tx,
+                        transaction_hash: tx_hash.clone(),
+                        ai_result: fallback_result.clone(),
+                        risk_decision: decision,
+                        risk_priority: crate::consensus::notification_types::ReviewPriority::Medium,
+                        oracle_id: "fallback_engine".to_string(),
+                        request_id: "fallback_request".to_string(),
+                        block_number: None,
+                    },
+                )
+                .await
+            {
+                warn!("Failed to record fallback audit trail: {e}");
+            }
 
             self.performance_optimizer
                 .record_request_metrics(start_time.elapsed().as_millis() as u64, true)
@@ -1951,16 +1995,16 @@ impl ConsensusEngine {
 
         let audit_result = self
             .audit_trail
-            .record_ai_decision(
-                tx,
-                tx_hash.to_string(),
-                ai_result.clone(),
-                decision,
-                priority,
+            .record_ai_decision(crate::consensus::audit_trail::RecordAiDecisionArgs {
+                transaction: tx,
+                transaction_hash: tx_hash.to_string(),
+                ai_result: ai_result.clone(),
+                risk_decision: decision,
+                risk_priority: priority,
                 oracle_id,
-                response_id,
-                None, // Block number not available during validation
-            )
+                request_id: response_id,
+                block_number: None,
+            })
             .await;
 
         match audit_result {

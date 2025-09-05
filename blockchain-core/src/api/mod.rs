@@ -154,8 +154,11 @@ struct TransactionDetails {
 #[derive(Debug, Deserialize)]
 struct _StakingRegisterRequest {
     // underscore
+    #[allow(dead_code)]
     address: String,
+    #[allow(dead_code)]
     consensus_pubkey: String,
+    #[allow(dead_code)]
     commission_rate: u16,
 }
 
@@ -163,8 +166,11 @@ struct _StakingRegisterRequest {
 #[derive(Debug, Deserialize)]
 struct _StakingDelegateRequest {
     // underscore
+    #[allow(dead_code)]
     delegator: String,
+    #[allow(dead_code)]
     validator: String,
+    #[allow(dead_code)]
     amount: u128,
 }
 
@@ -172,7 +178,9 @@ struct _StakingDelegateRequest {
 #[derive(Debug, Deserialize)]
 struct _StakingClaimRequest {
     // underscore
+    #[allow(dead_code)]
     delegator: String,
+    #[allow(dead_code)]
     validator: String,
 }
 

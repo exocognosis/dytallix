@@ -438,8 +438,6 @@ impl PerformanceOptimizer {
                     RiskProcessingDecision::RequireReview {
                         reason: "High pattern-based risk score".to_string(),
                     }
-                } else if risk_score > 0.6 {
-                    RiskProcessingDecision::AutoApprove
                 } else {
                     RiskProcessingDecision::AutoApprove
                 };

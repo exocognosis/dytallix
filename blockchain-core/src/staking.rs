@@ -179,30 +179,30 @@ impl std::error::Error for StakingError {}
 /// Validator lifecycle events
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ValidatorEvent {
-    ValidatorJoined {
+    Joined {
         validator_address: Address,
         self_stake: u128,
         commission_rate: u16,
         block_height: BlockNumber,
     },
-    ValidatorLeft {
+    Left {
         validator_address: Address,
         final_stake: u128,
         block_height: BlockNumber,
     },
-    ValidatorSlashed {
+    Slashed {
         validator_address: Address,
         slash_type: SlashType,
         slash_amount: u128,
         block_height: BlockNumber,
     },
-    ValidatorStatusChanged {
+    StatusChanged {
         validator_address: Address,
         old_status: ValidatorStatus,
         new_status: ValidatorStatus,
         block_height: BlockNumber,
     },
-    ValidatorJailed {
+    Jailed {
         validator_address: Address,
         reason: String,
         block_height: BlockNumber,
@@ -272,7 +272,7 @@ impl StakingState {
         self.validators.insert(address.clone(), validator);
 
         // Emit validator joined event (will be promoted to active later if conditions met)
-        self.emit_event(ValidatorEvent::ValidatorJoined {
+        self.emit_event(ValidatorEvent::Joined {
             validator_address: address,
             self_stake: 0,
             commission_rate,
@@ -368,7 +368,7 @@ impl StakingState {
                     v_mut.status = ValidatorStatus::Active;
                 }
                 // Emit after mutable borrow released
-                self.emit_event(ValidatorEvent::ValidatorStatusChanged {
+                self.emit_event(ValidatorEvent::StatusChanged {
                     validator_address: validator_address.clone(),
                     old_status,
                     new_status: ValidatorStatus::Active,
@@ -380,7 +380,7 @@ impl StakingState {
     }
 
     /// Initiate validator leave (graceful exit)
-    pub fn validator_leave(&mut self, validator_address: &Address) -> Result<(), StakingError> {
+    pub fn _validator_leave(&mut self, validator_address: &Address) -> Result<(), StakingError> {
         let validator = self
             .validators
             .get_mut(validator_address)
@@ -393,7 +393,7 @@ impl StakingState {
                 validator.status = ValidatorStatus::Leaving;
 
                 // Emit status change event
-                self.emit_event(ValidatorEvent::ValidatorStatusChanged {
+                self.emit_event(ValidatorEvent::StatusChanged {
                     validator_address: validator_address.clone(),
                     old_status,
                     new_status: ValidatorStatus::Leaving,
@@ -401,7 +401,7 @@ impl StakingState {
                 });
 
                 // For MVP, immediately process exit (no unbonding delay)
-                self.process_validator_exit(validator_address)?;
+                self._process_validator_exit(validator_address)?;
 
                 Ok(())
             }
@@ -411,26 +411,26 @@ impl StakingState {
                 let old_status = validator.status.clone();
                 validator.status = ValidatorStatus::Leaving;
 
-                self.emit_event(ValidatorEvent::ValidatorStatusChanged {
+                self.emit_event(ValidatorEvent::StatusChanged {
                     validator_address: validator_address.clone(),
                     old_status,
                     new_status: ValidatorStatus::Leaving,
                     block_height: self.current_height,
                 });
 
-                self.process_validator_exit(validator_address)?;
+                self._process_validator_exit(validator_address)?;
                 Ok(())
             }
             ValidatorStatus::Pending => {
                 // Pending validators can be removed immediately
-                self.remove_validator(validator_address)?;
+                self._remove_validator(validator_address)?;
                 Ok(())
             }
         }
     }
 
     /// Process immediate validator exit (MVP implementation)
-    fn process_validator_exit(&mut self, validator_address: &Address) -> Result<(), StakingError> {
+    fn _process_validator_exit(&mut self, validator_address: &Address) -> Result<(), StakingError> {
         let validator = self
             .validators
             .get(validator_address)
@@ -439,7 +439,7 @@ impl StakingState {
         let final_stake = validator.total_stake;
 
         // Emit validator left event
-        self.emit_event(ValidatorEvent::ValidatorLeft {
+        self.emit_event(ValidatorEvent::Left {
             validator_address: validator_address.clone(),
             final_stake,
             block_height: self.current_height,
@@ -447,13 +447,13 @@ impl StakingState {
 
         // For MVP: simple removal (no unbonding period)
         // In full implementation, this would start unbonding process
-        self.remove_validator(validator_address)?;
+        self._remove_validator(validator_address)?;
 
         Ok(())
     }
 
     /// Remove validator and clean up all associated state
-    fn remove_validator(&mut self, validator_address: &Address) -> Result<(), StakingError> {
+    fn _remove_validator(&mut self, validator_address: &Address) -> Result<(), StakingError> {
         let validator = self
             .validators
             .remove(validator_address)
@@ -478,7 +478,7 @@ impl StakingState {
     }
 
     /// Record a missed block for a validator (uptime tracking)
-    pub fn record_missed_block(&mut self, validator_address: &Address) -> Result<(), StakingError> {
+    pub fn _record_missed_block(&mut self, validator_address: &Address) -> Result<(), StakingError> {
         // Work within a scope to release mutable borrow before emitting events or further mutable borrows
         let (should_jail, old_status, missed_blocks) = {
             let validator = self
@@ -498,25 +498,25 @@ impl StakingState {
         };
         if should_jail {
             // Emit events after releasing mutable borrow
-            self.emit_event(ValidatorEvent::ValidatorJailed {
+            self.emit_event(ValidatorEvent::Jailed {
                 validator_address: validator_address.clone(),
                 reason: format!("Downtime: {missed_blocks} consecutive missed blocks"),
                 block_height: self.current_height,
             });
-            self.emit_event(ValidatorEvent::ValidatorStatusChanged {
+            self.emit_event(ValidatorEvent::StatusChanged {
                 validator_address: validator_address.clone(),
                 old_status,
                 new_status: ValidatorStatus::Jailed,
                 block_height: self.current_height,
             });
             // Perform slashing after borrow released
-            self.slash_validator_internal(validator_address, SlashType::Downtime, None)?;
+            self._slash_validator_internal(validator_address, SlashType::Downtime, None)?;
         }
         Ok(())
     }
 
     /// Record validator as present (for uptime tracking)
-    pub fn record_validator_present(
+    pub fn _record_validator_present(
         &mut self,
         validator_address: &Address,
     ) -> Result<(), StakingError> {
@@ -533,7 +533,7 @@ impl StakingState {
     }
 
     /// Handle evidence and slash validator
-    pub fn handle_evidence(&mut self, evidence: Evidence) -> Result<(), StakingError> {
+    pub fn _handle_evidence(&mut self, evidence: Evidence) -> Result<(), StakingError> {
         match evidence {
             Evidence::DoubleSign {
                 validator_address,
@@ -546,7 +546,7 @@ impl StakingState {
                 if signature_1 == signature_2 || block_hash_1 == block_hash_2 {
                     return Err(StakingError::InvalidEvidence);
                 }
-                self.slash_validator_internal(&validator_address, SlashType::DoubleSign, None)?;
+                self._slash_validator_internal(&validator_address, SlashType::DoubleSign, None)?;
                 Ok(())
             }
             Evidence::Downtime {
@@ -557,7 +557,7 @@ impl StakingState {
                 if missed_blocks < self.params.downtime_threshold {
                     return Err(StakingError::InvalidEvidence);
                 }
-                self.slash_validator_internal(&validator_address, SlashType::Downtime, None)?;
+                self._slash_validator_internal(&validator_address, SlashType::Downtime, None)?;
                 Ok(())
             }
         }
@@ -572,7 +572,7 @@ impl StakingState {
     }
 
     /// Update validator power based on stake
-    pub fn update_validator_power(
+    pub fn _update_validator_power(
         &mut self,
         validator_address: &Address,
     ) -> Result<(), StakingError> {
@@ -587,16 +587,16 @@ impl StakingState {
     }
 
     /// Slash a validator (public interface)
-    pub fn slash_validator(
+    pub fn _slash_validator(
         &mut self,
         validator_address: &Address,
         slash_type: SlashType,
     ) -> Result<(), StakingError> {
-        self.slash_validator_internal(validator_address, slash_type, None)
+        self._slash_validator_internal(validator_address, slash_type, None)
     }
 
     /// Internal slashing implementation
-    fn slash_validator_internal(
+    fn _slash_validator_internal(
         &mut self,
         validator_address: &Address,
         slash_type: SlashType,
@@ -630,14 +630,14 @@ impl StakingState {
         // Update global totals after validator borrow released
         self.total_stake = self.total_stake.saturating_sub(slash_amount);
         // Emit events
-        self.emit_event(ValidatorEvent::ValidatorSlashed {
+        self.emit_event(ValidatorEvent::Slashed {
             validator_address: validator_address.clone(),
             slash_type: slash_type.clone(),
             slash_amount,
             block_height: self.current_height,
         });
         if status_changed {
-            self.emit_event(ValidatorEvent::ValidatorStatusChanged {
+            self.emit_event(ValidatorEvent::StatusChanged {
                 validator_address: validator_address.clone(),
                 old_status,
                 new_status: new_status_opt,
@@ -648,6 +648,7 @@ impl StakingState {
     }
 
     /// Process rewards for all active validators (called per block)
+    #[allow(dead_code)]
     pub fn process_block_rewards(&mut self, block_height: BlockNumber) -> Result<(), StakingError> {
         self.current_height = block_height;
 
@@ -760,6 +761,7 @@ impl StakingState {
     }
 
     /// Calculate pending rewards for a delegation
+    #[allow(dead_code)]
     pub fn calculate_pending_rewards(
         &self,
         delegator: &Address,
@@ -842,7 +844,7 @@ impl StakingState {
     }
 
     /// Undelegate tokens (placeholder for future implementation)
-    pub fn undelegate(
+    pub fn _undelegate(
         &mut self,
         _delegator: Address,
         _validator: Address,
@@ -853,7 +855,7 @@ impl StakingState {
     }
 
     /// Get validator statistics for queries
-    pub fn get_validator_stats(&self, validator_address: &Address) -> Option<ValidatorStats> {
+    pub fn _get_validator_stats(&self, validator_address: &Address) -> Option<ValidatorStats> {
         self.validators
             .get(validator_address)
             .map(|validator| ValidatorStats {
@@ -870,7 +872,7 @@ impl StakingState {
     }
 
     /// Get current validator set with status filtering
-    pub fn get_validator_set(&self, status_filter: Option<ValidatorStatus>) -> Vec<ValidatorStats> {
+    pub fn _get_validator_set(&self, status_filter: Option<ValidatorStatus>) -> Vec<ValidatorStats> {
         self.validators
             .values()
             .filter(|v| status_filter.is_none() || Some(&v.status) == status_filter.as_ref())
@@ -889,12 +891,12 @@ impl StakingState {
     }
 
     /// Get pending events and optionally clear them
-    pub fn get_events(&self) -> &[ValidatorEvent] {
+    pub fn _get_events(&self) -> &[ValidatorEvent] {
         &self.pending_events
     }
 
     /// Clear pending events (should be called after processing)
-    pub fn clear_events(&mut self) {
+    pub fn _clear_events(&mut self) {
         self.pending_events.clear();
     }
 
@@ -904,7 +906,7 @@ impl StakingState {
     }
 
     /// Unjail a validator (administrative function)
-    pub fn unjail_validator(&mut self, validator_address: &Address) -> Result<(), StakingError> {
+    pub fn _unjail_validator(&mut self, validator_address: &Address) -> Result<(), StakingError> {
         let old_status_opt = {
             let validator = self
                 .validators
@@ -921,7 +923,7 @@ impl StakingState {
         };
         match old_status_opt {
             Some(old_status) => {
-                self.emit_event(ValidatorEvent::ValidatorStatusChanged {
+                self.emit_event(ValidatorEvent::StatusChanged {
                     validator_address: validator_address.clone(),
                     old_status,
                     new_status: ValidatorStatus::Inactive,
@@ -936,7 +938,7 @@ impl StakingState {
     /// Apply external emission rewards to staking system
     /// If total_stake > 0, update reward_index proportionally
     /// If total_stake == 0, accumulate in pending_staking_emission
-    pub fn apply_external_emission(&mut self, amount: u128) {
+    pub fn _apply_external_emission(&mut self, amount: u128) {
         if self.total_stake > 0 {
             // Distribute to all validators based on their stake
             let reward_per_unit = (amount * REWARD_SCALE) / self.total_stake;
@@ -971,7 +973,7 @@ impl StakingState {
     }
 
     /// Get current reward index and pending emission for statistics
-    pub fn get_reward_stats(&self) -> (u128, u128) {
+    pub fn _get_reward_stats(&self) -> (u128, u128) {
         // Calculate average reward index across active validators
         let active_validators: Vec<_> = self
             .validators
@@ -995,7 +997,7 @@ impl StakingState {
     }
 
     /// Get comprehensive delegator reward information for a specific validator
-    pub fn get_delegator_validator_rewards(
+    pub fn _get_delegator_validator_rewards(
         &self,
         delegator: &Address,
         validator_address: &Address,
@@ -1113,9 +1115,9 @@ pub struct ValidatorStats {
 }
 
 /// Emissions provider trait for reward distribution
-pub trait EmissionsProvider {
+pub trait _EmissionsProvider {
     /// Get emission amount per block
-    fn emission_per_block(&self) -> u128;
+    fn _emission_per_block(&self) -> u128;
 }
 
 /// Simple emissions provider implementation
@@ -1124,8 +1126,8 @@ pub struct SimpleEmissionsProvider {
     pub emission_rate: u128,
 }
 
-impl EmissionsProvider for SimpleEmissionsProvider {
-    fn emission_per_block(&self) -> u128 {
+impl _EmissionsProvider for SimpleEmissionsProvider {
+    fn _emission_per_block(&self) -> u128 {
         self.emission_rate
     }
 }

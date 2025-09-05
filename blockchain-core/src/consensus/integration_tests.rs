@@ -20,7 +20,7 @@ async fn create_test_ai_integration() -> Result<AIIntegrationManager> {
             base_url: "http://localhost:8000".to_string(),
             timeout_seconds: 30,
             max_retries: 3,
-            api_key: Some("test_key".to_string()),
+            api_key: "test_key".to_string(),
             ..Default::default()
         },
         replay_protection_config: ReplayProtectionConfig {

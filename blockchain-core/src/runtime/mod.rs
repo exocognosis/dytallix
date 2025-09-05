@@ -90,6 +90,7 @@ impl RuntimeState {
     }
 }
 
+#[allow(dead_code)]
 pub struct DytallixRuntime {
     state: Arc<RwLock<RuntimeState>>,
     storage: Arc<StorageManager>,
@@ -196,6 +197,7 @@ impl DytallixRuntime {
         Ok(state.nonces.get(address).copied().unwrap_or(0))
     }
 
+    #[allow(dead_code)]
     pub async fn increment_nonce(&self, address: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut state = self.state.write().await;
         let current_nonce = state.nonces.get(address).copied().unwrap_or(0);
@@ -203,6 +205,7 @@ impl DytallixRuntime {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub async fn deploy_contract(
         &self,
         address: &str,
@@ -247,6 +250,7 @@ impl DytallixRuntime {
         Ok(state.contracts.get(address).cloned())
     }
 
+    #[allow(dead_code)]
     pub async fn execute_contract(
         &self,
         address: &str,
@@ -542,7 +546,7 @@ impl DytallixRuntime {
     }
 
     /// Get delegator rewards for a specific validator
-    pub async fn get_delegator_validator_rewards(
+    pub async fn _get_delegator_validator_rewards(
         &self,
         delegator: &Address,
         validator: &Address,
@@ -550,7 +554,7 @@ impl DytallixRuntime {
         let state = self.state.read().await;
         state
             .staking
-            .get_delegator_validator_rewards(delegator, validator)
+            ._get_delegator_validator_rewards(delegator, validator)
     }
 
     /// Process block rewards (called during block processing)
@@ -584,33 +588,33 @@ impl DytallixRuntime {
     }
 
     /// Apply external emission to staking system (called by emission engine)
-    pub async fn apply_staking_emission(&self, amount: u128) -> Result<(), StakingError> {
+    pub async fn _apply_staking_emission(&self, amount: u128) -> Result<(), StakingError> {
         let mut state = self.state.write().await;
-        state.staking.apply_external_emission(amount);
+        state.staking._apply_external_emission(amount);
         Ok(())
     }
 
     /// Get reward statistics for emission validation
-    pub async fn get_reward_stats(&self) -> (u128, u128) {
+    pub async fn _get_reward_stats(&self) -> (u128, u128) {
         let state = self.state.read().await;
-        state.staking.get_reward_stats()
+        state.staking._get_reward_stats()
     }
 
-    pub async fn save_state(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn _save_state(&self) -> Result<(), Box<dyn std::error::Error>> {
         let state = self.state.read().await;
 
         // Serialize and save state to storage
         let state_json = serde_json::to_string(&*state)?;
         self.storage
-            .put("runtime_state".as_bytes(), state_json.as_bytes())
+            ._put("runtime_state".as_bytes(), state_json.as_bytes())
             .await?;
 
         info!("Runtime state saved to storage");
         Ok(())
     }
 
-    pub async fn load_state(&self) -> Result<(), Box<dyn std::error::Error>> {
-        match self.storage.get("runtime_state".as_bytes()).await? {
+    pub async fn _load_state(&self) -> Result<(), Box<dyn std::error::Error>> {
+        match self.storage._get("runtime_state".as_bytes()).await? {
             Some(state_data) => {
                 let state_json = String::from_utf8(state_data)?;
                 let loaded_state: RuntimeState = serde_json::from_str(&state_json)?;
@@ -629,6 +633,7 @@ impl DytallixRuntime {
     }
 
     /// Execute a single transaction (Deploy / Call / Transfer currently)
+    #[allow(dead_code)]
     pub async fn execute_tx(
         &self,
         tx: &Transaction,
@@ -655,7 +660,7 @@ impl DytallixRuntime {
         if status == TxStatus::Success {
             match tx {
                 Transfer(t) => {
-                    if let Err(e) = self.storage.apply_transfer(t) {
+                    if let Err(e) = self.storage._apply_transfer(t) {
                         status = TxStatus::Failed;
                         error = Some(e);
                     }

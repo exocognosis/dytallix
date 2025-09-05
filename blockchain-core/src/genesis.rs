@@ -22,7 +22,7 @@ pub struct VestingSchedule {
 
 impl VestingSchedule {
     /// Calculate vested amount at given timestamp
-    pub fn vested_amount(&self, current_time: Timestamp) -> Amount {
+    pub fn _vested_amount(&self, current_time: Timestamp) -> Amount {
         if current_time < self.start_time + self.cliff_duration {
             return 0; // Still in cliff period
         }
@@ -39,8 +39,8 @@ impl VestingSchedule {
     }
 
     /// Calculate unvested (locked) amount at given timestamp
-    pub fn locked_amount(&self, current_time: Timestamp) -> Amount {
-        self.total_amount - self.vested_amount(current_time)
+    pub fn _locked_amount(&self, current_time: Timestamp) -> Amount {
+        self.total_amount - self._vested_amount(current_time)
     }
 }
 
@@ -81,7 +81,7 @@ pub struct EmissionBreakdown {
 
 impl EmissionBreakdown {
     /// Validate that percentages sum to 100
-    pub fn is_valid(&self) -> bool {
+    pub fn _is_valid(&self) -> bool {
         self.block_rewards
             + self.staking_rewards
             + self.ai_module_incentives
@@ -184,7 +184,7 @@ pub struct GenesisConfig {
 
 impl GenesisConfig {
     /// Create the mainnet genesis configuration
-    pub fn mainnet() -> Self {
+    pub fn _mainnet() -> Self {
         let genesis_time = DateTime::parse_from_rfc3339("2025-08-03T19:00:26.000000000Z")
             .unwrap()
             .with_timezone(&Utc);
@@ -326,7 +326,7 @@ impl GenesisConfig {
     }
 
     /// Validate the genesis configuration
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn _validate(&self) -> Result<(), String> {
         // Validate DGT total supply is 1 billion
         let total_dgt: Amount = self.dgt_allocations.iter().map(|a| a.amount).sum();
         if total_dgt != 1_000_000_000_000_000_000 {
@@ -336,7 +336,7 @@ impl GenesisConfig {
         }
 
         // Validate emission breakdown
-        if !self.drt_emission.emission_breakdown.is_valid() {
+        if !self.drt_emission.emission_breakdown._is_valid() {
             return Err("DRT emission breakdown percentages must sum to 100".to_string());
         }
 
@@ -374,27 +374,18 @@ impl GenesisConfig {
     }
 
     /// Calculate total DGT supply
-    pub fn total_dgt_supply(&self) -> Amount {
+    pub fn _total_dgt_supply(&self) -> Amount {
         self.dgt_allocations.iter().map(|a| a.amount).sum()
     }
 
-    #[cfg(test)]
-    #[test]
-    fn test_genesis_amounts_serialize_as_strings() {
-        let genesis = GenesisConfig::mainnet();
-        let json = genesis.to_json().unwrap();
-        // Spot check one large number appears quoted
-        assert!(json.contains("\"400000000000000000\""));
-    }
-
     /// Get vested amount for an address at given timestamp
-    pub fn get_vested_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
+    pub fn _get_vested_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
         self.dgt_allocations
             .iter()
             .find(|alloc| &alloc.address == address)
             .map(|alloc| {
                 match &alloc.vesting {
-                    Some(vesting) => vesting.vested_amount(current_time),
+                    Some(vesting) => vesting._vested_amount(current_time),
                     None => alloc.amount, // Fully unlocked
                 }
             })
@@ -402,13 +393,13 @@ impl GenesisConfig {
     }
 
     /// Get locked amount for an address at given timestamp
-    pub fn get_locked_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
+    pub fn _get_locked_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
         self.dgt_allocations
             .iter()
             .find(|alloc| &alloc.address == address)
             .map(|alloc| {
                 match &alloc.vesting {
-                    Some(vesting) => vesting.locked_amount(current_time),
+                    Some(vesting) => vesting._locked_amount(current_time),
                     None => 0, // Nothing locked
                 }
             })
@@ -416,12 +407,12 @@ impl GenesisConfig {
     }
 
     /// Export to JSON string
-    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+    pub fn _to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(self)
     }
 
     /// Import from JSON string
-    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+    pub fn _from_json(json: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(json)
     }
 }
@@ -431,15 +422,23 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_genesis_amounts_serialize_as_strings() {
+        let genesis = GenesisConfig::_mainnet();
+        let json = genesis._to_json().unwrap();
+        // Spot check one large number appears quoted
+        assert!(json.contains("\"400000000000000000\""));
+    }
+
+    #[test]
     fn test_mainnet_genesis_validation() {
-        let genesis = GenesisConfig::mainnet();
-        assert!(genesis.validate().is_ok());
+        let genesis = GenesisConfig::_mainnet();
+        assert!(genesis._validate().is_ok());
     }
 
     #[test]
     fn test_dgt_total_supply() {
-        let genesis = GenesisConfig::mainnet();
-        assert_eq!(genesis.total_dgt_supply(), 1_000_000_000_000_000_000);
+        let genesis = GenesisConfig::_mainnet();
+        assert_eq!(genesis._total_dgt_supply(), 1_000_000_000_000_000_000);
     }
 
     #[test]
@@ -450,7 +449,7 @@ mod tests {
             ai_module_incentives: 10,
             bridge_operations: 5,
         };
-        assert!(breakdown.is_valid());
+        assert!(breakdown._is_valid());
 
         let invalid_breakdown = EmissionBreakdown {
             block_rewards: 60,
@@ -458,7 +457,7 @@ mod tests {
             ai_module_incentives: 10,
             bridge_operations: 6, // Sum = 101%
         };
-        assert!(!invalid_breakdown.is_valid());
+        assert!(!invalid_breakdown._is_valid());
     }
 
     #[test]
@@ -473,23 +472,23 @@ mod tests {
 
         // During cliff period
         let cliff_time = start_time + 6 * 30 * 24 * 60 * 60; // 6 months
-        assert_eq!(vesting.vested_amount(cliff_time), 0);
+        assert_eq!(vesting._vested_amount(cliff_time), 0);
 
         // After cliff, during vesting
         let mid_vesting_time = start_time + 2 * 365 * 24 * 60 * 60; // 2 years
-        let vested = vesting.vested_amount(mid_vesting_time);
+        let vested = vesting._vested_amount(mid_vesting_time);
         assert!(vested > 0 && vested < 1000);
 
         // After full vesting
         let end_time = start_time + 5 * 365 * 24 * 60 * 60; // 5 years
-        assert_eq!(vesting.vested_amount(end_time), 1000);
+        assert_eq!(vesting._vested_amount(end_time), 1000);
     }
 
     #[test]
     fn test_genesis_serialization() {
-        let genesis = GenesisConfig::mainnet();
-        let json = genesis.to_json().unwrap();
-        let deserialized = GenesisConfig::from_json(&json).unwrap();
+        let genesis = GenesisConfig::_mainnet();
+        let json = genesis._to_json().unwrap();
+        let deserialized = GenesisConfig::_from_json(&json).unwrap();
 
         assert_eq!(genesis.network.name, deserialized.network.name);
         assert_eq!(
@@ -500,13 +499,13 @@ mod tests {
 
     #[test]
     fn generate_genesis_json() {
-        let genesis = GenesisConfig::mainnet();
+        let genesis = GenesisConfig::_mainnet();
 
         // Validate the configuration
-        genesis.validate().unwrap();
+        genesis._validate().unwrap();
 
         // Convert to JSON
-        let json = genesis.to_json().unwrap();
+        let json = genesis._to_json().unwrap();
 
         // Write to genesisBlock.json in the project root
         let output_path = "../../genesisBlock.json";
@@ -519,7 +518,7 @@ mod tests {
         println!("   Genesis Time: {}", genesis.network.genesis_time);
         println!(
             "   Total DGT Supply: {:.0} tokens",
-            genesis.total_dgt_supply() as f64 / 1e18
+            genesis._total_dgt_supply() as f64 / 1e18
         );
         println!(
             "   DGT Allocations: {} recipients",
@@ -543,7 +542,7 @@ mod tests {
                     println!("   {} - {:.0}M DGT ({:.1}% of supply) - {:.1}y cliff, {:.1}y total vesting",
                         allocation.address,
                         amount_readable / 1e6,
-                        (allocation.amount as f64 / genesis.total_dgt_supply() as f64) * 100.0,
+                        (allocation.amount as f64 / genesis._total_dgt_supply() as f64) * 100.0,
                         cliff_years,
                         total_years
                     );
@@ -553,7 +552,7 @@ mod tests {
                         "   {} - {:.0}M DGT ({:.1}% of supply) - Unlocked",
                         allocation.address,
                         amount_readable / 1e6,
-                        (allocation.amount as f64 / genesis.total_dgt_supply() as f64) * 100.0
+                        (allocation.amount as f64 / genesis._total_dgt_supply() as f64) * 100.0
                     );
                 }
             }
@@ -626,5 +625,6 @@ mod tests {
     }
 
     #[cfg(test)]
+    #[allow(dead_code)]
     pub const TEST_GENESIS_FLAG: bool = true;
 }
