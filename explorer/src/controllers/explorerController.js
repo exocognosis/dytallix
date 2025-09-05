@@ -104,40 +104,29 @@ class ExplorerController {
     try {
       const limit = Math.min(parseInt(req.query.limit) || 20, 100);
       const page = Math.max(parseInt(req.query.page) || 1, 1);
-      
-      // Get recent blocks and extract transactions
       const blocks = await blockchainService.getRecentBlocks(limit);
       const transactions = [];
-      
       for (const block of blocks) {
-        // Simulate transactions for each block
         const txCount = block.txCount || 0;
         for (let i = 0; i < txCount; i++) {
           const gasUsed = 75000 + Math.floor(Math.random() * 20000);
-          const txType = Math.random() > 0.8 ? 'contract_execution' : 
-                        Math.random() > 0.9 ? 'contract_deploy' : 'transfer';
-          
+          const txType = Math.random() > 0.8 ? 'contract_execution' : Math.random() > 0.9 ? 'contract_deploy' : 'transfer';
           const transaction = {
             hash: blockchainService.generateHash(),
             height: block.height,
             time: block.time,
-            success: Math.random() > 0.1, // 90% success rate
+            success: Math.random() > 0.1,
             gasUsed,
             fee: '1000udgt',
             type: txType
           };
-          
-          // Add AI risk score
-          transaction.ai_risk_score = dataService.calculateAIRiskScore(transaction);
-          
+          transaction.ai_risk_score = await dataService.calculateAIRiskScore(transaction);
           transactions.push(transaction);
         }
       }
-
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
       const paginatedTxs = transactions.slice(startIndex, endIndex);
-
       res.json({
         transactions: paginatedTxs,
         total: transactions.length,
@@ -147,19 +136,13 @@ class ExplorerController {
       });
     } catch (error) {
       logger.error('Error getting transactions', { error: error.message });
-      res.status(500).json({ 
-        error: { 
-          code: 'TRANSACTIONS_ERROR', 
-          message: 'Failed to get transactions' 
-        } 
-      });
+      res.status(500).json({ error: { code: 'TRANSACTIONS_ERROR', message: 'Failed to get transactions' } });
     }
   }
 
   async getTransaction(req, res) {
     try {
       const hash = req.params.hash;
-      
       if (!hash || hash.length !== 64) {
         return res.status(400).json({ 
           error: { 
@@ -168,9 +151,7 @@ class ExplorerController {
           } 
         });
       }
-
       const transaction = await blockchainService.getTransaction(hash);
-      
       if (!transaction) {
         return res.status(404).json({ 
           error: { 
@@ -179,15 +160,12 @@ class ExplorerController {
           } 
         });
       }
-
-      // Add AI risk score and gas used if not present
       if (!transaction.ai_risk_score) {
-        transaction.ai_risk_score = dataService.calculateAIRiskScore(transaction);
+        transaction.ai_risk_score = await dataService.calculateAIRiskScore(transaction);
       }
       if (!transaction.gasUsed) {
         transaction.gasUsed = 75000 + Math.floor(Math.random() * 20000);
       }
-
       res.json(transaction);
     } catch (error) {
       logger.error('Error getting transaction', { 

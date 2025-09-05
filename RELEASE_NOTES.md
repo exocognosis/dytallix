@@ -1,5 +1,8 @@
 # Release Notes
 
+## MVP Launch Readiness
+See `docs/launch_checklist.md` for the authoritative PASS/FAIL matrix and evidence artifact links.
+
 ## Metrics Dashboard Integration (Lean Launch)
 
 ### What�s New

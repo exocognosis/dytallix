@@ -239,3 +239,6 @@ if (metricsEnabled) {
 }
 
 module.exports = app;
+
+const RISK_SCORE_ENDPOINT = process.env.RISK_SCORE_ENDPOINT || process.env.CORE_API_ENDPOINT || 'http://127.0.0.1:8080';
+console.log('[risk] PulseGuard adapter endpoint:', RISK_SCORE_ENDPOINT);

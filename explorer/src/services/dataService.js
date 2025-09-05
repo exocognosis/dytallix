@@ -221,20 +221,35 @@ class DataService {
   }
 
   // AI risk scoring
-  calculateAIRiskScore(transaction) {
+  async calculateAIRiskScore(transaction) {
+    // If backend pulseguard API endpoint is configured, attempt real score
+    const endpoint = process.env.RISK_SCORE_ENDPOINT || process.env.CORE_API_ENDPOINT;
+    const txHash = transaction.hash || transaction.tx_hash || transaction.txHash;
+    if (endpoint && txHash) {
+      try {
+        const url = `${endpoint.replace(/\/$/, '')}/pulseguard/score`;
+        const resp = await fetch(url, {
+          method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tx_hash: txHash, snapshot: false, details: false })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          if (typeof json.score === 'number') {
+            // Backend returns 0-100, normalize to 0-1 for UI consistency
+            return Math.max(0, Math.min(1, json.score / 100.0));
+          }
+        }
+      } catch (e) {
+        console.error('PulseGuard risk adapter failed, falling back to heuristic', e.message);
+      }
+    }
+    // Fallback heuristic (existing logic)
     let riskScore = 0.1; // Base low risk
-    
-    // Higher gas = higher risk
-    if (transaction.gasUsed > 100000) riskScore += 0.3;
-    else if (transaction.gasUsed > 75000) riskScore += 0.2;
-    
-    // Contract interactions increase risk
+    if (transaction.gasUsed > 100000) riskScore += 0.3; else if (transaction.gasUsed > 75000) riskScore += 0.2;
     if (transaction.type === 'contract_execution') riskScore += 0.4;
     if (transaction.type === 'contract_deploy') riskScore += 0.3;
-    
-    // Random factor for variability
     riskScore += Math.random() * 0.2;
-    
     return Math.min(riskScore, 1.0);
   }
 }

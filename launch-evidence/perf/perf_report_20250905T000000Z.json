@@ -1,0 +1,18 @@
+{
+  "rpcEndpoint": "http://localhost:26657",
+  "startTime": "2025-09-05T00:00:00Z",
+  "endTime": "2025-09-05T00:00:10Z",
+  "duration": 10,
+  "avgTPS": 0,
+  "avgBlockTime": 0,
+  "variance": 0,
+  "totalTx": 0,
+  "successTx": 0,
+  "errorTx": 0,
+  "errorRate": 0,
+  "blockSamples": 0,
+  "targetDuration": 3600,
+  "workers": 4,
+  "sleepBetweenTx": 0.2,
+  "note": "Placeholder sample. Run scripts/test_perf.sh for real metrics."
+}
