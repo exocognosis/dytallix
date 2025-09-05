@@ -4,6 +4,8 @@
 use anyhow::Result;
 use serde::{Deserialize, Deserializer};
 
+use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+
 // Re-export canonical types
 pub use crate::types::{Msg, SignedTx, Tx};
 
@@ -34,7 +36,6 @@ pub fn de_nonce<'de, D: Deserializer<'de>>(d: D) -> Result<NonceSpec, D::Error> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
     #[test]
     fn tx_hash_and_sign_verify() {
         let (sk, pk) = ActivePQC::keypair();

@@ -516,9 +516,7 @@ impl Metrics {
             "drt_emission_last_apply_timestamp_seconds",
             "Unix timestamp of last emissions apply",
         ))?;
-        registry.register(Box::new(
-            drt_emission_last_apply_timestamp_seconds.clone(),
-        ))?;
+        registry.register(Box::new(drt_emission_last_apply_timestamp_seconds.clone()))?;
 
         // Set build info to 1
         build_info.set(1);
@@ -657,11 +655,9 @@ impl Metrics {
     /// Update emissions apply progress/telemetry
     pub fn update_emission_apply(&self, height: u64, pending_udrt_total: u128, ts: u64) {
         self.drt_emission_applied_height.set(height as i64);
-        self
-            .drt_emission_pending_claims
+        self.drt_emission_pending_claims
             .set(pending_udrt_total as i64);
-        self
-            .drt_emission_last_apply_timestamp_seconds
+        self.drt_emission_last_apply_timestamp_seconds
             .set(ts as i64);
     }
 

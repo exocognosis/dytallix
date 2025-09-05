@@ -247,9 +247,7 @@ async fn test_mempool_watermark_metrics() {
         min_gas_price as i64
     );
 
-    println!(
-        "Max size: {max_size}, Max bytes: {max_bytes}, Min gas price: {min_gas_price}"
-    );
+    println!("Max size: {max_size}, Max bytes: {max_bytes}, Min gas price: {min_gas_price}");
 }
 
 #[tokio::test]

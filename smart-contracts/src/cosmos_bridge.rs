@@ -621,7 +621,49 @@ pub fn execute_complete_bridge(
         .add_attribute("success", success.to_string()))
 }
 
-// Additional execute functions would be implemented here...
+/// Update AI risk score for a bridge transaction
+pub fn execute_update_ai_risk_score(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    bridge_id: String,
+    risk_score: u8,
+) -> Result<Response, ContractError> {
+    let state = STATE.load(deps.storage)?;
+
+    // Only AI oracle or admin may update risk score
+    if info.sender != state.ai_oracle && info.sender != state.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    let mut bridge_tx = BRIDGE_TRANSACTIONS
+        .may_load(deps.storage, &bridge_id)?
+        .ok_or(ContractError::InvalidBridgeTransaction {})?;
+
+    bridge_tx.ai_risk_score = risk_score;
+
+    // If risk score exceeds (or equals) threshold, mark as failed (if still pending/minted/burned)
+    if risk_score >= state.ai_confidence_threshold {
+        match bridge_tx.status {
+            BridgeStatus::Pending | BridgeStatus::Minted | BridgeStatus::Burned => {
+                bridge_tx.status = BridgeStatus::Failed;
+            }
+            _ => {}
+        }
+    }
+
+    BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
+
+    Ok(Response::new()
+        .add_attribute("method", "update_ai_risk_score")
+        .add_attribute("bridge_id", bridge_id)
+        .add_attribute("risk_score", risk_score.to_string())
+        .add_attribute(
+            "threshold_triggered",
+            (risk_score >= state.ai_confidence_threshold).to_string(),
+        )
+        .add_attribute("status", format!("{:?}", bridge_tx.status)))
+}
 
 /// Contract query entry point
 #[entry_point]
@@ -773,111 +815,216 @@ pub fn execute_add_supported_token(
         .add_attribute("denom", denom))
 }
 
-// Placeholder implementations for other execute functions...
 pub fn execute_remove_supported_token(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
-    _denom: String,
+    info: MessageInfo,
+    denom: String,
 ) -> Result<Response, ContractError> {
-    // Implementation would go here
-    Ok(Response::new())
+    let state = STATE.load(deps.storage)?;
+    if info.sender != state.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    let mut token = SUPPORTED_TOKENS
+        .may_load(deps.storage, &denom)?
+        .ok_or(ContractError::TokenNotSupported {})?;
+
+    if !token.is_active {
+        return Ok(Response::new()
+            .add_attribute("method", "remove_supported_token")
+            .add_attribute("denom", denom)
+            .add_attribute("status", "already_inactive"));
+    }
+
+    token.is_active = false;
+    SUPPORTED_TOKENS.save(deps.storage, &token.denom, &token)?;
+
+    Ok(Response::new()
+        .add_attribute("method", "remove_supported_token")
+        .add_attribute("denom", token.denom)
+        .add_attribute("status", "deactivated"))
 }
 
 pub fn execute_add_validator(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
-    _validator: String,
+    info: MessageInfo,
+    validator: String,
 ) -> Result<Response, ContractError> {
-    // Implementation would go here
-    Ok(Response::new())
+    let mut state = STATE.load(deps.storage)?;
+    if info.sender != state.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    let addr = deps.api.addr_validate(&validator)?;
+    if state.validators.contains(&addr) {
+        return Ok(Response::new()
+            .add_attribute("method", "add_validator")
+            .add_attribute("validator", validator)
+            .add_attribute("status", "exists"));
+    }
+    state.validators.push(addr.clone());
+    STATE.save(deps.storage, &state)?;
+
+    Ok(Response::new()
+        .add_attribute("method", "add_validator")
+        .add_attribute("validator", addr)
+        .add_attribute("total_validators", state.validators.len().to_string()))
 }
 
 pub fn execute_remove_validator(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
-    _validator: String,
+    info: MessageInfo,
+    validator: String,
 ) -> Result<Response, ContractError> {
-    // Implementation would go here
-    Ok(Response::new())
+    let mut state = STATE.load(deps.storage)?;
+    if info.sender != state.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    let addr = deps.api.addr_validate(&validator)?;
+    if let Some(pos) = state.validators.iter().position(|v| v == &addr) {
+        state.validators.remove(pos);
+        // Ensure min_validators still <= current validator count (can't make it impossible)
+        if state.min_validators as usize > state.validators.len() {
+            // revert removal to avoid inconsistent state
+            state.validators.insert(pos, addr.clone());
+            return Err(ContractError::Unauthorized {}); // reuse; ideally define a specific error
+        }
+        STATE.save(deps.storage, &state)?;
+        Ok(Response::new()
+            .add_attribute("method", "remove_validator")
+            .add_attribute("validator", validator)
+            .add_attribute("total_validators", state.validators.len().to_string()))
+    } else {
+        Ok(Response::new()
+            .add_attribute("method", "remove_validator")
+            .add_attribute("validator", validator)
+            .add_attribute("status", "not_found"))
+    }
 }
 
-pub fn execute_update_ai_risk_score(
+pub fn execute_pause(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
+    let mut state = STATE.load(deps.storage)?;
+    if info.sender != state.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    if state.is_paused {
+        return Ok(Response::new()
+            .add_attribute("method", "pause")
+            .add_attribute("status", "already_paused"));
+    }
+    state.is_paused = true;
+    STATE.save(deps.storage, &state)?;
+    Ok(Response::new()
+        .add_attribute("method", "pause")
+        .add_attribute("status", "paused"))
+}
+
+pub fn execute_unpause(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
+    let mut state = STATE.load(deps.storage)?;
+    if info.sender != state.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    if !state.is_paused {
+        return Ok(Response::new()
+            .add_attribute("method", "unpause")
+            .add_attribute("status", "already_active"));
+    }
+    state.is_paused = false;
+    STATE.save(deps.storage, &state)?;
+    Ok(Response::new()
+        .add_attribute("method", "unpause")
+        .add_attribute("status", "active"))
+}
+
+pub fn execute_update_bridge_params(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    bridge_fee: Option<Uint128>,
+    min_bridge_amount: Option<Uint128>,
+    max_bridge_amount: Option<Uint128>,
+    min_validators: Option<u32>,
+) -> Result<Response, ContractError> {
+    let mut state = STATE.load(deps.storage)?;
+    if info.sender != state.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    if let Some(fee) = bridge_fee { state.bridge_fee = fee; }
+    if let Some(min_amt) = min_bridge_amount { state.min_bridge_amount = min_amt; }
+    if let Some(max_amt) = max_bridge_amount { state.max_bridge_amount = max_amt; }
+    if state.min_bridge_amount > state.max_bridge_amount {
+        return Err(ContractError::AmountAboveMaximum {}); // reuse as validation error (could define new error)
+    }
+    if let Some(min_val) = min_validators {
+        // Ensure not zero and not more than available validators
+        if min_val == 0 || (min_val as usize) > state.validators.len() {
+            return Err(ContractError::Unauthorized {}); // reuse (better to create InvalidBridgeTransaction variant but already exists)
+        }
+        state.min_validators = min_val;
+    }
+
+    STATE.save(deps.storage, &state)?;
+    Ok(Response::new()
+        .add_attribute("method", "update_bridge_params")
+        .add_attribute("bridge_fee", state.bridge_fee.to_string())
+        .add_attribute("min_bridge_amount", state.min_bridge_amount.to_string())
+        .add_attribute("max_bridge_amount", state.max_bridge_amount.to_string())
+        .add_attribute("min_validators", state.min_validators.to_string()))
+}
+
+pub fn execute_emergency_recovery(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     bridge_id: String,
-    risk_score: u8,
+    reason: String,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-
-    // Only AI oracle can update risk scores
-    if info.sender != state.ai_oracle {
+    if info.sender != state.admin {
         return Err(ContractError::Unauthorized {});
     }
-
     let mut bridge_tx = BRIDGE_TRANSACTIONS
         .may_load(deps.storage, &bridge_id)?
         .ok_or(ContractError::InvalidBridgeTransaction {})?;
 
-    bridge_tx.ai_risk_score = risk_score;
-    BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_id, &bridge_tx)?;
+    match bridge_tx.status {
+        BridgeStatus::Completed | BridgeStatus::Failed => {
+            return Ok(Response::new()
+                .add_attribute("method", "emergency_recovery")
+                .add_attribute("bridge_id", bridge_id)
+                .add_attribute("status", "no_action"))
+        }
+        _ => {
+            bridge_tx.status = BridgeStatus::Failed;
+            BRIDGE_TRANSACTIONS.save(deps.storage, &bridge_tx.bridge_id, &bridge_tx)?;
+        }
+    }
 
     Ok(Response::new()
-        .add_attribute("method", "update_ai_risk_score")
-        .add_attribute("bridge_id", bridge_id)
-        .add_attribute("risk_score", risk_score.to_string()))
-}
-
-pub fn execute_pause(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-) -> Result<Response, ContractError> {
-    // Implementation would go here
-    Ok(Response::new())
-}
-
-pub fn execute_unpause(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-) -> Result<Response, ContractError> {
-    // Implementation would go here
-    Ok(Response::new())
-}
-
-pub fn execute_update_bridge_params(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _bridge_fee: Option<Uint128>,
-    _min_bridge_amount: Option<Uint128>,
-    _max_bridge_amount: Option<Uint128>,
-    _min_validators: Option<u32>,
-) -> Result<Response, ContractError> {
-    // Implementation would go here
-    Ok(Response::new())
-}
-
-pub fn execute_emergency_recovery(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _bridge_id: String,
-    _reason: String,
-) -> Result<Response, ContractError> {
-    // Implementation would go here
-    Ok(Response::new())
+        .add_attribute("method", "emergency_recovery")
+        .add_attribute("bridge_id", bridge_tx.bridge_id)
+        .add_attribute("reason", reason)
+        .add_attribute("status", "marked_failed"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, from_binary};
+    use cosmwasm_std::{coins, from_json};
 
     #[test]
     fn proper_initialization() {
@@ -914,7 +1061,42 @@ mod tests {
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         let res = query(deps.as_ref(), mock_env(), QueryMsg::GetState {}).unwrap();
-        let state: State = from_binary(&res).unwrap();
+        let state: State = from_json(&res).unwrap();
         assert_eq!(state.admin, "admin");
+    }
+
+    #[test]
+    fn pause_unpause_flow() {
+        let mut deps = mock_dependencies();
+        let msg = InstantiateMsg {
+            admin: "admin".to_string(),
+            ethereum_channel: "channel-0".to_string(),
+            validators: vec!["validator1".to_string()],
+            min_validators: 1,
+            bridge_fee: Uint128::from(1000u128),
+            ai_oracle: "ai_oracle".to_string(),
+        };
+        let info = mock_info("creator", &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Pause
+        let pause_res = execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info("admin", &[]),
+            ExecuteMsg::Pause {},
+        )
+        .unwrap();
+        assert_eq!(pause_res.attributes.iter().any(|a| a.value == "paused"), true);
+
+        // Unpause
+        let unpause_res = execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info("admin", &[]),
+            ExecuteMsg::Unpause {},
+        )
+        .unwrap();
+        assert_eq!(unpause_res.attributes.iter().any(|a| a.value == "active"), true);
     }
 }

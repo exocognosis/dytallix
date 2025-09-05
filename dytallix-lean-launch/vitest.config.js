@@ -14,7 +14,9 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.js'],
     include: [
       'src/__tests__/**/*.{test,spec}.{js,jsx,ts,tsx}',
-      'src/**/*.{test,spec}.{js,jsx,ts,tsx}'
+      'src/**/*.{test,spec}.{js,jsx,ts,tsx}',
+      'frontend/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
+      'test/**/*.{test,spec}.{js,jsx,ts,tsx}'
     ],
     exclude: [
       'node_modules/**',

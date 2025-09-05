@@ -190,10 +190,7 @@ async fn test_prometheus_format_dyt_metrics() {
     ];
 
     for metric in &required_metrics {
-        assert!(
-            output.contains(metric),
-            "Missing required metric: {metric}"
-        );
+        assert!(output.contains(metric), "Missing required metric: {metric}");
     }
 
     // Verify specific values are present

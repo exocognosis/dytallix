@@ -1,0 +1,13 @@
+{
+  "phase": 1,
+  "status": "PASS",
+  "timestamp": "20250905T005321Z",
+  "verify_ok_observed": "OK",
+  "verify_fail_observed": "OK",
+  "algorithm": "Dilithium5",
+  "pubkey_bytes": 2592,
+  "signature_bytes": 4659,
+  "build_status": "OK",
+  "run_status": "OK",
+  "artifacts_dir": "launch-evidence/artifacts/pqc"
+}

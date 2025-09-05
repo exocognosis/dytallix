@@ -21,7 +21,9 @@ pub async fn submit_ai_risk(
 pub async fn submit_ai_risk(
     _ctx: Extension<RpcContext>,
     _inp: Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, ApiError> { Err(ApiError::BadRequest("oracle feature disabled".into())) }
+) -> Result<Json<serde_json::Value>, ApiError> {
+    Err(ApiError::BadRequest("oracle feature disabled".into()))
+}
 
 #[cfg(feature = "oracle")]
 #[axum::debug_handler]
@@ -36,7 +38,9 @@ pub async fn submit_ai_risk_batch(
 pub async fn submit_ai_risk_batch(
     _ctx: Extension<RpcContext>,
     _inp: Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, ApiError> { Err(ApiError::BadRequest("oracle feature disabled".into())) }
+) -> Result<Json<serde_json::Value>, ApiError> {
+    Err(ApiError::BadRequest("oracle feature disabled".into()))
+}
 
 #[cfg(feature = "oracle")]
 #[axum::debug_handler]
@@ -44,7 +48,9 @@ pub async fn get_ai_risk_batch(
     Extension(ctx): Extension<RpcContext>,
     Json(tx_hashes): Json<Vec<String>>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let store = OracleStore { db: &ctx.storage.db };
+    let store = OracleStore {
+        db: &ctx.storage.db,
+    };
 
     let mut results = Vec::new();
     let mut not_found = Vec::new();
@@ -74,7 +80,9 @@ pub async fn get_ai_risk_batch(
 pub async fn get_ai_risk_batch(
     _ctx: Extension<RpcContext>,
     _tx_hashes: Json<Vec<String>>,
-) -> Result<Json<serde_json::Value>, ApiError> { Err(ApiError::BadRequest("oracle feature disabled".into())) }
+) -> Result<Json<serde_json::Value>, ApiError> {
+    Err(ApiError::BadRequest("oracle feature disabled".into()))
+}
 
 #[cfg(feature = "oracle")]
 #[axum::debug_handler]
@@ -104,4 +112,6 @@ pub async fn oracle_stats(
 #[cfg(not(feature = "oracle"))]
 pub async fn oracle_stats(
     _ctx: Extension<RpcContext>,
-) -> Result<Json<serde_json::Value>, ApiError> { Err(ApiError::BadRequest("oracle feature disabled".into())) }
+) -> Result<Json<serde_json::Value>, ApiError> {
+    Err(ApiError::BadRequest("oracle feature disabled".into()))
+}

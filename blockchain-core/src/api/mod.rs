@@ -11,7 +11,7 @@ use warp::reply::Reply;
 use warp::Filter; // ensure accessible
 
 // Replace direct dytallix_contracts runtime imports with wrapper exposed via crate::contracts
-use crate::contracts::{ContractRuntime, ContractDeployment, ContractCall};
+use crate::contracts::{ContractCall, ContractDeployment, ContractRuntime};
 
 #[derive(Debug, Serialize)]
 struct ErrorResponse {
@@ -1210,7 +1210,8 @@ async fn handle_contract_execute(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value { // unify
+) -> serde_json::Value {
+    // unify
     let (_storage, _tx_pool) = ctx;
 
     if let Some(contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
@@ -1222,7 +1223,8 @@ async fn handle_contract_execute(
                 .and_then(|f| f.as_str())
                 .unwrap_or("execute")
                 .to_string();
-            let call = ContractCall { // include all required fields from wrapper struct
+            let call = ContractCall {
+                // include all required fields from wrapper struct
                 contract_id: contract_address.to_string(), // use address as id for now
                 function: method_name.clone(),
                 args: args_json.clone(),
@@ -1286,7 +1288,8 @@ async fn handle_contract_get_instance(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value { // unify return type
+) -> serde_json::Value {
+    // unify return type
     let (_storage, _tx_pool) = ctx;
 
     if let Some(address) = params.get("address").and_then(|a| a.as_str()) {
@@ -1314,7 +1317,8 @@ async fn handle_contract_get_storage(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value { // fixed return type path
+) -> serde_json::Value {
+    // fixed return type path
     let (_storage, _tx_pool) = ctx;
 
     if let Some(contract_address) = params.get("contract_address").and_then(|a| a.as_str()) {
@@ -1322,7 +1326,8 @@ async fn handle_contract_get_storage(
             if let Ok(key) = hex::decode(key_hex) {
                 if let Ok(runtime) = ContractRuntime::new(1_000_000, 16) {
                     let addr = contract_address.to_string();
-                    if let Some(value) = runtime.get_contract_storage(&addr, &key) { // corrected method
+                    if let Some(value) = runtime.get_contract_storage(&addr, &key) {
+                        // corrected method
                         return serde_json::json!({
                             "value": hex::encode(&value)
                         });
@@ -1373,7 +1378,8 @@ async fn handle_wasm_deploy(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value { // unify
+) -> serde_json::Value {
+    // unify
     let (_storage, _tx_pool) = ctx;
     if let Some(code_base64) = params.get("code_base64").and_then(|c| c.as_str()) {
         if let Ok(code) = base64::engine::general_purpose::STANDARD.decode(code_base64) {
@@ -1423,7 +1429,8 @@ async fn handle_wasm_execute(
         Arc<crate::storage::StorageManager>,
         Arc<crate::types::TransactionPool>,
     ),
-) -> serde_json::Value { // unify
+) -> serde_json::Value {
+    // unify
     let (_storage, _tx_pool) = ctx;
 
     if let (Some(address), Some(method)) = (
@@ -1431,7 +1438,10 @@ async fn handle_wasm_execute(
         params.get("method").and_then(|m| m.as_str()),
     ) {
         if let Ok(runtime) = ContractRuntime::new(1_000_000, 16) {
-            let args_json = params.get("args_json").cloned().unwrap_or(serde_json::json!({}));
+            let args_json = params
+                .get("args_json")
+                .cloned()
+                .unwrap_or(serde_json::json!({}));
             let method_name = method.to_string();
             let call = ContractCall {
                 contract_id: address.to_string(),

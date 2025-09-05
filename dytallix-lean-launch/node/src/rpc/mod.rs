@@ -491,7 +491,11 @@ pub async fn gov_submit_proposal(
     Extension(ctx): Extension<RpcContext>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    if !ctx.features.governance { return Err(ApiError::NotImplemented("governance feature disabled".into())); }
+    if !ctx.features.governance {
+        return Err(ApiError::NotImplemented(
+            "governance feature disabled".into(),
+        ));
+    }
     use crate::runtime::governance::ProposalType;
 
     let title = body
@@ -530,7 +534,11 @@ pub async fn gov_deposit(
     Extension(ctx): Extension<RpcContext>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    if !ctx.features.governance { return Err(ApiError::NotImplemented("governance feature disabled".into())); }
+    if !ctx.features.governance {
+        return Err(ApiError::NotImplemented(
+            "governance feature disabled".into(),
+        ));
+    }
     let depositor = body
         .get("depositor")
         .and_then(|v| v.as_str())
@@ -563,7 +571,11 @@ pub async fn gov_vote(
     Extension(ctx): Extension<RpcContext>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    if !ctx.features.governance { return Err(ApiError::NotImplemented("governance feature disabled".into())); }
+    if !ctx.features.governance {
+        return Err(ApiError::NotImplemented(
+            "governance feature disabled".into(),
+        ));
+    }
     use crate::runtime::governance::VoteOption;
 
     let voter = body
@@ -964,7 +976,9 @@ pub async fn staking_delegate(
     Json(payload): Json<serde_json::Value>,
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    if !ctx.features.staking { return Err(ApiError::NotImplemented("staking feature disabled".into())); }
+    if !ctx.features.staking {
+        return Err(ApiError::NotImplemented("staking feature disabled".into()));
+    }
     let delegator_addr = payload["delegator_addr"]
         .as_str()
         .ok_or(ApiError::BadRequest("missing delegator_addr".to_string()))?;
@@ -990,7 +1004,9 @@ pub async fn staking_undelegate(
     Json(payload): Json<serde_json::Value>,
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    if !ctx.features.staking { return Err(ApiError::NotImplemented("staking feature disabled".into())); }
+    if !ctx.features.staking {
+        return Err(ApiError::NotImplemented("staking feature disabled".into()));
+    }
     let delegator_addr = payload["delegator_addr"]
         .as_str()
         .ok_or(ApiError::BadRequest("missing delegator_addr".to_string()))?;

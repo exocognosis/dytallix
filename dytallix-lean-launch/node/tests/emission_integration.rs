@@ -40,7 +40,10 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
         governance,
         staking,
         metrics,
-        features: dytallix_lean_node::rpc::FeatureFlags { governance: true, staking: true },
+        features: dytallix_lean_node::rpc::FeatureFlags {
+            governance: true,
+            staking: true,
+        },
     };
     let router = Router::new()
         .route("/stats", get(rpc::stats))

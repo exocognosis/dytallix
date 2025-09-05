@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 // Enable smart contracts integration now that the crate compiles
 use crate::crypto::PQCManager; // added
+use crate::genesis;
 use crate::staking::{
     Delegation, DelegatorRewardsSummary, DelegatorValidatorRewards, StakingError, StakingState,
     Validator,
@@ -16,8 +17,7 @@ use crate::wasm::host_env::{HostEnv, HostExecutionContext}; // keep host env
 use crate::wasm::WasmEngine; // updated simplified import
 use dytallix_contracts::runtime::{
     ContractCall, ContractDeployment, ContractRuntime, ExecutionResult,
-}; // added
-use crate::genesis; // import module to simplify path references
+}; // added // import module to simplify path references
 
 pub mod oracle;
 
@@ -55,7 +55,8 @@ impl Default for RuntimeState {
 
 impl RuntimeState {
     /// Initialize runtime state with genesis configuration
-    pub fn from_genesis(genesis: &genesis::GenesisConfig) -> Self { // updated path
+    pub fn from_genesis(genesis: &genesis::GenesisConfig) -> Self {
+        // updated path
         let mut state = Self::default();
 
         // Initialize staking with genesis parameters

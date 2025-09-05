@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
-use crate::error::InferenceError;
 use crate::config::FeatureConfig;
+use crate::error::InferenceError;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct FeatureExtractor {
@@ -47,7 +47,10 @@ impl FeatureExtractor {
         }
     }
 
-    pub async fn extract(&self, transaction: &crate::blockchain::Transaction) -> Result<TransactionFeatures, InferenceError> {
+    pub async fn extract(
+        &self,
+        transaction: &crate::blockchain::Transaction,
+    ) -> Result<TransactionFeatures, InferenceError> {
         let mut features = TransactionFeatures::default();
 
         // Extract velocity features
@@ -75,8 +78,10 @@ impl FeatureExtractor {
         if self.config.enable_graph_features {
             features.in_degree = self.calculate_in_degree(transaction).await?;
             features.out_degree = self.calculate_out_degree(transaction).await?;
-            features.clustering_coefficient = self.calculate_clustering_coefficient(transaction).await?;
-            features.betweenness_centrality = self.calculate_betweenness_centrality(transaction).await?;
+            features.clustering_coefficient =
+                self.calculate_clustering_coefficient(transaction).await?;
+            features.betweenness_centrality =
+                self.calculate_betweenness_centrality(transaction).await?;
             features.page_rank = self.calculate_page_rank(transaction).await?;
         }
 
@@ -84,28 +89,42 @@ impl FeatureExtractor {
         if self.config.enable_behavioral_features {
             features.gas_price_z_score = self.calculate_gas_price_z_score(transaction).await?;
             features.gas_limit_z_score = self.calculate_gas_limit_z_score(transaction).await?;
-            features.tx_frequency_pattern = self.calculate_tx_frequency_pattern(transaction).await?;
+            features.tx_frequency_pattern =
+                self.calculate_tx_frequency_pattern(transaction).await?;
             features.address_age_days = self.calculate_address_age(transaction).await?;
-            features.unique_counterparties = self.calculate_unique_counterparties(transaction).await?;
+            features.unique_counterparties =
+                self.calculate_unique_counterparties(transaction).await?;
         }
 
         Ok(features)
     }
 
-    async fn calculate_velocity_1h(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_velocity_1h(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         // Simplified implementation - would query database for actual velocity
         Ok(0.5) // Placeholder
     }
 
-    async fn calculate_velocity_24h(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_velocity_24h(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         Ok(0.3) // Placeholder
     }
 
-    async fn calculate_velocity_7d(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_velocity_7d(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         Ok(0.1) // Placeholder
     }
 
-    async fn calculate_amount_z_score(&self, transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_amount_z_score(
+        &self,
+        transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         // Calculate z-score based on historical amount distribution
         let amount = transaction.amount.parse::<f64>().unwrap_or(0.0);
         let mean = 1000.0; // Would be calculated from historical data
@@ -114,62 +133,102 @@ impl FeatureExtractor {
         Ok((amount - mean) / std_dev)
     }
 
-    async fn calculate_amount_percentile(&self, transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_amount_percentile(
+        &self,
+        transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         let amount = transaction.amount.parse::<f64>().unwrap_or(0.0);
         // Simplified percentile calculation
-        if amount < 100.0 { 0.2 }
-        else if amount < 1000.0 { 0.5 }
-        else if amount < 10000.0 { 0.8 }
-        else { 0.95 };
+        if amount < 100.0 {
+            0.2
+        } else if amount < 1000.0 {
+            0.5
+        } else if amount < 10000.0 {
+            0.8
+        } else {
+            0.95
+        };
 
         Ok(0.5) // Placeholder
     }
 
     fn is_round_amount(&self, transaction: &crate::blockchain::Transaction) -> f64 {
         let amount = transaction.amount.parse::<f64>().unwrap_or(0.0);
-        if amount % 1000.0 == 0.0 { 1.0 } else { 0.0 }
+        if amount % 1000.0 == 0.0 {
+            1.0
+        } else {
+            0.0
+        }
     }
 
-    fn extract_time_features(&self, transaction: &crate::blockchain::Transaction) -> (f64, f64, f64) {
-        use chrono::{DateTime, Utc, Timelike, Datelike, Weekday};
+    fn extract_time_features(
+        &self,
+        transaction: &crate::blockchain::Transaction,
+    ) -> (f64, f64, f64) {
+        use chrono::{DateTime, Datelike, Timelike, Utc, Weekday};
 
-        let datetime = DateTime::from_timestamp(transaction.timestamp as i64, 0)
-            .unwrap_or_else(Utc::now);
+        let datetime =
+            DateTime::from_timestamp(transaction.timestamp as i64, 0).unwrap_or_else(Utc::now);
 
         let hour_of_day = datetime.hour() as f64 / 24.0;
         let day_of_week = datetime.weekday().num_days_from_monday() as f64 / 7.0;
-        let is_weekend = if matches!(datetime.weekday(), Weekday::Sat | Weekday::Sun) { 1.0 } else { 0.0 };
+        let is_weekend = if matches!(datetime.weekday(), Weekday::Sat | Weekday::Sun) {
+            1.0
+        } else {
+            0.0
+        };
 
         (hour_of_day, day_of_week, is_weekend)
     }
 
-    async fn time_since_last_transaction(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn time_since_last_transaction(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         // Would query database for last transaction timestamp
         Ok(0.5) // Placeholder normalized value
     }
 
-    async fn calculate_in_degree(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_in_degree(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         // Would calculate from transaction graph
         Ok(0.3) // Placeholder
     }
 
-    async fn calculate_out_degree(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_out_degree(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         Ok(0.4) // Placeholder
     }
 
-    async fn calculate_clustering_coefficient(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_clustering_coefficient(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         Ok(0.2) // Placeholder
     }
 
-    async fn calculate_betweenness_centrality(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_betweenness_centrality(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         Ok(0.1) // Placeholder
     }
 
-    async fn calculate_page_rank(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_page_rank(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         Ok(0.15) // Placeholder
     }
 
-    async fn calculate_gas_price_z_score(&self, transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_gas_price_z_score(
+        &self,
+        transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         let gas_price = transaction.gas_price.parse::<f64>().unwrap_or(0.0);
         let mean = 20.0; // Would be calculated from historical data
         let std_dev = 5.0;
@@ -177,7 +236,10 @@ impl FeatureExtractor {
         Ok((gas_price - mean) / std_dev)
     }
 
-    async fn calculate_gas_limit_z_score(&self, transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_gas_limit_z_score(
+        &self,
+        transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         let gas_limit = transaction.gas_limit.parse::<f64>().unwrap_or(0.0);
         let mean = 21000.0; // Standard ETH transfer
         let std_dev = 10000.0;
@@ -185,17 +247,26 @@ impl FeatureExtractor {
         Ok((gas_limit - mean) / std_dev)
     }
 
-    async fn calculate_tx_frequency_pattern(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_tx_frequency_pattern(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         // Would analyze transaction timing patterns
         Ok(0.6) // Placeholder
     }
 
-    async fn calculate_address_age(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_address_age(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         // Would calculate days since first transaction
         Ok(365.0) // Placeholder: 1 year old address
     }
 
-    async fn calculate_unique_counterparties(&self, _transaction: &crate::blockchain::Transaction) -> Result<f64, InferenceError> {
+    async fn calculate_unique_counterparties(
+        &self,
+        _transaction: &crate::blockchain::Transaction,
+    ) -> Result<f64, InferenceError> {
         // Would count unique addresses interacted with
         Ok(10.0) // Placeholder
     }
@@ -258,8 +329,8 @@ impl Default for TransactionFeatures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::FeatureConfig;
     use crate::blockchain::Transaction;
+    use crate::config::FeatureConfig;
 
     #[tokio::test]
     async fn test_feature_extraction() {

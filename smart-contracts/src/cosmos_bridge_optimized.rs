@@ -987,7 +987,7 @@ fn create_burn_message(
 mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, from_binary};
+    use cosmwasm_std::{coins, from_json};
 
     #[test]
     fn test_optimized_state_flags() {
@@ -1114,7 +1114,7 @@ mod tests {
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         let res = query(deps.as_ref(), mock_env(), QueryMsg::GetState {}).unwrap();
-        let state: OptimizedState = from_binary(&res).unwrap();
+        let state: OptimizedState = from_json(&res).unwrap();
         assert_eq!(state.admin, "admin");
         assert!(state.is_ai_enabled());
         assert!(!state.is_paused());

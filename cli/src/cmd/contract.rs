@@ -355,8 +355,8 @@ impl ContractArgs {
     ) -> Result<()> {
         info!("Executing contract {} function: {}", contract, function);
 
-        let function_args: Value = serde_json::from_str(args)
-            .map_err(|e| anyhow!("Invalid args JSON: {}", e))?;
+        let function_args: Value =
+            serde_json::from_str(args).map_err(|e| anyhow!("Invalid args JSON: {}", e))?;
 
         let request = serde_json::json!({
             "contract_address": contract,
@@ -526,7 +526,11 @@ impl ContractArgs {
                 let response = rpc_client.call("wasm_deploy", &[request]).await?;
                 println!("{}", serde_json::to_string_pretty(&response)?);
             }
-            WasmCommand::Exec { address, method, gas } => {
+            WasmCommand::Exec {
+                address,
+                method,
+                gas,
+            } => {
                 info!("Executing WASM method {} on {}", method, address);
                 let request = serde_json::json!({
                     "contract_address": address,

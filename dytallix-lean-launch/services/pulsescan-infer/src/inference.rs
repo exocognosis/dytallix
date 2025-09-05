@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use ndarray::{Array1, Array2};
-use crate::error::InferenceError;
 use crate::config::Config;
+use crate::error::InferenceError;
+use ndarray::{Array1, Array2};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct InferenceEngine {
@@ -45,7 +45,10 @@ impl InferenceEngine {
         })
     }
 
-    pub async fn extract_features(&self, transaction: &crate::blockchain::Transaction) -> Result<Vec<f64>, InferenceError> {
+    pub async fn extract_features(
+        &self,
+        transaction: &crate::blockchain::Transaction,
+    ) -> Result<Vec<f64>, InferenceError> {
         use crate::features::FeatureExtractor;
 
         let extractor = FeatureExtractor::new(&self.config.features);
@@ -94,7 +97,11 @@ impl InferenceEngine {
         Ok(normalized_score.clamp(0.0, 1.0))
     }
 
-    fn determine_reasons(&self, features: &[f64], _output: &Array1<f32>) -> Result<Vec<String>, InferenceError> {
+    fn determine_reasons(
+        &self,
+        features: &[f64],
+        _output: &Array1<f32>,
+    ) -> Result<Vec<String>, InferenceError> {
         let mut reasons = Vec::new();
 
         // Simplified rule-based reasoning
@@ -125,7 +132,8 @@ impl InferenceEngine {
 
     fn calculate_confidence(&self, output: &Array1<f32>) -> Result<f64, InferenceError> {
         // Simplified confidence calculation
-        let variance = output.iter().map(|&x| (x as f64).powi(2)).sum::<f64>() / output.len() as f64;
+        let variance =
+            output.iter().map(|&x| (x as f64).powi(2)).sum::<f64>() / output.len() as f64;
         let confidence = 1.0 - variance.min(1.0);
         Ok(confidence.max(0.1)) // Minimum confidence of 0.1
     }
@@ -135,7 +143,9 @@ impl InferenceEngine {
             .iter()
             .enumerate()
             .map(|(i, &value)| {
-                let name = self.model.feature_names
+                let name = self
+                    .model
+                    .feature_names
                     .get(i)
                     .cloned()
                     .unwrap_or_else(|| format!("feature_{i}"));
@@ -164,9 +174,7 @@ impl AnomalyModel {
 
         let bias = Array1::from_vec(vec![0.0]);
 
-        let feature_names = (0..feature_count)
-            .map(|i| format!("feature_{i}"))
-            .collect();
+        let feature_names = (0..feature_count).map(|i| format!("feature_{i}")).collect();
 
         let thresholds = vec![0.5, 0.7, 0.9]; // Low, medium, high thresholds
 
@@ -203,7 +211,9 @@ mod tests {
     #[tokio::test]
     async fn test_inference() {
         let config = Config::default();
-        let engine = InferenceEngine::new("./test_models", &config).await.unwrap();
+        let engine = InferenceEngine::new("./test_models", &config)
+            .await
+            .unwrap();
 
         let features = vec![0.5; 20];
         let result = engine.infer(&features).await.unwrap();

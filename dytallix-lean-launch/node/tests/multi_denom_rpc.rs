@@ -52,7 +52,10 @@ async fn test_balance_endpoint() {
         governance,
         staking,
         metrics,
-        features: dytallix_lean_node::rpc::FeatureFlags { governance: true, staking: true },
+        features: dytallix_lean_node::rpc::FeatureFlags {
+            governance: true,
+            staking: true,
+        },
     };
 
     // Test multi-denomination response (no specific denom requested)

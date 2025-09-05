@@ -1446,7 +1446,7 @@ impl DytallixIBC {
         let start_time = std::time::Instant::now();
 
         // Use real Cosmos client if available
-        if let Some(cosmos_client) = &self.cosmos_client {
+        if let Some(_cosmos_client) = &self.cosmos_client {
             // Real IBC packet transmission using CosmJS integration
             println!(
                 "📡 Transmitting IBC packet via Cosmos client: {} -> {}",

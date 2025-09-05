@@ -10,12 +10,12 @@ mod runtime;
 mod storage;
 mod types;
 // Added modules required by runtime/api when compiled as bin (lib already exports these)
-mod staking;
-mod wasm; // PulseGuard WASM engine & host env
+mod contracts;
 mod genesis;
-mod contracts; // smart contract integration types
-// mod consensus;  // Temporarily disabled
-// mod networking;  // Temporarily disabled
+mod staking;
+mod wasm; // PulseGuard WASM engine & host env // smart contract integration types
+          // mod consensus;  // Temporarily disabled
+          // mod networking;  // Temporarily disabled
 
 // use crate::runtime::DytallixRuntime;  // Temporarily disabled
 use crate::crypto::PQCManager;
