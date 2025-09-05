@@ -578,7 +578,7 @@ mod tokenomics_error_tests {
     #[test]
     fn test_transfer_to_self() {
         let mut harness = TokenomicsTestHarness::new();
-        let accounts = harness.setup_test_accounts();
+        let _accounts = harness.setup_test_accounts();
 
         // Try to transfer tokens to self
         let result =

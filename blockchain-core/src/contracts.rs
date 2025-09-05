@@ -13,10 +13,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 // Re-export types from dytallix-contracts
-pub use dytallix_contracts::runtime::{
-    ContractExecutionError, ContractRuntime as WasmRuntime, ErrorCode,
-};
-pub use dytallix_contracts::types::{Address, Gas};
+pub use dytallix_contracts::runtime::{ContractRuntime as WasmRuntime};
 
 /// Blockchain-integrated contract runtime wrapper
 #[derive(Debug, Clone)]

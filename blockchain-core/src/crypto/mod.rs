@@ -1,5 +1,4 @@
 use dytallix_pqc::{PQCManager as DytallixPQCManager, Signature, SignatureAlgorithm};
-use hex;
 use log::info;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

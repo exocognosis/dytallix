@@ -48,6 +48,7 @@ impl Store {
         Ok(height.flatten())
     }
 
+    #[allow(dead_code)]
     pub fn get_blocks(&self, limit: u32, offset: u32) -> Result<Vec<Block>> {
         let mut stmt = self.conn.prepare(
             "SELECT height, hash, time, tx_count FROM blocks
@@ -71,6 +72,7 @@ impl Store {
         Ok(blocks)
     }
 
+    #[allow(dead_code)]
     pub fn get_transactions(&self, limit: u32, offset: u32) -> Result<Vec<Transaction>> {
         let mut stmt = self.conn.prepare(
             "SELECT hash, height, sender, recipient, amount, denom, status, gas_used
@@ -99,6 +101,7 @@ impl Store {
         Ok(txs)
     }
 
+    #[allow(dead_code)]
     pub fn get_transaction_by_hash(&self, hash: &str) -> Result<Option<Transaction>> {
         let mut stmt = self.conn.prepare(
             "SELECT hash, height, sender, recipient, amount, denom, status, gas_used

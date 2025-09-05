@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::{info};
 use warp::Filter;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,7 +31,7 @@ async fn main() {
     info!("Starting Dytallix Cross-Chain Bridge (Testnet)");
 
     // Initialize application state
-    let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+    let _state: AppState = Arc::new(RwLock::new(HashMap::new()));
 
     // Health check endpoint
     let health = warp::path("health").and(warp::get()).map(|| {

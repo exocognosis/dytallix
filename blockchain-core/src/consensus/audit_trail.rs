@@ -206,6 +206,18 @@ impl Default for AuditConfig {
     }
 }
 
+/// Arguments for recording an AI decision
+pub struct RecordAiDecisionArgs<'a> {
+    pub transaction: &'a Transaction,
+    pub transaction_hash: TxHash,
+    pub ai_result: AIVerificationResult,
+    pub risk_decision: RiskProcessingDecision,
+    pub risk_priority: ReviewPriority,
+    pub oracle_id: String,
+    pub request_id: String,
+    pub block_number: Option<u64>,
+}
+
 /// Main audit trail manager
 #[derive(Debug)]
 pub struct AuditTrailManager {
@@ -254,17 +266,7 @@ impl AuditTrailManager {
     }
 
     /// Record an AI decision in the audit trail
-    pub async fn record_ai_decision(
-        &self,
-        transaction: &Transaction,
-        transaction_hash: TxHash,
-        ai_result: AIVerificationResult,
-        risk_decision: RiskProcessingDecision,
-        risk_priority: ReviewPriority,
-        oracle_id: String,
-        request_id: String,
-        block_number: Option<u64>,
-    ) -> Result<Uuid> {
+    pub async fn record_ai_decision(&self, args: RecordAiDecisionArgs<'_>) -> Result<Uuid> {
         if !self.config.enabled {
             return Ok(Uuid::new_v4()); // Return dummy ID if disabled
         }
@@ -273,10 +275,11 @@ impl AuditTrailManager {
         let now = Utc::now();
 
         // Extract transaction metadata
-        let transaction_metadata = self.extract_transaction_metadata(transaction);
+        let transaction_metadata = self.extract_transaction_metadata(args.transaction);
 
         // Determine compliance status based on AI result and risk decision
-        let compliance_status = self.determine_compliance_status(&ai_result, &risk_decision);
+        let compliance_status =
+            self.determine_compliance_status(&args.ai_result, &args.risk_decision);
 
         // Determine retention policy based on transaction characteristics
         let retention_info =
@@ -284,14 +287,14 @@ impl AuditTrailManager {
 
         let audit_entry = AuditEntry {
             audit_id,
-            transaction_hash: transaction_hash.clone(),
-            block_number,
+            transaction_hash: args.transaction_hash.clone(),
+            block_number: args.block_number,
             timestamp: now,
-            ai_result,
-            risk_decision,
-            risk_priority,
-            oracle_id,
-            request_id,
+            ai_result: args.ai_result,
+            risk_decision: args.risk_decision,
+            risk_priority: args.risk_priority,
+            oracle_id: args.oracle_id,
+            request_id: args.request_id,
             transaction_metadata,
             compliance_status,
             retention_info,
@@ -307,7 +310,7 @@ impl AuditTrailManager {
         {
             let mut index = self.audit_index.write().await;
             index
-                .entry(transaction_hash.clone())
+                .entry(args.transaction_hash.clone())
                 .or_insert_with(Vec::new)
                 .push(audit_id);
         }
@@ -321,7 +324,7 @@ impl AuditTrailManager {
         info!(
             "Recorded audit entry {} for transaction {}",
             audit_id,
-            hex::encode(&transaction_hash)
+            hex::encode(&args.transaction_hash)
         );
 
         // Check if we need to flush
@@ -738,11 +741,14 @@ mod tests {
             from: "alice".to_string(),
             to: "bob".to_string(),
             amount: 1000,
-            fee: Some(10),
+            fee: 10,
             nonce: 1,
             timestamp: 1234567890,
             signature: crate::types::PQCTransactionSignature {
-                signature: vec![0x01, 0x02, 0x03],
+                signature: dytallix_pqc::Signature {
+                    data: vec![0x01, 0x02, 0x03],
+                    algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                },
                 public_key: vec![0x04, 0x05, 0x06],
             },
             ai_risk_score: Some(0.75),
@@ -775,16 +781,16 @@ mod tests {
         };
 
         let audit_id = audit_manager
-            .record_ai_decision(
-                &transaction,
-                tx_hash.clone(),
+            .record_ai_decision(RecordAiDecisionArgs {
+                transaction: &transaction,
+                transaction_hash: tx_hash.clone(),
                 ai_result,
                 risk_decision,
-                ReviewPriority::Medium,
-                "test-oracle".to_string(),
-                "test-request".to_string(),
-                Some(12345),
-            )
+                risk_priority: ReviewPriority::Medium,
+                oracle_id: "test-oracle".to_string(),
+                request_id: "test-request".to_string(),
+                block_number: Some(12345),
+            })
             .await
             .unwrap();
 
@@ -811,16 +817,16 @@ mod tests {
             };
 
             audit_manager
-                .record_ai_decision(
-                    &transaction,
-                    tx_hash,
+                .record_ai_decision(RecordAiDecisionArgs {
+                    transaction: &transaction,
+                    transaction_hash: tx_hash,
                     ai_result,
                     risk_decision,
-                    ReviewPriority::Medium,
-                    "test-oracle".to_string(),
-                    format!("test-request-{}", i),
-                    Some(12345 + i),
-                )
+                    risk_priority: ReviewPriority::Medium,
+                    oracle_id: "test-oracle".to_string(),
+                    request_id: format!("test-request-{}", i),
+                    block_number: Some(12345 + i),
+                })
                 .await
                 .unwrap();
         }
@@ -862,16 +868,16 @@ mod tests {
         };
 
         audit_manager
-            .record_ai_decision(
-                &transaction,
-                tx_hash,
+            .record_ai_decision(RecordAiDecisionArgs {
+                transaction: &transaction,
+                transaction_hash: tx_hash,
                 ai_result,
                 risk_decision,
-                ReviewPriority::Medium,
-                "test-oracle".to_string(),
-                "export-request".to_string(),
-                Some(12345),
-            )
+                risk_priority: ReviewPriority::Medium,
+                oracle_id: "test-oracle".to_string(),
+                request_id: "export-request".to_string(),
+                block_number: Some(12345),
+            })
             .await
             .unwrap();
 

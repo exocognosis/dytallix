@@ -361,12 +361,16 @@ mod tests {
         let config = NodeConfig::default();
         assert!(config.validate().is_ok());
 
-        let mut invalid_config = NodeConfig::default();
-        invalid_config.port = 0;
+        let invalid_config = NodeConfig {
+            port: 0,
+            ..Default::default()
+        };
         assert!(invalid_config.validate().is_err());
 
-        let mut short_jwt_config = NodeConfig::default();
-        short_jwt_config.jwt_secret = "short".to_string();
+        let short_jwt_config = NodeConfig {
+            jwt_secret: "short".to_string(),
+            ..Default::default()
+        };
         assert!(short_jwt_config.validate().is_err());
     }
 
@@ -375,10 +379,11 @@ mod tests {
         let dev_config = NodeConfig::default();
         assert!(!dev_config.is_production_ready());
 
-        let mut prod_config = NodeConfig::default();
-        prod_config.api_key = "real_api_key_12345678901234567890".to_string();
-        prod_config.jwt_secret =
-            "real_jwt_secret_1234567890123456789012345678901234567890".to_string();
+        let prod_config = NodeConfig {
+            api_key: "real_api_key_12345678901234567890".to_string(),
+            jwt_secret: "real_jwt_secret_1234567890123456789012345678901234567890".to_string(),
+            ..Default::default()
+        };
         assert!(prod_config.is_production_ready());
     }
 }

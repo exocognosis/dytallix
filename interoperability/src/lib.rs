@@ -613,12 +613,14 @@ impl DytallixBridge {
     }
 
     // Helper methods for bridge operations
+    #[allow(dead_code)]
     fn calculate_bridge_tx_hash(&self, bridge_tx: &BridgeTx) -> Result<Vec<u8>, BridgeError> {
         let serialized = serde_json::to_vec(bridge_tx)
             .map_err(|e| BridgeError::UnknownError(format!("Serialization error: {e}")))?;
         Ok(blake3::hash(&serialized).as_bytes().to_vec())
     }
 
+    #[allow(dead_code)]
     fn request_validator_signature(
         &self,
         validator_id: &str,
@@ -1170,6 +1172,7 @@ pub trait IBCModule {
     fn close_channel(&self, channel_id: String) -> Result<(), IBCError>;
 }
 
+#[allow(dead_code)]
 pub struct DytallixIBC {
     channels: HashMap<String, IBCChannel>,
     packet_commitments: HashMap<String, Vec<u8>>,
@@ -1336,6 +1339,7 @@ impl DytallixIBC {
     }
 
     // PQC signature verification implementations
+    #[allow(dead_code)]
     fn verify_dilithium_signature(
         &self,
         packet: &IBCPacket,
@@ -1367,6 +1371,7 @@ impl DytallixIBC {
         Ok(true) // Simulate successful verification for demo
     }
 
+    #[allow(dead_code)]
     fn verify_falcon_signature(
         &self,
         packet: &IBCPacket,
@@ -1389,6 +1394,7 @@ impl DytallixIBC {
         Ok(true) // Simulate successful verification for demo
     }
 
+    #[allow(dead_code)]
     fn verify_sphincs_signature(
         &self,
         packet: &IBCPacket,

@@ -55,6 +55,7 @@ impl Default for CosmosConfig {
 
 /// Cosmos connector for cross-chain bridge operations using IBC
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct CosmosConnector {
     config: CosmosConfig,
     ibc_client: CosmosIbcClient,

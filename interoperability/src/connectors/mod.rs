@@ -33,10 +33,10 @@ pub trait ChainConnector {
         Self: Sized;
 
     /// Get current block information
-    async fn get_current_block(&self) -> Result<Self::Block, BridgeError>;
+    fn get_current_block(&self) -> impl std::future::Future<Output = Result<Self::Block, BridgeError>> + Send;
 
     /// Verify transaction confirmation
-    async fn verify_transaction(&self, tx_hash: &Self::TxHash) -> Result<bool, BridgeError>;
+    fn verify_transaction(&self, tx_hash: &Self::TxHash) -> impl std::future::Future<Output = Result<bool, BridgeError>> + Send;
 }
 
 /// Multi-chain connector manager

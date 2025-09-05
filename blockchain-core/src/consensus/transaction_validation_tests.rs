@@ -33,6 +33,7 @@ async fn create_test_consensus_engine() -> Result<ConsensusEngine> {
 
     // Create consensus engine (it will initialize AI integration internally)
     let consensus = ConsensusEngine::new(runtime, pqc_manager)
+        .await
         .map_err(|e| anyhow::anyhow!("Consensus engine error: {}", e))?;
 
     Ok(consensus)
@@ -195,7 +196,7 @@ async fn test_basic_transaction_validation_with_ai() -> Result<()> {
 
 #[tokio::test]
 async fn test_transaction_to_ai_data_conversion() -> Result<()> {
-    let consensus = create_test_consensus_engine().await?;
+    let _consensus = create_test_consensus_engine().await?;
 
     // Test conversion of different transaction types
     let transfer = create_test_transfer_transaction(500, "dyt1alice", "dyt1bob");

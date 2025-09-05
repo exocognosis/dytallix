@@ -695,18 +695,27 @@ mod tests {
 
     fn create_test_transaction() -> Transaction {
         Transaction::Transfer(TransferTransaction {
+            hash: "test_tx_123".to_string(),
             from: "sender123".to_string(),
             to: "recipient456".to_string(),
             amount: 1000,
+            fee: 10,
             nonce: 1,
-            signature: vec![0x01, 0x02, 0x03],
             timestamp: Utc::now().timestamp() as u64,
+            signature: crate::types::PQCTransactionSignature {
+                signature: dytallix_pqc::Signature {
+                    data: vec![0x01, 0x02, 0x03],
+                    algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                },
+                public_key: vec![0x04, 0x05, 0x06],
+            },
+            ai_risk_score: Some(0.75),
         })
     }
 
     fn create_test_ai_result(risk_score: f64) -> AIVerificationResult {
         AIVerificationResult::Verified {
-            risk_score,
+            risk_score: Some(risk_score),
             confidence: Some(0.95),
             oracle_id: "test-oracle".to_string(),
             response_id: "test-response".to_string(),
@@ -730,7 +739,12 @@ mod tests {
         };
 
         let queue_id = queue
-            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .enqueue_transaction(
+                transaction,
+                hex::encode(tx_hash),
+                ai_result,
+                risk_decision,
+            )
             .await
             .unwrap();
 
@@ -762,15 +776,25 @@ mod tests {
 
         // Add in reverse priority order
         queue
-            .enqueue_transaction(tx1, [1u8; 32], low_risk, risk_decision.clone())
+            .enqueue_transaction(
+                tx1,
+                hex::encode([1u8; 32]),
+                low_risk,
+                risk_decision.clone(),
+            )
             .await
             .unwrap();
         queue
-            .enqueue_transaction(tx2, [2u8; 32], high_risk, risk_decision.clone())
+            .enqueue_transaction(
+                tx2,
+                hex::encode([2u8; 32]),
+                high_risk,
+                risk_decision.clone(),
+            )
             .await
             .unwrap();
         queue
-            .enqueue_transaction(tx3, [3u8; 32], critical_risk, risk_decision)
+            .enqueue_transaction(tx3, hex::encode([3u8; 32]), critical_risk, risk_decision)
             .await
             .unwrap();
 
@@ -796,7 +820,12 @@ mod tests {
         };
 
         let queue_id = queue
-            .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+            .enqueue_transaction(
+                transaction,
+                hex::encode(tx_hash),
+                ai_result,
+                risk_decision,
+            )
             .await
             .unwrap();
 
@@ -840,7 +869,12 @@ mod tests {
             let ai_result = create_test_ai_result(0.75);
 
             let queue_id = queue
-                .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision.clone())
+                .enqueue_transaction(
+                    transaction,
+                    hex::encode(tx_hash),
+                    ai_result,
+                    risk_decision.clone(),
+                )
                 .await
                 .unwrap();
             queue_ids.push(queue_id);
@@ -922,9 +956,7 @@ mod tests {
                 .expect("Failed to enqueue transaction");
 
             // Verify the transaction is in the queue
-            let pending = queue
-                .get_pending_transactions(Some(ReviewPriority::Critical))
-                .await;
+            let pending = queue.get_pending_transactions().await;
             assert_eq!(pending.len(), 1);
             assert_eq!(pending[0].queue_id, queue_id);
 
@@ -933,17 +965,17 @@ mod tests {
                 .approve_transaction(
                     queue_id,
                     "compliance_officer_1".to_string(),
-                    "Approved after review".to_string(),
+                    Some("Approved after review".to_string()),
                 )
                 .await;
             assert!(result.is_ok());
 
             // Verify the transaction is no longer pending
-            let pending_after = queue.get_pending_transactions(None).await;
+            let pending_after = queue.get_pending_transactions().await;
             assert_eq!(pending_after.len(), 0);
 
             // Check statistics
-            let stats = queue.get_queue_statistics().await;
+            let stats = queue.get_statistics().await;
             assert_eq!(stats.total_approved_today, 1);
             assert_eq!(stats.total_pending, 0);
         }

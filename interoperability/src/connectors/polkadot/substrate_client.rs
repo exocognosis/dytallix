@@ -142,23 +142,24 @@ impl SubstrateClient {
 
         println!("📤 Submitting XCM message to parachain {destination}");
 
-        match message {
-            XcmMessage {
-                version: _,
-                instructions,
-            } => {
-                println!("💸 XCM Message with {} instructions", instructions.len());
-                for (i, instruction) in instructions.iter().enumerate() {
-                    match instruction {
-                        crate::connectors::polkadot::xcm_handler::XcmInstruction::WithdrawAsset(_) => {
-                            println!("  Instruction {}: WithdrawAsset", i + 1);
-                        },
-                        crate::connectors::polkadot::xcm_handler::XcmInstruction::DepositAsset { .. } => {
-                            println!("  Instruction {}: DepositAsset", i + 1);
-                        },
-                        _ => {
-                            println!("  Instruction {}: Other", i + 1);
-                        }
+        let XcmMessage {
+            version: _,
+            instructions,
+        } = message;
+        {
+            println!("💸 XCM Message with {} instructions", instructions.len());
+            for (i, instruction) in instructions.iter().enumerate() {
+                match instruction {
+                    crate::connectors::polkadot::xcm_handler::XcmInstruction::WithdrawAsset(_) => {
+                        println!("  Instruction {}: WithdrawAsset", i + 1);
+                    }
+                    crate::connectors::polkadot::xcm_handler::XcmInstruction::DepositAsset {
+                        ..
+                    } => {
+                        println!("  Instruction {}: DepositAsset", i + 1);
+                    }
+                    _ => {
+                        println!("  Instruction {}: Other", i + 1);
                     }
                 }
             }

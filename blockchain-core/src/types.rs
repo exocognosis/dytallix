@@ -308,8 +308,8 @@ pub enum AIServiceType {
     RiskScoring,
     ContractAnalysis,
     AddressReputation,
-    KYC,
-    AML,
+    Kyc,
+    Aml,
     CreditAssessment,
     Unknown,
 }
@@ -329,7 +329,7 @@ pub struct AIRequestPayload {
 
 impl AIRequestPayload {
     /// Create a new request payload with a random ID and current timestamp
-    pub fn new(service_type: AIServiceType, request_data: Value) -> Self {
+    pub fn _new(service_type: AIServiceType, request_data: Value) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             service_type,
@@ -339,12 +339,12 @@ impl AIRequestPayload {
     }
 
     /// Serialize this payload to a JSON string
-    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+    pub fn _to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }
 
     /// Deserialize a payload from a JSON string
-    pub fn from_json(data: &str) -> Result<Self, serde_json::Error> {
+    pub fn _from_json(data: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(data)
     }
 }
@@ -366,12 +366,12 @@ pub struct AIResponsePayload {
 
 impl AIResponsePayload {
     /// Serialize this payload to a JSON string
-    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+    pub fn _to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }
 
     /// Deserialize a payload from a JSON string
-    pub fn from_json(data: &str) -> Result<Self, serde_json::Error> {
+    pub fn _from_json(data: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(data)
     }
 }
@@ -534,7 +534,7 @@ impl TransactionPool {
     }
 
     /// Get transactions with highest fees for block creation
-    pub async fn get_pending_transactions(&self, max_count: usize) -> Vec<Transaction> {
+    pub async fn _get_pending_transactions(&self, max_count: usize) -> Vec<Transaction> {
         let pending = self.pending.read().await;
         let mut transactions = Vec::new();
 
@@ -555,7 +555,7 @@ impl TransactionPool {
     }
 
     /// Remove transactions that have been included in a block
-    pub async fn remove_transactions(&self, tx_hashes: &[TxHash]) {
+    pub async fn _remove_transactions(&self, tx_hashes: &[TxHash]) {
         let mut pending = self.pending.write().await;
         let mut lookup = self.lookup.write().await;
 

@@ -7,7 +7,7 @@ use anyhow::{anyhow, Result};
 use argon2::{Algorithm, Argon2, Params, Version};
 use ripemd::{Digest as RipemdDigest, Ripemd160};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 use zeroize::ZeroizeOnDrop;
 
 // Re-export PQC types from the existing pqc-crypto crate
@@ -158,7 +158,7 @@ fn derive_master_seed(passphrase: &str, salt: &[u8], params: &Argon2Params) -> R
 }
 
 /// Generate Dilithium5 keypair from master seed
-fn generate_dilithium5_keypair(seed: &[u8]) -> Result<KeyPair> {
+fn generate_dilithium5_keypair(_seed: &[u8]) -> Result<KeyPair> {
     // Use seed to deterministically generate keypair
     // For now, we'll use the PQC manager to generate a keypair
     // In a real implementation, we'd use the seed as entropy for deterministic generation
@@ -193,7 +193,7 @@ pub(crate) fn derive_address(public_key: &[u8]) -> Result<String> {
 }
 
 /// Create PQC manager from existing keypair
-fn create_manager_from_keypair(keypair: &KeyPair) -> Result<PQCManager> {
+fn create_manager_from_keypair(_keypair: &KeyPair) -> Result<PQCManager> {
     // This is a placeholder implementation
     // In practice, we'd need to create a manager that uses the existing keypair
     PQCManager::new_with_algorithms(

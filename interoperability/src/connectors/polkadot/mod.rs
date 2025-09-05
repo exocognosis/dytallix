@@ -57,6 +57,7 @@ impl Default for PolkadotConfig {
 
 /// Polkadot connector for cross-chain bridge operations using XCM
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct PolkadotConnector {
     config: PolkadotConfig,
     substrate_client: SubstrateClient,

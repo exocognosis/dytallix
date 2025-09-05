@@ -27,7 +27,7 @@ impl GenesisBlockCreator {
     /// Create the genesis block
     pub fn create_genesis_block(&self) -> Result<Block, String> {
         // Validate the configuration first
-        self.config.validate()?;
+        self.config._validate()?;
 
         // Create genesis transactions for DGT allocations
         let genesis_transactions = self.create_genesis_transactions()?;
@@ -161,13 +161,13 @@ impl GenesisBlockCreator {
     /// Get vested amount for an address at current time
     pub fn get_current_vested_amount(&self, address: &Address) -> Amount {
         let current_time = Utc::now().timestamp() as u64;
-        self.config.get_vested_amount(address, current_time)
+        self.config._get_vested_amount(address, current_time)
     }
 
     /// Get locked amount for an address at current time
     pub fn get_current_locked_amount(&self, address: &Address) -> Amount {
         let current_time = Utc::now().timestamp() as u64;
-        self.config.get_locked_amount(address, current_time)
+        self.config._get_locked_amount(address, current_time)
     }
 
     /// Check if an address can transfer a certain amount considering vesting
@@ -180,11 +180,13 @@ impl GenesisBlockCreator {
 /// Genesis initialization helper for the consensus engine
 pub struct GenesisInitializer;
 
+/// Result of blockchain initialization
+pub type GenesisInitializationResult =
+    Result<(Block, HashMap<Address, AccountState>, Vec<ValidatorInfo>), String>;
+
 impl GenesisInitializer {
     /// Initialize the blockchain with genesis configuration
-    pub fn initialize_blockchain(
-        config: GenesisConfig,
-    ) -> Result<(Block, HashMap<Address, AccountState>, Vec<ValidatorInfo>), String> {
+    pub fn initialize_blockchain(config: GenesisConfig) -> GenesisInitializationResult {
         // Create genesis block
         let creator = GenesisBlockCreator::new(config.clone());
         let genesis_block = creator.create_genesis_block()?;

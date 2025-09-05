@@ -3,17 +3,17 @@ use anyhow::{anyhow, Result};
 use blake3::Hasher;
 use std::collections::HashMap;
 
-pub trait ContractStore {
-    fn put_code(&mut self, code: &[u8]) -> Result<CodeHash>;
-    fn get_code(&self, hash: &CodeHash) -> Result<Vec<u8>>;
-    fn create_instance(
+pub trait _ContractStore {
+    fn _put_code(&mut self, code: &[u8]) -> Result<CodeHash>;
+    fn _get_code(&self, hash: &CodeHash) -> Result<Vec<u8>>;
+    fn _create_instance(
         &mut self,
         code_hash: CodeHash,
         creator: Address,
         height: u64,
     ) -> Result<ContractInstance>;
-    fn get_instance(&self, addr: &Address) -> Result<ContractInstance>;
-    fn update_instance(&mut self, instance: &ContractInstance) -> Result<()>;
+    fn _get_instance(&self, addr: &Address) -> Result<ContractInstance>;
+    fn _update_instance(&mut self, instance: &ContractInstance) -> Result<()>;
 }
 
 pub struct InMemoryContractStore {
@@ -44,21 +44,21 @@ fn blake3_hash(data: &[u8]) -> [u8; 32] {
     *h.finalize().as_bytes()
 }
 
-impl ContractStore for InMemoryContractStore {
-    fn put_code(&mut self, code: &[u8]) -> Result<CodeHash> {
+impl _ContractStore for InMemoryContractStore {
+    fn _put_code(&mut self, code: &[u8]) -> Result<CodeHash> {
         let hash = blake3_hash(code);
         self.code.entry(hash.to_vec()).or_insert(code.to_vec());
         Ok(hash)
     }
 
-    fn get_code(&self, hash: &CodeHash) -> Result<Vec<u8>> {
+    fn _get_code(&self, hash: &CodeHash) -> Result<Vec<u8>> {
         self.code
-            .get(&hash.to_vec())
+            .get(hash.as_slice())
             .cloned()
             .ok_or_else(|| anyhow!("code not found"))
     }
 
-    fn create_instance(
+    fn _create_instance(
         &mut self,
         code_hash: CodeHash,
         creator: Address,
@@ -81,14 +81,14 @@ impl ContractStore for InMemoryContractStore {
         Ok(inst)
     }
 
-    fn get_instance(&self, addr: &Address) -> Result<ContractInstance> {
+    fn _get_instance(&self, addr: &Address) -> Result<ContractInstance> {
         self.instances
-            .get(&addr.to_vec())
+            .get(addr.as_slice())
             .cloned()
             .ok_or_else(|| anyhow!("instance not found"))
     }
 
-    fn update_instance(&mut self, instance: &ContractInstance) -> Result<()> {
+    fn _update_instance(&mut self, instance: &ContractInstance) -> Result<()> {
         self.instances
             .insert(instance.address.to_vec(), instance.clone());
         Ok(())

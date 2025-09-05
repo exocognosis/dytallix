@@ -16,7 +16,7 @@ use crate::consensus::{
     signature_verification::{SignatureVerifier, VerificationConfig},
     AIOracleClient, AIServiceConfig, SignedAIOracleResponse,
 };
-use crate::types::{Address, Amount, Transaction};
+use crate::types::{Address, Transaction};
 
 /// Enhanced AI integration configuration with oracle management
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -150,32 +150,17 @@ impl EnhancedAIIntegrationManager {
     /// Register a new oracle with stake requirements
     pub async fn register_oracle(
         &self,
-        oracle_address: Address,
-        oracle_name: String,
-        description: String,
-        public_key: Vec<u8>,
-        stake_amount: Amount,
-        oracle_version: String,
-        supported_services: Vec<String>,
-        contact_info: Option<String>,
+        args: crate::consensus::oracle_registry::RegisterOracleArgs,
     ) -> Result<()> {
-        info!("Registering oracle {oracle_address} with stake {stake_amount}");
+        info!(
+            "Registering oracle {} with stake {}",
+            args.oracle_address, args.stake_amount
+        );
 
         // Register with the oracle registry
-        self.oracle_registry
-            .register_oracle(
-                oracle_address.clone(),
-                oracle_name,
-                description,
-                public_key.clone(),
-                stake_amount,
-                oracle_version,
-                supported_services,
-                contact_info,
-            )
-            .await?;
+        self.oracle_registry.register_oracle(args).await?;
 
-        info!("Oracle {oracle_address} registered successfully");
+        info!("Oracle registered successfully");
         Ok(())
     }
 
@@ -517,7 +502,6 @@ impl EnhancedAIIntegrationManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::TransferTransaction;
 
     #[tokio::test]
     async fn test_enhanced_ai_integration() {
@@ -526,16 +510,16 @@ mod tests {
 
         // Register an oracle
         let result = manager
-            .register_oracle(
-                "dyt1test_oracle".to_string(),
-                "Test Oracle".to_string(),
-                "Test oracle for integration testing".to_string(),
-                vec![1, 2, 3, 4],
-                2000000000, // 20 DYTX
-                "1.0.0".to_string(),
-                vec!["risk_scoring".to_string()],
-                Some("test@example.com".to_string()),
-            )
+            .register_oracle(crate::consensus::oracle_registry::RegisterOracleArgs {
+                oracle_address: "dyt1test_oracle".to_string(),
+                oracle_name: "Test Oracle".to_string(),
+                description: "Test oracle for integration testing".to_string(),
+                public_key: vec![1, 2, 3, 4],
+                stake_amount: 2000000000, // 20 DYTX
+                oracle_version: "1.0.0".to_string(),
+                supported_services: vec!["risk_scoring".to_string()],
+                contact_info: Some("test@example.com".to_string()),
+            })
             .await;
 
         assert!(result.is_ok());

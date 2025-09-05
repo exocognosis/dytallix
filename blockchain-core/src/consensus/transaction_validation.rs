@@ -205,16 +205,16 @@ impl TransactionValidator {
 
         if let Err(e) = self
             .audit_trail
-            .record_ai_decision(
-                tx,
-                tx.hash(),
+            .record_ai_decision(crate::consensus::audit_trail::RecordAiDecisionArgs {
+                transaction: tx,
+                transaction_hash: tx.hash(),
                 ai_result,
                 risk_decision,
-                ReviewPriority::Medium,
-                "validation_engine".to_string(),
-                "validation_request".to_string(),
-                None,
-            )
+                risk_priority: ReviewPriority::Medium,
+                oracle_id: "validation_engine".to_string(),
+                request_id: "validation_request".to_string(),
+                block_number: None,
+            })
             .await
         {
             result.add_warning(format!("Failed to log to audit trail: {e}"));

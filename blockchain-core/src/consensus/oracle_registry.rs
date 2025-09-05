@@ -208,6 +208,19 @@ pub struct OracleAccessControl {
     pub access_notes: HashMap<Address, String>,
 }
 
+/// Arguments for registering a new oracle
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegisterOracleArgs {
+    pub oracle_address: Address,
+    pub oracle_name: String,
+    pub description: String,
+    pub public_key: Vec<u8>,
+    pub stake_amount: Amount,
+    pub oracle_version: String,
+    pub supported_services: Vec<String>,
+    pub contact_info: Option<String>,
+}
+
 /// Oracle registry and reputation management system
 pub struct OracleRegistry {
     /// Registry configuration
@@ -274,32 +287,22 @@ impl OracleRegistry {
     }
 
     /// Register a new oracle with stake requirements
-    pub async fn register_oracle(
-        &self,
-        oracle_address: Address,
-        oracle_name: String,
-        description: String,
-        public_key: Vec<u8>,
-        stake_amount: Amount,
-        oracle_version: String,
-        supported_services: Vec<String>,
-        contact_info: Option<String>,
-    ) -> Result<()> {
+    pub async fn register_oracle(&self, args: RegisterOracleArgs) -> Result<()> {
         // Verify stake amount meets minimum requirement
-        if stake_amount < self.config.min_stake_amount {
+        if args.stake_amount < self.config.min_stake_amount {
             return Err(anyhow::anyhow!(
                 "Stake amount {} is below minimum requirement {}",
-                stake_amount,
+                args.stake_amount,
                 self.config.min_stake_amount
             ));
         }
 
         // Check if oracle already exists
         let oracles = self.oracles.read().await;
-        if oracles.contains_key(&oracle_address) {
+        if oracles.contains_key(&args.oracle_address) {
             return Err(anyhow::anyhow!(
                 "Oracle {} already registered",
-                oracle_address
+                args.oracle_address
             ));
         }
 
@@ -311,17 +314,20 @@ impl OracleRegistry {
 
         // Check access control
         let access_control = self.access_control.read().await;
-        if access_control.blacklist.contains(&oracle_address) {
-            return Err(anyhow::anyhow!("Oracle {} is blacklisted", oracle_address));
+        if access_control.blacklist.contains(&args.oracle_address) {
+            return Err(anyhow::anyhow!(
+                "Oracle {} is blacklisted",
+                args.oracle_address
+            ));
         }
 
         // If whitelist exists and is not empty, oracle must be whitelisted
         if !access_control.whitelist.is_empty()
-            && !access_control.whitelist.contains(&oracle_address)
+            && !access_control.whitelist.contains(&args.oracle_address)
         {
             return Err(anyhow::anyhow!(
                 "Oracle {} is not whitelisted",
-                oracle_address
+                args.oracle_address
             ));
         }
         drop(access_control);
@@ -330,13 +336,13 @@ impl OracleRegistry {
 
         // Create oracle entry
         let oracle_entry = OracleRegistryEntry {
-            oracle_address: oracle_address.clone(),
-            oracle_name,
-            description,
-            public_key,
+            oracle_address: args.oracle_address.clone(),
+            oracle_name: args.oracle_name,
+            description: args.description,
+            public_key: args.public_key,
             status: OracleStatus::Pending, // Start as pending, admin can activate
             stake: OracleStake {
-                total_amount: stake_amount,
+                total_amount: args.stake_amount,
                 locked_amount: 0,
                 staked_at: now,
                 last_updated: now,
@@ -347,24 +353,27 @@ impl OracleRegistry {
             performance: OraclePerformanceMetrics::default(),
             registered_at: now,
             last_activity: now,
-            contact_info,
-            oracle_version,
-            supported_services,
+            contact_info: args.contact_info,
+            oracle_version: args.oracle_version,
+            supported_services: args.supported_services,
         };
 
         // Add to registry
         let mut oracles = self.oracles.write().await;
-        oracles.insert(oracle_address.clone(), oracle_entry);
+        oracles.insert(args.oracle_address.clone(), oracle_entry);
         drop(oracles);
 
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.total_registered += 1;
-        stats.total_stake += stake_amount;
+        stats.total_stake += args.stake_amount;
         stats.last_updated = now;
         drop(stats);
 
-        info!("Oracle {oracle_address} registered successfully with stake {stake_amount}");
+        info!(
+            "Oracle {} registered successfully with stake {}",
+            args.oracle_address, args.stake_amount
+        );
         Ok(())
     }
 
@@ -451,7 +460,7 @@ impl OracleRegistry {
             // Combined reputation score (weighted average)
             let new_score =
                 (accuracy_score * 0.5) + (signature_score * 0.3) + (response_time_score * 0.2);
-            reputation.current_score = new_score.min(1.0).max(0.0);
+            reputation.current_score = new_score.clamp(0.0, 1.0);
             reputation.max_score = reputation.max_score.max(reputation.current_score);
             reputation.last_updated = now;
 
@@ -685,16 +694,16 @@ mod tests {
         let registry = OracleRegistry::new(config).unwrap();
 
         let result = registry
-            .register_oracle(
-                "dyt1oracle1".to_string(),
-                "Test Oracle".to_string(),
-                "Test oracle for unit testing".to_string(),
-                vec![1, 2, 3, 4],
-                2000000000, // 20 DYTX
-                "1.0.0".to_string(),
-                vec!["risk_scoring".to_string()],
-                Some("test@example.com".to_string()),
-            )
+            .register_oracle(RegisterOracleArgs {
+                oracle_address: "dyt1oracle1".to_string(),
+                oracle_name: "Test Oracle".to_string(),
+                description: "Test oracle for unit testing".to_string(),
+                public_key: vec![1, 2, 3, 4],
+                stake_amount: 2000000000, // 20 DYTX
+                oracle_version: "1.0.0".to_string(),
+                supported_services: vec!["risk_scoring".to_string()],
+                contact_info: Some("test@example.com".to_string()),
+            })
             .await;
 
         assert!(result.is_ok());
@@ -711,16 +720,16 @@ mod tests {
 
         // Register oracle
         registry
-            .register_oracle(
-                "dyt1oracle2".to_string(),
-                "Test Oracle 2".to_string(),
-                "Test oracle 2".to_string(),
-                vec![5, 6, 7, 8],
-                2000000000,
-                "1.0.0".to_string(),
-                vec!["risk_scoring".to_string()],
-                None,
-            )
+            .register_oracle(RegisterOracleArgs {
+                oracle_address: "dyt1oracle2".to_string(),
+                oracle_name: "Test Oracle 2".to_string(),
+                description: "Test oracle 2".to_string(),
+                public_key: vec![5, 6, 7, 8],
+                stake_amount: 2000000000,
+                oracle_version: "1.0.0".to_string(),
+                supported_services: vec!["risk_scoring".to_string()],
+                contact_info: None,
+            })
             .await
             .unwrap();
 
@@ -756,16 +765,16 @@ mod tests {
 
         // Register and activate oracle
         registry
-            .register_oracle(
-                "dyt1oracle3".to_string(),
-                "Test Oracle 3".to_string(),
-                "Test oracle 3".to_string(),
-                vec![9, 10, 11, 12],
-                2000000000,
-                "1.0.0".to_string(),
-                vec!["risk_scoring".to_string()],
-                None,
-            )
+            .register_oracle(RegisterOracleArgs {
+                oracle_address: "dyt1oracle3".to_string(),
+                oracle_name: "Test Oracle 3".to_string(),
+                description: "Test oracle 3".to_string(),
+                public_key: vec![9, 10, 11, 12],
+                stake_amount: 2000000000,
+                oracle_version: "1.0.0".to_string(),
+                supported_services: vec!["risk_scoring".to_string()],
+                contact_info: None,
+            })
             .await
             .unwrap();
 

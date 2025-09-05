@@ -4,7 +4,6 @@ use super::performance_optimizer::*;
 use crate::consensus::ai_integration::{AIVerificationResult, RiskProcessingDecision};
 use crate::types::{PQCTransactionSignature, Transaction, TransferTransaction};
 use chrono::Utc;
-use dytallix_pqc::Signature;
 
 #[tokio::test]
 async fn test_performance_optimizer_basic_functionality() {
