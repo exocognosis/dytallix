@@ -109,6 +109,13 @@ const Explorer = () => {
   const [loadingBlocks, setLoadingBlocks] = useState(false)
   const [loadingTxs, setLoadingTxs] = useState(false)
   const [riskByHash, setRiskByHash] = useState({})
+  // Governance state
+  const [proposals, setProposals] = useState([])
+  const [loadingGov, setLoadingGov] = useState(false)
+  const [govError, setGovError] = useState('')
+  // Contracts state
+  const [contracts, setContracts] = useState([])
+  const [loadingContracts, setLoadingContracts] = useState(false)
 
   // Detail state
   const [blockDetail, setBlockDetail] = useState(null)
@@ -249,11 +256,14 @@ const Explorer = () => {
       setBlockDetail(null)
       setTxDetail(null)
 
-      const [info, hist] = await Promise.all([
+      const [info, hist, accrued] = await Promise.all([
         fetchJson(API.addr(addr)).catch(() => null),
-        fetchJson(API.addrTxs(addr, 20, 1)).catch(() => ({ transactions: [] }))
+        fetchJson(API.addrTxs(addr, 20, 1)).catch(() => ({ transactions: [] })),
+        fetchJson(`/api/staking/accrued/${encodeURIComponent(addr)}`).catch(() => null)
       ])
-      setAddrDetail(info || { address: addr, balance: '—' })
+      const enriched = info || { address: addr, balance: '—' }
+      if (accrued && accrued.accrued_rewards != null) enriched.accruedRewards = accrued.accrued_rewards
+      setAddrDetail(enriched)
       setAddrTxs(hist?.transactions || [])
       const p = new URLSearchParams(searchParams)
       p.set('address', addr)
@@ -314,11 +324,32 @@ const Explorer = () => {
     _raw: t,
   }))
 
+  // Governance helpers
+  const refreshGov = async () => {
+    setLoadingGov(true); setGovError('')
+    try { const res = await fetchJson('/api/governance/proposals'); setProposals(res.proposals || []) }
+    catch { setGovError('Failed to load proposals') }
+    finally { setLoadingGov(false) }
+  }
+  const castVote = async (id, voter, option) => {
+    try { await fetchJson('/api/governance/vote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ proposal_id: id, voter, option }) }); await refreshGov() } catch {}
+  }
+
+  // Contracts helpers
+  const refreshContracts = async () => {
+    setLoadingContracts(true)
+    try { const res = await fetchJson('/api/contracts'); setContracts(res.contracts || []) } catch { setContracts([]) } finally { setLoadingContracts(false) }
+  }
+  const execContract = async (address, func = 'increment') => {
+    try { await fetchJson(`/api/contracts/${encodeURIComponent(address)}/execute`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ function: func }) }); await refreshContracts() } catch {}
+  }
+
   const tabs = [
     { id: 'all', label: 'All' },
     { id: 'blocks', label: 'Blocks' },
     { id: 'transactions', label: 'Transactions' },
     { id: 'contracts', label: 'Contracts' },
+    { id: 'governance', label: 'Governance' },
     { id: 'addresses', label: 'Addresses' },
   ]
 
@@ -465,8 +496,44 @@ const Explorer = () => {
 
         {/* Contracts tab content */}
         {activeTab === 'contracts' && (
-          <SectionCard title="Contracts" subtitle="Deployed contracts on Dytallix">
-            <div className="muted">Contract index coming soon. You can deploy from the Deploy page and open a contract address here.</div>
+          <SectionCard title="Contracts" subtitle="Deployed contracts and gas stats" right={<button className="btn" onClick={async ()=>{await refreshContracts()}}>{loadingContracts ? 'Loading…' : 'Refresh'}</button>}>
+            <DataTable
+              columns={[{ key: 'address', label: 'Address' }, { key: 'counter', label: 'Counter', align: 'right' }, { key: 'actions', label: 'Actions', align: 'right' }]}
+              rows={(contracts||[]).map((c)=>({
+                address: (<a href={`/explorer?address=${c.address}`} onClick={(e)=>{e.preventDefault(); openAddress(c.address)}}>{shortHash(c.address)}</a>),
+                counter: <b>{c.counter}</b>,
+                actions: (<button className="btn" onClick={()=>execContract(c.address,'increment')}>Increment</button>),
+              }))}
+              emptyLabel={loadingContracts ? 'Loading…' : 'No contracts'}
+            />
+          </SectionCard>
+        )}
+
+        {/* Governance tab content */}
+        {activeTab === 'governance' && (
+          <SectionCard title="Governance" subtitle="Proposals and voting" right={<button className="btn" onClick={async ()=>{await refreshGov()}}>{loadingGov ? 'Loading…' : 'Refresh'}</button>}>
+            {govError ? <div className="card" style={{ borderColor: 'rgba(239,68,68,0.3)' }}><div style={{ color: '#FCA5A5', fontWeight: 700 }}>{govError}</div></div> : null}
+            <DataTable
+              columns={[{ key: 'id', label: 'ID' }, { key: 'title', label: 'Title' }, { key: 'status', label: 'Status' }, { key: 'tally', label: 'Tally' }, { key: 'vote', label: 'Vote', align: 'right' }]}
+              rows={(proposals||[]).map((p)=>({
+                id: <b>#{p.id}</b>,
+                title: p.title,
+                status: <span className="muted">{p.status}</span>,
+                tally: (()=>{ const t=p.current_tally; return t? <span>{Math.floor((Number(t.yes||0)/(Number(t.total_voting_power||1)))*100)}% yes</span> : <span className="muted">—</span> })(),
+                vote: (()=>{ let opt='yes'; return (
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <select onChange={(e)=>{opt=e.target.value}} defaultValue={'yes'}>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                      <option value="abstain">Abstain</option>
+                      <option value="no_with_veto">No with veto</option>
+                    </select>
+                    <button className="btn" onClick={()=>{ const voter=prompt('Enter voter address'); if(voter) castVote(p.id, voter, opt) }}>Vote</button>
+                  </div>
+                ) })(),
+              }))}
+              emptyLabel={loadingGov ? 'Loading…' : 'No proposals'}
+            />
           </SectionCard>
         )}
       </div>
@@ -569,6 +636,7 @@ const Explorer = () => {
             <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
               <div className="card"><div className="muted">Address</div><code style={{ wordBreak: 'break-all' }}>{addrDetail.address}</code></div>
               <div className="card"><div className="muted">Balance</div><div style={{ fontWeight: 800 }}>{addrDetail.balance || '—'}</div></div>
+              <div className="card"><div className="muted">Accrued DRT</div><div style={{ fontWeight: 800 }}>{addrDetail.accruedRewards ? `${Math.floor(Number(addrDetail.accruedRewards)/1_000_000)} DRT` : '—'}</div></div>
               <div className="card"><div className="muted">First Seen</div><div style={{ fontWeight: 700 }}>{fmtTime(addrDetail.firstSeen || '')}</div></div>
               <div className="card"><div className="muted">Last Seen</div><div style={{ fontWeight: 700 }}>{fmtTime(addrDetail.lastSeen || '')}</div></div>
             </div>

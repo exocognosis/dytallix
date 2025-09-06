@@ -12,6 +12,7 @@ import { queryCommand } from './commands/query.js'
 import { signCommand } from './commands/sign.js'
 import { broadcastCommand } from './commands/broadcast.js'
 import { transferCommand } from './commands/transfer.js'
+import { govCommand } from './commands/gov.js'
 
 const program = new Command()
 
@@ -34,6 +35,7 @@ program.addCommand(queryCommand)
 program.addCommand(signCommand)
 program.addCommand(broadcastCommand)
 program.addCommand(transferCommand)
+program.addCommand(govCommand)
 
 // Error handling
 program.configureOutput({

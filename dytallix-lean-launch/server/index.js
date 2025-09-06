@@ -380,10 +380,63 @@ app.get('/api/governance/proposals/:id', async (req, res, next) => {
 app.get('/api/governance/proposals/:id/tally', async (req, res, next) => {
   try { res.json(await nodeGet(`/gov/tally/${encodeURIComponent(req.params.id)}`)) } catch (e) { next(e) }
 })
+app.post('/api/governance/submit', async (req, res, next) => {
+  try {
+    const r = await fetch(NODE_BASE + '/gov/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
+    const j = await r.json().catch(() => null)
+    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    res.json(j)
+  } catch (e) { next(e) }
+})
+app.post('/api/governance/deposit', async (req, res, next) => {
+  try {
+    const r = await fetch(NODE_BASE + '/gov/deposit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
+    const j = await r.json().catch(() => null)
+    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    res.json(j)
+  } catch (e) { next(e) }
+})
+app.post('/api/governance/vote', async (req, res, next) => {
+  try {
+    const r = await fetch(NODE_BASE + '/gov/vote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
+    const j = await r.json().catch(() => null)
+    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    res.json(j)
+  } catch (e) { next(e) }
+})
 
 // Staking (minimal): accrued + APR placeholder
 app.get('/api/staking/accrued/:address', async (req, res, next) => {
   try { res.json(await nodeGet(`/api/staking/accrued/${encodeURIComponent(req.params.address)}`)) } catch (e) { next(e) }
+})
+
+// Contracts: list, deploy, execute
+app.get('/api/contracts', async (req, res, next) => {
+  try { res.json(await nodeGet('/api/contracts')) } catch (e) { next(e) }
+})
+app.post('/api/contracts/deploy', async (req, res, next) => {
+  try {
+    const codeHex = String(req.body?.code_hex || '')
+    const gasLimit = Number(req.body?.gas_limit || 100000)
+    if (!codeHex) return res.status(400).json({ error: 'missing code_hex' })
+    const body = { jsonrpc: '2.0', id: 1, method: 'contract_deploy', params: [{ code: codeHex, gas_limit: gasLimit }] }
+    const r = await fetch(NODE_BASE + '/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    const j = await r.json().catch(() => null)
+    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    res.json(j?.result || j)
+  } catch (e) { next(e) }
+})
+app.post('/api/contracts/:address/execute', async (req, res, next) => {
+  try {
+    const address = req.params.address
+    const func = String(req.body?.function || 'get')
+    const gasLimit = Number(req.body?.gas_limit || 100000)
+    const body = { jsonrpc: '2.0', id: 1, method: 'contract_execute', params: [{ contract_address: address, function: func, gas_limit: gasLimit }] }
+    const r = await fetch(NODE_BASE + '/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    const j = await r.json().catch(() => null)
+    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    res.json(j?.result || j)
+  } catch (e) { next(e) }
 })
 app.get('/api/staking/apr', (req, res) => {
   res.json({ apr: 0.12, asOf: new Date().toISOString() }) // placeholder 12%

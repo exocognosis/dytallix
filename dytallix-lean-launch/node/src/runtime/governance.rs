@@ -1,6 +1,7 @@
 use crate::{runtime::staking::StakingModule, state::State, storage::state::Storage};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
+use std::{fs, path::PathBuf};
 
 /// Governance configuration with sensible defaults
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -211,6 +212,7 @@ impl GovernanceModule {
 
         self.store_proposal(&proposal)?;
         self.emit_event(GovernanceEvent::ProposalSubmitted { id: proposal_id });
+        let _ = self.write_governance_evidence();
         Ok(proposal_id)
     }
 
@@ -271,6 +273,7 @@ impl GovernanceModule {
             id: proposal_id,
             amount,
         });
+        let _ = self.write_governance_evidence();
         Ok(())
     }
 
@@ -315,6 +318,7 @@ impl GovernanceModule {
             id: proposal_id,
             voter: voter.to_string(),
         });
+        let _ = self.write_governance_evidence();
         Ok(())
     }
 
@@ -336,6 +340,7 @@ impl GovernanceModule {
                                 id: proposal_id,
                                 reason: Some("Insufficient deposits - proposal failed".to_string()),
                             });
+                            let _ = self.write_governance_evidence();
                         }
                     }
                     ProposalStatus::VotingPeriod => {
@@ -353,6 +358,7 @@ impl GovernanceModule {
                                     no: tally.no,
                                     abstain: tally.abstain,
                                 });
+                                let _ = self.write_governance_evidence();
                             } else {
                                 proposal.status = ProposalStatus::Rejected;
                                 // Burn deposits for rejected proposals
@@ -373,6 +379,7 @@ impl GovernanceModule {
                                     id: proposal_id,
                                     reason: Some(reason.to_string()),
                                 });
+                                let _ = self.write_governance_evidence();
                             }
                             self.store_proposal(&proposal)?;
                         }
@@ -388,6 +395,7 @@ impl GovernanceModule {
                                 self.emit_event(GovernanceEvent::ProposalExecuted {
                                     id: proposal_id,
                                 });
+                                let _ = self.write_governance_evidence();
                             }
                             Err(e) => {
                                 proposal.status = ProposalStatus::FailedExecution;
@@ -398,6 +406,7 @@ impl GovernanceModule {
                                     id: proposal_id,
                                     error: e,
                                 });
+                                let _ = self.write_governance_evidence();
                             }
                         }
                     }
@@ -546,6 +555,7 @@ impl GovernanceModule {
                     old_value,
                     new_value: value.to_string(),
                 });
+                let _ = self.write_governance_evidence();
                 Ok(())
             }
             "consensus.max_gas_per_block" => {
@@ -570,6 +580,7 @@ impl GovernanceModule {
                     old_value,
                     new_value: value.to_string(),
                 });
+                let _ = self.write_governance_evidence();
                 Ok(())
             }
             _ => Err(format!(
@@ -753,7 +764,10 @@ impl GovernanceModule {
     }
 
     fn emit_event(&mut self, event: GovernanceEvent) {
-        self.events.push(event);
+        // Keep in memory
+        self.events.push(event.clone());
+        // Append to evidence log (best-effort)
+        let _ = Self::append_event_to_evidence_log(&event);
     }
 
     // Deposit storage and retrieval functions
@@ -821,6 +835,105 @@ impl GovernanceModule {
                 amount: deposit.amount,
             });
         }
+
+        Ok(())
+    }
+}
+
+impl GovernanceModule {
+    fn evidence_dir() -> PathBuf {
+        PathBuf::from("launch-evidence/governance")
+    }
+
+    fn ensure_evidence_dir() -> std::io::Result<()> {
+        fs::create_dir_all(Self::evidence_dir())
+    }
+
+    fn append_event_to_evidence_log(event: &GovernanceEvent) -> std::io::Result<()> {
+        Self::ensure_evidence_dir()?;
+        let log_path = Self::evidence_dir().join("execution.log");
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let line = format!("{} {:?}\n", ts, event);
+        use std::io::Write;
+        let mut f = fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(log_path)?;
+        f.write_all(line.as_bytes())
+    }
+
+    fn write_json_file(path: PathBuf, value: &serde_json::Value) -> std::io::Result<()> {
+        let s = serde_json::to_string_pretty(value).unwrap_or_else(|_| "{}".to_string());
+        fs::write(path, s)
+    }
+
+    fn write_governance_evidence(&self) -> std::io::Result<()> {
+        Self::ensure_evidence_dir()?;
+
+        // Proposals snapshot
+        let mut proposals_json = serde_json::json!({"proposals": []});
+        if let Ok(list) = self.get_all_proposals() {
+            let mut arr = Vec::new();
+            for p in list {
+                let tally = self.tally(p.id).ok();
+                arr.push(serde_json::json!({
+                    "id": p.id,
+                    "title": p.title,
+                    "description": p.description,
+                    "type": match &p.proposal_type { ProposalType::ParameterChange { key, value } => serde_json::json!({"parameter_change": {"key": key, "value": value}}) },
+                    "status": format!("{:?}", p.status),
+                    "total_deposit": p.total_deposit.to_string(),
+                    "submit_height": p.submit_height,
+                    "deposit_end_height": p.deposit_end_height,
+                    "voting_start_height": p.voting_start_height,
+                    "voting_end_height": p.voting_end_height,
+                    "tally": tally.map(|t| serde_json::json!({
+                        "yes": t.yes.to_string(),
+                        "no": t.no.to_string(),
+                        "no_with_veto": t.no_with_veto.to_string(),
+                        "abstain": t.abstain.to_string(),
+                        "total_voting_power": t.total_voting_power.to_string(),
+                    })),
+                }));
+            }
+            proposals_json["proposals"] = serde_json::Value::Array(arr);
+        }
+        let _ = Self::write_json_file(Self::evidence_dir().join("proposal.json"), &proposals_json);
+
+        // Votes snapshot
+        let mut votes_obj = serde_json::Map::new();
+        if let Ok(ids) = self.get_all_proposal_ids() {
+            for pid in ids {
+                if let Ok(votes) = self.get_proposal_votes(pid) {
+                    let mut vlist = Vec::new();
+                    for v in votes {
+                        vlist.push(serde_json::json!({
+                            "voter": v.voter,
+                            "option": format!("{:?}", v.option),
+                            "weight": v.weight.to_string(),
+                        }));
+                    }
+                    votes_obj.insert(pid.to_string(), serde_json::Value::Array(vlist));
+                }
+            }
+        }
+        let _ = Self::write_json_file(
+            Self::evidence_dir().join("votes.json"),
+            &serde_json::Value::Object(votes_obj),
+        );
+
+        // Final params snapshot
+        let params_json = serde_json::json!({
+            "gas_limit": self.config.gas_limit,
+            "consensus.max_gas_per_block": self.config.max_gas_per_block,
+            "quorum_bps": self.config.quorum,
+            "threshold_bps": self.config.threshold,
+            "veto_threshold_bps": self.config.veto_threshold,
+        });
+        let _ = Self::write_json_file(Self::evidence_dir().join("final_params.json"), &params_json);
 
         Ok(())
     }

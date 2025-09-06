@@ -832,6 +832,18 @@ pub async fn gov_get_total_voting_power(
     }
 }
 
+/// GET /api/contracts - List minimal in-memory contracts (address + counter)
+pub async fn list_contracts(
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let map = ctx.wasm_contracts.lock().unwrap();
+    let mut items: Vec<serde_json::Value> = Vec::new();
+    for (addr, counter) in map.iter() {
+        items.push(json!({"address": addr, "counter": counter}));
+    }
+    Ok(Json(json!({"contracts": items})))
+}
+
 // Rewards API endpoints
 
 #[derive(Deserialize)]
@@ -1153,6 +1165,26 @@ pub async fn json_rpc(
                 map.insert(addr.clone(), 0);
             }
 
+            // Evidence: write files under launch-evidence/wasm/<address>
+            let ev_dir = std::path::PathBuf::from("launch-evidence/wasm").join(&format!("{}", addr));
+            let _ = std::fs::create_dir_all(&ev_dir);
+            // contract.wasm
+            let _ = std::fs::write(ev_dir.join("contract.wasm"), &code_bytes);
+            // deploy_tx.json
+            let _ = std::fs::write(
+                ev_dir.join("deploy_tx.json"),
+                serde_json::to_string_pretty(&json!({
+                    "address": addr,
+                    "code_hash": format!("{:x}", code_hash),
+                    "gas_used": gas_limit.min(50_000),
+                    "timestamp": current_timestamp(),
+                })).unwrap_or_default(),
+            );
+            // initialize empty calls.json and gas_report.json and final_state.json
+            let _ = std::fs::write(ev_dir.join("calls.json"), serde_json::to_string_pretty(&json!({"calls": []})).unwrap_or_default());
+            let _ = std::fs::write(ev_dir.join("gas_report.json"), serde_json::to_string_pretty(&json!({"total_gas": 0, "calls": 0})).unwrap_or_default());
+            let _ = std::fs::write(ev_dir.join("final_state.json"), serde_json::to_string_pretty(&json!({"counter": 0})).unwrap_or_default());
+
             let res = json!({
                 "address": addr,
                 "code_hash": format!("{:x}", code_hash),
@@ -1178,6 +1210,31 @@ pub async fn json_rpc(
                     ret_json = json!({"count": *entry});
                     gas_used = gas_limit.min(25_000);
                     events.push(format!("increment -> {}", *entry));
+                    // Evidence update: append to calls.json, update gas_report.json and final_state.json
+                    let ev_dir = std::path::PathBuf::from("launch-evidence/wasm").join(addr);
+                    let _ = std::fs::create_dir_all(&ev_dir);
+                    // calls.json append
+                    let calls_path = ev_dir.join("calls.json");
+                    let calls_val: serde_json::Value = std::fs::read_to_string(&calls_path)
+                        .ok()
+                        .and_then(|s| serde_json::from_str(&s).ok())
+                        .unwrap_or_else(|| json!({"calls": []}));
+                    let mut calls = calls_val.get("calls").cloned().unwrap_or_else(|| json!([]));
+                    if let Some(arr) = calls.as_array_mut() {
+                        arr.push(json!({"function": func, "gas_used": gas_used, "ts": current_timestamp()}));
+                    }
+                    let _ = std::fs::write(calls_path, serde_json::to_string_pretty(&json!({"calls": calls})).unwrap_or_default());
+                    // gas_report.json
+                    let gas_path = ev_dir.join("gas_report.json");
+                    let gas_val: serde_json::Value = std::fs::read_to_string(&gas_path)
+                        .ok()
+                        .and_then(|s| serde_json::from_str(&s).ok())
+                        .unwrap_or_else(|| json!({"total_gas": 0, "calls": 0}));
+                    let total_gas = gas_val.get("total_gas").and_then(|v| v.as_u64()).unwrap_or(0) + gas_used;
+                    let calls_n = gas_val.get("calls").and_then(|v| v.as_u64()).unwrap_or(0) + 1;
+                    let _ = std::fs::write(gas_path, serde_json::to_string_pretty(&json!({"total_gas": total_gas, "calls": calls_n})).unwrap_or_default());
+                    // final_state.json
+                    let _ = std::fs::write(ev_dir.join("final_state.json"), serde_json::to_string_pretty(&json!({"counter": map.get(addr).copied().unwrap_or(0)})).unwrap_or_default());
                 }
                 "get" => {
                     let map = ctx.wasm_contracts.lock().unwrap();
