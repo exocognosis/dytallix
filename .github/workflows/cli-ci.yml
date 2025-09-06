@@ -20,7 +20,7 @@ jobs:
           - features: '--no-default-features --features pqc-mock'
             name: pqc-mock
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -47,5 +47,5 @@ jobs:
     if: false  # enable later when node integration available
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: echo "Integration tests disabled"

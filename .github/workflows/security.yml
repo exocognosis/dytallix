@@ -21,7 +21,7 @@ jobs:
       run:
         working-directory: dytallix-lean-launch
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
@@ -50,7 +50,7 @@ jobs:
       security-events: write
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Trivy
         uses: aquasecurity/trivy-action@0.24.0
         with:
@@ -75,7 +75,7 @@ jobs:
     name: Secrets Scan (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run gitleaks
         uses: zricethezav/gitleaks-action@v2
         with:
