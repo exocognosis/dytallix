@@ -1,0 +1,21 @@
+groups:
+  - name: dyt.rules
+    rules:
+      - alert: HeightStall
+        expr: rate(dyt_block_height[1m]) == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Block height stall"
+          description: "No block height increase over 1 minute."
+
+      - alert: AiLatencySpike
+        expr: histogram_quantile(0.95, sum(rate(ai_latency_ms_bucket[1m])) by (le)) > 1500
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI service latency spike"
+          description: "P95 AI latency over 1500ms."
+

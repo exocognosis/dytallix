@@ -108,6 +108,7 @@ const Explorer = () => {
   const [txs, setTxs] = useState([])
   const [loadingBlocks, setLoadingBlocks] = useState(false)
   const [loadingTxs, setLoadingTxs] = useState(false)
+  const [riskByHash, setRiskByHash] = useState({})
 
   // Detail state
   const [blockDetail, setBlockDetail] = useState(null)
@@ -151,7 +152,20 @@ const Explorer = () => {
       try {
         setLoadingTxs(true)
         const t = await fetchJson(API.txs(limit, 1))
-        if (!disposed) setTxs(t.transactions || [])
+        const txList = t.transactions || []
+        if (!disposed) setTxs(txList)
+        // Fetch AI risk for first N transactions (best effort)
+        const sample = txList.slice(0, 10)
+        await Promise.all(sample.map(async (tx) => {
+          try {
+            const d = await fetchJson(`/api/transactions/${encodeURIComponent(tx.hash)}`)
+            if (d && (d.ai_risk_score != null)) {
+              const score = Number(d.ai_risk_score)
+              const level = score < 0.3 ? 'low' : (score < 0.7 ? 'medium' : 'high')
+              setRiskByHash((prev) => ({ ...prev, [tx.hash]: { score, level } }))
+            }
+          } catch {/* ignore */}
+        }))
       } catch { if (!disposed) setTxs([]) } finally { if (!disposed) setLoadingTxs(false) }
     }
 
@@ -281,6 +295,7 @@ const Explorer = () => {
     { key: 'from', label: 'From' },
     { key: 'to', label: 'To' },
     { key: 'amount', label: 'Amount', align: 'right' },
+    { key: 'risk', label: 'Risk', align: 'right' },
     { key: 'status', label: 'Status', align: 'right' },
   ]
 
@@ -289,6 +304,12 @@ const Explorer = () => {
     from: t.from ? (<a href={`/explorer?address=${t.from}`} onClick={(e) => { e.preventDefault(); openAddress(t.from) }}>{shortHash(t.from)}</a>) : <span className="muted">—</span>,
     to: t.to ? (<a href={`/explorer?address=${t.to}`} onClick={(e) => { e.preventDefault(); openAddress(t.to) }}>{shortHash(t.to)}</a>) : <span className="muted">—</span>,
     amount: <span style={{ fontWeight: 700 }}>{t.amount || '—'}</span>,
+    risk: (() => {
+      const r = riskByHash[t.hash]
+      if (!r) return <span className="muted">—</span>
+      const tone = r.level === 'high' ? 'badge-warning' : r.level === 'medium' ? 'badge-info' : 'badge-success'
+      return <span className={`badge ${tone}`}>{r.level}</span>
+    })(),
     status: (<StatusBadge status={getStatus(t)} />),
     _raw: t,
   }))
@@ -302,7 +323,7 @@ const Explorer = () => {
   ]
 
   return (
-    <div className="section">
+    <div className="section explorer">
       {/* Page styles */}
       <style>{`
         .explorer-grid { display: grid; gap: 24px; grid-template-columns: 1.1fr 0.9fr; }
@@ -313,6 +334,61 @@ const Explorer = () => {
         .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
         .tab { padding: 8px 12px; border: 1px solid var(--surface-border); border-radius: 999px; cursor: pointer; font-weight: 700; color: var(--text-muted); }
         .tab.active { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.35); color: #93C5FD; }
+
+        /* Explorer dark theme overrides for tabs and light secondary buttons */
+        .explorer .tab { 
+          background: rgba(15,23,42,0.35);
+          border-color: rgba(148,163,184,0.22);
+          color: var(--text-muted);
+          transition: background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+        }
+        .explorer .tab:hover { 
+          background: rgba(30,41,59,0.5);
+          border-color: rgba(148,163,184,0.3);
+          color: var(--text);
+        }
+        .explorer .tab.active { 
+          background: rgba(59,130,246,0.14);
+          border-color: rgba(59,130,246,0.45);
+          color: #BFDBFE;
+          box-shadow: 0 0 0 2px rgba(59,130,246,0.12) inset;
+        }
+        .explorer .tab:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 2px rgba(59,130,246,0.45);
+        }
+
+        /* Non-primary buttons in Explorer adopt dark palette */
+        .explorer .btn:not(.btn-primary) {
+          background: rgba(30,41,59,0.55);
+          color: #E2E8F0;
+          border-color: rgba(148,163,184,0.24);
+        }
+        .explorer .btn:not(.btn-primary):hover {
+          background: rgba(59,130,246,0.18);
+          border-color: rgba(59,130,246,0.45);
+          color: #BFDBFE;
+        }
+        .explorer .btn:not(.btn-primary):focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 2px rgba(59,130,246,0.35);
+        }
+
+        /* Keep explicit secondary overrides for anchors inside tables */
+        .explorer .btn.btn-secondary {
+          background: rgba(30,41,59,0.55);
+          color: #E2E8F0;
+          border-color: rgba(148,163,184,0.24);
+        }
+        .explorer .btn.btn-secondary:hover {
+          background: rgba(59,130,246,0.18);
+          border-color: rgba(59,130,246,0.45);
+          color: #BFDBFE;
+        }
+        .explorer .btn.btn-secondary:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 2px rgba(59,130,246,0.35);
+        }
       `}</style>
 
       <div className="container">

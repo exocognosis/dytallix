@@ -36,7 +36,13 @@ sha3 = "0.10"
 prometheus = { version = "0.13", optional = true }
 clap = { version = "4.4", features = ["derive"], optional = true }
 once_cell = "1.21"
-reqwest = { version = "0.11", features = ["json"], optional = true }
+reqwest = { version = "0.11", features = ["json","rustls-tls"] }
+async-trait = "0.1"
+argon2 = "0.5"
+chacha20poly1305 = { version = "0.10", features = ["std"] }
+rand = "0.8"
+zeroize = { version = "1", features = ["derive"] }
+rpassword = "7"
 serde_yaml = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
 colored = "2" # Added for Colorize trait usage
@@ -52,14 +58,14 @@ tempfile = "3"
 rand = "0.7"
 
 [features]
-# Lean default: only core + PQC
-default = ["pqc-real"]
+# Lean default: core + PQC + metrics (for /metrics endpoint)
+default = ["pqc-real", "metrics"]
 # Existing features
 pqc-real = ["pqcrypto-dilithium", "pqcrypto-traits"]
 pqc-mock = []
 legacy-submit = [] # Dev-only legacy submit logic (OFF by default)
 metrics = ["prometheus", "clap"] # Observability features
-alerts = ["reqwest"] # Alerting system with webhook support
+alerts = [] # Alerting system (reqwest is always available now)
 # Granular runtime features (compile-time) retained for optional modules
 oracle = []
 contracts = []

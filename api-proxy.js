@@ -139,18 +139,51 @@ app.use(express.json())
 // Rate limiting wrapper
 app.use((req,res,next)=>{ try { rateLimit(`${req.ip}:${req.path}`); return next() } catch(e){ return res.status(e.status||429).json({ error:'RATE_LIMIT', status:429, retryAfter:e.retryAfter }) } })
 
+// Primary overview endpoint
 app.get('/api/overview', async (req,res)=>{
-  try { const data = await getOverview(); return res.json(data) } catch(e){ log('error','overview_failed',{ error:e.message }); return res.status(502).json({ error:'UPSTREAM', status:502, detail:e.message }) }
+  try {
+    const data = await getOverview()
+    return res.json(data)
+  } catch(e){
+    log('error','overview_failed',{ error:e.message })
+    return res.status(502).json({ error:'UPSTREAM', status:502, detail:e.message })
+  }
+})
+
+// Alias to match dashboard client expectations
+app.get('/api/dashboard/overview', async (req,res)=>{
+  try {
+    const data = await getOverview()
+    // Dashboard client expects an { ok: true } flag
+    return res.json({ ok: true, ...data })
+  } catch(e){
+    log('error','dashboard_overview_failed',{ error:e.message })
+    return res.status(502).json({ ok: false, error:'UPSTREAM', status:502, detail:e.message })
+  }
 })
 
 app.get('/api/timeseries', async (req,res)=>{
-  try { const { metric, range='1h' } = req.query
-    if(!metric) return res.status(400).json({ error:'MISSING_METRIC', status:400 })
+  try {
+    const { metric, range='1h' } = req.query
+    if(!metric) return res.status(400).json({ ok:false, error:'MISSING_METRIC', status:400 })
     const allowed=['tps','blockTime','peers']
-    if(!allowed.includes(metric)) return res.status(400).json({ error:'INVALID_METRIC', status:400 })
+    if(!allowed.includes(metric)) return res.status(400).json({ ok:false, error:'INVALID_METRIC', status:400 })
     const series = synthesizeTimeseries(metric, range)
-    return res.json(series)
-  } catch(e){ return res.status(500).json({ error:'SERVER', status:500, detail:e.message }) }
+    // Dashboard client expects { ok: true }
+    return res.json({ ok:true, ...series })
+  } catch(e){ return res.status(500).json({ ok:false, error:'SERVER', status:500, detail:e.message }) }
+})
+
+// Alias to legacy dashboard path used by the React client
+app.get('/api/dashboard/timeseries', async (req,res)=>{
+  try {
+    const { metric, range='1h' } = req.query
+    if(!metric) return res.status(400).json({ ok:false, error:'MISSING_METRIC', status:400 })
+    const allowed=['tps','blockTime','peers']
+    if(!allowed.includes(metric)) return res.status(400).json({ ok:false, error:'INVALID_METRIC', status:400 })
+    const series = synthesizeTimeseries(metric, range)
+    return res.json({ ok:true, ...series })
+  } catch(e){ return res.status(500).json({ ok:false, error:'SERVER', status:500, detail:e.message }) }
 })
 
 app.get('/api/status/height', async (req,res)=>{ const o = await getOverview(); return res.json({ height: o.height }) })

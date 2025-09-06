@@ -144,6 +144,10 @@ pub struct Metrics {
     pub dyt_block_time_seconds: Histogram,
     pub dyt_block_last_time_seconds: Gauge,
     pub dyt_txs_processed_total: IntCounter,
+    // Simple aliases requested
+    pub block_time: Histogram,
+    pub tps: Gauge,
+    pub mempool_len: IntGauge,
 
     // Legacy block metrics
     pub total_blocks: IntCounter,
@@ -265,6 +269,22 @@ impl Metrics {
             "Total number of transactions processed",
         ))?;
         registry.register(Box::new(dyt_txs_processed_total.clone()))?;
+
+        // Aliases requested by ops
+        let block_time = Histogram::with_opts(
+            HistogramOpts::new("block_time", "Block processing time (seconds)")
+                .buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]),
+        )?;
+        registry.register(Box::new(block_time.clone()))?;
+
+        let tps = Gauge::with_opts(Opts::new("tps", "Transactions per second (rolling)"))?;
+        registry.register(Box::new(tps.clone()))?;
+
+        let mempool_len = IntGauge::with_opts(Opts::new(
+            "mempool_len",
+            "Current number of pending transactions in mempool",
+        ))?;
+        registry.register(Box::new(mempool_len.clone()))?;
 
         let block_processing_time = Histogram::with_opts(HistogramOpts::new(
             "dytallix_block_processing_seconds",
@@ -532,6 +552,9 @@ impl Metrics {
             dyt_block_time_seconds,
             dyt_block_last_time_seconds,
             dyt_txs_processed_total,
+            block_time,
+            tps,
+            mempool_len,
             dyt_mempool_size,
             dyt_gas_used_per_block,
             dyt_oracle_update_latency_seconds,
@@ -585,11 +608,30 @@ impl Metrics {
         self.total_gas_used.inc_by(gas_used);
         self.block_processing_time
             .observe(processing_time.as_secs_f64());
+        // Update dyt_* surfaces
+        self.dyt_block_height.set(height as i64);
+        self.dyt_block_time_seconds
+            .observe(processing_time.as_secs_f64());
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs_f64();
+        self.dyt_block_last_time_seconds.set(now);
+        self.dyt_transactions_in_block
+            .observe(tx_count as f64);
+        self.dyt_gas_used_per_block
+            .observe(gas_used as f64);
+        // Alias histogram
+        self.block_time
+            .observe(processing_time.as_secs_f64());
     }
 
     /// Update mempool size and bytes
     pub fn update_mempool_size(&self, size: usize) {
         self.mempool_size.set(size as i64);
+        // dyt_* and alias
+        self.dyt_mempool_size.set(size as i64);
+        self.mempool_len.set(size as i64);
     }
 
     pub fn update_mempool_bytes(&self, bytes: usize) {

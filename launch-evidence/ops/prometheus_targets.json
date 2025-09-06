@@ -1,0 +1,15 @@
+[
+  {
+    "labels": { "job": "dytallix-node" },
+    "targets": [
+      "localhost:3030"
+    ]
+  },
+  {
+    "labels": { "job": "dytallix-server" },
+    "targets": [
+      "localhost:8787"
+    ]
+  }
+]
+

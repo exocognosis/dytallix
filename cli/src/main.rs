@@ -3,7 +3,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use tracing::info;
 
 use dcli::{
-    cmd::{contract, gov, keys, oracle, pqc, query, stake, tx as txcmd},
+    cmd::{contract, gov, keys, oracle, pqc, query, secrets, stake, tx as txcmd},
     config,
     output::OutputFormat,
     secure,
@@ -51,6 +51,7 @@ enum Commands {
     Contract(contract::ContractArgs),
     Oracle(oracle::OracleCmd),
     Pqc(pqc::PQCCmd),
+    Secrets(secrets::SecretsCmd),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -139,6 +140,7 @@ async fn main() -> Result<()> {
         }
         Commands::Oracle(oc) => oracle::run(&cfg.rpc, fmt, oc).await?,
         Commands::Pqc(pc) => pqc::handle_pqc(fmt, pc).await?,
+        Commands::Secrets(sc) => secrets::run(sc).await?,
     }
     Ok(())
 }

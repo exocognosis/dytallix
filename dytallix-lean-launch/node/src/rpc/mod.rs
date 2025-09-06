@@ -21,10 +21,13 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::collections::HashMap;
 
 pub mod errors; // restored errors module export
 #[cfg(feature = "oracle")]
 pub mod oracle;
+pub mod ai;
 
 /// GET /account/:addr - Return account details including nonce and balances
 pub async fn get_account(
@@ -53,6 +56,8 @@ pub struct RpcContext {
     pub staking: Arc<Mutex<StakingModule>>,
     pub metrics: Arc<crate::metrics::Metrics>,
     pub features: FeatureFlags,
+    /// Minimal in-memory WASM contract state for JSON-RPC facade
+    pub wasm_contracts: Arc<Mutex<HashMap<String, u64>>>, // address -> counter
 }
 
 #[derive(Clone, Copy)]
@@ -442,6 +447,44 @@ pub async fn stats(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value> 
 
 pub async fn peers() -> Json<serde_json::Value> {
     Json(json!([]))
+}
+
+/// Global pause flag for block producer (ops simulation)
+pub static PAUSE_PRODUCER: AtomicBool = AtomicBool::new(false);
+
+/// POST /ops/pause - pause block production (simulation)
+pub async fn ops_pause() -> Json<serde_json::Value> {
+    PAUSE_PRODUCER.store(true, Ordering::Relaxed);
+    Json(json!({"ok": true, "paused": true}))
+}
+
+/// POST /ops/resume - resume block production (simulation)
+pub async fn ops_resume() -> Json<serde_json::Value> {
+    PAUSE_PRODUCER.store(false, Ordering::Relaxed);
+    Json(json!({"ok": true, "paused": false}))
+}
+
+/// GET /metrics - Prometheus metrics exposition (text/plain)
+#[cfg(feature = "metrics")]
+pub async fn metrics_export(
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<(axum::http::StatusCode, String), ApiError> {
+    use prometheus::TextEncoder;
+    let enc = TextEncoder::new();
+    let families = ctx.metrics.gather();
+    match enc.encode_to_string(&families) {
+        Ok(body) => Ok((axum::http::StatusCode::OK, body)),
+        Err(_) => Err(ApiError::Internal),
+    }
+}
+
+/// GET /metrics - Not implemented when metrics feature is disabled
+#[cfg(not(feature = "metrics"))]
+pub async fn metrics_export() -> Result<(axum::http::StatusCode, String), ApiError> {
+    Ok((
+        axum::http::StatusCode::NOT_IMPLEMENTED,
+        "# metrics feature not compiled; rebuild with --features metrics".to_string(),
+    ))
 }
 
 // Bridge endpoints
@@ -1079,6 +1122,81 @@ pub async fn contract_call(
         "gas_used": "25000",
         "logs": [format!("Called method {} on contract {}", method, contract_id)]
     })))
+}
+
+/// Minimal JSON-RPC handler for WASM contract deploy/execute used by the Node.js server facade
+/// Supported methods:
+/// - contract_deploy { code: hex, from: string, gas_limit: u64, initial_state?: any }
+/// - contract_execute { contract_address: string, function: string, args?: any, gas_limit: u64, from: string }
+#[axum::debug_handler]
+pub async fn json_rpc(
+    ctx: axum::Extension<RpcContext>,
+    axum::Json(body): axum::Json<serde_json::Value>,
+)
+-> Result<axum::Json<serde_json::Value>, ApiError> {
+    let method = body.get("method").and_then(|v| v.as_str()).ok_or_else(|| ApiError::BadRequest("missing method".to_string()))?;
+    let params_arr = body.get("params").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let params = params_arr.get(0).cloned().unwrap_or_else(|| json!({}));
+
+    match method {
+        "contract_deploy" => {
+            let code_hex = params.get("code").and_then(|v| v.as_str()).ok_or_else(|| ApiError::BadRequest("missing code".to_string()))?;
+            let gas_limit = params.get("gas_limit").and_then(|v| v.as_u64()).unwrap_or(100_000);
+            let code_bytes = hex::decode(code_hex).map_err(|_| ApiError::BadRequest("invalid code hex".to_string()))?;
+            let code_hash = blake3::hash(&code_bytes);
+            // Deterministic address derived from code hash
+            let addr = format!("dyt1{:x}", code_hash);
+
+            // Initialize minimal state (counter=0)
+            {
+                let mut map = ctx.wasm_contracts.lock().unwrap();
+                map.insert(addr.clone(), 0);
+            }
+
+            let res = json!({
+                "address": addr,
+                "code_hash": format!("{:x}", code_hash),
+                "gas_used": gas_limit.min(50_000),
+                "events": [],
+            });
+            Ok(axum::Json(json!({"jsonrpc":"2.0","id": body.get("id").cloned().unwrap_or(json!(1)),"result": res})))
+        }
+        "contract_execute" => {
+            let addr = params.get("contract_address").and_then(|v| v.as_str()).ok_or_else(|| ApiError::BadRequest("missing contract_address".to_string()))?;
+            let func = params.get("function").and_then(|v| v.as_str()).unwrap_or("get");
+            let gas_limit = params.get("gas_limit").and_then(|v| v.as_u64()).unwrap_or(100_000);
+
+            let mut gas_used: u64 = 10_000;
+            let mut ret_json = json!({});
+            let mut events: Vec<String> = vec![];
+
+            match func {
+                "increment" | "inc" => {
+                    let mut map = ctx.wasm_contracts.lock().unwrap();
+                    let entry = map.entry(addr.to_string()).or_insert(0);
+                    *entry = entry.saturating_add(1);
+                    ret_json = json!({"count": *entry});
+                    gas_used = gas_limit.min(25_000);
+                    events.push(format!("increment -> {}", *entry));
+                }
+                "get" => {
+                    let map = ctx.wasm_contracts.lock().unwrap();
+                    let v = map.get(addr).copied().unwrap_or(0);
+                    ret_json = json!({"count": v});
+                    gas_used = gas_limit.min(12_000);
+                }
+                _ => return Err(ApiError::BadRequest("unknown function".to_string())),
+            }
+
+            let res = json!({
+                "return_value": hex::encode(serde_json::to_vec(&ret_json).unwrap_or_default()),
+                "gas_used": gas_used,
+                "events": events,
+            });
+            Ok(axum::Json(json!({"jsonrpc":"2.0","id": body.get("id").cloned().unwrap_or(json!(1)),"result": res})))
+        }
+        _ => Err(ApiError::BadRequest("unknown method".to_string())),
+    }
 }
 
 /// POST /api/ai/score - AI risk scoring stub service

@@ -213,6 +213,10 @@ lint-metrics:
 ci: install lint-lean test-lean build-lean checksum
 	@echo "✅ CI pipeline complete for dytallix-lean-launch"
 
+.PHONY: ci-secret-scan
+ci-secret-scan:
+	@bash scripts/secrets/ci_secret_scan.sh
+
 # CodeGuard Smart Contract Security Scanner targets
 codeguard.build:
 	@echo "🔨 Building CodeGuard contract..."

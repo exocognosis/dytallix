@@ -885,7 +885,7 @@ pub fn execute_remove_validator(
     }
 
     let addr = deps.api.addr_validate(&validator)?;
-    if let Some(pos) = state.validators.iter().position(|v| v == &addr) {
+    if let Some(pos) = state.validators.iter().position(|v| v == addr) {
         state.validators.remove(pos);
         // Ensure min_validators still <= current validator count (can't make it impossible)
         if state.min_validators as usize > state.validators.len() {

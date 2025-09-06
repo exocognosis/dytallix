@@ -1,0 +1,22 @@
+# Gitleaks configuration to prevent false positives while enforcing secret hygiene
+
+[allowlist]
+description = "Exclude non-secret evidence, tests, and generated artifacts"
+paths = [
+  "^launch-evidence/",
+  "^testnet/",
+  "^tests/",
+  "^reports/",
+  "^security_audit_results/",
+  "^website/",
+  "^docs/",
+  "^.*\\.md$",
+  "^.*\\.MD$",
+  "^.*\\.svg$",
+  "^.*\\.png$",
+  "^.*\\.jpg$",
+  "^pqc_keys\\.json$"
+]
+
+[rules]
+# Use default builtin rules; no custom additions.

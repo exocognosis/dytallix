@@ -41,3 +41,23 @@ export async function sendTransaction(txData) {
 }
 
 export default api
+
+// PQC status (Security & PQC card)
+export async function getPQCStatus() {
+  try {
+    const res = await api.get('/pqc/status')
+    return res || { status: 'disabled', enabled: false }
+  } catch {
+    // Safe fallback to avoid blank card
+    return {
+      status: 'degraded',
+      enabled: false,
+      algorithm: 'dilithium',
+      runtime: 'mock',
+      wasmModules: false,
+      walletSupport: 'disabled',
+      version: '1.0',
+      updatedAt: new Date().toISOString()
+    }
+  }
+}

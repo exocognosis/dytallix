@@ -83,6 +83,16 @@ jobs:
       - name: Rust unit tests
         run: cargo test --lib
 
+      - name: Enforce non-zero gas_used in receipts
+        run: |
+          echo 'Checking for TxReceipt with gas_used = 0 in code/tests...'
+          if rg -n "TxReceipt\s*\{[^}]*gas_used:\s*0" -S --glob '!target/**' ; then
+            echo 'Found TxReceipt instances with gas_used = 0. Please use > 0.'
+            exit 1
+          else
+            echo 'OK: no zero-gas TxReceipt literals found.'
+          fi
+
       - name: Frontend unit tests
         working-directory: dytallix-lean-launch
         run: npm test -- --run || echo "Frontend tests failed but continuing with existing issues"

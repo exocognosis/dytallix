@@ -600,7 +600,7 @@ mod tests {
             tx_hash: "0xdeadbeef".into(),
             block_number: 1,
             status: TxStatus::Success,
-            gas_used: 0,
+            gas_used: 1,
             fee_paid: 1,
             timestamp: 123,
             index: 0,
@@ -609,7 +609,7 @@ mod tests {
             logs: vec![],
             return_data: None,
         };
-        mgr.store_receipt(&rcpt).await.unwrap();
+        mgr._store_receipt(&rcpt).await.unwrap();
         let fetched = mgr.get_receipt(&rcpt.tx_hash).await.unwrap().unwrap();
         assert_eq!(fetched, rcpt);
     }

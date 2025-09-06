@@ -1,0 +1,91 @@
+version: "3.8"
+
+services:
+  dyt-node1:
+    image: dytallix-node:latest
+    container_name: dyt-node1
+    environment:
+      - DYT_CHAIN_ID=dyt-devnet-1
+      - DYT_DATA_DIR=/data
+      - DYT_BLOCK_INTERVAL_MS=2000
+      - DYT_EMPTY_BLOCKS=true
+      - DYT_WS_ENABLED=true
+      - DYT_ENABLE_GOVERNANCE=true
+      - DYT_ENABLE_STAKING=true
+      - DYT_ALERTS_CONFIG=/config/alerts.yaml
+      - DYT_GENESIS_FILE=/config/genesis.json
+      # Enable Prometheus metrics on a unique port (optional; no-op if feature not built)
+      - DY_METRICS=1
+      - DY_METRICS_ADDR=0.0.0.0:9464
+    volumes:
+      - ./.devnet/node1:/data
+      - ./configs/devnet/node1:/config:ro
+    # Primary HTTP RPC
+    ports:
+      - "3030:3030"
+      # Convenience alt-maps to match 2665x patterns some tools expect
+      - "26657:3030"
+      # Metrics (Prometheus)
+      - "9464:9464"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3030/stats"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+
+  dyt-node2:
+    image: dytallix-node:latest
+    container_name: dyt-node2
+    environment:
+      - DYT_CHAIN_ID=dyt-devnet-1
+      - DYT_DATA_DIR=/data
+      - DYT_BLOCK_INTERVAL_MS=2000
+      - DYT_EMPTY_BLOCKS=true
+      - DYT_WS_ENABLED=true
+      - DYT_ENABLE_GOVERNANCE=true
+      - DYT_ENABLE_STAKING=true
+      - DYT_ALERTS_CONFIG=/config/alerts.yaml
+      - DYT_GENESIS_FILE=/config/genesis.json
+      - DY_METRICS=1
+      - DY_METRICS_ADDR=0.0.0.0:9464
+    volumes:
+      - ./.devnet/node2:/data
+      - ./configs/devnet/node2:/config:ro
+    ports:
+      - "3031:3030"
+      - "26660:3030"
+      - "9465:9464"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3030/stats"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+
+  dyt-node3:
+    image: dytallix-node:latest
+    container_name: dyt-node3
+    environment:
+      - DYT_CHAIN_ID=dyt-devnet-1
+      - DYT_DATA_DIR=/data
+      - DYT_BLOCK_INTERVAL_MS=2000
+      - DYT_EMPTY_BLOCKS=true
+      - DYT_WS_ENABLED=true
+      - DYT_ENABLE_GOVERNANCE=true
+      - DYT_ENABLE_STAKING=true
+      - DYT_ALERTS_CONFIG=/config/alerts.yaml
+      - DYT_GENESIS_FILE=/config/genesis.json
+      - DY_METRICS=1
+      - DY_METRICS_ADDR=0.0.0.0:9464
+    volumes:
+      - ./.devnet/node3:/data
+      - ./configs/devnet/node3:/config:ro
+    ports:
+      - "3032:3030"
+      - "26663:3030"
+      - "9466:9464"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3030/stats"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+

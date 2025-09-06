@@ -30,6 +30,8 @@ use dytallix_lean_node::storage::{
     state::Storage,
 };
 use dytallix_lean_node::ws::server::{ws_handler, WsHub};
+use dytallix_lean_node::secrets; // validator key providers (Vault / sealed keystore)
+use std::sync::atomic::Ordering;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -74,6 +76,56 @@ async fn main() -> anyhow::Result<()> {
     let mempool = Arc::new(Mutex::new(Mempool::new()));
     let ws_hub = WsHub::new();
     let tps_window = Arc::new(Mutex::new(TpsWindow::new(60)));
+
+    // Decide and log secrets mode (without leaking secrets)
+    let vault_url = std::env::var("DYTALLIX_VAULT_URL")
+        .ok()
+        .or_else(|| std::env::var("VAULT_URL").ok());
+    let vault_token_present = std::env::var("DYTALLIX_VAULT_TOKEN").is_ok()
+        || std::env::var("VAULT_TOKEN").is_ok();
+    if let (Some(url), true) = (vault_url.clone(), vault_token_present) {
+        let mount = std::env::var("DYTALLIX_VAULT_KV_MOUNT").unwrap_or_else(|_| "secret".to_string());
+        let base = std::env::var("DYTALLIX_VAULT_PATH_BASE")
+            .unwrap_or_else(|_| "dytallix/validators".to_string());
+        // Redact token; show only host portion of URL
+        let host = url
+            .split("//")
+            .nth(1)
+            .unwrap_or(&url)
+            .split('/')
+            .next()
+            .unwrap_or(&url);
+        println!(
+            "Secrets mode: Vault (KV v2) url_host={} mount={} base={}",
+            host, mount, base
+        );
+    } else {
+        let dir = std::env::var("DYT_KEYSTORE_DIR").unwrap_or_else(|_| {
+            let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+            format!("{home}/.dytallix/keystore")
+        });
+        println!(
+            "Secrets mode: Sealed Keystore path={} (Argon2id + ChaCha20-Poly1305); no plaintext keys on disk",
+            dir
+        );
+    }
+
+    // Load validator private key securely (Vault preferred, sealed keystore fallback)
+    match secrets::init_validator_key().await {
+        Ok(Some(len)) => {
+            println!("Validator key loaded ({len} bytes) via secure provider");
+        }
+        Ok(None) => {
+            println!("No validator key configured; running without signing capability");
+        }
+        Err(e) => {
+            eprintln!("Validator key initialization failed: {e}");
+            // Non-fatal in dev; fatal in production if VAULT is set but failing
+            if std::env::var("DYTALLIX_VAULT_URL").is_ok() || std::env::var("VAULT_URL").is_ok() {
+                std::process::exit(1);
+            }
+        }
+    }
 
     // Initialize metrics
     let metrics_config = parse_metrics_config();
@@ -125,6 +177,7 @@ async fn main() -> anyhow::Result<()> {
             governance: enable_governance,
             staking: enable_staking,
         },
+        wasm_contracts: Arc::new(Mutex::new(std::collections::HashMap::new())),
     };
 
     // Initialize bridge validators if provided
@@ -136,6 +189,10 @@ async fn main() -> anyhow::Result<()> {
         let mut ticker = interval(Duration::from_millis(block_interval_ms));
         loop {
             ticker.tick().await;
+            // Allow ops to pause block production to simulate stalls
+            if dytallix_lean_node::rpc::PAUSE_PRODUCER.load(Ordering::Relaxed) {
+                continue;
+            }
             let block_start_time = SystemTime::now();
 
             // Update mempool size metric
@@ -276,6 +333,17 @@ async fn main() -> anyhow::Result<()> {
                 .lock()
                 .unwrap()
                 .record_block(ts, block.txs.len() as u32);
+            // Update TPS gauge when metrics are enabled
+            #[cfg(feature = "metrics")]
+            {
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_else(|_| Duration::from_secs(0))
+                    .as_secs();
+                let tps = producer_ctx.tps.lock().unwrap().rolling_tps(now);
+                producer_ctx.metrics.dyt_tps.set(tps);
+                producer_ctx.metrics.tps.set(tps);
+            }
             // remove considered hashes
             producer_ctx
                 .mempool
@@ -302,6 +370,13 @@ async fn main() -> anyhow::Result<()> {
         .route("/balance/:addr", get(rpc::get_balance))
         .route("/account/:addr", get(rpc::get_account))
         .route("/tx/:hash", get(rpc::get_tx))
+        // Minimal JSON-RPC endpoint used by the dashboard server for WASM demos
+        .route("/rpc", post(rpc::json_rpc))
+        // AI risk utility routes
+        .route("/ai/score", post(rpc::ai::ai_score))
+        .route("/ai/risk/:hash", get(rpc::ai::ai_risk_get))
+        .route("/ai/latency", get(rpc::ai::ai_latency))
+        .route("/metrics", get(rpc::metrics_export))
         .route("/stats", get(rpc::stats))
         .route("/peers", get(rpc::peers))
         .route("/bridge/ingest", post(rpc::bridge_ingest))
@@ -310,7 +385,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/emission/claim", post(rpc::emission_claim))
         .route("/api/rewards", get(rpc::get_rewards))
         .route("/api/rewards/:height", get(rpc::get_rewards_by_height))
-        .route("/api/stats", get(rpc::stats_with_emission));
+        .route("/api/stats", get(rpc::stats_with_emission))
+        // Ops simulation endpoints (pause/resume producer)
+        .route("/ops/pause", post(rpc::ops_pause))
+        .route("/ops/resume", post(rpc::ops_resume));
 
     // Oracle routes
     #[cfg(feature = "oracle")]

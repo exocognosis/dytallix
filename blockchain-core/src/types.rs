@@ -1030,7 +1030,7 @@ mod tests {
             tx_hash: "0xabc".into(),
             block_number: 5,
             status: TxStatus::Success,
-            gas_used: 0,
+            gas_used: 1,
             fee_paid: 10,
             timestamp: 111,
             index: 0,

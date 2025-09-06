@@ -1,0 +1,60 @@
+{
+  "title": "Dytallix Node Overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "tags": ["dytallix", "node"],
+  "timezone": "browser",
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Block Height",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 6 },
+      "targets": [
+        { "expr": "max(dyt_block_height)", "legendFormat": "height" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "TPS",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 6 },
+      "targets": [
+        { "expr": "max(dyt_tps)", "legendFormat": "tps" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Mempool Size",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 6 },
+      "targets": [
+        { "expr": "max(dyt_mempool_size)", "legendFormat": "txs" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Block Time p95 (s)",
+      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+      "lines": true,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(dyt_block_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "AI Update Latency p95 (s)",
+      "gridPos": { "x": 12, "y": 6, "w": 12, "h": 8 },
+      "lines": true,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(dyt_oracle_update_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    }
+  ],
+  "templating": { "list": [] }
+}
+

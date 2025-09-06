@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use clap::{Args, Subcommand};
 use std::{fs, path::Path};
 
-use crate::crypto::ActivePQC;
+use crate::crypto::{ActivePQC, PQC};
 use crate::output::OutputFormat;
 
 #[derive(Args, Debug, Clone)]

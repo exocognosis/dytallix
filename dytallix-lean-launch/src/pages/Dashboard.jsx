@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import '../styles/global.css'
-// Replace placeholder imports with real client
-import { getOverview, getTimeseries, openDashboardSocket, isFiniteNumber } from '../../frontend/src/lib/metricsClient.ts'
+// Metrics client for dashboard data
+import { getOverview, getTimeseries, openDashboardSocket, isFiniteNumber, getBlockHeight } from '../../frontend/src/lib/metricsClient.ts'
+// Real PQC status card component
+import PQCStatusCard from '../components/PQCStatusCard.jsx'
+import { getPQCStatus } from '../lib/api.js'
 
 const DEFAULT_RANGE = '1h'
 const DEFAULT_REFRESH_MS = 10000
@@ -11,53 +14,40 @@ const persistRefresh = () => {}
 const logEvent = () => {}
 const logApiError = () => 1
 
-// Placeholder components
+// Placeholder components (Block height widget only)
 const BlockHeightWidget = () => {
   const [height, setHeight] = useState(0)
   const [err, setErr] = useState('')
 
   useEffect(() => {
     let cancelled = false
-    const fetchHeight = async () => {
-      try {
-        const res = await fetch('/api/status/height', { cache: 'no-store' })
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`)
-        }
-        let data
-        try {
-          data = await res.json()
-        } catch (e) {
-          throw new Error('Invalid JSON in /api/status/height')
-        }
-        if (!cancelled && data && (data.ok || data.height != null)) {
-          setHeight(Number(data.height) || 0)
-          setErr('')
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setErr('Unavailable')
-          // Silent console to avoid noisy crashes in production; keep for dev.
-          console.warn('Block height fetch issue:', error?.message || error)
-        }
+    const pull = async () => {
+      const h = await getBlockHeight()
+      if (!cancelled) {
+        if (h != null && h > 0) { setHeight(h); setErr('') } else { setErr('Unavailable') }
       }
     }
-
-    fetchHeight()
-    const interval = setInterval(fetchHeight, 10000) // Poll every 10 seconds
-    return () => { cancelled = true; clearInterval(interval) }
+    pull()
+    const id = setInterval(pull, 4000)
+    // WebSocket push (reuse dashboard ws)
+    let ws
+    try {
+      ws = openDashboardSocket({
+        onOverview: (o) => { if (o?.height != null) setHeight(Number(o.height)||0) }
+      })
+    } catch { /* ignore */ }
+    return () => { cancelled = true; clearInterval(id); try { ws?.close() } catch {} }
   }, [])
 
   return (
     <div className="card">
       <h3>Block Height</h3>
-      <div data-test="chain-height" style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-        {err ? err : height > 0 ? height : 'Loading...'}
+      <div data-test="chain-height" style={{ fontSize: '2rem', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+        {err && height===0 ? err : height>0 ? height.toLocaleString() : 'Loading...'}
       </div>
     </div>
   )
 }
-const PQCStatusCard = () => <div className="card">PQC Status Card</div>
 const LineChart = () => <div className="card">Line Chart</div>
 
 const ranges = [
@@ -155,19 +145,32 @@ const Dashboard = () => {
   const [peers24Series, setPeers24Series] = useState({ points: [] })
 
   const [loading, setLoading] = useState(true)
+  const [aiLatency, setAiLatency] = useState({ avg_ms: null, p95_ms: null, samples: 0 })
+  const [pqc, setPqc] = useState(null)
 
   const loadAll = async () => {
     try {
-      const [o, s1, s2, s3, s3_24] = await Promise.all([
+      const [o, s1, s2, s3, s3_24, pq] = await Promise.all([
         getOverview(),
         getTimeseries('tps', range),
         getTimeseries('blockTime', range),
         getTimeseries('peers', range),
         getTimeseries('peers', '24h'),
+        getPQCStatus().catch(() => null),
       ])
       setOverview(o); setMock(Boolean(o._mock))
       setTpsSeries(s1); setBtSeries(s2); setPeersSeries(s3); setPeers24Series(s3_24)
+      if (pq) setPqc(pq)
       setErr('')
+      // Fetch AI latency badge from node RPC (optional)
+      try {
+        const rpc = (await import('../config/cosmos.js')).getCosmosConfig().rpcUrl
+        const r = await fetch(`${rpc}/ai/latency`, { cache: 'no-store' })
+        if (r.ok) {
+          const j = await r.json().catch(() => null)
+          if (j) setAiLatency(j)
+        }
+      } catch {/* optional */}
     } catch (e) {
       const n = logApiError('dashboard')
       setErr(`Failed to load dashboard data (attempt ${n}). Using fallback data.`)
@@ -242,6 +245,14 @@ const Dashboard = () => {
   return (
     <div className="section">
       <div className="container">
+        <style>{`
+          .pill{padding:2px 8px;border-radius:9999px;font-size:.75rem}
+          .pill.good{background:rgba(16,185,129,.15);color:#34D399}
+          .pill.bad{background:rgba(239,68,68,.15);color:#F87171}
+          .section-label{font-size:.85rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(148,163,184,.9)}
+          .section-stack{margin-top:24px}
+          .section-divider{height:1px;background:rgba(255,255,255,.06);margin:8px 0 12px}
+        `}</style>
         <div className="section-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center' }}>
           <div>
             <h2 className="section-title">Network Dashboard</h2>
@@ -257,121 +268,96 @@ const Dashboard = () => {
 
         {err ? <ErrorBanner message={err} onRetry={loadAll} /> : null}
 
-        {/* Chain status row */}
-        {loading && !overview ? (
-          <Skeleton height={120} />
-        ) : (
-          <div className="grid grid-3">
-            <MetricCard label="Block Height" value={isFiniteNumber(overview?.height) ? overview.height.toLocaleString() : '—'} href={`/explorer?block=${overview?.height || ''}`} />
-            <MetricCard label="TPS" value={isFiniteNumber(overview?.tps) ? overview.tps : '—'} />
-            <MetricCard label="Block Time (avg)" value={isFiniteNumber(overview?.blockTime) ? `${overview.blockTime}s` : '—'} />
-            <MetricCard label="Peer Count" value={isFiniteNumber(overview?.peers) ? overview.peers : '—'} />
-            <MetricCard label="Validator Count" value={isFiniteNumber(overview?.validators) ? overview.validators : '—'} />
-            <MetricCard label="Finality / Latency" value={isFiniteNumber(overview?.finality) ? `${overview.finality}s` : '—'} />
-            <MetricCard label="Mempool Size" value={isFiniteNumber(overview?.mempool) ? overview.mempool : '—'} />
-            <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div className="muted" style={{ fontSize: 13, fontWeight: 700 }}>Status</div>
-                <div style={{ marginTop: 6 }}><StatusBadge status={health} /></div>
+        {/* TOP ROW: Headline KPIs */}
+        <div className="section-label">Headline KPIs</div>
+        <div className="section-divider" />
+        <div style={{ display:'grid', gap:16, marginTop:16, gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))' }}>
+          <div className="card"><div className="muted">TPS (live)</div><div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{isFiniteNumber(overview?.tps) ? overview.tps : '—'}</div></div>
+          <div className="card"><div className="muted">Block Time (avg)</div><div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{isFiniteNumber(overview?.blockTime) ? `${overview.blockTime}s` : '—'}</div></div>
+          <div className="card"><div className="muted">Finality / Latency</div><div style={{ fontSize: 16, marginTop: 6 }}>{isFiniteNumber(overview?.finality) ? `${overview.finality}s` : '—'}</div><div className="muted" style={{ marginTop: 4 }}>AI P95 {aiLatency?.p95_ms ? `${Number(aiLatency.p95_ms).toFixed(0)} ms` : '—'}</div></div>
+          <div className="card"><div className="muted">Validator Count</div><div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{isFiniteNumber(overview?.validators) ? overview.validators : '—'}</div></div>
+        </div>
+
+        {/* MIDDLE ROW: System Health */}
+        <div className="section-label section-stack">System Health</div>
+        <div className="section-divider" />
+        <div style={{ display:'grid', gap:16, marginTop:16, gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          <div className="card"><div className="muted">Peer Count</div><div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{isFiniteNumber(overview?.peers) ? overview.peers : '—'}</div></div>
+          <div className="card"><div className="muted">Mempool Size</div><div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{isFiniteNumber(overview?.mempool) ? overview.mempool : '—'}</div></div>
+          <div className="card"><div className="muted">Node CPU %</div><div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{isFiniteNumber(overview?.cpu) ? `${overview.cpu}%` : '—'}</div></div>
+          <div className="card"><div className="muted">Node Memory %</div><div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{isFiniteNumber(overview?.memory) ? `${overview.memory}%` : '—'}</div></div>
+          <div className="card"><div className="muted">Disk I/O</div><div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{isFiniteNumber(overview?.diskIO) ? `${overview.diskIO} MB/s` : '—'}</div></div>
+          <div className="card" style={{ display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
+            <div className="muted">Overall Status</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop: 6 }}>
+              <div style={{ fontSize: 16 }}>{health}</div>
+              <span className={`pill ${health === 'healthy' ? 'good' : 'bad'}`}>{health}</span>
+            </div>
+            <div className="muted" style={{ marginTop: 8 }}>Last updated: {lastUpdated}{mock ? ' • mock' : ''}</div>
+          </div>
+        </div>
+
+        {/* BOTTOM ROW: Trends + Security */}
+        <div className="section-label section-stack">Trends & Security</div>
+        <div className="section-divider" />
+        <div style={{ display:'grid', gap:16, marginTop:16, gridTemplateColumns:'2fr 1fr' }}>
+          <div style={{display:'grid', gap:16}}>
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0 }}>TPS over time</h3>
+                <a className="btn btn-secondary" href="/explorer?tab=tx" style={{ padding: '6px 10px' }}>View latest transactions</a>
               </div>
-              <div className="muted">Last updated: {lastUpdated}{mock ? ' • mock' : ''}</div>
+              {tpsSeries.points?.length ? (
+                <LineChart data={tpsSeries.points} yLabel="TPS" formatY={(v) => Number(v).toFixed(2)} />
+              ) : <div className="muted">No data yet.</div>}
             </div>
-          </div>
-        )}
-
-        {/* Resource row */}
-        <div className="grid grid-3" style={{ marginTop: 24 }}>
-          <MetricCard label="Node CPU %" value={isFiniteNumber(overview?.cpu) ? `${overview.cpu}%` : '—'} />
-          <MetricCard label="Node Memory %" value={isFiniteNumber(overview?.memory) ? `${overview.memory}%` : '—'} />
-          <MetricCard label="Disk I/O" value={isFiniteNumber(overview?.diskIO) ? `${overview.diskIO} MB/s` : '—'} />
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-2" style={{ marginTop: 24 }}>
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0 }}>TPS over time</h3>
-              <a className="btn btn-secondary" href="/explorer?tab=tx" style={{ padding: '6px 10px' }}>View latest transactions</a>
+            <div className="card">
+              <h3 style={{ margin: 0 }}>Block time over time</h3>
+              {btSeries.points?.length ? (
+                <LineChart data={btSeries.points} yLabel="Block time (s)" formatY={(v) => Number(v).toFixed(2)} color="var(--accent-500)" />
+              ) : <div className="muted">No data yet.</div>}
             </div>
-            {tpsSeries.points?.length ? (
-              <LineChart data={tpsSeries.points} yLabel="TPS" formatY={(v) => Number(v).toFixed(2)} />
-            ) : <div className="muted">No data</div>}
-          </div>
-          <div className="card">
-            <h3 style={{ margin: 0 }}>Block time over time</h3>
-            {btSeries.points?.length ? (
-              <LineChart data={btSeries.points} yLabel="Block time (s)" formatY={(v) => Number(v).toFixed(2)} color="var(--accent-500)" />
-            ) : <div className="muted">No data</div>}
-          </div>
-        </div>
-        <div className="grid grid-2" style={{ marginTop: 24 }}>
-          <div className="card">
-            <h3 style={{ margin: 0 }}>Peer count over time</h3>
-            {peersSeries.points?.length ? (
-              <>
+            <div className="card">
+              <h3 style={{ margin: 0 }}>Peer count over time</h3>
+              {peersSeries.points?.length ? (
                 <LineChart data={peersSeries.points} yLabel="Peers" formatY={(v) => Math.round(Number(v))} color="var(--success-500)" />
-                {peerStats && (
-                  // Redesigned KPI grid: top row key KPIs, bottom row distribution & stability
-                  <div className="kpi-grid" style={{ marginTop: 10 }}>
-                    {/* Top row: Current • 24h Avg • Min–Max • Trend */}
-                    <div className="kpi-tile">
-                      <div className="kpi-label">Current</div>
-                      <div className="kpi-value" style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.round(peerStats.last)}</div>
-                    </div>
-                    <div className="kpi-tile">
-                      <div className="kpi-label">24h Avg</div>
-                      <div className="kpi-value" style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.round(peerStats.avg24)}</div>
-                    </div>
-                    <div className="kpi-tile">
-                      <div className="kpi-label">Min–Max</div>
-                      <div className="kpi-value" style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.round(peerStats.min)}–{Math.round(peerStats.max)}</div>
-                    </div>
-                    <div className="kpi-tile">
-                      <div className="kpi-label">Trend</div>
-                      <div><TrendPill changePct={peerStats.changePct} /></div>
-                    </div>
-
-                    {/* Bottom row: Δ Last • Volatility (σ + CV%) • P95 • Median */}
-                    <div className="kpi-tile">
-                      <div className="kpi-label">Δ Last</div>
-                      {(() => {
-                        const val = Math.round(peerStats.lastDelta)
-                        const positive = val > 0
-                        const color = val === 0 ? 'var(--text-muted)' : positive ? 'var(--success-500)' : 'var(--danger-500)'
-                        const sign = val > 0 ? '+' : ''
-                        return <div className="kpi-value" style={{ color, fontVariantNumeric: 'tabular-nums' }}>{sign}{val}</div>
-                      })()}
-                    </div>
-                    <div className="kpi-tile">
-                      <div className="kpi-label">Volatility (σ + CV%)</div>
-                      <div className="kpi-value" style={{ fontVariantNumeric: 'tabular-nums' }}>{peerStats.stdDev.toFixed(1)} <span className="muted" style={{ fontWeight: 600 }}>(CV {peerStats.cvPct.toFixed(1)}%)</span></div>
-                      {(() => {
-                        const pct = Math.max(0, Math.min(100, peerStats.cvPct))
-                        return (
-                          <div className="progress-mini" aria-hidden="true">
-                            <span style={{ width: `${pct}%` }} />
-                          </div>
-                        )
-                      })()}
-                    </div>
-                    <div className="kpi-tile">
-                      <div className="kpi-label">P95</div>
-                      <div className="kpi-value" style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.round(peerStats.p95)}</div>
-                    </div>
-                    <div className="kpi-tile">
-                      <div className="kpi-label">Median</div>
-                      <div className="kpi-value" style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.round(peerStats.median)}</div>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : <div className="muted">No data</div>}
+              ) : <div className="muted">No data yet.</div>}
+            </div>
           </div>
-          <div className="card">
-            <h3 style={{ margin: 0 }}>Security & PQC</h3>
-            <div className="grid grid-2">
-              <BlockHeightWidget />
-              <PQCStatusCard />
+          <div className="card" style={{alignSelf:'start'}}>
+            <h3 style={{fontWeight:700, marginBottom:8}}>Security & PQC</h3>
+            <div style={{display:'grid', gap:8}}>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">Block Height</span><span>{isFiniteNumber(overview?.height) ? overview.height.toLocaleString() : '—'}</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">PQC Status</span><span className={`pill ${(pqc?.enabled || pqc?.status === 'active') ? 'good':'bad'}`}>{(pqc?.enabled || pqc?.status === 'active') ? 'enabled' : (pqc?.status || 'disabled')}</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">Algorithm</span><span>{pqc?.algorithm || '—'}</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">Runtime</span><span>{pqc?.runtime || '—'}</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">Modules</span>
+                <span className={`pill ${pqc?.wasmModules ? 'good':'bad'}`}>{pqc?.wasmModules ? 'enabled' : 'disabled'}</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">Wallet Support</span><span className={`pill ${(pqc?.walletSupport === 'enabled' || pqc?.walletSupport === 'active') ? 'good':'bad'}`}>{pqc?.walletSupport || '—'}</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">Version</span><span>{pqc?.version || '—'}</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">Finality</span><span>{isFiniteNumber(overview?.finality) ? `${overview.finality}s` : '—'}</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">AI Latency (P95)</span><span>{aiLatency?.p95_ms ? `${Number(aiLatency.p95_ms).toFixed(0)} ms` : '—'}</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span className="muted">Updated</span><span>{pqc?.updatedAt ? new Date(pqc.updatedAt).toISOString() : lastUpdated}</span>
+              </div>
             </div>
           </div>
         </div>

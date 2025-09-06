@@ -1,0 +1,24 @@
+# Local config for PulseScan inference service
+# Uses local Postgres and Redis containers
+
+database_url = "postgresql://pulsescan:pulsescan123@localhost:5432/pulsescan"
+redis_url = "redis://localhost:6379"
+blockchain_rpc_url = "http://localhost:26657"
+contract_address = "dytallix1contractlocal0000000000000000000"
+signer_private_key = ""
+min_anomaly_score = 0.7
+auto_submit_findings = false
+metrics_port = 9090
+
+[inference]
+model_type = "ensemble"
+batch_size = 32
+confidence_threshold = 0.8
+enable_ensemble = true
+
+[features]
+enable_graph_features = true
+enable_temporal_features = true
+enable_behavioral_features = true
+lookback_window_hours = 24
+velocity_window_minutes = 60

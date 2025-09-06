@@ -6,3 +6,4 @@ pub mod pqc;
 pub mod query;
 pub mod stake;
 pub mod tx;
+pub mod secrets;

@@ -269,4 +269,18 @@ Future Enhancements:
 - Replay protection / nonce per channel
 - Outbound mint / burn events
 - Rate limiting & fee model for bridge operations
+## Validator Keys (Vault or Sealed Keystore)
+- No plaintext private keys are ever persisted to disk by the node.
+- The node attempts to load validator key material at startup using the following precedence:
+  1. Vault (KV v2): set `DYTALLIX_VAULT_URL` and `DYTALLIX_VAULT_TOKEN` (or `VAULT_URL`/`VAULT_TOKEN`). Optional: `DYTALLIX_VAULT_KV_MOUNT` (default `secret`), `DYTALLIX_VAULT_PATH_BASE` (default `dytallix/validators`). Requires `VALIDATOR_ID` (e.g. `val1`).
+  2. Sealed local keystore: set `DYT_KEYSTORE_DIR` (default `~/.dytallix/keystore`) and `VALIDATOR_ID`. Provide passphrase via `DYT_KEYSTORE_PASSPHRASE` (non-interactive) or enter when prompted.
 
+Evidence written (redacted):
+- `launch-evidence/secrets/vault_config.sample.md`
+- `launch-evidence/secrets/keystore_proof.txt` (path, size, sha256 of sealed file)
+
+Key rotation steps:
+1. Prepare new key (`newkey.bin`).
+2. Vault: `vault kv put secret/dytallix/validators/$VALIDATOR_ID private_key=$(base64 -w0 newkey.bin)`
+   Keystore: `DYT_KEYSTORE_PASSPHRASE=...` then run node once; or call provider put function offline.
+3. Restart node and verify.

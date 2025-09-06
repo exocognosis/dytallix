@@ -71,3 +71,18 @@ jobs:
         with:
           name: trivy-sarif
           path: trivy-fs.sarif
+  secrets-scan:
+    name: Secrets Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run gitleaks
+        uses: zricethezav/gitleaks-action@v2
+        with:
+          config-path: .gitleaks.toml
+          args: "detect --no-git --redact --report-format=json --report-path=launch-evidence/secrets/secret_scan_report.json"
+      - name: Upload secrets scan report
+        uses: actions/upload-artifact@v4
+        with:
+          name: secret-scan-report
+          path: launch-evidence/secrets/secret_scan_report.json

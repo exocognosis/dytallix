@@ -154,3 +154,30 @@ impl HostEnv {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::crypto::PQCManager;
+
+    #[test]
+    fn storage_roundtrip_is_deterministic() {
+        let env = HostEnv::with_pqc(Arc::new(PQCManager::new().unwrap()));
+        let k = b"key1".to_vec();
+        let v = b"value1".to_vec();
+        assert!(env.storage_get(&k).is_none());
+        env.storage_set(k.clone(), v.clone());
+        assert_eq!(env.storage_get(&k), Some(v.clone()));
+        assert!(env.storage_delete(&k));
+        assert!(env.storage_get(&k).is_none());
+    }
+
+    #[test]
+    fn blake3_hash_matches_reference() {
+        let env = HostEnv::with_pqc(Arc::new(PQCManager::new().unwrap()));
+        let data = b"abc";
+        let h1 = env.blake3_hash(data);
+        let h2 = *blake3::hash(data).as_bytes();
+        assert_eq!(h1, h2);
+    }
+}

@@ -110,3 +110,32 @@ Please open a security advisory (GitHub Security tab) or email security@dytallix
 
 (See `README.md` for operational & troubleshooting notes; `LAUNCH-CHECKLIST.md` for final pre-launch validation steps.)
 
+## Validator Keys (Server) — Vault or Sealed Keystore
+- No plaintext private keys are ever written to disk by the node.
+- Startup flow (dytallix-lean-node):
+  - If `DYTALLIX_VAULT_URL`+`DYTALLIX_VAULT_TOKEN` (or `VAULT_URL`/`VAULT_TOKEN`) are set, the node reads validator key material from HashiCorp Vault KV v2 at `/<mount>/data/<base>/VALIDATOR_ID` (configurable via `DYTALLIX_VAULT_KV_MOUNT`, `DYTALLIX_VAULT_PATH_BASE`). The secret payload is expected to be `{ "data": { "private_key": base64 } }`.
+  - Otherwise, a sealed local keystore is used at `~/.dytallix/keystore/validator-<VALIDATOR_ID>.seal`. The keystore is encrypted with Argon2id KDF + ChaCha20-Poly1305. A passphrase is required (prompted interactively or via `DYT_KEYSTORE_PASSPHRASE` for non-interactive).
+- Evidence artifacts:
+  - `launch-evidence/secrets/vault_config.sample.md` — sample, redacted Vault configuration.
+  - `launch-evidence/secrets/keystore_proof.txt` — path, size, and SHA-256 of sealed keystore (no secrets).
+
+### Key Rotation (Operational Steps)
+Fast path using CLI (preferred):
+
+- Rotate via Vault (if `DYTALLIX_VAULT_URL`/`VAULT_URL` and token are set):
+  - `dcli secrets rotate-validator --validator-id <VALIDATOR_ID>`
+- Rotate via sealed keystore fallback (no Vault env present):
+  - `DYT_KEYSTORE_PASSPHRASE=... dcli secrets rotate-validator --validator-id <VALIDATOR_ID>`
+
+Manual alternative (for ops automation or break-glass):
+1. Prepare new key material (HSM-backed or offline-generated).
+2. Vault: `vault kv put secret/dytallix/validators/<VALIDATOR_ID> private_key=$(base64 -w0 newkey.bin)`;
+   Keystore: run the node once with `DYT_KEYSTORE_PASSPHRASE` and it will seal to `~/.dytallix/keystore/validator-<VALIDATOR_ID>.seal`.
+3. Restart node(s) to load the new key into memory.
+4. Verify signatures/attestations generated with the new key; revoke old key where applicable.
+
+Rollback procedure is documented in `ROLLBACK.md`.
+
+Guarantees:
+- The application never logs or writes decrypted key material to disk.
+- In-memory key buffers are wrapped with `Zeroizing` to reduce residence after drop.

@@ -21,3 +21,4 @@ pub mod util;
 pub mod ws; // added util module // p2p networking and gossip
             // re-export emission types
 pub use runtime::emission::*;
+pub mod secrets; // vault + sealed keystore providers

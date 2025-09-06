@@ -1,0 +1,47 @@
+{
+  "title": "Dytallix Monitoring",
+  "schemaVersion": 36,
+  "version": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Block Height",
+      "targets": [{"expr": "dyt_block_height"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Block Time P50/P95 (s)",
+      "targets": [
+        {"expr": "histogram_quantile(0.5, sum(rate(dyt_block_time_seconds_bucket[5m])) by (le))", "legendFormat": "p50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(dyt_block_time_seconds_bucket[5m])) by (le))", "legendFormat": "p95"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "TPS",
+      "targets": [{"expr": "dyt_tps"}, {"expr": "tps", "legendFormat": "tps(alias)"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Mempool Size",
+      "targets": [{"expr": "dyt_mempool_size"}, {"expr": "mempool_len", "legendFormat": "mempool_len(alias)"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "AI Latency P50/P95 (ms)",
+      "targets": [
+        {"expr": "histogram_quantile(0.5, sum(rate(ai_latency_ms_bucket[5m])) by (le))", "legendFormat": "p50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(ai_latency_ms_bucket[5m])) by (le))", "legendFormat": "p95"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Error Rate",
+      "targets": [
+        {"expr": "rate(ai_request_errors_total[5m])", "legendFormat": "ai errors/s"},
+        {"expr": "rate(http_request_duration_seconds_count{service=\"pulsescan-api\"}[5m])", "legendFormat": "api req/s"}
+      ]
+    }
+  ]
+}
+
