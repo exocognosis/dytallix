@@ -89,7 +89,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Trivy FS Scan
-        uses: aquasecurity/trivy-action@0.20.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: filesystem
           ignore-unfixed: true
@@ -97,7 +97,7 @@ jobs:
           exit-code: 1
 
       - name: Trivy Image Scan
-        uses: aquasecurity/trivy-action@0.20.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ${{ steps.meta.outputs.tags }}
           ignore-unfixed: true
