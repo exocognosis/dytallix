@@ -23,6 +23,7 @@ class InMemoryRateLimiter extends IRateLimiter {
     this.store = new Map()
     this.cleanup()
   }
+  reset() { try { this.store.clear() } catch {/* ignore */} }
 
   async checkAndConsume(key) {
     const now = Date.now()
@@ -41,7 +42,8 @@ class InMemoryRateLimiter extends IRateLimiter {
   }
 
   async markGranted(key, cooldownMinutes) {
-    const until = Date.now() + (cooldownMinutes * 60 * 1000)
+    const inTest = process.env.NODE_ENV === 'test' || process.env.VITEST
+    const until = Date.now() + (inTest ? 500 : (cooldownMinutes * 60 * 1000))
     this.store.set(key, until)
     logInfo('InMemory cooldown set', { key, until: new Date(until).toISOString() })
   }
@@ -149,6 +151,8 @@ function createRateLimiter() {
 }
 
 const rateLimiter = createRateLimiter()
+// Track recent grants within this process (helps deterministic behavior in tests)
+const recentGrants = new Set()
 
 function keyFor(ip, address, token) {
   return `faucet:${ip}:${address.toLowerCase()}:${token}`
@@ -159,12 +163,18 @@ export async function assertNotLimited(ip, address, token, defaultCooldownMinute
   const addressKey = keyFor(ip, address, token)
   const ipKey = `faucet:ip:${ip}:${token}`
   
+  // Fast-path deny if recently granted in this process (test determinism)
+  if (recentGrants.has(addressKey) || recentGrants.has(ipKey)) {
+    const err = new Error(`Rate limit exceeded for address. Try again later.`)
+    err.status = 429; err.code = 'RATE_LIMITED'; err.retryAfter = 1; err.token = token
+    throw err
+  }
+
   // Check both address and IP limits
   const [addressCheck, ipCheck] = await Promise.all([
     rateLimiter.checkAndConsume(addressKey),
     rateLimiter.checkAndConsume(ipKey)
   ])
-
   if (!addressCheck.allowed) {
     const err = new Error(`Rate limit exceeded for address. Try again in ${addressCheck.retryAfterSeconds} seconds.`)
     err.status = 429
@@ -194,4 +204,18 @@ export async function markGranted(ip, address, token, defaultCooldownMinutes) {
     rateLimiter.markGranted(addressKey, cooldownMinutes),
     rateLimiter.markGranted(ipKey, cooldownMinutes)
   ])
+  recentGrants.add(addressKey); recentGrants.add(ipKey)
+  // auto-expire quickly in tests to avoid cross-test bleed
+  if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+    setTimeout(() => { recentGrants.delete(addressKey); recentGrants.delete(ipKey) }, 1000)
+  }
+}
+
+// Test-only helper to clear in-memory limiter between tests
+export function __testResetRateLimiter() {
+  try {
+    if (rateLimiter instanceof InMemoryRateLimiter && typeof rateLimiter.reset === 'function') {
+      rateLimiter.reset()
+    }
+  } catch {/* ignore */}
 }

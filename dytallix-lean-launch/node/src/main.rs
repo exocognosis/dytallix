@@ -105,7 +105,7 @@ async fn main() -> anyhow::Result<()> {
             format!("{home}/.dytallix/keystore")
         });
         println!(
-            "Secrets mode: Sealed Keystore path={} (Argon2id + ChaCha20-Poly1305); no plaintext keys on disk",
+            "Secrets mode: Plain Keystore (dev) path={} — no passphrase required",
             dir
         );
     }

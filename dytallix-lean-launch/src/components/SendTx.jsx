@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { getBlockHeight } from '../lib/api.js'
+import { getBlockHeight as _getBlockHeight } from '../lib/api.js'
 import { TOKENS as TOKENOMICS } from '../tokenomics.js'
 
 // SendTx: amount/denom selector, fee estimate, confirm modal, result panel (tx hash + block height)
@@ -51,7 +51,7 @@ export default function SendTx({ wallet, balances, onEstimate, onSignAndSubmit }
       const payload = { type: 'transfer', token, to, amount: buildAmountMicro(), from: wallet.address }
       const res = await onSignAndSubmit(payload)
       let height = 0
-      try { height = await getBlockHeight() } catch {}
+      try { if (typeof _getBlockHeight === 'function') { height = await _getBlockHeight() } } catch {}
       setResult({ txHash: res?.txHash || '', height })
       setOpenConfirm(false)
       setAmount(''); setTo('')

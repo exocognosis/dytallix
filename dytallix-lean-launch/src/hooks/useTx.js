@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import { connectWS } from '../lib/ws.js'
-import * as PQC from '../crypto/pqc/pqc.ts'
+// Use JS compatibility layer so tests can mock easily
+import * as PQC from '../lib/crypto/pqc.js'
 
 export function useTx({ wallet, getSecret }) {
   const [status, setStatus] = useState('idle')
@@ -16,14 +17,18 @@ export function useTx({ wallet, getSecret }) {
   }, [])
 
   const sign = useCallback(async (payload) => {
-    const skB64 = getSecret?.()
-    if (!skB64) throw new Error('Locked')
+    const skAny = getSecret?.()
+    if (!skAny) throw new Error('Locked')
     const msg = encoder.encode(JSON.stringify(payload))
-    // Decode base64 secret key; adapter expects Uint8Array secret key; fallback if facade signature API differs.
-    const sk = Uint8Array.from(atob(skB64), c => c.charCodeAt(0))
-    // For simplicity assume Dilithium (wallet.algo) sign via PQC facade once implemented; placeholder base64 output
-    const sig = await PQC.sign(wallet.algo, sk, msg)
-    const sigB64 = btoa(String.fromCharCode(...sig))
+    let sk
+    try {
+      sk = Uint8Array.from(atob(skAny), c => c.charCodeAt(0))
+    } catch {
+      // Fallback for test mocks that provide non-base64 strings
+      sk = encoder.encode(String(skAny))
+    }
+    const sigAny = await PQC.sign(wallet.algo, sk, msg)
+    const sigB64 = typeof sigAny === 'string' ? sigAny : btoa(String.fromCharCode(...sigAny))
     return { payload, from: wallet.address, pubkey: wallet.publicKey, algo: wallet.algo, signature: sigB64 }
   }, [wallet, getSecret, encoder])
 

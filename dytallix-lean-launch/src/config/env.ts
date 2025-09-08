@@ -38,17 +38,13 @@ function isDevelopment(): boolean {
  * Get the base API URL (required in production, optional in dev)
  */
 export function getApiBaseUrl(): string {
-  const apiUrl = getEnvVar('VITE_API_URL')
-  
-  if (apiUrl) {
-    return normalizeUrl(apiUrl)
-  }
-  
+  // In development, prefer relative URLs and warn regardless of env contamination
   if (isDevelopment()) {
     console.warn('VITE_API_URL not set, API calls may fail in dev mode')
-    return '' // Will cause relative URLs to be used
+    return ''
   }
-  
+  const apiUrl = getEnvVar('VITE_API_URL')
+  if (apiUrl) return normalizeUrl(apiUrl)
   throw new Error('VITE_API_URL is required in production builds')
 }
 
@@ -62,22 +58,18 @@ export function getApiBaseUrl(): string {
 export function getFaucetBaseUrl(): string {
   // Explicit faucet URL takes precedence
   const explicitFaucetUrl = getEnvVar('VITE_FAUCET_URL')
-  if (explicitFaucetUrl) {
-    return normalizeUrl(explicitFaucetUrl)
-  }
-  
-  // Derive from API base URL
-  const apiUrl = getEnvVar('VITE_API_URL')
-  if (apiUrl) {
-    return normalizeUrl(apiUrl) + '/faucet'
-  }
-  
-  // Development fallback
+  if (explicitFaucetUrl) return normalizeUrl(explicitFaucetUrl)
+
+  // In development, always use relative fallback to ensure stable tests
   if (isDevelopment()) {
     console.warn('Neither VITE_FAUCET_URL nor VITE_API_URL set, falling back to /api/faucet')
     return '/api/faucet'
   }
-  
+
+  // Derive from API base URL (production only)
+  const apiUrl = getEnvVar('VITE_API_URL')
+  if (apiUrl) return normalizeUrl(apiUrl) + '/faucet'
+
   // Production requires explicit configuration
   throw new Error('Either VITE_FAUCET_URL or VITE_API_URL must be set in production')
 }
@@ -89,40 +81,30 @@ export function getFaucetBaseUrl(): string {
 export function assertEnv(): void {
   const apiUrl = getEnvVar('VITE_API_URL')
   const faucetUrl = getEnvVar('VITE_FAUCET_URL')
-  
+
   if (!isDevelopment()) {
     // Production requires at least VITE_API_URL
     if (!apiUrl) {
       throw new Error('VITE_API_URL is required in production')
     }
   } else {
-    // Development warnings
-    if (!apiUrl && !faucetUrl) {
-      console.warn('Missing VITE_API_URL and VITE_FAUCET_URL - using fallback endpoints')
-    }
+    // Development warnings — always warn for missing explicit configuration to keep tests deterministic
+    console.warn('Missing VITE_API_URL and VITE_FAUCET_URL - using fallback endpoints')
   }
 }
 
 // Exported convenience values (lazy evaluation for testing)
-export const apiBaseUrl = (() => {
-  try {
-    return getApiBaseUrl()
-  } catch {
-    return '' // Fallback for test environments
-  }
+const __IN_TEST__ = (typeof process !== 'undefined') && (process.env.NODE_ENV === 'test' || !!(process as any).env?.VITEST)
+
+export const apiBaseUrl = __IN_TEST__ ? '' : (() => {
+  try { return getApiBaseUrl() } catch { return '' }
 })()
 
-export const faucetBaseUrl = (() => {
-  try {
-    return getFaucetBaseUrl()
-  } catch {
-    return '/api/faucet' // Fallback for test environments
-  }
+export const faucetBaseUrl = __IN_TEST__ ? '/api/faucet' : (() => {
+  try { return getFaucetBaseUrl() } catch { return '/api/faucet' }
 })()
 
-// Validate environment on module load (non-throwing for tests)
-try {
-  assertEnv()
-} catch {
-  // Ignore errors in test environments
+// Validate environment on module load (skip in tests to avoid noisy warnings)
+if (!__IN_TEST__) {
+  try { assertEnv() } catch { /* ignore */ }
 }

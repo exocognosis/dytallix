@@ -3,7 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { requestLogger, logError, logInfo } from './logger.js'
 import { WebSocketServer } from 'ws'
-import { assertNotLimited, markGranted } from './rateLimit.js'
+import { assertNotLimited, markGranted, __testResetRateLimiter } from './rateLimit.js'
 import { transfer, getMaxFor } from './transfer.js'
 import { register, rateLimitHitsTotal, faucetRequestsTotal } from './metrics.js'
 import { ContractScanner } from './src/scanner/index.js'
@@ -17,6 +17,11 @@ import os from 'os'
  */
 
 dotenv.config()
+
+// Reset in-memory rate limiter between test runs to avoid cross-test interference
+if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+  try { __testResetRateLimiter() } catch {}
+}
 
 // Production environment validation
 if (process.env.NODE_ENV === 'production') {
@@ -1027,27 +1032,30 @@ app.use((err, req, res, next) => {
 })
 
 // Start HTTP server and attach WebSocket server for realtime dashboard updates
-const server = app.listen(PORT, () => { logInfo('Server started', { PORT, ORIGIN }) })
-
+let server = null
 let wss = null
-try {
-  // Accept upgrades on any path; we'll filter inside handler to be resilient
-  wss = new WebSocketServer({ server })
-  wss.on('connection', (ws, req) => {
-    const reqPath = req?.url || ''
-    if (!reqPath.startsWith('/api/ws')) {
-      try { ws.close() } catch {}
-      return
-    }
-    logInfo('ws.connection', { path: reqPath, remote: req.socket.remoteAddress })
-    // Send an immediate snapshot on connect
-    sampleMetrics().then((m) => {
-      try { ws.send(JSON.stringify({ type: 'overview', data: { ...m, updatedAt: new Date().toISOString() } })) } catch {}
-    }).catch(() => {})
-  })
-  logInfo('WebSocket server attached', { path: '/api/ws' })
-} catch (e) {
-  logError('Failed to start WebSocket server', e)
+const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST
+if (!isTestEnv) {
+  server = app.listen(PORT, () => { logInfo('Server started', { PORT, ORIGIN }) })
+  try {
+    // Accept upgrades on any path; we'll filter inside handler to be resilient
+    wss = new WebSocketServer({ server })
+    wss.on('connection', (ws, req) => {
+      const reqPath = req?.url || ''
+      if (!reqPath.startsWith('/api/ws')) {
+        try { ws.close() } catch {}
+        return
+      }
+      logInfo('ws.connection', { path: reqPath, remote: req.socket.remoteAddress })
+      // Send an immediate snapshot on connect
+      sampleMetrics().then((m) => {
+        try { ws.send(JSON.stringify({ type: 'overview', data: { ...m, updatedAt: new Date().toISOString() } })) } catch {}
+      }).catch(() => {})
+    })
+    logInfo('WebSocket server attached', { path: '/api/ws' })
+  } catch (e) {
+    logError('Failed to start WebSocket server', e)
+  }
 }
 
 export default app

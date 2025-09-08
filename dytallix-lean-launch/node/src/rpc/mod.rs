@@ -4,6 +4,15 @@ use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::{GovernanceModule, ProposalType};
 use crate::runtime::staking::StakingModule;
 #[cfg(feature = "oracle")]
+use crate::runtime::oracle::{current_timestamp, apply_oracle_risk, verify_sig};
+#[cfg(not(feature = "oracle"))]
+fn current_timestamp() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+#[cfg(feature = "oracle")]
 use crate::storage::oracle::OracleStore;
 use crate::types::{Msg, SignedTx, ValidationError};
 use crate::{
@@ -1157,7 +1166,7 @@ pub async fn json_rpc(
             let code_bytes = hex::decode(code_hex).map_err(|_| ApiError::BadRequest("invalid code hex".to_string()))?;
             let code_hash = blake3::hash(&code_bytes);
             // Deterministic address derived from code hash
-            let addr = format!("dyt1{:x}", code_hash);
+            let addr = format!("dyt1{}", hex::encode(code_hash.as_bytes()));
 
             // Initialize minimal state (counter=0)
             {
@@ -1175,7 +1184,7 @@ pub async fn json_rpc(
                 ev_dir.join("deploy_tx.json"),
                 serde_json::to_string_pretty(&json!({
                     "address": addr,
-                    "code_hash": format!("{:x}", code_hash),
+                    "code_hash": hex::encode(code_hash.as_bytes()),
                     "gas_used": gas_limit.min(50_000),
                     "timestamp": current_timestamp(),
                 })).unwrap_or_default(),
@@ -1187,7 +1196,7 @@ pub async fn json_rpc(
 
             let res = json!({
                 "address": addr,
-                "code_hash": format!("{:x}", code_hash),
+                "code_hash": hex::encode(code_hash.as_bytes()),
                 "gas_used": gas_limit.min(50_000),
                 "events": [],
             });

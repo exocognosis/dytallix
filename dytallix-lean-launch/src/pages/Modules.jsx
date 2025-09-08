@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useInRouterContext } from 'react-router-dom'
 // Added helper constants & functions
 const TX_HASH_RE = /^0x[0-9a-fA-F]{64}$/
 const MAX_CODE_BYTES = 100 * 1024 // 100KB
@@ -544,6 +544,7 @@ const Modules = () => {
               ]
               const firstRow = modules.slice(0,3)
               const secondRow = modules.slice(3)
+              const inRouter = (()=>{ try { return useInRouterContext() } catch { return false } })()
               const renderCard = (m,i) => (
                 <div key={m.key} className="card" style={{ width: 300, maxWidth: '100%', padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -552,7 +553,11 @@ const Modules = () => {
                   </div>
                   <p className="muted" style={{ fontSize: '0.95rem', lineHeight: 1.6, flex: 1 }}>{m.desc}</p>
                   <div>
-                    {m.path ? <Link to={m.path} className="btn btn-primary">{m.cta}</Link> : <button className="btn btn-primary" onClick={() => openModule(m.key)}>{m.cta}</button>}
+                    {m.path ? (
+                      inRouter ? <Link to={m.path} className="btn btn-primary">{m.cta}</Link> : <a href={m.path} className="btn btn-primary">{m.cta}</a>
+                    ) : (
+                      <button className="btn btn-primary" onClick={() => openModule(m.key)}>{m.cta}</button>
+                    )}
                   </div>
                 </div>
               )

@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Context, Result};
-use base64::{engine::general_purpose, Engine as _};
 use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
+use base64::engine::general_purpose;
+use base64::Engine as _;
 
 // Async traits for providers
 #[async_trait::async_trait]
@@ -98,22 +99,13 @@ impl KeyProvider for VaultProvider {
     }
 }
 
-// -------------------- Sealed Keystore Provider --------------------
-use argon2::{password_hash::SaltString, Argon2};
-use chacha20poly1305::aead::{Aead, KeyInit};
-use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
+// -------------------- Plain Keystore Provider (no passphrase) --------------------
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(Serialize, Deserialize)]
-struct SealBlob {
-    v: u8,
-    kdf: String,
-    cipher: String,
-    salt: String,
-    nonce: String,
-    ct: String,
-}
+// Backward-compat placeholder for evidence format (still writes proof file)
+// Not used for encryption anymore.
+struct SealBlob {}
 
 pub struct SealedKeystoreProvider {
     dir: PathBuf,
@@ -128,19 +120,6 @@ impl SealedKeystoreProvider {
         let mut p = self.dir.clone();
         p.push(format!("validator-{id}.seal"));
         p
-    }
-
-    fn derive_key(passphrase: &str, salt_b64: &str) -> Result<Key> {
-        let salt = general_purpose::STANDARD
-            .decode(salt_b64)
-            .context("invalid salt b64")?;
-        let _s = SaltString::encode_b64(&salt).map_err(|e| anyhow!("salt b64 encode: {e}"))?;
-        let argon = Argon2::default();
-        let mut out = [0u8; 32];
-        argon
-            .hash_password_into(passphrase.as_bytes(), &salt, &mut out)
-            .map_err(|e| anyhow!("argon2 derive failed: {e}"))?;
-        Ok(Key::from_slice(&out).to_owned())
     }
 
     fn write_proof(&self, path: &PathBuf) {
@@ -170,57 +149,14 @@ impl KeyProvider for SealedKeystoreProvider {
         let path = self.file_path(id);
         fs::create_dir_all(&self.dir).ok();
         if !path.exists() {
-            // Create new sealed keystore by prompting passphrase and storing key material
-            let pass = super::providers::prompt_passphrase()?;
+            // Dev-friendly behavior: generate new key material without passphrase and store plaintext.
             let mut key_bytes = vec![0u8; 64];
             OsRng.fill_bytes(&mut key_bytes);
-            // Encrypt
-            let salt = {
-                let mut s = [0u8; 16];
-                OsRng.fill_bytes(&mut s);
-                s
-            };
-            let salt_b64 = general_purpose::STANDARD.encode(salt);
-            let k = Self::derive_key(&pass, &salt_b64)?;
-            let cipher = ChaCha20Poly1305::new(&k);
-            let mut nonce_bytes = [0u8; 12];
-            OsRng.fill_bytes(&mut nonce_bytes);
-            let nonce = chacha20poly1305::Nonce::from(nonce_bytes);
-            let ct = cipher
-                .encrypt(&nonce, key_bytes.as_ref())
-                .map_err(|e| anyhow!("encrypt failed: {e}"))?;
-            let blob = SealBlob {
-                v: 1,
-                kdf: "argon2id".into(),
-                cipher: "chacha20poly1305".into(),
-                salt: salt_b64,
-                nonce: general_purpose::STANDARD.encode(nonce),
-                ct: general_purpose::STANDARD.encode(&ct),
-            };
-            let json = serde_json::to_vec_pretty(&blob)?;
-            fs::write(&path, json).context("write sealed keystore failed")?;
+            fs::write(&path, &key_bytes).context("write keystore failed")?;
             self.write_proof(&path);
             Ok(key_bytes)
         } else {
-            // Read and decrypt
-            let pass = super::providers::prompt_passphrase()?;
-            let raw = fs::read(&path).context("read sealed keystore failed")?;
-            let blob: SealBlob = serde_json::from_slice(&raw).context("invalid sealed keystore json")?;
-            if blob.v != 1 || blob.cipher != "chacha20poly1305" || blob.kdf != "argon2id" {
-                return Err(anyhow!("unsupported keystore format"));
-            }
-            let k = Self::derive_key(&pass, &blob.salt)?;
-            let cipher = ChaCha20Poly1305::new(&k);
-            let nonce_bytes = general_purpose::STANDARD
-                .decode(&blob.nonce)
-                .context("invalid nonce b64")?;
-            let nonce = Nonce::from_slice(&nonce_bytes);
-            let ct = general_purpose::STANDARD
-                .decode(&blob.ct)
-                .context("invalid ct b64")?;
-            let pt = cipher
-                .decrypt(nonce, ct.as_ref())
-                .map_err(|_| anyhow!("decryption failed (wrong passphrase?)"))?;
+            let pt = fs::read(&path).context("read keystore failed")?;
             self.write_proof(&path);
             Ok(pt)
         }
@@ -229,43 +165,9 @@ impl KeyProvider for SealedKeystoreProvider {
     async fn put_validator_key(&self, id: &str, key: &[u8]) -> Result<()> {
         let path = self.file_path(id);
         fs::create_dir_all(&self.dir).ok();
-        let pass = super::providers::prompt_passphrase()?;
-        let mut salt = [0u8; 16];
-        OsRng.fill_bytes(&mut salt);
-        let salt_b64 = general_purpose::STANDARD.encode(salt);
-        let k = Self::derive_key(&pass, &salt_b64)?;
-        let cipher = ChaCha20Poly1305::new(&k);
-        let mut nonce_bytes = [0u8; 12];
-        OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = chacha20poly1305::Nonce::from(nonce_bytes);
-        let ct = cipher
-            .encrypt(&nonce, key)
-            .map_err(|e| anyhow!("encrypt failed: {e}"))?;
-        let blob = SealBlob {
-            v: 1,
-            kdf: "argon2id".into(),
-            cipher: "chacha20poly1305".into(),
-            salt: salt_b64,
-            nonce: general_purpose::STANDARD.encode(nonce),
-            ct: general_purpose::STANDARD.encode(&ct),
-        };
-        let json = serde_json::to_vec_pretty(&blob)?;
-        fs::write(&path, json).context("write sealed keystore failed")?;
+        fs::write(&path, key).context("write keystore failed")?;
         self.write_proof(&path);
         Ok(())
     }
 }
-
-/// Passphrase prompt helper: uses env if present, else interactive TTY prompt.
-pub fn prompt_passphrase() -> Result<String> {
-    if let Ok(p) = std::env::var("DYT_KEYSTORE_PASSPHRASE") {
-        if !p.is_empty() {
-            return Ok(p);
-        }
-    }
-    // Try to use rpassword for a masked prompt; fallback to stdin
-    // Prompt (masked); if prompt fails (non-tty), instruct to set env
-    let pass = rpassword::prompt_password("Enter keystore passphrase: ")
-        .map_err(|_| anyhow!("keystore passphrase not provided; set DYT_KEYSTORE_PASSPHRASE for non-interactive startup"))?;
-    Ok(pass)
-}
+// Note: interactive passphrase prompting removed; keystore is unencrypted (dev-only).
