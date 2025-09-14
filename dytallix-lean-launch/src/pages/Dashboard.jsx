@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import '../styles/global.css'
-// Metrics client for dashboard data
-import { getOverview, getTimeseries, openDashboardSocket, getBlockHeight } from '../../frontend/src/lib/metricsClient.ts'
+// Metrics client for dashboard data - temporarily mocked
+// import { getOverview, getTimeseries, openDashboardSocket, getBlockHeight } from '../../frontend/src/lib/metricsClient.ts'
+const getOverview = () => Promise.resolve({})
+const getTimeseries = () => Promise.resolve({})
+const openDashboardSocket = () => ({ close: () => {} })
+const getBlockHeight = () => Promise.resolve(0)
 // Real PQC status card component
 import PQCStatusCard from '../components/PQCStatusCard.jsx'
 import { getPQCStatus } from '../lib/api.js'

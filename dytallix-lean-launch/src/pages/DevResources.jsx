@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { getCosmosConfig } from '../config/cosmos.js'
+import { Section, Grid, Card, Badge, StepCard } from '../components/ui'
 
 const DevResources = () => {
   const resources = [
@@ -51,110 +52,108 @@ const DevResources = () => {
     }
   ]
 
-  const getTypeStyle = (type) => {
-    const base = {
-      GitHub: { bg: 'rgba(243,244,246,0.05)', text: '#E5E7EB', border: 'rgba(209,213,219,0.12)' },
-      Documentation: { bg: 'rgba(59,130,246,0.12)', text: '#93C5FD', border: 'rgba(59,130,246,0.25)' },
-      Tool: { bg: 'rgba(16,185,129,0.12)', text: '#86EFAC', border: 'rgba(16,185,129,0.28)' },
-      Community: { bg: 'rgba(236,72,153,0.12)', text: '#F9A8D4', border: 'rgba(236,72,153,0.28)' },
-      Program: { bg: 'rgba(245,158,11,0.12)', text: '#FCD34D', border: 'rgba(245,158,11,0.28)' },
-      Video: { bg: 'rgba(239,68,68,0.12)', text: '#FCA5A5', border: 'rgba(239,68,68,0.28)' },
-      PDF: { bg: 'rgba(243,244,246,0.08)', text: '#E5E7EB', border: 'rgba(209,213,219,0.12)' },
-      Internal: { bg: 'rgba(59,130,246,0.12)', text: '#93C5FD', border: 'rgba(59,130,246,0.25)' }
+  const getBadgeVariant = (type) => {
+    const variantMap = {
+      GitHub: 'neutral',
+      Documentation: 'info',
+      Tool: 'success', 
+      Community: 'warning',
+      Program: 'warning',
+      Video: 'danger',
+      PDF: 'neutral',
+      Internal: 'info'
     }
-    return base[type] || base.PDF
+    return variantMap[type] || 'neutral'
   }
 
   return (
-    <div className="section">
-      <div className="container">
-        <div className="section-header">
-          <h1 className="section-title">Developer Resources</h1>
-          <p className="section-subtitle">
-            Everything you need to start building on the Dytallix blockchain platform
-          </p>
-        </div>
+    <Section 
+      title="Developer Resources"
+      subtitle="Everything you need to start building on the Dytallix blockchain platform"
+    >
+      <div style={{ display: 'grid', gap: 32 }}>
+        {resources.map((category, categoryIndex) => (
+          <div key={categoryIndex}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 16, textAlign: 'center' }}>
+              {category.category}
+            </h2>
+            <Grid columns={2}>
+              {category.items.map((item, itemIndex) => {
+                const isInternal = item.type === 'Internal'
+                const badgeVariant = getBadgeVariant(item.type)
 
-        <div style={{ display: 'grid', gap: 32 }}>
-          {resources.map((category, categoryIndex) => (
-            <div key={categoryIndex}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 16, textAlign: 'center' }}>
-                {category.category}
-              </h2>
-              <div className="grid grid-2x2">
-                {category.items.map((item, itemIndex) => {
-                  const colors = getTypeStyle(item.type)
-                  const isInternal = item.type === 'Internal'
-
-                  const CardContent = () => (
-                    <div className="card" style={{ height: '100%', cursor: 'pointer' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>{item.title}</h3>
-                        <span style={{ padding: '4px 8px', background: colors.bg, color: colors.text, borderRadius: 12, fontSize: '0.75rem', fontWeight: 600, border: `1px solid ${colors.border}`, flexShrink: 0, marginLeft: 12 }}>
-                          {item.type}
-                        </span>
-                      </div>
-                      <p className="muted" style={{ margin: '0 0 12px 0' }}>{item.description}</p>
-                      <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', color: '#93C5FD', fontSize: '0.9rem', fontWeight: 600 }}>
-                        {isInternal ? 'Learn more' : 'Visit resource'} →
-                      </div>
+                const CardContent = () => (
+                  <Card style={{ height: '100%', cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>{item.title}</h3>
+                      <Badge variant={badgeVariant} style={{ flexShrink: 0, marginLeft: 12 }}>
+                        {item.type}
+                      </Badge>
                     </div>
-                  )
-
-                  return (
-                    <div key={itemIndex}>
-                      {isInternal ? (
-                        <Link to={item.link} style={{ textDecoration: 'none', color: 'inherit' }}>
-                          <CardContent />
-                        </Link>
-                      ) : (
-                        <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
-                          <CardContent />
-                        </a>
-                      )}
+                    <p className="text-muted" style={{ margin: '0 0 12px 0' }}>{item.description}</p>
+                    <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', color: 'var(--color-primary-300)', fontSize: '0.9rem', fontWeight: 600 }}>
+                      {isInternal ? 'Learn more' : 'Visit resource'} →
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+                  </Card>
+                )
 
-        {/* Quick Start Section */}
-        <div className="card" style={{ marginTop: 32, textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 12 }}>
-            Quick Start Guide
-          </h2>
-          <p className="muted" style={{ fontSize: '1.05rem', margin: '0 auto 20px', maxWidth: 700 }}>
-            Ready to start building? Follow these steps to get up and running with Dytallix development.
-          </p>
-          <div style={{ display: 'grid', gap: 16, textAlign: 'left', maxWidth: 840, margin: '0 auto' }}>
-            {[{
-              n: 1, title: 'Get Test Tokens', body: <>Visit our <Link to="/faucet" style={{ color: '#93C5FD', textDecoration: 'none' }}>faucet</Link> to get DYTX test tokens for development and testing.</>
-            },{ n: 2, title: 'Install the SDK', body: <code>npm install @dytallix/sdk</code> },{ n: 3, title: 'Explore Examples', body: 'Check out our example projects and tutorials to learn best practices and common patterns.' }].map((s, i) => (
-              <div key={i} className="card" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <div style={{ fontSize: '1rem', background: 'linear-gradient(135deg, #60A5FA, #8B5CF6)', color: 'white', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, flexShrink: 0 }}>
-                  {s.n}
-                </div>
-                <div>
-                  <h3 style={{ margin: '0 0 6px 0' }}>{s.title}</h3>
-                  <p className="muted" style={{ margin: 0 }}>{s.body}</p>
-                </div>
-              </div>
-            ))}
+                return (
+                  <div key={itemIndex}>
+                    {isInternal ? (
+                      <Link to={item.link} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <CardContent />
+                      </Link>
+                    ) : (
+                      <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <CardContent />
+                      </a>
+                    )}
+                  </div>
+                )
+              })}
+            </Grid>
           </div>
-        </div>
-
-        {/* Network Configuration Section (restored) */}
-        <div className="network-config-wrapper">
-          <div className="card network-config">
-            <h2 className="network-config-title">Network Configuration</h2>
-            <p className="network-config-subtitle">Current Cosmos SDK endpoints and network settings for this instance.</p>
-            <NetworkConfig />
-          </div>
-        </div>
+        ))}
       </div>
-    </div>
+
+      {/* Quick Start Section */}
+      <Card style={{ marginTop: 32, textAlign: 'center' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 12 }}>
+          Quick Start Guide
+        </h2>
+        <p className="text-muted" style={{ fontSize: '1.05rem', margin: '0 auto 20px', maxWidth: 700 }}>
+          Ready to start building? Follow these steps to get up and running with Dytallix development.
+        </p>
+        <div style={{ display: 'grid', gap: 16, textAlign: 'left', maxWidth: 840, margin: '0 auto' }}>
+          <StepCard 
+            step={1} 
+            title="Get Test Tokens" 
+            description={
+              <>Visit our <Link to="/faucet" style={{ color: 'var(--color-primary-300)', textDecoration: 'none' }}>faucet</Link> to get DYTX test tokens for development and testing.</>
+            }
+          />
+          <StepCard 
+            step={2} 
+            title="Install the SDK" 
+            description={<code>npm install @dytallix/sdk</code>}
+          />
+          <StepCard 
+            step={3} 
+            title="Explore Examples" 
+            description="Check out our example projects and tutorials to learn best practices and common patterns."
+          />
+        </div>
+      </Card>
+
+      {/* Network Configuration Section (restored) */}
+      <div className="network-config-wrapper">
+        <Card className="network-config">
+          <h2 className="network-config-title">Network Configuration</h2>
+          <p className="network-config-subtitle">Current Cosmos SDK endpoints and network settings for this instance.</p>
+          <NetworkConfig />
+        </Card>
+      </div>
+    </Section>
   )
 }
 
