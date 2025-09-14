@@ -30,7 +30,11 @@
     "docs:lint:md": "npm --prefix ../docs run lint:md",
     "docs:spellcheck": "npm --prefix ../docs run spellcheck",
     "docs:links": "npm --prefix ../docs run links",
-    "docs:ci": "npm --prefix ../docs run ci"
+    "docs:ci": "npm --prefix ../docs run ci",
+    "style:tokens": "echo 'Design tokens are in src/styles/design-tokens.css'",
+    "style:migrate": "echo 'Migration guide available in MIGRATION.md'",
+    "test:visual": "echo 'Visual regression tests - setup pending'",
+    "lint:styles": "echo 'Style linting - integrate with existing lint command'"
   },
   "dependencies": {
     "@cosmjs/crypto": "^0.35.0",

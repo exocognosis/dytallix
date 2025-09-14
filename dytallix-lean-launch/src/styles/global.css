@@ -1,6 +1,8 @@
 /* Global styles for Dytallix Lean Launch - Dark Dashboard Theme */
 
 @import url('../../website/minor-a11y-fixes.css');
+@import url('./design-tokens.css');
+@import url('./utilities.css');
 
 * {
   margin: 0;
@@ -115,6 +117,19 @@ body {
 .btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 14px 28px -6px rgba(59, 130, 246, 0.45);
+}
+
+.btn-primary.glow {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.35);
+  }
+  50% {
+    box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.55), 0 0 25px rgba(59, 130, 246, 0.3);
+  }
 }
 
 .btn-secondary {
