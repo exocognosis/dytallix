@@ -23,9 +23,11 @@ fn test_receipt_json_serialization() {
     let mut state = create_test_state();
     let gas_schedule = GasSchedule::default();
 
-    state.set_balance("alice", "udgt", 100_000);
+    // Ensure sufficient balance for upfront fee (30_000 * 1_200) and transfer amount
+    state.set_balance("alice", "udgt", 50_000_000);
 
-    let tx = Transaction::new("test_hash_12345", "alice", "bob", 1_500, 7_500, 5, None)
+    // Use a valid nonce to avoid early InvalidNonce failure
+    let tx = Transaction::new("test_hash_12345", "alice", "bob", 1_500, 7_500, 0, None)
         .with_gas(30_000, 1_200)
         .with_signature("signature_data");
 
@@ -104,7 +106,8 @@ fn test_gas_fields_in_failed_transaction() {
     let mut state = create_test_state();
     let gas_schedule = GasSchedule::default();
 
-    state.set_balance("alice", "udgt", 100_000);
+    // Ensure sufficient balance to cover upfront fee so we hit OutOfGas path
+    state.set_balance("alice", "udgt", 1_000_000);
 
     // Transaction that will fail due to OOM
     let tx = Transaction::new("oom_hash", "alice", "bob", 1_000, 5_000, 0, None)

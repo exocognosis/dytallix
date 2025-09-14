@@ -71,10 +71,8 @@ class Pipeline:
             "is_external": 1.0 if (tx.from_ and tx.from_.startswith("0x")) else 0.0,
         }
 
-    def update_and_score(self, feats: Dict[str, float]) -> float:
-        # Add features to buffer
-        self._buf.append(feats)
-        # Compute mean and variance across buffer
+    def _score_given_history(self, feats: Dict[str, float]) -> float:
+        # Compute mean/var across existing history ONLY (no leakage of current sample).
         if not self._buf:
             return 0.0
         keys = feats.keys()
@@ -92,16 +90,20 @@ class Pipeline:
                 vars_[k] += d * d
         for k in keys:
             vars_[k] = vars_[k] / max(1, n - 1)
-        # z-scores and squash to [0,1]
         score_parts: List[float] = []
         for k in keys:
             mu = means[k]
             sigma = (vars_[k] ** 0.5) if vars_[k] > 0 else 1.0
             z = abs((feats.get(k, 0.0) - mu) / sigma)
-            # Map to 0..1 via logistic-ish transform
-            s = 1.0 - (1.0 / (1.0 + (z)))  # rises with z, asymptote at 1
+            s = 1.0 - (1.0 / (1.0 + (z)))
             score_parts.append(max(0.0, min(1.0, s)))
         return sum(score_parts) / max(1, len(score_parts))
+
+    def update_and_score(self, feats: Dict[str, float]) -> float:
+        # Score against prior history, then update buffer with current sample.
+        score = self._score_given_history(feats)
+        self._buf.append(feats)
+        return score
 
 
 PIPE = Pipeline(window=FEATURE_WINDOW)

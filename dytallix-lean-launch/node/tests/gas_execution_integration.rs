@@ -8,11 +8,12 @@ use dytallix_lean_node::gas::GasSchedule;
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::state::Storage;
 use dytallix_lean_node::storage::tx::Transaction;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 fn create_test_state() -> State {
-    let storage = Arc::new(Storage::open(PathBuf::from(":memory:")).unwrap());
+    // Use a unique temporary directory for each state to ensure isolation
+    let dir = tempfile::tempdir().expect("tempdir");
+    let storage = Arc::new(Storage::open(dir.path().join("state.db")).unwrap());
     State::new(storage)
 }
 
@@ -89,11 +90,11 @@ fn test_multiple_txs_mixed_success_failure() {
     state.set_balance("charlie", "udgt", 1_000); // Low balance
 
     let transactions = vec![
-        // Success case
+        // Success case (low gas price to fit balance)
         Transaction::new("tx_success", "alice", "bob", 1_000, 5_000, 0, None)
-            .with_gas(25_000, 1_000)
+            .with_gas(25_000, 1)
             .with_signature("sig"),
-        // Insufficient funds case
+        // Insufficient funds case (still insufficient for upfront fee)
         Transaction::new(
             "tx_insufficient",
             "charlie",
@@ -103,15 +104,15 @@ fn test_multiple_txs_mixed_success_failure() {
             0,
             None,
         )
-        .with_gas(25_000, 1_000)
+        .with_gas(25_000, 1)
         .with_signature("sig"),
         // Out of gas case (very low gas limit)
         Transaction::new("tx_oom", "alice", "bob", 1_000, 5_000, 1, None)
-            .with_gas(50, 1_000)
+            .with_gas(50, 1)
             .with_signature("sig"),
-        // Another success case
+        // Another success case (bob pays fee)
         Transaction::new("tx_success2", "bob", "alice", 500, 3_000, 0, None)
-            .with_gas(30_000, 800)
+            .with_gas(30_000, 1)
             .with_signature("sig"),
     ];
 
@@ -147,8 +148,13 @@ fn test_multiple_txs_mixed_success_failure() {
     assert_eq!(final_charlie_balance, initial_charlie_balance);
 
     // Alice and Bob should reflect successful transactions and gas fees
-    assert!(final_alice_balance < initial_alice_balance); // Paid fees and transfer
-    assert!(final_bob_balance > initial_bob_balance); // Received transfer minus fee
+    // Alice: pays fee for tx1 (25_000*1) and tx3 (50*1), sends 1_000, receives 500
+    let expected_alice = initial_alice_balance - 25_000 - 50 - 1_000 + 500;
+    assert_eq!(final_alice_balance, expected_alice);
+
+    // Bob: receives 1_000 from tx1, then pays fee for tx4 (30_000*1) and sends 500
+    let expected_bob = initial_bob_balance + 1_000 - 30_000 - 500;
+    assert_eq!(final_bob_balance, expected_bob);
 }
 
 #[test]
@@ -266,7 +272,7 @@ fn test_state_isolation_between_transactions() {
 
     // First transaction that will fail due to OOM
     let tx_fail = Transaction::new("tx_fail", "alice", "bob", 1_000, 5_000, 0, None)
-        .with_gas(50, 1_000)
+        .with_gas(50, 1)
         .with_signature("sig");
 
     let initial_balance = state.balance_of("alice", "udgt");
@@ -277,12 +283,12 @@ fn test_state_isolation_between_transactions() {
     assert_eq!(state.balance_of("bob", "udgt"), 0);
 
     // Alice should only have lost the gas fee (gas_limit * gas_price)
-    let gas_fee = 50u128 * 1_000u128;
+    let gas_fee = 50u128 * 1u128;
     assert_eq!(state.balance_of("alice", "udgt"), initial_balance - gas_fee);
 
     // Second transaction that will succeed
     let tx_success = Transaction::new("tx_success", "alice", "bob", 1_000, 5_000, 1, None)
-        .with_gas(25_000, 1_000)
+        .with_gas(25_000, 1)
         .with_signature("sig");
 
     let result_success = execute_transaction(&tx_success, &mut state, 100, 1, &gas_schedule);

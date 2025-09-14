@@ -71,7 +71,7 @@ pub struct Vote {
     pub proposal_id: u64,
     pub voter: String,
     pub option: VoteOption,
-    pub weight: u128, // DGT balance at time of vote
+    pub weight: u128 // DGT balance at time of vote
 }
 
 /// Deposit on a proposal (for tracking individual deposits)
@@ -265,6 +265,9 @@ impl GovernanceModule {
         // Check if min deposit reached - transition to voting period
         if proposal.total_deposit >= self.config.min_deposit {
             proposal.status = ProposalStatus::VotingPeriod;
+            // When transitioning early, start voting immediately and set end relative to now
+            proposal.voting_start_height = height;
+            proposal.voting_end_height = height + self.config.voting_period;
             self.emit_event(GovernanceEvent::VotingStarted { id: proposal_id });
         }
 
@@ -480,13 +483,16 @@ impl GovernanceModule {
         // Get delegator stake amount
         let delegator_record = staking.load_delegator_record(address);
         let total_power = delegator_record.stake_amount;
+        drop(staking);
 
-        // If the address is a validator, add self-stake (validator power)
-        // Note: We need to check if the address is registered as a validator
-        // For now, we'll aggregate all delegator stake power since the staking module
-        // tracks delegations which include validator self-stake
+        if total_power > 0 {
+            return Ok(total_power);
+        }
 
-        Ok(total_power)
+        // Fallback: use liquid udgt balance when no stake is present (MVP behavior)
+        let mut state = self.state.lock().unwrap();
+        let power = state.get_account(address).balance_of("udgt");
+        Ok(power)
     }
 
     /// Get total voting power across all eligible stakers
@@ -856,7 +862,7 @@ impl GovernanceModule {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-        let line = format!("{} {:?}\n", ts, event);
+        let line = format!("{ts} {event:?}\n");
         use std::io::Write;
         let mut f = fs::OpenOptions::new()
             .create(true)
@@ -1021,6 +1027,9 @@ mod tests {
         let proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
         assert_eq!(proposal.status, ProposalStatus::VotingPeriod);
         assert_eq!(proposal.total_deposit, 1_000_000_000);
+        // Ensure voting window starts at deposit height when threshold is met early
+        assert_eq!(proposal.voting_start_height, 150);
+        assert_eq!(proposal.voting_end_height, 150 + governance.config.voting_period);
     }
 
     #[test]
@@ -1047,10 +1056,12 @@ mod tests {
             )
             .unwrap();
 
-        // Manually transition to voting period for test
+        // Manually transition to voting period for test and set a valid window
         {
             let mut proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
             proposal.status = ProposalStatus::VotingPeriod;
+            proposal.voting_start_height = 150;
+            proposal.voting_end_height = 150 + governance.config.voting_period;
             governance.store_proposal(&proposal).unwrap();
         }
 
@@ -1089,10 +1100,12 @@ mod tests {
             )
             .unwrap();
 
-        // Manually transition to voting period for test
+        // Manually transition to voting period for test and set a valid window
         {
             let mut proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
             proposal.status = ProposalStatus::VotingPeriod;
+            proposal.voting_start_height = 150;
+            proposal.voting_end_height = 150 + governance.config.voting_period;
             governance.store_proposal(&proposal).unwrap();
         }
 

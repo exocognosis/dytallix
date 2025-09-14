@@ -115,6 +115,18 @@ impl State {
         a
     }
 
+    /// Lightweight read-only snapshot of an account state without mutating caches.
+    /// Uses in-memory cache if present, otherwise reads directly from storage.
+    pub fn snapshot_account(&self, addr: &str) -> AccountState {
+        if let Some(a) = self.accounts.get(addr) {
+            a.clone()
+        } else {
+            let balances = self.storage.get_balances_db(addr);
+            let nonce = self.storage.get_nonce_db(addr);
+            AccountState { balances, nonce }
+        }
+    }
+
     /// Get balance for specific denomination
     pub fn balance_of(&mut self, addr: &str, denom: &str) -> u128 {
         self.get_account(addr).balance_of(denom)
@@ -132,6 +144,15 @@ impl State {
 
     pub fn nonce_of(&mut self, addr: &str) -> u64 {
         self.get_account(addr).nonce
+    }
+
+    /// Read-only helpers that avoid &mut and cloning the whole State repeatedly
+    pub fn snapshot_legacy_balance(&self, addr: &str) -> u128 {
+        self.snapshot_account(addr).legacy_balance()
+    }
+
+    pub fn snapshot_nonce(&self, addr: &str) -> u64 {
+        self.snapshot_account(addr).nonce
     }
 
     /// Apply transfer with specific denomination

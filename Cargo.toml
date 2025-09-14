@@ -10,7 +10,8 @@ members = [
     "cli",
     "sdk",
     "explorer/indexer",
-    "explorer/api"
+    "explorer/api",
+    "benchmarks"
 ]
 
 resolver = "2"

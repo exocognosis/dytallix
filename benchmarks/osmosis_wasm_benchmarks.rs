@@ -331,7 +331,7 @@ impl OsmosisWasmBenchmark {
         client: reqwest::Client,
         endpoint: String,
         contract_address: String,
-    ) -> Result<OperationMetrics, Box<dyn std::error::Error>> {
+    ) -> Result<OperationMetrics, Box<dyn std::error::Error + Send + Sync>> {
         let start_time = Instant::now();
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -514,4 +514,13 @@ mod tests {
         assert_eq!(results.successful_operations, 1);
         assert!(results.average_tps > 0.0);
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Run with default configuration targeting placeholder endpoints/contracts
+    let mut bench = OsmosisWasmBenchmark::new(BenchmarkConfig::default());
+    // Execute a small, quick run to ensure binary entry compiles and runs
+    let _ = bench.run_comprehensive_benchmark().await;
+    Ok(())
 }

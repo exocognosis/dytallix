@@ -4,7 +4,7 @@ use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::{GovernanceModule, ProposalType};
 use crate::runtime::staking::StakingModule;
 #[cfg(feature = "oracle")]
-use crate::runtime::oracle::{current_timestamp, apply_oracle_risk, verify_sig};
+use crate::runtime::oracle::current_timestamp;
 #[cfg(not(feature = "oracle"))]
 fn current_timestamp() -> u64 {
     std::time::SystemTime::now()
@@ -265,7 +265,7 @@ pub async fn submit(
 }
 
 // Remove legacy helper function
-// impl SignedTx { fn msgs_first_from(&self) -> Option<String> { self.tx.msgs.get(0).and_then(|v| v.get("from")).and_then(|f| f.as_str()).map(|s| s.to_string()) } }
+// impl SignedTx { fn msgs_first_from(&self) { self.tx.msgs.get(0).and_then(|v| v.get("from")).and_then(|f| f.as_str()).map(|s| s.to_string()) } }
 
 #[derive(Deserialize)]
 pub struct BlocksQuery {
@@ -1157,7 +1157,7 @@ pub async fn json_rpc(
 -> Result<axum::Json<serde_json::Value>, ApiError> {
     let method = body.get("method").and_then(|v| v.as_str()).ok_or_else(|| ApiError::BadRequest("missing method".to_string()))?;
     let params_arr = body.get("params").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-    let params = params_arr.get(0).cloned().unwrap_or_else(|| json!({}));
+    let params = params_arr.first().cloned().unwrap_or_else(|| json!({}));
 
     match method {
         "contract_deploy" => {
@@ -1175,7 +1175,7 @@ pub async fn json_rpc(
             }
 
             // Evidence: write files under launch-evidence/wasm/<address>
-            let ev_dir = std::path::PathBuf::from("launch-evidence/wasm").join(&format!("{}", addr));
+            let ev_dir = std::path::PathBuf::from("launch-evidence/wasm").join(&addr);
             let _ = std::fs::create_dir_all(&ev_dir);
             // contract.wasm
             let _ = std::fs::write(ev_dir.join("contract.wasm"), &code_bytes);
@@ -1207,18 +1207,14 @@ pub async fn json_rpc(
             let func = params.get("function").and_then(|v| v.as_str()).unwrap_or("get");
             let gas_limit = params.get("gas_limit").and_then(|v| v.as_u64()).unwrap_or(100_000);
 
-            let mut gas_used: u64 = 10_000;
-            let mut ret_json = json!({});
-            let mut events: Vec<String> = vec![];
-
-            match func {
+            let (ret_json, gas_used, events): (serde_json::Value, u64, Vec<String>) = match func {
                 "increment" | "inc" => {
                     let mut map = ctx.wasm_contracts.lock().unwrap();
                     let entry = map.entry(addr.to_string()).or_insert(0);
                     *entry = entry.saturating_add(1);
-                    ret_json = json!({"count": *entry});
-                    gas_used = gas_limit.min(25_000);
-                    events.push(format!("increment -> {}", *entry));
+                    let ret_json = json!({"count": *entry});
+                    let gas_used = gas_limit.min(25_000);
+                    let events = vec![format!("increment -> {}", *entry)];
                     // Evidence update: append to calls.json, update gas_report.json and final_state.json
                     let ev_dir = std::path::PathBuf::from("launch-evidence/wasm").join(addr);
                     let _ = std::fs::create_dir_all(&ev_dir);
@@ -1244,15 +1240,15 @@ pub async fn json_rpc(
                     let _ = std::fs::write(gas_path, serde_json::to_string_pretty(&json!({"total_gas": total_gas, "calls": calls_n})).unwrap_or_default());
                     // final_state.json
                     let _ = std::fs::write(ev_dir.join("final_state.json"), serde_json::to_string_pretty(&json!({"counter": map.get(addr).copied().unwrap_or(0)})).unwrap_or_default());
+                    (ret_json, gas_used, events)
                 }
                 "get" => {
                     let map = ctx.wasm_contracts.lock().unwrap();
                     let v = map.get(addr).copied().unwrap_or(0);
-                    ret_json = json!({"count": v});
-                    gas_used = gas_limit.min(12_000);
+                    (json!({"count": v}), gas_limit.min(12_000), Vec::new())
                 }
                 _ => return Err(ApiError::BadRequest("unknown function".to_string())),
-            }
+            };
 
             let res = json!({
                 "return_value": hex::encode(serde_json::to_vec(&ret_json).unwrap_or_default()),

@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod tests {
     use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
-    use crate::mempool::{verify_envelope, Mempool, RejectionReason, TX_INVALID_SIG};
+    use crate::mempool::{verify_envelope, Mempool, RejectionReason};
     use crate::state::State;
     use crate::storage::state::Storage; // added
     use crate::storage::tx::Transaction;
@@ -110,11 +110,8 @@ mod tests {
         // Attempt to add transaction should fail with InvalidSignature
         match mempool.add_transaction(&state, tx) {
             Err(RejectionReason::InvalidSignature) => {
-                // Expected result
-                assert_eq!(
-                    RejectionReason::InvalidSignature.to_string(),
-                    TX_INVALID_SIG
-                );
+                // Ensure display string matches expectation
+                assert_eq!(RejectionReason::InvalidSignature.to_string(), "invalid signature");
             }
             _ => panic!("Expected InvalidSignature rejection"),
         }

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useInRouterContext } from 'react-router-dom'
+import '../styles/modules.css'
 // Added helper constants & functions
 const TX_HASH_RE = /^0x[0-9a-fA-F]{64}$/
 const MAX_CODE_BYTES = 100 * 1024 // 100KB
@@ -38,19 +39,10 @@ function downloadJson(filename, data) {
 // - /api/anomaly/run for anomaly detection
 // - /api/contract/scan for contract scanning
 
-const badge = (text, tone = 'neutral') => (
-  <span style={{
-    display: 'inline-block', padding: '2px 8px', borderRadius: 8,
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: tone === 'good' ? 'rgba(16,185,129,0.15)'
-      : tone === 'bad' ? 'rgba(239,68,68,0.15)'
-      : 'rgba(255,255,255,0.06)',
-    color: tone === 'good' ? 'rgb(16,185,129)'
-      : tone === 'bad' ? 'rgb(239,68,68)'
-      : 'rgba(255,255,255,0.85)',
-    fontSize: 12, fontWeight: 600
-  }}>{text}</span>
-)
+const badge = (text, tone = 'neutral') => {
+  const cls = tone === 'good' ? 'badge badge-success' : tone === 'bad' ? 'badge badge-danger' : 'badge badge-neutral'
+  return <span className={cls}>{text}</span>
+}
 
 function StatusPill({ status }) {
   const map = {
@@ -256,7 +248,7 @@ const Modules = () => {
   const txInvalid = txHash && !TX_HASH_RE.test(txHash)
 
   return (
-    <div className="section">
+    <div className="section modules">
       <div className="container">
         <div className="section-header">
           <h1 className="section-title">AI Modules</h1>
@@ -283,11 +275,11 @@ const Modules = () => {
               if (e.key === 'ArrowRight') carousel.next();
               if (e.key === 'ArrowLeft') carousel.prev();
             }}
-            style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', overflow: 'visible', minHeight: 560 }}
+            className="modules-carousel"
           >
             {/* Viewport (relative) + mask (clips slides) */}
-            <div style={{ position: 'relative', minHeight: 520 }}>
-              <div style={{ overflow: 'hidden', borderRadius: 12 }}>
+            <div className="carousel-viewport">
+              <div className="carousel-mask">
                 <div
                   style={{
                     display: 'flex',
@@ -297,17 +289,17 @@ const Modules = () => {
                     minHeight: 520
                   }}
                 >
-                  <div style={{ width: '50%', paddingRight: 12, boxSizing: 'border-box', minHeight: 520 }}>
+                  <div className="carousel-slide left">
                     {/* --- Transaction Anomaly Detection --- */}
                 <div
                   ref={anomalyRef}
-                  className="card"
+                  className="card tool-card accent-purple"
                   style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
                 >
                   {/* BEGIN anomaly content (unchanged) */}
-                  <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>🔍 PulseGuard – Transaction Anomaly Detection</h2>
-                    <p className="muted" style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>Enter a transaction hash and window to analyze suspicious activity (PulseGuard preview).</p>
+                  <div className="tool-head">
+                    <h2 className="tool-title">🔍 PulseGuard – Transaction Anomaly Detection</h2>
+                    <p className="muted tool-sub">Enter a transaction hash and window to analyze suspicious activity (PulseGuard preview).</p>
                   </div>
                   <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1.3fr 0.7fr' }}>
                     <input
@@ -331,25 +323,17 @@ const Modules = () => {
                   >
                     {anLoading ? 'Analyzing…' : 'Run Anomaly Detection'}
                   </button>
-                  {txInvalid && <div className="card" style={{ background:'rgba(239,68,68,0.08)', borderColor:'rgba(239,68,68,0.4)', marginTop:8 }}>Invalid tx hash</div>}
-                  {anError && <div className="card" style={{ background:'rgba(239,68,68,0.08)', borderColor:'rgba(239,68,68,0.4)', marginTop:8 }}>{anError}</div>}
-                  <ul
-                    style={{
-                      marginTop: 12,
-                      fontSize: '0.9rem',
-                      color: 'rgba(255,255,255,0.75)',
-                      paddingLeft: 20,
-                      listStyleType: 'disc'
-                    }}
-                  >
-                    <li style={{ marginBottom: 4 }}>Traverses transaction graph data structures to detect statistically significant deviations</li>
-                    <li style={{ marginBottom: 4 }}>Flags anomalies such as outlier value spikes or novel counterparty addresses</li>
-                    <li style={{ marginBottom: 4 }}>Computes risk score using weighted heuristics and rolling window aggregation</li>
-                    <li style={{ marginBottom: 4 }}>Applies z-score and percentile rank math for anomaly thresholding</li>
+                  {txInvalid && <div className="card card-tint-danger" style={{ marginTop:8 }}>Invalid tx hash</div>}
+                  {anError && <div className="card card-tint-danger" style={{ marginTop:8 }}>{anError}</div>}
+                  <ul className="feature-list">
+                    <li>Traverses transaction graph data structures to detect statistically significant deviations</li>
+                    <li>Flags anomalies such as outlier value spikes or novel counterparty addresses</li>
+                    <li>Computes risk score using weighted heuristics and rolling window aggregation</li>
+                    <li>Applies z-score and percentile rank math for anomaly thresholding</li>
                   </ul>
                   {anResult && (
                     <div style={{ marginTop: 18 }}>
-                      <div className="card" style={{ padding: 16 }}>
+                      <div className="card card-inner" style={{ padding: 16 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                             <strong>Risk score:</strong>
@@ -359,7 +343,7 @@ const Modules = () => {
                         </div>
                         <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
                           {anResult.anomalies.map(a => (
-                            <div key={a.id} className="card" style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div key={a.id} className="card card-tint-warning" style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div>
                                 <div style={{ fontWeight: 700 }}>{a.type}</div>
                                 <div className="muted" style={{ marginTop: 4 }}>{a.detail}</div>
@@ -374,17 +358,17 @@ const Modules = () => {
                   {/* END anomaly content */}
                 </div>
               </div>
-                  <div style={{ width: '50%', paddingLeft: 12, boxSizing: 'border-box', minHeight: 520 }}>
+                  <div className="carousel-slide right">
                     {/* --- Smart Contract Security Scanner --- */}
                     <div
                       ref={scannerRef}
-                      className="card"
+                      className="card tool-card accent-blue"
                       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
                     >
                       {/* BEGIN scanner content (unchanged) */}
-                      <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>🛡️ CodeShield - Smart Contract Analysis</h2>
-                        <p className="muted" style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>Paste your smart contract code and run an analysis to detect vulnerabilities.</p>
+                      <div className="tool-head">
+                        <h2 className="tool-title">🛡️ CodeShield - Smart Contract Analysis</h2>
+                        <p className="muted tool-sub">Paste your smart contract code and run an analysis to detect vulnerabilities.</p>
                       </div>
                       <div style={{ display: 'grid', gap: 12 }}>
                         <div style={{ position:'relative' }}>
@@ -399,8 +383,8 @@ const Modules = () => {
                             <div dangerouslySetInnerHTML={{ __html: highlightedCode }} style={{ position:'absolute', inset:12, color:'#e5e7eb' }} />
                           </div>
                         </div>
-                        {codeTooLarge && <div className="card" style={{ background:'rgba(239,68,68,0.08)', borderColor:'rgba(239,68,68,0.4)' }}>Code exceeds 100KB limit.</div>}
-                        {scanError && <div className="card" style={{ background:'rgba(239,68,68,0.08)', borderColor:'rgba(239,68,68,0.4)' }}>{scanError}</div>}
+                        {codeTooLarge && <div className="card card-tint-danger">Code exceeds 100KB limit.</div>}
+                        {scanError && <div className="card card-tint-danger">{scanError}</div>}
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between' }}>
                           <button className="btn btn-primary" onClick={runScan} disabled={!code || scanLoading || codeTooLarge}>
                             {scanLoading ? 'Scanning…' : 'Scan Contract'}
@@ -413,23 +397,15 @@ const Modules = () => {
                           )}
                         </div>
                       </div>
-                      <ul
-                        style={{
-                          marginTop: 12,
-                          fontSize: '0.9rem',
-                          color: 'rgba(255,255,255,0.75)',
-                          paddingLeft: 20,
-                          listStyleType: 'disc'
-                        }}
-                      >
-                        <li style={{ marginBottom: 4 }}>Parses Solidity source into AST for rule-based vulnerability detection.</li>
-                        <li style={{ marginBottom: 4 }}>Checks against patterns for reentrancy, unchecked calls, and gas inefficiencies.</li>
-                        <li style={{ marginBottom: 4 }}>Reports findings with severity, line number, and remediation suggestions.</li>
-                        <li style={{ marginBottom: 4 }}>Uses static analysis math for complexity and gas estimation.</li>
+                      <ul className="feature-list">
+                        <li>Parses Solidity source into AST for rule-based vulnerability detection.</li>
+                        <li>Checks against patterns for reentrancy, unchecked calls, and gas inefficiencies.</li>
+                        <li>Reports findings with severity, line number, and remediation suggestions.</li>
+                        <li>Uses static analysis math for complexity and gas estimation.</li>
                       </ul>
                       {scanResult && (
                         <div style={{ marginTop: 18 }}>
-                          <div className="card" style={{ padding: 16 }}>
+                          <div className="card card-inner" style={{ padding: 16 }}>
                             <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
                               <div>
                                 <strong>Findings:</strong> {scanResult.summary.total} &nbsp;
@@ -521,18 +497,14 @@ const Modules = () => {
                   key={i}
                   onClick={() => carousel.goTo(i)}
                   aria-label={`Go to slide ${i+1}`}
-                  style={{
-                    width: 10, height: 10, borderRadius: '50%',
-                    border: '1px solid rgba(255,255,255,0.4)',
-                    background: carousel.index === i ? 'rgba(99,102,241,0.9)' : 'transparent'
-                  }}
+                  className={`carousel-dots-btn ${carousel.index === i ? 'active' : ''}`}
                 />
               ))}
             </div>
           </div>
 
           {/* --- Available AI Modules (interactive status) --- */}
-          <div className="card">
+          <div className="card accent-cyan">
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 12 }}>Module Directory</h2>
             {(() => {
               const modules = [
@@ -545,8 +517,15 @@ const Modules = () => {
               const firstRow = modules.slice(0,3)
               const secondRow = modules.slice(3)
               const inRouter = (()=>{ try { return useInRouterContext() } catch { return false } })()
+              const accentByKey = {
+                pulseguard: 'accent-purple',
+                codeshield: 'accent-blue',
+                stakebalancer: 'accent-amber',
+                flowrate: 'accent-cyan',
+                network: 'accent-purple',
+              }
               const renderCard = (m,i) => (
-                <div key={m.key} className="card" style={{ width: 300, maxWidth: '100%', padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div key={m.key} className={`card module-card ${accentByKey[m.key] || ''}`}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <h3 style={{ margin: 0 }}>{m.title}</h3>
                     <StatusPill status={m.status} />
@@ -563,10 +542,10 @@ const Modules = () => {
               )
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <div className="module-grid">
                     {firstRow.map(renderCard)}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <div className="module-grid">
                     {secondRow.map(renderCard)}
                   </div>
                 </div>
@@ -576,10 +555,10 @@ const Modules = () => {
 
           {/* PQC Demo (flag gated) */}
           {PQC_ENABLED && (
-            <div className="card" style={{ borderColor: pqcReady === false ? 'rgba(239,68,68,0.4)' : 'rgba(99,102,241,0.4)' }}>
+            <div className="card accent-purple" style={{ borderColor: pqcReady === false ? 'rgba(239,68,68,0.4)' : 'rgba(99,102,241,0.4)' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 12 }}>PQC Demo</h2>
               {pqcReady === false && (
-                <div className="card" style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.35)', marginBottom: 12 }}>
+                <div className="card card-tint-danger" style={{ marginBottom: 12 }}>
                   <strong style={{ color: '#ef4444' }}>Integrity Failure:</strong> <span className="muted">{pqcErr}</span>
                 </div>
               )}
@@ -601,7 +580,7 @@ const Modules = () => {
                   <div className="muted" style={{ fontSize: 12 }}>Signature</div>
                   <textarea value={pqcSig} readOnly rows={2} className="input" style={{ fontFamily: 'monospace' }} />
                 </div>
-                {pqcStatus && <div className="card" style={{ background: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.35)' }}>{pqcStatus}{pqcVerOK != null && <> – {pqcVerOK ? 'VALID ✅' : 'INVALID ❌'}</>}</div>}
+                {pqcStatus && <div className="card card-tint-info">{pqcStatus}{pqcVerOK != null && <> – {pqcVerOK ? 'VALID ✅' : 'INVALID ❌'}</>}</div>}
               </div>
               <div className="muted" style={{ marginTop: 12, fontSize: '0.8rem' }}>All sensitive buffers are zeroized after signing/verifying where feasible in JS.</div>
             </div>

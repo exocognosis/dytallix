@@ -1,12 +1,18 @@
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
 use dytallix_lean_node::storage::bridge::{verify_bridge_message, BridgeMessage, BridgeValidator};
-use ed25519_dalek::{Keypair, Signer};
-use rand::rngs::OsRng; // adjusted
+use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signer};
+
+fn deterministic_kp(tag: u8) -> Keypair {
+    let mut seed = [0u8; 32];
+    seed[0] = tag;
+    let secret = SecretKey::from_bytes(&seed).unwrap();
+    let public: PublicKey = (&secret).into();
+    Keypair { secret, public }
+}
 
 fn mk_validator(id: &str) -> (BridgeValidator, Keypair) {
-    let mut rng = OsRng {}; // rand 0.7 construct
-    let kp = Keypair::generate(&mut rng);
+    let kp = deterministic_kp(id.as_bytes().first().copied().unwrap_or(0));
     let pk_b64 = B64.encode(kp.public.as_bytes());
     (
         BridgeValidator {

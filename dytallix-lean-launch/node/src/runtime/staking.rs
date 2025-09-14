@@ -26,6 +26,10 @@ pub struct StakingModule {
     pub reward_index: u128,
     /// Pending staking emission when no stake exists
     pub pending_staking_emission: u128,
+    /// Carry-over remainder of scaled emission not yet reflected in reward_index
+    /// This value is in units of (uDRT * REWARD_SCALE) modulo total_stake at last update,
+    /// but can be safely carried across stake changes as a count of leftover scaled units.
+    pub reward_index_residual: u128,
 }
 
 impl StakingModule {
@@ -55,11 +59,20 @@ impl StakingModule {
             .and_then(|v| bincode::deserialize::<u128>(&v).ok())
             .unwrap_or(0);
 
+        let reward_index_residual = storage
+            .db
+            .get("staking:reward_residual")
+            .ok()
+            .flatten()
+            .and_then(|v| bincode::deserialize::<u128>(&v).ok())
+            .unwrap_or(0);
+
         Self {
             storage,
             total_stake,
             reward_index,
             pending_staking_emission,
+            reward_index_residual,
         }
     }
 
@@ -68,20 +81,56 @@ impl StakingModule {
     /// If total_stake == 0, accumulate in pending_staking_emission
     pub fn apply_external_emission(&mut self, amount: u128) {
         if self.total_stake > 0 {
-            // Update reward index proportionally
-            let reward_per_unit = (amount * REWARD_SCALE) / self.total_stake;
+            // Distribute current emission using carry-aware division for precision
+            let scaled = amount.saturating_mul(REWARD_SCALE);
+            let numerator = self.reward_index_residual.saturating_add(scaled);
+            let reward_per_unit = numerator / self.total_stake;
             self.reward_index = self.reward_index.saturating_add(reward_per_unit);
+            self.reward_index_residual = numerator % self.total_stake;
 
-            // Apply any pending emission too
+            // Apply any pending emission too using the same residual carry
             if self.pending_staking_emission > 0 {
-                let pending_reward_per_unit =
-                    (self.pending_staking_emission * REWARD_SCALE) / self.total_stake;
-                self.reward_index = self.reward_index.saturating_add(pending_reward_per_unit);
+                let scaled_pending = self
+                    .pending_staking_emission
+                    .saturating_mul(REWARD_SCALE);
+                let numerator_pending =
+                    self.reward_index_residual.saturating_add(scaled_pending);
+                let pending_per_unit = numerator_pending / self.total_stake;
+                self.reward_index = self.reward_index.saturating_add(pending_per_unit);
+                self.reward_index_residual = numerator_pending % self.total_stake;
                 self.pending_staking_emission = 0;
                 self.save_pending_emission();
             }
 
             self.save_reward_index();
+            self.save_reward_residual();
+
+            // Record reward_index_after in the latest emission event for observability
+            let latest_height = {
+                // duplicated function logic to avoid a direct dependency on emission.rs
+                self.storage
+                    .db
+                    .get("emission:last_height")
+                    .ok()
+                    .flatten()
+                    .and_then(|v| if v.len() == 8 { let mut a=[0u8;8]; a.copy_from_slice(&v); Some(u64::from_be_bytes(a)) } else { None })
+                    .unwrap_or(0)
+            };
+            if latest_height > 0 {
+                if let Some(mut event) = self.storage
+                    .db
+                    .get(format!("emission:event:{}", latest_height))
+                    .ok()
+                    .flatten()
+                    .and_then(|v| bincode::deserialize::<crate::runtime::emission::EmissionEvent>(&v).ok())
+                {
+                    event.reward_index_after = Some(self.reward_index);
+                    let _ = self.storage.db.put(
+                        format!("emission:event:{}", latest_height),
+                        bincode::serialize(&event).unwrap(),
+                    );
+                }
+            }
         } else {
             // No stake yet, accumulate for later distribution
             self.pending_staking_emission = self.pending_staking_emission.saturating_add(amount);
@@ -94,13 +143,19 @@ impl StakingModule {
         self.total_stake = stake;
         self.save_total_stake();
 
-        // If stake becomes > 0 and we have pending emission, apply it
+        // If stake becomes > 0 and we have pending emission, apply it using carry-aware division
         if stake > 0 && self.pending_staking_emission > 0 {
-            let pending_reward_per_unit = (self.pending_staking_emission * REWARD_SCALE) / stake;
-            self.reward_index = self.reward_index.saturating_add(pending_reward_per_unit);
+            let scaled_pending = self
+                .pending_staking_emission
+                .saturating_mul(REWARD_SCALE);
+            let numerator = self.reward_index_residual.saturating_add(scaled_pending);
+            let pending_per_unit = numerator / stake;
+            self.reward_index = self.reward_index.saturating_add(pending_per_unit);
+            self.reward_index_residual = numerator % stake;
             self.pending_staking_emission = 0;
             self.save_reward_index();
             self.save_pending_emission();
+            self.save_reward_residual();
         }
     }
 
@@ -147,16 +202,9 @@ impl StakingModule {
         if record.last_reward_index == 0 {
             record.last_reward_index = current_reward_index;
         }
-        let old_stake = record.stake_amount;
+        // Update stake without mutating total_stake here to avoid double counting
         record.stake_amount = new_stake;
         self.save_delegator_record(address, &record);
-
-        // Update total stake
-        self.total_stake = self
-            .total_stake
-            .saturating_sub(old_stake)
-            .saturating_add(new_stake);
-        self.save_total_stake();
     }
 
     /// Settle (accrue) rewards for a delegator based on current reward index
@@ -234,6 +282,13 @@ impl StakingModule {
         );
     }
 
+    fn save_reward_residual(&self) {
+        let _ = self
+            .storage
+            .db
+            .put("staking:reward_residual", bincode::serialize(&self.reward_index_residual).unwrap());
+    }
+
     /// Delegate tokens to a validator
     pub fn delegate(
         &mut self,
@@ -248,11 +303,10 @@ impl StakingModule {
         // Load existing delegator record and settle any pending rewards
         let mut record = self.load_delegator_record(delegator_addr);
 
-        // Settle rewards before changing stake
+        // Settle rewards before changing stake; guard against underflow if last index > current
         if record.stake_amount > 0 {
-            let pending_rewards = ((self.reward_index - record.last_reward_index)
-                * record.stake_amount)
-                / REWARD_SCALE;
+            let delta_index = self.reward_index.saturating_sub(record.last_reward_index);
+            let pending_rewards = (delta_index * record.stake_amount) / REWARD_SCALE;
             record.accrued_rewards = record.accrued_rewards.saturating_add(pending_rewards);
         }
 
@@ -287,11 +341,10 @@ impl StakingModule {
             return Err("Insufficient delegated amount".to_string());
         }
 
-        // Settle rewards before changing stake
+        // Settle rewards before changing stake; guard against underflow
         if record.stake_amount > 0 {
-            let pending_rewards = ((self.reward_index - record.last_reward_index)
-                * record.stake_amount)
-                / REWARD_SCALE;
+            let delta_index = self.reward_index.saturating_sub(record.last_reward_index);
+            let pending_rewards = (delta_index * record.stake_amount) / REWARD_SCALE;
             record.accrued_rewards = record.accrued_rewards.saturating_add(pending_rewards);
         }
 
@@ -351,12 +404,12 @@ mod tests {
         // Set stake - should apply pending
         staking.set_total_stake(1_000_000); // 1M uDGT
         assert_eq!(staking.pending_staking_emission, 0);
-        let expected_reward_index = (1000 * REWARD_SCALE) / 1_000_000;
+        let expected_reward_index = (1000 * REWARD_SCALE) / staking.total_stake;
         assert_eq!(staking.reward_index, expected_reward_index);
 
         // Add new emission with stake
         staking.apply_external_emission(2000);
-        let additional_reward = (2000 * REWARD_SCALE) / 1_000_000;
+        let additional_reward = (2000 * REWARD_SCALE) / staking.total_stake;
         assert_eq!(
             staking.reward_index,
             expected_reward_index + additional_reward
@@ -372,7 +425,7 @@ mod tests {
         staking.set_total_stake(1_000_000_000_000); // 1M DGT in uDGT
         staking.apply_external_emission(1_000_000); // 1 DRT in uDRT
 
-        let expected_reward_index = (1_000_000 * REWARD_SCALE) / 1_000_000_000_000;
+        let expected_reward_index = (1_000_000 * REWARD_SCALE) / staking.total_stake;
         assert_eq!(staking.reward_index, expected_reward_index);
         assert_eq!(expected_reward_index, 1_000_000); // Should be 1e6 (1 DRT per 1M DGT)
     }
@@ -391,12 +444,12 @@ mod tests {
         staking.apply_external_emission(1_000_000); // 1 DRT in uDRT
 
         // Check that reward index was updated
-        let expected_reward_index = (1_000_000 * REWARD_SCALE) / 1_000_000_000_000;
+        let expected_reward_index = (1_000_000 * REWARD_SCALE) / staking.total_stake;
         assert_eq!(staking.reward_index, expected_reward_index);
 
         // Apply another emission
         staking.apply_external_emission(2_000_000); // 2 DRT in uDRT
-        let additional_reward = (2_000_000 * REWARD_SCALE) / 1_000_000_000_000;
+        let additional_reward = (2_000_000 * REWARD_SCALE) / staking.total_stake;
         assert_eq!(
             staking.reward_index,
             expected_reward_index + additional_reward

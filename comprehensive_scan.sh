@@ -28,69 +28,83 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Ensure we're in the right directory
-if [ ! -f "WASM.md" ]; then
-    echo "❌ Error: Not in Dytallix root directory"
-    echo "Please run this script from the root of the Dytallix project"
+# Ensure we're in the right directory (more flexible)
+if [ ! -f "Cargo.toml" ] && [ ! -d "dytallix-lean-launch" ]; then
+    echo "❌ Error: Not in Dytallix repo root"
+    echo "Run from repository root containing Cargo.toml or dytallix-lean-launch/"
     exit 1
 fi
 
 print_status $BLUE "📋 Phase 1: Crate-by-Crate Analysis"
 echo "=================================="
 
-# Array of crates to check
-crates=("blockchain-core" "smart-contracts" "pqc-crypto" "developer-tools" "governance")
+# Discover crates dynamically
+crates=()
+
+if command_exists cargo; then
+    # Find all Cargo.toml files and derive crate directories (excluding target directories)
+    while IFS= read -r line; do
+        dir=$(echo "$line" | sed 's|/Cargo.toml$||' | sed 's|^\./||')
+        crates+=("$dir")
+    done < <(find . -type f -name Cargo.toml -not -path "*/target/*" 2>/dev/null | sort -u)
+else
+    print_status $RED "❌ cargo not found. Install Rust toolchain to run Rust checks."
+fi
 
 total_warnings=0
 total_errors=0
 
-for crate in "${crates[@]}"; do
-    print_status $YELLOW "🔍 Checking crate: $crate"
-    
-    if [ -d "$crate" ] && [ -f "$crate/Cargo.toml" ]; then
-        cd "$crate"
+if [ ${#crates[@]} -eq 0 ]; then
+    print_status $YELLOW "ℹ️  No Cargo.toml files found or cargo unavailable. Skipping Rust crate analysis."
+else
+    for crate in "${crates[@]}"; do
+        print_status $YELLOW "🔍 Checking crate: $crate"
         
-        # Check compilation
-        cargo_output=$(cargo check 2>&1)
-        exit_code=$?
-        
-        if [ $exit_code -eq 0 ]; then
-            print_status $GREEN "  ✅ Compiles successfully"
+        if [ -d "$crate" ] && [ -f "$crate/Cargo.toml" ]; then
+            pushd "$crate" >/dev/null
+            
+            # Check compilation
+            cargo_output=$(cargo check 2>&1)
+            exit_code=$?
+            
+            if [ $exit_code -eq 0 ]; then
+                print_status $GREEN "  ✅ Compiles successfully"
+            else
+                print_status $RED "  ❌ Compilation failed"
+                total_errors=$((total_errors + 1))
+            fi
+            
+            # Count warnings
+            warning_count=$(echo "$cargo_output" | grep -c "warning:")
+            if [ $warning_count -gt 0 ]; then
+                print_status $YELLOW "  ⚠️  $warning_count warnings"
+                total_warnings=$((total_warnings + warning_count))
+            else
+                print_status $GREEN "  ✅ No warnings"
+            fi
+            
+            # Check for specific issue types
+            dead_code=$(echo "$cargo_output" | grep -c "never used\|never read")
+            unused_imports=$(echo "$cargo_output" | grep -c "unused import")
+            unused_variables=$(echo "$cargo_output" | grep -c "unused variable")
+            
+            if [ $dead_code -gt 0 ]; then
+                echo "    • Dead code issues: $dead_code"
+            fi
+            if [ $unused_imports -gt 0 ]; then
+                echo "    • Unused imports: $unused_imports"
+            fi
+            if [ $unused_variables -gt 0 ]; then
+                echo "    • Unused variables: $unused_variables"
+            fi
+            
+            popd >/dev/null
         else
-            print_status $RED "  ❌ Compilation failed"
-            total_errors=$((total_errors + 1))
+            print_status $RED "  ❌ No Cargo.toml found"
         fi
-        
-        # Count warnings
-        warning_count=$(echo "$cargo_output" | grep -c "warning:")
-        if [ $warning_count -gt 0 ]; then
-            print_status $YELLOW "  ⚠️  $warning_count warnings"
-            total_warnings=$((total_warnings + warning_count))
-        else
-            print_status $GREEN "  ✅ No warnings"
-        fi
-        
-        # Check for specific issue types
-        dead_code=$(echo "$cargo_output" | grep -c "never used\|never read")
-        unused_imports=$(echo "$cargo_output" | grep -c "unused import")
-        unused_variables=$(echo "$cargo_output" | grep -c "unused variable")
-        
-        if [ $dead_code -gt 0 ]; then
-            echo "    • Dead code issues: $dead_code"
-        fi
-        if [ $unused_imports -gt 0 ]; then
-            echo "    • Unused imports: $unused_imports"
-        fi
-        if [ $unused_variables -gt 0 ]; then
-            echo "    • Unused variables: $unused_variables"
-        fi
-        
-        cd ..
-    else
-        print_status $RED "  ❌ No Cargo.toml found"
-    fi
-    echo ""
-done
+        echo ""
+    done
+fi
 
 print_status $BLUE "📋 Phase 2: Standalone File Analysis"
 echo "===================================="
@@ -102,17 +116,21 @@ if [ -n "$standalone_files" ]; then
     for file in $standalone_files; do
         print_status $YELLOW "🔍 Checking standalone file: $file"
         
-        # Try to compile as a standalone binary
-        rustc_output=$(rustc --edition=2021 --check "$file" 2>&1)
-        exit_code=$?
-        
-        if [ $exit_code -eq 0 ]; then
-            print_status $GREEN "  ✅ Compiles successfully"
+        # Use rustfmt for a lightweight syntax/formatting check (rustc --check isn't valid)
+        if command_exists rustfmt; then
+            rust_output=$(rustfmt --check "$file" 2>&1)
+            exit_code=$?
+            
+            if [ $exit_code -eq 0 ]; then
+                print_status $GREEN "  ✅ Syntax OK (rustfmt check passed)"
+            else
+                print_status $YELLOW "  ⚠️  Formatting or syntax issues detected"
+                total_warnings=$((total_warnings + 1))
+                echo "    Notes:"
+                echo "$rust_output" | head -5 | sed 's/^/    /'
+            fi
         else
-            print_status $RED "  ❌ Compilation failed"
-            total_errors=$((total_errors + 1))
-            echo "    Errors:"
-            echo "$rustc_output" | head -5 | sed 's/^/    /'
+            print_status $BLUE "  ℹ️  rustfmt not available, skipping syntax check"
         fi
         echo ""
     done
@@ -128,6 +146,12 @@ modules_to_check=("security" "interoperability" "wallet")
 
 for module in "${modules_to_check[@]}"; do
     print_status $YELLOW "🔍 Checking module: $module"
+    
+    if [ ! -d "$module" ]; then
+        print_status $BLUE "  ℹ️  Module '$module' not present, skipping"
+        echo ""
+        continue
+    fi
     
     if [ -d "$module/src" ]; then
         if [ -f "$module/Cargo.toml" ]; then
@@ -148,15 +172,15 @@ for module in "${modules_to_check[@]}"; do
             total_errors=$((total_errors + 1))
         fi
         
-        # Check for TODO comments
-        todo_count=$(find "$module" -name "*.rs" -exec grep -c "TODO\|FIXME\|XXX" {} \; 2>/dev/null | paste -sd+ | bc 2>/dev/null || echo 0)
-        if [ $todo_count -gt 0 ]; then
+        # Check for TODO comments (robust even if no files)
+        todo_count=$(grep -R --include="*.rs" -E "TODO|FIXME|XXX" "$module" 2>/dev/null | wc -l | tr -d ' ')
+        if [ "${todo_count:-0}" -gt 0 ]; then
             print_status $YELLOW "  ⚠️  $todo_count TODO/FIXME comments"
         fi
         
-        # Check for dummy implementations
-        dummy_count=$(find "$module" -name "*.rs" -exec grep -c "Dummy\|dummy\|unimplemented!\|todo!" {} \; 2>/dev/null | paste -sd+ | bc 2>/dev/null || echo 0)
-        if [ $dummy_count -gt 0 ]; then
+        # Check for dummy implementations (robust even if no files)
+        dummy_count=$(grep -R --include="*.rs" -E "Dummy|dummy|unimplemented!|todo!" "$module" 2>/dev/null | wc -l | tr -d ' ')
+        if [ "${dummy_count:-0}" -gt 0 ]; then
             print_status $YELLOW "  ⚠️  $dummy_count dummy implementations"
         fi
     else
@@ -172,7 +196,7 @@ echo "======================================="
 for crate in "${crates[@]}"; do
     if [ -d "$crate" ] && [ -f "$crate/Cargo.toml" ]; then
         print_status $YELLOW "🔍 Checking tests in: $crate"
-        cd "$crate"
+        pushd "$crate" >/dev/null
         
         # Check if tests compile
         test_output=$(cargo test --no-run 2>&1)
@@ -185,11 +209,11 @@ for crate in "${crates[@]}"; do
             total_errors=$((total_errors + 1))
         fi
         
-        # Count test files
-        test_count=$(find . -name "*test*.rs" -o -name "tests/*.rs" | wc -l)
+        # Count test files (unit + integration)
+        test_count=$(find . -type f \( -name "*test*.rs" -o -path "*/tests/*.rs" \) 2>/dev/null | wc -l | tr -d ' ')
         echo "    • Test files found: $test_count"
         
-        cd ..
+        popd >/dev/null
     fi
 done
 
@@ -202,11 +226,14 @@ print_status $YELLOW "🔍 Checking for missing dependencies"
 # Common missing dependencies
 missing_deps=0
 
-# Check for external crate usage without proper declaration
-external_crates=$(grep -r "use.*::" --include="*.rs" . | grep -v "crate::" | grep -v "std::" | grep -v "super::" | cut -d':' -f3 | cut -d' ' -f2 | sort | uniq | head -10)
+# Check for external crate usage without proper declaration (heuristic)
+external_crates=$(grep -Rh --include="*.rs" "^use [a-zA-Z_][a-zA-Z0-9_]*::" . 2>/dev/null \
+    | sed -E 's/^use ([a-zA-Z_][a-zA-Z0-9_]*)::.*/\1/' \
+    | grep -vE "^(crate|std|super|core)$" \
+    | sort -u | head -10)
 
 if [ -n "$external_crates" ]; then
-    print_status $YELLOW "  ⚠️  External crates found in use statements:"
+    print_status $YELLOW "  ⚠️  External crates referenced in use statements:"
     echo "$external_crates" | while read -r crate; do
         if [[ "$crate" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
             echo "    • $crate"
@@ -220,19 +247,19 @@ echo "================================="
 # Check for code quality issues
 print_status $YELLOW "🔍 Analyzing code quality"
 
-# Count TODO comments across all files
-total_todos=$(find . -name "*.rs" -exec grep -c "TODO\|FIXME\|XXX" {} \; 2>/dev/null | paste -sd+ | bc 2>/dev/null || echo 0)
-print_status $YELLOW "  ⚠️  Total TODO/FIXME comments: $total_todos"
+# Count TODO comments across all files (robust)
+total_todos=$(grep -R --include="*.rs" -E "TODO|FIXME|XXX" . 2>/dev/null | wc -l | tr -d ' ')
+print_status $YELLOW "  ⚠️  Total TODO/FIXME comments: ${total_todos:-0}"
 
-# Count panic! and unwrap() usage
-panic_count=$(find . -name "*.rs" -exec grep -c "panic!\|\.unwrap()" {} \; 2>/dev/null | paste -sd+ | bc 2>/dev/null || echo 0)
-if [ $panic_count -gt 0 ]; then
+# Count panic! and unwrap() usage (robust)
+panic_count=$(grep -R --include="*.rs" -E "panic!|\\.unwrap\\\(\\)" . 2>/dev/null | wc -l | tr -d ' ')
+if [ "${panic_count:-0}" -gt 0 ]; then
     print_status $YELLOW "  ⚠️  panic!/unwrap() usage: $panic_count"
 fi
 
-# Count unsafe blocks
-unsafe_count=$(find . -name "*.rs" -exec grep -c "unsafe " {} \; 2>/dev/null | paste -sd+ | bc 2>/dev/null || echo 0)
-if [ $unsafe_count -gt 0 ]; then
+# Count unsafe blocks (robust)
+unsafe_count=$(grep -R --include="*.rs" -E "unsafe\\s" . 2>/dev/null | wc -l | tr -d ' ')
+if [ "${unsafe_count:-0}" -gt 0 ]; then
     print_status $YELLOW "  ⚠️  unsafe blocks: $unsafe_count"
 fi
 
@@ -242,7 +269,7 @@ echo "================"
 echo "📈 Statistics:"
 echo "  • Total warnings: $total_warnings"
 echo "  • Total errors: $total_errors"
-echo "  • TODO comments: $total_todos"
+echo "  • TODO comments: ${total_todos:-0}"
 echo "  • Crates checked: ${#crates[@]}"
 echo "  • Modules checked: ${#modules_to_check[@]}"
 
@@ -254,8 +281,8 @@ fi
 if [ $total_warnings -gt 50 ]; then
     print_status $YELLOW "  2. Address $total_warnings warnings (MEDIUM PRIORITY)"
 fi
-if [ $total_todos -gt 20 ]; then
-    print_status $YELLOW "  3. Review $total_todos TODO comments (LOW PRIORITY)"
+if [ "${total_todos:-0}" -gt 20 ]; then
+    print_status $YELLOW "  3. Review ${total_todos:-0} TODO comments (LOW PRIORITY)"
 fi
 
 echo ""

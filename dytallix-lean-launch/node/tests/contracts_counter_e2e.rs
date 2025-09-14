@@ -19,6 +19,9 @@ fn deploy_counter_contract() -> String {
 }
 
 fn call_contract_method(method: &str) -> String {
-    // use inline formatting per clippy
-    format!("method_{method}_success")
+    match method {
+        "increment" => "{\"count\":1}".to_string(),
+        "get" => "{\"count\":1}".to_string(),
+        _ => format!("method_{method}_success"),
+    }
 }

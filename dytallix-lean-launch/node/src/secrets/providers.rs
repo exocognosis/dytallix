@@ -103,10 +103,8 @@ impl KeyProvider for VaultProvider {
 use std::fs;
 use std::path::PathBuf;
 
-// Backward-compat placeholder for evidence format (still writes proof file)
+// Backward-compat evidence format note: we still write a proof file alongside keys.
 // Not used for encryption anymore.
-struct SealBlob {}
-
 pub struct SealedKeystoreProvider {
     dir: PathBuf,
 }

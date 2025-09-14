@@ -5,6 +5,18 @@ import '../styles/global.css'
 
 
 const Home = () => {
+  const colorFor = (accent) => {
+    switch (accent) {
+      case 'primary': return 'var(--primary-400)'
+      case 'accent': return 'var(--accent-500)'
+      case 'success': return 'var(--success-500)'
+      case 'warning': return 'var(--warning-500)'
+      case 'danger': return 'var(--danger-500)'
+      case 'info':
+      default: return 'var(--primary-400)'
+    }
+  }
+
   return (
     <div className="home">
       {/* Hero Section */}
@@ -59,10 +71,10 @@ const Home = () => {
           {/* Ensure equal-height cards and center content */}
           <div className="grid grid-3" style={{ alignItems: 'stretch' }}>
             {/* Card 1 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderTop: `3px solid ${colorFor('accent')}` }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div style={{ fontSize: '1.75rem', marginBottom: 10, textAlign: 'center' }}>🛡️</div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>Quantum-Resistant Future</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, color: colorFor('accent') }}>Quantum-Resistant Future</h3>
                 <p className="muted" style={{ lineHeight: 1.6, marginBottom: 12 }}>
                   The quantum threat is real. Dytallix implements NIST-approved post-quantum cryptography today
                   to secure assets before legacy encryption fails.
@@ -75,7 +87,7 @@ const Home = () => {
                     'Crypto-agile architecture',
                   ].map((t, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
-                      <span style={{ width: 8, height: 8, background: '#22c55e', borderRadius: '50%' }} />
+                      <span style={{ width: 8, height: 8, background: colorFor('accent'), borderRadius: '50%' }} />
                       <span className="muted">{t}</span>
                     </li>
                   ))}
@@ -86,10 +98,10 @@ const Home = () => {
             </div>
 
             {/* Card 2 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderTop: `3px solid ${colorFor('success')}` }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div style={{ fontSize: '1.75rem', marginBottom: 10, textAlign: 'center' }}>🧠</div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>On-Chain AI Intelligence</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, color: colorFor('success') }}>On-Chain Intelligence</h3>
                 <p className="muted" style={{ lineHeight: 1.6, marginBottom: 12 }}>
                   Enterprise-ready AI modules run directly on chain, enabling autonomous threat detection, smart contract auditing, and predictive analytics without centralized control.
                 </p>
@@ -101,7 +113,7 @@ const Home = () => {
                     'Decentralized AI governance',
                   ].map((t, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
-                      <span style={{ width: 8, height: 8, background: '#22c55e', borderRadius: '50%' }} />
+                      <span style={{ width: 8, height: 8, background: colorFor('success'), borderRadius: '50%' }} />
                       <span className="muted">{t}</span>
                     </li>
                   ))}
@@ -112,23 +124,22 @@ const Home = () => {
             </div>
 
             {/* Card 3 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderTop: `3px solid ${colorFor('primary')}` }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div style={{ fontSize: '1.75rem', marginBottom: 10, textAlign: 'center' }}>⚡</div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>Uncompromising Security</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, color: colorFor('primary') }}>Uncompromising Security</h3>
                 <p className="muted" style={{ lineHeight: 1.6, marginBottom: 12 }}>
-                  Zero-knowledge proofs, multi-signature wallets, and hardware security modules combine to
-                  protect your digital assets with enterprise-grade assurance.
+                  Zero-knowledge proofs and multi-signature wallets secure your digital assets with post-quantum resilience and intelligent, enterprise-grade assurance.
                 </p>
                 <ul style={{ listStyle: 'none', paddingLeft: 0, margin: 0 }}>
                   {[
                     'Zero-knowledge privacy',
                     'Multi-signature protection',
-                    'Hardware security integration',
+                    'Post-quantum secutity',
                     'Advanced threat monitoring',
                   ].map((t, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
-                      <span style={{ width: 8, height: 8, background: '#22c55e', borderRadius: '50%' }} />
+                      <span style={{ width: 8, height: 8, background: colorFor('primary'), borderRadius: '50%' }} />
                       <span className="muted">{t}</span>
                     </li>
                   ))}
@@ -187,9 +198,9 @@ const Home = () => {
                 desc: 'Dual-token design: DGT for governance and DRT for rewards. Deflationary mechanics align incentives.'
               }
             ].map((f, i) => (
-              <div className="card" key={i}>
+              <div className="card" key={i} style={{ borderTop: `3px solid ${colorFor(['accent','success','primary','primary','accent','warning'][i])}` }}>
                 <div style={{ fontSize: 32, marginBottom: 16, textAlign: 'center' }}>{f.icon}</div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8 }}>{f.title}</h3>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8, color: colorFor(['accent','success','primary','primary','accent','warning'][i]) }}>{f.title}</h3>
                 <p className="muted" style={{ lineHeight: 1.6 }}>{f.desc}</p>
               </div>
             ))}
@@ -209,30 +220,30 @@ const Home = () => {
 
           <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24 }}>
             {/* Step 1 */}
-            <div className="card">
+            <div className="card" style={{ borderTop: `3px solid ${colorFor('primary')}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary-400)', color: '#0b1220', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>Create or Connect Wallet</h3>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: colorFor('primary') }}>Create or Connect Wallet</h3>
               </div>
               <p className="muted" style={{ marginBottom: 12 }}>Use the quantum-secure wallet to generate keys and manage addresses.</p>
               <div><Link to="/wallet" className="btn btn-primary">Open Wallet</Link></div>
             </div>
 
             {/* Step 2 */}
-            <div className="card">
+            <div className="card" style={{ borderTop: `3px solid ${colorFor('accent')}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary-400)', color: '#0b1220', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>Get Test Tokens</h3>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: colorFor('accent') }}>Get Test Tokens</h3>
               </div>
               <p className="muted" style={{ marginBottom: 12 }}>Request DGT or DRT from the faucet to fund transactions and deployments.</p>
               <div><Link to="/faucet" className="btn btn-primary">Open Faucet</Link></div>
             </div>
 
             {/* Step 3 */}
-            <div className="card">
+            <div className="card" style={{ borderTop: `3px solid ${colorFor('success')}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary-400)', color: '#0b1220', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>Deploy and Explore</h3>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: colorFor('success') }}>Deploy and Explore</h3>
               </div>
               <p className="muted" style={{ marginBottom: 12 }}>Deploy a contract and watch transactions in real time with the explorer.</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

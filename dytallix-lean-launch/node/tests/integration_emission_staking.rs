@@ -266,29 +266,38 @@ fn test_emission_event_consistency() {
             let ai_incentives = event.pools["ai_module_incentives"];
             let bridge_ops = event.pools["bridge_operations"];
 
-            // Check rough percentages (allowing for integer division rounding)
-            let block_rewards_pct = (block_rewards * 100) / total;
-            let staking_rewards_pct = (staking_rewards * 100) / total;
-            let ai_incentives_pct = (ai_incentives * 100) / total;
-            let bridge_ops_pct = (bridge_ops * 100) / total;
+            // First, assert the pool allocations sum exactly to total emitted
+            let sum_pools = block_rewards + staking_rewards + ai_incentives + bridge_ops;
+            assert_eq!(sum_pools, total, "Pool allocations must sum to total at height {height}");
 
-            // Allow for ±1% deviation due to rounding and remainder allocation
-            assert!(
-                (59..=61).contains(&block_rewards_pct),
-                "Block rewards should be ~60% at height {height}",
-            );
-            assert!(
-                (24..=26).contains(&staking_rewards_pct),
-                "Staking rewards should be ~25% at height {height}",
-            );
-            assert!(
-                (9..=11).contains(&ai_incentives_pct),
-                "AI incentives should be ~10% at height {height}",
-            );
-            assert!(
-                (4..=6).contains(&bridge_ops_pct),
-                "Bridge ops should be ~5% at height {height}",
-            );
+            // When total emission is very small (< 100), integer rounding makes per-block
+            // percentage checks meaningless (1% granularity). Only enforce percentage
+            // bands when total >= 100 so 1% steps are representable.
+            if total >= 100 {
+                // Check rough percentages (allowing for integer division rounding)
+                let block_rewards_pct = (block_rewards * 100) / total;
+                let staking_rewards_pct = (staking_rewards * 100) / total;
+                let ai_incentives_pct = (ai_incentives * 100) / total;
+                let bridge_ops_pct = (bridge_ops * 100) / total;
+
+                // Allow for ±1% deviation due to rounding and remainder allocation
+                assert!(
+                    (59..=61).contains(&block_rewards_pct),
+                    "Block rewards should be ~60% at height {height}",
+                );
+                assert!(
+                    (24..=26).contains(&staking_rewards_pct),
+                    "Staking rewards should be ~25% at height {height}",
+                );
+                assert!(
+                    (9..=11).contains(&ai_incentives_pct),
+                    "AI incentives should be ~10% at height {height}",
+                );
+                assert!(
+                    (4..=6).contains(&bridge_ops_pct),
+                    "Bridge ops should be ~5% at height {height}",
+                );
+            }
 
             // Verify circulating supply increases monotonically
             if height > 1 {
@@ -334,10 +343,12 @@ fn test_staking_rewards_precision() {
     let total_stake = 50_000_000_000_000u128; // 50M DGT
     staking.set_total_stake(total_stake);
 
-    // Apply many blocks to test precision
+    // Apply many blocks to test precision and accumulate total staking rewards
+    let mut total_staking_rewards: u128 = 0;
     for block in 1..=100 {
         emission.apply_until(block);
         let staking_rewards = emission.get_latest_staking_rewards();
+        total_staking_rewards = total_staking_rewards.saturating_add(staking_rewards);
         staking.apply_external_emission(staking_rewards);
     }
 
@@ -361,15 +372,13 @@ fn test_staking_rewards_precision() {
             "Delegator with {delegator_stake} stake should earn some rewards",
         );
 
-        // Verify precision - claimable should be proportional to stake
-        let stake_ratio = (delegator_stake as f64) / (total_stake as f64);
-        let expected_ratio = (claimable as f64) / (final_reward_index as f64)
-            * (dytallix_lean_node::runtime::staking::REWARD_SCALE as f64);
-
-        let ratio_error = (stake_ratio - expected_ratio).abs();
+        // Integer-precise expectation: delegator share of total staking rewards
+        let expected_claimable = (total_staking_rewards * delegator_stake) / total_stake;
+        let diff = claimable.abs_diff(expected_claimable);
+        // Allow at most 1 unit rounding difference across 100 blocks
         assert!(
-            ratio_error < TOLERANCE,
-            "Stake ratio precision error {ratio_error} exceeds tolerance for stake {delegator_stake}",
+            diff <= 1,
+            "Delegator reward rounding error {diff} should be ≤ 1 for stake {delegator_stake}",
         );
     }
 }

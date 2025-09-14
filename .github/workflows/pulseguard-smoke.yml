@@ -1,0 +1,44 @@
+name: PulseGuard Smoke Test
+
+on:
+  push:
+    paths:
+      - 'ModuleTests/PulseGuard/**'
+      - 'dytallix-modules/pulseguard/**'
+      - '.github/workflows/pulseguard-smoke.yml'
+  pull_request:
+    paths:
+      - 'ModuleTests/PulseGuard/**'
+      - 'dytallix-modules/pulseguard/**'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        working-directory: ModuleTests/PulseGuard
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -U pip wheel
+          pip install -r requirements.txt
+      - name: Run PulseGuard API
+        working-directory: dytallix-modules/pulseguard/src
+        run: |
+          PY=$(realpath ../../../ModuleTests/PulseGuard/.venv/bin/python)
+          nohup "$PY" -m uvicorn server:app --host 0.0.0.0 --port 8090 &
+          sleep 2
+      - name: Smoke test
+        working-directory: ModuleTests/PulseGuard
+        env:
+          PULSEGUARD_API: http://localhost:8090
+          ATTACK_DEFAULT_PROB: '0.2'
+          ATTACK_DEFAULT_SEVERITY: '0.6'
+        run: |
+          . .venv/bin/activate
+          make export-ci

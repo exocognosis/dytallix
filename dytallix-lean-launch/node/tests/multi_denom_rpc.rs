@@ -56,6 +56,8 @@ async fn test_balance_endpoint() {
             governance: true,
             staking: true,
         },
+        // Add minimal wasm contracts map required by RpcContext
+        wasm_contracts: Arc::new(Mutex::new(std::collections::HashMap::new())),
     };
 
     // Test multi-denomination response (no specific denom requested)

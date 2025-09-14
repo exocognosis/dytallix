@@ -161,7 +161,7 @@ pub enum TestAction {
 }
 
 /// Target blockchain
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum ChainTarget {
     Ethereum,
     Cosmos,
@@ -506,8 +506,9 @@ impl AITestGenerator {
     fn estimate_duration(&self, scenario: &TestScenario, conditions: &NetworkConditions) -> Duration {
         // AI-based duration estimation
         let base_duration = Duration::from_secs(60);
-        let complexity_multiplier = scenario.steps.len() as u64;
-        base_duration * complexity_multiplier
+        let steps = scenario.steps.len() as u32;
+        // Avoid zero and keep within Duration bounds
+        base_duration.saturating_mul(steps.max(1))
     }
 
     fn determine_prerequisites(&self, scenario_type: &ScenarioType) -> Vec<String> {

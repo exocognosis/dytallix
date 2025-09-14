@@ -67,6 +67,17 @@ import { PQC_ENABLED } from '../config/flags'
 import { cosmosConfig } from '../config/cosmos.js'
 
 const Wallet = () => {
+  const colorFor = (accent) => {
+    switch (accent) {
+      case 'primary': return 'var(--primary-400)'
+      case 'accent': return 'var(--accent-500)'
+      case 'success': return 'var(--success-500)'
+      case 'warning': return 'var(--warning-500)'
+      case 'danger': return 'var(--danger-500)'
+      case 'info':
+      default: return 'var(--primary-400)'
+    }
+  }
   const [algorithm, setAlgorithm] = useState('dilithium')
   const [showExport, setShowExport] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -204,8 +215,8 @@ const Wallet = () => {
 
   const overviewBand = (
     <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))' }}>
-      <div className="card">
-        <h3 style={{ margin: 0, marginBottom: 6 }}>Overview</h3>
+      <div className="card" style={{ borderTop: `3px solid ${colorFor('primary')}`, paddingTop: 20 }}>
+        <h3 style={{ margin: 0, marginBottom: 6, color: colorFor('primary') }}>Overview</h3>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
           <div>
             <span className={`pill ${hasWallet ? 'good' : 'bad'}`}>{hasWallet ? 'Connected' : 'Not Connected'}</span>
@@ -225,18 +236,18 @@ const Wallet = () => {
         </div>
       </div>
 
-      <div className="card">
-        <h3 style={{ margin: 0, marginBottom: 6 }}>Balances</h3>
+      <div className="card" style={{ borderTop: `3px solid ${colorFor('success')}`, paddingTop: 20 }}>
+        <h3 style={{ margin: 0, marginBottom: 6, color: colorFor('success') }}>Balances</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 8 }}>
-          <div className="card" style={{ borderColor: 'rgba(59,130,246,0.25)' }}>
+          <div className="card" style={{ borderTop: `3px solid ${colorFor('primary')}` }}>
             <div className="muted">DYL (Native)</div>
             <div style={{ fontWeight: 800 }}>{formatDisplay('DYL', balances.native)}</div>
           </div>
-          <div className="card" style={{ borderColor: 'rgba(59,130,246,0.25)' }}>
+          <div className="card" style={{ borderTop: `3px solid ${colorFor('primary')}` }}>
             <div className="muted">DGT (Governance)</div>
             <div style={{ fontWeight: 800 }}>{formatDisplay('DGT', balances.DGT)}</div>
           </div>
-          <div className="card" style={{ borderColor: 'rgba(16,185,129,0.28)' }}>
+          <div className="card" style={{ borderTop: `3px solid ${colorFor('success')}` }}>
             <div className="muted">DRT (Rewards)</div>
             <div style={{ fontWeight: 800 }}>{formatDisplay('DRT', balances.DRT)}</div>
           </div>
@@ -263,8 +274,8 @@ const Wallet = () => {
   const [ksPassword, setKsPassword] = useState('')
 
   const middleTabs = (
-    <div className="card" style={{ marginTop: 16 }}>
-      <h3 style={{ fontWeight: 700, marginBottom: 8 }}>Add / Connect Wallet</h3>
+    <div className="card" style={{ marginTop: 16, borderTop: `3px solid ${colorFor('accent')}`, paddingTop: 20 }}>
+      <h3 style={{ fontWeight: 700, marginBottom: 8, color: colorFor('accent') }}>Add / Connect Wallet</h3>
       {/* Keep legacy headings text in DOM for test compatibility */}
       <div style={{ position: 'absolute', left: -9999, width: 1, height: 1, overflow: 'hidden' }}>Create New Wallet Connect / Import</div>
       <div className="tabs">
@@ -359,8 +370,8 @@ const Wallet = () => {
   // Bottom band: Manage (Keys & Addresses + Settings)
   const manageBand = (
     <div style={{ display: 'grid', gap: 16, marginTop: 16, gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))' }}>
-      <div className="card" style={{ display: 'grid', gap: 8 }}>
-        <h3 style={{ margin: 0 }}>Keys & Addresses</h3>
+      <div className="card" style={{ display: 'grid', gap: 8, borderTop: `3px solid ${colorFor('primary')}`, paddingTop: 20 }}>
+        <h3 style={{ margin: 0, color: colorFor('primary') }}>Keys & Addresses</h3>
         {!hasWallet ? (
           <p className="muted">Create or connect a wallet to manage keys.</p>
         ) : (
@@ -521,9 +532,9 @@ function ImportCard({ onImport, disabled = false }) {
   }
 
   return (
-    <div className="card" style={{ borderColor: 'rgba(34,197,94,0.28)' }}>
+    <div className="card" style={{ borderColor: 'rgba(34,197,94,0.28)', borderTop: '3px solid var(--success-500)', paddingTop: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <div style={{ fontWeight: 700 }}>Manual Import</div>
+        <div style={{ fontWeight: 700, color: 'var(--success-500)' }}>Manual Import</div>
         <button className="btn" style={{ padding: '4px 10px' }} onClick={() => { setShowKs(s => !s); setKsErr(''); setKsMsg('') }}>{showKs ? 'Private Key Mode' : 'Keystore Mode'}</button>
       </div>
       <div className="muted" style={{ marginBottom: 8 }}>{showKs ? 'Paste encrypted keystore JSON' : 'Paste a private key to import an existing wallet'}<Tooltip label={showKs ? 'Keystore stays local; decrypted only in memory.' : 'Key is kept locally in your browser on this device.'} /></div>

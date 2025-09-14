@@ -149,7 +149,7 @@ fn default_enabled() -> bool {
     true
 }
 fn default_evaluation_interval_secs() -> u64 {
-    15
+    5
 }
 fn default_log_on_fire() -> bool {
     true

@@ -12,8 +12,8 @@ export default function SettingsCard({ onExport, onChangePassword, onForget }) {
   }
 
   return (
-    <div className="card" style={{ display: 'grid', gap: 12 }}>
-      <h3 style={{ margin: 0 }}>Settings</h3>
+    <div className="card" style={{ display: 'grid', gap: 12, borderTop: '3px solid var(--primary-400)', paddingTop: 20 }}>
+      <h3 style={{ margin: 0, color: 'var(--primary-400)' }}>Settings</h3>
       {msg && <div className="card" style={{ background: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.32)' }}>{msg}</div>}
       {err && <div className="card" style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.35)' }}>{err}</div>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

@@ -90,7 +90,8 @@ fn test_governance_voting_flow() {
         let mut state = state.lock().unwrap();
 
         let mut voter1 = state.get_account("voter1");
-        voter1.add_balance("udgt", 500_000_000); // 500 DGT
+        // Increased to cover deposit of 1,000 DGT while retaining 500 DGT voting power
+        voter1.add_balance("udgt", 1_500_000_000); // 1500 DGT
         state.accounts.insert("voter1".to_string(), voter1);
 
         let mut voter2 = state.get_account("voter2");
@@ -119,15 +120,15 @@ fn test_governance_voting_flow() {
         .deposit(150, "voter1", proposal_id, 1_000_000_000, "udgt")
         .unwrap();
 
-    // Cast votes
+    // Cast votes within the voting window [150, 450]
     governance
         .vote(450, "voter1", proposal_id, VoteOption::Yes)
         .unwrap();
     governance
-        .vote(451, "voter2", proposal_id, VoteOption::Yes)
+        .vote(300, "voter2", proposal_id, VoteOption::Yes)
         .unwrap();
     governance
-        .vote(452, "voter3", proposal_id, VoteOption::No)
+        .vote(400, "voter3", proposal_id, VoteOption::No)
         .unwrap();
 
     // Tally votes
@@ -176,15 +177,21 @@ fn test_governance_parameter_execution() {
     governance
         .deposit(150, "depositorZ", proposal_id, 1_000_000_000, "udgt")
         .unwrap();
-    // Cast votes
+    // Cast votes (both within [150, 450])
     governance
         .vote(450, "voterA", proposal_id, VoteOption::Yes)
         .unwrap();
     governance
-        .vote(451, "voterB", proposal_id, VoteOption::Yes)
+        .vote(449, "voterB", proposal_id, VoteOption::Yes)
         .unwrap();
-    // Process end_block beyond voting end to execute
+
+    // First end_block after voting end will tally and mark as Passed
     governance.end_block(800).unwrap();
+    let proposal_after_tally = governance.get_proposal(proposal_id).unwrap().unwrap();
+    assert_eq!(proposal_after_tally.status, ProposalStatus::Passed);
+
+    // Second end_block will execute passed proposals
+    governance.end_block(801).unwrap();
 
     // Check gas limit was updated
     assert_eq!(governance.get_config().gas_limit, 50_000);
@@ -216,9 +223,9 @@ fn test_governance_end_block_processing() {
     // Process end block after deposit period expires (height 401)
     governance.end_block(401).unwrap();
 
-    // Should be rejected due to insufficient deposits
+    // Should be marked as Failed due to insufficient deposits in deposit period
     let proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
-    assert_eq!(proposal.status, ProposalStatus::Rejected);
+    assert_eq!(proposal.status, ProposalStatus::Failed);
 }
 
 #[test]

@@ -96,8 +96,7 @@ async fn main() -> anyhow::Result<()> {
             .next()
             .unwrap_or(&url);
         println!(
-            "Secrets mode: Vault (KV v2) url_host={} mount={} base={}",
-            host, mount, base
+            "Secrets mode: Vault (KV v2) url_host={host} mount={mount} base={base}"
         );
     } else {
         let dir = std::env::var("DYT_KEYSTORE_DIR").unwrap_or_else(|_| {
@@ -105,8 +104,7 @@ async fn main() -> anyhow::Result<()> {
             format!("{home}/.dytallix/keystore")
         });
         println!(
-            "Secrets mode: Plain Keystore (dev) path={} — no passphrase required",
-            dir
+            "Secrets mode: Plain Keystore (dev) path={dir} — no passphrase required"
         );
     }
 

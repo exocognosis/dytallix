@@ -112,9 +112,10 @@ fn test_receipt_fields() {
     let mut state = create_test_state();
     let gas_schedule = GasSchedule::default();
 
-    state.set_balance("alice", "udgt", 100_000);
+    // Ensure sufficient balance to cover upfront fee (gas_limit * gas_price) and amount
+    state.set_balance("alice", "udgt", 20_000_000);
 
-    let tx = Transaction::new("test_hash_123", "alice", "bob", 2_000, 5_000, 42, None)
+    let tx = Transaction::new("test_hash_123", "alice", "bob", 2_000, 5_000, 0, None)
         .with_gas(30_000, 500)
         .with_signature("signature_data");
 
@@ -130,7 +131,7 @@ fn test_receipt_fields() {
     assert_eq!(receipt.to, "bob");
     assert_eq!(receipt.amount, 2_000);
     assert_eq!(receipt.fee, 5_000);
-    assert_eq!(receipt.nonce, 42);
+    assert_eq!(receipt.nonce, 0);
     assert_eq!(receipt.gas_limit, 30_000);
     assert_eq!(receipt.gas_price, 500);
     assert_eq!(receipt.gas_refund, 0); // Always 0 as per spec
@@ -174,7 +175,9 @@ fn test_execution_context_fee_calculation() {
 #[test]
 fn test_execution_context_fee_overflow() {
     let ctx = ExecutionContext::new(u64::MAX, u64::MAX);
-    assert!(ctx.calculate_upfront_fee().is_err());
+    let fee = ctx.calculate_upfront_fee().expect("should not overflow for u64::MAX product");
+    let expected = (u128::from(u64::MAX)) * (u128::from(u64::MAX));
+    assert_eq!(fee, expected);
 }
 
 #[test]

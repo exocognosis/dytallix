@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
@@ -168,14 +168,24 @@ pub struct Mempool {
     config: MempoolConfig,
     /// Policy manager for signature algorithm enforcement
     policy_manager: PolicyManager,
-    /// Priority-ordered transactions (BTreeSet for deterministic ordering)
+    /// Priority-ordered eligible transactions (BTreeSet for deterministic ordering)
     ordered_txs: BTreeSet<TxPriorityKey>,
-    /// Hash to transaction mapping for O(1) lookup
+    /// Hash to eligible transaction mapping for O(1) lookup
     tx_lookup: HashMap<String, PendingTx>,
-    /// Hash set for O(1) duplicate detection
+    /// Deferred (future-nonce) transactions: global priority index for eviction
+    deferred_index: BTreeSet<TxPriorityKey>,
+    /// Hash to deferred transaction mapping for O(1) lookup
+    deferred_lookup: HashMap<String, PendingTx>,
+    /// Per-sender deferred map to promote next-ready nonces quickly
+    deferred_by_sender: HashMap<String, BTreeMap<u64, String>>, // sender -> nonce -> hash
+    /// Hash set for O(1) duplicate detection across eligible+deferred
     tx_hashes: HashSet<String>,
-    /// Total size in bytes of all transactions
+    /// Total size in bytes of all transactions (eligible + deferred)
     total_bytes: usize,
+    /// Per-sender count of eligible (ready) transactions, used to compute expected nonce fast
+    eligible_by_sender: HashMap<String, usize>,
+    /// Per-sender total reserved value (amount + fee + gas_cost) across eligible + deferred
+    reserved_by_sender: HashMap<String, u128>,
 }
 
 impl Mempool {
@@ -188,10 +198,40 @@ impl Mempool {
             config,
             ordered_txs: BTreeSet::new(),
             tx_lookup: HashMap::new(),
+            deferred_index: BTreeSet::new(),
+            deferred_lookup: HashMap::new(),
+            deferred_by_sender: HashMap::new(),
             tx_hashes: HashSet::new(),
             total_bytes: 0,
             policy_manager: PolicyManager::default(),
+            eligible_by_sender: HashMap::new(),
+            reserved_by_sender: HashMap::new(),
         }
+    }
+
+    /// Compute how many pending (eligible) transactions exist for a given sender.
+    /// This is used to derive the next expected nonce for that sender as
+    /// state_nonce + pending_count, ensuring sequential, gap-free promotion.
+    fn pending_count_for_sender(&self, sender: &str) -> usize {
+        *self.eligible_by_sender.get(sender).unwrap_or(&0)
+    }
+
+    /// Compute the total reserved amount (amount + fee + gas_cost) for a given sender
+    /// across all transactions in the mempool (eligible + deferred). This ensures we do not accept
+    /// transactions that would oversubscribe the account's balance once included.
+    fn reserved_total_for_sender(&self, sender: &str) -> u128 {
+        *self.reserved_by_sender.get(sender).unwrap_or(&0)
+    }
+
+    /// Helper to compute a transaction's reserved contribution
+    fn reserved_value_of_tx(tx: &Transaction) -> u128 {
+        let gas_cost = (tx.gas_limit as u128) * (tx.gas_price as u128);
+        tx.amount + tx.fee + gas_cost
+    }
+
+    /// Total count of transactions (eligible + deferred)
+    fn total_count(&self) -> usize {
+        self.tx_lookup.len() + self.deferred_lookup.len()
     }
 
     /// Add transaction to mempool with full validation
@@ -210,7 +250,7 @@ impl Mempool {
             return Err(RejectionReason::PolicyViolation(format!("{policy_error}")));
         }
 
-        // 2. Duplicate check
+        // 2. Duplicate check (across eligible+deferred)
         if self.tx_hashes.contains(&tx.hash) {
             return Err(RejectionReason::Duplicate(tx.hash));
         }
@@ -218,59 +258,57 @@ impl Mempool {
         // 3. Size check
         let tx_size = estimate_tx_size(&tx);
         if tx_size > self.config.max_tx_bytes {
-            return Err(RejectionReason::OversizedTx {
-                max: self.config.max_tx_bytes,
-                got: tx_size,
-            });
+            return Err(RejectionReason::OversizedTx { max: self.config.max_tx_bytes, got: tx_size });
         }
 
         // 4. Gas price check
         if tx.gas_price < self.config.min_gas_price {
-            return Err(RejectionReason::UnderpricedGas {
-                min: self.config.min_gas_price,
-                got: tx.gas_price,
-            });
+            return Err(RejectionReason::UnderpricedGas { min: self.config.min_gas_price, got: tx.gas_price });
         }
 
-        // 5. Nonce and balance validation
-        self.validate_tx_state(state, &tx)?;
+        // 5. Nonce and balance validation (aware of pending state)
+        // Note: we allow future nonces; they are deferred until gap-free
+        // but balance must still cover all reserved amounts including deferred.
+        self.validate_tx_funds_only(state, &tx)?;
 
-        // 6. Create pending transaction
         let pending_tx = PendingTx::new(tx.clone());
-        let priority_key = pending_tx.priority_key();
 
-        // 7. Check capacity and evict if necessary
-        self.ensure_capacity(&pending_tx)?;
+        // Determine expected nonce from on-chain state + eligible pending count
+        let state_nonce = state.snapshot_nonce(&tx.from);
+        let expected = state_nonce + self.pending_count_for_sender(&tx.from) as u64;
 
-        // 8. Insert transaction
-        self.ordered_txs.insert(priority_key);
-        self.tx_hashes.insert(tx.hash.clone());
-        self.total_bytes += pending_tx.serialized_size;
-        self.tx_lookup.insert(tx.hash.clone(), pending_tx);
+        if tx.nonce < expected {
+            return Err(RejectionReason::NonceGap { expected, got: tx.nonce });
+        }
+
+        // Ensure capacity before inserting (counts all)
+        self.ensure_capacity_for(&pending_tx)?;
+
+        let reserved_delta = Self::reserved_value_of_tx(&tx);
+        if tx.nonce == expected {
+            // Eligible now: track reserved and eligible count
+            *self.reserved_by_sender.entry(tx.from.clone()).or_default() += reserved_delta;
+            self.insert_eligible(pending_tx);
+            // Try to promote any deferred txs for this sender
+            self.try_promote_deferred(&tx.from, state);
+        } else {
+            // Future nonce -> defer (tracks reserved internally)
+            self.insert_deferred(pending_tx);
+        }
 
         Ok(())
     }
 
-    /// Validate transaction against account state
-    fn validate_tx_state(&self, state: &State, tx: &Transaction) -> Result<(), RejectionReason> {
-        let mut clone_state = state.clone();
-        let from_acc = clone_state.get_account(&tx.from);
-        let balance = from_acc.legacy_balance();
-        let nonce = from_acc.nonce;
+    /// Validate only funds and gas (nonce handled separately to allow deferral)
+    fn validate_tx_funds_only(&self, state: &State, tx: &Transaction) -> Result<(), RejectionReason> {
+        let balance = state.snapshot_legacy_balance(&tx.from);
 
-        // Nonce check
-        if tx.nonce != nonce {
-            return Err(RejectionReason::NonceGap {
-                expected: nonce,
-                got: tx.nonce,
-            });
-        }
+        // Balance check must include already reserved amounts for this sender
+        let total_needed = Self::reserved_value_of_tx(tx);
+        let reserved = self.reserved_total_for_sender(&tx.from);
+        let post_reserve_total = reserved + total_needed;
 
-        // Balance check (fee + transfer amount for send messages)
-        let gas_cost = tx.gas_limit * tx.gas_price;
-        let total_needed = tx.amount + tx.fee + gas_cost as u128;
-
-        if balance < total_needed {
+        if balance < post_reserve_total {
             return Err(RejectionReason::InsufficientFunds);
         }
 
@@ -282,33 +320,179 @@ impl Mempool {
         Ok(())
     }
 
-    /// Ensure capacity by evicting lowest priority transactions if needed
-    fn ensure_capacity(&mut self, new_tx: &PendingTx) -> Result<(), RejectionReason> {
-        // Check if we need to evict by count
-        while self.ordered_txs.len() >= self.config.max_txs {
-            self.evict_lowest_priority()?;
+    /// Insert an eligible transaction into main structures
+    fn insert_eligible(&mut self, pending_tx: PendingTx) {
+        let key = pending_tx.priority_key();
+        self.total_bytes += pending_tx.serialized_size;
+        self.tx_hashes.insert(pending_tx.tx.hash.clone());
+        self.ordered_txs.insert(key);
+        *self
+            .eligible_by_sender
+            .entry(pending_tx.tx.from.clone())
+            .or_default() += 1;
+        self.tx_lookup.insert(pending_tx.tx.hash.clone(), pending_tx);
+    }
+
+    /// Insert a deferred (future-nonce) transaction into deferred structures
+    fn insert_deferred(&mut self, pending_tx: PendingTx) {
+        let key = pending_tx.priority_key();
+        self.total_bytes += pending_tx.serialized_size;
+        self.tx_hashes.insert(pending_tx.tx.hash.clone());
+        self.deferred_index.insert(key.clone());
+        self.deferred_by_sender
+            .entry(pending_tx.tx.from.clone())
+            .or_insert_with(BTreeMap::new)
+            .insert(pending_tx.tx.nonce, pending_tx.tx.hash.clone());
+        // Track reserved value for deferred txs as well
+        let delta = Self::reserved_value_of_tx(&pending_tx.tx);
+        *self
+            .reserved_by_sender
+            .entry(pending_tx.tx.from.clone())
+            .or_default() += delta;
+        self.deferred_lookup.insert(pending_tx.tx.hash.clone(), pending_tx);
+    }
+
+    /// Attempt to promote deferred transactions for a sender if sequentially ready
+    fn try_promote_deferred(&mut self, sender: &str, state: &State) {
+        loop {
+            let expected = {
+                let state_nonce = state.snapshot_nonce(sender);
+                state_nonce + self.pending_count_for_sender(sender) as u64
+            };
+
+            let next_hash_opt = self
+                .deferred_by_sender
+                .get_mut(sender)
+                .and_then(|m| m.remove(&expected));
+
+            let Some(next_hash) = next_hash_opt else { break };
+
+            if let Some(pending) = self.deferred_lookup.remove(&next_hash) {
+                // Remove from deferred index
+                let key = pending.priority_key();
+                self.deferred_index.remove(&key);
+                // Adjust bytes to avoid double counting when moving from deferred -> eligible
+                self.total_bytes = self.total_bytes.saturating_sub(pending.serialized_size);
+                // Insert into eligible, ensuring capacity (may evict others)
+                self.ensure_capacity_for(&pending).ok();
+                self.insert_eligible(pending);
+            }
         }
 
-        // Check if we need to evict by total bytes
+        // Clean up empty sender map
+        if let Some(map) = self.deferred_by_sender.get(sender) {
+            if map.is_empty() {
+                self.deferred_by_sender.remove(sender);
+            }
+        }
+    }
+
+    /// Internal helper: promote deferred txs for `sender` starting from `expected` nonce
+    /// without requiring State. This is used after transactions are dropped due to inclusion
+    /// in a block, where chain state nonce has advanced accordingly.
+    fn promote_deferred_from_expected(&mut self, sender: &str, mut expected: u64) {
+        loop {
+            let next_hash_opt = self
+                .deferred_by_sender
+                .get_mut(sender)
+                .and_then(|m| m.remove(&expected));
+
+            let Some(next_hash) = next_hash_opt else { break };
+
+            if let Some(pending) = self.deferred_lookup.remove(&next_hash) {
+                // Remove from deferred index and adjust bytes (move semantics)
+                let key = pending.priority_key();
+                self.deferred_index.remove(&key);
+                self.total_bytes = self.total_bytes.saturating_sub(pending.serialized_size);
+                // Insert into eligible (may evict others)
+                self.ensure_capacity_for(&pending).ok();
+                self.insert_eligible(pending);
+                expected = expected.saturating_add(1);
+            }
+        }
+
+        // Clean up empty sender map
+        if let Some(map) = self.deferred_by_sender.get(sender) {
+            if map.is_empty() {
+                self.deferred_by_sender.remove(sender);
+            }
+        }
+    }
+
+    /// Ensure capacity by evicting lowest priority transactions (eligible or deferred) if needed
+    fn ensure_capacity_for(&mut self, new_tx: &PendingTx) -> Result<(), RejectionReason> {
+        // If the incoming tx itself exceeds the byte budget, reject early
+        if new_tx.serialized_size > self.config.max_bytes {
+            return Err(RejectionReason::OversizedTx { max: self.config.max_bytes, got: new_tx.serialized_size });
+        }
+
+        // Evict by count
+        while self.total_count() >= self.config.max_txs {
+            self.evict_lowest_priority()?;
+            if self.total_count() == 0 { break; }
+        }
+
+        // Evict by bytes
         while self.total_bytes + new_tx.serialized_size > self.config.max_bytes {
             self.evict_lowest_priority()?;
+            if self.total_count() == 0 {
+                return Err(RejectionReason::OversizedTx { max: self.config.max_bytes, got: self.total_bytes + new_tx.serialized_size });
+            }
         }
 
         Ok(())
     }
 
-    /// Evict the lowest priority transaction
+    /// Evict the lowest priority transaction across eligible and deferred
     fn evict_lowest_priority(&mut self) -> Result<(), RejectionReason> {
-        // BTreeSet is ordered, so last() gives us the lowest priority
-        if let Some(lowest_key) = self.ordered_txs.iter().last().cloned() {
-            self.ordered_txs.remove(&lowest_key);
+        // Get lowest from eligible
+        let eligible_low = self.ordered_txs.iter().last().cloned();
+        // Get lowest from deferred
+        let deferred_low = self.deferred_index.iter().last().cloned();
 
-            if let Some(tx) = self.tx_lookup.remove(&lowest_key.hash) {
-                self.tx_hashes.remove(&lowest_key.hash);
-                self.total_bytes = self.total_bytes.saturating_sub(tx.serialized_size);
+        // Choose the lower priority among the two (max key)
+        let choice = match (eligible_low, deferred_low) {
+            (Some(e), Some(d)) => if e >= d { Some((e, true)) } else { Some((d, false)) },
+            (Some(e), None) => Some((e, true)),
+            (None, Some(d)) => Some((d, false)),
+            (None, None) => None,
+        };
 
-                // Log eviction for metrics
-                log::info!("Evicted transaction {} due to capacity", lowest_key.hash);
+        if let Some((key, is_eligible)) = choice {
+            if is_eligible {
+                self.ordered_txs.remove(&key);
+                if let Some(tx) = self.tx_lookup.remove(&key.hash) {
+                    self.tx_hashes.remove(&key.hash);
+                    self.total_bytes = self.total_bytes.saturating_sub(tx.serialized_size);
+                    // Update per-sender trackers
+                    if let Some(count) = self.eligible_by_sender.get_mut(&tx.tx.from) {
+                        *count = count.saturating_sub(1);
+                        if *count == 0 { self.eligible_by_sender.remove(&tx.tx.from); }
+                    }
+                    let delta = Self::reserved_value_of_tx(&tx.tx);
+                    if let Some(total) = self.reserved_by_sender.get_mut(&tx.tx.from) {
+                        *total = total.saturating_sub(delta);
+                        if *total == 0 { self.reserved_by_sender.remove(&tx.tx.from); }
+                    }
+                    log::info!("Evicted transaction {} due to capacity", key.hash);
+                }
+            } else {
+                self.deferred_index.remove(&key);
+                if let Some(tx) = self.deferred_lookup.remove(&key.hash) {
+                    // Remove from per-sender map
+                    if let Some(map) = self.deferred_by_sender.get_mut(&tx.tx.from) {
+                        map.remove(&tx.tx.nonce);
+                        if map.is_empty() { self.deferred_by_sender.remove(&tx.tx.from); }
+                    }
+                    self.tx_hashes.remove(&key.hash);
+                    self.total_bytes = self.total_bytes.saturating_sub(tx.serialized_size);
+                    let delta = Self::reserved_value_of_tx(&tx.tx);
+                    if let Some(total) = self.reserved_by_sender.get_mut(&tx.tx.from) {
+                        *total = total.saturating_sub(delta);
+                        if *total == 0 { self.reserved_by_sender.remove(&tx.tx.from); }
+                    }
+                    log::info!("Evicted deferred transaction {} due to capacity", key.hash);
+                }
             }
         }
         Ok(())
@@ -326,13 +510,70 @@ impl Mempool {
 
     /// Remove transactions by hash (after inclusion in block)
     pub fn drop_hashes(&mut self, hashes: &[String]) {
+        use std::cmp::max;
+        // Track the highest included nonce per sender for correct promotion
+        let mut removed_max_nonce: HashMap<String, u64> = HashMap::new();
+
         for hash in hashes {
             if let Some(pending_tx) = self.tx_lookup.remove(hash) {
                 let priority_key = pending_tx.priority_key();
                 self.ordered_txs.remove(&priority_key);
                 self.tx_hashes.remove(hash);
                 self.total_bytes = self.total_bytes.saturating_sub(pending_tx.serialized_size);
+
+                // Update trackers
+                if let Some(count) = self.eligible_by_sender.get_mut(&pending_tx.tx.from) {
+                    *count = count.saturating_sub(1);
+                    if *count == 0 { self.eligible_by_sender.remove(&pending_tx.tx.from); }
+                }
+                let delta = Self::reserved_value_of_tx(&pending_tx.tx);
+                if let Some(total) = self.reserved_by_sender.get_mut(&pending_tx.tx.from) {
+                    *total = total.saturating_sub(delta);
+                    if *total == 0 { self.reserved_by_sender.remove(&pending_tx.tx.from); }
+                }
+
+                // Record removed nonce per sender (eligible inclusion)
+                let sender = pending_tx.tx.from.clone();
+                let nonce = pending_tx.tx.nonce;
+                removed_max_nonce
+                    .entry(sender)
+                    .and_modify(|m| *m = max(*m, nonce))
+                    .or_insert(nonce);
+            } else if let Some(deferred_tx) = self.deferred_lookup.remove(hash) {
+                // Remove from deferred structures
+                let key = deferred_tx.priority_key();
+                self.deferred_index.remove(&key);
+                if let Some(map) = self.deferred_by_sender.get_mut(&deferred_tx.tx.from) {
+                    map.remove(&deferred_tx.tx.nonce);
+                    if map.is_empty() { self.deferred_by_sender.remove(&deferred_tx.tx.from); }
+                }
+                self.tx_hashes.remove(hash);
+                self.total_bytes = self.total_bytes.saturating_sub(deferred_tx.serialized_size);
+                // Update reserved totals
+                let delta = Self::reserved_value_of_tx(&deferred_tx.tx);
+                if let Some(total) = self.reserved_by_sender.get_mut(&deferred_tx.tx.from) {
+                    *total = total.saturating_sub(delta);
+                    if *total == 0 { self.reserved_by_sender.remove(&deferred_tx.tx.from); }
+                }
             }
+        }
+
+        // After removals, attempt to promote deferred txs for affected senders using
+        // an estimated expected nonce based on remaining eligible txs and removed max nonce.
+        for (sender, removed_max) in removed_max_nonce.into_iter() {
+            let current_max_eligible = self
+                .tx_lookup
+                .values()
+                .filter(|p| p.tx.from == sender)
+                .map(|p| p.tx.nonce)
+                .max();
+
+            let expected = match current_max_eligible {
+                Some(max_nonce) => max(max_nonce, removed_max).saturating_add(1),
+                None => removed_max.saturating_add(1),
+            };
+
+            self.promote_deferred_from_expected(&sender, expected);
         }
     }
 
@@ -341,7 +582,7 @@ impl Mempool {
         self.tx_hashes.contains(hash)
     }
 
-    /// Get current mempool statistics
+    /// Get current mempool statistics (eligible only)
     pub fn len(&self) -> usize {
         self.tx_lookup.len()
     }
@@ -355,12 +596,12 @@ impl Mempool {
     }
 
     pub fn is_full(&self) -> bool {
-        self.len() >= self.config.max_txs || self.total_bytes >= self.config.max_bytes
+        self.total_count() >= self.config.max_txs || self.total_bytes >= self.config.max_bytes
     }
 
-    /// Get current minimum gas price in the pool
+    /// Get current minimum gas price in the pool (eligible only)
     pub fn current_min_gas_price(&self) -> u64 {
-        // Find the lowest gas price in the pool (last transaction)
+        // Find the lowest gas price in the pool (last eligible transaction)
         self.ordered_txs
             .iter()
             .last()
@@ -454,7 +695,7 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
 /// Enhanced validation including gas validation (legacy function for backward compatibility)
 pub fn basic_validate(state: &State, tx: &Transaction) -> Result<(), String> {
     let mempool = Mempool::new();
-    match mempool.validate_tx_state(state, tx) {
+    match mempool.validate_tx_funds_only(state, tx) {
         Ok(()) => Ok(()),
         Err(reason) => Err(reason.to_string()),
     }
@@ -492,6 +733,15 @@ fn validate_gas(tx: &Transaction) -> Result<(), String> {
 
 /// Estimate transaction size for gas calculation and size limits
 fn estimate_tx_size(tx: &Transaction) -> usize {
+    // Cap the signature contribution to avoid pathological sizes from different
+    // signature schemes (e.g., PQC). This keeps mempool accounting predictable.
+    const MAX_SIG_ACCOUNTING: usize = 256;
+
+    let sig_len = tx
+        .signature
+        .as_ref()
+        .map_or(0, |s| s.len().min(MAX_SIG_ACCOUNTING));
+
     // Rough estimate based on serialized fields
     // This should be more precise in production
     tx.hash.len() +
@@ -500,7 +750,7 @@ fn estimate_tx_size(tx: &Transaction) -> usize {
     16 + // amount (u128)
     16 + // fee (u128)
     8 +  // nonce (u64)
-    tx.signature.as_ref().map_or(0, |s| s.len()) +
+    sig_len +
     8 +  // gas_limit (u64)
     8 // gas_price (u64)
 }

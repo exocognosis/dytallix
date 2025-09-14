@@ -16,6 +16,25 @@ fn governance_parameter_change_e2e() {
     let staking = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
     let mut governance = GovernanceModule::new(storage.clone(), state.clone(), staking);
 
+    // Fund depositor and voters with udgt so deposits and votes have weight
+    {
+        let mut s = state.lock().unwrap();
+        // depositor1: 2,000 DGT
+        let mut depositor = s.get_account("depositor1");
+        depositor.add_balance("udgt", 2_000_000_000);
+        s.accounts.insert("depositor1".to_string(), depositor);
+
+        // voter1: 500 DGT
+        let mut voter1 = s.get_account("voter1");
+        voter1.add_balance("udgt", 500_000_000);
+        s.accounts.insert("voter1".to_string(), voter1);
+
+        // voter2: 500 DGT
+        let mut voter2 = s.get_account("voter2");
+        voter2.add_balance("udgt", 500_000_000);
+        s.accounts.insert("voter2".to_string(), voter2);
+    }
+
     // Test proposal submission
     let proposal_id = governance
         .submit_proposal(
@@ -45,7 +64,7 @@ fn governance_parameter_change_e2e() {
     // Vote on proposal within the configured voting period
     governance
         .vote(
-            450, // height inside voting window (submit_height + deposit_period .. + voting_period)
+            200, // height inside voting window (start at 150, end at 450)
             "voter1",
             proposal_id,
             VoteOption::Yes,
@@ -54,7 +73,7 @@ fn governance_parameter_change_e2e() {
 
     governance
         .vote(
-            460, // height inside voting window
+            300, // height inside voting window
             "voter2",
             proposal_id,
             VoteOption::Yes,
@@ -65,17 +84,23 @@ fn governance_parameter_change_e2e() {
     let initial_gas_limit = governance.get_config().gas_limit;
     assert_eq!(initial_gas_limit, 21_000);
 
-    // Process proposal at end of voting period
-    // Tally and execute via end_block after voting end
+    // Process proposal at end of voting period - first call will tally and mark as Passed
     governance
         .end_block(701)
         .expect("Failed to process end_block");
 
-    // Verify proposal passed and parameter changed
+    let proposal_after_tally = governance.get_proposal(proposal_id).unwrap().unwrap();
+    assert_eq!(proposal_after_tally.status, ProposalStatus::Passed);
+
+    // Second end_block will execute passed proposals
+    governance
+        .end_block(702)
+        .expect("Failed to process end_block for execution");
+
+    // Verify proposal executed and parameter changed
     let proposal = governance.get_proposal(proposal_id).unwrap().unwrap();
     assert_eq!(proposal.status, ProposalStatus::Executed);
 
-    // Verify parameter was changed
     let new_gas_limit = governance.get_config().gas_limit;
     assert_eq!(new_gas_limit, 50_000);
 

@@ -192,8 +192,20 @@ const FaucetForm = () => {
   }
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
-      <div className={styles.inputGroup}>
-        <label htmlFor="token-selection" className={styles.label}>Select Tokens</label>
+      {/* Top card: Token Selection */}
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <label htmlFor="token-selection" className={styles.label} style={{ margin: 0 }}>Select Tokens</label>
+          <span
+            aria-label="Recommended option"
+            title="Recommended option"
+            style={{
+              display: 'inline-block', padding: '2px 8px', borderRadius: 999,
+              background: 'rgba(139,92,246,0.15)', color: 'var(--primary-300)',
+              fontSize: 12, fontWeight: 600
+            }}
+          >Recommended</span>
+        </div>
         <div className={styles.tokenSelector}>
           {Object.entries(TOKEN_OPTIONS).map(([key, option]) => {
             const optionOnCooldown = option.tokens.some(token => isOnCooldown(token))
@@ -229,97 +241,108 @@ const FaucetForm = () => {
           })}
         </div>
       </div>
-
-      <div className={styles.inputGroup}>
-        <label htmlFor="wallet-address" className={styles.label}>
-          Wallet Address 
-          {connected ? '(Auto-detected from PQC wallet)' : '(Enter your dytallix1... address)'}
-        </label>
-        <input 
-          id="wallet-address" 
-          type="text" 
-          value={address} 
-          onChange={(e) => {
-            setAddress(e.target.value)
-            if (walletAutoFilled) setWalletAutoFilled(false) // Allow manual override
-          }}
-          placeholder="dytallix1..." 
-          className={styles.input} 
-          disabled={isLoading}
-          data-test="wallet-address-input"
-        />
+      {/* Middle card: Wallet Input */}
+      <div className="card" style={{ padding: 16 }}>
+        <div className={styles.inputGroup} style={{ margin: 0 }}>
+          <label htmlFor="wallet-address" className={styles.label} style={{ marginBottom: 8 }}>
+            Wallet Address <span className="muted" style={{ fontWeight: 400 }}>
+              {connected ? '(Auto-detected from PQC wallet)' : '(Enter your dytallix1... address)'}
+            </span>
+          </label>
+          <input 
+            id="wallet-address" 
+            type="text" 
+            value={address} 
+            onChange={(e) => {
+              setAddress(e.target.value)
+              if (walletAutoFilled) setWalletAutoFilled(false)
+            }}
+            placeholder="dytallix1..." 
+            className={styles.input} 
+            disabled={isLoading}
+            data-test="wallet-address-input"
+          />
+        </div>
       </div>
 
-      <button 
-        type="submit" 
-        disabled={isLoading || !address.trim() || anyCooldown} 
-        className={`${styles.submitButton} ${isLoading ? styles.loading : ''}`}
-        data-test="faucet-submit"
-      >
-        {isLoading ? (
-          <>
-            <span className={styles.spinner}></span>
-            Sending {selectedTokens.join(' + ')}...
-          </>
-        ) : anyCooldown ? (
-          `Wait ${maxCooldownMinutes}m for ${selectedTokens.filter(t => isOnCooldown(t)).join(', ')}`
-        ) : (
-          `Request ${TOKEN_OPTIONS[selectedOption].label}`
+      {/* Bottom card: Action & Info */}
+      <div className="card" style={{ padding: 16 }}>
+        <button 
+          type="submit" 
+          disabled={isLoading || !address.trim() || anyCooldown} 
+          className={`${styles.submitButton} ${isLoading ? styles.loading : ''}`}
+          data-test="faucet-submit"
+          style={{ width: '100%', marginBottom: 12 }}
+        >
+          {isLoading ? (
+            <>
+              <span className={styles.spinner}></span>
+              Sending {selectedTokens.join(' + ')}...
+            </>
+          ) : anyCooldown ? (
+            `Wait ${maxCooldownMinutes}m for ${selectedTokens.filter(t => isOnCooldown(t)).join(', ')}`
+          ) : (
+            'Request Tokens'
+          )}
+        </button>
+
+        {/* Cooldown notice when tokens are on cooldown */}
+        {anyCooldown && (
+          <div 
+            className={`${styles.message} ${styles.cooldownNotice}`}
+            role="status"
+            aria-live="polite"
+            data-test="cooldown-notice"
+            style={{ marginBottom: 12 }}
+          >
+            ⏳ Cooldown active for {selectedTokens.filter(t => isOnCooldown(t)).join(', ')}. 
+            Please wait {maxCooldownMinutes} more minutes.
+          </div>
         )}
-      </button>
 
-      {/* Cooldown notice when tokens are on cooldown */}
-      {anyCooldown && (
-        <div 
-          className={`${styles.message} ${styles.cooldownNotice}`}
-          role="status"
-          aria-live="polite"
-          data-test="cooldown-notice"
-        >
-          ⏳ Cooldown active for {selectedTokens.filter(t => isOnCooldown(t)).join(', ')}. 
-          Please wait {maxCooldownMinutes} more minutes.
+        {/* Main status message */}
+        {message && (
+          <div 
+            className={`${styles.message} ${styles[messageType]}`}
+            role={messageType === 'error' ? 'alert' : 'status'}
+            aria-live={messageType === 'error' ? 'assertive' : 'polite'}
+            data-test="faucet-status"
+            style={{ marginBottom: 12 }}
+          >
+            {message}
+          </div>
+        )}
+
+        {/* Last success details */}
+        {getLastSuccessDetails() && !message && (
+          <div 
+            className={styles.lastResult}
+            role="status"
+            aria-live="polite"
+            data-test="last-result"
+            style={{ marginBottom: 12 }}
+          >
+            {getLastSuccessDetails()}
+          </div>
+        )}
+
+        {/* Faucet Info section */}
+        <div className={styles.faucetInfo}>
+          <h3 className={styles.faucetInfoTitle}>Faucet Information</h3>
+          <div className={styles.faucetInfoPanel}>
+            <ul className={styles.faucetInfoList}>
+              <li className={`muted ${styles.faucetInfoItem}`}><strong>Network:</strong> Dytallix Testnet</li>
+              <li className={`muted ${styles.faucetInfoItem}`}><strong>DGT Amount:</strong> 2 DGT per request (24h cooldown)</li>
+              <li className={`muted ${styles.faucetInfoItem}`}><strong>DRT Amount:</strong> 50 DRT per request (6h cooldown)</li>
+              <li className={`muted ${styles.faucetInfoItem}`}><strong>Dual Request:</strong> Get both tokens in one request</li>
+              <li className={`muted ${styles.faucetInfoItem}`}><strong>Network ID:</strong> {COSMOS_CONFIG.chainId}</li>
+            </ul>
+          </div>
         </div>
-      )}
 
-      {/* Main status message */}
-      {message && (
-        <div 
-          className={`${styles.message} ${styles[messageType]}`}
-          role={messageType === 'error' ? 'alert' : 'status'}
-          aria-live={messageType === 'error' ? 'assertive' : 'polite'}
-          data-test="faucet-status"
-        >
-          {message}
+        <div className={styles.info}>
+          <p className="muted"><strong>Note:</strong> Tokens have no real value and are for testing purposes only.</p>
         </div>
-      )}
-
-      {/* Last success details */}
-      {getLastSuccessDetails() && !message && (
-        <div 
-          className={styles.lastResult}
-          role="status"
-          aria-live="polite"
-          data-test="last-result"
-        >
-          {getLastSuccessDetails()}
-        </div>
-      )}
-
-      <div className={styles.faucetInfo}>
-        <h3 className={styles.faucetInfoTitle}>Faucet Information</h3>
-        <div className={styles.faucetInfoPanel}>
-          <ul className={styles.faucetInfoList}>
-            <li className={`muted ${styles.faucetInfoItem}`}><strong>Network:</strong> Dytallix Testnet</li>
-            <li className={`muted ${styles.faucetInfoItem}`}><strong>DGT Amount:</strong> 2 DGT per request (24h cooldown)</li>
-            <li className={`muted ${styles.faucetInfoItem}`}><strong>DRT Amount:</strong> 50 DRT per request (6h cooldown)</li>
-            <li className={`muted ${styles.faucetInfoItem}`}><strong>Dual Request:</strong> Get both tokens in one request</li>
-            <li className={`muted ${styles.faucetInfoItem}`}><strong>Network ID:</strong> {COSMOS_CONFIG.chainId}</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className={styles.info}>
-        <p><strong>Note:</strong> This is a testnet faucet. Tokens have no real value and are only for testing purposes.</p>
       </div>
     </form>
   )

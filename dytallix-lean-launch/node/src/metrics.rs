@@ -125,7 +125,7 @@ impl Default for MetricsConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            listen_addr: "0.0.0.0:26680".parse().unwrap(),
+            listen_addr: "0.0.0.0:9464".parse().unwrap(),
         }
     }
 }

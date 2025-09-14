@@ -1,0 +1,51 @@
+name: PulseGuard GAN Smoke
+
+on:
+  push:
+    paths:
+      - 'ModuleTests/PulseGuard/**'
+      - '.github/workflows/modules_gan_smoke.yml'
+  pull_request:
+    paths:
+      - 'ModuleTests/PulseGuard/**'
+
+jobs:
+  gan-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps (no torch)
+        working-directory: ModuleTests/PulseGuard
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -U pip wheel
+          pip install -r requirements.txt
+      - name: Prepare GAN scaler (quick)
+        working-directory: ModuleTests/PulseGuard
+        run: |
+          . .venv/bin/activate
+          make gan-prepare
+      - name: Run GAN eval (quick mode)
+        env:
+          PULSEGUARD_API: http://localhost:8090
+        working-directory: ModuleTests/PulseGuard
+        run: |
+          . .venv/bin/activate
+          # Skip training; fallback sampler is used if torch unavailable
+          python eval/gan_eval.py --quick --seed 42
+      - name: Upload GAN eval artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pulseguard-gan-eval
+          path: |
+            ModuleTests/PulseGuard/artifacts/gan/eval_*.json
+            ModuleTests/PulseGuard/artifacts/gan/eval_report.md
+            ModuleTests/PulseGuard/artifacts/gan/train_metrics.json
+            ModuleTests/PulseGuard/artifacts/gan/scaler.pkl

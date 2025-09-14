@@ -7,12 +7,13 @@ use crate::runtime::oracle::{apply_oracle_risk, current_timestamp, get_oracle_ri
 use crate::storage::oracle::OracleStore;
 use base64::Engine;
 use rocksdb::DB;
-use tempfile::NamedTempFile; // bring trait into scope for encode()
+use tempfile::TempDir; // switched from NamedTempFile to TempDir
 
 #[tokio::test]
 async fn test_apply_and_get_oracle_risk() {
-    let temp_file = NamedTempFile::new().unwrap();
-    let db = DB::open_default(temp_file.path()).unwrap();
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("oracle_db");
+    let db = DB::open_default(db_path).unwrap();
     let store = OracleStore { db: &db };
 
     let tx_hash = "0x1234567890abcdef1234567890abcdef12345678";
@@ -40,8 +41,9 @@ async fn test_apply_and_get_oracle_risk() {
 
 #[tokio::test]
 async fn test_apply_oracle_risk_validation() {
-    let temp_file = NamedTempFile::new().unwrap();
-    let db = DB::open_default(temp_file.path()).unwrap();
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("oracle_db");
+    let db = DB::open_default(db_path).unwrap();
     let store = OracleStore { db: &db };
     let timestamp = current_timestamp();
 
@@ -95,8 +97,9 @@ fn test_verify_sig_with_invalid_inputs() {
 
 #[tokio::test]
 async fn test_deterministic_score_preservation() {
-    let temp_file = NamedTempFile::new().unwrap();
-    let db = DB::open_default(temp_file.path()).unwrap();
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("oracle_db");
+    let db = DB::open_default(db_path).unwrap();
     let store = OracleStore { db: &db };
 
     let tx_hash = "0xabcdef1234567890abcdef1234567890abcdef12";
@@ -114,8 +117,9 @@ async fn test_deterministic_score_preservation() {
 
 #[tokio::test]
 async fn test_get_oracle_risk_not_found() {
-    let temp_file = NamedTempFile::new().unwrap();
-    let db = DB::open_default(temp_file.path()).unwrap();
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("oracle_db");
+    let db = DB::open_default(db_path).unwrap();
     let store = OracleStore { db: &db };
 
     let result = get_oracle_risk(&store, "0xnonexistent1234567890abcdef123456");

@@ -242,7 +242,7 @@ impl BridgeTestOrchestrator {
     pub async fn execute_test_case(
         &self,
         test_case: GeneratedTestCase,
-    ) -> Result<TestExecutionResult, Box<dyn std::error::Error>> {
+    ) -> Result<TestExecutionResult, Box<dyn std::error::Error + Send + Sync>> {
         let session_id = format!("session_{}", uuid::Uuid::new_v4());
         let start_time = Instant::now();
 
@@ -282,7 +282,7 @@ impl BridgeTestOrchestrator {
             Ok(result) => result,
             Err(_) => {
                 session.status = SessionStatus::Timeout;
-                Err("Test execution timeout".into())
+                Err::<(), Box<dyn std::error::Error + Send + Sync>>("Test execution timeout".into())
             }
         };
 
@@ -310,7 +310,7 @@ impl BridgeTestOrchestrator {
                         TestOutcome::Failure("Balance verification failed".to_string())
                     }
                 },
-                Err(e) => TestOutcome::Failure(e.to_string()),
+                Err(ref e) => TestOutcome::Failure(e.to_string()),
             },
             execution_time,
             gas_used_total: session.monitoring_data.gas_used.values().sum(),
@@ -318,7 +318,7 @@ impl BridgeTestOrchestrator {
             balance_verification,
             monitoring_data: session.monitoring_data.clone(),
             error_details: match execution_result {
-                Err(e) => Some(e.to_string()),
+                Err(ref e) => Some(e.to_string()),
                 _ => None,
             },
         };
@@ -370,7 +370,7 @@ impl BridgeTestOrchestrator {
     pub async fn execute_parallel_tests(
         &self,
         test_cases: Vec<GeneratedTestCase>,
-    ) -> Result<Vec<TestExecutionResult>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<TestExecutionResult>, Box<dyn std::error::Error + Send + Sync>> {
         let max_concurrent = self.config.max_concurrent_tests;
         let mut results = Vec::new();
 
@@ -459,8 +459,10 @@ impl BridgeTestOrchestrator {
     async fn execute_test_steps(
         &self,
         session: &mut TestSession,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        for (step_index, step) in session.test_case.scenario.steps.iter().enumerate() {
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let total_steps = session.test_case.scenario.steps.len();
+        for step_index in 0..total_steps {
+            let step = session.test_case.scenario.steps[step_index].clone();
             let step_start = Instant::now();
 
             session.current_step = Some(TestStepExecution {
@@ -472,7 +474,7 @@ impl BridgeTestOrchestrator {
                 status: StepStatus::Running,
             });
 
-            let step_result = self.execute_single_step(step, session).await;
+            let step_result = self.execute_single_step(&step, session).await;
 
             match step_result {
                 Ok(tx_hash) => {
@@ -504,7 +506,7 @@ impl BridgeTestOrchestrator {
         &self,
         step: &crate::ai_test_generator::TestStep,
         session: &mut TestSession,
-    ) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         match (&step.action, &step.chain) {
             (TestAction::LockTokens, ChainTarget::Ethereum) => {
                 self.ethereum_client.lock_tokens(&step.parameters).await
@@ -539,7 +541,7 @@ impl BridgeTestOrchestrator {
         before: &BalanceSnapshot,
         after: &BalanceSnapshot,
         test_case: &GeneratedTestCase,
-    ) -> Result<BalanceVerificationResult, Box<dyn std::error::Error>> {
+    ) -> Result<BalanceVerificationResult, Box<dyn std::error::Error + Send + Sync>> {
         // Implement balance verification logic
         // This is a simplified version - real implementation would be more complex
 
@@ -555,17 +557,17 @@ impl BridgeTestOrchestrator {
         })
     }
 
-    async fn verify_balances(&self, _parameters: &HashMap<String, String>) -> Result<(), Box<dyn std::error::Error>> {
+    async fn verify_balances(&self, _parameters: &HashMap<String, String>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement balance verification
         Ok(())
     }
 
-    async fn verify_events(&self, _parameters: &HashMap<String, String>) -> Result<(), Box<dyn std::error::Error>> {
+    async fn verify_events(&self, _parameters: &HashMap<String, String>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement event verification
         Ok(())
     }
 
-    async fn wait_for_confirmations(&self, _parameters: &HashMap<String, String>) -> Result<(), Box<dyn std::error::Error>> {
+    async fn wait_for_confirmations(&self, _parameters: &HashMap<String, String>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement confirmation waiting
         tokio::time::sleep(Duration::from_secs(5)).await;
         Ok(())
@@ -609,21 +611,21 @@ impl EthereumClient {
         }
     }
 
-    pub async fn lock_tokens(&self, parameters: &HashMap<String, String>) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    pub async fn lock_tokens(&self, parameters: &HashMap<String, String>) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement actual Ethereum token locking
         println!("🔒 Locking tokens on Ethereum...");
         tokio::time::sleep(Duration::from_millis(500)).await;
         Ok(Some("0x1234567890abcdef".to_string()))
     }
 
-    pub async fn unlock_tokens(&self, parameters: &HashMap<String, String>) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    pub async fn unlock_tokens(&self, parameters: &HashMap<String, String>) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement actual Ethereum token unlocking
         println!("🔓 Unlocking tokens on Ethereum...");
         tokio::time::sleep(Duration::from_millis(500)).await;
         Ok(Some("0xfedcba0987654321".to_string()))
     }
 
-    pub async fn monitor_events(&self, event_monitor: Arc<EventMonitor>) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn monitor_events(&self, event_monitor: Arc<EventMonitor>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement Ethereum event monitoring
         Ok(())
     }
@@ -637,21 +639,21 @@ impl CosmosClient {
         }
     }
 
-    pub async fn mint_tokens(&self, parameters: &HashMap<String, String>) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    pub async fn mint_tokens(&self, parameters: &HashMap<String, String>) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement actual Cosmos token minting
         println!("🪙 Minting tokens on Cosmos...");
         tokio::time::sleep(Duration::from_millis(300)).await;
         Ok(Some("cosmos_tx_hash_123".to_string()))
     }
 
-    pub async fn burn_tokens(&self, parameters: &HashMap<String, String>) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    pub async fn burn_tokens(&self, parameters: &HashMap<String, String>) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement actual Cosmos token burning
         println!("🔥 Burning tokens on Cosmos...");
         tokio::time::sleep(Duration::from_millis(300)).await;
         Ok(Some("cosmos_tx_hash_456".to_string()))
     }
 
-    pub async fn monitor_events(&self, event_monitor: Arc<EventMonitor>) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn monitor_events(&self, event_monitor: Arc<EventMonitor>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement Cosmos event monitoring
         Ok(())
     }

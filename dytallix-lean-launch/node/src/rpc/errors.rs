@@ -24,14 +24,73 @@ pub enum ApiError {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
-            ApiError::InvalidNonce { expected, got } => (StatusCode::CONFLICT, Json(serde_json::json!({"error":"INVALID_NONCE","message": format!("expected {} got {}", expected, got), "expected": expected, "got": got}))).into_response(),
-            ApiError::InvalidSignature => (StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({"error":"INVALID_SIGNATURE","message":"signature verification failed"}))).into_response(),
-            ApiError::InsufficientFunds => (StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({"error":"INSUFFICIENT_FUNDS","message":"insufficient balance"}))).into_response(),
-            ApiError::DuplicateTx => (StatusCode::CONFLICT, Json(serde_json::json!({"error":"DUPLICATE_TRANSACTION","message":"duplicate transaction"}))).into_response(),
-            ApiError::MempoolFull => (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error":"MEMPOOL_FULL","message":"mempool full"}))).into_response(),
-            ApiError::NotFound => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error":"NOT_FOUND","message":"resource not found"}))).into_response(),
-            ApiError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error":"INTERNAL_ERROR","message":"internal error"}))).into_response(),
-            ApiError::NotImplemented(msg) => (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({"error":"NOT_IMPLEMENTED","message": msg}))).into_response(),
+            // Use PascalCase error codes to match public API and tests
+            ApiError::InvalidNonce { expected, got } => (
+                StatusCode::CONFLICT,
+                Json(serde_json::json!({
+                    "error": "InvalidNonce",
+                    "message": format!("expected {} got {}", expected, got),
+                    "expected": expected,
+                    "got": got
+                })),
+            )
+                .into_response(),
+            ApiError::InvalidSignature => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({
+                    "error": "InvalidSignature",
+                    "message": "signature verification failed"
+                })),
+            )
+                .into_response(),
+            ApiError::InsufficientFunds => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({
+                    "error": "InsufficientFunds",
+                    "message": "insufficient balance"
+                })),
+            )
+                .into_response(),
+            ApiError::DuplicateTx => (
+                StatusCode::CONFLICT,
+                Json(serde_json::json!({
+                    "error": "DuplicateTransaction",
+                    "message": "duplicate transaction"
+                })),
+            )
+                .into_response(),
+            ApiError::MempoolFull => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({
+                    "error": "MempoolFull",
+                    "message": "mempool full"
+                })),
+            )
+                .into_response(),
+            ApiError::NotFound => (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({
+                    "error": "NotFound",
+                    "message": "resource not found"
+                })),
+            )
+                .into_response(),
+            ApiError::Internal => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "InternalError",
+                    "message": "internal error"
+                })),
+            )
+                .into_response(),
+            ApiError::NotImplemented(msg) => (
+                StatusCode::NOT_IMPLEMENTED,
+                Json(serde_json::json!({
+                    "error": "NotImplemented",
+                    "message": msg
+                })),
+            )
+                .into_response(),
             ApiError::Validation(validation_error) => {
                 let status = match validation_error.http_status() {
                     422 => StatusCode::UNPROCESSABLE_ENTITY,
@@ -40,8 +99,15 @@ impl IntoResponse for ApiError {
                     _ => StatusCode::BAD_REQUEST,
                 };
                 (status, Json(validation_error.to_json())).into_response()
-            },
-            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error":"BAD_REQUEST","message":msg}))).into_response(),
+            }
+            ApiError::BadRequest(msg) => (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "BadRequest",
+                    "message": msg
+                })),
+            )
+                .into_response(),
         }
     }
 }

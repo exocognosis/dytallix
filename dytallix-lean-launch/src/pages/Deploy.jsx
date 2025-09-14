@@ -213,8 +213,8 @@ function useMonaco(containerRef, initialValue, onChange) {
   return editorRef
 }
 
-const TemplateCard = ({ title, description, params, onDeploy, onPreview }) => (
-  <div className="card" style={{ display: 'grid', gap: 10 }}>
+const TemplateCard = ({ title, description, params, onDeploy, onPreview, accentClass }) => (
+  <div className={`card ${accentClass || ''}`} style={{ display: 'grid', gap: 10 }}>
     <div>
       <div style={{ fontWeight: 800 }}>{title}</div>
       <div className="muted">{description}</div>
@@ -402,41 +402,54 @@ contract DytMultiSig {
 
   return (
     <div className="section">
-      {/* Page-specific responsive styles */}
+      {/* Page-specific responsive styles and local accents */}
       <style>{`
-        .deploy-grid { display: grid; gap: 24px; grid-template-columns: 1.2fr 0.8fr; }
-        @media (max-width: 1536px) { .deploy-grid { grid-template-columns: 1.2fr 0.8fr; } }
+        .deploy-grid { display: grid; gap: 16px; grid-template-columns: 2fr 1fr; }
         @media (max-width: 1024px) { .deploy-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 768px) { .deploy-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 360px) { .deploy-grid { grid-template-columns: 1fr; } }
         .editor-container { height: 280px; border: 1px solid var(--surface-border); border-radius: 12px; overflow: hidden; background: #0b1220; }
         .log-console { height: 260px; overflow: auto; background: rgba(2,6,23,0.6); border: 1px solid var(--surface-border); border-radius: 12px; padding: 12px; font-family: Menlo, Monaco, monospace; font-size: 12px; }
+        .templates-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+        .accent-blue{box-shadow: 0 0 0 1px rgba(59,130,246,.35) inset}
+        .accent-purple{box-shadow: 0 0 0 1px rgba(139,92,246,.35) inset}
+        .accent-amber{box-shadow: 0 0 0 1px rgba(245,158,11,.35) inset}
+        .accent-cyan{box-shadow: 0 0 0 1px rgba(34,211,238,.35) inset}
+        .pill{padding:2px 8px;border-radius:9999px;font-size:.75rem}
+        .pill.good{background:rgba(16,185,129,.15);color:#34D399}
+        .pill.bad{background:rgba(239,68,68,.15);color:#F87171}
+        .kpi{display:flex;justify-content:space-between;align-items:center}
       `}</style>
       <div className="container">
         <div className="section-header">
-          <h2 className="section-title">Deploy</h2>
-          <p className="section-subtitle">Deploy PQC-aware contracts to the Dytallix testnet or local node.</p>
-        </div>
-
-        {/* Wallet status */}
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontWeight: 800 }}>Wallet</div>
-              <div className="muted">{hasWallet ? `Connected: ${wallet.address}` : 'No wallet connected. Go to Wallet page to connect or create one.'}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <a className="btn" href="/wallet">{hasWallet ? 'Manage Wallet' : 'Connect Wallet'}</a>
-            </div>
-          </div>
+          <h1 className="section-title">Deploy</h1>
+          <p className="section-subtitle">Deploy PQC-aware contracts to your Dytallix testnet or local node.</p>
         </div>
 
         <div className="deploy-grid">
           {/* Left: Templates and Custom */}
           <div style={{ display: 'grid', gap: 16 }}>
-            <div className="card" style={{ display: 'grid', gap: 12 }}>
-              <h3 style={{ margin: 0 }}>Contract Templates</h3>
-              <p className="muted">Choose from pre-built, audited patterns. All templates are PQC-aware on Dytallix.</p>
+            {/* Wallet Connection */}
+            <div className="card" style={{ borderTop: '3px solid var(--primary-400)', paddingTop: 16 }}>
+              <div className="kpi">
+                <div style={{ fontWeight: 800, color: 'var(--primary-400)' }}>Wallet Connection</div>
+                <span className={`pill ${hasWallet ? 'good' : 'bad'}`}>{hasWallet ? 'Connected' : 'Disconnected'}</span>
+              </div>
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div className="muted" style={{ overflowWrap: 'anywhere' }}>{hasWallet ? wallet.address : 'No wallet detected.'}</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {hasWallet ? (
+                    <a className="btn" href="/wallet">Manage Wallet</a>
+                  ) : (
+                    <a className="btn" href="/wallet">Connect Wallet</a>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Contract Templates */}
+            <div className="card" style={{ display: 'grid', gap: 12, borderTop: '3px solid var(--primary-400)', paddingTop: 16 }}>
+              <h3 style={{ margin: 0, color: 'var(--primary-400)' }}>Build & Deploy</h3>
+              <p className="muted">Choose a template and deploy. Inputs are compact for speed.</p>
+              <div className="templates-grid">
 
               {/* ERC-20 */}
               <TemplateCard
@@ -460,6 +473,7 @@ contract DytMultiSig {
                 )}
                 onPreview={() => setPreview({ title: 'Token Contract Preview', code: PREVIEWS.erc20 })}
                 onDeploy={handleDeployERC20}
+                accentClass="accent-blue"
               />
 
               {/* ERC-721 */}
@@ -484,6 +498,7 @@ contract DytMultiSig {
                 )}
                 onPreview={() => setPreview({ title: 'NFT Contract Preview', code: PREVIEWS.nft })}
                 onDeploy={handleDeployNFT}
+                accentClass="accent-purple"
               />
 
               {/* MultiSig */}
@@ -504,39 +519,34 @@ contract DytMultiSig {
                 )}
                 onPreview={() => setPreview({ title: 'Multi-Sig Preview', code: PREVIEWS.multisig })}
                 onDeploy={handleDeployMsig}
+                accentClass="accent-amber"
               />
-            </div>
-
-            {/* Custom code */}
-            <div className="card" style={{ display: 'grid', gap: 12 }}>
-              <h3 style={{ margin: 0 }}>Custom Contract</h3>
-              <p className="muted">Paste or write your own contract. Basic validation runs client-side.</p>
-              <div ref={editorContainerRef} className="editor-container" />
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                <button className="btn btn-primary" onClick={handleDeployCustom} disabled={isDeploying}>Deploy Custom Contract</button>
               </div>
             </div>
           </div>
 
           {/* Right: Guide & Status */}
           <div style={{ display: 'grid', gap: 16 }}>
-            <div className="card" style={{ display: 'grid', gap: 10 }}>
-              <h3 style={{ margin: 0 }}>How to Deploy</h3>
+            <div className="card" style={{ display: 'grid', gap: 10, borderTop: '3px solid var(--primary-400)', paddingTop: 16 }}>
+              <h3 style={{ margin: 0, color: 'var(--primary-400)' }}>How to Deploy</h3>
               <ol style={{ marginLeft: 18, color: 'var(--text-muted)' }}>
                 <li>Connect your Dytallix wallet on the Wallet page.</li>
                 <li>Pick a template or write a custom contract.</li>
-                <li>Fill in required parameters (name, symbol, supply, owners, etc.).</li>
+                <li>Fill required params: <code>name</code>, <code>symbol</code>, <code>baseURI</code>, <code>owners</code>, etc.</li>
                 <li>Click Deploy and watch live logs.</li>
                 <li>Copy the contract address and open it in the Explorer.</li>
               </ol>
             </div>
 
-            <div className="card" style={{ display: 'grid', gap: 10 }}>
-              <h3 style={{ margin: 0 }}>Deployment Status</h3>
+            <div className="card" style={{ display: 'grid', gap: 10, borderTop: '3px solid var(--success-500)', paddingTop: 16 }}>
+              <h3 style={{ margin: 0, color: 'var(--success-500)' }}>Deployment Status</h3>
               <div className="log-console" ref={logRef}>
                 {logs.length ? logs.map((l, i) => (<div key={i}>{l}</div>)) : <div className="muted">No logs yet.</div>}
               </div>
               {isDeploying && <div className="badge badge-info" style={{ width: 'fit-content' }}>Deploying…</div>}
+              {!isDeploying && (lastDeployment ? (
+                <div className="badge badge-success" style={{ width: 'fit-content' }}>Success</div>
+              ) : (logs.some(l => l.includes('Error:')) && <div className="badge badge-danger" style={{ width: 'fit-content' }}>Error</div>))}
               {lastDeployment && (
                 <div className="card" style={{ background: 'rgba(30,41,59,0.35)', borderColor: 'rgba(148,163,184,0.25)' }}>
                   <div style={{ fontWeight: 800 }}>Deployed Contract</div>
@@ -549,6 +559,16 @@ contract DytMultiSig {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Bottom: Custom Contract (full width) */}
+        <div className="card accent-cyan" style={{ display: 'grid', gap: 12, marginTop: 16 }}>
+          <h3 style={{ margin: 0 }}>Custom Contract</h3>
+          <p className="muted">Basic validation runs client-side.</p>
+          <div ref={editorContainerRef} className="editor-container" />
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={handleDeployCustom} disabled={isDeploying}>Deploy Custom Contract</button>
           </div>
         </div>
       </div>

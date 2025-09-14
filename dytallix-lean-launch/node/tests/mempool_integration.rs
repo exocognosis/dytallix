@@ -7,6 +7,9 @@ use dytallix_lean_node::storage::state::Storage;
 use dytallix_lean_node::storage::tx::Transaction;
 use std::sync::Arc;
 use tempfile::TempDir;
+// Added: PQC signing utilities and base64 encoder
+use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 #[allow(clippy::too_many_arguments)]
 fn create_test_transaction(
@@ -19,17 +22,31 @@ fn create_test_transaction(
     gas_limit: u64,
     gas_price: u64,
 ) -> Transaction {
-    Transaction::new(hash, from, to, amount, fee, nonce, None)
+    // Generate a fresh keypair for the test tx
+    let (sk, pk) = ActivePQC::keypair();
+
+    // Build base tx and attach PQC public key + metadata
+    let mut tx = Transaction::new(hash, from, to, amount, fee, nonce, None)
         .with_gas(gas_limit, gas_price)
-        .with_signature("test_signature")
+        .with_pqc(B64.encode(&pk), "dytallix-testnet", "integration test");
+
+    // Sign canonical fields and attach a valid signature
+    let canonical_tx = tx.canonical_fields();
+    let tx_bytes = canonical_json(&canonical_tx).expect("canonical serialize");
+    let tx_hash = sha3_256(&tx_bytes);
+    let signature = ActivePQC::sign(&sk, &tx_hash);
+    tx.signature = Some(B64.encode(&signature));
+
+    tx
 }
 
 fn create_mock_state() -> State {
     let tmp = TempDir::new().unwrap();
     let storage = Arc::new(Storage::open(tmp.path().join("node.db")).unwrap());
     let mut state = State::new(storage);
-    state.set_balance("sender1", "udgt", 1_000_000);
-    state.set_balance("sender2", "udgt", 500_000);
+    // Increased balances to cover gas costs in tests
+    state.set_balance("sender1", "udgt", 1_000_000_000);
+    state.set_balance("sender2", "udgt", 1_000_000_000);
     state
 }
 
@@ -39,7 +56,8 @@ fn create_mock_state_with_many_accounts(num_accounts: usize) -> State {
     let storage = Arc::new(Storage::open(tmp.path().join("node.db")).unwrap());
     let mut state = State::new(storage);
     for i in 0..num_accounts {
-        state.set_balance(&format!("sender{i}"), "udgt", 1_000_000);
+        // Increased balances to cover gas costs in stress tests
+        state.set_balance(&format!("sender{i}"), "udgt", 1_000_000_000);
     }
     state
 }

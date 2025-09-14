@@ -8,6 +8,10 @@ use dytallix_lean_node::storage::tx::Transaction;
 use std::sync::Arc;
 use tempfile::TempDir;
 
+// Added: crypto and base64 imports for valid PQC signatures
+use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+use base64::{engine::general_purpose::STANDARD as B64, Engine};
+
 #[allow(clippy::too_many_arguments)]
 fn create_test_transaction(
     hash: &str,
@@ -19,9 +23,45 @@ fn create_test_transaction(
     gas_limit: u64,
     gas_price: u64,
 ) -> Transaction {
-    Transaction::new(hash, from, to, amount, fee, nonce, None)
+    // Generate a fresh keypair per tx (sufficient for tests). In production we would
+    // use the sender's actual key. This ensures signature verification passes.
+    let (sk, pk) = ActivePQC::keypair();
+    let mut tx = Transaction::base(hash, from, to, amount, fee, nonce)
         .with_gas(gas_limit, gas_price)
-        .with_signature("test_signature")
+        .with_pqc(B64.encode(&pk), "dytallix-testnet", "");
+
+    // Sign canonical JSON of the tx
+    let canonical_tx = tx.canonical_fields();
+    let tx_bytes = canonical_json(&canonical_tx).expect("serialize canonical tx");
+    let tx_hash = sha3_256(&tx_bytes);
+    let signature = ActivePQC::sign(&sk, &tx_hash);
+
+    tx.with_signature(B64.encode(&signature))
+}
+
+// New helper: reuse a provided keypair to avoid heavy per-tx key generation for perf tests
+#[allow(clippy::too_many_arguments)]
+fn create_test_transaction_with_key(
+    hash: &str,
+    from: &str,
+    to: &str,
+    amount: u128,
+    fee: u128,
+    nonce: u64,
+    gas_limit: u64,
+    gas_price: u64,
+    sk: &[u8],
+    pk: &[u8],
+) -> Transaction {
+    let mut tx = Transaction::base(hash, from, to, amount, fee, nonce)
+        .with_gas(gas_limit, gas_price)
+        .with_pqc(B64.encode(pk), "dytallix-testnet", "");
+
+    let canonical_tx = tx.canonical_fields();
+    let tx_bytes = canonical_json(&canonical_tx).expect("serialize canonical tx");
+    let tx_hash = sha3_256(&tx_bytes);
+    let signature = ActivePQC::sign(sk, &tx_hash);
+    tx.with_signature(B64.encode(&signature))
 }
 
 fn create_mock_state_with_many_accounts(num_accounts: usize) -> State {
@@ -30,7 +70,8 @@ fn create_mock_state_with_many_accounts(num_accounts: usize) -> State {
     let mut state = State::new(storage);
     for i in 0..num_accounts {
         let mut acc = state.get_account(&format!("sender{i}"));
-        acc.set_balance("udgt", 1_000_000);
+        // Increase balance to comfortably cover gas costs for tests
+        acc.set_balance("udgt", 1_000_000_000);
         state.accounts.insert(format!("sender{i}"), acc);
     }
     state
@@ -44,10 +85,13 @@ async fn test_deterministic_ordering_across_instances() {
     let mut mempool2 = Mempool::with_config(config);
     let state = create_mock_state_with_many_accounts(100);
 
+    // Reuse a single keypair for all txs to reduce overhead
+    let (sk, pk) = ActivePQC::keypair();
+
     // Create a set of transactions with various gas prices and nonces
     let mut transactions = vec![];
     for i in 0..50 {
-        let tx = create_test_transaction(
+        let tx = create_test_transaction_with_key(
             &format!("hash{i}"),
             &format!("sender{}", i % 10), // Cycle through 10 senders
             "receiver",
@@ -56,6 +100,8 @@ async fn test_deterministic_ordering_across_instances() {
             i / 10, // Nonce based on transaction index
             21000,
             1000 + (i % 5) * 500, // Gas prices: 1000, 1500, 2000, 2500, 3000
+            &sk,
+            &pk,
         );
         transactions.push(tx);
     }
@@ -106,12 +152,15 @@ async fn test_performance_threshold_admission() {
     let mut mempool = Mempool::new();
     let state = create_mock_state_with_many_accounts(1000);
 
+    // Reuse a single keypair to avoid expensive per-tx key generation
+    let (sk, pk) = ActivePQC::keypair();
+
     // Performance test: admit 1000 transactions
     let num_transactions = 1000;
     let mut successful_admissions = 0;
 
     for i in 0..num_transactions {
-        let tx = create_test_transaction(
+        let tx = create_test_transaction_with_key(
             &format!("hash{i}"),
             &format!("sender{i}"), // Each transaction from different sender
             "receiver",
@@ -120,6 +169,8 @@ async fn test_performance_threshold_admission() {
             0, // All have nonce 0 since different senders
             21000,
             1000 + (i % 100) as u64, // Varying gas prices
+            &sk,
+            &pk,
         );
 
         if mempool.add_transaction(&state, tx).is_ok() {
@@ -168,10 +219,13 @@ async fn test_deterministic_eviction_order() {
     let mut mempool = Mempool::with_config(config);
     let state = create_mock_state_with_many_accounts(20);
 
+    // Reuse one keypair for perf
+    let (sk, pk) = ActivePQC::keypair();
+
     // Add 15 transactions (will exceed capacity)
     let mut added_transactions = vec![];
     for i in 0..15 {
-        let tx = create_test_transaction(
+        let tx = create_test_transaction_with_key(
             &format!("hash{i}"),
             &format!("sender{i}"),
             "receiver",
@@ -180,6 +234,8 @@ async fn test_deterministic_eviction_order() {
             0,
             21000,
             1000 + (i % 5) as u64 * 100, // Gas prices vary cyclically
+            &sk,
+            &pk,
         );
 
         if mempool.add_transaction(&state, tx.clone()).is_ok() {
@@ -268,10 +324,13 @@ async fn test_concurrent_access_simulation() {
     let mut mempool = Mempool::new();
     let state = create_mock_state_with_many_accounts(100);
 
+    // Reuse keypair for perf
+    let (sk, pk) = ActivePQC::keypair();
+
     // Phase 1: Bulk addition
     let bulk_start = Instant::now();
     for i in 0..100 {
-        let tx = create_test_transaction(
+        let tx = create_test_transaction_with_key(
             &format!("hash{i}"),
             &format!("sender{i}"),
             "receiver",
@@ -280,6 +339,8 @@ async fn test_concurrent_access_simulation() {
             0,
             21000,
             1000 + (i % 20) as u64 * 50,
+            &sk,
+            &pk,
         );
 
         let _ = mempool.add_transaction(&state, tx);
@@ -302,7 +363,7 @@ async fn test_concurrent_access_simulation() {
 
         // Add new transactions
         for i in 0..5 {
-            let tx = create_test_transaction(
+            let tx = create_test_transaction_with_key(
                 &format!("new_hash_{round}_{i}"),
                 &format!("sender{}", (round * 5 + i) % 50),
                 "receiver",
@@ -311,6 +372,8 @@ async fn test_concurrent_access_simulation() {
                 round as u64,
                 21000,
                 1000 + (round * 5 + i) as u64 * 25,
+                &sk,
+                &pk,
             );
 
             let _ = mempool.add_transaction(&state, tx);

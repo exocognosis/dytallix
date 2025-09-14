@@ -32,25 +32,71 @@ const API = {
   search: (q) => `/api/search/${encodeURIComponent(q)}`,
 }
 
-const StatusBadge = ({ status, ok }) => {
-  const s = status || (ok ? 'confirmed' : 'pending')
-  const tone = s === 'failed' ? 'badge-warning' : s === 'pending' ? 'badge-info' : 'badge-success'
-  const label = s
-  return <span className={`badge ${tone}`}>{label}</span>
+// KPI computations (best-effort from lists)
+function computeAvgBlockTime(blocks) {
+  try {
+    if (!blocks || blocks.length < 2) return null
+    // Sort by time descending if needed
+    const arr = [...blocks].filter(b => b.time).sort((a,b)=> new Date(b.time) - new Date(a.time))
+    if (arr.length < 2) return null
+    const diffs = []
+    for (let i = 0; i < Math.min(arr.length - 1, 10); i++) {
+      const dt = Math.abs(new Date(arr[i].time) - new Date(arr[i+1].time)) / 1000
+      if (isFinite(dt) && dt > 0) diffs.push(dt)
+    }
+    if (!diffs.length) return null
+    const avg = diffs.reduce((a,b)=>a+b,0)/diffs.length
+    return `${avg.toFixed(2)}s`
+  } catch { return null }
 }
 
-const SectionCard = ({ title, subtitle, right, children }) => (
-  <div className="card" style={{ display: 'grid', gap: 12 }}>
-    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-      <div>
-        <h3 style={{ margin: 0 }}>{title}</h3>
-        {subtitle ? <div className="muted" style={{ marginTop: 2 }}>{subtitle}</div> : null}
+function computeTps(blocks) {
+  try {
+    if (!blocks || blocks.length < 2) return null
+    const arr = [...blocks].filter(b => b.time != null && b.txCount != null).sort((a,b)=> new Date(b.time) - new Date(a.time))
+    if (arr.length < 2) return null
+    const n = Math.min(arr.length - 1, 10)
+    let txSum = 0; let seconds = 0
+    for (let i = 0; i < n; i++) {
+      txSum += Number(arr[i].txCount || 0)
+      const dt = Math.abs(new Date(arr[i].time) - new Date(arr[i+1].time)) / 1000
+      if (isFinite(dt)) seconds += dt
+    }
+    if (seconds <= 0) return null
+    const tps = txSum / seconds
+    return tps.toFixed(1)
+  } catch { return null }
+}
+
+const StatusBadge = ({ status, ok }) => {
+  const s = status || (ok ? 'confirmed' : 'pending')
+  const tone = s === 'failed' ? 'bad' : s === 'pending' ? 'warn' : 'good'
+  const label = s
+  return <span className={`pill ${tone}`}>{label}</span>
+}
+
+const SectionCard = ({ title, subtitle, right, children, className }) => {
+  const cn = className || ''
+  const accent = cn.includes('accent-blue')
+    ? 'var(--primary-400)'
+    : cn.includes('accent-purple')
+    ? 'var(--accent-500)'
+    : cn.includes('accent-cyan')
+    ? 'rgb(34,211,238)'
+    : null
+  return (
+    <div className={`card ${cn}`} style={{ display: 'grid', gap: 12, borderTop: accent ? `3px solid ${accent}` : undefined, paddingTop: accent ? 12 : undefined }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h3 style={{ margin: 0, color: accent || undefined }}>{title}</h3>
+          {subtitle ? <div className="muted" style={{ marginTop: 2 }}>{subtitle}</div> : null}
+        </div>
+        <div>{right}</div>
       </div>
-      <div>{right}</div>
+      <div>{children}</div>
     </div>
-    <div>{children}</div>
-  </div>
-)
+  )
+}
 
 const DataTable = ({ columns, rows, emptyLabel = 'No data', onRowClick }) => (
   <div style={{ overflowX: 'auto' }}>
@@ -290,7 +336,7 @@ const Explorer = () => {
   ]
   const blockRows = (blocks || []).map((b) => ({
     height: (<a className="btn btn-secondary" href={`/explorer?block=${b.height}`} onClick={(e) => { e.preventDefault(); openBlock(b.height) }} style={{ padding: '6px 10px' }}>#{b.height}</a>),
-    hash: <code>{shortHash(b.hash)}</code>,
+    hash: <code title={b.hash} style={{ cursor: 'copy' }} onClick={async (e)=>{ e.stopPropagation(); try { await navigator.clipboard.writeText(b.hash) } catch {} }}>{shortHash(b.hash)}</code>,
     time: <span className="muted">{fmtTime(b.time)}</span>,
     txCount: <span style={{ fontWeight: 700 }}>{b.txCount ?? 0}</span>,
     // For clicks on the row
@@ -310,15 +356,15 @@ const Explorer = () => {
   ]
 
   const txRows = (txs || []).map((t) => ({
-    hash: (<a className="btn btn-secondary" href={`/explorer?tx=${t.hash}`} onClick={(e) => { e.preventDefault(); openTx(t.hash) }} style={{ padding: '6px 10px' }}>{shortHash(t.hash, 12)}</a>),
+    hash: (<a className="btn btn-secondary" href={`/explorer?tx=${t.hash}`} onClick={(e) => { e.preventDefault(); openTx(t.hash) }} title={t.hash} style={{ padding: '6px 10px' }}>{shortHash(t.hash, 12)}</a>),
     from: t.from ? (<a href={`/explorer?address=${t.from}`} onClick={(e) => { e.preventDefault(); openAddress(t.from) }}>{shortHash(t.from)}</a>) : <span className="muted">—</span>,
     to: t.to ? (<a href={`/explorer?address=${t.to}`} onClick={(e) => { e.preventDefault(); openAddress(t.to) }}>{shortHash(t.to)}</a>) : <span className="muted">—</span>,
     amount: <span style={{ fontWeight: 700 }}>{t.amount || '—'}</span>,
     risk: (() => {
       const r = riskByHash[t.hash]
       if (!r) return <span className="muted">—</span>
-      const tone = r.level === 'high' ? 'badge-warning' : r.level === 'medium' ? 'badge-info' : 'badge-success'
-      return <span className={`badge ${tone}`}>{r.level}</span>
+      const tone = r.level === 'high' ? 'bad' : r.level === 'medium' ? 'warn' : 'good'
+      return <span className={`pill ${tone}`}>{r.level}</span>
     })(),
     status: (<StatusBadge status={getStatus(t)} />),
     _raw: t,
@@ -357,11 +403,21 @@ const Explorer = () => {
     <div className="section explorer">
       {/* Page styles */}
       <style>{`
-        .explorer-grid { display: grid; gap: 24px; grid-template-columns: 1.1fr 0.9fr; }
+        .explorer-grid { display: grid; gap: 16px; grid-template-columns: 2fr 1fr; }
         @media (max-width: 1536px) { .explorer-grid { grid-template-columns: 1.1fr 0.9fr; } }
         @media (max-width: 1024px) { .explorer-grid { grid-template-columns: 1fr; } }
         @media (max-width: 768px) { .explorer-grid { grid-template-columns: 1fr; } }
         @media (max-width: 360px) { .explorer-grid { grid-template-columns: 1fr; } }
+        .accent-blue{box-shadow: 0 0 0 1px rgba(59,130,246,.35) inset}
+        .accent-purple{box-shadow: 0 0 0 1px rgba(139,92,246,.35) inset}
+        .accent-cyan{box-shadow: 0 0 0 1px rgba(34,211,238,.35) inset}
+        .pill{padding:2px 8px;border-radius:9999px;font-size:.75rem;line-height:1}
+        .pill.good{background:rgba(16,185,129,.15);color:#34D399}
+        .pill.warn{background:rgba(245,158,11,.15);color:#F59E0B}
+        .pill.bad{background:rgba(239,68,68,.15);color:#F87171}
+        .kpi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+        .kpi-item{padding:12px;border:1px solid var(--surface-border);border-radius:12px}
+        .sticky-search{position:sticky;top:80px;z-index:5}
         .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
         .tab { padding: 8px 12px; border: 1px solid var(--surface-border); border-radius: 999px; cursor: pointer; font-weight: 700; color: var(--text-muted); }
         .tab.active { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.35); color: #93C5FD; }
@@ -424,7 +480,7 @@ const Explorer = () => {
 
       <div className="container">
         <div className="section-header">
-          <h2 className="section-title">Explorer</h2>
+          <h1 className="section-title">Explorer</h1>
           <p className="section-subtitle">Search blocks, transactions, and addresses — updated in near real-time.</p>
         </div>
 
@@ -440,7 +496,7 @@ const Explorer = () => {
         )}
 
         {/* Search & Filters */}
-        <div className="card" style={{ display: 'grid', gap: 12 }}>
+        <div className="card sticky-search" style={{ display: 'grid', gap: 12, borderTop: '3px solid var(--primary-400)', paddingTop: 12 }}>
           <form onSubmit={doSearch} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <input
               className="input"
@@ -453,9 +509,8 @@ const Explorer = () => {
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
               <label className="muted">Show</label>
               <select className="select" value={limit} onChange={(e) => setLimit(Number(e.target.value))} style={{ width: 96 }}>
-                <option value={5}>5</option>
                 <option value={10}>10</option>
-                <option value={20}>20</option>
+                <option value={25}>25</option>
                 <option value={50}>50</option>
               </select>
               <span className="muted">items</span>
@@ -471,19 +526,52 @@ const Explorer = () => {
         {/* Main content grid */}
         {(activeTab === 'all' || activeTab === 'blocks' || activeTab === 'transactions') && (
           <div className="explorer-grid" style={{ marginTop: 16 }}>
-            {/* Latest Blocks */}
-            {(activeTab === 'all' || activeTab === 'blocks') && (
-              <SectionCard title="Latest Blocks" subtitle="Newest blocks on the network" right={loadingBlocks ? <span className="badge badge-info">Loading…</span> : null}>
-                <DataTable columns={blockColumns} rows={blockRows} onRowClick={(r) => openBlock(r._raw.height)} />
-              </SectionCard>
-            )}
+            {/* Left column: activity */}
+            <div style={{ display: 'grid', gap: 16 }}>
+              {(activeTab === 'all' || activeTab === 'blocks') && (
+                <SectionCard className="accent-blue" title="Latest Blocks" subtitle="Newest blocks on the network" right={loadingBlocks ? <span className="badge badge-info">Loading…</span> : null}>
+                  <DataTable columns={blockColumns} rows={blockRows} onRowClick={(r) => openBlock(r._raw.height)} />
+                </SectionCard>
+              )}
+              {(activeTab === 'all' || activeTab === 'transactions') && (
+                <SectionCard className="accent-purple" title="Latest Transactions" subtitle="Recent activity" right={loadingTxs ? <span className="badge badge-info">Loading…</span> : null}>
+                  <DataTable columns={txColumns} rows={txRows} onRowClick={(r) => openTx(r._raw.hash)} />
+                </SectionCard>
+              )}
+            </div>
 
-            {/* Latest Transactions */}
-            {(activeTab === 'all' || activeTab === 'transactions') && (
-              <SectionCard title="Latest Transactions" subtitle="Recent activity" right={loadingTxs ? <span className="badge badge-info">Loading…</span> : null}>
-                <DataTable columns={txColumns} rows={txRows} onRowClick={(r) => openTx(r._raw.hash)} />
+            {/* Right column: KPIs + Tips */}
+            <div style={{ display: 'grid', gap: 16 }}>
+              <SectionCard className="accent-cyan" title="Network KPIs" subtitle="Live glimpse">
+                <div className="kpi-grid">
+                  <div className="kpi-item">
+                    <div className="muted" style={{ fontSize: '.8rem' }}>TPS</div>
+                    <div style={{ fontWeight: 800 }}>{computeTps(blocks) || '—'}</div>
+                  </div>
+                  <div className="kpi-item">
+                    <div className="muted" style={{ fontSize: '.8rem' }}>Finality</div>
+                    <div style={{ fontWeight: 800 }}>Instant</div>
+                  </div>
+                  <div className="kpi-item">
+                    <div className="muted" style={{ fontSize: '.8rem' }}>Block Time (avg)</div>
+                    <div style={{ fontWeight: 800 }}>{computeAvgBlockTime(blocks) || '—'}</div>
+                  </div>
+                  <div className="kpi-item">
+                    <div className="muted" style={{ fontSize: '.8rem' }}>Validators</div>
+                    <div style={{ fontWeight: 800 }}>—</div>
+                  </div>
+                </div>
               </SectionCard>
-            )}
+
+              <SectionCard title="Quick Tips" subtitle="Faster navigation" className="accent-blue">
+                <ul style={{ paddingLeft: 18, display: 'grid', gap: 4 }}>
+                  <li className="muted">Click any hash to preview details</li>
+                  <li className="muted">Use filters above to narrow results</li>
+                  <li className="muted">Change page size to load more items</li>
+                  <li className="muted"><a href="/docs/explorer" className="btn btn-secondary" style={{ padding: '4px 8px' }}>Docs</a></li>
+                </ul>
+              </SectionCard>
+            </div>
           </div>
         )}
 

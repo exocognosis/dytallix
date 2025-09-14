@@ -1,0 +1,11 @@
+httpx
+pydantic
+jsonschema
+streamlit
+plotly
+pytest
+pandas
+python-dotenv
+fastapi
+uvicorn[standard]
+python-multipart

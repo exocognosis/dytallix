@@ -1074,16 +1074,82 @@ let lastTxCount = null
 
 const NODE_STATS_BASE = process.env.NODE_METRICS_URL || process.env.REACT_APP_NODE_URL || 'http://localhost:3030'
 
-async function fetchNodeStats() {
-  try {
-    const r = await fetch(`${NODE_STATS_BASE.replace(/\/$/, '')}/stats`)
-    if (!r.ok) throw new Error(`NODE_STATS_${r.status}`)
-    const j = await r.json().catch(()=>null)
-    return j || {}
-  } catch (e) {
-    logError('node.stats.fetch_failed', { error: e.message })
-    return {}
+// Prometheus text parser (minimal) and normalizer for dashboard needs
+let __statsFallbackWarned = false
+function parsePrometheusText(text){
+  const map = new Map()
+  if (!text || typeof text !== 'string') return map
+  for (const raw of text.split('\n')){
+    const line = raw.trim()
+    if (!line || line.startsWith('#')) continue
+    // Strip labels e.g. metric{a="b"} 123 -> metric 123
+    const sp = line.indexOf('{')
+    const eq = line.lastIndexOf(' ')
+    if (eq <= 0) continue
+    const name = (sp > -1 ? line.slice(0, sp) : line.slice(0, eq)).trim()
+    const valStr = line.slice(eq + 1).trim()
+    const val = Number(valStr)
+    if (Number.isFinite(val)) map.set(name, val)
   }
+  return map
+}
+function normalizeStatsFromProm(map){
+  const pick = (...keys) => {
+    for (const k of keys){ if (map.has(k)) return map.get(k) }
+    return undefined
+  }
+  const height = pick(
+    'latest_block_height','block_height','dyt_block_height','tendermint_consensus_height','dyt_chain_block_height'
+  )
+  const mempool = pick(
+    'mempool_size','dyt_mempool_size','tendermint_mempool_size'
+  )
+  const peers = pick(
+    'peer_count','p2p_peer_count','tendermint_p2p_peers','dyt_peer_count'
+  )
+  const txs = pick(
+    'txs_total','transactions_total','dyt_txs_total','dyt_transactions_total'
+  )
+  const out = {}
+  if (Number.isFinite(height)) out.height = height
+  if (Number.isFinite(mempool)) out.mempool_size = mempool
+  if (Number.isFinite(peers)) out.peers = peers
+  if (Number.isFinite(txs)) out.total_txs = txs
+  return out
+}
+
+async function fetchNodeStats() {
+  const base = NODE_STATS_BASE.replace(/\/$/, '')
+  // 1) Prefer JSON stats if available
+  try {
+    const r = await fetch(`${base}/stats`, { headers: { 'accept': 'application/json, */*' } })
+    if (r.ok) {
+      const j = await r.json().catch(() => ({}))
+      return j || {}
+    }
+    // If not found, fall through to Prometheus (do not throw for 404)
+    if (r.status && r.status !== 404) throw new Error(`NODE_STATS_${r.status}`)
+  } catch (e) {
+    // Non-fatal; fall back to Prometheus
+  }
+
+  // 2) Fallback: Prometheus /metrics
+  try {
+    const r2 = await fetch(`${base}/metrics`, { headers: { 'accept': 'text/plain, */*' } })
+    if (!r2.ok) throw new Error(`NODE_METRICS_${r2.status}`)
+    const text = await r2.text()
+    const prom = parsePrometheusText(text)
+    const normalized = normalizeStatsFromProm(prom)
+    if (Object.keys(normalized).length > 0) {
+      if (!__statsFallbackWarned) { logInfo('node.stats.prometheus_fallback_active', { base }); __statsFallbackWarned = true }
+      return normalized
+    }
+  } catch (e) {
+    if (!__statsFallbackWarned) { logError('node.stats.fallback_failed', { base, error: e.message }); __statsFallbackWarned = true }
+  }
+
+  // 3) Last resort: empty object (callers handle undefined fields)
+  return {}
 }
 
 function pushSeries(metric, value){

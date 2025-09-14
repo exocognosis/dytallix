@@ -1,0 +1,26 @@
+# ModuleTests artifacts and logs
+PulseGuard/artifacts/**
+!PulseGuard/artifacts/
+PulseGuard/logs/**
+!PulseGuard/logs/
+CodeShield/artifacts/**
+!CodeShield/artifacts/
+CodeShield/logs/**
+!CodeShield/logs/
+.env.local
+.env
+config/.env
+*.pyc
+__pycache__/
+.DS_Store
+*.sarif
+*.sbom
+*.tgz
+**/datasets/
+**/tmp/
+**/*.parquet
+**/.pytest_cache/
+**/node_modules/
+# Preserve manifests and gas profiles generation scripts
+!CodeShield/artifacts/manifest.csv
+!CodeShield/artifacts/gas_manifest.csv

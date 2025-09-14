@@ -1,5 +1,6 @@
 use dytallix_lean_node::crypto::PQC;
-use dytallix_lean_node::types::{Msg, SignedTx, Tx};
+use dytallix_lean_node::types::{Msg, SignedTx};
+use dytallix_lean_node::types::tx::Tx;
 
 #[test]
 fn tamper_signature_failure_is_detected() {
@@ -29,10 +30,8 @@ fn tamper_signature_failure_is_detected() {
 
     // Tamper: change amount in the message
     let mut tampered = stx.clone();
-    if let Some(first) = tampered.tx.msgs.first_mut() {
-        if let Msg::Send { amount, .. } = first {
-            *amount += 1;
-        }
+    if let Some(Msg::Send { amount, .. }) = tampered.tx.msgs.first_mut() {
+        *amount += 1;
     }
 
     // Verification must now fail

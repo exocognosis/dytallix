@@ -1,0 +1,4 @@
+id,pattern,file
+loop_small,loop_small,Gas_loop_small.sol
+loop_medium,loop_medium,Gas_loop_medium.sol
+branching,branching,Gas_branching.sol

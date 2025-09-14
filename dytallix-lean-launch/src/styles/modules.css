@@ -1,0 +1,51 @@
+/* Styles specific to the AI Modules page. 
+   Keep visuals aligned with global palette while preserving existing layout/behavior. */
+
+.modules .section-subtitle { max-width: 880px; }
+
+/* Carousel layout */
+.modules-carousel { position: relative; max-width: 1200px; margin: 0 auto; overflow: visible; min-height: 560px; }
+.carousel-viewport { position: relative; min-height: 520px; }
+.carousel-mask { overflow: hidden; border-radius: 12px; }
+.carousel-slide { width: 50%; box-sizing: border-box; min-height: 520px; }
+.carousel-slide.left { padding-right: 12px; }
+.carousel-slide.right { padding-left: 12px; }
+
+/* Tool cards inside slides */
+.tool-card { box-shadow: 0 10px 30px rgba(2,6,23,0.45); }
+.card-inner { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
+
+/* Accent rings to match Explorer */
+.accent-blue{box-shadow: 0 0 0 1px rgba(59,130,246,.35) inset}
+.accent-purple{box-shadow: 0 0 0 1px rgba(139,92,246,.35) inset}
+.accent-cyan{box-shadow: 0 0 0 1px rgba(34,211,238,.35) inset}
+.accent-amber{box-shadow: 0 0 0 1px rgba(245,158,11,.35) inset}
+.accent-emerald{box-shadow: 0 0 0 1px rgba(16,185,129,.35) inset}
+
+/* Feature bullets */
+.feature-list { margin-top: 12px; font-size: 0.95rem; color: var(--text-muted); padding-left: 20px; list-style: disc; }
+.feature-list li { margin-bottom: 6px; }
+
+/* Dots below carousel */
+.modules .carousel-dots-btn { width: 10px; height: 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.4); background: transparent; }
+.modules .carousel-dots-btn.active { background: rgba(99,102,241,0.9); }
+
+/* Tighten inputs in tool headers */
+.modules .tool-head { text-align: center; margin-bottom: 16px; }
+.modules .tool-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
+.modules .tool-sub { font-size: 1.05rem; line-height: 1.6; }
+
+/* Module directory cards */
+.modules .module-card { width: 300px; max-width: 100%; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.modules .module-grid { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+
+/* Make non-primary buttons match Explorer's darker style */
+.modules .btn:not(.btn-primary) { background: rgba(30,41,59,0.55); color: #E2E8F0; border-color: rgba(148,163,184,0.24); }
+.modules .btn:not(.btn-primary):hover { background: rgba(59,130,246,0.18); border-color: rgba(59,130,246,0.45); color: #BFDBFE; }
+.modules .btn:not(.btn-primary):focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,0.35); }
+
+/* Responsive: stack slides on small screens to preserve readability */
+@media (max-width: 860px) {
+  .carousel-mask { border-radius: 0; }
+  .carousel-slide { width: 100% !important; padding: 0 !important; }
+}

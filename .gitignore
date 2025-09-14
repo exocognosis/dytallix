@@ -126,3 +126,13 @@ telemetry_analysis/output/
 # Prevent accidental commit of real env files under ops
 ops/secrets/*.env
 !ops/secrets/*.env.example
+
+# ModuleTests artifacts and logs
+ModuleTests/PulseGuard/artifacts/
+ModuleTests/PulseGuard/logs/
+# GAN artifacts and large files
+ModuleTests/PulseGuard/artifacts/gan/model_checkpoint/*
+*.pt
+*.pth
+*.pkl
+*.ckpt

@@ -44,6 +44,8 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
             governance: true,
             staking: true,
         },
+        // Add minimal wasm contracts map required by RpcContext
+        wasm_contracts: Arc::new(Mutex::new(std::collections::HashMap::new())),
     };
     let router = Router::new()
         .route("/stats", get(rpc::stats))
@@ -58,7 +60,15 @@ async fn claim_flow_persists() {
     let (app, ctx) = app();
     // simulate block heights to accumulate pools
     ctx.emission.lock().unwrap().apply_until(3); // 3 blocks
-                                                 // pools now have community=15, staking=21, ecosystem=9
+
+    // capture pre-claim pool for robust comparison across schedule changes
+    let pre_claim_block_rewards = ctx
+        .emission
+        .lock()
+        .unwrap()
+        .pool_amount("block_rewards");
+
+    // sanity: stats endpoint reachable
     let resp = app
         .clone()
         .oneshot(
@@ -71,6 +81,7 @@ async fn claim_flow_persists() {
         .await
         .unwrap();
     assert!(resp.status().is_success());
+
     // claim 5 from block_rewards to acct A
     let claim_body = json!({"pool":"block_rewards","amount":5,"to":"acctA"});
     let resp2 = app
@@ -86,13 +97,14 @@ async fn claim_flow_persists() {
         .await
         .unwrap();
     assert!(resp2.status().is_success());
-    // balance endpoint
+
+    // balance endpoint (claim credits uDRT); use denom query param with multi-denom API
     let bal_resp = app
         .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri("/balance/acctA")
+                .uri("/balance/acctA?denom=udrt")
                 .body(axum::body::Body::empty())
                 .unwrap(),
         )
@@ -103,15 +115,16 @@ async fn claim_flow_persists() {
         .unwrap();
     let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["balance"].as_str().unwrap(), "5");
+
     // restart simulation: new context reading same storage
     let storage2 = ctx.storage.clone();
     let state2 = Arc::new(Mutex::new(State::new(storage2.clone()))); // lazy loads balance
     let engine2 = EmissionEngine::new(storage2.clone(), state2.clone());
+
     // engine2 should see previously advanced height (3)
     assert_eq!(engine2.last_accounted_height(), 3);
-    // pool after claim: check block_rewards pool instead of community (updated naming)
-    assert_eq!(
-        engine2.pool_amount("block_rewards"),
-        engine2.pool_amount("block_rewards")
-    );
+
+    // pool after claim should be exactly pre-claim minus claimed amount, regardless of schedule specifics
+    let expected_after_claim = pre_claim_block_rewards - 5u128;
+    assert_eq!(engine2.pool_amount("block_rewards"), expected_after_claim);
 }

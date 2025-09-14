@@ -11,12 +11,21 @@ use dytallix_lean_node::storage::blocks::TpsWindow;
 use dytallix_lean_node::storage::bridge::BridgeValidator;
 use dytallix_lean_node::storage::state::Storage;
 use dytallix_lean_node::ws::server::WsHub;
-use ed25519_dalek::{Keypair, Signer};
-use rand::rngs::OsRng;
+use ed25519_dalek::{Keypair, SecretKey, PublicKey, Signer};
+// removed rand to avoid rand_core conflicts
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use tempfile::tempdir;
 use tower::ServiceExt; // for oneshot // rand 0.7
+
+fn deterministic_kp(tag: u8) -> Keypair {
+    // simple fixed seed per tag; not cryptographically secure, fine for tests
+    let mut seed = [0u8; 32];
+    seed[0] = tag;
+    let secret = SecretKey::from_bytes(&seed).unwrap();
+    let public: PublicKey = (&secret).into();
+    Keypair { secret, public }
+}
 
 fn test_router(ctx: RpcContext) -> Router {
     use dytallix_lean_node::rpc;
@@ -63,13 +72,14 @@ fn build_ctx(num_validators: usize) -> (RpcContext, Vec<Keypair>) {
             governance: true,
             staking: true,
         },
+        // Add minimal wasm contracts map required by RpcContext
+        wasm_contracts: Arc::new(Mutex::new(std::collections::HashMap::new())),
     }; // added emission
        // gen validators
     let mut keypairs = vec![];
     let mut vals = vec![];
-    for _i in 0..num_validators {
-        let mut rng = OsRng {};
-        let kp = Keypair::generate(&mut rng);
+    for i in 0..num_validators as u8 {
+        let kp = deterministic_kp(i);
         keypairs.push(kp);
     }
     for (i, kp) in keypairs.iter().enumerate() {

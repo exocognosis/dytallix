@@ -8,6 +8,9 @@ use dytallix_lean_node::metrics::Metrics;
 use dytallix_lean_node::p2p::TransactionGossip;
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::tx::Transaction;
+// Added: PQC signing utilities and base64 encoder
+use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 #[allow(clippy::too_many_arguments)]
 fn create_test_transaction(
@@ -20,9 +23,22 @@ fn create_test_transaction(
     gas_limit: u64,
     gas_price: u64,
 ) -> Transaction {
-    Transaction::new(hash, from, to, amount, fee, nonce, None)
+    // Generate a fresh keypair for the test tx
+    let (sk, pk) = ActivePQC::keypair();
+
+    // Build base tx and attach PQC public key + metadata
+    let mut tx = Transaction::new(hash, from, to, amount, fee, nonce, None)
         .with_gas(gas_limit, gas_price)
-        .with_signature("test_signature")
+        .with_pqc(B64.encode(&pk), "dytallix-testnet", "metrics test");
+
+    // Sign canonical fields and attach a valid signature
+    let canonical_tx = tx.canonical_fields();
+    let tx_bytes = canonical_json(&canonical_tx).expect("canonical serialize");
+    let tx_hash = sha3_256(&tx_bytes);
+    let signature = ActivePQC::sign(&sk, &tx_hash);
+    tx.signature = Some(B64.encode(&signature));
+
+    tx
 }
 
 fn create_mock_state() -> State {
@@ -33,12 +49,14 @@ fn create_mock_state() -> State {
     let mut state = State::new(storage);
     {
         let mut acc = state.get_account("sender1");
-        acc.set_balance("udgt", 1_000_000);
+        // Increased balance to cover gas costs in tests
+        acc.set_balance("udgt", 1_000_000_000);
         state.accounts.insert("sender1".to_string(), acc);
     }
     {
         let mut acc = state.get_account("sender2");
-        acc.set_balance("udgt", 500_000);
+        // Increased balance to cover gas costs in tests
+        acc.set_balance("udgt", 1_000_000_000);
         state.accounts.insert("sender2".to_string(), acc);
     }
     state
@@ -96,14 +114,20 @@ async fn test_mempool_rejection_reasons_metrics() {
     let mut mempool = Mempool::new();
     let state = create_mock_state();
 
+    // Submit a valid transaction first to advance expected nonce for sender1 to 1
+    let valid_tx = create_test_transaction("hash_valid", "sender1", "receiver", 1000, 100, 0, 21000, 1000);
+    assert!(mempool.add_transaction(&state, valid_tx).is_ok());
+
     // Test different rejection reasons
     let test_cases = vec![
         (
-            create_test_transaction("hash1", "sender1", "receiver", 1000, 100, 5, 21000, 1000), // Wrong nonce
+            // Now nonce 0 is lower than expected (1), so this should error with nonce_gap
+            create_test_transaction("hash1", "sender1", "receiver", 1000, 100, 0, 21000, 1000),
             "nonce_gap",
         ),
         (
-            create_test_transaction("hash2", "sender1", "receiver", 2000000, 100, 0, 21000, 1000), // Insufficient funds
+            // Bump amount well beyond mock balance to trigger insufficient funds
+            create_test_transaction("hash2", "sender1", "receiver", 2_000_000_000_000u128, 100, 0, 21000, 1000),
             "insufficient_funds",
         ),
         (
@@ -312,12 +336,12 @@ async fn test_comprehensive_metrics_flow() {
             "hash_poor",
             "sender2",
             "receiver",
-            1000000,
+            2_000_000_000_000u128,
             100,
             0,
             21000,
             1000,
-        ), // Insufficient funds
+        ), // Insufficient funds with high amount
     ];
 
     for tx in invalid_txs {

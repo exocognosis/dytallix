@@ -94,7 +94,8 @@ fn run_benchmark(config: &BenchmarkConfig) -> Result<BenchmarkResults> {
         config.algorithm.clone(),
         dytallix_pqc::KeyExchangeAlgorithm::Kyber1024,
     )?;
-    let keypair = pqc_manager.get_signature_keypair();
+    // Generate a fresh keypair for the selected algorithm
+    let keypair = pqc_manager.generate_keypair(&config.algorithm)?;
 
     // Generate transaction messages and signatures
     println!("  Generating {} transactions and signatures...", config.tx_count);

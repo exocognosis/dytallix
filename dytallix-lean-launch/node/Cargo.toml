@@ -56,8 +56,8 @@ tempfile = "3"
 rand = "0.7"
 
 [features]
-# Lean default: core + PQC + metrics (for /metrics endpoint)
-default = ["pqc-real", "metrics"]
+# Lean default: core + PQC + metrics + oracle (for /metrics endpoint)
+default = ["pqc-real", "metrics", "oracle"]
 # Existing features
 pqc-real = ["pqcrypto-dilithium", "pqcrypto-traits"]
 pqc-mock = []

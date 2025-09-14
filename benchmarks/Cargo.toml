@@ -11,13 +11,19 @@ reqwest = { workspace = true }
 md5 = "0.7"
 # PQC benchmark dependencies
 dytallix-pqc = { path = "../pqc-crypto" }
-blockchain-core = { path = "../blockchain-core" }
+# Use the correct package name for the blockchain core crate
+blockchain-core = { path = "../blockchain-core", package = "dytallix-node" }
 sha3 = "0.10"
 base64 = "0.21"
 anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 nix = { version = "0.27", features = ["resource"] }
 criterion = { version = "0.5", features = ["html_reports"] }
+# Added: direct pqcrypto crates used in benches
+pqcrypto-dilithium = "0.5"
+pqcrypto-falcon = "0.3"
+pqcrypto-sphincsplus = "0.7"
+pqcrypto-traits = "0.3"
 
 [[bin]]
 name = "osmosis_wasm_benchmark"
