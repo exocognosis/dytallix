@@ -34,7 +34,7 @@ const CodeShield = () => {
         <div className="container" style={{ maxWidth: 1180 }}>
           <div className="grid" style={{ display: 'grid', gap: 28, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {/* Pain Point */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card accent-blue" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Pain Point Solved</h3>
               <p className="muted" style={{ fontSize: '.85rem', lineHeight: 1.5, margin: '0 0 12px' }}>
                 Complex upgradeable smart contracts conceal latent exploit paths and gas inefficiencies while existing scanners overwhelm teams with noisy false positives.
@@ -48,7 +48,7 @@ const CodeShield = () => {
                   'Gas complexity regression & actionable optimization hints'
                 ].map((item, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(139,92,246,0.25)' }} />
+                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(59,130,246,0.25)' }} />
                     <span className="muted" style={{ lineHeight: 1.5 }}>{item}</span>
                   </li>
                 ))}
@@ -56,7 +56,7 @@ const CodeShield = () => {
             </div>
 
             {/* Tech Stack */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card accent-blue" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Tech Stack</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
@@ -67,7 +67,7 @@ const CodeShield = () => {
                   'Gas / complexity regression model & SARIF + signed JSON export'
                 ].map((item, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(139,92,246,0.25)' }} />
+                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(59,130,246,0.25)' }} />
                     <span className="muted" style={{ lineHeight: 1.5 }}>{item}</span>
                   </li>
                 ))}
@@ -75,7 +75,7 @@ const CodeShield = () => {
             </div>
 
             {/* Use Cases */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card accent-blue" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Use Cases</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
@@ -86,7 +86,7 @@ const CodeShield = () => {
                   'Vendor / third-party dependency trust assessment'
                 ].map((item, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(139,92,246,0.25)' }} />
+                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(59,130,246,0.25)' }} />
                     <span className="muted" style={{ lineHeight: 1.5 }}>{item}</span>
                   </li>
                 ))}
@@ -94,7 +94,7 @@ const CodeShield = () => {
             </div>
 
             {/* ROI Snapshot */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(56,189,248,0.12))' }}>
+            <div className="card accent-blue" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.12))' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 12 }}>ROI Snapshot</h3>
               <p style={{ fontSize: '1.05rem', fontWeight: 600, letterSpacing: '.25px', color: 'var(--primary-300)', margin: 0 }}>
                 Cuts manual triage time ≈60% (alpha internal) & prioritizes exploitable risk first.
@@ -103,7 +103,7 @@ const CodeShield = () => {
             </div>
 
             {/* CTA */}
-            <div className="card" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', border: '1px solid rgba(139,92,246,0.35)' }}>
+            <div className="card accent-blue" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 14 }}>Request Technical Brief</h3>
               <p className="muted" style={{ maxWidth: 480, margin: '0 auto 20px' }}>
                 Get the methodology sheet covering analysis phases, ranking model, and planned formal verification extensions.

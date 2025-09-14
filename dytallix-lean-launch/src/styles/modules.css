@@ -22,6 +22,17 @@
 .accent-amber{box-shadow: 0 0 0 1px rgba(245,158,11,.35) inset}
 .accent-emerald{box-shadow: 0 0 0 1px rgba(16,185,129,.35) inset}
 
+/* Accent top borders + title hues to align with Dashboard/Explorer */
+.card.accent-blue{ border-top: 3px solid var(--primary-400); padding-top: 12px; }
+.card.accent-purple{ border-top: 3px solid var(--accent-500); padding-top: 12px; }
+.card.accent-amber{ border-top: 3px solid var(--warning-500); padding-top: 12px; }
+.card.accent-cyan{ border-top: 3px solid rgb(34,211,238); padding-top: 12px; }
+
+.card.accent-blue h2, .card.accent-blue h3{ color: var(--primary-400); }
+.card.accent-purple h2, .card.accent-purple h3{ color: var(--accent-500); }
+.card.accent-amber h2, .card.accent-amber h3{ color: var(--warning-500); }
+.card.accent-cyan h2, .card.accent-cyan h3{ color: rgb(34,211,238); }
+
 /* Feature bullets */
 .feature-list { margin-top: 12px; font-size: 0.95rem; color: var(--text-muted); padding-left: 20px; list-style: disc; }
 .feature-list li { margin-bottom: 6px; }

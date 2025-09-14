@@ -34,7 +34,7 @@ const PulseGuard = () => {
         <div className="container" style={{ maxWidth: 1180 }}>
           <div className="grid" style={{ display: 'grid', gap: 28, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {/* Pain Point */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card accent-purple" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Pain Point Solved</h3>
               {/* Added concise description + solution bullets */}
               <p className="muted" style={{ fontSize: '.85rem', lineHeight: 1.5, margin: '0 0 12px' }}>
@@ -49,7 +49,7 @@ const PulseGuard = () => {
                   'PQC-secured pipelines & integrity attestations'
                 ].map((item,i)=>(
                   <li key={i} style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-                    <span style={{ width:8, height:8, marginTop:7, background:'var(--primary-400)', borderRadius:'50%', boxShadow:'0 0 0 3px rgba(34,197,94,0.15)' }} />
+                    <span style={{ width:8, height:8, marginTop:7, background:'var(--accent-500)', borderRadius:'50%', boxShadow:'0 0 0 3px rgba(139,92,246,0.20)' }} />
                     <span className="muted" style={{ lineHeight:1.5 }}>{item}</span>
                   </li>
                 ))}
@@ -57,7 +57,7 @@ const PulseGuard = () => {
             </div>
 
             {/* Tech Stack */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card accent-purple" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Tech Stack</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
@@ -69,7 +69,7 @@ const PulseGuard = () => {
                   'Real-time risk scoring API (sub-100ms P95)'
                 ].map((item, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(34,197,94,0.15)' }} />
+                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--accent-500)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(139,92,246,0.20)' }} />
                     <span className="muted" style={{ lineHeight: 1.5 }}>{item}</span>
                   </li>
                 ))}
@@ -77,7 +77,7 @@ const PulseGuard = () => {
             </div>
 
             {/* Use Cases */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card accent-purple" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Use Cases</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
@@ -88,7 +88,7 @@ const PulseGuard = () => {
                   'Stablecoin issuers: real-time synthetic mint / burn anomaly guard'
                 ].map((item, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(34,197,94,0.15)' }} />
+                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--accent-500)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(139,92,246,0.20)' }} />
                     <span className="muted" style={{ lineHeight: 1.5 }}>{item}</span>
                   </li>
                 ))}
@@ -96,7 +96,7 @@ const PulseGuard = () => {
             </div>
 
             {/* ROI Snapshot */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(56,189,248,0.10))' }}>
+            <div className="card accent-purple" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(59,130,246,0.10))' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 12 }}>ROI Snapshot</h3>
               <p style={{ fontSize: '1.05rem', fontWeight: 600, letterSpacing: '.25px', color: 'var(--primary-300)', margin: 0 }}>
                 Detects &gt;99% malicious anomalies in &lt;100ms.
@@ -105,7 +105,7 @@ const PulseGuard = () => {
             </div>
 
             {/* CTA */}
-            <div className="card" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', border: '1px solid rgba(34,197,94,0.25)' }}>
+            <div className="card accent-purple" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 14 }}>Deep Dive & Architecture</h3>
               <p className="muted" style={{ maxWidth: 460, margin: '0 auto 20px' }}>
                 Download the whitepaper for data pipeline, model governance, and PQC security layers.

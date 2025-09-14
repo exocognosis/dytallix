@@ -272,6 +272,23 @@ body {
 .card-outline-danger  { border-color: rgba(239,68,68,0.35); }
 .card-outline-info    { border-color: rgba(96,165,250,0.28); }
 
+/* Accent utilities (shared across pages) */
+.accent-blue{box-shadow: 0 0 0 1px rgba(59,130,246,.30) inset}
+.accent-purple{box-shadow: 0 0 0 1px rgba(139,92,246,.30) inset}
+.accent-cyan{box-shadow: 0 0 0 1px rgba(34,211,238,.30) inset}
+.accent-amber{box-shadow: 0 0 0 1px rgba(245,158,11,.30) inset}
+
+/* Accent top borders + heading hues */
+.card.accent-blue{ border-top: 3px solid var(--primary-400); padding-top: 12px; }
+.card.accent-purple{ border-top: 3px solid var(--accent-500); padding-top: 12px; }
+.card.accent-amber{ border-top: 3px solid var(--warning-500); padding-top: 12px; }
+.card.accent-cyan{ border-top: 3px solid rgb(34,211,238); padding-top: 12px; }
+
+.card.accent-blue h2, .card.accent-blue h3{ color: var(--primary-400); }
+.card.accent-purple h2, .card.accent-purple h3{ color: var(--accent-500); }
+.card.accent-amber h2, .card.accent-amber h3{ color: var(--warning-500); }
+.card.accent-cyan h2, .card.accent-cyan h3{ color: rgb(34,211,238); }
+
 /* Tinted sub-cards (use for nested emphasis like Faucet) */
 .card-tint-primary { background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.28); }
 .card-tint-accent  { background: rgba(139,92,246,0.10); border-color: rgba(139,92,246,0.30); }

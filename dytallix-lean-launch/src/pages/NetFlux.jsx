@@ -33,7 +33,7 @@ const NetFlux = () => {
         <div className="container" style={{ maxWidth: 1180 }}>
           <div className="grid" style={{ display: 'grid', gap: 28, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {/* Pain Point */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card accent-cyan" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Pain Point Solved</h3>
               <p className="muted" style={{ fontSize: '.85rem', lineHeight: 1.5, margin: '0 0 12px' }}>
                 Bursty traffic surges overwhelm static network parameters, inflating propagation delay and degrading UX before manual tuning can react.
@@ -47,7 +47,7 @@ const NetFlux = () => {
                   'PQC-secured telemetry ingestion & integrity attestation'
                 ].map((item,i)=>(
                   <li key={i} style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-                    <span style={{ width:8, height:8, marginTop:7, background:'var(--primary-400)', borderRadius:'50%', boxShadow:'0 0 0 3px rgba(34,197,94,0.15)' }} />
+                    <span style={{ width:8, height:8, marginTop:7, background:'rgb(34,211,238)', borderRadius:'50%', boxShadow:'0 0 0 3px rgba(34,211,238,0.25)' }} />
                     <span className="muted" style={{ lineHeight:1.5 }}>{item}</span>
                   </li>
                 ))}
@@ -55,7 +55,7 @@ const NetFlux = () => {
             </div>
 
             {/* Tech Stack */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card accent-cyan" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Tech Stack</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
@@ -67,7 +67,7 @@ const NetFlux = () => {
                   'Safety guardrails: rollback & drift constraints'
                 ].map((item, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(34,197,94,0.15)' }} />
+                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'rgb(34,211,238)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(34,211,238,0.25)' }} />
                     <span className="muted" style={{ lineHeight: 1.5 }}>{item}</span>
                   </li>
                 ))}
@@ -75,7 +75,7 @@ const NetFlux = () => {
             </div>
 
             {/* Use Cases */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card accent-cyan" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 10 }}>Use Cases</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
@@ -86,7 +86,7 @@ const NetFlux = () => {
                   'Bridges smoothing cross-domain surges'
                 ].map((item, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'var(--primary-400)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(34,197,94,0.15)' }} />
+                    <span style={{ width: 8, height: 8, marginTop: 7, background: 'rgb(34,211,238)', borderRadius: '50%', boxShadow: '0 0 0 3px rgba(34,211,238,0.25)' }} />
                     <span className="muted" style={{ lineHeight: 1.5 }}>{item}</span>
                   </li>
                 ))}
@@ -94,7 +94,7 @@ const NetFlux = () => {
             </div>
 
             {/* ROI Snapshot */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(56,189,248,0.10))' }}>
+            <div className="card accent-cyan" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(34,211,238,0.15), rgba(59,130,246,0.10))' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 12 }}>ROI Snapshot</h3>
               <p style={{ fontSize: '1.05rem', fontWeight: 600, letterSpacing: '.25px', color: 'var(--primary-300)', margin: 0 }}>
                 Maintains &lt;100ms latency even under 10x traffic spikes.
@@ -103,7 +103,7 @@ const NetFlux = () => {
             </div>
 
             {/* CTA */}
-            <div className="card" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', border: '1px solid rgba(34,197,94,0.25)' }}>
+            <div className="card accent-cyan" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 14 }}>Deep Dive & Architecture</h3>
               <p className="muted" style={{ maxWidth: 470, margin: '0 auto 20px' }}>
                 Learn control loop design, predictive modeling inputs, and PQC telemetry safeguards.
