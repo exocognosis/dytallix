@@ -4,7 +4,9 @@
 // Optional: detached signature embedded as _sig (base64 Ed25519) over canonical JSON of remaining keys.
 // Future extension: external signature file or multiple pubkeys / key rotation.
 
-interface Manifest { [name: string]: string }
+// Manifest entries may be either a simple SHA256 string, or an object with sha256 and size
+type ManifestEntry = string | { sha256: string; size: number }
+interface Manifest { [name: string]: ManifestEntry }
 
 let manifestPromise: Promise<Manifest> | null = null
 
@@ -25,15 +27,29 @@ function getEnv(key: string): string | undefined {
   } catch { return undefined }
 }
 
-async function fetchFirst(paths: string[]): Promise<Response> {
-  const v = (window as any).__PQC_MANIFEST_VERSION__ || getEnv('VITE_PQC_MANIFEST_VERSION') || ''
-  for (const p of paths) {
-    try {
-      const r = await fetch(p + (v ? ('?v=' + encodeURIComponent(v)) : ''))
-      if (r.ok) return r
-    } catch { /* ignore */ }
+async function fetchFirst(paths: string[]): Promise<any> {
+  const isNode = typeof window === 'undefined' || typeof (globalThis as any).window === 'undefined'
+  const v = (!isNode ? (window as any).__PQC_MANIFEST_VERSION__ : '') || getEnv('VITE_PQC_MANIFEST_VERSION') || ''
+  if (!isNode) {
+    for (const p of paths) {
+      try {
+        const r = await fetch(p + (v ? ('?v=' + encodeURIComponent(v)) : ''))
+        if (r.ok) return r
+      } catch { /* ignore */ }
+    }
+    throw new Error('Manifest fetch failed for all candidate paths')
   }
-  throw new Error('Manifest fetch failed for all candidate paths')
+  // Node.js fallback: read from filesystem
+  const dir = resolveWasmDir()
+  const fs = require('fs') as typeof import('fs')
+  const path = require('path') as typeof import('path')
+  const manifestPath = path.join(dir, 'manifest.json')
+  if (!fs.existsSync(manifestPath)) throw new Error('Manifest not found at ' + manifestPath)
+  const body = fs.readFileSync(manifestPath, 'utf8')
+  return {
+    ok: true,
+    async json() { return JSON.parse(body) }
+  }
 }
 
 async function loadManifest(): Promise<Manifest> {
@@ -55,8 +71,37 @@ async function loadManifest(): Promise<Manifest> {
 }
 
 async function sha256Hex(buf: ArrayBuffer): Promise<string> {
-  const hash = await crypto.subtle.digest('SHA-256', buf)
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('')
+  const isNode = typeof window === 'undefined' || typeof (globalThis as any).window === 'undefined'
+  if (!isNode) {
+    const hash = await crypto.subtle.digest('SHA-256', buf)
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('')
+  }
+  const nodeCrypto = require('crypto') as typeof import('crypto')
+  const h = nodeCrypto.createHash('sha256')
+  h.update(Buffer.from(buf as any))
+  return h.digest('hex')
+}
+
+function resolveWasmDir(): string {
+  const isNode = typeof window === 'undefined' || typeof (globalThis as any).window === 'undefined'
+  if (!isNode) throw new Error('resolveWasmDir should only be used in Node.js')
+  const g = globalThis as any
+  if (g.__PQC_WASM_DIR__) return g.__PQC_WASM_DIR__
+  const envDir = process.env.PQC_WASM_DIR || process.env.DYTX_PQC_WASM_DIR
+  if (envDir) return envDir
+  const fs = require('fs') as typeof import('fs')
+  const path = require('path') as typeof import('path')
+  // Try walking up from CWD to find public/wasm/pqc
+  let dir = process.cwd()
+  for (let i = 0; i < 6; i++) {
+    const candidate = path.join(dir, 'dytallix-lean-launch', 'public', 'wasm', 'pqc')
+    if (fs.existsSync(candidate)) return candidate
+    const candidate2 = path.join(dir, 'public', 'wasm', 'pqc')
+    if (fs.existsSync(candidate2)) return candidate2
+    dir = path.dirname(dir)
+  }
+  // Fallback to repo-relative default
+  return path.join(__dirname, '..', '..', '..', 'public', 'wasm', 'pqc')
 }
 
 async function verifyManifestSignature(raw: any, sigB64: string) {
@@ -82,14 +127,33 @@ async function verifyManifestSignature(raw: any, sigB64: string) {
 
 export async function fetchAndVerifyWasm(fileName: string): Promise<ArrayBuffer> {
   const manifest = await loadManifest()
-  const expected = manifest[fileName]
-  if (!expected) throw new Error(`No manifest entry for ${fileName}`)
-  const res = await fetch(`/wasm/pqc/${fileName}`)
-  if (!res.ok) throw new Error(`Failed to fetch WASM ${fileName}`)
-  const buf = await res.arrayBuffer()
-  const actual = await sha256Hex(buf)
-  if (actual !== expected) throw new Error(`Integrity mismatch for ${fileName}`)
-  return buf
+  const entry = manifest[fileName]
+  if (!entry) throw new Error(`No manifest entry for ${fileName}`)
+  const expectedHash = typeof entry === 'string' ? entry : entry.sha256
+  const expectedSize = typeof entry === 'string' ? undefined : entry.size
+  const isNode = typeof window === 'undefined' || typeof (globalThis as any).window === 'undefined'
+  if (!isNode) {
+    const res = await fetch(`/wasm/pqc/${fileName}`)
+    if (!res.ok) throw new Error(`Failed to fetch WASM ${fileName}`)
+    const buf = await res.arrayBuffer()
+    const actual = await sha256Hex(buf)
+    if (expectedSize !== undefined && buf.byteLength !== expectedSize) {
+      throw new Error(`Size mismatch for ${fileName}: ${buf.byteLength} != ${expectedSize}`)
+    }
+    if (actual !== expectedHash) throw new Error(`Integrity mismatch for ${fileName}`)
+    return buf
+  }
+  const fs = require('fs') as typeof import('fs')
+  const path = require('path') as typeof import('path')
+  const dir = resolveWasmDir()
+  const wasmPath = path.join(dir, fileName)
+  const bufNode: Buffer = fs.readFileSync(wasmPath)
+  if (expectedSize !== undefined && bufNode.byteLength !== expectedSize) {
+    throw new Error(`Size mismatch for ${fileName}: ${bufNode.byteLength} != ${expectedSize}`)
+  }
+  const actual = await sha256Hex(bufNode.buffer.slice(bufNode.byteOffset, bufNode.byteOffset + bufNode.byteLength))
+  if (actual !== expectedHash) throw new Error(`Integrity mismatch for ${fileName}`)
+  return bufNode.buffer.slice(bufNode.byteOffset, bufNode.byteOffset + bufNode.byteLength)
 }
 
 export async function fetchAndVerifyBinary(path: string): Promise<Uint8Array> {

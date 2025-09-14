@@ -1,0 +1,1 @@
+{"chain":"eyt-test-chain","nonce":0,"msgs":[{"type":"send","from":"dyt1senderdev000000","to":"dyt1receiverdev000000","denom":"DGT","amount":1000}],"fee":1000}

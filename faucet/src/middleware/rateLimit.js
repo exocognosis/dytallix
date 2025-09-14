@@ -1,5 +1,6 @@
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
+const { logFaucetEvent } = require('../utils/artifactLogger');
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -33,6 +34,15 @@ const faucetRateLimit = rateLimit({
       userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString()
     });
+    // Artifact evidence logging (rate-limit enforcement)
+    logFaucetEvent('RATE_LIMIT', {
+      ip: clientIp,
+      route: req.originalUrl,
+      method: req.method,
+      userAgent: req.get('User-Agent'),
+      retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 3600000) / 1000),
+      status: options.statusCode,
+    });
     
     res.status(options.statusCode).json(options.message);
   }
@@ -55,6 +65,16 @@ const ipCooldownMiddleware = (req, res, next) => {
         ip: clientIp,
         remainingSeconds: remainingTime,
         timestamp: new Date().toISOString()
+      });
+
+      // Artifact evidence logging (cooldown enforcement)
+      logFaucetEvent('IP_COOLDOWN', {
+        ip: clientIp,
+        route: req.originalUrl,
+        method: req.method,
+        remainingSeconds: remainingTime,
+        cooldownMs,
+        status: 429,
       });
 
       return res.status(429).json({

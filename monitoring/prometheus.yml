@@ -45,3 +45,21 @@ scrape_configs:
       - targets: ['loki:3100']
     scrape_interval: 15s
     metrics_path: /metrics
+
+  - job_name: 'dytallix-node-local'
+    static_configs:
+      - targets: ['host.docker.internal:9464']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  - job_name: 'pulsescan-api'
+    static_configs:
+      - targets: ['host.docker.internal:3001']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  - job_name: 'pulsescan-infer'
+    static_configs:
+      - targets: ['host.docker.internal:9090']
+    scrape_interval: 5s
+    metrics_path: /metrics

@@ -1,22 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useInRouterContext } from 'react-router-dom'
-import '../styles/modules.css'
+import '../styles/global.css'
+// Removed page-local carousel styling dependency to align visuals with Home
+
 // Added helper constants & functions
 const TX_HASH_RE = /^0x[0-9a-fA-F]{64}$/
 const MAX_CODE_BYTES = 100 * 1024 // 100KB
 function byteLength(str){ return new TextEncoder().encode(str).length }
 
-// --- Carousel helpers
-function useCarousel(count) {
-  const [index, setIndex] = useState(0);
-  const clamp = (i) => (i + count) % count;
-  const next = () => setIndex(i => clamp(i + 1));
-  const prev = () => setIndex(i => clamp(i - 1));
-  const goTo = (i) => setIndex(() => clamp(i));
-  return { index, next, prev, goTo };
-}
-import AnomalyDemo from '../components/AnomalyDemo.jsx'
-import ContractScannerDemo from '../components/ContractScannerDemo.jsx'
+// Unused demo component imports removed for cleanliness
+// import AnomalyDemo from '../components/AnomalyDemo.jsx'
+// import ContractScannerDemo from '../components/ContractScannerDemo.jsx'
 import { PQC_ENABLED, PQC_ALGOS_ALLOWED } from '../config/flags.ts'
 import { generateKeypair, sign as pqcSign, verify as pqcVerify, pubkeyFromSecret } from '../lib/crypto/pqc.js'
 import { preloadAll as preloadPqcIntegrity } from '../crypto/pqc/integrity'
@@ -57,6 +51,19 @@ function StatusPill({ status }) {
       background: s.bg, border: `1px solid ${s.bd}`, color: s.fg
     }}>{s.label}</span>
   )
+}
+
+// Match Home.jsx color system for top-border accents
+const colorFor = (accent) => {
+  switch (accent) {
+    case 'primary': return 'var(--primary-400)'
+    case 'accent': return 'var(--accent-500)'
+    case 'success': return 'var(--success-500)'
+    case 'warning': return 'var(--warning-500)'
+    case 'danger': return 'var(--danger-500)'
+    case 'info':
+    default: return 'var(--primary-400)'
+  }
 }
 
 const Modules = () => {
@@ -137,11 +144,6 @@ const Modules = () => {
 
   const anomalyRef = useRef(null)
   const scannerRef = useRef(null)
-
-  const carousel = useCarousel(2)
-
-  // Hover state for carousel arrows to emphasize on hover
-  const [hover, setHover] = useState(null)
 
   // Debounce helper
   function useDebounced(value, ms){
@@ -248,315 +250,225 @@ const Modules = () => {
   const txInvalid = txHash && !TX_HASH_RE.test(txHash)
 
   return (
-    <div className="section modules">
-      <div className="container">
-        <div className="section-header">
-          <h1 className="section-title">AI Modules</h1>
-          <p
-            className="section-subtitle"
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            Deploy AI modules for contract scanning, anomaly detection, and validator optimization.
-          </p>
+    <div className="modules">
+      {/* Hero Section (match Home visuals) */}
+      <section className="section" style={{
+        background: 'radial-gradient(800px 400px at 50% -10%, rgba(96,165,250,0.12) 0%, rgba(96,165,250,0) 60%)',
+        paddingTop: '120px',
+      }}>
+        <div className="container center">
+          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            <h1 className="section-title" style={{ fontSize: '3rem', marginBottom: 16, textAlign: 'center', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.15 }}>
+              AI Modules
+            </h1>
+            <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 0', textAlign: 'center' }}>
+              Deploy AI modules for contract scanning, anomaly detection, and validator optimization.
+            </p>
+            <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 36px', textAlign: 'center' }}>
+              Built to be quantum-ready, developer-friendly, and security-first.
+            </p>
+          </div>
         </div>
+      </section>
 
-        <div style={{ display: 'grid', gap: 28 }}>
-          {/* Carousel: Tools */}
-          <div
-            role="region"
-            aria-label="AI tools carousel"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              const t = e.target;
-              const tag = t && t.tagName;
-              if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) {
-                return; // don't intercept arrows while typing
-              }
-              if (e.key === 'ArrowRight') carousel.next();
-              if (e.key === 'ArrowLeft') carousel.prev();
-            }}
-            className="modules-carousel"
-          >
-            {/* Viewport (relative) + mask (clips slides) */}
-            <div className="carousel-viewport">
-              <div className="carousel-mask">
-                <div
-                  style={{
-                    display: 'flex',
-                    transition: 'transform 300ms ease',
-                    transform: `translateX(-${carousel.index * 50}%)`,
-                    width: '200%', // two slides
-                    minHeight: 520
-                  }}
+      {/* Run Modules Section (Home-style accent-top cards in a grid) */}
+      <section className="section">
+        <div className="container">
+          <div className="section-header" style={{ textAlign: 'center' }}>
+            <h2 className="section-title">Run Modules</h2>
+            <p className="section-subtitle" style={{ maxWidth: 900, margin: '0 auto' }}>
+              Try PulseGuard and CodeShield directly from your browser.
+            </p>
+          </div>
+
+          <div className="grid grid-2" style={{ alignItems: 'stretch' }}>
+            {/* PulseGuard (Anomaly Detection) */}
+            <div ref={anomalyRef} className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderTop: `3px solid ${colorFor('accent')}` }}>
+              <div className="tool-head" style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '1.75rem', marginBottom: 10 }}>🔍</div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, color: colorFor('accent') }}>PulseGuard – Transaction Anomaly Detection</h3>
+                <p className="muted" style={{ lineHeight: 1.6 }}>Enter a transaction hash and window to analyze suspicious activity.</p>
+              </div>
+              <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1.3fr 0.7fr' }}>
+                <input
+                  value={txHash}
+                  onChange={e => setTxHash(e.target.value)}
+                  placeholder="Transaction hash (0x...)"
+                  className="input"
+                  style={{ padding: '10px 12px', borderColor: txInvalid? 'rgba(239,68,68,0.6)':'' }}
+                />
+                <select value={windowSize} onChange={e => setWindowSize(e.target.value)} className="input" style={{ padding: '10px 12px' }}>
+                  <option value="50tx">Last 50 tx</option>
+                  <option value="100tx">Last 100 tx</option>
+                  <option value="24h">Last 24 hours</option>
+                </select>
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={runAnomaly}
+                  disabled={!txHash || anLoading || txInvalid}
                 >
-                  <div className="carousel-slide left">
-                    {/* --- Transaction Anomaly Detection --- */}
-                <div
-                  ref={anomalyRef}
-                  className="card tool-card accent-purple"
-                  style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-                >
-                  {/* BEGIN anomaly content (unchanged) */}
-                  <div className="tool-head">
-                    <h2 className="tool-title">🔍 PulseGuard – Transaction Anomaly Detection</h2>
-                    <p className="muted tool-sub">Enter a transaction hash and window to analyze suspicious activity (PulseGuard preview).</p>
-                  </div>
-                  <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1.3fr 0.7fr' }}>
-                    <input
-                      value={txHash}
-                      onChange={e => setTxHash(e.target.value)}
-                      placeholder="Transaction hash (0x...)"
-                      className="input"
-                      style={{ padding: '10px 12px', borderColor: txInvalid? 'rgba(239,68,68,0.6)':'' }}
-                    />
-                    <select value={windowSize} onChange={e => setWindowSize(e.target.value)} className="input" style={{ padding: '10px 12px' }}>
-                      <option value="50tx">Last 50 tx</option>
-                      <option value="100tx">Last 100 tx</option>
-                      <option value="24h">Last 24 hours</option>
-                    </select>
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={runAnomaly}
-                    disabled={!txHash || anLoading || txInvalid}
-                    style={{ gridColumn: '1 / -1', justifySelf: 'center', marginTop: 4 }}
-                  >
-                    {anLoading ? 'Analyzing…' : 'Run Anomaly Detection'}
-                  </button>
-                  {txInvalid && <div className="card card-tint-danger" style={{ marginTop:8 }}>Invalid tx hash</div>}
-                  {anError && <div className="card card-tint-danger" style={{ marginTop:8 }}>{anError}</div>}
-                  <ul className="feature-list">
-                    <li>Traverses transaction graph data structures to detect statistically significant deviations</li>
-                    <li>Flags anomalies such as outlier value spikes or novel counterparty addresses</li>
-                    <li>Computes risk score using weighted heuristics and rolling window aggregation</li>
-                    <li>Applies z-score and percentile rank math for anomaly thresholding</li>
-                  </ul>
-                  {anResult && (
-                    <div style={{ marginTop: 18 }}>
-                      <div className="card card-inner" style={{ padding: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                            <strong>Risk score:</strong>
-                            {badge(`${anResult.riskScore}/100`, trendTone)}
-                          </div>
-                          <button className="btn btn-secondary" onClick={() => downloadJson('anomaly-result.json', anResult)}>Download JSON</button>
-                        </div>
-                        <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
-                          {anResult.anomalies.map(a => (
-                            <div key={a.id} className="card card-tint-warning" style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div>
-                                <div style={{ fontWeight: 700 }}>{a.type}</div>
-                                <div className="muted" style={{ marginTop: 4 }}>{a.detail}</div>
-                              </div>
-                              {badge(a.severity.toUpperCase(), a.severity === 'high' ? 'bad' : a.severity === 'low' ? 'good' : 'neutral')}
-                            </div>
-                          ))}
-                        </div>
+                  {anLoading ? 'Analyzing…' : 'Run Anomaly Detection'}
+                </button>
+              </div>
+              {txInvalid && <div className="card card-tint-danger" style={{ marginTop:8 }}>Invalid tx hash</div>}
+              {anError && <div className="card card-tint-danger" style={{ marginTop:8 }}>{anError}</div>}
+              <ul style={{ marginTop: 12, fontSize: '0.95rem', color: 'var(--text-muted)', paddingLeft: 20, listStyle: 'disc' }}>
+                <li>Traverses transaction graph data structures to detect statistically significant deviations</li>
+                <li>Flags anomalies such as outlier value spikes or novel counterparty addresses</li>
+                <li>Computes risk score using weighted heuristics and rolling window aggregation</li>
+                <li>Applies z-score and percentile rank math for anomaly thresholding</li>
+              </ul>
+              {anResult && (
+                <div style={{ marginTop: 18 }}>
+                  <div className="card card-tint-accent" style={{ padding: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <strong>Risk score:</strong>
+                        {badge(`${anResult.riskScore}/100`, trendTone)}
                       </div>
+                      <button className="btn btn-secondary" onClick={() => downloadJson('anomaly-result.json', anResult)}>Download JSON</button>
+                    </div>
+                    <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+                      {anResult.anomalies.map(a => (
+                        <div key={a.id} className="card card-tint-warning" style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 700 }}>{a.type}</div>
+                            <div className="muted" style={{ marginTop: 4 }}>{a.detail}</div>
+                          </div>
+                          {badge(a.severity.toUpperCase(), a.severity === 'high' ? 'bad' : a.severity === 'low' ? 'good' : 'neutral')}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* CodeShield (Contract Scanner) */}
+            <div ref={scannerRef} className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderTop: `3px solid ${colorFor('primary')}` }}>
+              <div className="tool-head" style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '1.75rem', marginBottom: 10 }}>🛡️</div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, color: colorFor('primary') }}>CodeShield – Smart Contract Analysis</h3>
+                <p className="muted" style={{ lineHeight: 1.6 }}>Paste Solidity code and run a static analysis to detect vulnerabilities.</p>
+              </div>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ position:'relative' }}>
+                  <textarea
+                    value={code}
+                    onChange={e => setCode(e.target.value)}
+                    rows={10}
+                    className="input"
+                    style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', padding: 12, opacity: scanLoading?0.4:1 }}
+                  />
+                  <div aria-hidden="true" style={{ pointerEvents:'none', position:'absolute', inset:0, overflow:'auto', padding:12, fontFamily:'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', whiteSpace:'pre', fontSize:14, lineHeight:1.4, color:'transparent' }}>
+                    <div dangerouslySetInnerHTML={{ __html: highlightedCode }} style={{ position:'absolute', inset:12, color:'#e5e7eb' }} />
+                  </div>
+                </div>
+                {codeTooLarge && <div className="card card-tint-danger">Code exceeds 100KB limit.</div>}
+                {scanError && <div className="card card-tint-danger">{scanError}</div>}
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between' }}>
+                  <button className="btn btn-primary" onClick={runScan} disabled={!code || scanLoading || codeTooLarge}>
+                    {scanLoading ? 'Scanning…' : 'Scan Contract'}
+                  </button>
+                  {scanResult && (
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button className="btn btn-secondary" onClick={() => downloadJson('contract-scan.json', scanResult)}>Download JSON</button>
+                      <button className="btn" onClick={exportSarif}>Export SARIF</button>
                     </div>
                   )}
-                  {/* END anomaly content */}
                 </div>
               </div>
-                  <div className="carousel-slide right">
-                    {/* --- Smart Contract Security Scanner --- */}
-                    <div
-                      ref={scannerRef}
-                      className="card tool-card accent-blue"
-                      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-                    >
-                      {/* BEGIN scanner content (unchanged) */}
-                      <div className="tool-head">
-                        <h2 className="tool-title">🛡️ CodeShield - Smart Contract Analysis</h2>
-                        <p className="muted tool-sub">Paste your smart contract code and run an analysis to detect vulnerabilities.</p>
+              <ul style={{ marginTop: 12, fontSize: '0.95rem', color: 'var(--text-muted)', paddingLeft: 20, listStyle: 'disc' }}>
+                <li>Parses Solidity source into AST for rule-based vulnerability detection.</li>
+                <li>Checks against patterns for reentrancy, unchecked calls, and gas inefficiencies.</li>
+                <li>Reports findings with severity, line number, and remediation suggestions.</li>
+                <li>Uses static analysis math for complexity and gas estimation.</li>
+              </ul>
+              {scanResult && (
+                <div style={{ marginTop: 18 }}>
+                  <div className="card card-tint-info" style={{ padding: 16 }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <strong>Findings:</strong> {scanResult.summary.total} &nbsp;
+                        {badge(`High ${scanResult.summary.bySeverity.high}`, 'bad')} &nbsp;
+                        {badge(`Med ${scanResult.summary.bySeverity.medium}`, 'neutral')} &nbsp;
+                        {badge(`Low ${scanResult.summary.bySeverity.low}`, 'good')}
                       </div>
-                      <div style={{ display: 'grid', gap: 12 }}>
-                        <div style={{ position:'relative' }}>
-                          <textarea
-                            value={code}
-                            onChange={e => setCode(e.target.value)}
-                            rows={10}
-                            className="input"
-                            style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', padding: 12, opacity: scanLoading?0.4:1 }}
-                          />
-                          <div aria-hidden="true" style={{ pointerEvents:'none', position:'absolute', inset:0, overflow:'auto', padding:12, fontFamily:'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', whiteSpace:'pre', fontSize:14, lineHeight:1.4, color:'transparent' }}>
-                            <div dangerouslySetInnerHTML={{ __html: highlightedCode }} style={{ position:'absolute', inset:12, color:'#e5e7eb' }} />
+                      <span className="muted" style={{ fontSize: 12 }}>Scanned at {new Date(scanResult.meta.ranAt).toLocaleString()}</span>
+                    </div>
+                    <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+                      {scanResult.issues.map(i => {
+                        const outline = i.severity === 'high' ? 'card-outline-danger' : i.severity === 'medium' ? 'card-outline-warning' : 'card-outline-success'
+                        return (
+                          <div key={i.id} className={`card ${outline}`} style={{ padding: 12 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                              <div style={{ fontWeight: 700 }}>{i.rule}</div>
+                              {badge(i.severity.toUpperCase(), i.severity === 'high' ? 'bad' : i.severity === 'low' ? 'good' : 'neutral')}
+                            </div>
+                            <div className="muted" style={{ marginTop: 6 }}>Line {i.line} – {i.recommendation}</div>
                           </div>
-                        </div>
-                        {codeTooLarge && <div className="card card-tint-danger">Code exceeds 100KB limit.</div>}
-                        {scanError && <div className="card card-tint-danger">{scanError}</div>}
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between' }}>
-                          <button className="btn btn-primary" onClick={runScan} disabled={!code || scanLoading || codeTooLarge}>
-                            {scanLoading ? 'Scanning…' : 'Scan Contract'}
-                          </button>
-                          {scanResult && (
-                            <div style={{ display:'flex', gap:8 }}>
-                              <button className="btn btn-secondary" onClick={() => downloadJson('contract-scan.json', scanResult)}>Download JSON</button>
-                              <button className="btn" onClick={exportSarif}>Export SARIF</button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <ul className="feature-list">
-                        <li>Parses Solidity source into AST for rule-based vulnerability detection.</li>
-                        <li>Checks against patterns for reentrancy, unchecked calls, and gas inefficiencies.</li>
-                        <li>Reports findings with severity, line number, and remediation suggestions.</li>
-                        <li>Uses static analysis math for complexity and gas estimation.</li>
-                      </ul>
-                      {scanResult && (
-                        <div style={{ marginTop: 18 }}>
-                          <div className="card card-inner" style={{ padding: 16 }}>
-                            <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-                              <div>
-                                <strong>Findings:</strong> {scanResult.summary.total} &nbsp;
-                                {badge(`High ${scanResult.summary.bySeverity.high}`, 'bad')} &nbsp;
-                                {badge(`Med ${scanResult.summary.bySeverity.medium}`, 'neutral')} &nbsp;
-                                {badge(`Low ${scanResult.summary.bySeverity.low}`, 'good')}
-                              </div>
-                              <span className="muted" style={{ fontSize: 12 }}>Scanned at {new Date(scanResult.meta.ranAt).toLocaleString()}</span>
-                            </div>
-                            <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
-                              {scanResult.issues.map(i => (
-                                <div key={i.id} className="card" style={{ padding: 12 }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-                                    <div style={{ fontWeight: 700 }}>{i.rule}</div>
-                                    {badge(i.severity.toUpperCase(), i.severity === 'high' ? 'bad' : i.severity === 'low' ? 'good' : 'neutral')}
-                                  </div>
-                                  <div className="muted" style={{ marginTop: 6 }}>Line {i.line} – {i.recommendation}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      {/* END scanner content */}
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Module Directory Section (Home-style card grid) */}
+      <section className="section">
+        <div className="container">
+          <div className="section-header" style={{ textAlign: 'center' }}>
+            <h2 className="section-title">Module Directory</h2>
+            <p className="section-subtitle" style={{ maxWidth: 900, margin: '0 auto' }}>
+              Explore what’s live today and what’s coming next.
+            </p>
+          </div>
+
+          {(() => {
+            const modules = [
+              { key: 'pulseguard', title: 'PulseGuard', desc: 'Flags outliers across transaction graph and behavior features in real time.', status: 'alpha', cta: 'Open preview', path: '/pulseguard', hue: 'accent' },
+              { key: 'codeshield', title: 'CodeShield', desc: 'Static analysis engine detecting vulnerabilities pre-deployment.', status: 'alpha', cta: 'Open preview', path: '/codeshield', hue: 'primary' },
+              { key: 'stakebalancer', title: 'StakeBalancer', desc: 'Suggests validator rotations and weights to improve liveness and decentralization.', status: 'beta', cta: 'Request access', path: '/stakebalancer', hue: 'warning' },
+              { key: 'flowrate', title: 'FlowRate', desc: 'Predictive gas/fee quotes and optimal submit windows to reduce reverts.', status: 'soon', cta: 'Notify me', path: '/flowrate', hue: 'accent' },
+              { key: 'network', title: 'NetFlux', desc: 'Continuously tunes mempool/consensus params to keep latency low under bursty load.', status: 'soon', cta: 'Notify me', path: '/netflux', hue: 'primary' },
+            ]
+            const inRouter = (()=>{ try { return useInRouterContext() } catch { return false } })()
+            return (
+              <div className="grid grid-3" style={{ alignItems: 'stretch' }}>
+                {modules.map((m, i) => (
+                  <div key={m.key} className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderTop: `3px solid ${colorFor(m.hue)}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: colorFor(m.hue) }}>{m.title}</h3>
+                      <StatusPill status={m.status} />
+                    </div>
+                    <p className="muted" style={{ lineHeight: 1.6, margin: '10px 0 12px' }}>{m.desc}</p>
+                    <div style={{ marginTop: 'auto' }}>
+                      {m.path ? (
+                        inRouter ? <Link to={m.path} className="btn btn-primary">{m.cta}</Link> : <a href={m.path} className="btn btn-primary">{m.cta}</a>
+                      ) : (
+                        <button className="btn btn-primary" onClick={() => openModule(m.key)}>{m.cta}</button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-              {/* Carousel controls (anchored to viewport) */}
-              <button
-                aria-label="Previous tool"
-                onClick={carousel.prev}
-                // Remove box and emphasize icon
-                onMouseEnter={() => setHover('left')}
-                onMouseLeave={() => setHover(null)}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: -44, // sits just outside the masked content
-                  transform: `translateY(-50%) ${hover === 'left' ? 'scale(1.1)' : 'scale(1)'}`,
-                  width: 44,
-                  height: 44,
-                  display: 'grid',
-                  placeItems: 'center',
-                  background: 'transparent',
-                  border: 'none',
-                  color: hover === 'left' ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.9)',
-                  cursor: 'pointer',
-                  transition: 'transform 160ms ease, color 160ms ease, opacity 160ms ease',
-                  zIndex: 5
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }}>
-                  <path fillRule="evenodd" d="M10.354 14.354a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 1 1 .708.708L4.707 8l5.647 5.646a.5.5 0 0 1 0 .708z"/>
-                </svg>
-              </button>
+            )
+          })()}
+        </div>
+      </section>
 
-              <button
-                aria-label="Next tool"
-                onClick={carousel.next}
-                // Remove box and emphasize icon
-                onMouseEnter={() => setHover('right')}
-                onMouseLeave={() => setHover(null)}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  right: -44, // sits just outside the masked content
-                  transform: `translateY(-50%) ${hover === 'right' ? 'scale(1.1)' : 'scale(1)'}`,
-                  width: 44,
-                  height: 44,
-                  display: 'grid',
-                  placeItems: 'center',
-                  background: 'transparent',
-                  border: 'none',
-                  color: hover === 'right' ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.9)',
-                  cursor: 'pointer',
-                  transition: 'transform 160ms ease, color 160ms ease, opacity 160ms ease',
-                  zIndex: 5
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }}>
-                  <path fillRule="evenodd" d="M5.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 1 1-.708-.708L11.293 8 5.646 2.354a.5.5 0 0 1 0-.708z"/>
-                </svg>
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10 }}>
-              {[0,1].map(i => (
-                <button
-                  key={i}
-                  onClick={() => carousel.goTo(i)}
-                  aria-label={`Go to slide ${i+1}`}
-                  className={`carousel-dots-btn ${carousel.index === i ? 'active' : ''}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* --- Available AI Modules (interactive status) --- */}
-          <div className="card accent-cyan">
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 12 }}>Module Directory</h2>
-            {(() => {
-              const modules = [
-                { key: 'pulseguard', title: 'PulseGuard', desc: 'Flags outliers across transaction graph and behavior features in real time.', status: 'alpha', cta: 'Open preview', path: '/pulseguard' },
-                { key: 'codeshield', title: 'CodeShield', desc: 'Static analysis engine detecting vulnerabilities pre-deployment.', status: 'alpha', cta: 'Open preview', path: '/codeshield' },
-                { key: 'stakebalancer', title: 'StakeBalancer', desc: 'Suggests validator rotations and weights to improve liveness and decentralization.', status: 'beta', cta: 'Request access', path: '/stakebalancer' },
-                { key: 'flowrate', title: 'FlowRate', desc: 'Predictive gas/fee quotes and optimal submit windows to reduce reverts.', status: 'soon', cta: 'Notify me', path: '/flowrate' },
-                { key: 'network', title: 'NetFlux', desc: 'Continuously tunes mempool/consensus params to keep latency low under bursty load.', status: 'soon', cta: 'Notify me', path: '/netflux' },
-              ]
-              const firstRow = modules.slice(0,3)
-              const secondRow = modules.slice(3)
-              const inRouter = (()=>{ try { return useInRouterContext() } catch { return false } })()
-              const accentByKey = {
-                pulseguard: 'accent-purple',
-                codeshield: 'accent-blue',
-                stakebalancer: 'accent-amber',
-                flowrate: 'accent-cyan',
-                network: 'accent-purple',
-              }
-              const renderCard = (m,i) => (
-                <div key={m.key} className={`card module-card ${accentByKey[m.key] || ''}`}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <h3 style={{ margin: 0 }}>{m.title}</h3>
-                    <StatusPill status={m.status} />
-                  </div>
-                  <p className="muted" style={{ fontSize: '0.95rem', lineHeight: 1.6, flex: 1 }}>{m.desc}</p>
-                  <div>
-                    {m.path ? (
-                      inRouter ? <Link to={m.path} className="btn btn-primary">{m.cta}</Link> : <a href={m.path} className="btn btn-primary">{m.cta}</a>
-                    ) : (
-                      <button className="btn btn-primary" onClick={() => openModule(m.key)}>{m.cta}</button>
-                    )}
-                  </div>
-                </div>
-              )
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div className="module-grid">
-                    {firstRow.map(renderCard)}
-                  </div>
-                  <div className="module-grid">
-                    {secondRow.map(renderCard)}
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
-
-          {/* PQC Demo (flag gated) */}
-          {PQC_ENABLED && (
-            <div className="card accent-purple" style={{ borderColor: pqcReady === false ? 'rgba(239,68,68,0.4)' : 'rgba(99,102,241,0.4)' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 12 }}>PQC Demo</h2>
+      {/* PQC Demo (flag gated) */}
+      {PQC_ENABLED && (
+        <section className="section" style={{ paddingTop: 0 }}>
+          <div className="container">
+            <div className="card" style={{ borderTop: `3px solid ${colorFor('accent')}`, borderColor: pqcReady === false ? 'rgba(239,68,68,0.4)' : undefined }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 12, color: colorFor('accent') }}>PQC Demo</h2>
               {pqcReady === false && (
                 <div className="card card-tint-danger" style={{ marginBottom: 12 }}>
                   <strong style={{ color: '#ef4444' }}>Integrity Failure:</strong> <span className="muted">{pqcErr}</span>
@@ -584,9 +496,9 @@ const Modules = () => {
               </div>
               <div className="muted" style={{ marginTop: 12, fontSize: '0.8rem' }}>All sensitive buffers are zeroized after signing/verifying where feasible in JS.</div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

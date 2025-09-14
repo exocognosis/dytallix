@@ -947,6 +947,27 @@ pub async fn get_rewards_by_height(
     }
 }
 
+/// POST /dev/faucet - Development-only faucet to credit balances directly
+/// Body: { "address": string, "udgt": u64 (optional), "udrt": u64 (optional) }
+pub async fn dev_faucet(
+    Extension(ctx): Extension<RpcContext>,
+    Json(payload): Json<serde_json::Value>,
+    ) -> Result<Json<serde_json::Value>, ApiError> {
+    let addr = payload.get("address").and_then(|v| v.as_str()).ok_or(ApiError::BadRequest("missing address".to_string()))?;
+    let udgt = payload.get("udgt").and_then(|v| v.as_u64()).unwrap_or(1_000_000);
+    let udrt = payload.get("udrt").and_then(|v| v.as_u64()).unwrap_or(50_000_000);
+    {
+        let mut st = ctx.state.lock().unwrap();
+        st.credit(addr, "udgt", udgt as u128);
+        st.credit(addr, "udrt", udrt as u128);
+    }
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "address": addr,
+        "credited": {"udgt": udgt.to_string(), "udrt": udrt.to_string()}
+    })))
+}
+
 /// Enhanced stats endpoint with emission data (staking optional)
 pub async fn stats_with_emission(
     Extension(ctx): Extension<RpcContext>,

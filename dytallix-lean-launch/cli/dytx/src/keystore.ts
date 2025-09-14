@@ -33,7 +33,8 @@ export function defaultKeystoreDir(): string {
 export function deriveAddressFromPubkey(pubkey: Uint8Array, prefix = 'dytallix'): string {
   const sha = createHash('sha256').update(pubkey).digest()
   const ripe = createHash('ripemd160').update(sha).digest('hex')
-  return `${prefix}${ripe}`
+  // Bech32-like development format: <prefix>1<hex>
+  return `${prefix}1${ripe}`
 }
 
 export function encryptSecretKey(name: string, sk: Uint8Array, pk: Uint8Array, passphrase: string, algo = 'dilithium'): KeystoreRecord {
@@ -93,4 +94,3 @@ export function findKeystoreByAddress(address: string, dir = defaultKeystoreDir(
   }
   return null
 }
-

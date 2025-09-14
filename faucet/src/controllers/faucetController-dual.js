@@ -1,5 +1,6 @@
 const winston = require('winston');
 const axios = require('axios');
+const { logFaucetEvent } = require('../utils/artifactLogger');
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -102,6 +103,10 @@ class DualTokenFaucetController {
       // Simulate token distribution
       const transactions = [];
       let totalSent = {};
+      const before = {
+        DGT: currentDgtBalance,
+        DRT: currentDrtBalance,
+      };
 
       if (tokenType === 'DGT' || tokenType === 'both') {
         const dgtTxHash = this.generateTxHash();
@@ -135,6 +140,20 @@ class DualTokenFaucetController {
         tokenType,
         transactions: transactions.length,
         totalSent
+      });
+
+      // Artifact evidence logging (balance increment after funding)
+      const after = {
+        DGT: (before.DGT ?? 0) + (totalSent.DGT ? parseInt(totalSent.DGT) : 0),
+        DRT: (before.DRT ?? 0) + (totalSent.DRT ? parseInt(totalSent.DRT) : 0),
+      };
+      logFaucetEvent('SUCCESS_FUND', {
+        address,
+        tokenType,
+        sent: totalSent,
+        before,
+        after,
+        transactions,
       });
 
       res.status(200).json({

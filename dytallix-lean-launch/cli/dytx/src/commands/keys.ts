@@ -1,7 +1,7 @@
 import { Command } from 'commander'
 import inquirer from 'inquirer'
 import chalk from 'chalk'
-import { keypair } from '../../../../sdk/src/pqcMock.js'
+import { keypair } from '../lib/pqcMock.js'
 import { defaultKeystoreDir, encryptSecretKey, saveKeystore, findKeystoreByAddress, loadKeystoreByName } from '../keystore.js'
 
 export const keysCommand = new Command('keys')
@@ -10,12 +10,21 @@ export const keysCommand = new Command('keys')
     .description('Generate and store a new PQC keypair (encrypted keystore)')
     .option('--name <name>', 'Key name', 'default')
     .option('--algo <algo>', 'Algorithm', 'dilithium')
+    .option('--passphrase <pass>', 'Keystore passphrase (non-interactive; or set DYTX_PASSPHRASE)')
     .action(async (opts) => {
-      const { passphrase } = await inquirer.prompt<{ passphrase: string }>([
-        { type: 'password', name: 'passphrase', message: 'Enter passphrase to encrypt the key:', mask: '*', validate: (v) => v && v.length >= 8 || 'Min 8 chars' }
-      ])
+      const envPass = process.env.DYTX_PASSPHRASE
+      let passphrase = opts.passphrase as string | undefined
+      if (!passphrase) {
+        if (envPass && envPass.length >= 8) {
+          passphrase = envPass
+        } else {
+          passphrase = (await inquirer.prompt<{ passphrase: string }>([
+            { type: 'password', name: 'passphrase', message: 'Enter passphrase to encrypt the key:', mask: '*', validate: (v) => v && v.length >= 8 || 'Min 8 chars' }
+          ])).passphrase
+        }
+      }
       const { sk, pk } = keypair()
-      const rec = encryptSecretKey(opts.name, sk, pk, passphrase, opts.algo)
+      const rec = encryptSecretKey(opts.name, sk, pk, passphrase!, opts.algo)
       const file = saveKeystore(rec)
       console.log(chalk.green('✅ Key stored'))
       console.log(chalk.gray('Keystore:'), file)

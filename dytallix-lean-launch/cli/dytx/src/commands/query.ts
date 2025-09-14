@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
-import { DytClient } from '../../../../sdk/src/client'
+import { DytClient } from '../lib/client.js'
 
 export const queryCommand = new Command('query')
   .description('Query modules')

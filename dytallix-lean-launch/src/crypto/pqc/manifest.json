@@ -1,5 +1,5 @@
 {
-  "dilithium.wasm": "fee133d67f90501e05d3328a96a5af5baaba7f906471b6e68b09415ec996ddda",
-  "falcon.wasm": "ef4838db28e7fdd59f5694660542f2068b24c759bd2c044f30fa4d54521cea33",
-  "sphincs.wasm": "42801c880ba3725fe764bbc7bea1036dd58466c0e22c55640ca8651d38814547"
+  "dilithium.wasm": { "sha256": "fee133d67f90501e05d3328a96a5af5baaba7f906471b6e68b09415ec996ddda", "size": 51288 },
+  "falcon.wasm": { "sha256": "ef4838db28e7fdd59f5694660542f2068b24c759bd2c044f30fa4d54521cea33", "size": 115973 },
+  "sphincs.wasm": { "sha256": "42801c880ba3725fe764bbc7bea1036dd58466c0e22c55640ca8651d38814547", "size": 29863 }
 }

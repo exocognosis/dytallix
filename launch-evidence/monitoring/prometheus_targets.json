@@ -1,20 +1,73 @@
 {
-  "targets": [
+  "activeTargets": [
     {
-      "job": "dyt-node",
-      "metrics_path": "/metrics",
-      "static_configs": [{ "targets": ["localhost:3030"], "labels": {"service": "node"} }]
+      "discoveredLabels": {
+        "__address__": "host.docker.internal:9464",
+        "__metrics_path__": "/metrics",
+        "__scheme__": "http",
+        "__scrape_interval__": "5s",
+        "__scrape_timeout__": "5s",
+        "job": "dytallix-node-local"
+      },
+      "labels": {
+        "instance": "host.docker.internal:9464",
+        "job": "dytallix-node-local"
+      },
+      "scrapePool": "dytallix-node-local",
+      "scrapeUrl": "http://host.docker.internal:9464/metrics",
+      "globalUrl": "http://host.docker.internal:9464/metrics",
+      "lastError": "",
+      "lastScrape": "2025-09-14T21:51:30.657180255Z",
+      "lastScrapeDuration": 0.00213825,
+      "health": "up",
+      "scrapeInterval": "5s",
+      "scrapeTimeout": "5s"
     },
     {
-      "job": "dyt-api",
-      "metrics_path": "/metrics",
-      "static_configs": [{ "targets": ["localhost:8787"], "labels": {"service": "api-server"} }]
+      "discoveredLabels": {
+        "__address__": "host.docker.internal:3001",
+        "__metrics_path__": "/metrics",
+        "__scheme__": "http",
+        "__scrape_interval__": "5s",
+        "__scrape_timeout__": "5s",
+        "job": "pulsescan-api"
+      },
+      "labels": {
+        "instance": "host.docker.internal:3001",
+        "job": "pulsescan-api"
+      },
+      "scrapePool": "pulsescan-api",
+      "scrapeUrl": "http://host.docker.internal:3001/metrics",
+      "globalUrl": "http://host.docker.internal:3001/metrics",
+      "lastError": "",
+      "lastScrape": "2025-09-14T21:51:29.135105212Z",
+      "lastScrapeDuration": 0.002807083,
+      "health": "up",
+      "scrapeInterval": "5s",
+      "scrapeTimeout": "5s"
     },
     {
-      "job": "dyt-ai",
-      "metrics_path": "/metrics",
-      "static_configs": [{ "targets": ["localhost:7000"], "labels": {"service": "ai-service"} }]
+      "discoveredLabels": {
+        "__address__": "host.docker.internal:9090",
+        "__metrics_path__": "/metrics",
+        "__scheme__": "http",
+        "__scrape_interval__": "5s",
+        "__scrape_timeout__": "5s",
+        "job": "pulsescan-infer"
+      },
+      "labels": {
+        "instance": "host.docker.internal:9090",
+        "job": "pulsescan-infer"
+      },
+      "scrapePool": "pulsescan-infer",
+      "scrapeUrl": "http://host.docker.internal:9090/metrics",
+      "globalUrl": "http://host.docker.internal:9090/metrics",
+      "lastError": "",
+      "lastScrape": "2025-09-14T21:51:29.565927088Z",
+      "lastScrapeDuration": 0.001532958,
+      "health": "up",
+      "scrapeInterval": "5s",
+      "scrapeTimeout": "5s"
     }
   ]
 }
-

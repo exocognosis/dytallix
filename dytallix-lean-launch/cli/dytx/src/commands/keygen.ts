@@ -3,7 +3,7 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
 import inquirer from 'inquirer'
-import { keypair } from '../../../../sdk/src/pqcMock'
+import { keypair } from '../lib/pqcMock.js'
 
 export const keygenCommand = new Command('keygen')
   .description('Generate a new PQC keypair')

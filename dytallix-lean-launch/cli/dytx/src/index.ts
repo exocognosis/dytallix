@@ -13,6 +13,9 @@ import { signCommand } from './commands/sign.js'
 import { broadcastCommand } from './commands/broadcast.js'
 import { transferCommand } from './commands/transfer.js'
 import { govCommand } from './commands/gov.js'
+import { contractCommand } from './commands/contract.js'
+import { pqcSignCommand } from './commands/pqc-sign.js'
+import { pqcVerifyCommand } from './commands/pqc-verify.js'
 
 const program = new Command()
 
@@ -36,6 +39,9 @@ program.addCommand(signCommand)
 program.addCommand(broadcastCommand)
 program.addCommand(transferCommand)
 program.addCommand(govCommand)
+program.addCommand(contractCommand)
+program.addCommand(pqcSignCommand)
+program.addCommand(pqcVerifyCommand)
 
 // Error handling
 program.configureOutput({

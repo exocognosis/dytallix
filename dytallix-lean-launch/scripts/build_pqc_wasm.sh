@@ -124,10 +124,17 @@ for a in "${ALGOS[@]}"; do build_algo "$a"; done
 
 hash_file() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1"|awk '{print $1}'; else shasum -a 256 "$1"|awk '{print $1}'; fi }
 
-# Build manifest JSON
+# Build manifest JSON (with size + sha256)
 TMP_MANIFEST="$TMP_BUILD/manifest.new.json"
 echo '{' > "$TMP_MANIFEST"
-for i in "${!ALGOS[@]}"; do algo="${ALGOS[$i]}"; h=$(hash_file "$OUT_DIR/${algo}.wasm"); sep=','; [[ $i -eq $((${#ALGOS[@]}-1)) ]] && sep=''; printf '  "%s.wasm": "%s"%s\n' "$algo" "$h" "$sep" >> "$TMP_MANIFEST"; done
+for i in "${!ALGOS[@]}"; do \
+  algo="${ALGOS[$i]}"; \
+  f="$OUT_DIR/${algo}.wasm"; \
+  h=$(hash_file "$f"); \
+  if command -v stat >/dev/null 2>&1; then s=$(stat -f "%z" "$f" 2>/dev/null || stat -c "%s" "$f" 2>/dev/null); else s=$(wc -c <"$f"); fi; \
+  sep=','; [[ $i -eq $((${#ALGOS[@]}-1)) ]] && sep=''; \
+  printf '  "%s.wasm": { "sha256": "%s", "size": %s }%s\n' "$algo" "$h" "$s" "$sep" >> "$TMP_MANIFEST"; \
+done
 echo '}' >> "$TMP_MANIFEST"
 
 # Optional signing

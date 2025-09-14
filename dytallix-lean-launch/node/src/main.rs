@@ -385,6 +385,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/rewards/:height", get(rpc::get_rewards_by_height))
         .route("/api/stats", get(rpc::stats_with_emission))
         .route("/api/contracts", get(rpc::list_contracts))
+        // Dev faucet (credits balances directly; for local E2E only)
+        .route("/dev/faucet", post(rpc::dev_faucet))
         // Ops simulation endpoints (pause/resume producer)
         .route("/ops/pause", post(rpc::ops_pause))
         .route("/ops/resume", post(rpc::ops_resume));

@@ -2,8 +2,8 @@
 
 import { Command } from 'commander'
 import chalk from 'chalk'
-import { DytClient } from '../../../../sdk/src/client'
-import { signTxMock, buildSendTx } from '../../../../sdk/src/index'
+import { DytClient } from '../lib/client.js'
+import { signTxMock, buildSendTx } from '../lib/tx.js'
 import inquirer from 'inquirer'
 import { decryptSecretKey, findKeystoreByAddress, loadKeystoreByName } from '../keystore.js'
 
@@ -15,6 +15,7 @@ export const transferCommand = new Command('transfer')
   .option('--denom <denom>', 'Token denomination (udgt|udrt)', 'udgt')
   .option('--memo <memo>', 'Transaction memo', '')
   .option('--keystore <nameOrPath>', 'Keystore name (from keys list) or file path')
+  .option('--passphrase <pass>', 'Keystore passphrase (non-interactive; or set DYTX_PASSPHRASE)')
   .action(async (options, command) => {
     try {
       const globalOpts = command.parent.opts()
@@ -27,13 +28,10 @@ export const transferCommand = new Command('transfer')
         }
       }
 
-      // Validate addresses
-      if (!options.from.startsWith('dytallix1')) {
-        throw new Error('Invalid sender address format')
-      }
-      if (!options.to.startsWith('dytallix1')) {
-        throw new Error('Invalid recipient address format')
-      }
+      // Validate addresses (lean check; allow dyt* for dev bech32 variations)
+      const validAddr = (a: string) => typeof a === 'string' && a.startsWith('dyt') && a.length >= 12
+      if (!validAddr(options.from)) throw new Error('Invalid sender address format')
+      if (!validAddr(options.to)) throw new Error('Invalid recipient address format')
 
       // Validate amount
       const amount = parseFloat(options.amount)
@@ -78,10 +76,12 @@ export const transferCommand = new Command('transfer')
         if (!found) throw new Error('No keystore found for --from address; provide --keystore <nameOrPath>')
         rec = found.rec
       }
-      const { passphrase } = await inquirer.prompt<{ passphrase: string }>([
+      const passFromEnv = process.env.DYTX_PASSPHRASE
+      const passFromFlag = options.passphrase as string | undefined
+      const pass = passFromFlag || passFromEnv || (await inquirer.prompt<{ passphrase: string }>([
         { type: 'password', name: 'passphrase', message: 'Enter keystore passphrase:', mask: '*' }
-      ])
-      const sk = decryptSecretKey(rec, passphrase)
+      ])).passphrase
+      const sk = decryptSecretKey(rec, pass)
       const pk = Buffer.from(rec.pubkey_b64, 'base64')
       const signed = signTxMock(tx, sk, new Uint8Array(pk))
       const res = await client.submitSignedTx(signed)
