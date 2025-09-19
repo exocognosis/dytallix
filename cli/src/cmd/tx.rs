@@ -43,6 +43,12 @@ pub struct BatchCmd {
     pub gas_price: u64,
 }
 
+#[derive(Args, Debug, Clone)]
+pub struct BroadcastCmd {
+    #[arg(help = "Raw signed transaction JSON file or - for STDIN")]
+    pub tx_file: String,
+}
+
 pub async fn handle_transfer(
     rpc_url: &str,
     chain_id: &str,
@@ -254,4 +260,42 @@ fn estimate_intrinsic_gas_for_batch(tx: &Tx) -> Result<u64> {
     let size_cost = per_byte_cost * (tx_size as u64);
 
     Ok(base_cost + size_cost)
+}
+
+/// Handle broadcast command - submit raw signed transaction
+pub async fn handle_broadcast(
+    rpc_url: &str,
+    _chain_id: &str,
+    _home: &str,
+    c: BroadcastCmd,
+    fmt: OutputFormat,
+) -> Result<()> {
+    use std::io::Read;
+    
+    // Read signed transaction from file or stdin
+    let tx_data = if c.tx_file == "-" {
+        let mut buffer = String::new();
+        std::io::stdin().read_to_string(&mut buffer)?;
+        buffer
+    } else {
+        std::fs::read_to_string(&c.tx_file)?
+    };
+    
+    // Parse the signed transaction
+    let signed_tx: SignedTx = serde_json::from_str(&tx_data.trim())
+        .map_err(|e| anyhow!("Failed to parse signed transaction: {}", e))?;
+    
+    // Submit to node
+    let client = RpcClient::new(rpc_url);
+    let result = client.submit(&signed_tx).await?;
+    
+    if fmt.is_json() {
+        print_json(&result)?;
+    } else {
+        println!("Transaction broadcast successfully:");
+        println!("  Hash: {}", result.hash);
+        println!("  Status: {}", result.status);
+    }
+    
+    Ok(())
 }

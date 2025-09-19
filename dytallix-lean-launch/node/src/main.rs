@@ -365,11 +365,13 @@ async fn main() -> anyhow::Result<()> {
     // Router
     let mut app = Router::new()
         .route("/submit", post(rpc::submit))
+        .route("/transactions/submit", post(rpc::submit)) // Standard endpoint path
         .route("/blocks", get(rpc::list_blocks))
         .route("/block/:id", get(rpc::get_block))
         .route("/balance/:addr", get(rpc::get_balance))
         .route("/account/:addr", get(rpc::get_account))
         .route("/tx/:hash", get(rpc::get_tx))
+        .route("/transactions/:hash", get(rpc::get_tx)) // Standard endpoint path
         // Minimal JSON-RPC endpoint used by the dashboard server for WASM demos
         .route("/rpc", post(rpc::json_rpc))
         // AI risk utility routes
@@ -378,6 +380,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/ai/latency", get(rpc::ai::ai_latency))
         .route("/metrics", get(rpc::metrics_export))
         .route("/stats", get(rpc::stats))
+        .route("/status", get(rpc::status))
         .route("/peers", get(rpc::peers))
         .route("/bridge/ingest", post(rpc::bridge_ingest))
         .route("/bridge/halt", post(rpc::bridge_halt))
