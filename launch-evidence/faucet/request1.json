@@ -1,0 +1,35 @@
+{
+  "description": "First faucet request payload for testing on-chain integration",
+  "endpoint": "POST /api/faucet",
+  "payload": {
+    "address": "dytallix1test6789abcdef0123456789abcdef0123456789abcdef",
+    "tokens": ["DGT", "DRT"]
+  },
+  "test_scenario": "successful_dual_token_request",
+  "expected_tokens": [
+    {
+      "symbol": "DGT",
+      "amount": "2",
+      "denom": "udgt",
+      "amount_micro": "2000000"
+    },
+    {
+      "symbol": "DRT", 
+      "amount": "50",
+      "denom": "udrt",
+      "amount_micro": "50000000"
+    }
+  ],
+  "rate_limit_info": {
+    "dgt_cooldown_hours": 24,
+    "drt_cooldown_hours": 6,
+    "ip_tracking": true,
+    "address_tracking": true
+  },
+  "validation_requirements": [
+    "Address must be valid bech32 with dytallix prefix",
+    "Tokens must be DGT and/or DRT",
+    "Must pass rate limit checks for both IP and address",
+    "Must generate valid transaction hashes on-chain"
+  ]
+}
