@@ -21,7 +21,7 @@ pub type TxHash = String;
 pub type BlockNumber = u64;
 
 /// Amount in smallest unit (like satoshis)
-pub type Amount = u64; // Using u64 for current compatibility; serialized as string for JSON
+pub type Amount = u128; // Using u128 for monetary quantities; serialized as string for JSON
 
 /// Unix timestamp (seconds since epoch)
 pub type Timestamp = u64;
@@ -30,12 +30,12 @@ pub type Timestamp = u64;
 pub mod serde_u128_string {
     use serde::de::Error as DeError;
     use serde::{Deserialize, Deserializer, Serializer};
-    pub fn serialize<S: Serializer>(v: &u64, s: S) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: Serializer>(v: &u128, s: S) -> Result<S::Ok, S::Error> {
         s.serialize_str(&v.to_string())
     }
-    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u64, D::Error> {
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u128, D::Error> {
         let s = String::deserialize(d)?;
-        s.parse::<u64>().map_err(D::Error::custom)
+        s.parse::<u128>().map_err(D::Error::custom)
     }
 }
 
@@ -478,7 +478,7 @@ use tokio::sync::RwLock;
 #[derive(Debug)]
 pub struct TransactionPool {
     /// Pending transactions organized by fee (highest fee first)
-    pending: Arc<RwLock<BTreeMap<u64, Vec<Transaction>>>>,
+    pending: Arc<RwLock<BTreeMap<u128, Vec<Transaction>>>>,
     /// Transaction lookup by hash
     lookup: Arc<RwLock<HashMap<TxHash, Transaction>>>,
     /// Maximum pool size
@@ -1016,10 +1016,10 @@ mod tests {
             amount: Amount,
         }
         let w = Wrapper {
-            amount: 12_345_678_901_234_567u64,
-        }; // fits in u64
+            amount: 12_345_678_901_234_567_890_123_456u128,
+        }; // Use full u128 value
         let json = serde_json::to_string(&w).unwrap();
-        assert!(json.contains("12345678901234567"));
+        assert!(json.contains("12345678901234567890123456"));
         let de: Wrapper = serde_json::from_str(&json).unwrap();
         assert_eq!(de, w);
     }

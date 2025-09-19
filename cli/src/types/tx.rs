@@ -196,8 +196,8 @@ impl SignedTx {
     }
 
     /// Calculate the total fee that will be charged in datt (gas_limit * gas_price)
-    pub fn total_fee_datt(&self) -> u64 {
-        self.gas_limit.saturating_mul(self.gas_price)
+    pub fn total_fee_datt(&self) -> u128 {
+        (self.gas_limit as u128).saturating_mul(self.gas_price as u128)
     }
 
     /// Get transaction size in bytes for gas calculation

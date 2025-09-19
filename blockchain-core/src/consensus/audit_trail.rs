@@ -59,9 +59,9 @@ pub struct TransactionMetadata {
     /// To address
     pub to_address: Option<Address>,
     /// Transaction amount
-    pub amount: Option<u64>,
+    pub amount: Option<u128>,
     /// Transaction fee
-    pub fee: Option<u64>,
+    pub fee: Option<u128>,
     /// Transaction timestamp
     pub transaction_timestamp: u64,
     /// Additional contextual data
@@ -132,9 +132,9 @@ pub struct ComplianceQuery {
     /// Filter by address (from/to)
     pub address_filter: Option<Vec<Address>>,
     /// Minimum amount threshold
-    pub min_amount: Option<u64>,
+    pub min_amount: Option<u128>,
     /// Maximum amount threshold
-    pub max_amount: Option<u64>,
+    pub max_amount: Option<u128>,
     /// Include deleted/archived entries
     pub include_archived: bool,
     /// Pagination offset
@@ -157,7 +157,7 @@ pub struct ComplianceReportSummary {
     /// Average risk score
     pub average_risk_score: f64,
     /// Total transaction volume
-    pub total_volume: u64,
+    pub total_volume: u128,
     /// Number of manual reviews required
     pub manual_reviews_required: usize,
     /// Number of flagged transactions
@@ -386,7 +386,7 @@ impl AuditTrailManager {
         let storage = self.audit_storage.read().await;
         let mut matching_entries = Vec::new();
         let mut summary_stats = HashMap::new();
-        let mut total_volume = 0u64;
+        let mut total_volume = 0u128;
         let mut risk_scores = Vec::new();
 
         for entry in storage.values() {
