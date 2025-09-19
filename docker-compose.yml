@@ -141,12 +141,33 @@ services:
       - loki_data:/loki
     restart: unless-stopped
 
+  ai-services:
+    build: ./ai-services
+    container_name: dytallix-ai-services
+    ports:
+      - "8000:8000"  # Main API port
+      - "9103:9103"  # Metrics port
+    environment:
+      - ENABLE_METRICS=true
+      - AI_SERVICES_PORT=8000
+      - LOG_LEVEL=info
+    volumes:
+      - ai_services_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 volumes:
   faucet_logs:
   explorer_logs:
   prometheus_data:
   grafana_data:
   loki_data:
+  ai_services_data:
 
 networks:
   default:

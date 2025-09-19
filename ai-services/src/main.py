@@ -19,8 +19,9 @@ import asyncio
 import logging
 import time
 import uuid
+import os
 from typing import Dict, List, Optional
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -41,6 +42,60 @@ from performance_middleware import (
 )
 from model_optimization import get_model_loader, get_inference_optimizer
 from performance_dashboard import performance_router
+
+# Prometheus metrics setup
+METRICS_ENABLED = os.getenv("ENABLE_METRICS", "false").lower() == "true"
+prometheus = None
+ai_metrics = {}
+
+if METRICS_ENABLED:
+    try:
+        import prometheus_client
+        from prometheus_client import Counter, Histogram, Gauge
+        
+        # AI Service specific metrics with dyt_ prefix
+        ai_metrics = {
+            'ai_requests_total': Counter(
+                'dyt_ai_requests_total',
+                'Total number of AI service requests',
+                ['endpoint', 'status']
+            ),
+            'ai_request_duration_seconds': Histogram(
+                'dyt_ai_request_duration_seconds', 
+                'AI service request duration',
+                ['endpoint']
+            ),
+            'ai_model_inference_seconds': Histogram(
+                'dyt_ai_model_inference_seconds',
+                'AI model inference time',
+                ['model_type']
+            ),
+            'ai_oracle_latency_seconds': Histogram(
+                'dyt_ai_oracle_latency_seconds',
+                'AI oracle request latency',
+                buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+            ),
+            'ai_cache_hits_total': Counter(
+                'dyt_ai_cache_hits_total',
+                'Total AI cache hits'
+            ),
+            'ai_cache_misses_total': Counter(
+                'dyt_ai_cache_misses_total', 
+                'Total AI cache misses'
+            ),
+            'ai_fraud_detection_score': Gauge(
+                'dyt_ai_fraud_detection_score',
+                'Latest fraud detection confidence score'
+            ),
+            'ai_risk_score': Gauge(
+                'dyt_ai_risk_score',
+                'Latest transaction risk score'
+            )
+        }
+        print("✅ Prometheus metrics initialized for AI services")
+    except ImportError:
+        print("⚠️  Prometheus client not available, metrics disabled")
+        METRICS_ENABLED = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -283,7 +338,8 @@ async def root():
             "/generate/contract",
             "/oracle/request",
             "/oracle/info",
-            "/health"
+            "/health",
+            "/metrics"
         ]
     }
 
@@ -311,6 +367,27 @@ async def health_check():
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=500, detail="Health check failed")
+
+@app.get("/metrics")
+async def metrics_endpoint():
+    """Prometheus metrics endpoint"""
+    if not METRICS_ENABLED:
+        raise HTTPException(status_code=404, detail="Metrics not enabled")
+    
+    try:
+        from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+        return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Prometheus client not available")
+
+def record_request_metrics(endpoint: str, status: str, duration: float = None, model_type: str = None):
+    """Helper function to record metrics"""
+    if METRICS_ENABLED and ai_metrics:
+        ai_metrics['ai_requests_total'].labels(endpoint=endpoint, status=status).inc()
+        if duration is not None:
+            ai_metrics['ai_request_duration_seconds'].labels(endpoint=endpoint).observe(duration)
+        if model_type is not None:
+            ai_metrics['ai_model_inference_seconds'].labels(model_type=model_type).observe(duration or 0)
 
 @app.post("/analyze/fraud", response_model=FraudAnalysisResponse)
 async def analyze_fraud(request: FraudAnalysisRequest, http_request: Request):
@@ -392,10 +469,20 @@ async def analyze_fraud(request: FraudAnalysisRequest, http_request: Request):
             
             optimized_response["signed_response"] = signed_response
         
+        # Record metrics
+        total_duration = time.time() - start_time
+        record_request_metrics("analyze_fraud", "success", total_duration, "fraud_detection")
+        if METRICS_ENABLED and ai_metrics:
+            ai_metrics['ai_fraud_detection_score'].set(analysis["confidence"])
+        
         return FraudAnalysisResponse(**optimized_response)
         
     except Exception as e:
         logger.error(f"Fraud analysis failed: {e}")
+        
+        # Record error metrics
+        total_duration = time.time() - start_time
+        record_request_metrics("analyze_fraud", "error", total_duration)
         
         # Sign error response if signing service is available
         if signing_service and signing_service.is_initialized:
@@ -824,10 +911,11 @@ async def cleanup_expired_responses():
 
 if __name__ == "__main__":
     logger.info("Starting Dytallix AI Services...")
+    port = int(os.getenv("AI_SERVICES_PORT", "8000"))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=False,
         log_level="info"
     )

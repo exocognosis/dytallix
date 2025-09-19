@@ -10,6 +10,15 @@ groups:
           summary: "Dytallix blockchain has stopped producing blocks"
           description: "No new blocks have been produced for more than 30 seconds. Last block time: {{ $value }}"
 
+      - alert: NodeHalt
+        expr: up{job="dytallix-node"} == 0 or time() - max(dyt_block_last_time_seconds) > 60
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dytallix node is halted or unreachable"
+          description: "Node is either down (up=0) or no blocks produced for > 60 seconds. Immediate attention required."
+
       - alert: ValidatorOffline
         expr: increase(dyt_validator_missed_blocks_total[60s]) > 0
         for: 60s
