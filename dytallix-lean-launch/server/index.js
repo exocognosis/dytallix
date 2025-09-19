@@ -602,11 +602,24 @@ app.get('/api/dashboard/timeseries', async (req, res, next) => {
 })
 
 app.post('/api/faucet', async (req, res, next) => {
+  const startTime = Date.now()
+  const requestId = `faucet-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   try {
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
+    const userAgent = req.headers['user-agent'] || 'unknown'
     const { address, token, tokens } = req.body || {}
 
     const cleanAddress = typeof address === 'string' ? address.trim() : ''
+    
+    // Enhanced abuse logging: log all incoming requests with context
+    logInfo('Faucet request received', {
+      requestId,
+      ip,
+      userAgent: userAgent.slice(0, 200), // Truncate long user agents
+      address: cleanAddress,
+      requestedTokens: tokens || [token],
+      timestamp: new Date().toISOString()
+    })
     
     // Support both legacy single token and new dual-token requests
     let requestedTokens = []
@@ -622,6 +635,13 @@ app.post('/api/faucet', async (req, res, next) => {
     }
 
     if (!isBech32Address(cleanAddress)) {
+      logError('Faucet request failed: Invalid address', {
+        requestId,
+        ip,
+        userAgent: userAgent.slice(0, 200),
+        address: cleanAddress,
+        error: 'INVALID_ADDRESS'
+      })
       return res.status(400).json({
         success: false,
         error: 'INVALID_ADDRESS',
@@ -630,6 +650,14 @@ app.post('/api/faucet', async (req, res, next) => {
     }
 
     if (requestedTokens.length === 0) {
+      logError('Faucet request failed: Invalid tokens', {
+        requestId,
+        ip,
+        userAgent: userAgent.slice(0, 200),
+        address: cleanAddress,
+        originalTokens: tokens || [token],
+        error: 'INVALID_TOKEN'
+      })
       return res.status(400).json({
         success: false,
         error: 'INVALID_TOKEN',
@@ -639,6 +667,14 @@ app.post('/api/faucet', async (req, res, next) => {
 
     // Optional: reject if prefix mismatch vs loaded tokenomics file requirement
     if (process.env.ENFORCE_PREFIX === '1' && !cleanAddress.startsWith(`${BECH32_PREFIX}1`)) {
+      logError('Faucet request failed: Address prefix mismatch', {
+        requestId,
+        ip,
+        userAgent: userAgent.slice(0, 200),
+        address: cleanAddress,
+        expectedPrefix: BECH32_PREFIX,
+        error: 'ADDRESS_PREFIX_MISMATCH'
+      })
       return res.status(400).json({
         success: false,
         error: 'INVALID_ADDRESS',
@@ -651,6 +687,18 @@ app.post('/api/faucet', async (req, res, next) => {
       try {
         await assertNotLimited(ip, cleanAddress, tokenSymbol, COOLDOWN_MIN)
       } catch (rateLimitError) {
+        // Enhanced abuse logging for rate limit violations
+        logError('Faucet request rate limited', {
+          requestId,
+          ip,
+          userAgent: userAgent.slice(0, 200),
+          address: cleanAddress,
+          token: tokenSymbol,
+          error: rateLimitError.code || 'RATE_LIMITED',
+          retryAfterSeconds: rateLimitError.retryAfter,
+          message: rateLimitError.message
+        })
+        
         // Record rate limit hit metric
         rateLimitHitsTotal.inc({ token: tokenSymbol })
         
@@ -665,6 +713,13 @@ app.post('/api/faucet', async (req, res, next) => {
     const dispensed = []
     for (const tokenSymbol of requestedTokens) {
       try {
+        logInfo('Initiating transfer', {
+          requestId,
+          token: tokenSymbol,
+          to: cleanAddress,
+          amount: getMaxFor(tokenSymbol)
+        })
+        
         const { hash } = await transfer({ token: tokenSymbol, to: cleanAddress })
         const amount = getMaxFor(tokenSymbol)
         dispensed.push({
@@ -674,10 +729,29 @@ app.post('/api/faucet', async (req, res, next) => {
         })
         await markGranted(ip, cleanAddress, tokenSymbol, COOLDOWN_MIN)
         
+        // Enhanced success logging
+        logInfo('Faucet transfer successful', {
+          requestId,
+          ip,
+          address: cleanAddress,
+          token: tokenSymbol,
+          amount,
+          txHash: hash,
+          timestamp: new Date().toISOString()
+        })
+        
         // Record successful request metric
         faucetRequestsTotal.inc({ token: tokenSymbol, outcome: 'allow' })
       } catch (transferError) {
-        logError(`Transfer failed for ${tokenSymbol}`, transferError)
+        logError('Faucet transfer failed', {
+          requestId,
+          ip,
+          address: cleanAddress,
+          token: tokenSymbol,
+          error: transferError.message,
+          code: transferError.code,
+          status: transferError.status
+        })
         // If one token fails, still report the others that succeeded
         if (dispensed.length === 0) {
           throw transferError // If first token fails, propagate error
@@ -686,6 +760,12 @@ app.post('/api/faucet', async (req, res, next) => {
     }
 
     if (dispensed.length === 0) {
+      logError('All faucet transfers failed', {
+        requestId,
+        ip,
+        address: cleanAddress,
+        requestedTokens
+      })
       return res.status(500).json({
         success: false,
         error: 'SERVER_ERROR',
@@ -693,11 +773,24 @@ app.post('/api/faucet', async (req, res, next) => {
       })
     }
 
+    // Enhanced success logging with performance metrics
+    const duration = Date.now() - startTime
+    logInfo('Faucet request completed successfully', {
+      requestId,
+      ip,
+      address: cleanAddress,
+      dispensedTokens: dispensed.map(d => d.symbol),
+      txHashes: dispensed.map(d => d.txHash),
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    })
+
     // Return new format response
     const response = {
       success: true,
       dispensed,
-      message: `Successfully dispensed ${dispensed.map(d => d.symbol).join(' + ')} tokens`
+      message: `Successfully dispensed ${dispensed.map(d => d.symbol).join(' + ')} tokens`,
+      requestId // Include request ID for tracking
     }
 
     // Legacy compatibility: if single token requested, include legacy fields
@@ -710,28 +803,48 @@ app.post('/api/faucet', async (req, res, next) => {
 
     res.json(response)
   } catch (err) {
+    const duration = Date.now() - startTime
+    
     if (err.message?.includes('Rate limit exceeded') || err.code === 'RATE_LIMITED') {
+      // Rate limit errors are already logged above
       return res.status(429).json({
         success: false,
         error: 'RATE_LIMIT',
         message: err.message,
-        retryAfterSeconds: err.retryAfter
+        retryAfterSeconds: err.retryAfter,
+        requestId
       })
     }
     
     if (err.message === 'INVALID_ADDRESS' || err.message === 'INVALID_TOKEN') {
+      // Validation errors are already logged above
       return res.status(400).json({
         success: false,
         error: err.message,
-        message: err.message
+        message: err.message,
+        requestId
       })
     }
     
-    logError('Faucet request failed', err)
+    // Enhanced error logging for unexpected errors
+    logError('Faucet request failed with unexpected error', {
+      requestId,
+      ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown',
+      userAgent: (req.headers['user-agent'] || 'unknown').slice(0, 200),
+      address: (req.body?.address || '').trim(),
+      error: err.message,
+      code: err.code,
+      status: err.status,
+      stack: err.stack,
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    })
+    
     res.status(500).json({
       success: false,
       error: 'SERVER_ERROR',
-      message: 'Internal server error'
+      message: 'Internal server error',
+      requestId
     })
   }
 })

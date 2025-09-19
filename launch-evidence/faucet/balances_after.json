@@ -1,0 +1,59 @@
+{
+  "description": "Recipient balance verification after faucet request",
+  "address": "dytallix1test6789abcdef0123456789abcdef0123456789abcdef",
+  "balance_before": {
+    "dgt": {
+      "amount": "0udgt",
+      "formatted": "0.000000 DGT"
+    },
+    "drt": {
+      "amount": "0udrt", 
+      "formatted": "0.000000 DRT"
+    }
+  },
+  "balance_after": {
+    "dgt": {
+      "amount": "2000000udgt",
+      "formatted": "2.000000 DGT",
+      "increase": "2.000000 DGT"
+    },
+    "drt": {
+      "amount": "50000000udrt",
+      "formatted": "50.000000 DRT", 
+      "increase": "50.000000 DRT"
+    }
+  },
+  "verification_details": {
+    "transaction_hashes": [
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+    ],
+    "balance_check_timestamp": "2024-01-15T10:30:00.000Z",
+    "explorer_verification": {
+      "dgt_transaction": {
+        "visible_in_explorer": true,
+        "memo": "faucet:DGT",
+        "amount": "2000000udgt",
+        "status": "confirmed"
+      },
+      "drt_transaction": {
+        "visible_in_explorer": true,
+        "memo": "faucet:DRT", 
+        "amount": "50000000udrt",
+        "status": "confirmed"
+      }
+    },
+    "rate_limit_status": {
+      "dgt_next_allowed": "2024-01-16T10:30:00.000Z",
+      "drt_next_allowed": "2024-01-15T16:30:00.000Z",
+      "ip_tracked": true,
+      "address_tracked": true
+    }
+  },
+  "test_assertions": [
+    "Balance increase matches dispensed amounts exactly",
+    "Transactions are visible and confirmed in explorer",
+    "Rate limits are properly enforced after successful request",
+    "Transaction memos correctly identify faucet source"
+  ]
+}
