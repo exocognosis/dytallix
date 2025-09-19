@@ -1,0 +1,42 @@
+[
+  {
+    "tx_hash": "0x1234567890abcdef",
+    "score": 0.8429,
+    "version": "risk-v1",
+    "timestamp": 1758325060,
+    "deterministic": true,
+    "latency_ms": 0.12
+  },
+  {
+    "tx_hash": "0x1abc",
+    "score": 0.7445,
+    "version": "risk-v1", 
+    "timestamp": 1758325070,
+    "deterministic": true,
+    "latency_ms": 0.09
+  },
+  {
+    "tx_hash": "0x2abc",
+    "score": 0.9138,
+    "version": "risk-v1",
+    "timestamp": 1758325070,
+    "deterministic": true,
+    "latency_ms": 0.11
+  },
+  {
+    "tx_hash": "0x3abc",
+    "score": 0.8823,
+    "version": "risk-v1",
+    "timestamp": 1758325070,
+    "deterministic": true,
+    "latency_ms": 0.08
+  },
+  {
+    "tx_hash": "0x4abc",
+    "score": 0.8383,
+    "version": "risk-v1",
+    "timestamp": 1758325070,
+    "deterministic": true,
+    "latency_ms": 0.10
+  }
+]

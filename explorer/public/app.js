@@ -155,6 +155,8 @@ class DytallixExplorer {
                 row.classList.add('hover:bg-gray-50', 'cursor-pointer');
                 row.addEventListener('click', () => this.showTransactionDetails(tx));
                 
+                const riskBadge = this.createRiskBadge(tx.ai_risk_score);
+                
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
                         ${this.truncateHash(tx.hash)}
@@ -171,6 +173,9 @@ class DytallixExplorer {
                         }">
                             ${tx.success ? 'Success' : 'Failed'}
                         </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        ${riskBadge}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         ${tx.gasUsed ? tx.gasUsed.toLocaleString() : 'N/A'}
@@ -251,12 +256,14 @@ class DytallixExplorer {
                             </div>
                         `;
                     case 'transaction':
+                        const riskBadge = this.createRiskBadge(result.data.ai_risk_score);
                         return `
                             <div class="border rounded p-4 mb-2">
                                 <h4 class="font-semibold text-blue-600">Transaction</h4>
                                 <p class="text-sm text-gray-600">Hash: ${result.data.hash}</p>
                                 <p class="text-sm text-gray-600">Height: ${result.data.height}</p>
                                 <p class="text-sm text-gray-600">Status: ${result.data.success ? 'Success' : 'Failed'}</p>
+                                <p class="text-sm text-gray-600">Risk: ${riskBadge}</p>
                             </div>
                         `;
                     case 'address':
@@ -293,7 +300,37 @@ class DytallixExplorer {
     }
 
     showTransactionDetails(tx) {
-        alert(`Transaction Details:\nHash: ${tx.hash}\nHeight: ${tx.height}\nTime: ${tx.time}\nStatus: ${tx.success ? 'Success' : 'Failed'}\nGas Used: ${tx.gasUsed}`);
+        const riskInfo = tx.ai_risk_score ? 
+            `\nRisk Score: ${(tx.ai_risk_score * 100).toFixed(1)}%\nRisk Level: ${this.getRiskLevel(tx.ai_risk_score)}` : 
+            '\nRisk Score: Not available';
+        
+        alert(`Transaction Details:\nHash: ${tx.hash}\nHeight: ${tx.height}\nTime: ${tx.time}\nStatus: ${tx.success ? 'Success' : 'Failed'}\nGas Used: ${tx.gasUsed}${riskInfo}`);
+    }
+
+    createRiskBadge(riskScore) {
+        if (riskScore === undefined || riskScore === null) {
+            return '<span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-500 rounded">N/A</span>';
+        }
+        
+        const percentage = Math.round(riskScore * 100);
+        const level = this.getRiskLevel(riskScore);
+        
+        let badgeClass = 'px-2 py-1 text-xs font-medium rounded ';
+        if (level === 'LOW') {
+            badgeClass += 'bg-green-100 text-green-700';
+        } else if (level === 'MEDIUM') {
+            badgeClass += 'bg-yellow-100 text-yellow-700';
+        } else {
+            badgeClass += 'bg-red-100 text-red-700';
+        }
+        
+        return `<span class="${badgeClass}" title="Risk Score: ${percentage}%">${level} (${percentage}%)</span>`;
+    }
+
+    getRiskLevel(riskScore) {
+        if (riskScore <= 0.33) return 'LOW';
+        if (riskScore <= 0.66) return 'MEDIUM';
+        return 'HIGH';
     }
 
     showError(elementId, message) {
