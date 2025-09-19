@@ -51,7 +51,7 @@ pub struct TransactionRiskThresholds {
     /// Risk score above this threshold will auto-reject (0.0-1.0)
     pub auto_reject_threshold: f64,
     /// Amount threshold that requires review regardless of risk score
-    pub amount_review_threshold: Option<u64>,
+    pub amount_review_threshold: Option<u128>,
     /// Fraud probability threshold for auto-rejection (0.0-1.0)
     pub fraud_reject_threshold: f64,
     /// Minimum confidence required for AI decision (0.0-1.0)
@@ -280,7 +280,7 @@ impl AIIntegrationManager {
     pub async fn register_oracle(
         &self,
         oracle_identity: crate::consensus::OracleIdentity,
-        stake_amount: u64,
+        stake_amount: u128,
     ) -> Result<()> {
         self.verifier.register_oracle(oracle_identity, stake_amount)
     }
@@ -471,7 +471,14 @@ impl AIIntegrationManager {
             .and_then(|t| t.as_str())
             .unwrap_or("unknown")
             .to_string();
-        let transaction_amount = transaction_data.get("amount").and_then(|a| a.as_u64());
+        let transaction_amount = transaction_data.get("amount").and_then(|a| {
+            // Handle both string and number formats for u128
+            match a {
+                serde_json::Value::String(s) => s.parse::<u128>().ok(),
+                serde_json::Value::Number(n) => n.as_u64().map(|v| v as u128),
+                _ => None,
+            }
+        });
         let transaction_hash = transaction_data
             .get("hash")
             .and_then(|h| h.as_str())
@@ -750,7 +757,7 @@ impl AIIntegrationManager {
         risk_score: f64,
         fraud_probability: f64,
         confidence: f64,
-        transaction_amount: Option<u64>,
+        transaction_amount: Option<u128>,
     ) -> RiskProcessingDecision {
         if !self.config.enable_risk_based_processing {
             return RiskProcessingDecision::AutoApprove;
