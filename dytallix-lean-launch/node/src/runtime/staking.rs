@@ -168,6 +168,11 @@ impl StakingModule {
         )
     }
 
+    /// Get total stake for a delegator
+    pub fn get_total_stake(&self, address: &str) -> u128 {
+        self.load_delegator_record(address).stake_amount
+    }
+
     /// Load delegator reward record from storage
     pub fn load_delegator_record(&self, address: &str) -> DelegatorRewardRecord {
         let key = format!("staking:delegator:{address}");
