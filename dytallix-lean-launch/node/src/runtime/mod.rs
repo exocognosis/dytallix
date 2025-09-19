@@ -4,6 +4,8 @@ pub mod governance;
 #[cfg(feature = "oracle")]
 pub mod oracle;
 pub mod staking;
+#[cfg(feature = "contracts")]
+pub mod wasm;
 
 #[cfg(test)]
 pub mod tests;

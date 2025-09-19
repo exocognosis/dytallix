@@ -176,6 +176,8 @@ async fn main() -> anyhow::Result<()> {
             staking: enable_staking,
         },
         wasm_contracts: Arc::new(Mutex::new(std::collections::HashMap::new())),
+        #[cfg(feature = "contracts")]
+        wasm_runtime: Arc::new(dytallix_lean_node::runtime::wasm::WasmRuntime::new()),
     };
 
     // Initialize bridge validators if provided
@@ -395,6 +397,15 @@ async fn main() -> anyhow::Result<()> {
         // Ops simulation endpoints (pause/resume producer)
         .route("/ops/pause", post(rpc::ops_pause))
         .route("/ops/resume", post(rpc::ops_resume));
+
+    // WASM contract routes
+    #[cfg(feature = "contracts")]
+    {
+        app = app
+            .route("/contracts/deploy", post(rpc::contracts_deploy))
+            .route("/contracts/call", post(rpc::contracts_call))
+            .route("/contracts/state/:contract_address/:key", get(rpc::contracts_state));
+    }
 
     // Oracle routes
     #[cfg(feature = "oracle")]

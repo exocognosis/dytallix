@@ -26,6 +26,7 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
+use base64;
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
@@ -65,8 +66,11 @@ pub struct RpcContext {
     pub staking: Arc<Mutex<StakingModule>>,
     pub metrics: Arc<crate::metrics::Metrics>,
     pub features: FeatureFlags,
-    /// Minimal in-memory WASM contract state for JSON-RPC facade
+    /// Minimal in-memory WASM contract state for JSON-RPC facade (legacy)
     pub wasm_contracts: Arc<Mutex<HashMap<String, u64>>>, // address -> counter
+    /// WASM runtime for contract deployment and execution
+    #[cfg(feature = "contracts")]
+    pub wasm_runtime: Arc<crate::runtime::wasm::WasmRuntime>,
 }
 
 #[derive(Clone, Copy)]
@@ -1186,7 +1190,107 @@ pub async fn staking_undelegate(
     ))
 }
 
-/// POST /api/contract/deploy - Deploy WASM contract
+/// POST /contracts/deploy - Deploy WASM contract
+/// Body: { wasm_bytes | artifact_ref }
+/// Returns: { contract_address, tx_hash }
+#[cfg(feature = "contracts")]
+pub async fn contracts_deploy(
+    Json(payload): Json<serde_json::Value>,
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let wasm_bytes = if let Some(bytes_b64) = payload["wasm_bytes"].as_str() {
+        base64::engine::general_purpose::STANDARD.decode(bytes_b64)
+            .map_err(|e| ApiError::BadRequest(format!("Invalid base64 wasm_bytes: {}", e)))?
+    } else if let Some(artifact_ref) = payload["artifact_ref"].as_str() {
+        // Load from predefined artifacts
+        match artifact_ref {
+            "counter" => {
+                std::fs::read("artifacts/counter.wasm")
+                    .map_err(|e| ApiError::BadRequest(format!("Failed to load counter artifact: {}", e)))?
+            }
+            _ => return Err(ApiError::BadRequest("Unknown artifact_ref".to_string())),
+        }
+    } else {
+        return Err(ApiError::BadRequest("Missing wasm_bytes or artifact_ref".to_string()));
+    };
+
+    let from = payload["from"].as_str().unwrap_or("deployer");
+    let gas_limit = payload["gas_limit"].as_u64().unwrap_or(1000000);
+    let initial_state = payload["initial_state"].as_str().map(|s| s.as_bytes());
+
+    let deployment = ctx.wasm_runtime.deploy_contract(&wasm_bytes, from, gas_limit, initial_state)
+        .map_err(|e| ApiError::BadRequest(format!("Deployment failed: {}", e)))?;
+
+    Ok(Json(json!({
+        "contract_address": deployment.address,
+        "tx_hash": deployment.tx_hash,
+        "code_hash": deployment.code_hash,
+        "gas_used": deployment.gas_used
+    })))
+}
+
+/// POST /contracts/call - Call WASM contract method
+/// Body: { contract_address, method, args }
+/// Returns: { result, gas_used, tx_hash }
+#[cfg(feature = "contracts")]
+pub async fn contracts_call(
+    Json(payload): Json<serde_json::Value>,
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let contract_address = payload["contract_address"]
+        .as_str()
+        .ok_or(ApiError::BadRequest("missing contract_address".to_string()))?;
+    let method = payload["method"]
+        .as_str()
+        .ok_or(ApiError::BadRequest("missing method".to_string()))?;
+    let args = payload["args"].as_str().unwrap_or("{}").as_bytes();
+    let gas_limit = payload["gas_limit"].as_u64().unwrap_or(300000);
+
+    let execution = ctx.wasm_runtime.execute_contract(contract_address, method, args, gas_limit)
+        .map_err(|e| ApiError::BadRequest(format!("Execution failed: {}", e)))?;
+
+    // Parse result based on method
+    let result = match method {
+        "get" | "increment" => {
+            let count = u32::from_le_bytes(
+                execution.result.try_into()
+                    .unwrap_or([0; 4])
+            );
+            json!({"count": count})
+        }
+        _ => json!({"raw": hex::encode(&execution.result)})
+    };
+
+    Ok(Json(json!({
+        "result": result,
+        "gas_used": execution.gas_used,
+        "tx_hash": execution.tx_hash
+    })))
+}
+
+/// GET /contracts/state/{contract_address}/{key} - Get contract state
+/// Returns: { value }
+#[cfg(feature = "contracts")]
+pub async fn contracts_state(
+    Path((contract_address, key)): Path<(String, String)>,
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let value = ctx.wasm_runtime.get_contract_state(&contract_address, &key)
+        .ok_or(ApiError::NotFound)?;
+
+    // Try to parse as counter value
+    let parsed_value = if key == "counter" && value.len() == 4 {
+        json!(u32::from_le_bytes(value.try_into().unwrap_or([0; 4])))
+    } else {
+        json!(hex::encode(&value))
+    };
+
+    Ok(Json(json!({
+        "value": parsed_value
+    })))
+}
+
+/// POST /api/contract/deploy - Deploy WASM contract (legacy endpoint)
 pub async fn contract_deploy(
     Json(payload): Json<serde_json::Value>,
     Extension(_ctx): Extension<RpcContext>,
