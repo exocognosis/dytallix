@@ -28,11 +28,11 @@ class Tx(BaseModel):
     nonce: int
 
 class RiskResponse(BaseModel):
-    score: float
-    tx_hash: str
-    model_id: str | None = None
-    ts: int | None = None
-    signature: str | None = None
+    score: float = Field(..., ge=0.0, le=1.0, description="Risk score between 0 and 1")
+    tx_hash: str = Field(..., description="Transaction hash")
+    version: str = Field(default="risk-v1", description="Model version")
+    ts: int = Field(..., description="Timestamp")
+    signature: str | None = Field(None, description="Optional signature for verification")
 
 SECRET_SEED = os.environ.get("AI_RISK_SECRET_SEED", "dev-seed")
 SIGNING_KEY_B64 = os.environ.get("AI_RISK_SIGNING_KEY_B64")
@@ -84,7 +84,7 @@ async def score(tx: Tx, model_id: str = "risk-v1"):
     if HAVE_PROM:
         ms = (time.perf_counter() - t0) * 1000.0
         ai_latency_ms.observe(ms)
-    return RiskResponse(score=round(score,4), tx_hash=tx.hash, model_id=model_id, ts=ts, signature=sig)
+    return RiskResponse(score=round(score,4), tx_hash=tx.hash, version=model_id, ts=ts, signature=sig)
 
 async def _async_sleep_ms(ms: int):
     import asyncio
