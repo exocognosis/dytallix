@@ -454,6 +454,30 @@ pub async fn stats(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value> 
     )
 }
 
+/// GET /status - Node status endpoint for health check and basic info
+pub async fn status(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value> {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let latest_height = ctx.storage.height();
+    let mempool_size = ctx.mempool.lock().unwrap().len();
+    let chain_id = ctx.storage.get_chain_id();
+    
+    // For this implementation, we assume the node is never syncing (single node setup)
+    // In a real network, this would check sync status against peers
+    let syncing = false;
+    
+    Json(json!({
+        "status": "healthy",
+        "latest_height": latest_height,
+        "syncing": syncing,
+        "mempool_size": mempool_size,
+        "chain_id": chain_id,
+        "timestamp": now
+    }))
+}
+
 pub async fn peers() -> Json<serde_json::Value> {
     Json(json!([]))
 }

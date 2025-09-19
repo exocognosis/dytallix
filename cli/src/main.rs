@@ -63,6 +63,7 @@ struct TxGroup {
 enum TxAction {
     Transfer(txcmd::TransferCmd),
     Batch(txcmd::BatchCmd),
+    Broadcast(txcmd::BroadcastCmd),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -123,6 +124,9 @@ async fn main() -> Result<()> {
             }
             TxAction::Batch(bc) => {
                 txcmd::handle_batch(&cfg.rpc, &cfg.chain_id, &cli.home, bc, fmt).await?
+            }
+            TxAction::Broadcast(bc) => {
+                txcmd::handle_broadcast(&cfg.rpc, &cfg.chain_id, &cli.home, bc, fmt).await?
             }
         },
         Commands::Transfer(c) => {
