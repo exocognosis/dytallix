@@ -114,6 +114,22 @@ impl Default for StakingParams {
     }
 }
 
+impl StakingParams {
+    /// Create demo-friendly parameters for testing and development
+    pub fn demo() -> Self {
+        Self {
+            max_validators: 10,
+            min_self_stake: 100_000_000_000, // 100K DGT (lower for demo)
+            slash_double_sign: 500,          // 5%
+            slash_downtime: 100,             // 1%
+            emission_per_block: 5_000_000,   // 5 DRT per block (higher for demo)
+            downtime_threshold: 10,          // 10 consecutive missed blocks (lower for demo)
+            signed_blocks_window: 100,       // 100 blocks sliding window (lower for demo)
+            min_signed_per_window: 50,       // Must sign at least 50% of blocks in window
+        }
+    }
+}
+
 /// Main staking state manager
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StakingState {
