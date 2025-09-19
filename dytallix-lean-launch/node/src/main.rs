@@ -324,6 +324,8 @@ async fn main() -> anyhow::Result<()> {
                 if let Err(e) = producer_ctx.governance.lock().unwrap().end_block(height) {
                     eprintln!("Governance end_block error at height {height}: {e}");
                 }
+                // Clear governance events after processing
+                producer_ctx.governance.lock().unwrap().clear_events();
             }
 
             producer_ctx
@@ -412,6 +414,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/gov/submit", post(rpc::gov_submit_proposal))
         .route("/gov/deposit", post(rpc::gov_deposit))
         .route("/gov/vote", post(rpc::gov_vote))
+        .route("/gov/execute", post(rpc::gov_execute))
         .route("/gov/proposal/:id", get(rpc::gov_get_proposal))
         .route("/gov/tally/:id", get(rpc::gov_tally))
         .route("/gov/config", get(rpc::gov_get_config))

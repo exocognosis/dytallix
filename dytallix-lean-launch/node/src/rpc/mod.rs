@@ -692,6 +692,30 @@ pub async fn gov_tally(
         }
     }
 }
+
+pub async fn gov_execute(
+    Extension(ctx): Extension<RpcContext>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    if !ctx.features.governance {
+        return Err(ApiError::NotImplemented(
+            "governance feature disabled".into(),
+        ));
+    }
+    
+    let proposal_id = body
+        .get("proposal_id")
+        .and_then(|v| v.as_u64())
+        .ok_or(ApiError::Internal)?;
+
+    match ctx.governance.lock().unwrap().execute(proposal_id) {
+        Ok(()) => Ok(Json(json!({"success": true, "proposal_id": proposal_id}))),
+        Err(e) => {
+            eprintln!("Governance execute error: {e}");
+            Err(ApiError::BadRequest(e))
+        }
+    }
+}
 // Runtime flags control behavior; queries remain available regardless of compile features
 
 pub async fn gov_get_config(

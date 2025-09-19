@@ -86,3 +86,17 @@ export const govCommand = new Command('gov')
       if (output === 'json') console.log(JSON.stringify(res, null, 2))
       else { console.log(chalk.green('✅ Tally')); console.log(res) }
     }))
+  .addCommand(new Command('execute')
+    .description('Execute a passed proposal')
+    .requiredOption('--proposal <id>', 'Proposal ID')
+    .action(async (opts, command) => {
+      const { rpc, output } = command.parent.parent.opts()
+      const client = new DytClient(rpc)
+      const res = await client.govExecute({ proposal_id: Number(opts.proposal) })
+      // evidence
+      const evDir = resolve('launch-evidence/cli')
+      mkdirSync(evDir, { recursive: true })
+      writeFileSync(resolve(evDir, 'execute.json'), JSON.stringify({ proposal_id: Number(opts.proposal), result: res, ts: new Date().toISOString() }, null, 2) + '\n')
+      if (output === 'json') console.log(JSON.stringify(res, null, 2))
+      else { console.log(chalk.green('✅ Proposal executed')); console.log(res) }
+    }))
