@@ -1,4 +1,4 @@
-use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+use crate::crypto::{canonical_json, sha3_256, verify, PQCAlgorithm, PQCVerifyError, ActivePQC, PQC};
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use serde::{Deserialize, Serialize};
@@ -157,13 +157,10 @@ impl SignedTx {
     }
 
     pub fn verify(&self) -> Result<()> {
-        if self.algorithm != ActivePQC::ALG {
-            return Err(anyhow!(
-                "unsupported algorithm: expected {}, got {}",
-                ActivePQC::ALG,
-                self.algorithm
-            ));
-        }
+        // Parse the algorithm from the string
+        let algorithm = PQCAlgorithm::from_str(&self.algorithm)
+            .map_err(|e| anyhow!("invalid algorithm '{}': {}", self.algorithm, e))?;
+            
         if self.version != 1 {
             return Err(anyhow!(
                 "unsupported version: expected 1, got {}",
@@ -178,9 +175,11 @@ impl SignedTx {
         let pk = B64
             .decode(&self.public_key)
             .map_err(|e| anyhow!("invalid public key encoding: {}", e))?;
-        if !ActivePQC::verify(&pk, &hash, &sig) {
-            return Err(anyhow!("signature verification failed"));
-        }
+
+        // Use the new multi-algorithm verification
+        verify(&pk, &hash, &sig, algorithm)
+            .map_err(|e| anyhow!("signature verification failed: {}", e))?;
+            
         Ok(())
     }
 

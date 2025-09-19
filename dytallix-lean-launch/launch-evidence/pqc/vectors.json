@@ -1,0 +1,113 @@
+{
+  "description": "Deterministic PQC signature verification test vectors for Dytallix",
+  "version": "1.0",
+  "created": "2025-01-24T00:00:00Z",
+  "algorithms": {
+    "dilithium5": {
+      "description": "Dilithium5 post-quantum signature scheme",
+      "test_vectors": [
+        {
+          "vector_id": "dil5_001",
+          "description": "Basic valid signature verification",
+          "public_key": "MIIFRzCCBNEwMqYOygOQAFoQAtGo5JcNGkzNxHlvOEgdO2e0F4wF9E6nQOgaJEuQX+rP1BcWdLkn8GfNd4YQhFgO4K5L2n1nY3z4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+          "message": "Hello, Dytallix PQC!",
+          "signature": "ZGlsaXRoaXVtNV9zaWduYXR1cmVfZXhhbXBsZV9kYXRhXzEyMzQ1Njc4OTA=",
+          "expected_result": "valid",
+          "algorithm": "dilithium5"
+        },
+        {
+          "vector_id": "dil5_002", 
+          "description": "Invalid signature - tampered data",
+          "public_key": "MIIFRzCCBNEwMqYOygOQAFoQAtGo5JcNGkzNxHlvOEgdO2e0F4wF9E6nQOgaJEuQX+rP1BcWdLkn8GfNd4YQhFgO4K5L2n1nY3z4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+          "message": "Hello, Dytallix PQC! [TAMPERED]",
+          "signature": "ZGlsaXRoaXVtNV9zaWduYXR1cmVfZXhhbXBsZV9kYXRhXzEyMzQ1Njc4OTA=",
+          "expected_result": "invalid",
+          "algorithm": "dilithium5"
+        },
+        {
+          "vector_id": "dil5_003",
+          "description": "Invalid signature - corrupted signature",
+          "public_key": "MIIFRzCCBNEwMqYOygOQAFoQAtGo5JcNGkzNxHlvOEgdO2e0F4wF9E6nQOgaJEuQX+rP1BcWdLkn8GfNd4YQhFgO4K5L2n1nY3z4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+          "message": "Hello, Dytallix PQC!",
+          "signature": "CORRUPTED_SIGNATURE_DATA_123456789",
+          "expected_result": "invalid",
+          "algorithm": "dilithium5"
+        }
+      ]
+    },
+    "falcon1024": {
+      "description": "Falcon1024 post-quantum signature scheme (feature-gated)",
+      "test_vectors": [
+        {
+          "vector_id": "falcon_001",
+          "description": "Basic valid signature verification",
+          "public_key": "VmFsY29uMTAyNF9wdWJsaWNfa2V5X2V4YW1wbGVfZGF0YV8xMjM0NTY3ODkwQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVpbXWB+",
+          "message": "Falcon test message",
+          "signature": "RmFsY29uMTAyNF9zaWduYXR1cmVfZXhhbXBsZV9kYXRhXzEyMzQ1Njc4OTA=",
+          "expected_result": "valid",
+          "algorithm": "falcon1024",
+          "requires_feature": "falcon"
+        }
+      ]
+    },
+    "sphincs_sha2_128s_simple": {
+      "description": "SPHINCS+ SHA2-128s-simple post-quantum signature scheme (feature-gated)",
+      "test_vectors": [
+        {
+          "vector_id": "sphincs_001",
+          "description": "Basic valid signature verification",
+          "public_key": "U3BoaW5jc1BsdXNfcHVibGljX2tleV9leGFtcGxlX2RhdGFfMTIzNDU2Nzg5MEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW11gfg==",
+          "message": "SPHINCS+ test message",
+          "signature": "U3BoaW5jc1BsdXNfc2lnbmF0dXJlX2V4YW1wbGVfZGF0YV8xMjM0NTY3ODkw",
+          "expected_result": "valid",
+          "algorithm": "sphincs_sha2_128s_simple",
+          "requires_feature": "sphincs"
+        }
+      ]
+    }
+  },
+  "transaction_test_vectors": [
+    {
+      "vector_id": "tx_001",
+      "description": "Valid transaction with Dilithium5 signature",
+      "transaction": {
+        "from": "dyt1abc123",
+        "to": "dyt1def456", 
+        "amount": "1000000",
+        "fee": "1000",
+        "nonce": 1,
+        "gas_limit": 100000,
+        "gas_price": 1000,
+        "memo": "Test transaction"
+      },
+      "public_key": "MIIFRzCCBNEwMqYOygOQAFoQAtGo5JcNGkzNxHlvOEgdO2e0F4wF9E6nQOgaJEuQX+rP1BcWdLkn8GfNd4YQhFgO4K5L2n1nY3z4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+      "signature": "ZGlsaXRoaXVtNV9zaWduYXR1cmVfZXhhbXBsZV9kYXRhXzEyMzQ1Njc4OTA=",
+      "algorithm": "dilithium5",
+      "expected_result": "valid"
+    },
+    {
+      "vector_id": "tx_002",
+      "description": "Invalid transaction - tampered amount",
+      "transaction": {
+        "from": "dyt1abc123",
+        "to": "dyt1def456",
+        "amount": "9999999",
+        "fee": "1000", 
+        "nonce": 1,
+        "gas_limit": 100000,
+        "gas_price": 1000,
+        "memo": "Test transaction"
+      },
+      "public_key": "MIIFRzCCBNEwMqYOygOQAFoQAtGo5JcNGkzNxHlvOEgdO2e0F4wF9E6nQOgaJEuQX+rP1BcWdLkn8GfNd4YQhFgO4K5L2n1nY3z4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+      "signature": "ZGlsaXRoaXVtNV9zaWduYXR1cmVfZXhhbXBsZV9kYXRhXzEyMzQ1Njc4OTA=",
+      "algorithm": "dilithium5",
+      "expected_result": "invalid"
+    }
+  ],
+  "notes": [
+    "These are example test vectors for development and testing purposes.",
+    "In production, test vectors should be generated using real cryptographic operations.",
+    "The public keys and signatures shown here are placeholders for demonstration.",
+    "Feature-gated algorithms (Falcon, SPHINCS+) require compilation with appropriate features."
+  ]
+}

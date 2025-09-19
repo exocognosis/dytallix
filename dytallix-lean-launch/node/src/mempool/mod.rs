@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+use crate::crypto::{canonical_json, sha3_256, verify_default, PQCAlgorithm, PQCVerifyError, ActivePQC, PQC};
 use crate::gas::{validate_gas_limit, GasSchedule, TxKind};
 use crate::state::State;
 use crate::storage::tx::Transaction;
@@ -684,12 +684,35 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
     // 4. Hash with SHA3-256
     let tx_hash = sha3_256(&tx_bytes);
 
-    // 5. Verify signature using ActivePQC
-    if !ActivePQC::verify(&pk_bytes, &tx_hash, &sig_bytes) {
-        return Err("signature verification failed".to_string());
+    // 5. Verify signature using new multi-algorithm verification
+    // For mempool transactions, we use the default algorithm (Dilithium5)
+    // as the Transaction struct doesn't include algorithm field
+    match crate::crypto::pqc_verify::verify(&pk_bytes, &tx_hash, &sig_bytes, PQCAlgorithm::default()) {
+        Ok(()) => {
+            tracing::debug!("Transaction signature verification successful");
+            Ok(())
+        }
+        Err(PQCVerifyError::UnsupportedAlgorithm(alg)) => {
+            tracing::error!("Unsupported PQC algorithm: {}", alg);
+            Err(format!("unsupported algorithm: {}", alg))
+        }
+        Err(PQCVerifyError::InvalidPublicKey { algorithm, details }) => {
+            tracing::error!("Invalid public key for {}: {}", algorithm, details);
+            Err(format!("invalid public key: {}", details))
+        }
+        Err(PQCVerifyError::InvalidSignature { algorithm, details }) => {
+            tracing::error!("Invalid signature for {}: {}", algorithm, details);
+            Err(format!("invalid signature: {}", details))
+        }
+        Err(PQCVerifyError::VerificationFailed { algorithm }) => {
+            tracing::warn!("Signature verification failed for algorithm: {}", algorithm);
+            Err("signature verification failed".to_string())
+        }
+        Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
+            tracing::error!("PQC feature not compiled: {}", feature);
+            Err(format!("feature not available: {}", feature))
+        }
     }
-
-    Ok(())
 }
 
 /// Enhanced validation including gas validation (legacy function for backward compatibility)
