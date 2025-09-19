@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use crate::consensus::{OracleIdentity, SignedAIOracleResponse};
+use crate::types::Stake;
 
 /// Errors that can occur during signature verification
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,7 +125,7 @@ pub struct OracleRegistryEntry {
     /// Whether the oracle is currently active
     pub is_active: bool,
     /// Staking amount (for future use)
-    pub stake_amount: u64,
+    pub stake_amount: Stake,
     /// Performance metrics
     pub performance_metrics: OraclePerformanceMetrics,
 }
@@ -188,7 +189,7 @@ impl SignatureVerifier {
     pub fn register_oracle(
         &self,
         oracle_identity: OracleIdentity,
-        stake_amount: u64,
+        stake_amount: Stake,
     ) -> Result<()> {
         let mut registry = self.oracle_registry.write().unwrap();
 

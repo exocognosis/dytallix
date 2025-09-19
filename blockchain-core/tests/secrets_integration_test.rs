@@ -6,7 +6,6 @@ use dytallix_node::secrets::{
     SecretConfig, SecretError, SecretManager,
 };
 use std::env;
-use tokio;
 
 #[tokio::test]
 async fn test_env_provider_basic() {

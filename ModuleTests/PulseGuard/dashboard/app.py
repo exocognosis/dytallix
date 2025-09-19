@@ -30,10 +30,56 @@ def _rerun():
         return _def_exp_rerun()
 
 # Use a vivid color palette and dark template for better contrast
-px.defaults.template = "plotly_dark"
+px.defaults.template = "plotly_dark"  # type: ignore[attr-defined, assignment]
 PALETTE = px.colors.qualitative.Vivid
 
 ART_DIR = Path(__file__).resolve().parents[1] / "artifacts"
+
+# Helper: list only runs that have a results.csv, newest first
+def _list_run_dirs(max_count: int = 25) -> list[Path]:
+    if not ART_DIR.exists():
+        return []
+    runs: list[tuple[float, Path]] = []
+    for p in ART_DIR.iterdir():
+        if p.is_dir():
+            rcsv = p / "results.csv"
+            if rcsv.exists():
+                try:
+                    mtime = rcsv.stat().st_mtime
+                except Exception:
+                    mtime = p.stat().st_mtime
+                runs.append((mtime, p))
+    runs.sort(key=lambda t: t[0], reverse=True)
+    return [p for _, p in runs][:max_count]
+
+# Determine whether a run is currently active based on results.csv updates
+def _is_run_active(run_dir: Path, window_s: float = 12.0) -> bool:
+    """
+    Heuristic for activity:
+    - results.csv was modified within the last `window_s` seconds, OR
+    - size/mtime increased since the last check (persisted in session_state).
+    """
+    csv_path = run_dir / "results.csv"
+    if not csv_path.exists():
+        return False
+    try:
+        stat = csv_path.stat()
+        size = int(stat.st_size)
+        mtime = float(stat.st_mtime)
+        now = time.time()
+        key = f"_run_activity::{run_dir.name}"
+        prev = st.session_state.get(key)
+        st.session_state[key] = {"size": size, "mtime": mtime, "checked_at": now}
+
+        recent = (now - mtime) <= window_s
+        growing = False
+        if isinstance(prev, dict):
+            prev_size = int(prev.get("size", -1))
+            prev_mtime = float(prev.get("mtime", 0.0))
+            growing = (size > prev_size) or (mtime > prev_mtime)
+        return recent or growing
+    except Exception:
+        return False
 
 # --- Sidebar defaults & reset support ---
 DEFAULTS = {
@@ -187,8 +233,10 @@ gan_mix = st.sidebar.slider("GAN mix ratio", 0.0, 1.0, float(st.session_state.ga
 # --- Run / Reset / Refresh buttons ---
 col_run1, col_reset, col_refresh = st.sidebar.columns(3)
 if col_run1.button("Run Test"):
+    # Mark recent start to enable refresh while the new run directory appears
+    st.session_state["_test_start_time"] = time.time()
     env = os.environ.copy()
-    env["PULSEGUARD_API"] = api_url
+    env["PULSEGUARD_API"] = api_url or "http://localhost:8090"
     env["ATTACK_DEFAULT_PROB"] = str(attack_prob)
     env["ATTACK_DEFAULT_SEVERITY"] = str(attack_sev)
     subprocess.Popen([
@@ -210,7 +258,7 @@ if col_refresh.button("Refresh now"):
     _rerun()
 
 st.sidebar.write("Latest Artifacts:")
-artifacts = sorted([p for p in ART_DIR.glob("*") if p.is_dir()], reverse=True)[:25]
+artifacts = _list_run_dirs()
 
 if follow_latest:
     selected = artifacts[0].name if artifacts else "<none>"
@@ -219,11 +267,12 @@ else:
     selected = st.sidebar.selectbox("Run", [a.name for a in artifacts] if artifacts else ["<none>"])
 
 # --- Helper: robust CSV reader (handles in-progress writes) ---
-def _read_csv_robust(path: Path, retries: int = 3, delay: float = 0.2) -> pd.DataFrame:
+def _read_csv_robust(path: Path, retries: int = 8, delay: float = 0.25) -> pd.DataFrame:
     last_err = None
     for _ in range(retries):
         try:
-            return pd.read_csv(path)
+            # Use tolerant parsing to handle partial writes/rotations
+            return pd.read_csv(path, engine="python", on_bad_lines="skip")  # type: ignore[arg-type]
         except Exception as e:
             last_err = e
             time.sleep(delay)
@@ -238,6 +287,22 @@ if selected != "<none>":
         except Exception as e:
             st.error(f"Failed to read results.csv: {e}")
             st.stop()
+        
+        # Stabilize against file rotations that momentarily shrink results
+        _cache_key = f"df_cache::{selected}"
+        _cached = st.session_state.get(_cache_key)
+        if isinstance(_cached, dict) and "df" in _cached and "len" in _cached:
+            try:
+                if len(df) < int(_cached.get("len", 0)):
+                    # Keep last larger dataframe to avoid chart flicker
+                    df = _cached["df"]
+                else:
+                    st.session_state[_cache_key] = {"len": len(df), "df": df}
+            except Exception:
+                st.session_state[_cache_key] = {"len": len(df), "df": df}
+        else:
+            st.session_state[_cache_key] = {"len": len(df), "df": df}
+
         # Ensure numeric types and time axis
         if "api_latency_ms" in df.columns:
             df["api_latency_ms"] = pd.to_numeric(df["api_latency_ms"], errors="coerce")
@@ -271,16 +336,47 @@ if selected != "<none>":
             with col1:
                 # Detection latency over time (replaces PulseGuard Score chart)
                 det_df = compute_detection_latency(df, mode=detection_mode, threshold=det_threshold)
-                if not det_df.empty:
-                    det_tail = det_df.tail(min(points_limit, 200)).copy()
-                    fig_det = px.scatter(
-                        det_tail, x="inject_time", y="latency_s", color="attack_type",
-                        color_discrete_sequence=PALETTE, title=f"Detection Latency Over Time (s) — {detection_mode}",
-                    )
-                    fig_det.update_traces(mode="markers")
-                    fig_det.update_layout(height=260, yaxis_title="latency (s)")
-                    st.plotly_chart(fig_det, use_container_width=True)
+                # Hold last non-empty detection frame and last figure to reduce flicker
+                _det_key = f"det_cache::{selected}::{detection_mode}::{det_threshold}"
+                _det_fig_key = f"det_fig_cache::{selected}::{detection_mode}::{det_threshold}"
+                if det_df.empty:
+                    _prev = st.session_state.get(_det_key)
+                    if isinstance(_prev, pd.DataFrame) and not _prev.empty:
+                        det_df = _prev
                 else:
+                    st.session_state[_det_key] = det_df
+
+                try:
+                    if not det_df.empty:
+                        det_tail = det_df.tail(min(points_limit, 200)).copy()
+                        if not det_tail.empty:
+                            fig_det = px.scatter(
+                                det_tail, x="inject_time", y="latency_s", color="attack_type",
+                                color_discrete_sequence=PALETTE, title=f"Detection Latency Over Time (s) — {detection_mode}",
+                            )
+                            fig_det.update_traces(mode="markers")
+                            fig_det.update_layout(height=260, yaxis_title="latency (s)")
+                            st.session_state[_det_fig_key] = fig_det
+                            st.plotly_chart(fig_det, use_container_width=True, key="detection_latency_chart")
+                            _rendered = True
+                        else:
+                            _rendered = False
+                    else:
+                        _rendered = False
+                except Exception:
+                    _rendered = False
+
+                if not _rendered:
+                    # Try rendering the last good figure instead of flashing an empty chart
+                    _prev_fig = st.session_state.get(_det_fig_key)
+                    if _prev_fig is not None:
+                        try:
+                            st.plotly_chart(_prev_fig, use_container_width=True, key="detection_latency_chart")
+                            _rendered = True
+                        except Exception:
+                            _rendered = False
+
+                if not _rendered:
                     # Show an empty chart frame with labels to retain layout
                     fig_empty = go.Figure()
                     fig_empty.update_layout(
@@ -305,7 +401,32 @@ if selected != "<none>":
                     fig_nl.update_layout(template="plotly_dark", title_text="Network Load: TPS & Mempool Size", height=260)
                     fig_nl.update_yaxes(title_text="mempool size", secondary_y=False)
                     fig_nl.update_yaxes(title_text="tps", secondary_y=True)
-                    st.plotly_chart(fig_nl, use_container_width=True)
+                    st.plotly_chart(fig_nl, use_container_width=True, key="net_load_chart")
+
+                # Moved here: Mempool gas pressure
+                if "mempool_gas_pressure" in dfv.columns:
+                    fig_gp = px.line(dfv, x="time", y="mempool_gas_pressure", title="Mempool Gas Pressure",
+                                     color_discrete_sequence=[PALETTE[5]])
+                    fig_gp.update_traces(mode="lines+markers", line_shape="spline")
+                    fig_gp.update_layout(height=240)
+                    st.plotly_chart(fig_gp, use_container_width=True, key="mempool_gas_pressure_chart")
+
+                # Moved here: Runner resource usage
+                rcol1, rcol2 = st.columns(2)
+                with rcol1:
+                    if "cpu_pct" in dfv.columns and dfv["cpu_pct"].notna().any():
+                        fig_cpu = px.line(dfv, x="time", y="cpu_pct", title="Runner CPU (%)",
+                                          color_discrete_sequence=[PALETTE[7]])
+                        fig_cpu.update_traces(mode="lines+markers", line_shape="spline")
+                        fig_cpu.update_layout(height=240)
+                        st.plotly_chart(fig_cpu, use_container_width=True, key="runner_cpu_chart")
+                with rcol2:
+                    if "rss_mb" in dfv.columns and dfv["rss_mb"].notna().any():
+                        fig_rss = px.line(dfv, x="time", y="rss_mb", title="Runner RSS (MB)",
+                                          color_discrete_sequence=[PALETTE[8]])
+                        fig_rss.update_traces(mode="lines+markers", line_shape="spline")
+                        fig_rss.update_layout(height=240)
+                        st.plotly_chart(fig_rss, use_container_width=True, key="runner_rss_chart")
 
             with col2:
                 # API latency (or fallback build time)
@@ -314,13 +435,13 @@ if selected != "<none>":
                                    color_discrete_sequence=[PALETTE[1]])
                     fig2.update_traces(mode="lines+markers", line_shape="spline")
                     fig2.update_layout(height=260)
-                    st.plotly_chart(fig2, use_container_width=True)
+                    st.plotly_chart(fig2, use_container_width=True, key="api_latency_chart")
                 elif "build_time_ms" in dfv.columns:
                     fig2b = px.line(dfv, x="time", y="build_time_ms", title="Build Time (ms) [fallback]",
                                     color_discrete_sequence=[PALETTE[1]])
                     fig2b.update_traces(mode="lines+markers", line_shape="spline")
                     fig2b.update_layout(height=260)
-                    st.plotly_chart(fig2b, use_container_width=True)
+                    st.plotly_chart(fig2b, use_container_width=True, key="build_time_chart")
 
                 # Attacks injected
                 if "attack_type" in df.columns:
@@ -328,7 +449,7 @@ if selected != "<none>":
                     fig3 = px.bar(counts, x="attack_type", y="count", title="Attacks Injected",
                                    color="attack_type", color_discrete_sequence=PALETTE)
                     fig3.update_layout(height=240, showlegend=True)
-                    st.plotly_chart(fig3, use_container_width=True)
+                    st.plotly_chart(fig3, use_container_width=True, key="attacks_injected_chart")
 
                 # GAN vs baseline score distributions
                 if "anomaly_score" in df.columns and "is_gan" in df.columns:
@@ -336,32 +457,7 @@ if selected != "<none>":
                     df_scores["is_gan"] = df_scores["is_gan"].fillna(0).astype(int)
                     fig_g = px.histogram(df_scores, x="anomaly_score", color=df_scores["is_gan"].map({0: "baseline", 1: "GAN"}),
                                          nbins=30, barmode="overlay", title="Score Distribution: Baseline vs GAN")
-                    st.plotly_chart(fig_g, use_container_width=True)
-
-                # Mempool gas pressure
-                if "mempool_gas_pressure" in dfv.columns:
-                    fig_gp = px.line(dfv, x="time", y="mempool_gas_pressure", title="Mempool Gas Pressure",
-                                     color_discrete_sequence=[PALETTE[5]])
-                    fig_gp.update_traces(mode="lines+markers", line_shape="spline")
-                    fig_gp.update_layout(height=240)
-                    st.plotly_chart(fig_gp, use_container_width=True)
-
-                # Optional: Resource usage
-                rcol1, rcol2 = st.columns(2)
-                with rcol1:
-                    if "cpu_pct" in dfv.columns and dfv["cpu_pct"].notna().any():
-                        fig_cpu = px.line(dfv, x="time", y="cpu_pct", title="Runner CPU (%)",
-                                          color_discrete_sequence=[PALETTE[7]])
-                        fig_cpu.update_traces(mode="lines+markers", line_shape="spline")
-                        fig_cpu.update_layout(height=240)
-                        st.plotly_chart(fig_cpu, use_container_width=True)
-                with rcol2:
-                    if "rss_mb" in dfv.columns and dfv["rss_mb"].notna().any():
-                        fig_rss = px.line(dfv, x="time", y="rss_mb", title="Runner RSS (MB)",
-                                          color_discrete_sequence=[PALETTE[8]])
-                        fig_rss.update_traces(mode="lines+markers", line_shape="spline")
-                        fig_rss.update_layout(height=240)
-                        st.plotly_chart(fig_rss, use_container_width=True)
+                    st.plotly_chart(fig_g, use_container_width=True, key="score_dist_gan_chart")
 
             st.download_button("Export CSV", data=csv_path.read_bytes(), file_name=f"{selected}.csv")
 
@@ -432,8 +528,21 @@ if selected != "<none>":
                     st.plotly_chart(px.box(df, y="api_latency_ms", points="suspectedoutliers", title="API Latency Box"), use_container_width=True)
             with c2:
                 if "tx_volume_tps" in df.columns and "anomaly_score" in df.columns:
-                    st.plotly_chart(px.scatter(df.tail(1000), x="tx_volume_tps", y="anomaly_score", color=df.get("attack_type") if "attack_type" in df.columns else None,
-                                               title="Score vs TPS", opacity=0.7), use_container_width=True)
+                    sub = df.tail(1000).copy()
+                    try:
+                        if "attack_type" in sub.columns:
+                            fig_sc = px.scatter(
+                                sub, x="tx_volume_tps", y="anomaly_score", color="attack_type",
+                                title="Score vs TPS", opacity=0.7
+                            )
+                        else:
+                            fig_sc = px.scatter(
+                                sub, x="tx_volume_tps", y="anomaly_score",
+                                title="Score vs TPS", opacity=0.7
+                            )
+                        st.plotly_chart(fig_sc, use_container_width=True, key="score_vs_tps_chart")
+                    except Exception as e:
+                        st.warning(f"Score vs TPS chart unavailable: {e}")
                 # Compute correlations in a pandas-version-compatible way (filter to numeric dtypes)
                 candidate_cols = [
                     "anomaly_score","api_latency_ms","block_latency_ms","build_time_ms",
@@ -596,12 +705,43 @@ if selected != "<none>":
                 Use Run Test to create a new run; Reset restores default sidebar values.
                 """
             )
+            # New: brief GAN mode documentation
+            st.subheader("GAN mode")
+            st.markdown(
+                """
+                - Optional TimeSeriesGAN synthesizes realistic telemetry windows used to stress-test the detector.
+                - Modes:
+                  - near_normal: generates distribution-preserving sequences to broaden nominal coverage.
+                  - adversarial: produces hard negatives; rows are tagged with attack_type="gan".
+                - Mixing: controlled by the sidebar (Enable GAN mode, GAN Mode, GAN mix ratio). Each event has a
+                  probability equal to the mix ratio of being GAN-generated and mixed with the baseline stream.
+                - Provenance: results.csv includes is_gan (0/1), gan_mode, and detector_score columns; the dashboard
+                  overlays Baseline vs GAN score distributions for comparison.
+                - Fallback: if GAN artifacts are missing, the pipeline logs a warning and runs without GAN; minimal
+                  scaler/artifacts are auto-created on first run when possible.
+                """
+            )
 
-        # Auto-refresh logic (kept simple for compatibility across streamlit versions)
+        # Auto-refresh: only when a test is running/active
+        should_refresh = False
         if auto_refresh:
-            st.caption(f"Auto-refreshing every {refresh_interval}s…")
+            active = False
+            if selected != "<none>":
+                active = _is_run_active(ART_DIR / selected)
+            # Grace window right after clicking Run Test while directory appears
+            t0 = st.session_state.get("_test_start_time")
+            if isinstance(t0, (int, float)) and (time.time() - float(t0) <= 20):
+                active = True
+            else:
+                # clear sentinel when not needed
+                st.session_state["_test_start_time"] = None
+            should_refresh = active
+        if should_refresh:
+            st.caption(f"Auto-refreshing every {refresh_interval}s (active run detected)…")
             time.sleep(refresh_interval)
             _rerun()
+        else:
+            st.caption("Auto-refresh paused (no active test detected).")
     else:
         st.info("No results.csv found in selected run.")
 else:

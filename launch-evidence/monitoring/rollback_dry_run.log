@@ -1,5 +1,15 @@
-Sun Sep 14 22:09:34 UTC 2025
-Current commit: f5280968a4d650be36566785f5db03e28a4ba057
-Previous commit: 0ae3fd1fbfd7a956d68ed6f0357f9026b493c0a0
-Simulating redeploy from previous binary
-Rollback dry run complete
+== Rollback dry run start 2025-09-15T14:21:26Z ==
+Current HEAD: 93ff372
+Previous commit (node path): 26eb0a3
+Preparing worktree (detached HEAD 26eb0a3)
+[attr]whitespacestrict whitespace="trailing-space,tab-in-indent,space-before-tab,tabwidth=4" not allowed: dytallix-lean-launch/vendor/pqclean_upstream/PQClean-master/.gitattributes:6
+HEAD is now at 26eb0a3 ModuleTests/CodeShield: add reproducible test harness, dashboard, mock/real API, default ports (7081/8512) and CI; fix Makefile to avoid PulseGuard port; start scripts and docs updated
+cargo build -q -p dytallix-lean-node --features metrics,oracle,alerts  776.33s user 75.66s system 476% cpu 2:58.75 total
+Secrets mode: Plain Keystore (dev) path=/Users/rickglenn/.dytallix/keystore — no passphrase required
+Validator key loaded (64 bytes) via secure provider
+Node listening on 0.0.0.0:3030
+Error: Address already in use (os error 48)
+Prev binary responded OK
+error: `cargo run` could not determine which binary to run. Use the `--bin` option to specify a binary, or the `default-run` manifest key.
+available binaries: dytallix-lean-node, txhash
+== Rollback dry run end 2025-09-15T14:24:35Z ==

@@ -3,15 +3,15 @@
 //! Benchmarks signature verification performance for Post-Quantum Cryptography
 //! algorithms in Dytallix transaction processing.
 
-use anyhow::{Result, anyhow};
-use serde::{Serialize, Deserialize};
-use std::env;
-use std::time::{Instant, Duration};
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
+use std::env;
+use std::time::Instant; // removed unused Duration
 
 // Import PQC functionality
-use dytallix_pqc::{PQCManager, SignatureAlgorithm, KeyPair};
+use dytallix_pqc::{PQCManager, SignatureAlgorithm}; // removed unused KeyPair
 
 /// Benchmark configuration from environment variables
 #[derive(Debug, Clone)]
@@ -63,7 +63,7 @@ fn parse_config() -> Result<BenchmarkConfig> {
     let tx_count = env::var("TX_COUNT")
         .unwrap_or_else(|_| "10000".to_string())
         .parse::<usize>()
-        .map_err(|e| anyhow!("Invalid TX_COUNT: {}", e))?;
+        .map_err(|e| anyhow!("Invalid TX_COUNT: {e}"))?;
 
     // Parse PQC_ALGO (default: dilithium)
     let algo_str = env::var("PQC_ALGO").unwrap_or_else(|_| "dilithium".to_string());
@@ -71,7 +71,11 @@ fn parse_config() -> Result<BenchmarkConfig> {
         "dilithium" => SignatureAlgorithm::Dilithium5,
         "falcon" => SignatureAlgorithm::Falcon1024,
         "sphincs" => SignatureAlgorithm::SphincsSha256128s,
-        _ => return Err(anyhow!("Unsupported algorithm: {}. Use dilithium, falcon, or sphincs", algo_str)),
+        _ => {
+            return Err(anyhow!(
+                "Unsupported algorithm: {algo_str}. Use dilithium, falcon, or sphincs"
+            ))
+        }
     };
 
     Ok(BenchmarkConfig {
@@ -98,13 +102,16 @@ fn run_benchmark(config: &BenchmarkConfig) -> Result<BenchmarkResults> {
     let keypair = pqc_manager.generate_keypair(&config.algorithm)?;
 
     // Generate transaction messages and signatures
-    println!("  Generating {} transactions and signatures...", config.tx_count);
+    println!(
+        "  Generating {} transactions and signatures...",
+        config.tx_count
+    );
     let mut messages = Vec::new();
     let mut signatures = Vec::new();
 
     for i in 0..config.tx_count {
         // Create transaction message
-        let message = format!("tx:{}:benchmark", i);
+        let message = format!("tx:{i}:benchmark");
 
         // Hash with SHA3-256
         let mut hasher = Sha3_256::new();
@@ -124,7 +131,8 @@ fn run_benchmark(config: &BenchmarkConfig) -> Result<BenchmarkResults> {
     let start_time = Instant::now();
 
     for (message, signature) in messages.iter().zip(signatures.iter()) {
-        let is_valid = verify_with_algorithm(&config.algorithm, &keypair.public_key, message, signature)?;
+        let is_valid =
+            verify_with_algorithm(&config.algorithm, &keypair.public_key, message, signature)?;
         if !is_valid {
             return Err(anyhow!("Signature verification failed during benchmark"));
         }
@@ -259,14 +267,14 @@ fn verify_with_algorithm(
 /// Get CPU usage (Unix only)
 #[cfg(unix)]
 fn get_cpu_usage() -> Option<(u64, u64)> {
-    use nix::sys::resource::{getrusage, Usage, UsageWho};
+    use nix::sys::resource::{getrusage, UsageWho}; // removed unused `Usage`
 
     match getrusage(UsageWho::RUSAGE_SELF) {
         Ok(usage) => {
-            let user_ms = (usage.user_time().tv_sec() * 1000) as u64 +
-                         (usage.user_time().tv_usec() / 1000) as u64;
-            let system_ms = (usage.system_time().tv_sec() * 1000) as u64 +
-                           (usage.system_time().tv_usec() / 1000) as u64;
+            let user_ms = (usage.user_time().tv_sec() * 1000) as u64
+                + (usage.user_time().tv_usec() / 1000) as u64;
+            let system_ms = (usage.system_time().tv_sec() * 1000) as u64
+                + (usage.system_time().tv_usec() / 1000) as u64;
             Some((user_ms, system_ms))
         }
         Err(_) => None,
@@ -281,15 +289,21 @@ fn print_results(results: &BenchmarkResults) {
     println!("  Algorithm: {}", results.algorithm);
     println!("  Total transactions: {}", results.total_txs);
     println!("  Total time: {} ms", results.total_time_ms);
-    println!("  Average verification time: {:.2} μs", results.avg_verify_us);
+    println!(
+        "  Average verification time: {:.2} μs",
+        results.avg_verify_us
+    );
     println!("  Transactions per second: {:.0}", results.tx_per_second);
 
     if let (Some(user), Some(system)) = (results.cpu_user_time_ms, results.cpu_system_time_ms) {
-        println!("  CPU user time: {} ms", user);
-        println!("  CPU system time: {} ms", system);
+        println!("  CPU user time: {user} ms");
+        println!("  CPU system time: {system} ms");
     }
 
-    println!("  Timestamp: {}", results.timestamp.format("%Y-%m-%d %H:%M:%S UTC"));
+    println!(
+        "  Timestamp: {}",
+        results.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
+    );
 }
 
 /// Save results to artifacts directory

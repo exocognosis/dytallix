@@ -1,0 +1,6 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.91s
+     Running `/Users/rickglenn/dytallix/dytallix-lean-launch/target/debug/pulsescan-infer -c config.local.toml`
+Error: Database error: pool timed out while waiting for an open connection
+
+Caused by:
+    pool timed out while waiting for an open connection

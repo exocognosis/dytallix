@@ -14,4 +14,3 @@ pub struct AiRiskRecord {
     pub ingested_at: u64, // Unix timestamp
     pub source: String,   // Oracle source identifier
 }
-

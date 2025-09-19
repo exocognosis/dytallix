@@ -540,18 +540,20 @@ impl ContractRuntime {
 
         // (instance, memory, func) now available for both engines
 
-        let input_ptr = self.allocate_memory(&mut store, &memory, &call.input_data)?;
-        let input_len = call.input_data.len() as i32;
-
-        {
-            let mut gas_meter = self.gas_meter.lock().unwrap();
-            gas_meter.consume_gas(GAS_COST_BASE * 100)?;
-        }
-
+        // Capture gas_before before any per-call overhead so allocation and base costs are counted
         let gas_before = {
             let gas_meter = self.gas_meter.lock().unwrap();
             gas_meter.current_gas
         };
+
+        let input_ptr = self.allocate_memory(&mut store, &memory, &call.input_data)?;
+        let input_len = call.input_data.len() as i32;
+
+        // Charge a small base overhead for every call (counts towards gas_used)
+        {
+            let mut gas_meter = self.gas_meter.lock().unwrap();
+            gas_meter.consume_gas(GAS_COST_BASE * 100)?;
+        }
 
         let result = func.call(&mut store, (input_ptr, input_len)).map_err(|e| {
             let gas_after = {
@@ -661,19 +663,18 @@ impl ContractRuntime {
                     let storage = runtime_arc.contract_storage.lock().unwrap();
                     match storage.get(&context.contract_address, &key) {
                         Some(value) => {
+                            if value_len <= 0 || value_ptr < 0 {
+                                return -5;
+                            }
                             let copy_len = std::cmp::min(value.len(), value_len as usize);
-                            if runtime_arc
-                                .write_memory_slice(
-                                    &mut caller,
-                                    &memory,
-                                    value_ptr,
-                                    &value[..copy_len],
-                                )
-                                .is_ok()
-                            {
-                                copy_len as i32
-                            } else {
-                                -5
+                            match runtime_arc.write_memory_slice(
+                                &mut caller,
+                                &memory,
+                                value_ptr,
+                                &value[..copy_len],
+                            ) {
+                                Ok(()) => copy_len as i32,
+                                Err(_) => -5,
                             }
                         }
                         None => 0,
@@ -691,7 +692,7 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "storage_set",
-                |mut caller: Caller<HostCallContext>,
+                |caller: Caller<HostCallContext>,
                  key_ptr: i32,
                  key_len: i32,
                  value_ptr: i32,
@@ -773,7 +774,7 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "emit_event",
-                |mut caller: Caller<HostCallContext>,
+                |caller: Caller<HostCallContext>,
                  topic_ptr: i32,
                  topic_len: i32,
                  data_ptr: i32,
@@ -822,18 +823,14 @@ impl ContractRuntime {
                         contract_address: context.contract_address.clone(),
                         topic,
                         data,
-                        timestamp: context.block_timestamp,
+                        timestamp: std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs(),
                     };
 
-                    {
-                        let mut tracker = runtime_arc.state_tracker.lock().unwrap();
-                        tracker.emit_event(event.clone());
-                    }
-
-                    {
-                        let mut events = runtime_arc.event_storage.lock().unwrap();
-                        events.push(event);
-                    }
+                    let mut tracker = runtime_arc.state_tracker.lock().unwrap();
+                    tracker.emit_event(event);
 
                     0
                 },
@@ -1124,8 +1121,9 @@ impl ContractRuntime {
             _ => estimated_gas += 50000,
         }
 
-        estimated_gas += GAS_COST_STORAGE_READ * 5;
-        estimated_gas += GAS_COST_STORAGE_WRITE * 2;
+        // Light storage read/write assumptions
+        estimated_gas += GAS_COST_STORAGE_READ;
+        estimated_gas += GAS_COST_STORAGE_WRITE;
 
         Ok(estimated_gas)
     }
@@ -1160,7 +1158,7 @@ impl ContractRuntime {
     }
 
     // Helper method for testing - set contract storage directly
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-utils"))]
     pub fn set_contract_storage(&self, address: &Address, key: Vec<u8>, value: Vec<u8>) {
         let mut storage = self.contract_storage.lock().unwrap();
         if let Some(contract_storage) = storage.storage.get_mut(address) {

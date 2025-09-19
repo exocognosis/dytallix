@@ -6,10 +6,9 @@ deployed on the Osmosis testnet, measuring execution time, gas usage, and
 throughput under various load conditions.
 */
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
-use serde::{Serialize, Deserialize};
-use tokio::time::sleep;
+use std::time::Instant;
 
 // Benchmark configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,10 +57,20 @@ pub struct BenchmarkResults {
 // Contract operation types for benchmarking
 #[derive(Debug, Clone)]
 pub enum ContractOperation {
-    Query { query_msg: String },
-    Execute { execute_msg: String, funds: Vec<(String, String)> },
-    Instantiate { code_id: u64, init_msg: String },
-    Upload { wasm_code: Vec<u8> },
+    Query {
+        query_msg: String,
+    },
+    Execute {
+        execute_msg: String,
+        funds: Vec<(String, String)>,
+    },
+    Instantiate {
+        code_id: u64,
+        init_msg: String,
+    },
+    Upload {
+        wasm_code: Vec<u8>,
+    },
 }
 
 pub struct OsmosisWasmBenchmark {
@@ -79,7 +88,9 @@ impl OsmosisWasmBenchmark {
         }
     }
 
-    pub async fn run_comprehensive_benchmark(&mut self) -> Result<BenchmarkResults, Box<dyn std::error::Error>> {
+    pub async fn run_comprehensive_benchmark(
+        &mut self,
+    ) -> Result<BenchmarkResults, Box<dyn std::error::Error>> {
         println!("🚀 Starting Osmosis WASM Contract Benchmarks");
         println!("Testnet endpoint: {}", self.config.testnet_endpoint);
         println!("Contract addresses: {:?}", self.config.contract_addresses);
@@ -115,19 +126,20 @@ impl OsmosisWasmBenchmark {
 
         for contract_addr in &self.config.contract_addresses.clone() {
             // Test basic query operations
-            let query_metrics = self.benchmark_query_operation(
-                contract_addr,
-                r#"{"get_count": {}}"#.to_string(),
-            ).await?;
+            let query_metrics = self
+                .benchmark_query_operation(contract_addr, r#"{"get_count": {}}"#.to_string())
+                .await?;
 
             self.results.push(query_metrics);
 
             // Test execute operations
-            let execute_metrics = self.benchmark_execute_operation(
-                contract_addr,
-                r#"{"increment": {}}"#.to_string(),
-                vec![],
-            ).await?;
+            let execute_metrics = self
+                .benchmark_execute_operation(
+                    contract_addr,
+                    r#"{"increment": {}}"#.to_string(),
+                    vec![],
+                )
+                .await?;
 
             self.results.push(execute_metrics);
         }
@@ -136,7 +148,10 @@ impl OsmosisWasmBenchmark {
     }
 
     async fn run_load_test(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("🔥 Running load test with {} concurrent transactions...", self.config.concurrent_transactions);
+        println!(
+            "🔥 Running load test with {} concurrent transactions...",
+            self.config.concurrent_transactions
+        );
 
         let mut tasks = Vec::new();
         let contract_addresses = self.config.contract_addresses.clone();
@@ -171,11 +186,13 @@ impl OsmosisWasmBenchmark {
 
         for gas_limit in gas_limits {
             for contract_addr in &self.config.contract_addresses.clone() {
-                let mut metrics = self.benchmark_execute_operation(
-                    contract_addr,
-                    r#"{"increment": {}}"#.to_string(),
-                    vec![],
-                ).await?;
+                let mut metrics = self
+                    .benchmark_execute_operation(
+                        contract_addr,
+                        r#"{"increment": {}}"#.to_string(),
+                        vec![],
+                    )
+                    .await?;
 
                 metrics.gas_limit = gas_limit;
                 self.results.push(metrics);
@@ -199,10 +216,12 @@ impl OsmosisWasmBenchmark {
             // Execute operations for 1-second intervals
             while interval_start.elapsed().as_millis() < 1000 {
                 for contract_addr in &self.config.contract_addresses.clone() {
-                    let metrics = self.benchmark_query_operation(
-                        contract_addr,
-                        r#"{"get_count": {}}"#.to_string(),
-                    ).await?;
+                    let metrics = self
+                        .benchmark_query_operation(
+                            contract_addr,
+                            r#"{"get_count": {}}"#.to_string(),
+                        )
+                        .await?;
 
                     interval_ops += 1;
                     self.results.push(metrics);
@@ -210,7 +229,7 @@ impl OsmosisWasmBenchmark {
             }
 
             interval_results.push(interval_ops);
-            println!("Interval TPS: {}", interval_ops);
+            println!("Interval TPS: {interval_ops}");
         }
 
         Ok(())
@@ -232,7 +251,8 @@ impl OsmosisWasmBenchmark {
             self.config.testnet_endpoint, contract_address
         );
 
-        let response = self.client
+        let response = self
+            .client
             .get(&query_url)
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({ "query_data": query_msg }))
@@ -274,7 +294,8 @@ impl OsmosisWasmBenchmark {
         // Simulate transaction execution to Osmosis testnet
         let tx_url = format!("{}/cosmos/tx/v1beta1/txs", self.config.testnet_endpoint);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&tx_url)
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({
@@ -338,10 +359,7 @@ impl OsmosisWasmBenchmark {
             .as_secs();
 
         // Simulate high-frequency transaction
-        let query_url = format!(
-            "{}/cosmwasm/wasm/v1/contract/{}/smart",
-            endpoint, contract_address
-        );
+        let query_url = format!("{endpoint}/cosmwasm/wasm/v1/contract/{contract_address}/smart");
 
         let response = client
             .get(&query_url)
@@ -386,18 +404,22 @@ impl OsmosisWasmBenchmark {
         let peak_tps = tps_intervals.values().max().copied().unwrap_or(0) as f64;
 
         let avg_gas = if successful_operations > 0 {
-            self.results.iter()
+            self.results
+                .iter()
                 .filter(|m| m.success)
                 .map(|m| m.gas_used)
-                .sum::<u64>() as f64 / successful_operations as f64
+                .sum::<u64>() as f64
+                / successful_operations as f64
         } else {
             0.0
         };
 
         let avg_execution_time = if total_operations > 0 {
-            self.results.iter()
+            self.results
+                .iter()
                 .map(|m| m.execution_time_ms)
-                .sum::<f64>() / total_operations as f64
+                .sum::<f64>()
+                / total_operations as f64
         } else {
             0.0
         };
@@ -432,7 +454,10 @@ impl OsmosisWasmBenchmark {
         }
     }
 
-    pub fn export_results_json(&self, results: &BenchmarkResults) -> Result<String, serde_json::Error> {
+    pub fn export_results_json(
+        &self,
+        results: &BenchmarkResults,
+    ) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(results)
     }
 
@@ -462,20 +487,23 @@ impl Default for BenchmarkConfig {
     fn default() -> Self {
         Self {
             testnet_endpoint: "https://lcd.osmosis.zone".to_string(),
-            contract_addresses: vec![
-                "osmo1test123".to_string(),
-                "osmo1test456".to_string(),
-            ],
+            contract_addresses: vec!["osmo1test123".to_string(), "osmo1test456".to_string()],
             test_duration_seconds: 60,
             concurrent_transactions: 10,
-            transaction_types: vec![
-                "query".to_string(),
-                "execute".to_string(),
-            ],
+            transaction_types: vec!["query".to_string(), "execute".to_string()],
             gas_limit: 200_000,
             gas_price: "0.025uosmo".to_string(),
         }
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Run with default configuration targeting placeholder endpoints/contracts
+    let mut bench = OsmosisWasmBenchmark::new(BenchmarkConfig::default());
+    // Execute a small, quick run to ensure binary entry compiles and runs
+    let _ = bench.run_comprehensive_benchmark().await;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -514,13 +542,4 @@ mod tests {
         assert_eq!(results.successful_operations, 1);
         assert!(results.average_tps > 0.0);
     }
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Run with default configuration targeting placeholder endpoints/contracts
-    let mut bench = OsmosisWasmBenchmark::new(BenchmarkConfig::default());
-    // Execute a small, quick run to ensure binary entry compiles and runs
-    let _ = bench.run_comprehensive_benchmark().await;
-    Ok(())
 }

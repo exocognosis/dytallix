@@ -56,6 +56,8 @@ engine_wasmi = ["wasmi"]
 cosmwasm = ["cosmwasm-std", "cw-storage-plus"]
 cosmos-bridge-lite = []
 cosmos-bridge-optimized = []
+# New feature to expose test helpers to dependent crates
+test-utils = []
 
 [lib]
 name = "dytallix_contracts"

@@ -1,8 +1,11 @@
 // Example usage of the Dytallix staking system
 // This demonstrates the complete workflow for validators and delegators
 
+#[allow(unused_imports)]
 use dytallix_node::genesis::GenesisConfig;
+#[allow(unused_imports)]
 use dytallix_node::runtime::{DytallixRuntime, RuntimeState};
+#[allow(unused_imports)]
 use dytallix_node::staking::{StakingState, ValidatorStatus};
 
 fn main() {
@@ -37,10 +40,7 @@ fn example_basic_staking() {
         .register_validator(validator_addr.clone(), consensus_pubkey, commission_rate)
         .expect("Failed to register validator");
 
-    println!(
-        "   ✓ Validator {} registered with 5% commission",
-        validator_addr
-    );
+    println!("   ✓ Validator {validator_addr} registered with 5% commission",);
 
     // Step 2: Self-delegate to become active
     println!("2. Self-delegating to activate validator...");
@@ -52,8 +52,8 @@ fn example_basic_staking() {
 
     let validator = &staking.validators[&validator_addr];
     println!(
-        "   ✓ Self-delegated {} uDGT, status: {:?}",
-        self_stake, validator.status
+        "   ✓ Self-delegated {self_stake} uDGT, status: {:?}",
+        validator.status
     );
 
     // Step 3: External delegation
@@ -69,10 +69,7 @@ fn example_basic_staking() {
         )
         .expect("Failed to delegate");
 
-    println!(
-        "   ✓ {} delegated {} uDGT to {}",
-        delegator_addr, delegation_amount, validator_addr
-    );
+    println!("   ✓ {delegator_addr} delegated {delegation_amount} uDGT to {validator_addr}",);
 
     // Step 4: Process block rewards
     println!("4. Processing block rewards...");
@@ -84,10 +81,7 @@ fn example_basic_staking() {
         .calculate_pending_rewards(&delegator_addr, &validator_addr)
         .expect("Failed to calculate rewards");
 
-    println!(
-        "   ✓ Block 1 processed, {} has {} uDRT pending",
-        delegator_addr, pending_rewards
-    );
+    println!("   ✓ Block 1 processed, {delegator_addr} has {pending_rewards} uDRT pending",);
 
     // Step 5: Claim rewards
     println!("5. Claiming rewards...");
@@ -95,7 +89,7 @@ fn example_basic_staking() {
         .claim_rewards(&delegator_addr, &validator_addr)
         .expect("Failed to claim rewards");
 
-    println!("   ✓ {} claimed {} uDRT rewards", delegator_addr, claimed);
+    println!("   ✓ {delegator_addr} claimed {claimed} uDRT rewards");
     println!();
 }
 
@@ -122,9 +116,7 @@ fn example_multiple_participants() {
             .expect("Failed to self-delegate");
 
         println!(
-            "   ✓ {} active with {} uDGT self-stake, {}% commission",
-            val_addr,
-            self_stake,
+            "   ✓ {val_addr} active with {self_stake} uDGT self-stake, {}% commission",
             commission as f32 / 100.0
         );
     }
@@ -139,11 +131,8 @@ fn example_multiple_participants() {
 
     for (delegator, validator, amount) in delegations {
         match staking.delegate(delegator.to_string(), validator.to_string(), amount) {
-            Ok(_) => println!(
-                "   ✓ {} delegated {} uDGT to {}",
-                delegator, amount, validator
-            ),
-            Err(e) => println!("   ✗ Delegation failed: {}", e),
+            Ok(_) => println!("   ✓ {delegator} delegated {amount} uDGT to {validator}",),
+            Err(e) => println!("   ✗ Delegation failed: {e}"),
         }
     }
 
@@ -223,8 +212,7 @@ fn example_reward_distribution() {
             .expect("Failed to calculate validator rewards");
 
         println!(
-            "   Block {}: Validator={} uDRT, Delegator A={} uDRT, Delegator B={} uDRT",
-            block, rewards_val, rewards_a, rewards_b
+            "   Block {block}: Validator={rewards_val} uDRT, Delegator A={rewards_a} uDRT, Delegator B={rewards_b} uDRT",
         );
     }
 
@@ -233,7 +221,7 @@ fn example_reward_distribution() {
     let claimed_a = staking
         .claim_rewards(&"delegator_a".to_string(), &"validator".to_string())
         .expect("Failed to claim A");
-    println!("   ✓ Delegator A claimed {} uDRT", claimed_a);
+    println!("   ✓ Delegator A claimed {claimed_a} uDRT");
 
     // Process 2 more blocks
     for block in 6..=7 {
@@ -251,8 +239,8 @@ fn example_reward_distribution() {
         .expect("Failed to calculate final B");
 
     println!("\n   Final pending rewards:");
-    println!("   Delegator A: {} uDRT (only blocks 6-7)", final_a);
-    println!("   Delegator B: {} uDRT (all 7 blocks)", final_b);
+    println!("   Delegator A: {final_a} uDRT (only blocks 6-7)");
+    println!("   Delegator B: {final_b} uDRT (all 7 blocks)");
 
     // Verify math: Delegator B should have 7 blocks * 25% = 1.75M uDRT
     let expected_b = (staking.params.emission_per_block * 7) / 4; // 25% of 7 blocks
@@ -262,13 +250,14 @@ fn example_reward_distribution() {
 }
 
 // Helper function to format large numbers
+#[allow(dead_code)]
 fn format_amount(amount: u128, decimals: u8, symbol: &str) -> String {
     let divisor = 10u128.pow(decimals as u32);
     let whole = amount / divisor;
     let fractional = amount % divisor;
 
     if fractional == 0 {
-        format!("{} {}", whole, symbol)
+        format!("{whole} {symbol}")
     } else {
         format!(
             "{}.{:0width$} {}",

@@ -11,7 +11,7 @@ use dytallix_lean_node::storage::blocks::TpsWindow;
 use dytallix_lean_node::storage::bridge::BridgeValidator;
 use dytallix_lean_node::storage::state::Storage;
 use dytallix_lean_node::ws::server::WsHub;
-use ed25519_dalek::{Keypair, SecretKey, PublicKey, Signer};
+use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signer};
 // removed rand to avoid rand_core conflicts
 use serde_json::json;
 use std::sync::{Arc, Mutex};

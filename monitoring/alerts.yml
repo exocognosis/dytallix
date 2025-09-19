@@ -72,3 +72,13 @@ groups:
         annotations:
           summary: "API request latency is high"
           description: "95th percentile API latency is {{ $value }}s for {{ $labels.route }}"
+
+      # Canary alert to guarantee firing during pause test
+      - alert: LeanNodeDown
+        expr: up{job="dytallix-lean-node-local"} == 0
+        for: 45s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Lean node metrics endpoint is down"
+          description: "Prometheus cannot scrape lean node on host port 3030 for >45s"

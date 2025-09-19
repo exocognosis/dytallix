@@ -258,17 +258,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_polkadot_connector_creation() {
-        let config = PolkadotConfig::default();
+        let _config = PolkadotConfig::default();
         // Skip actual connection in tests
         // let connector = PolkadotConnector::new(config).await.unwrap();
 
-        assert_eq!(config.chain_type, PolkadotChainType::Relay);
-        assert_eq!(config.unit, "DOT");
+        assert_eq!(
+            PolkadotConfig::default().chain_type,
+            PolkadotChainType::Relay
+        );
+        assert_eq!(PolkadotConfig::default().unit, "DOT");
     }
 
     #[tokio::test]
     async fn test_polkadot_asset_locking() {
-        let config = PolkadotConfig::default();
+        let _config = PolkadotConfig::default();
         // Skip actual connection in tests - would require live network
         // let connector = PolkadotConnector::new(config).await.unwrap();
 
@@ -284,7 +287,7 @@ mod tests {
             },
         };
 
-        let bridge_tx = BridgeTx {
+        let _bridge_tx = BridgeTx {
             id: BridgeTxId("test_polkadot_tx_123".to_string()),
             asset: asset.clone(),
             source_chain: "polkadot".to_string(),
@@ -304,7 +307,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_polkadot_xcm_transfer() {
-        let config = PolkadotConfig {
+        let _config = PolkadotConfig {
             para_id: Some(1000), // Statemint
             ..Default::default()
         };
@@ -323,7 +326,7 @@ mod tests {
             },
         };
 
-        let bridge_tx = BridgeTx {
+        let _bridge_tx = BridgeTx {
             id: BridgeTxId("test_xcm_tx_123".to_string()),
             asset: asset.clone(),
             source_chain: "statemint".to_string(),
@@ -343,7 +346,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_polkadot_current_block() {
-        let config = PolkadotConfig::default();
+        let _config = PolkadotConfig::default();
         // Skip actual connection in tests
         // let connector = PolkadotConnector::new(config).await.unwrap();
 

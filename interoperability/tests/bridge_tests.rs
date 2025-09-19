@@ -129,7 +129,7 @@ async fn test_bridge_emergency_halt() {
     assert!(result.is_ok());
 
     // Test that bridge operations are halted
-    let asset = Asset {
+    let _asset = Asset {
         id: "DYT".to_string(),
         amount: 1000,
         decimals: 18,
@@ -182,13 +182,13 @@ async fn test_ibc_channel_creation() {
 
 #[tokio::test]
 async fn test_ibc_packet_send() {
-    let ibc = DytallixIBC::new();
+    let _ibc = DytallixIBC::new();
 
     // First create a channel
-    let channel_result = ibc.create_channel("transfer".to_string(), "transfer".to_string());
+    let channel_result = _ibc.create_channel("transfer".to_string(), "transfer".to_string());
     assert!(channel_result.is_ok());
 
-    let packet = IBCPacket {
+    let _packet = IBCPacket {
         sequence: 1,
         source_port: "transfer".to_string(),
         source_channel: "channel-0".to_string(),
@@ -216,9 +216,9 @@ async fn test_ibc_packet_send() {
 
 #[tokio::test]
 async fn test_ibc_packet_receive() {
-    let ibc = DytallixIBC::new();
+    let _ibc = DytallixIBC::new();
 
-    let packet = IBCPacket {
+    let _packet = IBCPacket {
         sequence: 1,
         source_port: "transfer".to_string(),
         source_channel: "channel-0".to_string(),
@@ -324,9 +324,9 @@ async fn test_bridge_concurrent_operations() {
     let mut handles = vec![];
 
     for i in 0..10 {
-        let bridge_clone = bridge.clone(); // Note: This would require Clone implementation
+        let _bridge_clone = bridge.clone(); // Note: This would require Clone implementation
         let handle = tokio::spawn(async move {
-            let asset = Asset {
+            let _asset = Asset {
                 id: format!("TOKEN_{i}"),
                 amount: 1000 + i as u64,
                 decimals: 18,
@@ -391,7 +391,7 @@ async fn test_bridge_error_scenarios() {
     };
 
     // This should potentially fail or warn about zero amounts
-    let result = bridge.lock_asset(zero_asset, "ethereum", "0x123");
+    let _result = bridge.lock_asset(zero_asset, "ethereum", "0x123");
     // In a full implementation, we might want to reject zero amounts
 
     // Test with invalid destination address format
@@ -408,7 +408,7 @@ async fn test_bridge_error_scenarios() {
     };
 
     // Invalid Ethereum address (too short)
-    let result = bridge.lock_asset(asset, "ethereum", "0x123");
+    let _result = bridge.lock_asset(asset, "ethereum", "0x123");
     // In a full implementation, we would validate address formats
 }
 

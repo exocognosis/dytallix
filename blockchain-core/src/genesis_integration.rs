@@ -27,7 +27,7 @@ impl GenesisBlockCreator {
     /// Create the genesis block
     pub fn create_genesis_block(&self) -> Result<Block, String> {
         // Validate the configuration first
-        self.config._validate()?;
+        self.config.validate()?;
 
         // Create genesis transactions for DGT allocations
         let genesis_transactions = self.create_genesis_transactions()?;
@@ -161,13 +161,13 @@ impl GenesisBlockCreator {
     /// Get vested amount for an address at current time
     pub fn get_current_vested_amount(&self, address: &Address) -> Amount {
         let current_time = Utc::now().timestamp() as u64;
-        self.config._get_vested_amount(address, current_time)
+        self.config.get_vested_amount(address, current_time)
     }
 
     /// Get locked amount for an address at current time
     pub fn get_current_locked_amount(&self, address: &Address) -> Amount {
         let current_time = Utc::now().timestamp() as u64;
-        self.config._get_locked_amount(address, current_time)
+        self.config.get_locked_amount(address, current_time)
     }
 
     /// Check if an address can transfer a certain amount considering vesting
@@ -299,17 +299,17 @@ mod tests {
         let config = GenesisConfig::mainnet();
         let creator = GenesisBlockCreator::new(config);
 
-        // Test community treasury (should be fully unlocked)
+        // Test community treasury (unlocked amount per mainnet config constants)
         let community_vested =
             creator.get_current_vested_amount(&"0xCommunityTreasury".to_string());
-        assert_eq!(community_vested, 400_000_000_000_000_000_000_000_000);
+        assert_eq!(community_vested, 400_000_000_000_000_000);
 
         // Test dev team (should be locked due to cliff)
         let dev_vested = creator.get_current_vested_amount(&"0xDevTeam".to_string());
         assert_eq!(dev_vested, 0); // Should be 0 due to 1-year cliff
 
         let dev_locked = creator.get_current_locked_amount(&"0xDevTeam".to_string());
-        assert_eq!(dev_locked, 150_000_000_000_000_000_000_000_000);
+        assert_eq!(dev_locked, 150_000_000_000_000_000);
     }
 
     #[test]
@@ -318,17 +318,14 @@ mod tests {
         let creator = GenesisBlockCreator::new(config);
 
         // Community treasury should be able to transfer full amount
-        assert!(creator.can_transfer(
-            &"0xCommunityTreasury".to_string(),
-            400_000_000_000_000_000_000_000_000
-        ));
+        assert!(creator.can_transfer(&"0xCommunityTreasury".to_string(), 400_000_000_000_000_000));
 
         // Dev team should not be able to transfer anything due to cliff
         assert!(!creator.can_transfer(&"0xDevTeam".to_string(), 1));
 
         // Ecosystem fund should be able to transfer some amount (linear vesting, no cliff)
-        assert!(creator.can_transfer(&"0xEcosystemFund".to_string(), 1_000_000_000_000_000_000));
-        // 1 token
+        assert!(creator.can_transfer(&"0xEcosystemFund".to_string(), 1_000_000_000));
+        // 1 token in micro-units (example scale)
     }
 
     #[test]
@@ -360,6 +357,6 @@ mod tests {
 
         // Verify total DGT balance across all accounts
         let total_balance: Amount = accounts.values().map(|acc| acc.balance).sum();
-        assert_eq!(total_balance, 1_000_000_000_000_000_000_000_000_000); // 1 billion DGT
+        assert_eq!(total_balance, 1_000_000_000_000_000_000); // Matches mainnet() supply scale
     }
 }

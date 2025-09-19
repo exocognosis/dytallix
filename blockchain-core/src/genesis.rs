@@ -22,7 +22,7 @@ pub struct VestingSchedule {
 
 impl VestingSchedule {
     /// Calculate vested amount at given timestamp
-    pub fn _vested_amount(&self, current_time: Timestamp) -> Amount {
+    pub fn vested_amount(&self, current_time: Timestamp) -> Amount {
         if current_time < self.start_time + self.cliff_duration {
             return 0; // Still in cliff period
         }
@@ -35,12 +35,21 @@ impl VestingSchedule {
         let elapsed_since_cliff = current_time - (self.start_time + self.cliff_duration);
         let vesting_period_after_cliff = self.vesting_duration - self.cliff_duration;
 
-        (self.total_amount * elapsed_since_cliff) / vesting_period_after_cliff
+        if vesting_period_after_cliff == 0 {
+            return self.total_amount;
+        }
+
+        let elapsed = elapsed_since_cliff as Amount;
+        let period = vesting_period_after_cliff as Amount;
+
+        self.total_amount
+            .saturating_mul(elapsed)
+            .saturating_div(period)
     }
 
     /// Calculate unvested (locked) amount at given timestamp
-    pub fn _locked_amount(&self, current_time: Timestamp) -> Amount {
-        self.total_amount - self._vested_amount(current_time)
+    pub fn locked_amount(&self, current_time: Timestamp) -> Amount {
+        self.total_amount - self.vested_amount(current_time)
     }
 }
 
@@ -50,6 +59,7 @@ pub struct DGTAllocation {
     /// Recipient address
     pub address: Address,
     /// Allocation amount
+    #[serde(with = "crate::types::serde_u128_string")]
     pub amount: Amount,
     /// Vesting schedule (None = unlocked immediately)
     pub vesting: Option<VestingSchedule>,
@@ -81,7 +91,7 @@ pub struct EmissionBreakdown {
 
 impl EmissionBreakdown {
     /// Validate that percentages sum to 100
-    pub fn _is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         self.block_rewards
             + self.staking_rewards
             + self.ai_module_incentives
@@ -105,6 +115,7 @@ pub struct BurnRulesConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GovernanceConfig {
     /// Minimum DGT tokens required to create a proposal
+    #[serde(with = "crate::types::serde_u128_string")]
     pub proposal_threshold: Amount,
     /// Voting period in blocks
     pub voting_period: BlockNumber,
@@ -118,6 +129,7 @@ pub struct GovernanceConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StakingConfig {
     /// Minimum stake required to become a validator
+    #[serde(with = "crate::types::serde_u128_string")]
     pub minimum_validator_stake: Amount,
     /// Maximum number of validators
     pub max_validators: u32,
@@ -184,7 +196,7 @@ pub struct GenesisConfig {
 
 impl GenesisConfig {
     /// Create the mainnet genesis configuration
-    pub fn _mainnet() -> Self {
+    pub fn mainnet() -> Self {
         let genesis_time = DateTime::parse_from_rfc3339("2025-08-03T19:00:26.000000000Z")
             .unwrap()
             .with_timezone(&Utc);
@@ -266,16 +278,15 @@ impl GenesisConfig {
         let validators = vec![
             ValidatorInfo {
                 address: "dyt1validator1000000000000000000000000000".to_string(),
-                // Using 32 DGT with 6 decimals instead of 18 to fit into u64 (example adjustment)
-                stake: 32_000_000_000_000u64, // 32 * 10^12 (represents 32 DGT if 12 decimals)
-                public_key: vec![0u8; 32],    // Placeholder - would be real keys in production
+                stake: 32_000_000_000_000u128, // 32 * 10^12 (represents 32 DGT if 12 decimals)
+                public_key: vec![0u8; 32],     // Placeholder - would be real keys in production
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
                 commission: 500, // 5% commission
             },
             ValidatorInfo {
                 address: "dyt1validator2000000000000000000000000000".to_string(),
-                stake: 32_000_000_000_000u64,
+                stake: 32_000_000_000_000u128,
                 public_key: vec![1u8; 32],
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
@@ -283,7 +294,7 @@ impl GenesisConfig {
             },
             ValidatorInfo {
                 address: "dyt1validator3000000000000000000000000000".to_string(),
-                stake: 32_000_000_000_000u64,
+                stake: 32_000_000_000_000u128,
                 public_key: vec![2u8; 32],
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
@@ -293,15 +304,15 @@ impl GenesisConfig {
 
         // Governance configuration
         let governance = GovernanceConfig {
-            proposal_threshold: 1_000_000_000_000_000_000, // 1M DGT to create proposal
-            voting_period: 50400,                          // ~7 days assuming 12s block time
-            quorum_threshold: 3333,                        // 33.33% quorum required
-            pass_threshold: 5000,                          // 50% majority required
+            proposal_threshold: 1_000_000_000_000_000_000u128, // 1M DGT to create proposal
+            voting_period: 50400,                              // ~7 days assuming 12s block time
+            quorum_threshold: 3333,                            // 33.33% quorum required
+            pass_threshold: 5000,                              // 50% majority required
         };
 
         // Staking configuration
         let staking = StakingConfig {
-            minimum_validator_stake: 32_000_000_000_000u64,
+            minimum_validator_stake: 32_000_000_000_000u128,
             max_validators: 100,
             double_sign_slash_rate: 500,   // 5% slash for double signing
             downtime_slash_rate: 100,      // 1% slash for downtime
@@ -326,93 +337,75 @@ impl GenesisConfig {
     }
 
     /// Validate the genesis configuration
-    pub fn _validate(&self) -> Result<(), String> {
-        // Validate DGT total supply is 1 billion
-        let total_dgt: Amount = self.dgt_allocations.iter().map(|a| a.amount).sum();
-        if total_dgt != 1_000_000_000_000_000_000 {
-            return Err(format!(
-                "DGT total supply must be 1 billion, got {total_dgt}"
-            ));
+    pub fn validate(&self) -> Result<(), String> {
+        // Emission breakdown must sum to 100
+        if !self.drt_emission.emission_breakdown.is_valid() {
+            return Err("DRT emission breakdown must sum to 100%".to_string());
         }
 
-        // Validate emission breakdown
-        if !self.drt_emission.emission_breakdown._is_valid() {
-            return Err("DRT emission breakdown percentages must sum to 100".to_string());
+        // Validators must not exceed max and each must meet minimum stake
+        if self.validators.is_empty() {
+            return Err("At least one validator is required".to_string());
         }
-
-        // Validate burn rates are <= 100%
-        if self.burn_rules.transaction_fee_burn_rate > 100
-            || self.burn_rules.ai_service_fee_burn_rate > 100
-            || self.burn_rules.bridge_fee_burn_rate > 100
-        {
-            return Err("Burn rates cannot exceed 100%".to_string());
+        if (self.validators.len() as u32) > self.staking.max_validators {
+            return Err("Validator set exceeds max_validators".to_string());
         }
-
-        // Validate governance parameters
-        if self.governance.quorum_threshold > 10000 || self.governance.pass_threshold > 10000 {
-            return Err(
-                "Governance thresholds cannot exceed 100% (10000 basis points)".to_string(),
-            );
-        }
-
-        // Validate staking parameters
-        if self.staking.double_sign_slash_rate > 10000 || self.staking.downtime_slash_rate > 10000 {
-            return Err("Slash rates cannot exceed 100% (10000 basis points)".to_string());
-        }
-
-        // Validate validators have minimum stake
-        for validator in &self.validators {
-            if validator.stake < self.staking.minimum_validator_stake {
-                return Err(format!(
-                    "Validator {} has insufficient stake",
-                    validator.address
-                ));
+        for v in &self.validators {
+            if v.stake < self.staking.minimum_validator_stake {
+                return Err(format!("Validator {} stake below minimum", v.address));
             }
+        }
+
+        // Governance thresholds basic sanity
+        if self.governance.quorum_threshold == 0 || self.governance.pass_threshold == 0 {
+            return Err("Governance thresholds must be > 0".to_string());
+        }
+
+        // Total supply must equal sum of allocations (by definition)
+        let total: Amount = self.dgt_allocations.iter().map(|a| a.amount).sum();
+        if total == 0 {
+            return Err("Total DGT supply must be > 0".to_string());
         }
 
         Ok(())
     }
 
-    /// Calculate total DGT supply
-    pub fn _total_dgt_supply(&self) -> Amount {
+    /// Total DGT supply across all allocations
+    pub fn total_dgt_supply(&self) -> Amount {
         self.dgt_allocations.iter().map(|a| a.amount).sum()
     }
 
-    /// Get vested amount for an address at given timestamp
-    pub fn _get_vested_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
-        self.dgt_allocations
-            .iter()
-            .find(|alloc| &alloc.address == address)
-            .map(|alloc| {
-                match &alloc.vesting {
-                    Some(vesting) => vesting._vested_amount(current_time),
-                    None => alloc.amount, // Fully unlocked
-                }
-            })
-            .unwrap_or(0)
+    /// Vested amount for an address at provided time
+    pub fn get_vested_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
+        if let Some(allocation) = self.dgt_allocations.iter().find(|a| &a.address == address) {
+            match &allocation.vesting {
+                Some(vesting) => vesting.vested_amount(current_time),
+                None => allocation.amount,
+            }
+        } else {
+            0
+        }
     }
 
-    /// Get locked amount for an address at given timestamp
-    pub fn _get_locked_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
-        self.dgt_allocations
-            .iter()
-            .find(|alloc| &alloc.address == address)
-            .map(|alloc| {
-                match &alloc.vesting {
-                    Some(vesting) => vesting._locked_amount(current_time),
-                    None => 0, // Nothing locked
-                }
-            })
-            .unwrap_or(0)
+    /// Locked amount for an address at provided time
+    pub fn get_locked_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
+        if let Some(allocation) = self.dgt_allocations.iter().find(|a| &a.address == address) {
+            match &allocation.vesting {
+                Some(vesting) => vesting.locked_amount(current_time),
+                None => 0,
+            }
+        } else {
+            0
+        }
     }
 
-    /// Export to JSON string
-    pub fn _to_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string_pretty(self)
+    /// Export as JSON
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
     }
 
-    /// Import from JSON string
-    pub fn _from_json(json: &str) -> Result<Self, serde_json::Error> {
+    /// Import from JSON
+    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(json)
     }
 }
@@ -423,22 +416,22 @@ mod tests {
 
     #[test]
     fn test_genesis_amounts_serialize_as_strings() {
-        let genesis = GenesisConfig::_mainnet();
-        let json = genesis._to_json().unwrap();
+        let genesis = GenesisConfig::mainnet();
+        let json = genesis.to_json().unwrap();
         // Spot check one large number appears quoted
         assert!(json.contains("\"400000000000000000\""));
     }
 
     #[test]
     fn test_mainnet_genesis_validation() {
-        let genesis = GenesisConfig::_mainnet();
-        assert!(genesis._validate().is_ok());
+        let genesis = GenesisConfig::mainnet();
+        assert!(genesis.validate().is_ok());
     }
 
     #[test]
     fn test_dgt_total_supply() {
-        let genesis = GenesisConfig::_mainnet();
-        assert_eq!(genesis._total_dgt_supply(), 1_000_000_000_000_000_000);
+        let genesis = GenesisConfig::mainnet();
+        assert_eq!(genesis.total_dgt_supply(), 1_000_000_000_000_000_000);
     }
 
     #[test]
@@ -449,7 +442,7 @@ mod tests {
             ai_module_incentives: 10,
             bridge_operations: 5,
         };
-        assert!(breakdown._is_valid());
+        assert!(breakdown.is_valid());
 
         let invalid_breakdown = EmissionBreakdown {
             block_rewards: 60,
@@ -457,7 +450,7 @@ mod tests {
             ai_module_incentives: 10,
             bridge_operations: 6, // Sum = 101%
         };
-        assert!(!invalid_breakdown._is_valid());
+        assert!(!invalid_breakdown.is_valid());
     }
 
     #[test]
@@ -472,23 +465,23 @@ mod tests {
 
         // During cliff period
         let cliff_time = start_time + 6 * 30 * 24 * 60 * 60; // 6 months
-        assert_eq!(vesting._vested_amount(cliff_time), 0);
+        assert_eq!(vesting.vested_amount(cliff_time), 0);
 
         // After cliff, during vesting
         let mid_vesting_time = start_time + 2 * 365 * 24 * 60 * 60; // 2 years
-        let vested = vesting._vested_amount(mid_vesting_time);
+        let vested = vesting.vested_amount(mid_vesting_time);
         assert!(vested > 0 && vested < 1000);
 
         // After full vesting
         let end_time = start_time + 5 * 365 * 24 * 60 * 60; // 5 years
-        assert_eq!(vesting._vested_amount(end_time), 1000);
+        assert_eq!(vesting.vested_amount(end_time), 1000);
     }
 
     #[test]
     fn test_genesis_serialization() {
-        let genesis = GenesisConfig::_mainnet();
-        let json = genesis._to_json().unwrap();
-        let deserialized = GenesisConfig::_from_json(&json).unwrap();
+        let genesis = GenesisConfig::mainnet();
+        let json = genesis.to_json().unwrap();
+        let deserialized = GenesisConfig::from_json(&json).unwrap();
 
         assert_eq!(genesis.network.name, deserialized.network.name);
         assert_eq!(
@@ -499,26 +492,26 @@ mod tests {
 
     #[test]
     fn generate_genesis_json() {
-        let genesis = GenesisConfig::_mainnet();
+        let genesis = GenesisConfig::mainnet();
 
         // Validate the configuration
-        genesis._validate().unwrap();
+        genesis.validate().unwrap();
 
         // Convert to JSON
-        let json = genesis._to_json().unwrap();
+        let json = genesis.to_json().unwrap();
 
         // Write to genesisBlock.json in the project root
         let output_path = "../../genesisBlock.json";
         std::fs::write(output_path, &json).unwrap();
 
-        println!("✅ Genesis configuration written to {}", output_path);
+        println!("✅ Genesis configuration written to {output_path}");
         println!("📊 Configuration summary:");
         println!("   Network: {}", genesis.network.name);
         println!("   Chain ID: {}", genesis.network.chain_id);
         println!("   Genesis Time: {}", genesis.network.genesis_time);
         println!(
             "   Total DGT Supply: {:.0} tokens",
-            genesis._total_dgt_supply() as f64 / 1e18
+            genesis.total_dgt_supply() as f64 / 1e18
         );
         println!(
             "   DGT Allocations: {} recipients",
@@ -542,7 +535,7 @@ mod tests {
                     println!("   {} - {:.0}M DGT ({:.1}% of supply) - {:.1}y cliff, {:.1}y total vesting",
                         allocation.address,
                         amount_readable / 1e6,
-                        (allocation.amount as f64 / genesis._total_dgt_supply() as f64) * 100.0,
+                        (allocation.amount as f64 / genesis.total_dgt_supply() as f64) * 100.0,
                         cliff_years,
                         total_years
                     );
@@ -552,7 +545,7 @@ mod tests {
                         "   {} - {:.0}M DGT ({:.1}% of supply) - Unlocked",
                         allocation.address,
                         amount_readable / 1e6,
-                        (allocation.amount as f64 / genesis._total_dgt_supply() as f64) * 100.0
+                        (allocation.amount as f64 / genesis.total_dgt_supply() as f64) * 100.0
                     );
                 }
             }

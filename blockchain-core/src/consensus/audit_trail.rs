@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 use crate::consensus::ai_integration::{AIVerificationResult, RiskProcessingDecision};
 use crate::consensus::notification_types::ReviewPriority;
-use crate::types::{Address, Transaction, TxHash};
+use crate::types::{Address, Amount, Fee, Transaction, TxHash};
 
 /// Comprehensive audit entry for AI decisions
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,9 +59,11 @@ pub struct TransactionMetadata {
     /// To address
     pub to_address: Option<Address>,
     /// Transaction amount
-    pub amount: Option<u64>,
+    #[serde(with = "crate::types::serde_opt_u128_string")]
+    pub amount: Option<Amount>,
     /// Transaction fee
-    pub fee: Option<u64>,
+    #[serde(with = "crate::types::serde_opt_u128_string")]
+    pub fee: Option<Fee>,
     /// Transaction timestamp
     pub transaction_timestamp: u64,
     /// Additional contextual data
@@ -132,9 +134,9 @@ pub struct ComplianceQuery {
     /// Filter by address (from/to)
     pub address_filter: Option<Vec<Address>>,
     /// Minimum amount threshold
-    pub min_amount: Option<u64>,
+    pub min_amount: Option<Amount>,
     /// Maximum amount threshold
-    pub max_amount: Option<u64>,
+    pub max_amount: Option<Amount>,
     /// Include deleted/archived entries
     pub include_archived: bool,
     /// Pagination offset
@@ -157,7 +159,8 @@ pub struct ComplianceReportSummary {
     /// Average risk score
     pub average_risk_score: f64,
     /// Total transaction volume
-    pub total_volume: u64,
+    #[serde(with = "crate::types::serde_u128_string")]
+    pub total_volume: Amount,
     /// Number of manual reviews required
     pub manual_reviews_required: usize,
     /// Number of flagged transactions
@@ -386,7 +389,7 @@ impl AuditTrailManager {
         let storage = self.audit_storage.read().await;
         let mut matching_entries = Vec::new();
         let mut summary_stats = HashMap::new();
-        let mut total_volume = 0u64;
+        let mut total_volume: Amount = 0;
         let mut risk_scores = Vec::new();
 
         for entry in storage.values() {
@@ -398,7 +401,7 @@ impl AuditTrailManager {
                 *summary_stats.entry(status_key).or_insert(0) += 1;
 
                 if let Some(amount) = entry.transaction_metadata.amount {
-                    total_volume += amount;
+                    total_volume = total_volume.saturating_add(amount);
                 }
 
                 // Extract risk score for average calculation
@@ -477,7 +480,7 @@ impl AuditTrailManager {
                         entry.oracle_id,
                         risk_score,
                         entry.compliance_status,
-                        entry.transaction_metadata.amount.unwrap_or(0),
+                        entry.transaction_metadata.amount.unwrap_or(0u128),
                         entry
                             .transaction_metadata
                             .from_address
@@ -560,7 +563,7 @@ impl AuditTrailManager {
             info!("Updated compliance status for audit entry {audit_id}");
             Ok(())
         } else {
-            Err(anyhow!("Audit entry not found: {}", audit_id))
+            Err(anyhow!("Audit entry not found: {audit_id}"))
         }
     }
 
@@ -645,7 +648,7 @@ impl AuditTrailManager {
                 DataClassification::HighRisk
             }
             _ => {
-                if metadata.amount.unwrap_or(0) > 10000 {
+                if metadata.amount.unwrap_or(0u128) > 10_000u128 {
                     DataClassification::Financial
                 } else {
                     DataClassification::Standard
@@ -810,10 +813,10 @@ mod tests {
         // Record multiple audit entries
         for i in 0..5 {
             let transaction = create_test_transaction();
-            let tx_hash = format!("test_tx_{}", i);
+            let tx_hash = format!("test_tx_{i}");
             let ai_result = create_test_ai_result();
             let risk_decision = RiskProcessingDecision::RequireReview {
-                reason: format!("Test review {}", i),
+                reason: format!("Test review {i}"),
             };
 
             audit_manager
@@ -824,7 +827,7 @@ mod tests {
                     risk_decision,
                     risk_priority: ReviewPriority::Medium,
                     oracle_id: "test-oracle".to_string(),
-                    request_id: format!("test-request-{}", i),
+                    request_id: format!("test-request-{i}"),
                     block_number: Some(12345 + i),
                 })
                 .await

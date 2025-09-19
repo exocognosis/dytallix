@@ -12,8 +12,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::types::Amount;
+
 // Re-export types from dytallix-contracts
-pub use dytallix_contracts::runtime::{ContractRuntime as WasmRuntime};
+pub use dytallix_contracts::runtime::ContractRuntime as WasmRuntime;
 
 /// Blockchain-integrated contract runtime wrapper
 #[derive(Debug, Clone)]
@@ -73,7 +75,7 @@ impl ContractRuntime {
             method: call.method.clone(),
             input_data: call.input_data,
             gas_limit: call.gas_limit,
-            value: call.value as u128, // cast to expected u128
+            value: call.value,
             timestamp: call.timestamp,
         };
 
@@ -185,7 +187,8 @@ pub struct ContractCall {
     pub contract_address: String,
     pub method: String,
     pub input_data: Vec<u8>,
-    pub value: u64,
+    #[serde(with = "crate::types::serde_u128_string")]
+    pub value: Amount,
     pub timestamp: u64,
 }
 

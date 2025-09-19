@@ -16,7 +16,7 @@ pub mod config;
 pub mod manager;
 pub mod providers;
 
-pub use config::SecretConfig;
+pub use config::{ProviderConfig, SecretConfig};
 pub use manager::SecretManager;
 pub use providers::{EnvProvider, SecretProvider, VaultProvider};
 

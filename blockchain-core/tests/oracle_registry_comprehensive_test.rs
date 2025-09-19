@@ -4,17 +4,14 @@
 //! registration, reputation tracking, slashing, and performance monitoring.
 
 use anyhow::Result;
-use chrono;
-use env_logger;
-use std::time::Duration;
-use tokio;
 
 use dytallix_node::consensus::{
     enhanced_ai_integration::{EnhancedAIConfig, EnhancedAIIntegrationManager},
-    oracle_registry::{OracleRegistry, OracleRegistryConfig, OracleStatus},
+    oracle_registry::{OracleRegistry, OracleRegistryConfig, OracleStatus, RegisterOracleArgs},
 };
 
 /// Test data for oracle registry tests
+#[derive(Clone)]
 struct OracleTestData {
     oracle_address: String,
     oracle_name: String,
@@ -28,13 +25,27 @@ struct OracleTestData {
 impl OracleTestData {
     fn new(id: u32) -> Self {
         Self {
-            oracle_address: format!("dyt1oracle{}", id),
-            oracle_name: format!("Test Oracle {}", id),
-            description: format!("Test oracle {} for comprehensive testing", id),
+            oracle_address: format!("dyt1oracle{id}"),
+            oracle_name: format!("Test Oracle {id}"),
+            description: format!("Test oracle {id} for comprehensive testing"),
             public_key: vec![id as u8; 32], // 32-byte mock public key
             stake_amount: 2000000000 + (id as u64 * 1000000), // Varying stake amounts
             oracle_version: "1.0.0".to_string(),
             supported_services: vec!["risk_scoring".to_string(), "fraud_detection".to_string()],
+        }
+    }
+
+    // Build RegisterOracleArgs from this test data
+    fn to_args(&self, contact_info: Option<String>) -> RegisterOracleArgs {
+        RegisterOracleArgs {
+            oracle_address: self.oracle_address.clone(),
+            oracle_name: self.oracle_name.clone(),
+            description: self.description.clone(),
+            public_key: self.public_key.clone(),
+            stake_amount: self.stake_amount,
+            oracle_version: self.oracle_version.clone(),
+            supported_services: self.supported_services.clone(),
+            contact_info,
         }
     }
 }
@@ -49,16 +60,7 @@ async fn test_oracle_registration_complete_flow() -> Result<()> {
 
     // Test 1: Successful registration
     let result = registry
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            test_data.oracle_name.clone(),
-            test_data.description.clone(),
-            test_data.public_key.clone(),
-            test_data.stake_amount,
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            Some("test1@example.com".to_string()),
-        )
+        .register_oracle(test_data.to_args(Some("test1@example.com".to_string())))
         .await;
 
     assert!(result.is_ok(), "Oracle registration should succeed");
@@ -87,18 +89,7 @@ async fn test_oracle_registration_complete_flow() -> Result<()> {
     assert_eq!(oracle.status, OracleStatus::Active);
 
     // Test 4: Duplicate registration should fail
-    let duplicate_result = registry
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            "Duplicate Oracle".to_string(),
-            "Should fail".to_string(),
-            vec![99, 98, 97, 96],
-            test_data.stake_amount,
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            None,
-        )
-        .await;
+    let duplicate_result = registry.register_oracle(test_data.to_args(None)).await;
 
     assert!(
         duplicate_result.is_err(),
@@ -121,18 +112,9 @@ async fn test_stake_requirements() -> Result<()> {
     let test_data = OracleTestData::new(2);
 
     // Test 1: Registration with insufficient stake should fail
-    let insufficient_result = registry
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            test_data.oracle_name.clone(),
-            test_data.description.clone(),
-            test_data.public_key.clone(),
-            1000000000, // Only 10 DYTX (below minimum)
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            None,
-        )
-        .await;
+    let mut insufficient = test_data.clone();
+    insufficient.stake_amount = 1000000000; // Only 10 DYTX (below minimum)
+    let insufficient_result = registry.register_oracle(insufficient.to_args(None)).await;
 
     assert!(
         insufficient_result.is_err(),
@@ -140,18 +122,9 @@ async fn test_stake_requirements() -> Result<()> {
     );
 
     // Test 2: Registration with sufficient stake should succeed
-    let sufficient_result = registry
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            test_data.oracle_name.clone(),
-            test_data.description.clone(),
-            test_data.public_key.clone(),
-            6000000000, // 60 DYTX (above minimum)
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            None,
-        )
-        .await;
+    let mut sufficient = test_data.clone();
+    sufficient.stake_amount = 6000000000; // 60 DYTX (above minimum)
+    let sufficient_result = registry.register_oracle(sufficient.to_args(None)).await;
 
     assert!(
         sufficient_result.is_ok(),
@@ -171,18 +144,7 @@ async fn test_reputation_scoring_system() -> Result<()> {
     let test_data = OracleTestData::new(3);
 
     // Register and activate oracle
-    registry
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            test_data.oracle_name.clone(),
-            test_data.description.clone(),
-            test_data.public_key.clone(),
-            test_data.stake_amount,
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            None,
-        )
-        .await?;
+    registry.register_oracle(test_data.to_args(None)).await?;
 
     registry.activate_oracle(&test_data.oracle_address).await?;
 
@@ -285,18 +247,7 @@ async fn test_oracle_slashing_system() -> Result<()> {
     let test_data = OracleTestData::new(4);
 
     // Register and activate oracle
-    registry
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            test_data.oracle_name.clone(),
-            test_data.description.clone(),
-            test_data.public_key.clone(),
-            test_data.stake_amount,
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            None,
-        )
-        .await?;
+    registry.register_oracle(test_data.to_args(None)).await?;
 
     registry.activate_oracle(&test_data.oracle_address).await?;
 
@@ -341,18 +292,7 @@ async fn test_grace_period_slashing() -> Result<()> {
     let test_data = OracleTestData::new(5);
 
     // Register and activate oracle
-    registry
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            test_data.oracle_name.clone(),
-            test_data.description.clone(),
-            test_data.public_key.clone(),
-            test_data.stake_amount,
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            None,
-        )
-        .await?;
+    registry.register_oracle(test_data.to_args(None)).await?;
 
     registry.activate_oracle(&test_data.oracle_address).await?;
 
@@ -393,7 +333,7 @@ async fn test_grace_period_slashing() -> Result<()> {
     assert_eq!(oracle.status, OracleStatus::Suspended);
 
     // Test 3: Wait for grace period and process again
-    tokio::time::sleep(Duration::from_secs(3)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
     let process_result = registry.process_pending_slashing().await;
     assert!(
         process_result.is_ok(),
@@ -431,18 +371,7 @@ async fn test_oracle_whitelist_blacklist() -> Result<()> {
         .await?;
 
     // Attempt to register blacklisted oracle should fail
-    let blacklisted_result = registry
-        .register_oracle(
-            test_data1.oracle_address.clone(),
-            test_data1.oracle_name.clone(),
-            test_data1.description.clone(),
-            test_data1.public_key.clone(),
-            test_data1.stake_amount,
-            test_data1.oracle_version.clone(),
-            test_data1.supported_services.clone(),
-            None,
-        )
-        .await;
+    let blacklisted_result = registry.register_oracle(test_data1.to_args(None)).await;
 
     assert!(
         blacklisted_result.is_err(),
@@ -454,18 +383,7 @@ async fn test_oracle_whitelist_blacklist() -> Result<()> {
         .whitelist_oracle(test_data2.oracle_address.clone())
         .await?;
 
-    let whitelisted_result = registry
-        .register_oracle(
-            test_data2.oracle_address.clone(),
-            test_data2.oracle_name.clone(),
-            test_data2.description.clone(),
-            test_data2.public_key.clone(),
-            test_data2.stake_amount,
-            test_data2.oracle_version.clone(),
-            test_data2.supported_services.clone(),
-            None,
-        )
-        .await;
+    let whitelisted_result = registry.register_oracle(test_data2.to_args(None)).await;
 
     assert!(
         whitelisted_result.is_ok(),
@@ -485,18 +403,7 @@ async fn test_oracle_performance_monitoring() -> Result<()> {
     let test_data = OracleTestData::new(8);
 
     // Register and activate oracle
-    registry
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            test_data.oracle_name.clone(),
-            test_data.description.clone(),
-            test_data.public_key.clone(),
-            test_data.stake_amount,
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            None,
-        )
-        .await?;
+    registry.register_oracle(test_data.to_args(None)).await?;
 
     registry.activate_oracle(&test_data.oracle_address).await?;
 
@@ -548,16 +455,7 @@ async fn test_enhanced_ai_integration() -> Result<()> {
 
     // Test 1: Register oracle through enhanced manager
     let registration_result = manager
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            test_data.oracle_name.clone(),
-            test_data.description.clone(),
-            test_data.public_key.clone(),
-            test_data.stake_amount,
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            Some("enhanced_test@example.com".to_string()),
-        )
+        .register_oracle(test_data.to_args(Some("enhanced_test@example.com".to_string())))
         .await;
 
     assert!(
@@ -592,7 +490,7 @@ async fn test_enhanced_ai_integration() -> Result<()> {
         "Leaderboard should contain the registered oracle"
     );
 
-    let (addr, reputation, status) = &leaderboard[0];
+    let (addr, reputation, _status) = &leaderboard[0];
     assert_eq!(addr, &test_data.oracle_address);
     assert!(*reputation > 0.9);
 
@@ -617,18 +515,7 @@ async fn test_daily_maintenance() -> Result<()> {
     let test_data = OracleTestData::new(10);
 
     // Register and activate oracle
-    registry
-        .register_oracle(
-            test_data.oracle_address.clone(),
-            test_data.oracle_name.clone(),
-            test_data.description.clone(),
-            test_data.public_key.clone(),
-            test_data.stake_amount,
-            test_data.oracle_version.clone(),
-            test_data.supported_services.clone(),
-            None,
-        )
-        .await?;
+    registry.register_oracle(test_data.to_args(None)).await?;
 
     registry.activate_oracle(&test_data.oracle_address).await?;
 
@@ -679,35 +566,13 @@ async fn test_registry_capacity_limits() -> Result<()> {
     // Register maximum number of oracles
     for i in 1..=3 {
         let test_data = OracleTestData::new(10 + i);
-        let result = registry
-            .register_oracle(
-                test_data.oracle_address,
-                test_data.oracle_name,
-                test_data.description,
-                test_data.public_key,
-                test_data.stake_amount,
-                test_data.oracle_version,
-                test_data.supported_services,
-                None,
-            )
-            .await;
-        assert!(result.is_ok(), "Registration {} should succeed", i);
+        let result = registry.register_oracle(test_data.to_args(None)).await;
+        assert!(result.is_ok(), "Registration {i} should succeed");
     }
 
     // Attempt to register one more should fail
     let test_data = OracleTestData::new(99);
-    let overflow_result = registry
-        .register_oracle(
-            test_data.oracle_address,
-            test_data.oracle_name,
-            test_data.description,
-            test_data.public_key,
-            test_data.stake_amount,
-            test_data.oracle_version,
-            test_data.supported_services,
-            None,
-        )
-        .await;
+    let overflow_result = registry.register_oracle(test_data.to_args(None)).await;
 
     assert!(
         overflow_result.is_err(),

@@ -8,7 +8,7 @@ use std::env;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
 
     println!("=== Dytallix Secrets Management Demo ===\n");
 
@@ -16,14 +16,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("1. Creating SecretManager from environment configuration...");
     match create_manager_from_env().await {
         Ok(()) => println!("✓ Environment-based configuration works"),
-        Err(e) => println!("✗ Error: {}", e),
+        Err(e) => println!("✗ Error: {e}"),
     }
 
-    // Example 2: Using explicit configuration
+    // Example 2: Creating a manager with explicit configuration
     println!("\n2. Creating SecretManager with explicit configuration...");
     match create_manager_explicit().await {
         Ok(()) => println!("✓ Explicit configuration works"),
-        Err(e) => println!("✗ Error: {}", e),
+        Err(e) => println!("✗ Error: {e}"),
     }
 
     // Example 3: Retrieving secrets with fallback
@@ -89,13 +89,13 @@ async fn test_secret_retrieval() {
     let mut manager = match SecretManager::from_env() {
         Ok(m) => m,
         Err(e) => {
-            println!("  ✗ Failed to create manager: {}", e);
+            println!("  ✗ Failed to create manager: {e}");
             return;
         }
     };
 
     if let Err(e) = manager.initialize().await {
-        println!("  ✗ Failed to initialize manager: {}", e);
+        println!("  ✗ Failed to initialize manager: {e}");
         return;
     }
 
@@ -116,10 +116,10 @@ async fn test_secret_retrieval() {
                 } else {
                     value
                 };
-                println!("  ✓ {}: {} = {}", secret_name, description, truncated);
+                println!("  ✓ {secret_name}: {description} = {truncated}");
             }
             Err(e) => {
-                println!("  ✗ {}: {} - {}", secret_name, description, e);
+                println!("  ✗ {secret_name}: {description} - {e}");
             }
         }
     }
@@ -128,23 +128,20 @@ async fn test_secret_retrieval() {
     let default_value = manager
         .get_secret_or_default("NONEXISTENT_SECRET", "default_value")
         .await;
-    println!(
-        "  ✓ get_secret_or_default: NONEXISTENT_SECRET = {}",
-        default_value
-    );
+    println!("  ✓ get_secret_or_default: NONEXISTENT_SECRET = {default_value}");
 }
 
 async fn test_health_checks() {
     let mut manager = match SecretManager::from_env() {
         Ok(m) => m,
         Err(e) => {
-            println!("  ✗ Failed to create manager: {}", e);
+            println!("  ✗ Failed to create manager: {e}");
             return;
         }
     };
 
     if let Err(e) = manager.initialize().await {
-        println!("  ✗ Failed to initialize manager: {}", e);
+        println!("  ✗ Failed to initialize manager: {e}");
         return;
     }
 

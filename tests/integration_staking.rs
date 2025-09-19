@@ -1,10 +1,9 @@
 // Integration tests for the staking system
 // Tests the full workflow from validator registration to reward claiming
 
-use blockchain_core::staking::{
+use dytallix_node::staking::{
     Evidence, SlashType, StakingError, StakingState, ValidatorEvent, ValidatorStatus,
 };
-use std::collections::HashMap;
 
 #[test]
 fn test_full_staking_workflow() {
@@ -54,7 +53,7 @@ fn test_full_staking_workflow() {
     assert_eq!(validator.total_stake, self_stake_amount + delegation_amount);
 
     // Test that delegation exists
-    let delegation_key = format!("{}:{}", delegator_addr, validator_addr);
+    let delegation_key = format!("{delegator_addr}:{validator_addr}");
     assert!(staking.delegations.contains_key(&delegation_key));
 
     let delegation = &staking.delegations[&delegation_key];
@@ -65,8 +64,7 @@ fn test_full_staking_workflow() {
     // Test block reward processing
     staking.process_block_rewards(1).unwrap();
 
-    let validator = &staking.validators[&validator_addr];
-    assert!(validator.reward_index > 0);
+    assert!(staking.validators[&validator_addr].reward_index > 0);
 
     // Test reward calculation
     let pending_rewards = staking
@@ -74,15 +72,20 @@ fn test_full_staking_workflow() {
         .unwrap();
     assert!(pending_rewards > 0);
 
-    // Test reward claiming
+    // Capture validator index before claim to assert cursor update later
+    let reward_index_before = staking.validators[&validator_addr].reward_index;
+
+    // Test reward claiming (ensure no immutable borrows live across this call)
     let claimed_rewards = staking
         .claim_rewards(&delegator_addr, &validator_addr)
         .unwrap();
     assert_eq!(claimed_rewards, pending_rewards);
 
-    // Test that reward cursor is updated
+    // Re-fetch delegation and validator after mutation
     let delegation = &staking.delegations[&delegation_key];
-    assert_eq!(delegation.reward_cursor_index, validator.reward_index);
+    let validator_index_after = staking.validators[&validator_addr].reward_index;
+    assert_eq!(delegation.reward_cursor_index, validator_index_after);
+    assert_eq!(validator_index_after, reward_index_before); // reward index shouldn't change on claim
 
     // Test second reward claim should be zero
     let second_claim = staking
@@ -246,7 +249,7 @@ fn test_validator_leave_functionality() {
     let events = staking.get_events();
     assert!(events
         .iter()
-        .any(|e| matches!(e, ValidatorEvent::ValidatorLeft { .. })));
+        .any(|e| matches!(e, ValidatorEvent::Left { .. })));
 }
 
 #[test]
@@ -306,10 +309,10 @@ fn test_uptime_tracking_and_jailing() {
     let events = staking.get_events();
     assert!(events
         .iter()
-        .any(|e| matches!(e, ValidatorEvent::ValidatorJailed { .. })));
+        .any(|e| matches!(e, ValidatorEvent::Jailed { .. })));
     assert!(events
         .iter()
-        .any(|e| matches!(e, ValidatorEvent::ValidatorSlashed { .. })));
+        .any(|e| matches!(e, ValidatorEvent::Slashed { .. })));
 
     // Record validator present should reset missed blocks
     staking
@@ -364,12 +367,13 @@ fn test_slashing_functionality() {
     assert_eq!(staking.validators["validator1"].slash_count, 2);
 
     // Should have emitted slashing events
-    let events = staking.get_events();
-    let slash_events: Vec<_> = events
+    let _events = staking.get_events();
+    let slashed_events: Vec<_> = staking
+        .get_events()
         .iter()
-        .filter(|e| matches!(e, ValidatorEvent::ValidatorSlashed { .. }))
+        .filter(|e| matches!(e, ValidatorEvent::Slashed { .. }))
         .collect();
-    assert!(slash_events.len() >= 2);
+    assert!(slashed_events.len() >= 2);
 }
 
 #[test]
@@ -529,7 +533,7 @@ fn test_unjail_validator() {
     let events = staking.get_events();
     assert!(events.iter().any(|e| matches!(
         e,
-        ValidatorEvent::ValidatorStatusChanged {
+        ValidatorEvent::StatusChanged {
             new_status: ValidatorStatus::Inactive,
             ..
         }
@@ -562,11 +566,8 @@ fn test_events_system() {
 
     // Check event types
     let events = staking.get_events();
-    assert!(matches!(events[0], ValidatorEvent::ValidatorJoined { .. }));
-    assert!(matches!(
-        events[1],
-        ValidatorEvent::ValidatorStatusChanged { .. }
-    ));
+    assert!(matches!(events[0], ValidatorEvent::Joined { .. }));
+    assert!(matches!(events[1], ValidatorEvent::StatusChanged { .. }));
 
     // Clear events
     staking.clear_events();
@@ -576,7 +577,7 @@ fn test_events_system() {
     staking
         .slash_validator(&"validator1".to_string(), SlashType::DoubleSign)
         .unwrap();
-    assert!(staking.get_events().len() > 0);
+    assert!(!staking.get_events().is_empty());
 }
 
 #[test]
@@ -774,7 +775,7 @@ fn test_accrued_rewards_functionality() {
         .unwrap();
 
     // Initially no accrued rewards
-    let delegation_key = format!("{}:{}", delegator_addr, validator_addr);
+    let delegation_key = format!("{delegator_addr}:{validator_addr}");
     let delegation = &staking.delegations[&delegation_key];
     assert_eq!(delegation.accrued_rewards, 0);
 
@@ -836,7 +837,7 @@ fn test_backward_compatibility() {
         "reward_cursor_index": 123456
     }"#;
 
-    let delegation: blockchain_core::staking::Delegation =
+    let delegation: dytallix_node::staking::Delegation =
         serde_json::from_str(old_delegation_json).unwrap();
     assert_eq!(delegation.accrued_rewards, 0); // Should default to 0
     assert_eq!(delegation.stake_amount, 1000000000000);
@@ -896,7 +897,7 @@ fn test_global_reward_index_system() {
 
     // Global reward index should be updated
     let expected_increment = (staking.params.emission_per_block
-        * blockchain_core::staking::REWARD_SCALE)
+        * dytallix_node::staking::REWARD_SCALE)
         / 6_000_000_000_000;
     assert_eq!(staking.global_reward_index, expected_increment);
 
@@ -1153,7 +1154,7 @@ fn test_reward_calculation_after_stake_changes() {
         .unwrap();
 
     // Add more stake (this should trigger settlement internally in real implementation)
-    let old_stake = staking.delegations["delegator1:validator1"].stake_amount;
+    let _old_stake = staking.delegations["delegator1:validator1"].stake_amount;
     // Note: In a real implementation, adding stake would call settle_delegator first
     // For this test, we're verifying the calculation logic works correctly
 

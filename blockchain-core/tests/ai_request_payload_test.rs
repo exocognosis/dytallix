@@ -2,12 +2,11 @@ use dytallix_node::consensus::{
     AIOracleClient, AIRequestMetadata, AIRequestPayload, AIServiceType, RequestPriority,
 };
 use serde_json::json;
-use std::time::Duration;
 
 #[tokio::test]
 async fn test_ai_request_payload_demo() {
     // Create an AI Oracle client
-    let client = AIOracleClient::new("https://httpbin.org".to_string()).unwrap();
+    let client = AIOracleClient::from_base_url("https://httpbin.org".to_string()).unwrap();
 
     // Create a fraud detection request payload
     let transaction_data = json!({
@@ -20,80 +19,88 @@ async fn test_ai_request_payload_demo() {
         "network": "ethereum"
     });
 
-    let metadata = AIRequestMetadata::new("blockchain_consensus".to_string(), "1.0.0".to_string())
-        .with_correlation_id("batch_001".to_string())
-        .with_requester("validator_node_01".to_string())
-        .with_context(json!({"block_height": 1234567}));
+    let mut metadata = AIRequestMetadata::new();
+    metadata.client_version = Some("1.0.0".to_string());
+    metadata.request_source = Some("blockchain_consensus".to_string());
+    metadata.context = Some(json!({"block_height": 1234567}));
 
-    let payload = AIRequestPayload::fraud_detection(transaction_data)
-        .with_priority(RequestPriority::High)
-        .with_timeout(30)
-        .with_metadata(metadata)
-        .with_signature("mock_signature_123".to_string());
-
-    // Validate the payload
-    assert!(payload.validate().is_ok());
+    let mut payload = AIRequestPayload::new(AIServiceType::FraudDetection, transaction_data);
+    payload.priority = RequestPriority::High;
+    payload.timeout_ms = 30_000; // 30s
+    payload.metadata = Some(metadata);
+    payload.requester_id = "validator_node_01".to_string();
+    payload.correlation_id = Some("batch_001".to_string());
 
     // Test serialization
     let json_str = payload.to_json().unwrap();
-    println!(
-        "Request Payload JSON:\n{}",
-        payload.to_json_pretty().unwrap()
-    );
+    println!("Request Payload JSON:\n{json_str}");
 
     // Verify structure
     assert!(!payload.id.is_empty());
     assert_eq!(payload.service_type, AIServiceType::FraudDetection);
     assert_eq!(payload.priority, RequestPriority::High);
-    assert_eq!(payload.timeout, Some(30));
+    assert_eq!(payload.timeout_ms, 30_000);
     assert!(payload.metadata.is_some());
-    assert!(payload.signature.is_some());
 
-    // Test that it can be sent (this will fail because httpbin doesn't have AI endpoints)
-    let result = client.send_ai_request(&payload).await;
-    // The request should be attempted but will fail with 404
-    println!("Request attempt status: {:?}", result.is_ok());
+    // Prepare data map for request_ai_analysis
+    let mut data = std::collections::HashMap::new();
+    if let serde_json::Value::Object(map) = payload.request_data {
+        for (k, v) in map {
+            data.insert(k, v);
+        }
+    }
+
+    // This uses placeholder backend behavior
+    let result = client
+        .request_ai_analysis(AIServiceType::FraudDetection, data)
+        .await;
+    let ok = result.is_ok();
+    println!("Request attempt completed: {ok}");
 }
 
 #[test]
 fn test_ai_request_payload_builder_patterns() {
-    // Test different service types
-    let fraud_payload = AIRequestPayload::fraud_detection(json!({"tx": "123"}));
+    // Test different service types via constructor
+    let fraud_payload = AIRequestPayload::new(AIServiceType::FraudDetection, json!({"tx": "123"}));
     assert_eq!(fraud_payload.service_type, AIServiceType::FraudDetection);
 
-    let risk_payload = AIRequestPayload::risk_scoring(json!({"score": 0.75}));
+    let risk_payload = AIRequestPayload::new(AIServiceType::RiskScoring, json!({"score": 0.75}));
     assert_eq!(risk_payload.service_type, AIServiceType::RiskScoring);
 
-    let contract_payload = AIRequestPayload::contract_analysis(json!({"code": "0x1234"}));
+    let contract_payload =
+        AIRequestPayload::new(AIServiceType::ContractAnalysis, json!({"code": "0x1234"}));
     assert_eq!(
         contract_payload.service_type,
         AIServiceType::ContractAnalysis
     );
 
-    let validation_payload = AIRequestPayload::transaction_validation(json!({"tx": "456"}));
+    let validation_payload =
+        AIRequestPayload::new(AIServiceType::TransactionValidation, json!({"tx": "456"}));
     assert_eq!(
         validation_payload.service_type,
         AIServiceType::TransactionValidation
     );
 
-    // Test builder pattern with all options
-    let full_payload = AIRequestPayload::new(
+    // Test setting options directly
+    let mut full_payload = AIRequestPayload::new(
         AIServiceType::AML,
         json!({"address": "0x123", "amount": 50000}),
-    )
-    .with_priority(RequestPriority::Critical)
-    .with_timeout(45)
-    .with_callback("https://callback.example.com/webhook".to_string())
-    .with_metadata(
-        AIRequestMetadata::new("compliance".to_string(), "2.0".to_string())
-            .with_requester("compliance_officer".to_string()),
     );
+    full_payload.priority = RequestPriority::Critical;
+    full_payload.timeout_ms = 45_000; // 45 seconds
+    full_payload.callback_url = Some("https://callback.example.com/webhook".to_string());
+
+    let mut meta = AIRequestMetadata::new();
+    meta.request_source = Some("compliance".to_string());
+    meta.client_version = Some("2.0".to_string());
+    full_payload.metadata = Some(meta);
+    full_payload.requester_id = "compliance_officer".to_string();
 
     assert_eq!(full_payload.service_type, AIServiceType::AML);
     assert_eq!(full_payload.priority, RequestPriority::Critical);
-    assert_eq!(full_payload.timeout, Some(45));
+    assert_eq!(full_payload.timeout_ms, 45_000);
     assert!(full_payload.callback_url.is_some());
     assert!(full_payload.metadata.is_some());
 
-    println!("Full payload created successfully with all features");
+    println!("Full payload created successfully with current API");
 }

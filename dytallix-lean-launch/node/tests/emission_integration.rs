@@ -62,11 +62,7 @@ async fn claim_flow_persists() {
     ctx.emission.lock().unwrap().apply_until(3); // 3 blocks
 
     // capture pre-claim pool for robust comparison across schedule changes
-    let pre_claim_block_rewards = ctx
-        .emission
-        .lock()
-        .unwrap()
-        .pool_amount("block_rewards");
+    let pre_claim_block_rewards = ctx.emission.lock().unwrap().pool_amount("block_rewards");
 
     // sanity: stats endpoint reachable
     let resp = app

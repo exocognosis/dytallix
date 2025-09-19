@@ -5,7 +5,6 @@
 //! in the Dytallix blockchain network.
 
 use anyhow::Result;
-use chrono;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

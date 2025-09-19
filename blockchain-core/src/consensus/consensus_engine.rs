@@ -584,7 +584,7 @@ impl ConsensusEngine {
             method: call_tx.method.clone(),
             input_data: call_tx.args.clone(),
             gas_limit: call_tx.gas_limit,
-            value: 0, // TODO: Add value transfer support
+            value: call_tx.value,
             timestamp: call_tx.timestamp,
             contract_id: call_tx.to.clone(),
             function: call_tx.method.clone(),
@@ -614,7 +614,9 @@ impl ConsensusEngine {
         }
 
         // Store updated state
-        storage._store_contract(&call_tx.to, &contract_state).await?;
+        storage
+            ._store_contract(&call_tx.to, &contract_state)
+            .await?;
 
         info!(
             "Contract call executed successfully: gas_used={}, success={}",

@@ -6,9 +6,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 EVID_DIR="$ROOT_DIR/launch-evidence/e2e"
-CLI_DIR="$ROOT_DIR/dytallix-lean-launch/cli/dytx"
-APP_DIR="$ROOT_DIR/dytallix-lean-launch"
-NODE_DIR="$ROOT_DIR/dytallix-lean-launch/node"
+CLI_DIR="$ROOT_DIR/cli/dytx"
+APP_DIR="$ROOT_DIR"
+NODE_DIR="$ROOT_DIR/node"
 
 mkdir -p "$EVID_DIR"
 

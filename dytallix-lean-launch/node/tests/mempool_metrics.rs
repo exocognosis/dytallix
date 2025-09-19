@@ -9,8 +9,8 @@ use dytallix_lean_node::p2p::TransactionGossip;
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::tx::Transaction;
 // Added: PQC signing utilities and base64 encoder
-use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
 
 #[allow(clippy::too_many_arguments)]
 fn create_test_transaction(
@@ -115,7 +115,16 @@ async fn test_mempool_rejection_reasons_metrics() {
     let state = create_mock_state();
 
     // Submit a valid transaction first to advance expected nonce for sender1 to 1
-    let valid_tx = create_test_transaction("hash_valid", "sender1", "receiver", 1000, 100, 0, 21000, 1000);
+    let valid_tx = create_test_transaction(
+        "hash_valid",
+        "sender1",
+        "receiver",
+        1000,
+        100,
+        0,
+        21000,
+        1000,
+    );
     assert!(mempool.add_transaction(&state, valid_tx).is_ok());
 
     // Test different rejection reasons
@@ -127,7 +136,16 @@ async fn test_mempool_rejection_reasons_metrics() {
         ),
         (
             // Bump amount well beyond mock balance to trigger insufficient funds
-            create_test_transaction("hash2", "sender1", "receiver", 2_000_000_000_000u128, 100, 0, 21000, 1000),
+            create_test_transaction(
+                "hash2",
+                "sender1",
+                "receiver",
+                2_000_000_000_000u128,
+                100,
+                0,
+                21000,
+                1000,
+            ),
             "insufficient_funds",
         ),
         (

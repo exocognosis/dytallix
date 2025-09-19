@@ -79,15 +79,13 @@ impl SecretConfig {
     /// This method reads configuration from well-known environment variables
     /// and creates a sensible default configuration.
     pub fn from_env() -> SecretResult<Self> {
-        let mut config = Self::default();
-
-        // Override defaults based on environment variables
+        // Decide provider order first
         let use_vault = env::var("DYTALLIX_USE_VAULT")
             .unwrap_or_else(|_| "false".to_string())
             .parse::<bool>()
             .unwrap_or(false);
 
-        if use_vault {
+        let provider_order = if use_vault {
             // If vault is explicitly enabled, try to configure it from env
             let vault_url = env::var("VAULT_ADDR")
                 .or_else(|_| env::var("DYTALLIX_VAULT_URL"))
@@ -107,7 +105,7 @@ impl SecretConfig {
             let stub_mode =
                 vault_token.is_empty() || vault_token.starts_with("stub") || environment == "dev";
 
-            config.provider_order = vec![
+            vec![
                 ProviderConfig::Vault {
                     url: vault_url,
                     token: vault_token,
@@ -119,36 +117,38 @@ impl SecretConfig {
                     prefix: Some("DYTALLIX_".to_string()),
                     case_sensitive: false,
                 },
-            ];
+            ]
         } else {
             // Vault not enabled, use only environment variables
-            config.provider_order = vec![ProviderConfig::Environment {
+            vec![ProviderConfig::Environment {
                 prefix: Some("DYTALLIX_".to_string()),
                 case_sensitive: false,
-            }];
-        }
+            }]
+        };
 
-        // Override timeout if specified
-        if let Ok(timeout_str) = env::var("DYTALLIX_SECRET_TIMEOUT") {
-            if let Ok(timeout) = timeout_str.parse::<u64>() {
-                config.timeout_seconds = timeout;
-            }
-        }
+        // Timeout
+        let timeout_seconds = env::var("DYTALLIX_SECRET_TIMEOUT")
+            .ok()
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(30);
 
-        // Override caching settings if specified
-        if let Ok(cache_str) = env::var("DYTALLIX_SECRET_CACHE") {
-            if let Ok(enable_cache) = cache_str.parse::<bool>() {
-                config.enable_caching = enable_cache;
-            }
-        }
+        // Caching settings
+        let enable_caching = env::var("DYTALLIX_SECRET_CACHE")
+            .ok()
+            .and_then(|s| s.parse::<bool>().ok())
+            .unwrap_or(false);
 
-        if let Ok(ttl_str) = env::var("DYTALLIX_SECRET_CACHE_TTL") {
-            if let Ok(ttl) = ttl_str.parse::<u64>() {
-                config.cache_ttl_seconds = ttl;
-            }
-        }
+        let cache_ttl_seconds = env::var("DYTALLIX_SECRET_CACHE_TTL")
+            .ok()
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(300);
 
-        Ok(config)
+        Ok(SecretConfig {
+            provider_order,
+            timeout_seconds,
+            enable_caching,
+            cache_ttl_seconds,
+        })
     }
 
     /// Validate the configuration
@@ -229,8 +229,10 @@ mod tests {
 
     #[test]
     fn test_zero_timeout_fails_validation() {
-        let mut config = SecretConfig::default();
-        config.timeout_seconds = 0;
+        let config = SecretConfig {
+            timeout_seconds: 0,
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
     }
 }

@@ -26,6 +26,10 @@ publish = false
 name = "dytallix"
 path = "src/lib.rs"
 
+[features]
+# Propagate test utilities to crates/tests that rely on dytallix-contracts helpers
+default = []
+
 [dependencies]
 blake3 = { workspace = true }
 sha2 = { workspace = true }
@@ -48,12 +52,19 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 # For examples / tests that need secure password input and memory zeroization
 rpassword = "7"
 zeroize = "1"
-dytallix-contracts = { path = "smart-contracts" }
+# Enable test-utils feature so tests can access helpers like set_contract_storage
+dytallix-contracts = { path = "smart-contracts", features = ["test-utils"] }
 tokio = { workspace = true }
 anyhow = "1.0"
 # Integration test dependencies
 reqwest = { version = "0.11", features = ["json"] }
 serde_json = { workspace = true }
+# For integration_test.rs temporary files
+tempfile = "3"
+# Use the explorer indexer crate from the workspace in tests
+dytallix-explorer-indexer = { path = "explorer/indexer" }
+# For generating valid WASM modules in tests
+wat = "1.0"
 
 [workspace.dependencies]
 # Shared dependencies for the workspace

@@ -16,4 +16,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("secret_key: {}", sk_path.display());
     Ok(())
 }
-

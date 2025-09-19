@@ -26,7 +26,10 @@ VOTER="${GOV_VOTER:-dyt1senderdev000000}"
 POLL_MAX=${GOV_POLL_MAX:-120}
 SLEEP_SECS=${GOV_POLL_SLEEP:-2}
 
-EVID_DIR="launch-evidence/governance"
+# Anchor evidence directory to repo root (two levels up from this script)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
+EVID_DIR="$ROOT_DIR/launch-evidence/governance"
 RUN_DIR="$EVID_DIR/run_$TS"
 mkdir -p "$RUN_DIR" "$EVID_DIR"
 
@@ -118,7 +121,7 @@ FINAL=$(curl -sf "$API_BASE/gov/config" || true)
 echo "$FINAL" | jq . > "$RUN_DIR/final_params.json" || true
 
 # Verify gas_limit actually updated to requested value
-ACTUAL_GAS_LIMIT=$(echo "$FINAL" | jq -r '.gas_limit // .gasLimit // empty')
+ACTUAL_GAS_LIMIT=$(echo "$FINAL" | jq -r '.gas_limit // .gasLimit // .gaslimit // empty')
 if [[ -z "$ACTUAL_GAS_LIMIT" || "$ACTUAL_GAS_LIMIT" == "null" ]]; then
   fail "final /gov/config missing gas_limit"
 fi

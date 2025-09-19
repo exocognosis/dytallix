@@ -4,8 +4,7 @@
 //! and edge cases that could lead to security vulnerabilities.
 
 use dytallix_pqc::*;
-use std::collections::HashSet;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg(test)]
 mod security_tests {
@@ -164,17 +163,13 @@ mod security_tests {
         let invalid_avg: Duration =
             invalid_times.iter().sum::<Duration>() / invalid_times.len() as u32;
 
-        let timing_difference = if valid_avg > invalid_avg {
-            valid_avg - invalid_avg
-        } else {
-            invalid_avg - valid_avg
-        };
+        let timing_difference = valid_avg.abs_diff(invalid_avg);
 
         // SECURITY WARNING: Large timing differences indicate potential side-channel vulnerability
         println!("Timing Analysis Results:");
-        println!("Valid signature avg time: {:?}", valid_avg);
-        println!("Invalid signature avg time: {:?}", invalid_avg);
-        println!("Timing difference: {:?}", timing_difference);
+        println!("Valid signature avg time: {valid_avg:?}");
+        println!("Invalid signature avg time: {invalid_avg:?}");
+        println!("Timing difference: {timing_difference:?}");
 
         // Flag potential timing side-channel if difference > 10% of operation time
         let threshold = valid_avg / 10;
@@ -192,7 +187,7 @@ mod security_tests {
     #[test]
     fn test_memory_safety_key_handling() {
         // Test key generation memory safety
-        let manager = PQCManager::new().unwrap();
+        let _manager = PQCManager::new().unwrap();
 
         // SECURITY CHECK: Key generation should not leave sensitive data in uncleared memory
         // This is difficult to test directly without memory analysis tools
@@ -237,8 +232,7 @@ mod security_tests {
             let result = manager.verify(message, &modified_signature, public_key);
             assert!(
                 result.is_err() || !result.unwrap(),
-                "Modified signature at position {} should be invalid",
-                i
+                "Modified signature at position {i} should be invalid"
             );
         }
 
@@ -293,8 +287,8 @@ mod security_tests {
         // Add test validators
         for i in 1..=5 {
             bridge.add_validator(
-                format!("validator{}", i),
-                vec![i; 32], // Mock public key
+                format!("validator{i}"),
+                vec![i as u8; 32], // Mock public key
                 SignatureAlgorithm::Dilithium5,
             );
         }
@@ -316,7 +310,7 @@ mod security_tests {
         for i in 1..=3 {
             signatures.push(BridgeSignature {
                 signature: Signature {
-                    data: vec![i; 100], // Mock signature
+                    data: vec![i as u8; 100], // Mock signature
                     algorithm: SignatureAlgorithm::Dilithium5,
                 },
                 chain_id: "ethereum".to_string(),
@@ -325,7 +319,7 @@ mod security_tests {
                     .duration_since(UNIX_EPOCH)
                     .unwrap()
                     .as_secs(),
-                validator_id: format!("validator{}", i),
+                validator_id: format!("validator{i}"),
                 nonce: i as u64,
                 sequence: i as u64,
             });
@@ -335,7 +329,7 @@ mod security_tests {
         for i in 4..=5 {
             signatures.push(BridgeSignature {
                 signature: Signature {
-                    data: vec![255; 100], // Invalid signature
+                    data: vec![255u8; 100], // Invalid signature
                     algorithm: SignatureAlgorithm::Dilithium5,
                 },
                 chain_id: "ethereum".to_string(),
@@ -344,7 +338,7 @@ mod security_tests {
                     .duration_since(UNIX_EPOCH)
                     .unwrap()
                     .as_secs(),
-                validator_id: format!("validator{}", i),
+                validator_id: format!("validator{i}"),
                 nonce: i as u64,
                 sequence: i as u64,
             });
@@ -356,9 +350,12 @@ mod security_tests {
 
         // SECURITY CHECK: Should handle Byzantine failures gracefully
         println!("Multi-signature validation result:");
-        println!("Valid signatures: {}", result.valid_signatures);
-        println!("Required signatures: {}", result.required_signatures);
-        println!("Consensus reached: {}", result.consensus_reached);
+        let valid_signatures = result.valid_signatures;
+        let required_signatures = result.required_signatures;
+        let consensus_reached = result.consensus_reached;
+        println!("Valid signatures: {valid_signatures}");
+        println!("Required signatures: {required_signatures}");
+        println!("Consensus reached: {consensus_reached}");
 
         // Note: This test currently cannot fully validate Byzantine resistance
         // due to mocked signatures, but it tests the framework
@@ -388,8 +385,9 @@ mod security_tests {
         let ops_per_second = iterations as f64 / duration.as_secs_f64();
 
         println!("Performance Analysis:");
-        println!("Operations per second: {:.2}", ops_per_second);
-        println!("Average operation time: {:?}", duration / iterations);
+        println!("Operations per second: {ops_per_second:.2}");
+        let avg_op_time = duration / iterations;
+        println!("Average operation time: {avg_op_time:?}");
 
         // SECURITY CHECK: Performance should be reasonable for production use
         // Flag potential DoS vulnerability if performance is too slow
@@ -402,75 +400,10 @@ mod security_tests {
         let memory_usage_estimate =
             std::mem::size_of::<PQCManager>() + manager.get_signature_public_key().len() * 2; // Estimate
 
-        println!(
-            "Estimated memory usage per operation: {} bytes",
-            memory_usage_estimate
-        );
+        println!("Estimated memory usage per operation: {memory_usage_estimate} bytes");
 
         if memory_usage_estimate > 100_000 {
             println!("⚠️  WARNING: High memory usage could enable resource exhaustion attacks");
         }
-    }
-}
-
-/// Security property validation utilities
-mod security_utils {
-    use super::*;
-
-    /// Validate that a function executes in constant time
-    pub fn validate_constant_time<F, R>(func: F, iterations: usize) -> bool
-    where
-        F: Fn() -> R,
-    {
-        let mut times = Vec::new();
-
-        for _ in 0..iterations {
-            let start = std::time::Instant::now();
-            let _ = func();
-            times.push(start.elapsed());
-        }
-
-        // Calculate coefficient of variation (std_dev / mean)
-        let mean: Duration = times.iter().sum::<Duration>() / times.len() as u32;
-        let variance: f64 = times
-            .iter()
-            .map(|t| {
-                let diff = t.as_nanos() as f64 - mean.as_nanos() as f64;
-                diff * diff
-            })
-            .sum::<f64>()
-            / times.len() as f64;
-
-        let std_dev = variance.sqrt();
-        let coefficient_of_variation = std_dev / mean.as_nanos() as f64;
-
-        // Consider constant-time if coefficient of variation < 0.1 (10%)
-        coefficient_of_variation < 0.1
-    }
-
-    /// Check for memory leaks in cryptographic operations
-    pub fn check_memory_leaks() -> bool {
-        // This would require integration with memory analysis tools
-        // For now, return true indicating no leaks detected
-        // In production, this should use tools like Valgrind or AddressSanitizer
-        true
-    }
-
-    /// Validate randomness quality for key generation
-    pub fn validate_randomness_quality(samples: &[Vec<u8>]) -> bool {
-        if samples.len() < 2 {
-            return false;
-        }
-
-        // Basic entropy check: no two samples should be identical
-        let mut seen = HashSet::new();
-        for sample in samples {
-            if !seen.insert(sample.clone()) {
-                return false; // Duplicate found
-            }
-        }
-
-        // TODO: Add more sophisticated randomness tests (chi-square, etc.)
-        true
     }
 }

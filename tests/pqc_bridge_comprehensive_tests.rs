@@ -54,7 +54,7 @@ mod pqc_bridge_tests {
             ("sphincs+", SignatureAlgorithm::SphincsSha256128s),
         ];
 
-        for (name, algorithm) in algorithms {
+        for (name, _algorithm) in algorithms {
             let asset = Asset {
                 id: format!("TEST_{}", name.to_uppercase()),
                 amount: 500000,
@@ -199,7 +199,7 @@ mod pqc_bridge_tests {
         );
 
         // Generate a wrong/unauthorized key
-        let wrong_keypair = pqc_manager
+        let _wrong_keypair = pqc_manager
             .generate_validator_keypair(&SignatureAlgorithm::Dilithium5)
             .unwrap();
 
@@ -240,7 +240,7 @@ mod pqc_bridge_tests {
         let pqc_manager = BridgePQCManager::new().unwrap();
 
         // Test Ethereum transaction format
-        let eth_payload = CrossChainPayload::EthereumTransaction {
+        let _eth_payload = CrossChainPayload::EthereumTransaction {
             to: "0x742d35Cc6634C0532925a3b8D1EbA4F00b7C8000".to_string(),
             value: 1000000,
             data: vec![0x60, 0x60, 0x40, 0x52], // Sample contract bytecode
@@ -250,7 +250,7 @@ mod pqc_bridge_tests {
         };
 
         // Test Cosmos IBC packet format
-        let cosmos_payload = CrossChainPayload::CosmosIBCPacket {
+        let _cosmos_payload = CrossChainPayload::CosmosIBCPacket {
             sequence: 1,
             source_port: "transfer".to_string(),
             source_channel: "channel-0".to_string(),
@@ -812,7 +812,7 @@ mod pqc_integration_tests {
         let tx_id = lock_result.unwrap();
 
         // Step 2: Verify bridge status
-        let status_result = bridge.get_bridge_status(&tx_id);
+        let _status_result = bridge.get_bridge_status(&tx_id);
         // Note: In the current implementation, this might fail because the transaction
         // isn't stored in pending_transactions, but we test the flow
         println!("Bridge status check completed for tx: {}", tx_id.0);

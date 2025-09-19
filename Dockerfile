@@ -36,6 +36,8 @@ COPY explorer/indexer/ explorer/indexer/
 COPY explorer/api/ explorer/api/
 # Added: full lean launch workspace so web build & scripts are available
 COPY dytallix-lean-launch/ dytallix-lean-launch/
+# Added: benchmarks workspace member (fixes missing /app/benchmarks during cargo build)
+COPY benchmarks/ benchmarks/
 
 # Generate lock file and build the workspace
 RUN RUSTFLAGS="--cfg tokio_unstable" cargo generate-lockfile && \

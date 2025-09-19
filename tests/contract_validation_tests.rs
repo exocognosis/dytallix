@@ -1,4 +1,84 @@
 /*
+Smart Contract Validation Tests
+*/
+
+use dytallix_contracts::runtime::*;
+
+// Local helper to create a minimal valid WASM module for tests
+fn create_test_wasm_contract() -> Vec<u8> {
+    let wat = r#"(module
+      (memory (export "memory") 1)
+      (func (export "contract_test_function") (param i32 i32) (result i32)
+        i32.const 0)
+      (func (export "contract_estimate_test") (param i32 i32) (result i32)
+        i32.const 0)
+      (func (export "contract_expensive_function") (param i32 i32) (result i32)
+        i32.const 0)
+      (func (export "contract_emit_events") (param i32 i32) (result i32)
+        i32.const 0)
+      (func (export "contract_deterministic_function") (param i32 i32) (result i32)
+        i32.const 0)
+    )"#;
+    wat::parse_str(wat).expect("valid test wasm module")
+}
+
+#[tokio::test]
+async fn test_basic_validation() {
+    let runtime = ContractRuntime::new(1_000_000, 16).unwrap();
+
+    // invalid wasm fails validation
+    let invalid = ContractDeployment {
+        address: "dyt1invalid".into(),
+        code: vec![0, 1, 2, 3],
+        initial_state: vec![],
+        gas_limit: 10_000,
+        deployer: "dyt1alice".into(),
+        timestamp: 1,
+        ai_audit_score: None,
+    };
+
+    let res = runtime.deploy_contract(invalid).await;
+    assert!(res.is_err());
+    let err = res.unwrap_err();
+    assert!(matches!(err.code, ErrorCode::InvalidContract));
+}
+
+#[tokio::test]
+async fn test_storage_helpers_are_noop_without_feature() {
+    let runtime = ContractRuntime::new(1_000_000, 16).unwrap();
+    let addr1 = "dyt1a".to_string();
+    let addr2 = "dyt1b".to_string();
+    let key = b"k";
+
+    // use a small valid module
+    let dep1 = ContractDeployment {
+        address: addr1.clone(),
+        code: create_test_wasm_contract(),
+        initial_state: vec![],
+        gas_limit: 50_000,
+        deployer: "x".into(),
+        timestamp: 1,
+        ai_audit_score: None,
+    };
+    let dep2 = ContractDeployment {
+        address: addr2.clone(),
+        code: create_test_wasm_contract(),
+        initial_state: vec![],
+        gas_limit: 50_000,
+        deployer: "x".into(),
+        timestamp: 1,
+        ai_audit_score: None,
+    };
+
+    let _ = runtime.deploy_contract(dep1).await.unwrap();
+    let _ = runtime.deploy_contract(dep2).await.unwrap();
+
+    // get state calls without setting anything
+    let _value1 = runtime.get_contract_state(&addr1, key);
+    let _value2 = runtime.get_contract_state(&addr2, key);
+}
+
+/*
 Simple validation test for WASM contract integration
 
 This test validates the end-to-end integration of:
@@ -7,9 +87,6 @@ This test validates the end-to-end integration of:
 - Contract execution
 - RPC endpoint functionality
 */
-
-use dytallix_contracts::runtime::*;
-use dytallix_contracts::types::*;
 
 #[tokio::test]
 async fn test_basic_contract_integration() {
@@ -125,17 +202,13 @@ async fn test_storage_isolation() {
     let key = b"test_key";
 
     // Set storage for contract 1 (using test helper)
-    #[cfg(test)]
     runtime.set_contract_storage(&addr1, key.to_vec(), b"value1".to_vec());
-
-    #[cfg(test)]
     runtime.set_contract_storage(&addr2, key.to_vec(), b"value2".to_vec());
 
     // Verify isolation
     let value1 = runtime.get_contract_state(&addr1, key);
     let value2 = runtime.get_contract_state(&addr2, key);
 
-    #[cfg(test)]
     {
         assert!(value1.is_some());
         assert!(value2.is_some());
@@ -171,15 +244,15 @@ fn test_wasm_code_validation() {
     println!("Testing WASM code validation...");
 
     // Valid WASM magic number
-    let valid_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+    let valid_wasm = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
     assert_eq!(&valid_wasm[0..4], b"\x00asm");
 
     // Invalid WASM magic number
-    let invalid_wasm = vec![0x00, 0x01, 0x02, 0x03, 0x01, 0x00, 0x00, 0x00];
+    let invalid_wasm = [0x00, 0x01, 0x02, 0x03, 0x01, 0x00, 0x00, 0x00];
     assert_ne!(&invalid_wasm[0..4], b"\x00asm");
 
     // Test minimum size requirement
-    let too_small = vec![0x00, 0x61]; // Less than 8 bytes
+    let too_small = [0x00, 0x61]; // Less than 8 bytes
     assert!(too_small.len() < 8);
 
     println!("✅ WASM code validation test passed!");

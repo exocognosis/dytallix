@@ -1,0 +1,16 @@
+enabled: false
+evaluation_interval_secs: 10
+log_on_fire: true
+rules:
+  tps_drop:
+    enabled: false
+    threshold: 1
+    consecutive: 3
+  oracle_timeout:
+    enabled: false
+    threshold_ms: 5000
+    consecutive: 3
+  validator_offline:
+    enabled: false
+    offline_secs: 60
+    consecutive: 3

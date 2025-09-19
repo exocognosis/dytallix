@@ -283,7 +283,7 @@ fn test_state_isolation_between_transactions() {
     assert_eq!(state.balance_of("bob", "udgt"), 0);
 
     // Alice should only have lost the gas fee (gas_limit * gas_price)
-    let gas_fee = 50u128 * 1u128;
+    let gas_fee = 50u128; // simplified from 50u128 * 1u128
     assert_eq!(state.balance_of("alice", "udgt"), initial_balance - gas_fee);
 
     // Second transaction that will succeed

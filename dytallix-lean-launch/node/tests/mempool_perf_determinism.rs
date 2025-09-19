@@ -9,8 +9,8 @@ use std::sync::Arc;
 use tempfile::TempDir;
 
 // Added: crypto and base64 imports for valid PQC signatures
-use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
 
 #[allow(clippy::too_many_arguments)]
 fn create_test_transaction(
@@ -26,7 +26,7 @@ fn create_test_transaction(
     // Generate a fresh keypair per tx (sufficient for tests). In production we would
     // use the sender's actual key. This ensures signature verification passes.
     let (sk, pk) = ActivePQC::keypair();
-    let mut tx = Transaction::base(hash, from, to, amount, fee, nonce)
+    let tx = Transaction::base(hash, from, to, amount, fee, nonce)
         .with_gas(gas_limit, gas_price)
         .with_pqc(B64.encode(&pk), "dytallix-testnet", "");
 
@@ -53,7 +53,7 @@ fn create_test_transaction_with_key(
     sk: &[u8],
     pk: &[u8],
 ) -> Transaction {
-    let mut tx = Transaction::base(hash, from, to, amount, fee, nonce)
+    let tx = Transaction::base(hash, from, to, amount, fee, nonce)
         .with_gas(gas_limit, gas_price)
         .with_pqc(B64.encode(pk), "dytallix-testnet", "");
 

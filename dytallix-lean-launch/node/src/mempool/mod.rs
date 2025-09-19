@@ -258,12 +258,18 @@ impl Mempool {
         // 3. Size check
         let tx_size = estimate_tx_size(&tx);
         if tx_size > self.config.max_tx_bytes {
-            return Err(RejectionReason::OversizedTx { max: self.config.max_tx_bytes, got: tx_size });
+            return Err(RejectionReason::OversizedTx {
+                max: self.config.max_tx_bytes,
+                got: tx_size,
+            });
         }
 
         // 4. Gas price check
         if tx.gas_price < self.config.min_gas_price {
-            return Err(RejectionReason::UnderpricedGas { min: self.config.min_gas_price, got: tx.gas_price });
+            return Err(RejectionReason::UnderpricedGas {
+                min: self.config.min_gas_price,
+                got: tx.gas_price,
+            });
         }
 
         // 5. Nonce and balance validation (aware of pending state)
@@ -278,7 +284,10 @@ impl Mempool {
         let expected = state_nonce + self.pending_count_for_sender(&tx.from) as u64;
 
         if tx.nonce < expected {
-            return Err(RejectionReason::NonceGap { expected, got: tx.nonce });
+            return Err(RejectionReason::NonceGap {
+                expected,
+                got: tx.nonce,
+            });
         }
 
         // Ensure capacity before inserting (counts all)
@@ -300,7 +309,11 @@ impl Mempool {
     }
 
     /// Validate only funds and gas (nonce handled separately to allow deferral)
-    fn validate_tx_funds_only(&self, state: &State, tx: &Transaction) -> Result<(), RejectionReason> {
+    fn validate_tx_funds_only(
+        &self,
+        state: &State,
+        tx: &Transaction,
+    ) -> Result<(), RejectionReason> {
         let balance = state.snapshot_legacy_balance(&tx.from);
 
         // Balance check must include already reserved amounts for this sender
@@ -330,7 +343,8 @@ impl Mempool {
             .eligible_by_sender
             .entry(pending_tx.tx.from.clone())
             .or_default() += 1;
-        self.tx_lookup.insert(pending_tx.tx.hash.clone(), pending_tx);
+        self.tx_lookup
+            .insert(pending_tx.tx.hash.clone(), pending_tx);
     }
 
     /// Insert a deferred (future-nonce) transaction into deferred structures
@@ -341,7 +355,7 @@ impl Mempool {
         self.deferred_index.insert(key.clone());
         self.deferred_by_sender
             .entry(pending_tx.tx.from.clone())
-            .or_insert_with(BTreeMap::new)
+            .or_default()
             .insert(pending_tx.tx.nonce, pending_tx.tx.hash.clone());
         // Track reserved value for deferred txs as well
         let delta = Self::reserved_value_of_tx(&pending_tx.tx);
@@ -349,7 +363,8 @@ impl Mempool {
             .reserved_by_sender
             .entry(pending_tx.tx.from.clone())
             .or_default() += delta;
-        self.deferred_lookup.insert(pending_tx.tx.hash.clone(), pending_tx);
+        self.deferred_lookup
+            .insert(pending_tx.tx.hash.clone(), pending_tx);
     }
 
     /// Attempt to promote deferred transactions for a sender if sequentially ready
@@ -365,7 +380,9 @@ impl Mempool {
                 .get_mut(sender)
                 .and_then(|m| m.remove(&expected));
 
-            let Some(next_hash) = next_hash_opt else { break };
+            let Some(next_hash) = next_hash_opt else {
+                break;
+            };
 
             if let Some(pending) = self.deferred_lookup.remove(&next_hash) {
                 // Remove from deferred index
@@ -397,7 +414,9 @@ impl Mempool {
                 .get_mut(sender)
                 .and_then(|m| m.remove(&expected));
 
-            let Some(next_hash) = next_hash_opt else { break };
+            let Some(next_hash) = next_hash_opt else {
+                break;
+            };
 
             if let Some(pending) = self.deferred_lookup.remove(&next_hash) {
                 // Remove from deferred index and adjust bytes (move semantics)
@@ -423,20 +442,28 @@ impl Mempool {
     fn ensure_capacity_for(&mut self, new_tx: &PendingTx) -> Result<(), RejectionReason> {
         // If the incoming tx itself exceeds the byte budget, reject early
         if new_tx.serialized_size > self.config.max_bytes {
-            return Err(RejectionReason::OversizedTx { max: self.config.max_bytes, got: new_tx.serialized_size });
+            return Err(RejectionReason::OversizedTx {
+                max: self.config.max_bytes,
+                got: new_tx.serialized_size,
+            });
         }
 
         // Evict by count
         while self.total_count() >= self.config.max_txs {
             self.evict_lowest_priority()?;
-            if self.total_count() == 0 { break; }
+            if self.total_count() == 0 {
+                break;
+            }
         }
 
         // Evict by bytes
         while self.total_bytes + new_tx.serialized_size > self.config.max_bytes {
             self.evict_lowest_priority()?;
             if self.total_count() == 0 {
-                return Err(RejectionReason::OversizedTx { max: self.config.max_bytes, got: self.total_bytes + new_tx.serialized_size });
+                return Err(RejectionReason::OversizedTx {
+                    max: self.config.max_bytes,
+                    got: self.total_bytes + new_tx.serialized_size,
+                });
             }
         }
 
@@ -452,7 +479,13 @@ impl Mempool {
 
         // Choose the lower priority among the two (max key)
         let choice = match (eligible_low, deferred_low) {
-            (Some(e), Some(d)) => if e >= d { Some((e, true)) } else { Some((d, false)) },
+            (Some(e), Some(d)) => {
+                if e >= d {
+                    Some((e, true))
+                } else {
+                    Some((d, false))
+                }
+            }
             (Some(e), None) => Some((e, true)),
             (None, Some(d)) => Some((d, false)),
             (None, None) => None,
@@ -467,12 +500,16 @@ impl Mempool {
                     // Update per-sender trackers
                     if let Some(count) = self.eligible_by_sender.get_mut(&tx.tx.from) {
                         *count = count.saturating_sub(1);
-                        if *count == 0 { self.eligible_by_sender.remove(&tx.tx.from); }
+                        if *count == 0 {
+                            self.eligible_by_sender.remove(&tx.tx.from);
+                        }
                     }
                     let delta = Self::reserved_value_of_tx(&tx.tx);
                     if let Some(total) = self.reserved_by_sender.get_mut(&tx.tx.from) {
                         *total = total.saturating_sub(delta);
-                        if *total == 0 { self.reserved_by_sender.remove(&tx.tx.from); }
+                        if *total == 0 {
+                            self.reserved_by_sender.remove(&tx.tx.from);
+                        }
                     }
                     log::info!("Evicted transaction {} due to capacity", key.hash);
                 }
@@ -482,14 +519,18 @@ impl Mempool {
                     // Remove from per-sender map
                     if let Some(map) = self.deferred_by_sender.get_mut(&tx.tx.from) {
                         map.remove(&tx.tx.nonce);
-                        if map.is_empty() { self.deferred_by_sender.remove(&tx.tx.from); }
+                        if map.is_empty() {
+                            self.deferred_by_sender.remove(&tx.tx.from);
+                        }
                     }
                     self.tx_hashes.remove(&key.hash);
                     self.total_bytes = self.total_bytes.saturating_sub(tx.serialized_size);
                     let delta = Self::reserved_value_of_tx(&tx.tx);
                     if let Some(total) = self.reserved_by_sender.get_mut(&tx.tx.from) {
                         *total = total.saturating_sub(delta);
-                        if *total == 0 { self.reserved_by_sender.remove(&tx.tx.from); }
+                        if *total == 0 {
+                            self.reserved_by_sender.remove(&tx.tx.from);
+                        }
                     }
                     log::info!("Evicted deferred transaction {} due to capacity", key.hash);
                 }
@@ -524,12 +565,16 @@ impl Mempool {
                 // Update trackers
                 if let Some(count) = self.eligible_by_sender.get_mut(&pending_tx.tx.from) {
                     *count = count.saturating_sub(1);
-                    if *count == 0 { self.eligible_by_sender.remove(&pending_tx.tx.from); }
+                    if *count == 0 {
+                        self.eligible_by_sender.remove(&pending_tx.tx.from);
+                    }
                 }
                 let delta = Self::reserved_value_of_tx(&pending_tx.tx);
                 if let Some(total) = self.reserved_by_sender.get_mut(&pending_tx.tx.from) {
                     *total = total.saturating_sub(delta);
-                    if *total == 0 { self.reserved_by_sender.remove(&pending_tx.tx.from); }
+                    if *total == 0 {
+                        self.reserved_by_sender.remove(&pending_tx.tx.from);
+                    }
                 }
 
                 // Record removed nonce per sender (eligible inclusion)
@@ -545,7 +590,9 @@ impl Mempool {
                 self.deferred_index.remove(&key);
                 if let Some(map) = self.deferred_by_sender.get_mut(&deferred_tx.tx.from) {
                     map.remove(&deferred_tx.tx.nonce);
-                    if map.is_empty() { self.deferred_by_sender.remove(&deferred_tx.tx.from); }
+                    if map.is_empty() {
+                        self.deferred_by_sender.remove(&deferred_tx.tx.from);
+                    }
                 }
                 self.tx_hashes.remove(hash);
                 self.total_bytes = self.total_bytes.saturating_sub(deferred_tx.serialized_size);
@@ -553,7 +600,9 @@ impl Mempool {
                 let delta = Self::reserved_value_of_tx(&deferred_tx.tx);
                 if let Some(total) = self.reserved_by_sender.get_mut(&deferred_tx.tx.from) {
                     *total = total.saturating_sub(delta);
-                    if *total == 0 { self.reserved_by_sender.remove(&deferred_tx.tx.from); }
+                    if *total == 0 {
+                        self.reserved_by_sender.remove(&deferred_tx.tx.from);
+                    }
                 }
             }
         }

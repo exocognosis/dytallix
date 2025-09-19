@@ -573,7 +573,7 @@ mod tests {
         for i in 0..3 {
             let notification_type = NotificationType::NewHighRiskTransaction {
                 queue_id: Uuid::new_v4(),
-                transaction_hash: format!("test_hash_{}", i),
+                transaction_hash: format!("test_hash_{i}"),
                 risk_score: 0.9,
                 priority: if i == 0 {
                     ReviewPriority::Critical

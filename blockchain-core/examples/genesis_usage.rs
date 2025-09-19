@@ -5,14 +5,10 @@ This example demonstrates how to use the genesis configuration
 to initialize a Dytallix blockchain node.
 */
 
-use chrono::Utc;
 use dytallix_node::{
-    genesis::{GenesisConfig, VestingSchedule},
+    genesis::GenesisConfig,
     genesis_integration::{GenesisBlockCreator, GenesisInitializer},
-    types::{AccountState, Address, Block, ValidatorInfo},
 };
-use std::collections::HashMap;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Dytallix Genesis Configuration Example");
     println!("{}", "=".repeat(50));
@@ -35,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // 5. Initialize blockchain state
-    let (block, accounts, validators) =
+    let (_block, accounts, validators) =
         GenesisInitializer::initialize_blockchain(genesis_config.clone())?;
     println!(
         "✅ Blockchain initialized with {} accounts and {} validators",
@@ -118,7 +114,7 @@ fn display_genesis_summary(config: &GenesisConfig) {
 fn demonstrate_vesting(creator: &GenesisBlockCreator) {
     println!("\n⏰ Vesting Demonstration (Current Time):");
 
-    let addresses = vec![
+    let addresses = [
         "0xCommunityTreasury",
         "0xStakingRewards",
         "0xDevTeam",
@@ -184,11 +180,12 @@ fn demonstrate_burn_rules(config: &GenesisConfig) {
 }
 
 // Helper function for simulating time-based vesting
+#[allow(dead_code)]
 fn simulate_vesting_over_time(config: &GenesisConfig) {
     println!("\n📅 Vesting Simulation Over Time:");
 
     let genesis_time = config.network.genesis_time.timestamp() as u64;
-    let time_points = vec![
+    let time_points = [
         ("Genesis", genesis_time),
         ("6 Months", genesis_time + 6 * 30 * 24 * 60 * 60),
         ("1 Year", genesis_time + 365 * 24 * 60 * 60),
@@ -202,15 +199,15 @@ fn simulate_vesting_over_time(config: &GenesisConfig) {
         println!("\n  📍 {label}:");
 
         let dev_vested = config.get_vested_amount(&"0xDevTeam".to_string(), timestamp);
-        let dev_total = 150_000_000_000_000_000_000_000_000u64;
+        let dev_total = 150_000_000_000_000_000_000_000_000u128;
         let dev_pct = (dev_vested as f64 / dev_total as f64) * 100.0;
 
         let validator_vested = config.get_vested_amount(&"0xValidators".to_string(), timestamp);
-        let validator_total = 100_000_000_000_000_000_000_000_000u64;
+        let validator_total = 100_000_000_000_000_000_000_000_000u128;
         let validator_pct = (validator_vested as f64 / validator_total as f64) * 100.0;
 
-        println!("    Dev Team: {:.1}% vested", dev_pct);
-        println!("    Validators: {:.1}% vested", validator_pct);
+        println!("    Dev Team: {dev_pct:.1}% vested");
+        println!("    Validators: {validator_pct:.1}% vested");
     }
 }
 
@@ -238,7 +235,7 @@ mod tests {
         // Community treasury should always be fully vested
         let community_vested =
             creator.get_current_vested_amount(&"0xCommunityTreasury".to_string());
-        assert_eq!(community_vested, 400_000_000_000_000_000_000_000_000);
+        assert_eq!(community_vested, 400_000_000_000_000_000_000_000_000u128);
 
         // Non-existent address should return 0
         let unknown_vested = creator.get_current_vested_amount(&"0xUnknownAddress".to_string());

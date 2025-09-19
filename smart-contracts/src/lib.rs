@@ -16,6 +16,11 @@ use scale::{Decode, Encode};
 // Re-export common types
 pub use types::*;
 
+// Re-export runtime API for external users/tests
+pub use runtime::{
+    ContractCall, ContractDeployment, ContractEvent, ContractRuntime, ErrorCode, ExecutionResult,
+};
+
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
 pub enum ContractError {
     NotAuthorized,

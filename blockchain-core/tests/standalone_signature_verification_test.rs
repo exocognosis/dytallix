@@ -3,7 +3,6 @@
 //! This test creates a minimal version of the signature verification components
 //! to test the integration flow without depending on the main consensus module.
 use anyhow::Result;
-use chrono;
 use dytallix_pqc::{Signature, SignatureAlgorithm};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -323,13 +322,13 @@ async fn test_multiple_oracles() -> Result<()> {
     // Register multiple oracles
     for i in 1..=5 {
         let oracle = TestOracleRegistryEntry {
-            oracle_id: format!("oracle-{}", i),
+            oracle_id: format!("oracle-{i}"),
             public_key: vec![i as u8; 4],
             reputation_score: 0.8 + (i as f64 * 0.02),
             last_activity: chrono::Utc::now().timestamp() as u64,
             total_requests: i * 10,
             successful_requests: i * 9,
-            failed_requests: i * 1,
+            failed_requests: i,
             is_active: true,
         };
 
@@ -342,24 +341,24 @@ async fn test_multiple_oracles() -> Result<()> {
     for i in 1..=3 {
         let response = TestSignedAIOracleResponse {
             response: TestAIResponsePayload {
-                id: format!("response-{}", i),
-                request_id: format!("request-{}", i),
+                id: format!("response-{i}"),
+                request_id: format!("request-{i}"),
                 response_data: serde_json::json!({"risk_score": 0.1 * i as f64}),
                 timestamp: chrono::Utc::now().timestamp() as u64,
                 status: "success".to_string(),
-                oracle_id: Some(format!("oracle-{}", i)),
+                oracle_id: Some(format!("oracle-{i}")),
             },
             signature: Signature {
                 data: vec![i as u8; 4],
                 algorithm: SignatureAlgorithm::Dilithium5,
             },
             oracle_public_key: vec![i as u8; 4],
-            oracle_id: format!("oracle-{}", i),
+            oracle_id: format!("oracle-{i}"),
             nonce: 10000 + i,
         };
 
         let is_valid = manager.verify_ai_response(&response).await?;
-        assert!(is_valid, "Response from oracle-{} should be valid", i);
+        assert!(is_valid, "Response from oracle-{i} should be valid");
     }
 
     println!("✓ Multiple oracle management test passed");
@@ -390,8 +389,8 @@ async fn test_integration_comprehensive() -> Result<()> {
     for i in 1..=10 {
         let response = TestSignedAIOracleResponse {
             response: TestAIResponsePayload {
-                id: format!("comprehensive-response-{}", i),
-                request_id: format!("comprehensive-request-{}", i),
+                id: format!("comprehensive-response-{i}"),
+                request_id: format!("comprehensive-request-{i}"),
                 response_data: serde_json::json!({
                     "risk_score": 0.1 * i as f64,
                     "confidence": 0.9,
@@ -411,7 +410,7 @@ async fn test_integration_comprehensive() -> Result<()> {
         };
 
         let is_valid = manager.verify_ai_response(&response).await?;
-        assert!(is_valid, "Response {} should be valid", i);
+        assert!(is_valid, "Response {i} should be valid");
     }
 
     // Test replay protection works across multiple requests
@@ -440,24 +439,14 @@ async fn test_integration_comprehensive() -> Result<()> {
     Ok(())
 }
 
-// Helper function to run all tests
-pub async fn run_all_tests() -> Result<()> {
-    println!("=== Running Signature Verification Integration Tests ===");
-
-    test_signature_verification_basic_flow().await?;
-    test_ai_integration_manager().await?;
-    test_unregistered_oracle_rejection().await?;
-    test_nonce_replay_protection().await?;
-    test_multiple_oracles().await?;
-    test_integration_comprehensive().await?;
-
-    println!("=== All tests passed! ===");
-    Ok(())
+impl Default for TestSignatureVerifier {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
-// Main test runner
-#[tokio::main]
-async fn main() -> Result<()> {
-    env_logger::init();
-    run_all_tests().await
+impl Default for TestAIIntegrationManager {
+    fn default() -> Self {
+        Self::new(true)
+    }
 }

@@ -111,7 +111,10 @@ mod tests {
         match mempool.add_transaction(&state, tx) {
             Err(RejectionReason::InvalidSignature) => {
                 // Ensure display string matches expectation
-                assert_eq!(RejectionReason::InvalidSignature.to_string(), "invalid signature");
+                assert_eq!(
+                    RejectionReason::InvalidSignature.to_string(),
+                    "invalid signature"
+                );
             }
             _ => panic!("Expected InvalidSignature rejection"),
         }

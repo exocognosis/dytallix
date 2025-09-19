@@ -1,7 +1,4 @@
-use std::time::Duration;
-use tempfile::NamedTempFile;
-use tokio::time::sleep;
-
+// The explorer indexer crate is available in the workspace as `dytallix_explorer_indexer`
 use dytallix_explorer_indexer::{models::Block, rpc::RpcClient, store::Store};
 
 #[tokio::test]
@@ -14,14 +11,14 @@ async fn test_integration_with_live_node() {
 
     // Test we can get latest height
     let height = client.get_latest_height().await;
-    assert!(height.is_ok(), "Failed to get latest height: {:?}", height);
+    assert!(height.is_ok(), "Failed to get latest height: {height:?}");
 
     let height = height.unwrap();
     assert!(height > 0, "Height should be greater than 0");
 
     // Test we can get blocks
     let blocks = client.get_blocks(height).await;
-    assert!(blocks.is_ok(), "Failed to get blocks: {:?}", blocks);
+    assert!(blocks.is_ok(), "Failed to get blocks: {blocks:?}");
 
     let blocks = blocks.unwrap();
     assert!(!blocks.blocks.is_empty(), "Should have at least one block");
@@ -29,15 +26,15 @@ async fn test_integration_with_live_node() {
 
 #[tokio::test]
 async fn test_indexer_with_mock_data() {
-    let temp_db = NamedTempFile::new().unwrap();
+    let temp_db = tempfile::NamedTempFile::new().unwrap();
     let store = Store::new(temp_db.path().to_str().unwrap()).unwrap();
 
     // Simulate indexing multiple blocks
     for height in 1..=5 {
         let block = Block {
             height,
-            hash: format!("hash_{}", height),
-            time: format!("2024-01-0{}T00:00:00Z", height),
+            hash: format!("hash_{height}"),
+            time: format!("2024-01-0{height}T00:00:00Z"),
             tx_count: height as u32 % 3, // 0, 1, 2, 0, 1
         };
 

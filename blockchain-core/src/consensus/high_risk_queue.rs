@@ -739,12 +739,7 @@ mod tests {
         };
 
         let queue_id = queue
-            .enqueue_transaction(
-                transaction,
-                hex::encode(tx_hash),
-                ai_result,
-                risk_decision,
-            )
+            .enqueue_transaction(transaction, hex::encode(tx_hash), ai_result, risk_decision)
             .await
             .unwrap();
 
@@ -776,12 +771,7 @@ mod tests {
 
         // Add in reverse priority order
         queue
-            .enqueue_transaction(
-                tx1,
-                hex::encode([1u8; 32]),
-                low_risk,
-                risk_decision.clone(),
-            )
+            .enqueue_transaction(tx1, hex::encode([1u8; 32]), low_risk, risk_decision.clone())
             .await
             .unwrap();
         queue
@@ -820,12 +810,7 @@ mod tests {
         };
 
         let queue_id = queue
-            .enqueue_transaction(
-                transaction,
-                hex::encode(tx_hash),
-                ai_result,
-                risk_decision,
-            )
+            .enqueue_transaction(transaction, hex::encode(tx_hash), ai_result, risk_decision)
             .await
             .unwrap();
 

@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::consensus::high_risk_queue::{
     HighRiskQueue, QueueStatistics, QueuedTransaction, ReviewPriority,
 };
+use crate::types::Amount;
 
 /// Request to approve a transaction
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,7 +52,8 @@ pub struct TransactionReviewView {
     pub queue_id: Uuid,
     pub transaction_hash: String,
     pub transaction_type: String,
-    pub amount: Option<u64>,
+    #[serde(with = "crate::types::serde_opt_u128_string")]
+    pub amount: Option<Amount>,
     pub from_address: Option<String>,
     pub to_address: Option<String>,
     pub risk_score: f64,
@@ -439,8 +441,8 @@ mod tests {
             hash: "test_hash".to_string(),
             from: "sender123".to_string(),
             to: "recipient456".to_string(),
-            amount: 1000,
-            fee: 10,
+            amount: 1000u128,
+            fee: 10u128,
             nonce: 1,
             timestamp: Utc::now().timestamp() as u64,
             signature: crate::types::PQCTransactionSignature {
@@ -481,12 +483,7 @@ mod tests {
         };
 
         queue
-            .enqueue_transaction(
-                transaction,
-                hex::encode(tx_hash),
-                ai_result,
-                risk_decision,
-            )
+            .enqueue_transaction(transaction, hex::encode(tx_hash), ai_result, risk_decision)
             .await
             .unwrap();
 
@@ -494,7 +491,7 @@ mod tests {
         let pending = api.get_pending_transactions(None).await.unwrap();
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].transaction_type, "Transfer");
-        assert_eq!(pending[0].amount, Some(1000));
+        assert_eq!(pending[0].amount, Some(1000u128));
     }
 
     #[tokio::test]
@@ -511,12 +508,7 @@ mod tests {
         };
 
         let queue_id = queue
-            .enqueue_transaction(
-                transaction,
-                hex::encode(tx_hash),
-                ai_result,
-                risk_decision,
-            )
+            .enqueue_transaction(transaction, hex::encode(tx_hash), ai_result, risk_decision)
             .await
             .unwrap();
 
@@ -557,12 +549,7 @@ mod tests {
         };
 
         queue
-            .enqueue_transaction(
-                transaction,
-                hex::encode(tx_hash),
-                ai_result,
-                risk_decision,
-            )
+            .enqueue_transaction(transaction, hex::encode(tx_hash), ai_result, risk_decision)
             .await
             .unwrap();
 

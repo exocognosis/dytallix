@@ -4,7 +4,6 @@
 //! registry management, reputation tracking, and performance monitoring.
 
 use anyhow::Result;
-use chrono;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -545,16 +544,16 @@ mod tests {
 
         // Register and activate oracle
         manager
-            .register_oracle(
-                "dyt1slash_test".to_string(),
-                "Slash Test Oracle".to_string(),
-                "Oracle for slashing test".to_string(),
-                vec![5, 6, 7, 8],
-                2000000000,
-                "1.0.0".to_string(),
-                vec!["risk_scoring".to_string()],
-                None,
-            )
+            .register_oracle(crate::consensus::oracle_registry::RegisterOracleArgs {
+                oracle_address: "dyt1slash_test".to_string(),
+                oracle_name: "Slash Test Oracle".to_string(),
+                description: "Oracle for slashing test".to_string(),
+                public_key: vec![5, 6, 7, 8],
+                stake_amount: 2000000000,
+                oracle_version: "1.0.0".to_string(),
+                supported_services: vec!["risk_scoring".to_string()],
+                contact_info: None,
+            })
             .await
             .unwrap();
 

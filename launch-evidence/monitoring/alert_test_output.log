@@ -1,12 +1,19 @@
-Sun Sep 14 22:09:29 UTC 2025
-Pausing node process
-dytallix-node process not found
-Waiting 60s for alert
-Querying Alertmanager
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-curl: (7) Failed to connect to localhost port 9093 after 0 ms: Couldn't connect to server
-Alertmanager not reachable
-Resuming node process
-dytallix-node process not found
+== Inducing fault: pausing node at 2025-09-15T14:19:28Z ==
+{"ok":true,"paused":true}
+........firing at 2025-09-15T14:20:05.527188226Z
+
+Alert fired at 2025-09-15T14:20:14Z
+{"ok":true,"paused":false}
+{
+  "labels": {
+    "alertname": "BlockProductionStall",
+    "severity": "critical"
+  },
+  "annotations": {
+    "description": "No new blocks have been produced for more than 30 seconds. Last block time: 38.4195020198822",
+    "summary": "Dytallix blockchain has stopped producing blocks"
+  },
+  "state": "firing",
+  "activeAt": "2025-09-15T14:20:05.527188226Z",
+  "value": "3.84195020198822e+01"
+}

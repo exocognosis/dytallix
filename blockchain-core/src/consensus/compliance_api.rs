@@ -14,6 +14,7 @@ use crate::consensus::audit_trail::{
     ComplianceStatus, ExportFormat,
 };
 use crate::consensus::notification_types::ReviewPriority;
+use crate::types::Amount;
 
 /// API request for compliance report generation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,9 +32,11 @@ pub struct ComplianceReportRequest {
     /// Filter by oracle IDs
     pub oracle_ids: Option<Vec<String>>,
     /// Minimum transaction amount
-    pub min_amount: Option<u64>,
+    #[serde(with = "crate::types::serde_opt_u128_string")]
+    pub min_amount: Option<Amount>,
     /// Maximum transaction amount
-    pub max_amount: Option<u64>,
+    #[serde(with = "crate::types::serde_opt_u128_string")]
+    pub max_amount: Option<Amount>,
     /// Include archived/deleted entries
     pub include_archived: Option<bool>,
     /// Page number for pagination (starts at 1)
@@ -396,29 +399,6 @@ impl ComplianceAPI {
     pub async fn get_audit_statistics(&self) -> Result<AuditStatistics> {
         let stats = self.audit_manager.get_statistics().await;
         Ok(stats)
-    }
-
-    /// Trigger manual archival of old audit entries
-    pub async fn trigger_archival(&self) -> Result<serde_json::Value> {
-        info!("Triggering manual archival of old audit entries");
-
-        match self.audit_manager.archive_old_entries().await {
-            Ok(archived_count) => {
-                info!("Successfully archived {archived_count} entries");
-                Ok(serde_json::json!({
-                    "success": true,
-                    "archived_count": archived_count,
-                    "archived_at": Utc::now()
-                }))
-            }
-            Err(e) => {
-                error!("Failed to archive entries: {e}");
-                Ok(serde_json::json!({
-                    "success": false,
-                    "error": e.to_string()
-                }))
-            }
-        }
     }
 
     // Helper methods

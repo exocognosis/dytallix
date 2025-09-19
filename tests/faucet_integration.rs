@@ -231,7 +231,7 @@ async fn test_rate_limiting(endpoint: &str) {
     });
 
     // Make first request (should succeed or be rate limited from previous tests)
-    let first_response = client
+    let _first_response = client
         .post(endpoint)
         .json(&request_body)
         .send()

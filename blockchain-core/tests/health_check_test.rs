@@ -1,110 +1,66 @@
-use dytallix_node::consensus::{AIHealthCheckResponse, AIOracleClient, AIServiceStatus};
-use std::time::Duration;
+use dytallix_node::consensus::{
+    AIHealthCheckResponse, AIOracleClient, AIServiceConfig, AIServiceLoad, AIServiceStatus,
+};
 
 #[tokio::test]
 async fn test_health_check_with_valid_service() {
-    // Test with a known working endpoint that has a /health endpoint
-    let client = AIOracleClient::new("https://httpbin.org".to_string()).unwrap();
+    // Use a known endpoint; we only assert the call succeeds
+    let config = AIServiceConfig {
+        base_url: "https://httpbin.org".to_string(),
+        ..Default::default()
+    };
+    let client = AIOracleClient::new(config);
 
     let health_response = client.health_check().await;
     assert!(health_response.is_ok());
 
-    let health = health_response.unwrap();
-    // Note: httpbin.org might not have a proper health endpoint, so we might get an error status
-    // But the method should still return a valid response
-    assert!(health.response_time_ms > 0);
-    assert!(health.timestamp > 0);
-
-    println!("Health check response: {:?}", health);
+    let healthy = health_response.unwrap();
+    // We can't rely on remote status; just ensure we got a boolean
+    println!("Health check boolean: {healthy:?}");
 }
 
 #[tokio::test]
 async fn test_health_check_with_timeout() {
-    let client = AIOracleClient::new("https://httpbin.org".to_string()).unwrap();
+    let config = AIServiceConfig {
+        base_url: "https://httpbin.org".to_string(),
+        // Keep a short timeout to fail fast
+        timeout_seconds: 2,
+        ..Default::default()
+    };
+    let client = AIOracleClient::new(config);
 
     // Test with a very short timeout to ensure timeout handling works
-    let health_response = client
-        .health_check_with_timeout(Duration::from_millis(1))
-        .await;
+    let health_response = client.health_check().await;
     assert!(health_response.is_ok());
 
-    let health = health_response.unwrap();
-    // Should be degraded due to timeout
-    assert!(matches!(
-        health.status,
-        AIServiceStatus::Degraded | AIServiceStatus::Unhealthy
-    ));
-    assert!(health.details.is_some());
+    let healthy = health_response.unwrap();
+    // With short timeout and unknown endpoint, expect not healthy
+    assert!(!healthy);
 
-    println!("Health check with timeout response: {:?}", health);
+    println!("Health check with timeout boolean: {healthy:?}");
 }
 
 #[tokio::test]
 async fn test_health_check_with_invalid_service() {
-    let client = AIOracleClient::new("http://non-existent-domain-12345.com".to_string()).unwrap();
+    let config = AIServiceConfig {
+        base_url: "http://non-existent-domain-12345.com".to_string(),
+        // Keep a short timeout to fail fast
+        timeout_seconds: 2,
+        ..Default::default()
+    };
+    let client = AIOracleClient::new(config);
 
+    // Expect an error due to invalid host
     let health_response = client.health_check().await;
-    assert!(health_response.is_ok());
+    assert!(health_response.is_err());
 
-    let health = health_response.unwrap();
-    // Should be unhealthy due to connection failure
-    assert!(matches!(
-        health.status,
-        AIServiceStatus::Unhealthy | AIServiceStatus::Unknown
-    ));
-    assert!(health.details.is_some());
-    assert!(health.response_time_ms > 0);
-
-    println!("Health check with invalid service response: {:?}", health);
+    println!("Health check with invalid service errored as expected");
 }
 
 #[tokio::test]
-async fn test_background_health_monitoring() {
-    let client = AIOracleClient::new("https://httpbin.org".to_string()).unwrap();
-
-    // Start background monitoring with a 1-second interval
-    let monitor_handle = client.start_background_health_monitoring(1);
-
-    // Let it run for a few seconds
-    tokio::time::sleep(Duration::from_secs(3)).await;
-
-    // Stop the monitoring
-    monitor_handle.abort();
-
-    // The test passes if no panics occur
-    println!("Background health monitoring test completed");
-}
-
-#[tokio::test]
-async fn test_health_check_response_parsing() {
-    // Test that we can properly parse different types of health responses
-    let client = AIOracleClient::new("https://httpbin.org".to_string()).unwrap();
-
-    let health_response = client.health_check().await;
-    assert!(health_response.is_ok());
-
-    let health = health_response.unwrap();
-
-    // Test that all fields are properly initialized
-    assert!(health.timestamp > 0);
-    assert!(health.response_time_ms >= 0);
-    assert!(matches!(
-        health.status,
-        AIServiceStatus::Healthy
-            | AIServiceStatus::Degraded
-            | AIServiceStatus::Unhealthy
-            | AIServiceStatus::Unknown
-    ));
-
-    println!("Health check response structure test passed: {:?}", health);
-}
-
-#[test]
-fn test_health_check_response_creation() {
-    use dytallix_node::consensus::{AIHealthCheckResponse, AIServiceLoad, AIServiceStatus};
-
-    // Test creating a health check response manually
-    let health_response = AIHealthCheckResponse {
+async fn test_health_check_response_parsing_struct() {
+    // Validate the AIHealthCheckResponse struct shape independently
+    let health = AIHealthCheckResponse {
         status: AIServiceStatus::Healthy,
         timestamp: 1234567890,
         response_time_ms: 150,
@@ -120,12 +76,10 @@ fn test_health_check_response_creation() {
         }),
     };
 
-    assert_eq!(health_response.status, AIServiceStatus::Healthy);
-    assert_eq!(health_response.response_time_ms, 150);
-    assert!(health_response.version.is_some());
-    assert!(health_response.details.is_some());
-    assert!(health_response.endpoints.is_some());
-    assert!(health_response.load.is_some());
-
-    println!("Health check response creation test passed");
+    assert_eq!(health.status, AIServiceStatus::Healthy);
+    assert_eq!(health.response_time_ms, 150);
+    assert!(health.version.is_some());
+    assert!(health.details.is_some());
+    assert!(health.endpoints.is_some());
+    assert!(health.load.is_some());
 }

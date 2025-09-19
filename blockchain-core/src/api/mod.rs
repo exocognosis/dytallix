@@ -12,6 +12,7 @@ use warp::Filter; // ensure accessible
 
 // Replace direct dytallix_contracts runtime imports with wrapper exposed via crate::contracts
 use crate::contracts::{ContractCall, ContractDeployment, ContractRuntime};
+use crate::types::{Amount, Fee}; // bring central Amount/Fee aliases
 
 #[derive(Debug, Serialize)]
 struct ErrorResponse {
@@ -35,10 +36,46 @@ struct BlockInfo {
 struct TransferRequest {
     from: String,
     to: String,
-    amount: u64,
-    fee: Option<u64>,
+    #[serde(with = "crate::types::serde_u128_string")]
+    amount: Amount,
+    #[serde(default, deserialize_with = "deserialize_amount_opt")]
+    fee: Option<Amount>,
     nonce: Option<u64>,
     signature: Option<TransferSignature>,
+}
+
+fn deserialize_amount_opt<'de, D>(deserializer: D) -> Result<Option<Amount>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error as _;
+    let v = serde_json::Value::deserialize(deserializer)?;
+    if v.is_null() {
+        return Ok(None);
+    }
+    if let Some(s) = v.as_str() {
+        return s
+            .parse::<Amount>()
+            .map(Some)
+            .map_err(serde::de::Error::custom);
+    }
+    if let Some(n) = v.as_u64() {
+        return Ok(Some(n as Amount));
+    }
+    if let Some(n) = v.as_u128() {
+        return Ok(Some(n));
+    }
+    Err(serde::de::Error::custom("invalid amount"))
+}
+
+fn parse_amount_value(value: &serde_json::Value) -> Option<Amount> {
+    if let Some(s) = value.as_str() {
+        return s.parse::<Amount>().ok();
+    }
+    if let Some(n) = value.as_u128() {
+        return Some(n);
+    }
+    value.as_u64().map(|v| v as Amount) // legacy fallback
 }
 
 #[derive(Debug, Deserialize)]
@@ -141,8 +178,10 @@ struct TransactionDetails {
     hash: String,
     from: String,
     to: String,
-    amount: u64,
-    fee: u64,
+    #[serde(with = "crate::types::serde_u128_string")]
+    amount: Amount,
+    #[serde(with = "crate::types::serde_u128_string")]
+    fee: Fee,
     nonce: u64,
     status: String,
     block_number: Option<u64>,
@@ -232,7 +271,7 @@ impl<T> ApiResponse<T> {
 
 // Address validation regex (dyt1 + 10+ lowercase alphanumerics)
 static ADDRESS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^dyt1[0-9a-z]{10,}$").unwrap());
-const MIN_FEE: u64 = 1;
+const MIN_FEE: Amount = 1u128;
 const MAX_TX_BODY: usize = 8192;
 
 fn runtime_mocks() -> bool {
@@ -334,7 +373,10 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 match storage.get_address_balance(&address).await {
                     Ok(bal) => Ok(warp::reply::with_status(
-                        warp::reply::json(&ApiResponse::success(bal)),
+                        // return as string to avoid JS precision loss
+                        warp::reply::json(&ApiResponse::success(
+                            serde_json::json!({"balance": bal.to_string()}),
+                        )),
                         warp::http::StatusCode::OK,
                     )
                     .into_response()),
@@ -456,7 +498,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     )
                     .into_response());
                 }
-                if req.amount == 0 || req.fee.unwrap_or(0) < MIN_FEE {
+                if req.amount == 0 || req.fee.unwrap_or(MIN_FEE) < MIN_FEE {
                     return Ok(warp::reply::with_status(
                         warp::reply::json(&ApiResponse::<()> {
                             success: false,
@@ -469,7 +511,8 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 // Balance & nonce check via storage
                 let (storage, pool, ws_tx) = ctx;
-                let sender_balance = storage.get_address_balance(&req.from).await.unwrap_or(0);
+                let sender_balance: Amount =
+                    storage.get_address_balance(&req.from).await.unwrap_or(0);
                 let sender_nonce = storage.get_address_nonce(&req.from).await.unwrap_or(0);
                 // Nonce rule
                 let effective_nonce = match req.nonce {
@@ -491,7 +534,8 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                         n
                     }
                 };
-                if sender_balance < req.amount + req.fee.unwrap_or(MIN_FEE) {
+                let fee = req.fee.unwrap_or(MIN_FEE);
+                if sender_balance < req.amount.saturating_add(fee) {
                     return Ok(warp::reply::with_status(
                         warp::reply::json(&ApiResponse::<()> {
                             success: false,
@@ -507,7 +551,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     req.from.clone(),
                     req.to.clone(),
                     req.amount,
-                    req.fee.unwrap_or(MIN_FEE),
+                    fee,
                     effective_nonce,
                 );
                 // Signature verification skipped if mocks enabled OR signature absent (dev only)
@@ -761,7 +805,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     "wasm_execute" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
-                            handle_wasm_execute(params.clone(), (storage.clone(), tx_pool.clone())).await
+                            handle_wasm_execute(params.clone(), (storage.clone, tx_pool.clone())).await
                         } else {
                             serde_json::json!({"error": "Invalid parameters"})
                         }
@@ -1248,7 +1292,10 @@ async fn handle_contract_execute(
                     .get("gas_limit")
                     .and_then(|g| g.as_u64())
                     .unwrap_or(100_000),
-                value: params.get("value").and_then(|v| v.as_u64()).unwrap_or(0),
+                value: params
+                    .get("value")
+                    .and_then(parse_amount_value)
+                    .unwrap_or(0),
                 timestamp: chrono::Utc::now().timestamp() as u64,
             };
 
@@ -1463,7 +1510,10 @@ async fn handle_wasm_execute(
                     .get("gas_limit")
                     .and_then(|g| g.as_u64())
                     .unwrap_or(20_000),
-                value: 0,
+                value: params
+                    .get("value")
+                    .and_then(parse_amount_value)
+                    .unwrap_or(0),
                 timestamp: chrono::Utc::now().timestamp() as u64,
             };
 

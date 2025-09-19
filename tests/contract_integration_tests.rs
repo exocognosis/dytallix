@@ -12,7 +12,6 @@ Tests the complete smart contract lifecycle including:
 */
 
 use dytallix_contracts::runtime::*;
-use dytallix_contracts::types::*;
 use std::sync::Arc;
 
 // Mock AI Analyzer for testing
@@ -89,6 +88,7 @@ async fn test_complete_contract_lifecycle() {
     let storage_value = b"test_value";
 
     // Set initial storage value
+    // helper is available in tests via cfg(any(test, feature = "test-utils")) in runtime
     runtime.set_contract_storage(
         &contract_address,
         storage_key.to_vec(),
@@ -97,8 +97,10 @@ async fn test_complete_contract_lifecycle() {
 
     // Read storage value
     let retrieved_value = runtime.get_contract_state(&contract_address, storage_key);
-    assert!(retrieved_value.is_some());
-    assert_eq!(retrieved_value.unwrap(), storage_value);
+    {
+        assert!(retrieved_value.is_some());
+        assert_eq!(retrieved_value.unwrap(), storage_value);
+    }
 
     println!("Testing contract execution...");
 
@@ -128,10 +130,9 @@ async fn test_complete_contract_lifecycle() {
     // Verify contract statistics updated
     let stats = runtime.get_contract_statistics(&contract_address);
     assert!(stats.is_some());
-    let (call_count, last_called, memory_usage) = stats.unwrap();
+    let (call_count, last_called, _memory_usage) = stats.unwrap();
     assert_eq!(call_count, 1); // One successful call
     assert_eq!(last_called, call.timestamp);
-    assert!(memory_usage >= 0);
 
     println!("Testing state persistence...");
 
@@ -147,8 +148,10 @@ async fn test_complete_contract_lifecycle() {
 
     // Verify storage still accessible after restore
     let retrieved_after_restore = runtime.get_contract_state(&contract_address, storage_key);
-    assert!(retrieved_after_restore.is_some());
-    assert_eq!(retrieved_after_restore.unwrap(), storage_value);
+    {
+        assert!(retrieved_after_restore.is_some());
+        assert_eq!(retrieved_after_restore.unwrap(), storage_value);
+    }
 
     println!("Contract lifecycle test completed successfully!");
 }
@@ -297,13 +300,15 @@ async fn test_storage_isolation() {
     let retrieved1 = runtime.get_contract_state(&contract1_addr, key);
     let retrieved2 = runtime.get_contract_state(&contract2_addr, key);
 
-    assert!(retrieved1.is_some());
-    assert!(retrieved2.is_some());
-    assert_eq!(retrieved1.unwrap(), value1);
-    assert_eq!(retrieved2.unwrap(), value2);
+    {
+        assert!(retrieved1.is_some());
+        assert!(retrieved2.is_some());
+        assert_eq!(retrieved1.clone().unwrap(), value1);
+        assert_eq!(retrieved2.clone().unwrap(), value2);
 
-    // Verify contracts cannot access each other's storage
-    assert_ne!(retrieved1.unwrap(), retrieved2.unwrap());
+        // Verify contracts cannot access each other's storage
+        assert_ne!(retrieved1.unwrap(), retrieved2.unwrap());
+    }
 
     println!("Storage isolation test completed!");
 }
@@ -443,16 +448,22 @@ async fn test_contract_size_limits() {
 
 // Helper function to create a minimal valid WASM contract for testing
 fn create_test_wasm_contract() -> Vec<u8> {
-    // Minimal WASM module with magic number and version
-    vec![
-        // WASM magic number
-        0x00, 0x61, 0x73, 0x6d, // WASM version (1)
-        0x01, 0x00, 0x00, 0x00, // Type section (empty)
-        0x01, 0x00, // Function section (empty)
-        0x03, 0x00, // Export section (empty)
-        0x07, 0x00, // Code section (empty)
-        0x0a, 0x00,
-    ]
+    // Construct a small, valid WASM module exporting memory and the contract_* functions
+    // expected by the runtime. Functions simply return 0 (no return data).
+    let wat = r#"(module
+      (memory (export "memory") 1)
+      (func (export "contract_test_function") (param i32 i32) (result i32)
+        i32.const 0)
+      (func (export "contract_estimate_test") (param i32 i32) (result i32)
+        i32.const 0)
+      (func (export "contract_expensive_function") (param i32 i32) (result i32)
+        i32.const 0)
+      (func (export "contract_emit_events") (param i32 i32) (result i32)
+        i32.const 0)
+      (func (export "contract_deterministic_function") (param i32 i32) (result i32)
+        i32.const 0)
+    )"#;
+    wat::parse_str(wat).expect("valid test wasm module")
 }
 
 #[tokio::test]

@@ -36,7 +36,8 @@ pub fn de_nonce<'de, D: Deserializer<'de>>(d: D) -> Result<NonceSpec, D::Error> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::{canonical_json, sha3_256, ActivePQC};
+    use crate::crypto::PQC;
+    use crate::crypto::{canonical_json, sha3_256, ActivePQC}; // bring trait into scope for ActivePQC::keypair and ALG
     #[test]
     fn tx_hash_and_sign_verify() {
         let (sk, pk) = ActivePQC::keypair();

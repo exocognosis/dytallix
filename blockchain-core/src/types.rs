@@ -21,7 +21,16 @@ pub type TxHash = String;
 pub type BlockNumber = u64;
 
 /// Amount in smallest unit (like satoshis)
-pub type Amount = u64; // Using u64 for current compatibility; serialized as string for JSON
+pub type Amount = u128; // Using u128 for token amounts; serialized as string for JSON
+
+/// Transaction fee amount (kept as alias for clarity)
+pub type Fee = u128;
+
+/// Account balance type
+pub type Balance = u128;
+
+/// Stake quantity for validator operations
+pub type Stake = u128;
 
 /// Unix timestamp (seconds since epoch)
 pub type Timestamp = u64;
@@ -30,12 +39,31 @@ pub type Timestamp = u64;
 pub mod serde_u128_string {
     use serde::de::Error as DeError;
     use serde::{Deserialize, Deserializer, Serializer};
-    pub fn serialize<S: Serializer>(v: &u64, s: S) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: Serializer>(v: &u128, s: S) -> Result<S::Ok, S::Error> {
         s.serialize_str(&v.to_string())
     }
-    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u64, D::Error> {
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u128, D::Error> {
         let s = String::deserialize(d)?;
-        s.parse::<u64>().map_err(D::Error::custom)
+        s.parse::<u128>().map_err(D::Error::custom)
+    }
+}
+
+// Serde helpers for Option<u128> <-> string JSON
+pub mod serde_opt_u128_string {
+    use serde::de::Error as DeError;
+    use serde::{Deserialize, Deserializer, Serializer};
+    pub fn serialize<S: Serializer>(v: &Option<u128>, s: S) -> Result<S::Ok, S::Error> {
+        match v {
+            Some(val) => s.serialize_some(&val.to_string()),
+            None => s.serialize_none(),
+        }
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u128>, D::Error> {
+        let opt = Option::<String>::deserialize(d)?;
+        Ok(match opt {
+            Some(s) => Some(s.parse::<u128>().map_err(D::Error::custom)?),
+            None => None,
+        })
     }
 }
 
@@ -329,7 +357,7 @@ pub struct AIRequestPayload {
 
 impl AIRequestPayload {
     /// Create a new request payload with a random ID and current timestamp
-    pub fn _new(service_type: AIServiceType, request_data: Value) -> Self {
+    pub fn new(service_type: AIServiceType, request_data: Value) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             service_type,
@@ -339,12 +367,12 @@ impl AIRequestPayload {
     }
 
     /// Serialize this payload to a JSON string
-    pub fn _to_json(&self) -> Result<String, serde_json::Error> {
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }
 
     /// Deserialize a payload from a JSON string
-    pub fn _from_json(data: &str) -> Result<Self, serde_json::Error> {
+    pub fn from_json(data: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(data)
     }
 }
@@ -366,12 +394,12 @@ pub struct AIResponsePayload {
 
 impl AIResponsePayload {
     /// Serialize this payload to a JSON string
-    pub fn _to_json(&self) -> Result<String, serde_json::Error> {
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }
 
     /// Deserialize a payload from a JSON string
-    pub fn _from_json(data: &str) -> Result<Self, serde_json::Error> {
+    pub fn from_json(data: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(data)
     }
 }
@@ -478,7 +506,7 @@ use tokio::sync::RwLock;
 #[derive(Debug)]
 pub struct TransactionPool {
     /// Pending transactions organized by fee (highest fee first)
-    pending: Arc<RwLock<BTreeMap<u64, Vec<Transaction>>>>,
+    pending: Arc<RwLock<BTreeMap<Amount, Vec<Transaction>>>>,
     /// Transaction lookup by hash
     lookup: Arc<RwLock<HashMap<TxHash, Transaction>>>,
     /// Maximum pool size
@@ -1016,8 +1044,8 @@ mod tests {
             amount: Amount,
         }
         let w = Wrapper {
-            amount: 12_345_678_901_234_567u64,
-        }; // fits in u64
+            amount: 12_345_678_901_234_567u128,
+        };
         let json = serde_json::to_string(&w).unwrap();
         assert!(json.contains("12345678901234567"));
         let de: Wrapper = serde_json::from_str(&json).unwrap();

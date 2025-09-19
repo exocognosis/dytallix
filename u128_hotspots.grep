@@ -1,0 +1,50 @@
+blockchain-core/src/storage/mod.rs:123:                    .into());
+blockchain-core/src/storage/mod.rs:275:            return Err("nonce_mismatch".into());
+blockchain-core/examples/genesis_usage.rs.bak:251:        let burned = (fee * config.burn_rules.transaction_fee_burn_rate as u64) / 100;
+blockchain-core/src/networking/mod.rs:151:            Err(format!("Peer not found: {}", peer_id).into())
+blockchain-core/src/types.rs:824:    pub fn new(from: Address, to: Address, amount: Amount, fee: Amount, nonce: u64) -> Self {
+blockchain-core/src/types.rs:1047:            contract_address: Some("0xcontract".into()),
+blockchain-core/src/runtime/mod.rs:182:            return Err("Insufficient balance".into());
+blockchain-core/src/runtime/mod.rs:307:            .into())
+blockchain-core/src/runtime/mod.rs:663:            error = Some("nonce_mismatch".into());
+blockchain-core/tests/oracle_registry_comprehensive_test.rs:32:            stake_amount: 2000000000 + (id as u64 * 1000000), // Varying stake amounts
+blockchain-core/examples/genesis_usage.rs:251:        let burned = (fee * config.burn_rules.transaction_fee_burn_rate as u64) / 100;
+blockchain-core/src/api/mod.rs:364:                                error: Some("invalid_address".into()),
+blockchain-core/src/api/mod.rs:386:                                error: Some("internal_error".into()),
+blockchain-core/src/api/mod.rs:428:                                        error: Some("invalid_body".into()),
+blockchain-core/src/api/mod.rs:442:                            error: Some("invalid_body".into()),
+blockchain-core/src/api/mod.rs:455:                                error: Some("invalid_body".into()),
+blockchain-core/src/api/mod.rs:467:                            error: Some("invalid_body".into()),
+blockchain-core/src/api/mod.rs:480:                                error: Some("invalid_body".into()),
+blockchain-core/src/api/mod.rs:492:                            error: Some("invalid_address".into()),
+blockchain-core/src/api/mod.rs:503:                            error: Some("invalid_body".into()),
+blockchain-core/src/api/mod.rs:540:                            error: Some("insufficient_balance".into()),
+blockchain-core/src/api/mod.rs:565:                                            error: Some("signature_invalid".into()),
+blockchain-core/src/api/mod.rs:580:                                        error: Some("signature_invalid".into()),
+blockchain-core/src/api/mod.rs:605:                                        error: Some("signature_invalid".into()),
+blockchain-core/src/api/mod.rs:678:                match storage.list_blocks_desc(limit, from).await { Ok(list) => { let out: Vec<_> = list.into_iter().map(|b| serde_json::json!({"number": b.header.number, "hash": b.hash(), "parent_hash": b.header.parent_hash, "timestamp": b.header.timestamp, "tx_count": b.transactions.len()})).collect(); Ok::<_, warp::Rejection>(warp::reply::with_status(warp::reply::json(&ApiResponse::success(out)), warp::http::StatusCode::OK).into_response()) }, Err(e)=> { error!("blocks err: {e}"); Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("internal_error".into()) }), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response()) } }
+blockchain-core/src/api/mod.rs:692:            match res { Ok(Some(block)) => { let resp = serde_json::json!({"number": block.header.number, "hash": block.hash(), "parent_hash": block.header.parent_hash, "timestamp": block.header.timestamp, "transactions": block.transactions.iter().map(|t| t.hash()).collect::<Vec<_>>()}); Ok::<_, warp::Rejection>(warp::reply::with_status(warp::reply::json(&ApiResponse::success(resp)), warp::http::StatusCode::OK).into_response()) }, Ok(None)=> Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("not_found".into()) }), warp::http::StatusCode::NOT_FOUND).into_response()), Err(e)=> { error!("block err: {e}"); Ok(warp::reply::with_status(warp::reply::json(&ApiResponse::<()> { success:false, data:None, error:Some("internal_error".into()) }), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response()) } }
+blockchain-core/src/crypto/mod.rs:114:                Err("Falcon-1024 not yet implemented".into())
+blockchain-core/src/crypto/mod.rs:119:                Err("SPHINCS+ not yet implemented".into())
+blockchain-core/src/crypto/mod.rs:121:            _ => Err(format!("Unsupported signature algorithm: {algorithm}").into()),
+blockchain-core/src/wasm/engine.rs:111:    fn charge_fuel<T>(_caller: &mut Caller<'_, T>, amount: u64) -> Result<()> {
+blockchain-core/src/risk/pulseguard/models/ensemble.rs:30:            rs.reasons.push("high_risk_pattern".into());
+blockchain-core/src/risk/pulseguard/models/ensemble.rs:32:            rs.reasons.push("baseline".into());
+blockchain-core/src/consensus/block_processing.rs:308:            Value::Number(block.transactions.len().into()),
+blockchain-core/src/consensus/block_processing.rs:312:            Value::Number(self.calculate_block_size(block).into()),
+blockchain-core/src/consensus/block_processing.rs:316:            Value::Number(block.header.timestamp.into()),
+blockchain-core/src/consensus/block_processing.rs:430:            stats.insert("current_block_height".to_string(), Value::Number(1.into())); // Placeholder
+blockchain-core/src/consensus/block_processing.rs:433:                Value::Number(block.transactions.len().into()),
+blockchain-core/src/consensus/block_processing.rs:437:                Value::Number(self.calculate_block_size(&block).into()),
+blockchain-core/src/consensus/signature_verification.rs:537:            serde_json::Value::Number(serde_json::Number::from(registry.len())),
+blockchain-core/src/consensus/signature_verification.rs:543:            serde_json::Value::Number(serde_json::Number::from(active_oracles)),
+blockchain-core/src/consensus/signature_verification.rs:549:            serde_json::Value::Number(serde_json::Number::from(nonce_cache.len())),
+blockchain-core/src/consensus/signature_verification.rs:564:            serde_json::Value::Number(serde_json::Number::from(total_responses)),
+blockchain-core/src/consensus/signature_verification.rs:568:            serde_json::Value::Number(serde_json::Number::from(total_successful)),
+blockchain-core/src/consensus/signature_verification.rs:575:                serde_json::Value::Number(
+blockchain-core/src/consensus/signature_verification.rs:576:                    serde_json::Number::from_f64(success_rate)
+blockchain-core/src/consensus/signature_verification.rs:577:                        .unwrap_or(serde_json::Number::from(0)),
+blockchain-core/src/consensus/transaction_validation.rs:403:                    Value::Number(transfer_tx.amount.into()),
+blockchain-core/src/consensus/consensus_engine.rs:113:            return Err(e.into());
+blockchain-core/src/consensus/consensus_engine.rs:377:                    Value::Number(key_store.created_at.into()),
+blockchain-core/src/consensus/review_api.rs:54:    pub amount: Option<u64>,

@@ -1,0 +1,374 @@
+blockchain-core/src/consensus/transaction_validation.rs:32:    pub validation_time_ms: u64,
+blockchain-core/src/consensus/transaction_validation.rs:186:        result.validation_time_ms = start_time.elapsed().as_millis() as u64;
+blockchain-core/src/consensus/transaction_validation.rs:328:                // Basic stake validation
+blockchain-core/src/consensus/transaction_validation.rs:343:        result.validation_time_ms = start_time.elapsed().as_millis() as u64;
+blockchain-core/src/consensus/transaction_validation.rs:350:        if tx.amount == 0 {
+blockchain-core/src/consensus/transaction_validation.rs:351:            return Err(anyhow!("Transfer amount cannot be zero"));
+blockchain-core/src/consensus/transaction_validation.rs:402:                    "amount".to_string(),
+blockchain-core/src/consensus/transaction_validation.rs:403:                    Value::Number(transfer_tx.amount.into()),
+blockchain-core/src/genesis.rs:13:    /// Total amount to be vested
+blockchain-core/src/genesis.rs:14:    pub total_amount: Amount,
+blockchain-core/src/genesis.rs:16:    pub cliff_duration: u64,
+blockchain-core/src/genesis.rs:18:    pub vesting_duration: u64,
+blockchain-core/src/genesis.rs:24:    /// Calculate vested amount at given timestamp
+blockchain-core/src/genesis.rs:25:    pub fn vested_amount(&self, current_time: Timestamp) -> Amount {
+blockchain-core/src/genesis.rs:31:            return self.total_amount; // Fully vested
+blockchain-core/src/genesis.rs:39:            return self.total_amount;
+blockchain-core/src/genesis.rs:45:        self.total_amount
+blockchain-core/src/genesis.rs:50:    /// Calculate unvested (locked) amount at given timestamp
+blockchain-core/src/genesis.rs:51:    pub fn locked_amount(&self, current_time: Timestamp) -> Amount {
+blockchain-core/src/genesis.rs:52:        self.total_amount - self.vested_amount(current_time)
+blockchain-core/src/genesis.rs:61:    /// Allocation amount
+blockchain-core/src/genesis.rs:63:    pub amount: Amount,
+blockchain-core/src/genesis.rs:106:    /// Percentage of transaction fees to burn (100% = all fees burned)
+blockchain-core/src/genesis.rs:107:    pub transaction_fee_burn_rate: u8,
+blockchain-core/src/genesis.rs:108:    /// Percentage of AI service fees to burn (50%)
+blockchain-core/src/genesis.rs:109:    pub ai_service_fee_burn_rate: u8,
+blockchain-core/src/genesis.rs:110:    /// Percentage of bridge fees to burn (75%)
+blockchain-core/src/genesis.rs:111:    pub bridge_fee_burn_rate: u8,
+blockchain-core/src/genesis.rs:131:    /// Minimum stake required to become a validator
+blockchain-core/src/genesis.rs:133:    pub minimum_validator_stake: Amount,
+blockchain-core/src/genesis.rs:153:            min_self_stake: self.minimum_validator_stake as u128,
+blockchain-core/src/genesis.rs:209:                amount: 400_000_000_000_000_000, // 400M tokens (assuming 18 decimals)
+blockchain-core/src/genesis.rs:215:                amount: 250_000_000_000_000_000, // 250M tokens
+blockchain-core/src/genesis.rs:217:                    total_amount: 250_000_000_000_000_000,
+blockchain-core/src/genesis.rs:220:                    start_time: genesis_time.timestamp() as u64,
+blockchain-core/src/genesis.rs:226:                amount: 150_000_000_000_000_000, // 150M tokens
+blockchain-core/src/genesis.rs:228:                    total_amount: 150_000_000_000_000_000,
+blockchain-core/src/genesis.rs:231:                    start_time: genesis_time.timestamp() as u64,
+blockchain-core/src/genesis.rs:237:                amount: 100_000_000_000_000_000, // 100M tokens
+blockchain-core/src/genesis.rs:239:                    total_amount: 100_000_000_000_000_000,
+blockchain-core/src/genesis.rs:242:                    start_time: genesis_time.timestamp() as u64,
+blockchain-core/src/genesis.rs:248:                amount: 100_000_000_000_000_000, // 100M tokens
+blockchain-core/src/genesis.rs:250:                    total_amount: 100_000_000_000_000_000,
+blockchain-core/src/genesis.rs:253:                    start_time: genesis_time.timestamp() as u64,
+blockchain-core/src/genesis.rs:272:            transaction_fee_burn_rate: 100, // 100% of transaction fees burned
+blockchain-core/src/genesis.rs:273:            ai_service_fee_burn_rate: 50,   // 50% of AI service fees burned
+blockchain-core/src/genesis.rs:274:            bridge_fee_burn_rate: 75,       // 75% of bridge fees burned
+blockchain-core/src/genesis.rs:281:                stake: 32_000_000_000_000u128, // 32 * 10^12 (represents 32 DGT if 12 decimals)
+blockchain-core/src/genesis.rs:289:                stake: 32_000_000_000_000u128,
+blockchain-core/src/genesis.rs:297:                stake: 32_000_000_000_000u128,
+blockchain-core/src/genesis.rs:315:            minimum_validator_stake: 32_000_000_000_000u128,
+blockchain-core/src/genesis.rs:346:        // Validators must not exceed max and each must meet minimum stake
+blockchain-core/src/genesis.rs:354:            if v.stake < self.staking.minimum_validator_stake {
+blockchain-core/src/genesis.rs:355:                return Err(format!("Validator {} stake below minimum", v.address));
+blockchain-core/src/genesis.rs:365:        let total: Amount = self.dgt_allocations.iter().map(|a| a.amount).sum();
+blockchain-core/src/genesis.rs:375:        self.dgt_allocations.iter().map(|a| a.amount).sum()
+blockchain-core/src/genesis.rs:378:    /// Vested amount for an address at provided time
+blockchain-core/src/genesis.rs:379:    pub fn get_vested_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
+blockchain-core/src/genesis.rs:382:                Some(vesting) => vesting.vested_amount(current_time),
+blockchain-core/src/genesis.rs:383:                None => allocation.amount,
+blockchain-core/src/genesis.rs:390:    /// Locked amount for an address at provided time
+blockchain-core/src/genesis.rs:391:    pub fn get_locked_amount(&self, address: &Address, current_time: Timestamp) -> Amount {
+blockchain-core/src/genesis.rs:394:                Some(vesting) => vesting.locked_amount(current_time),
+blockchain-core/src/genesis.rs:418:    fn test_genesis_amounts_serialize_as_strings() {
+blockchain-core/src/genesis.rs:460:            total_amount: 1000,
+blockchain-core/src/genesis.rs:468:        assert_eq!(vesting.vested_amount(cliff_time), 0);
+blockchain-core/src/genesis.rs:472:        let vested = vesting.vested_amount(mid_vesting_time);
+blockchain-core/src/genesis.rs:477:        assert_eq!(vesting.vested_amount(end_time), 1000);
+blockchain-core/src/genesis.rs:529:            let amount_readable = allocation.amount as f64 / 1e18;
+blockchain-core/src/genesis.rs:537:                        amount_readable / 1e6,
+blockchain-core/src/genesis.rs:538:                        (allocation.amount as f64 / genesis.total_dgt_supply() as f64) * 100.0,
+blockchain-core/src/genesis.rs:547:                        amount_readable / 1e6,
+blockchain-core/src/genesis.rs:548:                        (allocation.amount as f64 / genesis.total_dgt_supply() as f64) * 100.0
+blockchain-core/src/genesis.rs:556:            "   Transaction fees: {}% burned",
+blockchain-core/src/genesis.rs:557:            genesis.burn_rules.transaction_fee_burn_rate
+blockchain-core/src/genesis.rs:560:            "   AI service fees: {}% burned",
+blockchain-core/src/genesis.rs:561:            genesis.burn_rules.ai_service_fee_burn_rate
+blockchain-core/src/genesis.rs:564:            "   Bridge fees: {}% burned",
+blockchain-core/src/genesis.rs:565:            genesis.burn_rules.bridge_fee_burn_rate
+blockchain-core/src/genesis.rs:606:            "   Minimum validator stake: {:.0}M DGT",
+blockchain-core/src/genesis.rs:607:            genesis.staking.minimum_validator_stake as f64 / 1e24
+blockchain-core/src/consensus/mod_clean.rs:29:    pub timestamp: u64,
+blockchain-core/src/consensus/mod_clean.rs:65:    pub max_request_size: u64,
+blockchain-core/src/consensus/mod_clean.rs:66:    pub average_response_time_ms: u64,
+blockchain-core/src/consensus/mod_clean.rs:77:    pub timestamp: u64,
+blockchain-core/src/consensus/mod_clean.rs:86:    pub timeout_seconds: u64,
+blockchain-core/src/consensus/mod_clean.rs:210:    pub fn set_timeout(&mut self, timeout_seconds: u64) {
+blockchain-core/src/consensus/mod_clean.rs:393:            timestamp: chrono::Utc::now().timestamp_millis() as u64,
+blockchain-core/src/consensus/mod_clean.rs:418:            let mut block_number = 0u64;
+blockchain-core/src/consensus/mod_clean.rs:428:                    amount: 100 + (block_number * 10),           // Variable amounts
+blockchain-core/src/consensus/mod_clean.rs:429:                    fee: 1,
+blockchain-core/src/consensus/mod_clean.rs:587:        block_number: u64,
+blockchain-core/src/consensus/mod_clean.rs:759:            Transaction::Stake(stake_tx) => {
+blockchain-core/src/consensus/mod_clean.rs:760:                Self::validate_stake_transaction_basic(runtime, stake_tx).await?
+blockchain-core/src/consensus/mod_clean.rs:885:                "amount": transfer_tx.amount,
+blockchain-core/src/consensus/mod_clean.rs:886:                "fee": transfer_tx.fee,
+blockchain-core/src/consensus/mod_clean.rs:897:                "initial_balance": deploy_tx.constructor_args.len(),
+blockchain-core/src/consensus/mod_clean.rs:898:                "gas_limit": 1000000u64,
+blockchain-core/src/consensus/mod_clean.rs:899:                "fee": deploy_tx.fee,
+blockchain-core/src/consensus/mod_clean.rs:910:                "gas_limit": 1000000u64,
+blockchain-core/src/consensus/mod_clean.rs:911:                "fee": call_tx.fee,
+blockchain-core/src/consensus/mod_clean.rs:916:            Transaction::Stake(stake_tx) => Ok(serde_json::json!({
+blockchain-core/src/consensus/mod_clean.rs:917:                "transaction_type": "stake",
+blockchain-core/src/consensus/mod_clean.rs:918:                "validator": stake_tx.validator,
+blockchain-core/src/consensus/mod_clean.rs:919:                "amount": stake_tx.amount,
+blockchain-core/src/consensus/mod_clean.rs:920:                "action": format!("{:?}", stake_tx.action),
+blockchain-core/src/consensus/mod_clean.rs:921:                "fee": stake_tx.fee,
+blockchain-core/src/consensus/mod_clean.rs:922:                "nonce": stake_tx.nonce,
+blockchain-core/src/consensus/mod_clean.rs:923:                "timestamp": stake_tx.timestamp,
+blockchain-core/src/consensus/mod_clean.rs:924:                "hash": stake_tx.hash
+blockchain-core/src/consensus/mod_clean.rs:931:                "fee": ai_tx.fee,
+blockchain-core/src/consensus/mod_clean.rs:946:        if transfer_tx.amount == 0 {
+blockchain-core/src/consensus/mod_clean.rs:950:        // Check balance for transfers (skip for genesis)
+blockchain-core/src/consensus/mod_clean.rs:952:            let balance = runtime
+blockchain-core/src/consensus/mod_clean.rs:953:                .get_balance(&transfer_tx.from)
+blockchain-core/src/consensus/mod_clean.rs:956:            if balance < transfer_tx.amount {
+blockchain-core/src/consensus/mod_clean.rs:958:                    "Transaction rejected due to insufficient balance: {} < {}",
+blockchain-core/src/consensus/mod_clean.rs:959:                    balance, transfer_tx.amount
+blockchain-core/src/consensus/mod_clean.rs:973:        // Check if deployer has sufficient balance for gas
+blockchain-core/src/consensus/mod_clean.rs:974:        let deployer_balance = runtime
+blockchain-core/src/consensus/mod_clean.rs:975:            .get_balance(&deploy_tx.from)
+blockchain-core/src/consensus/mod_clean.rs:981:        if deployer_balance < gas_cost {
+blockchain-core/src/consensus/mod_clean.rs:1011:        // Check if caller has sufficient balance for gas + value
+blockchain-core/src/consensus/mod_clean.rs:1012:        let caller_balance = runtime
+blockchain-core/src/consensus/mod_clean.rs:1013:            .get_balance(&call_tx.from)
+blockchain-core/src/consensus/mod_clean.rs:1021:        if caller_balance < total_cost {
+blockchain-core/src/consensus/mod_clean.rs:1044:    async fn validate_stake_transaction_basic(
+blockchain-core/src/consensus/mod_clean.rs:1046:        _stake_tx: &crate::types::StakeTransaction,
+blockchain-core/src/consensus/mod_clean.rs:1097:                        let sender_balance =
+blockchain-core/src/consensus/mod_clean.rs:1098:                            runtime.get_balance(&transfer_tx.from).await.unwrap_or(0);
+blockchain-core/src/consensus/mod_clean.rs:1099:                        if sender_balance >= transfer_tx.amount {
+blockchain-core/src/consensus/mod_clean.rs:1101:                                .set_balance(&transfer_tx.from, sender_balance - transfer_tx.amount)
+blockchain-core/src/consensus/mod_clean.rs:1112:                    let recipient_balance = runtime.get_balance(&transfer_tx.to).await.unwrap_or(0);
+blockchain-core/src/consensus/mod_clean.rs:1114:                        .set_balance(&transfer_tx.to, recipient_balance + transfer_tx.amount)
+blockchain-core/src/consensus/mod_clean.rs:1120:                        transfer_tx.from, transfer_tx.to, transfer_tx.amount
+blockchain-core/src/consensus/mod_clean.rs:1187:                Transaction::Stake(stake_tx) => {
+blockchain-core/src/consensus/mod_clean.rs:1189:                    info!("Applied staking transaction: {}", stake_tx.hash);
+blockchain-core/src/consensus/mod_clean.rs:1208:            tx.from, tx.to, tx.amount, tx.fee, tx.nonce, tx.timestamp
+blockchain-core/src/consensus/mod_clean.rs:1229:                            timestamp: chrono::Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/mod_clean.rs:1266:            timestamp: chrono::Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/mod_clean.rs:1285:                    transfer_tx.amount.hash(&mut hasher);
+blockchain-core/src/consensus/mod_clean.rs:1293:                Transaction::Stake(stake_tx) => {
+blockchain-core/src/consensus/mod_clean.rs:1294:                    stake_tx.hash.hash(&mut hasher);
+blockchain-core/src/consensus/mod_clean.rs:1313:            Transaction::Stake(stake_tx) => stake_tx.hash.clone(),
+blockchain-core/src/consensus/mod_clean.rs:1628:                .record_request_metrics(start_time.elapsed().as_millis() as u64, true)
+blockchain-core/src/consensus/mod_clean.rs:1684:                .record_request_metrics(start_time.elapsed().as_millis() as u64, true)
+blockchain-core/src/consensus/mod_clean.rs:1737:                        .record_request_metrics(start_time.elapsed().as_millis() as u64, false)
+blockchain-core/src/consensus/mod_clean.rs:1807:                    .record_request_metrics(start_time.elapsed().as_millis() as u64, true)
+blockchain-core/src/consensus/mod_clean.rs:1824:                    .record_request_metrics(start_time.elapsed().as_millis() as u64, false)
+blockchain-core/src/consensus/performance_test.rs:84:fn create_test_transaction(amount: Amount) -> Transaction {
+blockchain-core/src/consensus/performance_test.rs:89:        amount,
+blockchain-core/src/consensus/performance_test.rs:90:        fee: 10u128,
+blockchain-core/src/consensus/performance_test.rs:92:        timestamp: Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/ai_integration.rs:40:    pub stake: TransactionRiskThresholds,
+blockchain-core/src/consensus/ai_integration.rs:53:    pub amount_review_threshold: Option<u64>,
+blockchain-core/src/consensus/ai_integration.rs:65:            amount_review_threshold: None, // No amount-based review by default
+blockchain-core/src/consensus/ai_integration.rs:78:                amount_review_threshold: Some(1_000_000), // Review large transfers
+blockchain-core/src/consensus/ai_integration.rs:85:                amount_review_threshold: None,
+blockchain-core/src/consensus/ai_integration.rs:92:                amount_review_threshold: Some(500_000),
+blockchain-core/src/consensus/ai_integration.rs:96:            stake: TransactionRiskThresholds {
+blockchain-core/src/consensus/ai_integration.rs:99:                amount_review_threshold: Some(10_000_000), // Review very large stakes
+blockchain-core/src/consensus/ai_integration.rs:124:    pub ai_timeout_ms: u64,
+blockchain-core/src/consensus/ai_integration.rs:128:    pub response_cache_ttl: u64,
+blockchain-core/src/consensus/ai_integration.rs:184:    cached_at: u64,
+blockchain-core/src/consensus/ai_integration.rs:209:    pub total_requests: u64,
+blockchain-core/src/consensus/ai_integration.rs:211:    pub successful_verifications: u64,
+blockchain-core/src/consensus/ai_integration.rs:213:    pub failed_verifications: u64,
+blockchain-core/src/consensus/ai_integration.rs:215:    pub service_unavailable_count: u64,
+blockchain-core/src/consensus/ai_integration.rs:217:    pub cache_hits: u64,
+blockchain-core/src/consensus/ai_integration.rs:219:    pub cache_misses: u64,
+blockchain-core/src/consensus/ai_integration.rs:223:    pub last_updated: u64,
+blockchain-core/src/consensus/ai_integration.rs:236:            last_updated: chrono::Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/ai_integration.rs:282:        stake_amount: u64,
+blockchain-core/src/consensus/ai_integration.rs:284:        self.verifier.register_oracle(oracle_identity, stake_amount)
+blockchain-core/src/consensus/ai_integration.rs:399:        stats.last_updated = chrono::Utc::now().timestamp() as u64;
+blockchain-core/src/consensus/ai_integration.rs:421:            timestamp: chrono::Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/ai_integration.rs:473:        let transaction_amount = transaction_data.get("amount").and_then(|a| a.as_u64());
+blockchain-core/src/consensus/ai_integration.rs:529:                    transaction_amount,
+blockchain-core/src/consensus/ai_integration.rs:595:            cached_at: chrono::Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/ai_integration.rs:605:                chrono::Utc::now().timestamp() as u64 - self.config.response_cache_ttl;
+blockchain-core/src/consensus/ai_integration.rs:686:        let cutoff_time = chrono::Utc::now().timestamp() as u64 - self.config.response_cache_ttl;
+blockchain-core/src/consensus/ai_integration.rs:752:        transaction_amount: Option<u64>,
+blockchain-core/src/consensus/ai_integration.rs:780:        // Check amount-based review requirement
+blockchain-core/src/consensus/ai_integration.rs:781:        if let (Some(amount), Some(threshold)) =
+blockchain-core/src/consensus/ai_integration.rs:782:            (transaction_amount, thresholds.amount_review_threshold)
+blockchain-core/src/consensus/ai_integration.rs:784:            if amount > threshold {
+blockchain-core/src/consensus/ai_integration.rs:786:                    reason: format!("Large transaction amount: {amount} > {threshold}"),
+blockchain-core/src/consensus/ai_integration.rs:817:            "stake" => &self.config.risk_thresholds.stake,
+blockchain-core/src/consensus/ai_integration.rs:833:            "stake" => self.config.risk_thresholds.stake = thresholds,
+blockchain-core/src/storage/mod.rs:19:    pub fee: Amount,
+blockchain-core/src/storage/mod.rs:22:    pub amount: Option<Amount>,
+blockchain-core/src/storage/mod.rs:23:    pub nonce: u64,
+blockchain-core/src/storage/mod.rs:32:    pub balance: Amount,
+blockchain-core/src/storage/mod.rs:42:    pub call_count: u64,
+blockchain-core/src/storage/mod.rs:55:            balance: 0,
+blockchain-core/src/storage/mod.rs:93:    /// Open or create storage at data_dir. If empty, will initialize genesis (balances)
+blockchain-core/src/storage/mod.rs:134:        // Load balances from genesis file if provided
+blockchain-core/src/storage/mod.rs:143:                            if let (Some(addr), Some(amount_val)) = (
+blockchain-core/src/storage/mod.rs:145:                                entry.get("amount"),
+blockchain-core/src/storage/mod.rs:149:                                    let amount: Amount = if let Some(s) = amount_val.as_str() {
+blockchain-core/src/storage/mod.rs:151:                                    } else if let Some(n) = amount_val.as_u64() {
+blockchain-core/src/storage/mod.rs:157:                                        balance: amount,
+blockchain-core/src/storage/mod.rs:169:        self.db.put(META_HEIGHT, 0u64.to_be_bytes())?;
+blockchain-core/src/storage/mod.rs:174:    fn _set_height(&self, h: u64) -> Result<(), Box<dyn std::error::Error>> {
+blockchain-core/src/storage/mod.rs:178:    pub fn get_height(&self) -> Result<u64, Box<dyn std::error::Error>> {
+blockchain-core/src/storage/mod.rs:185:                u64::from_be_bytes(arr)
+blockchain-core/src/storage/mod.rs:207:    fn block_num_key(num: u64) -> String {
+blockchain-core/src/storage/mod.rs:243:    /// External API: Get address balance
+blockchain-core/src/storage/mod.rs:244:    pub async fn get_address_balance(
+blockchain-core/src/storage/mod.rs:248:        Ok(self.get_account_state(address)?.balance)
+blockchain-core/src/storage/mod.rs:250:    /// External API: Set (overwrite) address balance (used only in tests / genesis)
+blockchain-core/src/storage/mod.rs:251:    pub async fn _set_address_balance(
+blockchain-core/src/storage/mod.rs:254:        balance: Amount,
+blockchain-core/src/storage/mod.rs:257:        st.balance = balance;
+blockchain-core/src/storage/mod.rs:264:    ) -> Result<u64, Box<dyn std::error::Error>> {
+blockchain-core/src/storage/mod.rs:268:    /// Apply a transfer inclusion (validates nonce & balances) and mutate state
+blockchain-core/src/storage/mod.rs:278:            .balance
+blockchain-core/src/storage/mod.rs:279:            .checked_sub(tx.amount.checked_add(tx.fee).ok_or("overflow")?)
+blockchain-core/src/storage/mod.rs:280:            .ok_or("insufficient_balance")?;
+blockchain-core/src/storage/mod.rs:281:        sender.balance = total;
+blockchain-core/src/storage/mod.rs:283:        recipient.balance = recipient.balance.saturating_add(tx.amount);
+blockchain-core/src/storage/mod.rs:303:                let (from, to, amount, fee, nonce) = match tx {
+blockchain-core/src/storage/mod.rs:307:                        Some(t.amount),
+blockchain-core/src/storage/mod.rs:308:                        t.fee,
+blockchain-core/src/storage/mod.rs:311:                    _ => (tx.from().clone(), None, None, tx.fee(), tx.nonce()),
+blockchain-core/src/storage/mod.rs:318:                    fee,
+blockchain-core/src/storage/mod.rs:321:                    amount,
+blockchain-core/src/storage/mod.rs:339:        height: u64,
+blockchain-core/src/storage/mod.rs:363:        from: Option<u64>,
+blockchain-core/src/storage/mod.rs:513:    fn _receipt_height_index_key(height: u64, index: u32) -> String {
+blockchain-core/src/storage/mod.rs:523:        height: u64,
+blockchain-core/src/storage/mod.rs:551:            let (h, idx): (u64, u32) = bincode::deserialize(&raw_idx)?;
+blockchain-core/src/storage/mod.rs:572:    number: u64,
+blockchain-core/src/storage/mod.rs:576:    timestamp: u64,
+blockchain-core/src/storage/mod.rs:615:            fee_paid: 1,
+blockchain-core/src/runtime/mod.rs:26:    pub balances: HashMap<String, Balance>,
+blockchain-core/src/runtime/mod.rs:28:    pub nonces: HashMap<String, u64>,
+blockchain-core/src/runtime/mod.rs:30:    pub last_block_number: u64,
+blockchain-core/src/runtime/mod.rs:31:    pub last_block_timestamp: u64,
+blockchain-core/src/runtime/mod.rs:32:    /// DRT token balances (separate from DGT balances)
+blockchain-core/src/runtime/mod.rs:33:    pub drt_balances: HashMap<String, u128>,
+blockchain-core/src/runtime/mod.rs:40:        let mut balances = HashMap::new();
+blockchain-core/src/runtime/mod.rs:41:        balances.insert("dyt1genesis".to_string(), 1_000_000_000_000u128); // 1 trillion tokens
+blockchain-core/src/runtime/mod.rs:44:            balances,
+blockchain-core/src/runtime/mod.rs:50:            drt_balances: HashMap::new(),
+blockchain-core/src/runtime/mod.rs:65:        // Initialize DGT balances from genesis allocations
+blockchain-core/src/runtime/mod.rs:68:                .balances
+blockchain-core/src/runtime/mod.rs:69:                .insert(allocation.address.clone(), allocation.amount);
+blockchain-core/src/runtime/mod.rs:80:            // Self-delegate the validator's initial stake
+blockchain-core/src/runtime/mod.rs:81:            if validator_info.stake > 0 {
+blockchain-core/src/runtime/mod.rs:85:                    validator_info.stake as u128,
+blockchain-core/src/runtime/mod.rs:156:    pub async fn get_balance(&self, address: &str) -> Result<Balance, Box<dyn std::error::Error>> {
+blockchain-core/src/runtime/mod.rs:158:        Ok(state.balances.get(address).copied().unwrap_or(0))
+blockchain-core/src/runtime/mod.rs:161:    pub async fn set_balance(
+blockchain-core/src/runtime/mod.rs:164:        amount: Balance,
+blockchain-core/src/runtime/mod.rs:167:        state.balances.insert(address.to_string(), amount);
+blockchain-core/src/runtime/mod.rs:168:        debug!("Set balance for {address}: {amount}");
+blockchain-core/src/runtime/mod.rs:176:        amount: Balance,
+blockchain-core/src/runtime/mod.rs:180:        let from_balance = state.balances.get(from).copied().unwrap_or(0);
+blockchain-core/src/runtime/mod.rs:181:        if from_balance < amount {
+blockchain-core/src/runtime/mod.rs:182:            return Err("Insufficient balance".into());
+blockchain-core/src/runtime/mod.rs:185:        let to_balance = state.balances.get(to).copied().unwrap_or(0);
+blockchain-core/src/runtime/mod.rs:188:            .balances
+blockchain-core/src/runtime/mod.rs:189:            .insert(from.to_string(), from_balance - amount);
+blockchain-core/src/runtime/mod.rs:190:        state.balances.insert(to.to_string(), to_balance + amount);
+blockchain-core/src/runtime/mod.rs:192:        info!("Transfer: {from} -> {to} amount: {amount}");
+blockchain-core/src/runtime/mod.rs:196:    pub async fn get_nonce(&self, address: &str) -> Result<u64, Box<dyn std::error::Error>> {
+blockchain-core/src/runtime/mod.rs:318:        gas_limit: u64,
+blockchain-core/src/runtime/mod.rs:359:        gas_limit: u64,
+blockchain-core/src/runtime/mod.rs:411:        amount: Amount,
+blockchain-core/src/runtime/mod.rs:413:        // Check if delegator has sufficient DGT balance
+blockchain-core/src/runtime/mod.rs:414:        let dgt_balance = self.get_balance(&delegator).await?;
+blockchain-core/src/runtime/mod.rs:416:        if dgt_balance < amount {
+blockchain-core/src/runtime/mod.rs:422:        // Lock DGT tokens by reducing balance
+blockchain-core/src/runtime/mod.rs:423:        let current_balance = state.balances.get(&delegator).copied().unwrap_or(0);
+blockchain-core/src/runtime/mod.rs:424:        if current_balance < amount {
+blockchain-core/src/runtime/mod.rs:428:            .balances
+blockchain-core/src/runtime/mod.rs:429:            .insert(delegator.clone(), current_balance - amount);
+blockchain-core/src/runtime/mod.rs:432:        state.staking.delegate(delegator, validator, amount)?;
+blockchain-core/src/runtime/mod.rs:434:        debug!("Delegated {amount} uDGT");
+blockchain-core/src/runtime/mod.rs:478:    /// Sync delegation rewards and return current accrued amount
+blockchain-core/src/runtime/mod.rs:518:            let current_drt = state.drt_balances.get(delegator).copied().unwrap_or(0);
+blockchain-core/src/runtime/mod.rs:520:                .drt_balances
+blockchain-core/src/runtime/mod.rs:535:            let current_drt = state.drt_balances.get(delegator).copied().unwrap_or(0);
+blockchain-core/src/runtime/mod.rs:537:                .drt_balances
+blockchain-core/src/runtime/mod.rs:575:    /// Get DRT balance for an address
+blockchain-core/src/runtime/mod.rs:576:    pub async fn get_drt_balance(&self, address: &str) -> u128 {
+blockchain-core/src/runtime/mod.rs:578:        state.drt_balances.get(address).copied().unwrap_or(0)
+blockchain-core/src/runtime/mod.rs:590:        let total_stake = state.staking.total_stake;
+blockchain-core/src/runtime/mod.rs:593:        (total_stake, total_validators, active_validators)
+blockchain-core/src/runtime/mod.rs:597:    pub async fn _apply_staking_emission(&self, amount: u128) -> Result<(), StakingError> {
+blockchain-core/src/runtime/mod.rs:599:        state.staking._apply_external_emission(amount);
+blockchain-core/src/runtime/mod.rs:646:        block_height: u64,
+blockchain-core/src/runtime/mod.rs:652:        let gas_used: u64 = 0; // not mut per clippy warning
+blockchain-core/src/runtime/mod.rs:725:            fee_paid: tx.fee(),
+blockchain-core/src/runtime/mod.rs:726:            timestamp: block_time as u64,
+blockchain-core/src/runtime/mod.rs:739:        block_height: u64,
+blockchain-core/src/runtime/mod.rs:741:    ) -> (Vec<TxReceipt>, u64) {
+blockchain-core/src/runtime/mod.rs:743:        let mut gas_sum = 0u64; // mutable because we accumulate
+blockchain-core/src/consensus/audit_trail.rs:31:    pub block_number: Option<u64>,
+blockchain-core/src/consensus/audit_trail.rs:61:    /// Transaction amount
+blockchain-core/src/consensus/audit_trail.rs:62:    pub amount: Option<Amount>,
+blockchain-core/src/consensus/audit_trail.rs:63:    /// Transaction fee
+blockchain-core/src/consensus/audit_trail.rs:64:    pub fee: Option<Fee>,
+blockchain-core/src/consensus/audit_trail.rs:66:    pub transaction_timestamp: u64,
+blockchain-core/src/consensus/audit_trail.rs:134:    /// Minimum amount threshold
+blockchain-core/src/consensus/audit_trail.rs:135:    pub min_amount: Option<Amount>,
+blockchain-core/src/consensus/audit_trail.rs:136:    /// Maximum amount threshold
+blockchain-core/src/consensus/audit_trail.rs:137:    pub max_amount: Option<Amount>,
+blockchain-core/src/consensus/audit_trail.rs:177:    pub flush_interval_seconds: u64,
+blockchain-core/src/consensus/audit_trail.rs:218:    pub block_number: Option<u64>,
+blockchain-core/src/consensus/audit_trail.rs:400:                if let Some(amount) = entry.transaction_metadata.amount {
+blockchain-core/src/consensus/audit_trail.rs:401:                    total_volume = total_volume.saturating_add(amount);
+blockchain-core/src/consensus/audit_trail.rs:461:                csv_data.extend_from_slice(b"audit_id,transaction_hash,timestamp,oracle_id,risk_score,compliance_status,amount,from_address,to_address\n");
+blockchain-core/src/consensus/audit_trail.rs:480:                        entry.transaction_metadata.amount.unwrap_or(0),
+blockchain-core/src/consensus/audit_trail.rs:580:                amount: Some(tx.amount),
+blockchain-core/src/consensus/audit_trail.rs:581:                fee: Some(tx.fee),
+blockchain-core/src/consensus/audit_trail.rs:589:                amount: None,
+blockchain-core/src/consensus/audit_trail.rs:590:                fee: None,
+blockchain-core/src/consensus/audit_trail.rs:591:                transaction_timestamp: Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/audit_trail.rs:598:                amount: None,
+blockchain-core/src/consensus/audit_trail.rs:599:                fee: None,
+blockchain-core/src/consensus/audit_trail.rs:600:                transaction_timestamp: Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/audit_trail.rs:607:                amount: None,
+blockchain-core/src/consensus/audit_trail.rs:608:                fee: None,
+blockchain-core/src/consensus/audit_trail.rs:609:                transaction_timestamp: Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/audit_trail.rs:616:                amount: None,
+blockchain-core/src/consensus/audit_trail.rs:617:                fee: None,
+blockchain-core/src/consensus/audit_trail.rs:618:                transaction_timestamp: Utc::now().timestamp() as u64,
+blockchain-core/src/consensus/audit_trail.rs:648:                if metadata.amount.unwrap_or(0) > 10_000u128 {
+blockchain-core/src/consensus/audit_trail.rs:709:        if let Some(amount) = entry.transaction_metadata.amount {
+blockchain-core/src/consensus/audit_trail.rs:710:            if let Some(min_amount) = query.min_amount {
+blockchain-core/src/consensus/audit_trail.rs:711:                if amount < min_amount {
+blockchain-core/src/consensus/audit_trail.rs:715:            if let Some(max_amount) = query.max_amount {
+blockchain-core/src/consensus/audit_trail.rs:716:                if amount > max_amount {
+blockchain-core/src/consensus/audit_trail.rs:743:            amount: 1000,
+blockchain-core/src/consensus/audit_trail.rs:744:            fee: 10,
+blockchain-core/src/consensus/audit_trail.rs:845:            min_amount: None,
+blockchain-core/src/consensus/audit_trail.rs:846:            max_amount: None,
+blockchain-core/src/consensus/audit_trail.rs:894:            min_amount: None,
+blockchain-core/src/consensus/audit_trail.rs:895:            max_amount: None,
+blockchain-core/src/consensus/performance_optimizer.rs:30:    pub batch_timeout_ms: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:36:    pub cache_ttl_seconds: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:40:    pub fallback_timeout_threshold: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:46:    pub monitoring_interval_seconds: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:91:    pub access_count: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:113:    pub total_requests: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:115:    pub cache_hits: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:117:    pub cache_misses: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:119:    pub batched_requests: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:125:    pub fallback_activations: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:127:    pub degradation_activations: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:129:    pub timeout_count: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:131:    pub error_count: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:133:    pub current_concurrent_requests: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:135:    pub peak_concurrent_requests: u64,
+blockchain-core/src/consensus/performance_optimizer.rs:177:    response_times: Arc<Mutex<VecDeque<u64>>>,
+blockchain-core/src/consensus/performance_optimizer.rs:212:            let age = (now - entry.cached_at).num_seconds() as u64;
+blockchain-core/src/consensus/performance_optimizer.rs:351:                metrics.batched_requests += batch.transactions.len() as u64;
+blockchain-core/src/consensus/performance_optimizer.rs:508:                > (self.config.max_concurrent_requests as u64 * 8 / 10)
+blockchain-core/src/consensus/performance_optimizer.rs:512:    pub async fn record_request_metrics(&self, response_time_ms: u64, success: bool) {
+blockchain-core/src/consensus/performance_optimizer.rs:535:                    times.iter().sum::<u64>() as f64 / times.len() as f64;
+blockchain-core/src/consensus/performance_optimizer.rs:562:            let age = (now - entry.cached_at).num_seconds() as u64;
+blockchain-core/src/consensus/performance_optimizer.rs:624:                if tx.amount > 1_000_000u128 {
+blockchain-core/src/consensus/performance_optimizer.rs:626:                } else if tx.amount > 100_000u128 {
+blockchain-core/src/consensus/performance_optimizer.rs:635:                if tx.amount > 500_000u128 {
+blockchain-core/src/consensus/performance_optimizer.rs:670:                // High amount transactions are riskier
+blockchain-core/src/consensus/performance_optimizer.rs:671:                if tx.amount > 1_000_000u128 {
+blockchain-core/src/consensus/performance_optimizer.rs:673:                } else if tx.amount > 100_000u128 {
+blockchain-core/src/consensus/performance_optimizer.rs:701:                if tx.amount > 500_000u128 {
+blockchain-core/src/consensus/performance_optimizer.rs:718:    fn create_test_transaction(amount: Amount) -> Transaction {
+blockchain-core/src/consensus/performance_optimizer.rs:723:            amount,
+blockchain-core/src/consensus/performance_optimizer.rs:724:            fee: 10u128,
+blockchain-core/src/consensus/performance_optimizer.rs:726:            timestamp: Utc::now().timestamp() as u64,

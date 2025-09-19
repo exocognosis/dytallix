@@ -5,7 +5,6 @@
 //! for validating AI responses and managing oracle interactions.
 
 use anyhow::Result;
-use chrono;
 use log;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -16,6 +15,8 @@ use crate::consensus::{
     signature_verification::{OracleRegistryEntry, SignatureVerifier, VerificationConfig},
     AIOracleClient, AIResponsePayload, AIServiceConfig, SignedAIOracleResponse,
 };
+// Add Amount & Stake aliases for monetary types
+use crate::types::{Amount, Stake};
 
 /// Risk-based processing decision
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -51,7 +52,8 @@ pub struct TransactionRiskThresholds {
     /// Risk score above this threshold will auto-reject (0.0-1.0)
     pub auto_reject_threshold: f64,
     /// Amount threshold that requires review regardless of risk score
-    pub amount_review_threshold: Option<u64>,
+    #[serde(with = "crate::types::serde_opt_u128_string")]
+    pub amount_review_threshold: Option<Amount>,
     /// Fraud probability threshold for auto-rejection (0.0-1.0)
     pub fraud_reject_threshold: f64,
     /// Minimum confidence required for AI decision (0.0-1.0)
@@ -76,7 +78,7 @@ impl Default for RiskThresholds {
             transfer: TransactionRiskThresholds {
                 auto_approve_threshold: 0.2,
                 auto_reject_threshold: 0.8,
-                amount_review_threshold: Some(1_000_000), // Review large transfers
+                amount_review_threshold: Some(1_000_000u128), // Review large transfers
                 fraud_reject_threshold: 0.6,
                 min_confidence_threshold: 0.7,
             },
@@ -90,14 +92,14 @@ impl Default for RiskThresholds {
             call: TransactionRiskThresholds {
                 auto_approve_threshold: 0.3,
                 auto_reject_threshold: 0.8,
-                amount_review_threshold: Some(500_000),
+                amount_review_threshold: Some(500_000u128),
                 fraud_reject_threshold: 0.7,
                 min_confidence_threshold: 0.6,
             },
             stake: TransactionRiskThresholds {
                 auto_approve_threshold: 0.4, // Staking is generally safer
                 auto_reject_threshold: 0.9,
-                amount_review_threshold: Some(10_000_000), // Review very large stakes
+                amount_review_threshold: Some(10_000_000u128), // Review very large stakes
                 fraud_reject_threshold: 0.8,
                 min_confidence_threshold: 0.5,
             },
@@ -280,7 +282,7 @@ impl AIIntegrationManager {
     pub async fn register_oracle(
         &self,
         oracle_identity: crate::consensus::OracleIdentity,
-        stake_amount: u64,
+        stake_amount: Stake,
     ) -> Result<()> {
         self.verifier.register_oracle(oracle_identity, stake_amount)
     }
@@ -471,7 +473,16 @@ impl AIIntegrationManager {
             .and_then(|t| t.as_str())
             .unwrap_or("unknown")
             .to_string();
-        let transaction_amount = transaction_data.get("amount").and_then(|a| a.as_u64());
+        // Parse amount as string first (preferred), then numeric legacy fallback
+        let transaction_amount: Option<Amount> = transaction_data.get("amount").and_then(|a| {
+            if let Some(s) = a.as_str() {
+                s.parse::<Amount>().ok()
+            } else if let Some(n) = a.as_u64() {
+                Some(n as Amount)
+            } else {
+                None
+            }
+        });
         let transaction_hash = transaction_data
             .get("hash")
             .and_then(|h| h.as_str())
@@ -750,7 +761,7 @@ impl AIIntegrationManager {
         risk_score: f64,
         fraud_probability: f64,
         confidence: f64,
-        transaction_amount: Option<u64>,
+        transaction_amount: Option<Amount>,
     ) -> RiskProcessingDecision {
         if !self.config.enable_risk_based_processing {
             return RiskProcessingDecision::AutoApprove;

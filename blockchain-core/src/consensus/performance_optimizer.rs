@@ -576,12 +576,13 @@ impl PerformanceOptimizer {
     }
 
     /// Acquire request permit (for concurrency limiting)
-    pub async fn acquire_request_permit(&self) -> Result<tokio::sync::SemaphorePermit> {
+    pub async fn acquire_request_permit(&self) -> Result<tokio::sync::OwnedSemaphorePermit> {
         let permit = self
             .request_semaphore
-            .acquire()
+            .clone()
+            .acquire_owned()
             .await
-            .map_err(|e| anyhow!("Failed to acquire request permit: {}", e))?;
+            .map_err(|e| anyhow!("Failed to acquire request permit: {e}"))?;
 
         // Update concurrent request metrics
         {
@@ -620,9 +621,9 @@ impl PerformanceOptimizer {
     fn determine_batch_priority(&self, transaction: &Transaction) -> BatchPriority {
         match transaction {
             Transaction::Transfer(tx) => {
-                if tx.amount > 1000000 {
+                if tx.amount > 1_000_000u128 {
                     BatchPriority::High
-                } else if tx.amount > 100000 {
+                } else if tx.amount > 100_000u128 {
                     BatchPriority::Normal
                 } else {
                     BatchPriority::Low
@@ -631,7 +632,7 @@ impl PerformanceOptimizer {
             Transaction::Deploy(_) => BatchPriority::High,
             Transaction::Call(_) => BatchPriority::Normal,
             Transaction::Stake(tx) => {
-                if tx.amount > 500000 {
+                if tx.amount > 500_000u128 {
                     BatchPriority::Critical
                 } else {
                     BatchPriority::High
@@ -667,9 +668,9 @@ impl PerformanceOptimizer {
                 let mut risk: f64 = 0.0;
 
                 // High amount transactions are riskier
-                if tx.amount > 1000000 {
+                if tx.amount > 1_000_000u128 {
                     risk += 0.3;
-                } else if tx.amount > 100000 {
+                } else if tx.amount > 100_000u128 {
                     risk += 0.1;
                 }
 
@@ -697,7 +698,7 @@ impl PerformanceOptimizer {
         // In production, this would query historical transaction data
         match transaction {
             Transaction::Transfer(tx) => {
-                if tx.amount > 500000 {
+                if tx.amount > 500_000u128 {
                     0.6 // Historical data shows large transfers have higher risk
                 } else {
                     0.2
@@ -711,16 +712,16 @@ impl PerformanceOptimizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{PQCTransactionSignature, TransferTransaction};
+    use crate::types::{Amount, PQCTransactionSignature, TransferTransaction};
     use dytallix_pqc::{Signature, SignatureAlgorithm};
 
-    fn create_test_transaction(amount: u64) -> Transaction {
+    fn create_test_transaction(amount: Amount) -> Transaction {
         Transaction::Transfer(TransferTransaction {
             hash: "test_tx".to_string(),
             from: "sender".to_string(),
             to: "recipient".to_string(),
             amount,
-            fee: 10,
+            fee: 10u128,
             nonce: 1,
             timestamp: Utc::now().timestamp() as u64,
             signature: PQCTransactionSignature {
@@ -831,8 +832,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_concurrency_limiting() {
-        let mut config = PerformanceConfig::default();
-        config.max_concurrent_requests = 2;
+        let config = PerformanceConfig {
+            max_concurrent_requests: 2,
+            ..PerformanceConfig::default()
+        };
         let optimizer = PerformanceOptimizer::new(config);
 
         // Acquire permits

@@ -3,9 +3,7 @@
 //! This module contains all type definitions related to AI service communication,
 //! requests, responses, and related data structures.
 
-use chrono;
 use serde::{Deserialize, Serialize};
-use uuid;
 
 /// Service types for AI Oracle requests
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
