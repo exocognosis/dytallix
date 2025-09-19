@@ -24,9 +24,7 @@ use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SignedMessage};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PQCAlgorithm {
     Dilithium5,
-    #[cfg(feature = "falcon")]
     Falcon1024,
-    #[cfg(feature = "sphincs")]
     SphincsPlus,
 }
 
@@ -35,9 +33,7 @@ impl PQCAlgorithm {
     pub fn as_str(&self) -> &'static str {
         match self {
             PQCAlgorithm::Dilithium5 => "dilithium5",
-            #[cfg(feature = "falcon")]
             PQCAlgorithm::Falcon1024 => "falcon1024",
-            #[cfg(feature = "sphincs")]
             PQCAlgorithm::SphincsPlus => "sphincs_sha2_128s_simple",
         }
     }
@@ -46,9 +42,7 @@ impl PQCAlgorithm {
     pub fn from_str(s: &str) -> Result<Self, PQCVerifyError> {
         match s {
             "dilithium5" => Ok(PQCAlgorithm::Dilithium5),
-            #[cfg(feature = "falcon")]
             "falcon1024" => Ok(PQCAlgorithm::Falcon1024),
-            #[cfg(feature = "sphincs")]
             "sphincs_sha2_128s_simple" => Ok(PQCAlgorithm::SphincsPlus),
             _ => Err(PQCVerifyError::UnsupportedAlgorithm(s.to_string())),
         }
@@ -117,29 +111,35 @@ pub fn verify(pubkey: &[u8], msg: &[u8], sig: &[u8], alg: PQCAlgorithm) -> Resul
     }
 
     #[cfg(feature = "pqc-real")]
-    match alg {
-        PQCAlgorithm::Dilithium5 => {
-            verify_dilithium5(pubkey, msg, sig)
-        }
-        #[cfg(feature = "falcon")]
-        PQCAlgorithm::Falcon1024 => {
-            verify_falcon1024(pubkey, msg, sig)
-        }
-        #[cfg(feature = "sphincs")]
-        PQCAlgorithm::SphincsPlus => {
-            verify_sphincs_plus(pubkey, msg, sig)
-        }
-        #[cfg(not(feature = "falcon"))]
-        PQCAlgorithm::Falcon1024 => {
-            Err(PQCVerifyError::FeatureNotCompiled {
-                feature: "falcon".to_string(),
-            })
-        }
-        #[cfg(not(feature = "sphincs"))]
-        PQCAlgorithm::SphincsPlus => {
-            Err(PQCVerifyError::FeatureNotCompiled {
-                feature: "sphincs".to_string(),
-            })
+    {
+        match alg {
+            PQCAlgorithm::Dilithium5 => {
+                verify_dilithium5(pubkey, msg, sig)
+            }
+            PQCAlgorithm::Falcon1024 => {
+                #[cfg(feature = "falcon")]
+                {
+                    verify_falcon1024(pubkey, msg, sig)
+                }
+                #[cfg(not(feature = "falcon"))]
+                {
+                    Err(PQCVerifyError::FeatureNotCompiled {
+                        feature: "falcon".to_string(),
+                    })
+                }
+            }
+            PQCAlgorithm::SphincsPlus => {
+                #[cfg(feature = "sphincs")]
+                {
+                    verify_sphincs_plus(pubkey, msg, sig)
+                }
+                #[cfg(not(feature = "sphincs"))]
+                {
+                    Err(PQCVerifyError::FeatureNotCompiled {
+                        feature: "sphincs".to_string(),
+                    })
+                }
+            }
         }
     }
 }
@@ -268,24 +268,15 @@ mod tests {
     #[test]
     fn test_algorithm_parsing() {
         assert_eq!(PQCAlgorithm::from_str("dilithium5").unwrap(), PQCAlgorithm::Dilithium5);
-        
-        #[cfg(feature = "falcon")]
         assert_eq!(PQCAlgorithm::from_str("falcon1024").unwrap(), PQCAlgorithm::Falcon1024);
-        
-        #[cfg(feature = "sphincs")]
         assert_eq!(PQCAlgorithm::from_str("sphincs_sha2_128s_simple").unwrap(), PQCAlgorithm::SphincsPlus);
-        
         assert!(PQCAlgorithm::from_str("unknown").is_err());
     }
 
     #[test]
     fn test_algorithm_strings() {
         assert_eq!(PQCAlgorithm::Dilithium5.as_str(), "dilithium5");
-        
-        #[cfg(feature = "falcon")]
         assert_eq!(PQCAlgorithm::Falcon1024.as_str(), "falcon1024");
-        
-        #[cfg(feature = "sphincs")]
         assert_eq!(PQCAlgorithm::SphincsPlus.as_str(), "sphincs_sha2_128s_simple");
     }
 
@@ -311,11 +302,40 @@ mod tests {
         #[cfg(not(feature = "pqc-real"))]
         assert!(verify_default(&[1], &[2], &[3])); // Mock should succeed
     }
+
+    #[cfg(not(feature = "falcon"))]
+    #[test]
+    fn test_feature_not_compiled_falcon() {
+        let result = verify(
+            b"pubkey",
+            b"message",
+            b"signature",
+            PQCAlgorithm::Falcon1024,
+        );
+
+        match result {
+            Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
+                assert_eq!(feature, "falcon");
+            }
+            _ => panic!("Expected FeatureNotCompiled error"),
+        }
+    }
+
+    #[cfg(not(feature = "sphincs"))]
+    #[test]
+    fn test_feature_not_compiled_sphincs() {
+        let result = verify(
+            b"pubkey",
+            b"message",
+            b"signature",
+            PQCAlgorithm::SphincsPlus,
+        );
+
+        match result {
+            Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
+                assert_eq!(feature, "sphincs");
+            }
+            _ => panic!("Expected FeatureNotCompiled error"),
+        }
+    }
 }
-
-// Include comprehensive tests when testing
-#[cfg(test)]
-mod comprehensive_tests;
-
-#[cfg(test)]
-use comprehensive_tests as _;
