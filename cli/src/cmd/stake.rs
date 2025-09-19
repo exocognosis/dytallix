@@ -76,6 +76,11 @@ pub enum StakeAction {
         #[arg(long)]
         address: String,
     },
+    /// Show staking balance (staked, liquid, rewards) for a delegator
+    Balance {
+        #[arg(long)]
+        delegator: String,
+    },
     /// Show staking statistics
     Stats,
 }
@@ -131,6 +136,7 @@ pub async fn run(rpc_url: &str, fmt: OutputFormat, cmd: StakeCmd) -> Result<()> 
             show_comprehensive_rewards(&client, output_fmt, delegator).await
         }
         StakeAction::ShowRewards { address } => show_rewards(&client, fmt, address).await,
+        StakeAction::Balance { delegator } => show_balance(&client, fmt, delegator).await,
         StakeAction::Stats => show_stats(&client, fmt).await,
     }
 }
@@ -221,20 +227,18 @@ async fn delegate(
     validator: String,
     amount: u128,
 ) -> Result<()> {
-    let result = client
-        .call(
-            "staking_delegate",
-            &[json!(from), json!(validator), json!(amount)],
-        )
-        .await;
+    let payload = json!({
+        "delegator_addr": from,
+        "validator_addr": validator,
+        "amount_udgt": amount.to_string()
+    });
+
+    let result = client.post("/api/staking/delegate", &payload).await;
 
     match result {
-        Ok(_) => {
+        Ok(response) => {
             if fmt.is_json() {
-                println!(
-                    "{}",
-                    json!({"status": "success", "delegator": from, "validator": validator, "amount": amount})
-                );
+                println!("{response}");
             } else {
                 println!("✓ Delegated {amount} uDGT from {from} to {validator}");
             }
@@ -468,15 +472,17 @@ async fn show_rewards(client: &RpcClient, fmt: OutputFormat, address: String) ->
 
 /// Claim rewards from all validators for a delegator
 async fn claim_all_rewards(client: &RpcClient, fmt: OutputFormat, delegator: String) -> Result<()> {
-    let result = client
-        .call("staking_claim_all_rewards", &[json!(delegator)])
-        .await;
+    let payload = json!({
+        "address": delegator
+    });
+
+    let result = client.post("/api/staking/claim", &payload).await;
 
     match result {
         Ok(response) => {
             if fmt.is_json() {
                 println!("{response}");
-            } else if let Some(amount) = response.get("total_claimed").and_then(|v| v.as_str()) {
+            } else if let Some(amount) = response.get("claimed").and_then(|v| v.as_str()) {
                 println!("✓ Claimed {amount} uDRT total rewards for {delegator}");
             } else {
                 println!("✓ All rewards claimed: {response}");
@@ -590,6 +596,42 @@ async fn show_comprehensive_rewards(
                 );
             } else {
                 println!("✗ Failed to get reward information: {e}");
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Show staking balance (staked, liquid, rewards) for a delegator
+async fn show_balance(client: &RpcClient, fmt: OutputFormat, delegator: String) -> Result<()> {
+    let result = client.get(&format!("/api/staking/balance/{delegator}")).await;
+
+    match result {
+        Ok(response) => {
+            if fmt.is_json() {
+                println!("{response}");
+            } else if let (Some(staked), Some(liquid), Some(rewards)) = (
+                response.get("staked").and_then(|v| v.as_str()),
+                response.get("liquid").and_then(|v| v.as_str()),
+                response.get("rewards").and_then(|v| v.as_str()),
+            ) {
+                println!("Balance for {delegator}:");
+                println!("  Staked: {staked} uDGT");
+                println!("  Liquid: {liquid} uDGT");
+                println!("  Rewards: {rewards} uDRT");
+            } else {
+                println!("Balance: {response}");
+            }
+        }
+        Err(e) => {
+            if fmt.is_json() {
+                println!(
+                    "{}",
+                    json!({"status": "error", "message": format!("Failed to get balance: {}", e)})
+                );
+            } else {
+                println!("✗ Failed to get balance: {e}");
             }
         }
     }

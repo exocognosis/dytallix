@@ -438,9 +438,15 @@ async fn main() -> anyhow::Result<()> {
     // Staking routes (always exposed; tx endpoints return 501 if disabled)
     app = app
         .route("/api/staking/claim", post(rpc::staking_claim))
+        .route("/api/staking/delegate", post(rpc::staking_delegate))
+        .route("/api/staking/undelegate", post(rpc::staking_undelegate))
         .route(
             "/api/staking/accrued/:address",
             get(rpc::staking_get_accrued),
+        )
+        .route(
+            "/api/staking/balance/:delegator",
+            get(rpc::staking_get_balance),
         );
 
     app = app.layer(Extension(ctx));

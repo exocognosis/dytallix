@@ -1104,6 +1104,32 @@ pub async fn staking_get_accrued(
     })))
 }
 
+/// GET /api/staking/balance/:delegator - Get staking balance for a delegator
+pub async fn staking_get_balance(
+    Extension(ctx): Extension<RpcContext>,
+    Path(delegator): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let (staked, rewards) = if ctx.features.staking {
+        let staking = ctx.staking.lock().unwrap();
+        (staking.get_total_stake(&delegator), staking.get_accrued_rewards(&delegator))
+    } else {
+        (0, 0)
+    };
+    
+    let liquid = if let Ok(state) = ctx.state.lock() {
+        state.get_balance(&delegator, "udgt")
+    } else {
+        0
+    };
+
+    Ok(Json(json!({
+        "delegator": delegator,
+        "staked": staked.to_string(),
+        "liquid": liquid.to_string(),
+        "rewards": rewards.to_string()
+    })))
+}
+
 /// POST /api/staking/delegate - Delegate tokens to a validator
 pub async fn staking_delegate(
     Json(payload): Json<serde_json::Value>,
