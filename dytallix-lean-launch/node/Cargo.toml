@@ -30,6 +30,8 @@ base64 = "0.22"
 ed25519-dalek = { version = "1", features = ["std"] }
 # PQC real
 pqcrypto-dilithium = { version = "0.5.0", optional = true }
+pqcrypto-falcon = { version = "0.3.0", optional = true }
+pqcrypto-sphincsplus = { version = "0.7.0", optional = true }
 pqcrypto-traits = { version = "0.3.5", optional = true }
 sha3 = "0.10"
 # Observability
@@ -60,6 +62,8 @@ rand = "0.7"
 default = ["pqc-real", "metrics", "oracle"]
 # Existing features
 pqc-real = ["pqcrypto-dilithium", "pqcrypto-traits"]
+falcon = ["pqcrypto-falcon", "pqc-real"]
+sphincs = ["pqcrypto-sphincsplus", "pqc-real"]
 pqc-mock = []
 legacy-submit = [] # Dev-only legacy submit logic (OFF by default)
 metrics = ["prometheus", "clap"] # Observability features

@@ -16,5 +16,9 @@ mod mock;
 #[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
 pub use mock::MockPQC as ActivePQC;
 
+// New multi-algorithm PQC verification module
+pub mod pqc_verify;
+pub use pqc_verify::{verify, verify_default, PQCAlgorithm, PQCVerifyError};
+
 mod hash;
 pub use hash::{canonical_json, sha3_256};
