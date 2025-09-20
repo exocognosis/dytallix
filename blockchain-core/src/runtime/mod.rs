@@ -23,10 +23,10 @@ pub mod oracle;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RuntimeState {
-    pub balances: HashMap<String, u64>,
+    pub balances: HashMap<String, u128>,
     pub contracts: HashMap<String, Vec<u8>>, // Will be deprecated in favor of contract runtime
     pub nonces: HashMap<String, u64>,
-    pub total_supply: u64,
+    pub total_supply: u128,
     pub last_block_number: u64,
     pub last_block_timestamp: u64,
     /// DRT token balances (separate from DGT balances)
@@ -38,13 +38,13 @@ pub struct RuntimeState {
 impl Default for RuntimeState {
     fn default() -> Self {
         let mut balances = HashMap::new();
-        balances.insert("dyt1genesis".to_string(), 1_000_000_000_000); // 1 trillion tokens
+        balances.insert("dyt1genesis".to_string(), 1_000_000_000_000u128); // 1 trillion tokens
 
         Self {
             balances,
             contracts: HashMap::new(),
             nonces: HashMap::new(),
-            total_supply: 1_000_000_000_000,
+            total_supply: 1_000_000_000_000u128,
             last_block_number: 0,
             last_block_timestamp: 0,
             drt_balances: HashMap::new(),
@@ -153,7 +153,7 @@ impl DytallixRuntime {
         Self::new_with_genesis_inner(storage, genesis, wasm_engine, pqc_manager)
     }
 
-    pub async fn get_balance(&self, address: &str) -> Result<u64, Box<dyn std::error::Error>> {
+    pub async fn get_balance(&self, address: &str) -> Result<u128, Box<dyn std::error::Error>> {
         let state = self.state.read().await;
         Ok(state.balances.get(address).copied().unwrap_or(0))
     }
@@ -161,7 +161,7 @@ impl DytallixRuntime {
     pub async fn set_balance(
         &self,
         address: &str,
-        amount: u64,
+        amount: u128,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut state = self.state.write().await;
         state.balances.insert(address.to_string(), amount);
@@ -173,7 +173,7 @@ impl DytallixRuntime {
         &self,
         from: &str,
         to: &str,
-        amount: u64,
+        amount: u128,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut state = self.state.write().await;
 
@@ -313,7 +313,7 @@ impl DytallixRuntime {
         method: &str,
         input_data: &[u8],
         gas_limit: u64,
-        value: u64,
+        value: u128,
     ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
         debug!("Calling contract method {method} at {address} from {caller}");
 
@@ -323,7 +323,7 @@ impl DytallixRuntime {
             method: method.to_string(),
             input_data: input_data.to_vec(),
             gas_limit,
-            value: value.into(),
+            value,
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()

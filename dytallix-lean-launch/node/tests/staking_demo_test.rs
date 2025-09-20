@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("1. Testing initial balance endpoint");
     let balance_url = format!("{}/api/staking/balance/{}", base_url, delegator);
     let response = client.get(&balance_url).send().await?;
-    
+
     if response.status().is_success() {
         let balance: serde_json::Value = response.json().await?;
         println!("   ✓ Initial balance: {}", balance);
@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n2. Testing accrued rewards endpoint");
     let accrued_url = format!("{}/api/staking/accrued/{}", base_url, delegator);
     let response = client.get(&accrued_url).send().await?;
-    
+
     if response.status().is_success() {
         let accrued: serde_json::Value = response.json().await?;
         println!("   ✓ Initial accrued rewards: {}", accrued);
@@ -49,7 +49,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let delegate_url = format!("{}/api/staking/delegate", base_url);
-    let response = client.post(&delegate_url)
+    let response = client
+        .post(&delegate_url)
         .json(&delegate_payload)
         .send()
         .await?;
@@ -74,10 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let claim_url = format!("{}/api/staking/claim", base_url);
-    let response = client.post(&claim_url)
-        .json(&claim_payload)
-        .send()
-        .await?;
+    let response = client.post(&claim_url).json(&claim_payload).send().await?;
 
     match response.status() {
         reqwest::StatusCode::OK => {
@@ -96,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n5. Testing stats endpoint");
     let stats_url = format!("{}/api/stats", base_url);
     let response = client.get(&stats_url).send().await?;
-    
+
     if response.status().is_success() {
         let stats: serde_json::Value = response.json().await?;
         if let Some(staking) = stats.get("staking") {
@@ -113,10 +111,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   - Delegate endpoint: Implemented (needs DYT_ENABLE_STAKING=true)");
     println!("   - Claim endpoint: Implemented (needs DYT_ENABLE_STAKING=true)");
     println!("   - Stats endpoint: Shows staking data");
-    
+
     println!("\n💡 To enable staking demo:");
     println!("   export DYT_ENABLE_STAKING=true");
     println!("   ./dytallix-lean-launch/node/target/debug/dytallix-lean-node");
-    
+
     Ok(())
 }

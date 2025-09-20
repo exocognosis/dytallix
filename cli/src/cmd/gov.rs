@@ -24,7 +24,7 @@ pub enum GovAction {
         #[arg(long, name = "value")]
         param_value: String,
         #[arg(long)]
-        deposit: Option<u64>,
+        deposit: Option<u128>,
         #[arg(long)]
         from: String,
     },
@@ -34,7 +34,7 @@ pub enum GovAction {
         #[arg(long)]
         proposal: u64,
         #[arg(long)]
-        amount: u64,
+        amount: u128,
     },
     Vote {
         #[arg(long)]

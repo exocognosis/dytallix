@@ -1,4 +1,6 @@
-use crate::crypto::{canonical_json, sha3_256, verify, PQCAlgorithm, PQCVerifyError, ActivePQC, PQC};
+use crate::crypto::{
+    canonical_json, sha3_256, verify, ActivePQC, PQCAlgorithm, PQCVerifyError, PQC,
+};
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use serde::{Deserialize, Serialize};
@@ -160,7 +162,7 @@ impl SignedTx {
         // Parse the algorithm from the string
         let algorithm = PQCAlgorithm::from_str(&self.algorithm)
             .map_err(|e| anyhow!("invalid algorithm '{}': {}", self.algorithm, e))?;
-            
+
         if self.version != 1 {
             return Err(anyhow!(
                 "unsupported version: expected 1, got {}",
@@ -179,7 +181,7 @@ impl SignedTx {
         // Use the new multi-algorithm verification
         verify(&pk, &hash, &sig, algorithm)
             .map_err(|e| anyhow!("signature verification failed: {}", e))?;
-            
+
         Ok(())
     }
 

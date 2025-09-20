@@ -23,6 +23,15 @@ pub type BlockNumber = u64;
 /// Amount in smallest unit (like satoshis)
 pub type Amount = u128; // Using u128 for monetary quantities; serialized as string for JSON
 
+/// Transaction fee in smallest unit
+pub type Fee = u128; // Using u128 for monetary quantities; serialized as string for JSON
+
+/// Account balance in smallest unit
+pub type Balance = u128; // Using u128 for monetary quantities; serialized as string for JSON
+
+/// Staking amount in smallest unit  
+pub type Stake = u128; // Using u128 for monetary quantities; serialized as string for JSON
+
 /// Unix timestamp (seconds since epoch)
 pub type Timestamp = u64;
 
@@ -36,6 +45,50 @@ pub mod serde_u128_string {
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u128, D::Error> {
         let s = String::deserialize(d)?;
         s.parse::<u128>().map_err(D::Error::custom)
+    }
+}
+
+// Serde helper for accepting both number and string input (for API compatibility)
+pub mod serde_string_or_number {
+    use serde::{de, Deserialize, Deserializer, Serializer};
+    use std::fmt;
+
+    pub fn serialize<S: Serializer>(v: &u128, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&v.to_string())
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u128, D::Error> {
+        struct U128Visitor;
+
+        impl<'de> de::Visitor<'de> for U128Visitor {
+            type Value = u128;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string or number representing u128")
+            }
+
+            fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
+                v.parse::<u128>().map_err(de::Error::custom)
+            }
+
+            fn visit_u64<E: de::Error>(self, v: u64) -> Result<Self::Value, E> {
+                Ok(v as u128)
+            }
+
+            fn visit_u128<E: de::Error>(self, v: u128) -> Result<Self::Value, E> {
+                Ok(v)
+            }
+
+            fn visit_i64<E: de::Error>(self, v: i64) -> Result<Self::Value, E> {
+                if v >= 0 {
+                    Ok(v as u128)
+                } else {
+                    Err(de::Error::custom("negative numbers not allowed"))
+                }
+            }
+        }
+
+        d.deserialize_any(U128Visitor)
     }
 }
 
@@ -121,7 +174,7 @@ pub struct TransferTransaction {
 
     /// Transaction fee
     #[serde(with = "serde_u128_string")]
-    pub fee: Amount,
+    pub fee: Fee,
 
     /// Transaction nonce (to prevent replay attacks)
     pub nonce: u64,
@@ -146,7 +199,7 @@ pub struct DeployTransaction {
     pub gas_limit: u64,
     pub gas_price: u64,
     #[serde(with = "serde_u128_string")]
-    pub fee: Amount,
+    pub fee: Fee,
     pub nonce: u64,
     pub timestamp: Timestamp,
     pub signature: PQCTransactionSignature,
@@ -189,7 +242,7 @@ pub struct CallTransaction {
     pub gas_limit: u64,
     pub gas_price: u64,
     #[serde(with = "serde_u128_string")]
-    pub fee: Amount,
+    pub fee: Fee,
     pub nonce: u64,
     pub timestamp: Timestamp,
     pub signature: PQCTransactionSignature,
@@ -227,10 +280,10 @@ pub struct StakeTransaction {
     pub hash: TxHash,
     pub validator: Address,
     #[serde(with = "serde_u128_string")]
-    pub amount: Amount,
+    pub amount: Stake,
     pub action: StakeAction,
     #[serde(with = "serde_u128_string")]
-    pub fee: Amount,
+    pub fee: Fee,
     pub nonce: u64,
     pub timestamp: Timestamp,
     pub signature: PQCTransactionSignature,
@@ -273,7 +326,7 @@ pub struct AIRequestTransaction {
     pub ai_risk_score: Option<f64>, // Added for risk scoring
     pub ai_response: Option<serde_json::Value>, // Added for AI response storage
     #[serde(with = "serde_u128_string")]
-    pub fee: Amount,
+    pub fee: Fee,
     pub nonce: u64,
     pub timestamp: Timestamp,
     pub signature: PQCTransactionSignature,
@@ -391,7 +444,7 @@ pub struct PQCTransactionSignature {
 pub struct AccountState {
     /// Account balance
     #[serde(with = "serde_u128_string")]
-    pub balance: Amount,
+    pub balance: Balance,
 
     /// Transaction nonce
     pub nonce: u64,
@@ -417,7 +470,7 @@ pub struct ValidatorInfo {
 
     /// Staked amount
     #[serde(with = "serde_u128_string")]
-    pub stake: Amount,
+    pub stake: Stake,
 
     /// Public key for block signing
     pub public_key: Vec<u8>,
@@ -748,7 +801,7 @@ impl Transaction {
     }
 
     /// Get the transaction fee
-    pub fn fee(&self) -> Amount {
+    pub fn fee(&self) -> Fee {
         match self {
             Transaction::Transfer(tx) => tx.fee,
             Transaction::Deploy(tx) => tx.fee,
@@ -812,7 +865,7 @@ impl Transaction {
 
 impl TransferTransaction {
     /// Create a new transfer transaction
-    pub fn new(from: Address, to: Address, amount: Amount, fee: Amount, nonce: u64) -> Self {
+    pub fn new(from: Address, to: Address, amount: Amount, fee: Fee, nonce: u64) -> Self {
         let timestamp = chrono::Utc::now().timestamp() as u64;
 
         // Create transaction without signature first

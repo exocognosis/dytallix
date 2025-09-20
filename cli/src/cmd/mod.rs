@@ -4,6 +4,6 @@ pub mod keys;
 pub mod oracle;
 pub mod pqc;
 pub mod query;
+pub mod secrets;
 pub mod stake;
 pub mod tx;
-pub mod secrets;

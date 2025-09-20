@@ -35,8 +35,10 @@ struct BlockInfo {
 struct TransferRequest {
     from: String,
     to: String,
-    amount: u64,
-    fee: Option<u64>,
+    #[serde(with = "crate::types::serde_string_or_number")]
+    amount: u128,
+    #[serde(with = "crate::types::serde_string_or_number")]
+    fee: Option<u128>,
     nonce: Option<u64>,
     signature: Option<TransferSignature>,
 }
@@ -141,8 +143,8 @@ struct TransactionDetails {
     hash: String,
     from: String,
     to: String,
-    amount: u64,
-    fee: u64,
+    amount: u128,
+    fee: u128,
     nonce: u64,
     status: String,
     block_number: Option<u64>,
@@ -232,7 +234,7 @@ impl<T> ApiResponse<T> {
 
 // Address validation regex (dyt1 + 10+ lowercase alphanumerics)
 static ADDRESS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^dyt1[0-9a-z]{10,}$").unwrap());
-const MIN_FEE: u64 = 1;
+const MIN_FEE: u128 = 1;
 const MAX_TX_BODY: usize = 8192;
 
 fn runtime_mocks() -> bool {

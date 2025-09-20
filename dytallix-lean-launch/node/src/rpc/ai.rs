@@ -3,8 +3,8 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use crate::rpc::errors::ApiError;
 use crate::crypto::PQC;
+use crate::rpc::errors::ApiError;
 use crate::rpc::RpcContext;
 use crate::runtime::oracle::{apply_oracle_risk, current_timestamp};
 use crate::storage::oracle::OracleStore;
@@ -12,7 +12,8 @@ use std::collections::VecDeque;
 use std::sync::Mutex;
 
 // Simple in-memory latency window for UI badge
-static LAT_WIN: once_cell::sync::Lazy<Mutex<VecDeque<u64>>> = once_cell::sync::Lazy::new(|| Mutex::new(VecDeque::with_capacity(1024)));
+static LAT_WIN: once_cell::sync::Lazy<Mutex<VecDeque<u64>>> =
+    once_cell::sync::Lazy::new(|| Mutex::new(VecDeque::with_capacity(1024)));
 
 // Request/response models matching the Python service
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -66,7 +67,10 @@ pub async fn ai_score(
     Json(inp): Json<AiScoreReq>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let t_start = std::time::Instant::now();
-    let model_id = inp.model_id.clone().unwrap_or_else(|| "risk-v1".to_string());
+    let model_id = inp
+        .model_id
+        .clone()
+        .unwrap_or_else(|| "risk-v1".to_string());
 
     // Prepare client-signed request context (PQC)
     let ts = current_timestamp();
@@ -74,7 +78,8 @@ pub async fn ai_score(
     let (client_sig_b64, client_pk_b64) = sign_client_request(&payload);
 
     // Call external AI service with robust client: timeout=800ms, retries=1 with jitter
-    let ai_url = std::env::var("AI_RISK_URL").unwrap_or_else(|_| "http://127.0.0.1:7000".to_string());
+    let ai_url =
+        std::env::var("AI_RISK_URL").unwrap_or_else(|_| "http://127.0.0.1:7000".to_string());
     let url = format!("{}/score", ai_url.trim_end_matches('/'));
     let client = reqwest::Client::builder()
         .timeout(Duration::from_millis(800))
@@ -105,12 +110,10 @@ pub async fn ai_score(
             .send()
             .await;
         match res {
-            Ok(r) if r.status().is_success() => {
-                match r.json::<AiScoreResp>().await {
-                    Ok(parsed) => break parsed,
-                    Err(_e) => {}
-                }
-            }
+            Ok(r) if r.status().is_success() => match r.json::<AiScoreResp>().await {
+                Ok(parsed) => break parsed,
+                Err(_e) => {}
+            },
             Ok(r) => {
                 let _ = r.status();
             }
@@ -140,7 +143,9 @@ pub async fn ai_score(
     }
 
     // Persist into oracle store
-    let store = OracleStore { db: &ctx.storage.db };
+    let store = OracleStore {
+        db: &ctx.storage.db,
+    };
     let ingested_at = current_timestamp();
     let source = std::env::var("DLX_ORACLE_MODEL_ID").unwrap_or_else(|_| model_id.clone());
     let score_str = resp.score.to_string();
@@ -159,7 +164,9 @@ pub async fn ai_score(
     let ms = t_start.elapsed().as_millis();
     let mut w = LAT_WIN.lock().unwrap();
     let ms_u64 = (ms as u64).min(60_000);
-    if w.len() >= 1000 { w.pop_front(); }
+    if w.len() >= 1000 {
+        w.pop_front();
+    }
     w.push_back(ms_u64);
 
     Ok(Json(serde_json::json!({
@@ -177,7 +184,9 @@ pub async fn ai_risk_get(
     Extension(ctx): Extension<RpcContext>,
     Path(hash): Path<String>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let store = OracleStore { db: &ctx.storage.db };
+    let store = OracleStore {
+        db: &ctx.storage.db,
+    };
     if let Some(rec) = store.get_ai_risk(&hash) {
         return Ok(Json(serde_json::json!({
             "tx_hash": rec.tx_hash,
@@ -197,7 +206,9 @@ pub async fn ai_latency() -> Result<Json<serde_json::Value>, ApiError> {
     let w = LAT_WIN.lock().unwrap();
     let mut xs: Vec<u64> = w.iter().copied().collect();
     if xs.is_empty() {
-        return Ok(Json(serde_json::json!({"avg_ms": null, "p95_ms": null, "samples": 0})));
+        return Ok(Json(
+            serde_json::json!({"avg_ms": null, "p95_ms": null, "samples": 0}),
+        ));
     }
     xs.sort_unstable();
     let n = xs.len();
@@ -205,5 +216,7 @@ pub async fn ai_latency() -> Result<Json<serde_json::Value>, ApiError> {
     let avg = (sum as f64) / (n as f64);
     let idx = ((n as f64 - 1.0) * 0.95).round() as usize;
     let p95 = xs[idx];
-    Ok(Json(serde_json::json!({"avg_ms": avg, "p95_ms": p95, "samples": n})))
+    Ok(Json(
+        serde_json::json!({"avg_ms": avg, "p95_ms": p95, "samples": n}),
+    ))
 }

@@ -526,9 +526,20 @@ impl ContractArgs {
                 });
                 let response = rpc_client.post("/contracts/deploy", &request).await?;
                 println!("✓ Contract deployed successfully");
-                println!("  Address: {}", response.get("contract_address").unwrap_or(&serde_json::Value::Null));
-                println!("  TX Hash: {}", response.get("tx_hash").unwrap_or(&serde_json::Value::Null));
-                println!("  Gas Used: {}", response.get("gas_used").unwrap_or(&serde_json::Value::Null));
+                println!(
+                    "  Address: {}",
+                    response
+                        .get("contract_address")
+                        .unwrap_or(&serde_json::Value::Null)
+                );
+                println!(
+                    "  TX Hash: {}",
+                    response.get("tx_hash").unwrap_or(&serde_json::Value::Null)
+                );
+                println!(
+                    "  Gas Used: {}",
+                    response.get("gas_used").unwrap_or(&serde_json::Value::Null)
+                );
             }
             WasmCommand::Exec {
                 address,
@@ -544,15 +555,29 @@ impl ContractArgs {
                 });
                 let response = rpc_client.post("/contracts/call", &request).await?;
                 println!("✓ Contract method executed successfully");
-                println!("  Result: {}", response.get("result").unwrap_or(&serde_json::Value::Null));
-                println!("  Gas Used: {}", response.get("gas_used").unwrap_or(&serde_json::Value::Null));
-                println!("  TX Hash: {}", response.get("tx_hash").unwrap_or(&serde_json::Value::Null));
+                println!(
+                    "  Result: {}",
+                    response.get("result").unwrap_or(&serde_json::Value::Null)
+                );
+                println!(
+                    "  Gas Used: {}",
+                    response.get("gas_used").unwrap_or(&serde_json::Value::Null)
+                );
+                println!(
+                    "  TX Hash: {}",
+                    response.get("tx_hash").unwrap_or(&serde_json::Value::Null)
+                );
             }
             WasmCommand::Query { address } => {
                 info!("Querying WASM contract state: {}", address);
-                let response = rpc_client.get(&format!("/contracts/state/{}/counter", address)).await?;
+                let response = rpc_client
+                    .get(&format!("/contracts/state/{}/counter", address))
+                    .await?;
                 println!("✓ Contract state queried successfully");
-                println!("  Counter value: {}", response.get("value").unwrap_or(&serde_json::Value::Null));
+                println!(
+                    "  Counter value: {}",
+                    response.get("value").unwrap_or(&serde_json::Value::Null)
+                );
             }
         }
         Ok(())

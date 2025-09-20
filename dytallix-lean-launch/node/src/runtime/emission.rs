@@ -21,7 +21,7 @@ pub struct EmissionEvent {
     pub total_emitted: u128,
     pub pools: HashMap<String, u128>, // keys: block_rewards, staking_rewards, ai_module_incentives, bridge_operations
     pub reward_index_after: Option<u128>, // scaled (e.g., 1e12)
-    pub circulating_supply: u128, // cumulative newly emitted DRT (excludes initial_supply)
+    pub circulating_supply: u128,     // cumulative newly emitted DRT (excludes initial_supply)
 }
 
 /// Phase definition for phased emission schedule
@@ -181,8 +181,7 @@ impl EmissionEngine {
                     return 1_000_000; // 1 DRT in uDRT (micro denomination)
                 }
 
-                let annual_emission =
-                    (total_supply * (*annual_inflation_rate as u128)) / 10000;
+                let annual_emission = (total_supply * (*annual_inflation_rate as u128)) / 10000;
                 let per_block = annual_emission / BLOCKS_PER_YEAR;
 
                 // Future-proof floor: ensure non-zero emission when annual_emission > 0

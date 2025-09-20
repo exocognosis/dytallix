@@ -2,8 +2,8 @@
 
 #[cfg(test)]
 mod tests {
-    use std::env;
     use serde_json;
+    use std::env;
 
     #[derive(serde::Serialize, serde::Deserialize)]
     struct MockBenchmarkResults {
@@ -18,7 +18,10 @@ mod tests {
     #[test]
     fn test_benchmark_config_parsing() {
         // Test default values
-        let tx_count = env::var("TX_COUNT").unwrap_or_else(|_| "10000".to_string()).parse::<usize>().unwrap();
+        let tx_count = env::var("TX_COUNT")
+            .unwrap_or_else(|_| "10000".to_string())
+            .parse::<usize>()
+            .unwrap();
         let algo = env::var("PQC_ALGO").unwrap_or_else(|_| "dilithium".to_string());
 
         assert_eq!(tx_count, 10000);

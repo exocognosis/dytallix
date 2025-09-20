@@ -2,9 +2,9 @@ use crate::rpc::errors::ApiError;
 use crate::runtime::bridge;
 use crate::runtime::emission::EmissionEngine;
 use crate::runtime::governance::{GovernanceModule, ProposalType};
-use crate::runtime::staking::StakingModule;
 #[cfg(feature = "oracle")]
 use crate::runtime::oracle::current_timestamp;
+use crate::runtime::staking::StakingModule;
 #[cfg(not(feature = "oracle"))]
 fn current_timestamp() -> u64 {
     std::time::SystemTime::now()
@@ -29,15 +29,15 @@ use axum::{
 use base64;
 use serde::Deserialize;
 use serde_json::json;
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::collections::HashMap;
 
+pub mod ai;
 pub mod errors; // restored errors module export
 #[cfg(feature = "oracle")]
 pub mod oracle;
-pub mod ai;
 
 /// GET /account/:addr - Return account details including nonce and balances
 pub async fn get_account(
@@ -467,11 +467,11 @@ pub async fn status(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value>
     let latest_height = ctx.storage.height();
     let mempool_size = ctx.mempool.lock().unwrap().len();
     let chain_id = ctx.storage.get_chain_id();
-    
+
     // For this implementation, we assume the node is never syncing (single node setup)
     // In a real network, this would check sync status against peers
     let syncing = false;
-    
+
     Json(json!({
         "status": "healthy",
         "latest_height": latest_height,
@@ -730,7 +730,7 @@ pub async fn gov_execute(
             "governance feature disabled".into(),
         ));
     }
-    
+
     let proposal_id = body
         .get("proposal_id")
         .and_then(|v| v.as_u64())
@@ -1004,10 +1004,19 @@ pub async fn get_rewards_by_height(
 pub async fn dev_faucet(
     Extension(ctx): Extension<RpcContext>,
     Json(payload): Json<serde_json::Value>,
-    ) -> Result<Json<serde_json::Value>, ApiError> {
-    let addr = payload.get("address").and_then(|v| v.as_str()).ok_or(ApiError::BadRequest("missing address".to_string()))?;
-    let udgt = payload.get("udgt").and_then(|v| v.as_u64()).unwrap_or(1_000_000);
-    let udrt = payload.get("udrt").and_then(|v| v.as_u64()).unwrap_or(50_000_000);
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let addr = payload
+        .get("address")
+        .and_then(|v| v.as_str())
+        .ok_or(ApiError::BadRequest("missing address".to_string()))?;
+    let udgt = payload
+        .get("udgt")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(1_000_000);
+    let udrt = payload
+        .get("udrt")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(50_000_000);
     {
         let mut st = ctx.state.lock().unwrap();
         st.credit(addr, "udgt", udgt as u128);
@@ -1115,11 +1124,14 @@ pub async fn staking_get_balance(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let (staked, rewards) = if ctx.features.staking {
         let staking = ctx.staking.lock().unwrap();
-        (staking.get_total_stake(&delegator), staking.get_accrued_rewards(&delegator))
+        (
+            staking.get_total_stake(&delegator),
+            staking.get_accrued_rewards(&delegator),
+        )
     } else {
         (0, 0)
     };
-    
+
     let liquid = if let Ok(state) = ctx.state.lock() {
         state.get_balance(&delegator, "udgt")
     } else {
@@ -1199,26 +1211,30 @@ pub async fn contracts_deploy(
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let wasm_bytes = if let Some(bytes_b64) = payload["wasm_bytes"].as_str() {
-        base64::engine::general_purpose::STANDARD.decode(bytes_b64)
+        base64::engine::general_purpose::STANDARD
+            .decode(bytes_b64)
             .map_err(|e| ApiError::BadRequest(format!("Invalid base64 wasm_bytes: {}", e)))?
     } else if let Some(artifact_ref) = payload["artifact_ref"].as_str() {
         // Load from predefined artifacts
         match artifact_ref {
-            "counter" => {
-                std::fs::read("artifacts/counter.wasm")
-                    .map_err(|e| ApiError::BadRequest(format!("Failed to load counter artifact: {}", e)))?
-            }
+            "counter" => std::fs::read("artifacts/counter.wasm").map_err(|e| {
+                ApiError::BadRequest(format!("Failed to load counter artifact: {}", e))
+            })?,
             _ => return Err(ApiError::BadRequest("Unknown artifact_ref".to_string())),
         }
     } else {
-        return Err(ApiError::BadRequest("Missing wasm_bytes or artifact_ref".to_string()));
+        return Err(ApiError::BadRequest(
+            "Missing wasm_bytes or artifact_ref".to_string(),
+        ));
     };
 
     let from = payload["from"].as_str().unwrap_or("deployer");
     let gas_limit = payload["gas_limit"].as_u64().unwrap_or(1000000);
     let initial_state = payload["initial_state"].as_str().map(|s| s.as_bytes());
 
-    let deployment = ctx.wasm_runtime.deploy_contract(&wasm_bytes, from, gas_limit, initial_state)
+    let deployment = ctx
+        .wasm_runtime
+        .deploy_contract(&wasm_bytes, from, gas_limit, initial_state)
         .map_err(|e| ApiError::BadRequest(format!("Deployment failed: {}", e)))?;
 
     Ok(Json(json!({
@@ -1246,19 +1262,18 @@ pub async fn contracts_call(
     let args = payload["args"].as_str().unwrap_or("{}").as_bytes();
     let gas_limit = payload["gas_limit"].as_u64().unwrap_or(300000);
 
-    let execution = ctx.wasm_runtime.execute_contract(contract_address, method, args, gas_limit)
+    let execution = ctx
+        .wasm_runtime
+        .execute_contract(contract_address, method, args, gas_limit)
         .map_err(|e| ApiError::BadRequest(format!("Execution failed: {}", e)))?;
 
     // Parse result based on method
     let result = match method {
         "get" | "increment" => {
-            let count = u32::from_le_bytes(
-                execution.result.try_into()
-                    .unwrap_or([0; 4])
-            );
+            let count = u32::from_le_bytes(execution.result.try_into().unwrap_or([0; 4]));
             json!({"count": count})
         }
-        _ => json!({"raw": hex::encode(&execution.result)})
+        _ => json!({"raw": hex::encode(&execution.result)}),
     };
 
     Ok(Json(json!({
@@ -1275,7 +1290,9 @@ pub async fn contracts_state(
     Path((contract_address, key)): Path<(String, String)>,
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let value = ctx.wasm_runtime.get_contract_state(&contract_address, &key)
+    let value = ctx
+        .wasm_runtime
+        .get_contract_state(&contract_address, &key)
         .ok_or(ApiError::NotFound)?;
 
     // Try to parse as counter value
@@ -1352,17 +1369,30 @@ pub async fn contract_call(
 pub async fn json_rpc(
     ctx: axum::Extension<RpcContext>,
     axum::Json(body): axum::Json<serde_json::Value>,
-)
--> Result<axum::Json<serde_json::Value>, ApiError> {
-    let method = body.get("method").and_then(|v| v.as_str()).ok_or_else(|| ApiError::BadRequest("missing method".to_string()))?;
-    let params_arr = body.get("params").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+) -> Result<axum::Json<serde_json::Value>, ApiError> {
+    let method = body
+        .get("method")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| ApiError::BadRequest("missing method".to_string()))?;
+    let params_arr = body
+        .get("params")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
     let params = params_arr.first().cloned().unwrap_or_else(|| json!({}));
 
     match method {
         "contract_deploy" => {
-            let code_hex = params.get("code").and_then(|v| v.as_str()).ok_or_else(|| ApiError::BadRequest("missing code".to_string()))?;
-            let gas_limit = params.get("gas_limit").and_then(|v| v.as_u64()).unwrap_or(100_000);
-            let code_bytes = hex::decode(code_hex).map_err(|_| ApiError::BadRequest("invalid code hex".to_string()))?;
+            let code_hex = params
+                .get("code")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| ApiError::BadRequest("missing code".to_string()))?;
+            let gas_limit = params
+                .get("gas_limit")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(100_000);
+            let code_bytes = hex::decode(code_hex)
+                .map_err(|_| ApiError::BadRequest("invalid code hex".to_string()))?;
             let code_hash = blake3::hash(&code_bytes);
             // Deterministic address derived from code hash
             let addr = format!("dyt1{}", hex::encode(code_hash.as_bytes()));
@@ -1386,12 +1416,23 @@ pub async fn json_rpc(
                     "code_hash": hex::encode(code_hash.as_bytes()),
                     "gas_used": gas_limit.min(50_000),
                     "timestamp": current_timestamp(),
-                })).unwrap_or_default(),
+                }))
+                .unwrap_or_default(),
             );
             // initialize empty calls.json and gas_report.json and final_state.json
-            let _ = std::fs::write(ev_dir.join("calls.json"), serde_json::to_string_pretty(&json!({"calls": []})).unwrap_or_default());
-            let _ = std::fs::write(ev_dir.join("gas_report.json"), serde_json::to_string_pretty(&json!({"total_gas": 0, "calls": 0})).unwrap_or_default());
-            let _ = std::fs::write(ev_dir.join("final_state.json"), serde_json::to_string_pretty(&json!({"counter": 0})).unwrap_or_default());
+            let _ = std::fs::write(
+                ev_dir.join("calls.json"),
+                serde_json::to_string_pretty(&json!({"calls": []})).unwrap_or_default(),
+            );
+            let _ = std::fs::write(
+                ev_dir.join("gas_report.json"),
+                serde_json::to_string_pretty(&json!({"total_gas": 0, "calls": 0}))
+                    .unwrap_or_default(),
+            );
+            let _ = std::fs::write(
+                ev_dir.join("final_state.json"),
+                serde_json::to_string_pretty(&json!({"counter": 0})).unwrap_or_default(),
+            );
 
             let res = json!({
                 "address": addr,
@@ -1399,12 +1440,23 @@ pub async fn json_rpc(
                 "gas_used": gas_limit.min(50_000),
                 "events": [],
             });
-            Ok(axum::Json(json!({"jsonrpc":"2.0","id": body.get("id").cloned().unwrap_or(json!(1)),"result": res})))
+            Ok(axum::Json(
+                json!({"jsonrpc":"2.0","id": body.get("id").cloned().unwrap_or(json!(1)),"result": res}),
+            ))
         }
         "contract_execute" => {
-            let addr = params.get("contract_address").and_then(|v| v.as_str()).ok_or_else(|| ApiError::BadRequest("missing contract_address".to_string()))?;
-            let func = params.get("function").and_then(|v| v.as_str()).unwrap_or("get");
-            let gas_limit = params.get("gas_limit").and_then(|v| v.as_u64()).unwrap_or(100_000);
+            let addr = params
+                .get("contract_address")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| ApiError::BadRequest("missing contract_address".to_string()))?;
+            let func = params
+                .get("function")
+                .and_then(|v| v.as_str())
+                .unwrap_or("get");
+            let gas_limit = params
+                .get("gas_limit")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(100_000);
 
             let (ret_json, gas_used, events): (serde_json::Value, u64, Vec<String>) = match func {
                 "increment" | "inc" => {
@@ -1427,18 +1479,37 @@ pub async fn json_rpc(
                     if let Some(arr) = calls.as_array_mut() {
                         arr.push(json!({"function": func, "gas_used": gas_used, "ts": current_timestamp()}));
                     }
-                    let _ = std::fs::write(calls_path, serde_json::to_string_pretty(&json!({"calls": calls})).unwrap_or_default());
+                    let _ = std::fs::write(
+                        calls_path,
+                        serde_json::to_string_pretty(&json!({"calls": calls})).unwrap_or_default(),
+                    );
                     // gas_report.json
                     let gas_path = ev_dir.join("gas_report.json");
                     let gas_val: serde_json::Value = std::fs::read_to_string(&gas_path)
                         .ok()
                         .and_then(|s| serde_json::from_str(&s).ok())
                         .unwrap_or_else(|| json!({"total_gas": 0, "calls": 0}));
-                    let total_gas = gas_val.get("total_gas").and_then(|v| v.as_u64()).unwrap_or(0) + gas_used;
+                    let total_gas = gas_val
+                        .get("total_gas")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0)
+                        + gas_used;
                     let calls_n = gas_val.get("calls").and_then(|v| v.as_u64()).unwrap_or(0) + 1;
-                    let _ = std::fs::write(gas_path, serde_json::to_string_pretty(&json!({"total_gas": total_gas, "calls": calls_n})).unwrap_or_default());
+                    let _ = std::fs::write(
+                        gas_path,
+                        serde_json::to_string_pretty(
+                            &json!({"total_gas": total_gas, "calls": calls_n}),
+                        )
+                        .unwrap_or_default(),
+                    );
                     // final_state.json
-                    let _ = std::fs::write(ev_dir.join("final_state.json"), serde_json::to_string_pretty(&json!({"counter": map.get(addr).copied().unwrap_or(0)})).unwrap_or_default());
+                    let _ = std::fs::write(
+                        ev_dir.join("final_state.json"),
+                        serde_json::to_string_pretty(
+                            &json!({"counter": map.get(addr).copied().unwrap_or(0)}),
+                        )
+                        .unwrap_or_default(),
+                    );
                     (ret_json, gas_used, events)
                 }
                 "get" => {
@@ -1454,7 +1525,9 @@ pub async fn json_rpc(
                 "gas_used": gas_used,
                 "events": events,
             });
-            Ok(axum::Json(json!({"jsonrpc":"2.0","id": body.get("id").cloned().unwrap_or(json!(1)),"result": res})))
+            Ok(axum::Json(
+                json!({"jsonrpc":"2.0","id": body.get("id").cloned().unwrap_or(json!(1)),"result": res}),
+            ))
         }
         _ => Err(ApiError::BadRequest("unknown method".to_string())),
     }

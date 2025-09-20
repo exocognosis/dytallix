@@ -605,7 +605,9 @@ async fn show_comprehensive_rewards(
 
 /// Show staking balance (staked, liquid, rewards) for a delegator
 async fn show_balance(client: &RpcClient, fmt: OutputFormat, delegator: String) -> Result<()> {
-    let result = client.get(&format!("/api/staking/balance/{delegator}")).await;
+    let result = client
+        .get(&format!("/api/staking/balance/{delegator}"))
+        .await;
 
     match result {
         Ok(response) => {

@@ -32,8 +32,9 @@ impl VestingSchedule {
         }
 
         // Linear vesting after cliff
-        let elapsed_since_cliff = current_time - (self.start_time + self.cliff_duration);
-        let vesting_period_after_cliff = self.vesting_duration - self.cliff_duration;
+        let elapsed_since_cliff =
+            u128::from(current_time - (self.start_time + self.cliff_duration));
+        let vesting_period_after_cliff = u128::from(self.vesting_duration - self.cliff_duration);
 
         (self.total_amount * elapsed_since_cliff) / vesting_period_after_cliff
     }

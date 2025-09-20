@@ -71,7 +71,7 @@ pub struct Vote {
     pub proposal_id: u64,
     pub voter: String,
     pub option: VoteOption,
-    pub weight: u128 // DGT balance at time of vote
+    pub weight: u128, // DGT balance at time of vote
 }
 
 /// Deposit on a proposal (for tracking individual deposits)
@@ -1029,7 +1029,10 @@ mod tests {
         assert_eq!(proposal.total_deposit, 1_000_000_000);
         // Ensure voting window starts at deposit height when threshold is met early
         assert_eq!(proposal.voting_start_height, 150);
-        assert_eq!(proposal.voting_end_height, 150 + governance.config.voting_period);
+        assert_eq!(
+            proposal.voting_end_height,
+            150 + governance.config.voting_period
+        );
     }
 
     #[test]

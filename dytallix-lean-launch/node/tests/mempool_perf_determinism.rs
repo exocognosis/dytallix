@@ -9,8 +9,8 @@ use std::sync::Arc;
 use tempfile::TempDir;
 
 // Added: crypto and base64 imports for valid PQC signatures
-use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
 
 #[allow(clippy::too_many_arguments)]
 fn create_test_transaction(

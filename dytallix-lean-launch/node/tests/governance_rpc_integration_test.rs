@@ -1,12 +1,12 @@
+use dytallix_lean_node::rpc::{FeatureFlags, RpcContext};
 use dytallix_lean_node::runtime::governance::GovernanceModule;
 use dytallix_lean_node::runtime::staking::StakingModule;
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::state::Storage;
-use dytallix_lean_node::rpc::{RpcContext, FeatureFlags};
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use tempfile::tempdir;
 use serde_json::json;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tempfile::tempdir;
 
 /// Test the complete governance happy path using RPC endpoints
 #[tokio::test]
@@ -43,11 +43,15 @@ async fn governance_rpc_happy_path_test() {
         mempool: Arc::new(Mutex::new(dytallix_lean_node::mempool::Mempool::new())),
         state: state.clone(),
         ws: dytallix_lean_node::ws::server::WsHub::new(),
-        tps: Arc::new(Mutex::new(dytallix_lean_node::storage::blocks::TpsWindow::new(60))),
-        emission: Arc::new(Mutex::new(dytallix_lean_node::runtime::emission::EmissionEngine::new(
-            storage.clone(),
-            state.clone(),
-        ))),
+        tps: Arc::new(Mutex::new(
+            dytallix_lean_node::storage::blocks::TpsWindow::new(60),
+        )),
+        emission: Arc::new(Mutex::new(
+            dytallix_lean_node::runtime::emission::EmissionEngine::new(
+                storage.clone(),
+                state.clone(),
+            ),
+        )),
         governance: governance.clone(),
         staking: staking.clone(),
         metrics: Arc::new(dytallix_lean_node::metrics::Metrics::new().unwrap()),
@@ -99,41 +103,40 @@ async fn governance_rpc_happy_path_test() {
         "option": "yes"
     });
 
-    let _vote1_response = dytallix_lean_node::rpc::gov_vote(
-        axum::Extension(ctx.clone()),
-        axum::Json(vote1_request),
-    )
-    .await
-    .expect("Failed to vote on proposal");
+    let _vote1_response =
+        dytallix_lean_node::rpc::gov_vote(axum::Extension(ctx.clone()), axum::Json(vote1_request))
+            .await
+            .expect("Failed to vote on proposal");
 
     let vote2_request = json!({
-        "voter": "voter2", 
+        "voter": "voter2",
         "proposal_id": proposal_id,
         "option": "yes"
     });
 
-    let _vote2_response = dytallix_lean_node::rpc::gov_vote(
-        axum::Extension(ctx.clone()),
-        axum::Json(vote2_request),
-    )
-    .await
-    .expect("Failed to vote on proposal");
+    let _vote2_response =
+        dytallix_lean_node::rpc::gov_vote(axum::Extension(ctx.clone()), axum::Json(vote2_request))
+            .await
+            .expect("Failed to vote on proposal");
 
     println!("✅ Step 3: Voted on proposal");
 
     // Test step 4: Get initial config
-    let initial_config_response = dytallix_lean_node::rpc::gov_get_config(
-        axum::Extension(ctx.clone()),
-    )
-    .await
-    .expect("Failed to get initial config");
+    let initial_config_response =
+        dytallix_lean_node::rpc::gov_get_config(axum::Extension(ctx.clone()))
+            .await
+            .expect("Failed to get initial config");
 
     let initial_gas_limit = initial_config_response.0["gas_limit"].as_u64().unwrap();
     assert_eq!(initial_gas_limit, 21_000);
     println!("✅ Step 4: Initial gas_limit = {}", initial_gas_limit);
 
     // Test step 5: Process end_block to move to Passed status
-    governance.lock().unwrap().end_block(701).expect("Failed to process end_block");
+    governance
+        .lock()
+        .unwrap()
+        .end_block(701)
+        .expect("Failed to process end_block");
 
     // Test step 6: Execute proposal manually via RPC
     let execute_request = json!({
@@ -151,15 +154,17 @@ async fn governance_rpc_happy_path_test() {
     println!("✅ Step 6: Executed proposal via RPC");
 
     // Test step 7: Verify parameter change
-    let final_config_response = dytallix_lean_node::rpc::gov_get_config(
-        axum::Extension(ctx.clone()),
-    )
-    .await
-    .expect("Failed to get final config");
+    let final_config_response =
+        dytallix_lean_node::rpc::gov_get_config(axum::Extension(ctx.clone()))
+            .await
+            .expect("Failed to get final config");
 
     let final_gas_limit = final_config_response.0["gas_limit"].as_u64().unwrap();
     assert_eq!(final_gas_limit, 42_000);
-    println!("✅ Step 7: Final gas_limit = {} (changed from {})", final_gas_limit, initial_gas_limit);
+    println!(
+        "✅ Step 7: Final gas_limit = {} (changed from {})",
+        final_gas_limit, initial_gas_limit
+    );
 
     // Test step 8: Verify proposal status
     let proposal_response = dytallix_lean_node::rpc::gov_get_proposal(

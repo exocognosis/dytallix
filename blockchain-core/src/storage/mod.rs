@@ -429,7 +429,10 @@ impl StorageManager {
     }
 
     /// Check whether a contract exists
-    pub async fn _contract_exists(&self, address: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    pub async fn _contract_exists(
+        &self,
+        address: &str,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         Ok(self.db.get(Self::_contract_key(address))?.is_some())
     }
 

@@ -268,7 +268,10 @@ fn test_emission_event_consistency() {
 
             // First, assert the pool allocations sum exactly to total emitted
             let sum_pools = block_rewards + staking_rewards + ai_incentives + bridge_ops;
-            assert_eq!(sum_pools, total, "Pool allocations must sum to total at height {height}");
+            assert_eq!(
+                sum_pools, total,
+                "Pool allocations must sum to total at height {height}"
+            );
 
             // When total emission is very small (< 100), integer rounding makes per-block
             // percentage checks meaningless (1% granularity). Only enforce percentage

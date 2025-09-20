@@ -12,8 +12,8 @@ use serde_json::json;
 pub struct MockTransaction {
     pub from_address: String,
     pub to_address: String,
-    pub amount: u64,
-    pub fee: u64,
+    pub amount: u128,
+    pub fee: u128,
     pub sequence: u64,
     pub chain_id: String,
 }
@@ -39,12 +39,12 @@ pub struct SignedTransaction {
 }
 
 impl MockTransaction {
-    pub fn new(from: &str, to: &str, amount: u64) -> Self {
+    pub fn new(from: &str, to: &str, amount: u128) -> Self {
         Self {
             from_address: from.to_string(),
             to_address: to.to_string(),
             amount,
-            fee: 1000,
+            fee: 1000u128,
             sequence: 0,
             chain_id: "dytallix-testnet-1".to_string(),
         }
