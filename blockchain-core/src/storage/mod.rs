@@ -1,4 +1,4 @@
-use crate::amounts::Tokens;
+use crate::types::Amount as Tokens;
 use crate::types::{
     AccountState, Address, Amount, Block, BlockNumber, Timestamp, Transaction,
     Transaction as TxEnum, TxReceipt,
@@ -147,7 +147,7 @@ impl StorageManager {
                             ) {
                                 if addr.starts_with("dyt1") {
                                     let acct = AccountState {
-                                        balance: amount,
+                                        balance: amount as u128,
                                         ..Default::default()
                                     };
                                     self.store_account_state(addr, &acct)?;

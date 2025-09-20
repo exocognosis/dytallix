@@ -1,13 +1,20 @@
 // Core blockchain types for Dytallix
 // Post-Quantum Cryptography Enhanced Blockchain
 
-use crate::amounts::{Gas, Tokens};
 use dytallix_pqc::{Signature, SignatureAlgorithm};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha3::{Digest, Sha3_256};
 use std::fmt;
 use uuid::Uuid;
+
+/// Canonical type for all monetary amounts, balances, stakes, and fees.
+/// Uses u128 to handle large values without overflow.
+pub type Tokens = u128;
+
+/// Canonical type for all gas-related fields and counters.
+/// Uses u64 as gas amounts are bounded and for FFI safety with WASM.
+pub type Gas = u64;
 
 /// Dytallix address format (dyt1...)
 pub type Address = String;
@@ -36,8 +43,88 @@ pub type Stake = Tokens;
 /// Unix timestamp (seconds since epoch)
 pub type Timestamp = u64;
 
-// Re-export serde helpers from amounts module for backward compatibility
-pub use crate::amounts::{serde_string_or_number, serde_u128_string};
+/// Serde module for serializing u128 values as decimal strings in JSON.
+/// This prevents precision loss in JavaScript and other JSON consumers.
+pub mod serde_u128_string {
+    use serde::de::Error;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S: Serializer>(v: &u128, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&v.to_string())
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u128, D::Error> {
+        let s = String::deserialize(d)?;
+        s.parse::<u128>().map_err(D::Error::custom)
+    }
+}
+
+/// Serde module for optional u128 values serialized as decimal strings.
+pub mod serde_opt_u128_string {
+    use serde::de::Error;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S: Serializer>(v: &Option<u128>, s: S) -> Result<S::Ok, S::Error> {
+        match v {
+            Some(val) => s.serialize_str(&val.to_string()),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u128>, D::Error> {
+        let opt: Option<String> = Option::deserialize(d)?;
+        match opt {
+            Some(s) => s.parse::<u128>().map(Some).map_err(D::Error::custom),
+            None => Ok(None),
+        }
+    }
+}
+
+/// Serde module for accepting both string and number input (for API compatibility).
+/// Always serializes as string to avoid precision issues.
+pub mod serde_string_or_number {
+    use serde::de::{self, Visitor};
+    use serde::{Deserializer, Serializer};
+    use std::fmt;
+
+    pub fn serialize<S: Serializer>(v: &u128, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&v.to_string())
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u128, D::Error> {
+        struct U128Visitor;
+
+        impl<'de> Visitor<'de> for U128Visitor {
+            type Value = u128;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string or number representing u128")
+            }
+
+            fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
+                v.parse::<u128>().map_err(de::Error::custom)
+            }
+
+            fn visit_u64<E: de::Error>(self, v: u64) -> Result<Self::Value, E> {
+                Ok(v as u128)
+            }
+
+            fn visit_u128<E: de::Error>(self, v: u128) -> Result<Self::Value, E> {
+                Ok(v)
+            }
+
+            fn visit_i64<E: de::Error>(self, v: i64) -> Result<Self::Value, E> {
+                if v >= 0 {
+                    Ok(v as u128)
+                } else {
+                    Err(de::Error::custom("negative numbers not allowed"))
+                }
+            }
+        }
+
+        d.deserialize_any(U128Visitor)
+    }
+}
 
 /// Dytallix Block Structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,11 +203,11 @@ pub struct TransferTransaction {
     pub to: Address,
 
     /// Amount to transfer
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub amount: Amount,
 
     /// Transaction fee
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub fee: Fee,
 
     /// Transaction nonce (to prevent replay attacks)
@@ -145,7 +232,7 @@ pub struct DeployTransaction {
     pub constructor_args: Vec<u8>,
     pub gas_limit: Gas,
     pub gas_price: Gas,
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub fee: Fee,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -184,11 +271,11 @@ pub struct CallTransaction {
     pub to: Address, // Contract address
     pub method: String,
     pub args: Vec<u8>,
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub value: Amount,
     pub gas_limit: Gas,
     pub gas_price: Gas,
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub fee: Fee,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -226,10 +313,10 @@ impl CallTransaction {
 pub struct StakeTransaction {
     pub hash: TxHash,
     pub validator: Address,
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub amount: Stake,
     pub action: StakeAction,
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub fee: Fee,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -272,7 +359,7 @@ pub struct AIRequestTransaction {
     pub payload: serde_json::Value, // Added for compatibility
     pub ai_risk_score: Option<f64>, // Added for risk scoring
     pub ai_response: Option<serde_json::Value>, // Added for AI response storage
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub fee: Fee,
     pub nonce: u64,
     pub timestamp: Timestamp,
@@ -390,7 +477,7 @@ pub struct PQCTransactionSignature {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AccountState {
     /// Account balance
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub balance: Balance,
 
     /// Transaction nonce
@@ -416,7 +503,7 @@ pub struct ValidatorInfo {
     pub address: Address,
 
     /// Staked amount
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub stake: Stake,
 
     /// Public key for block signing
@@ -453,7 +540,7 @@ pub struct TxReceipt {
     /// Gas actually used - now uses canonical Gas type (u64)
     pub gas_used: Gas,
     /// Fee actually paid (can differ from quoted fee in future)
-    #[serde(with = "crate::amounts::serde_u128_string")]
+    #[serde(with = "crate::types::serde_u128_string")]
     pub fee_paid: Amount,
     /// Inclusion timestamp (block timestamp)
     pub timestamp: Timestamp,
@@ -1011,7 +1098,7 @@ mod tests {
     fn test_amount_serde_roundtrip() {
         #[derive(Serialize, Deserialize, Debug, PartialEq)]
         struct Wrapper {
-            #[serde(with = "crate::amounts::serde_u128_string")]
+            #[serde(with = "crate::types::serde_u128_string")]
             amount: Amount,
         }
         let w = Wrapper {

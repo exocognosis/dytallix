@@ -269,7 +269,7 @@ impl GenesisConfig {
                 address: "dyt1validator1000000000000000000000000000".to_string(),
                 // Using 32 DGT with 6 decimals instead of 18 to fit into u128
                 stake: 32_000_000_000_000u128, // 32 * 10^12 (represents 32 DGT if 12 decimals)
-                public_key: vec![0u8; 32],    // Placeholder - would be real keys in production
+                public_key: vec![0u8; 32],     // Placeholder - would be real keys in production
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
                 commission: 500, // 5% commission

@@ -11,12 +11,12 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::amounts::Tokens;
 use crate::consensus::{
     replay_protection::{ReplayProtectionConfig, ReplayProtectionManager},
     signature_verification::{OracleRegistryEntry, SignatureVerifier, VerificationConfig},
     AIOracleClient, AIResponsePayload, AIServiceConfig, SignedAIOracleResponse,
 };
+use crate::types::Amount as Tokens;
 
 /// Risk-based processing decision
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -283,7 +283,8 @@ impl AIIntegrationManager {
         oracle_identity: crate::consensus::OracleIdentity,
         stake_amount: Tokens,
     ) -> Result<()> {
-        self.verifier.register_oracle(oracle_identity, stake_amount)
+        self.verifier
+            .register_oracle(oracle_identity, stake_amount.try_into().unwrap())
     }
 
     /// Verify a signed AI response

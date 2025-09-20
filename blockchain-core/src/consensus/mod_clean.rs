@@ -6,10 +6,14 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid;
 
-use crate::amounts::{gas_to_tokens, Tokens};
 use crate::crypto::PQCManager;
 use crate::runtime::DytallixRuntime;
 use crate::types::{AIServiceType, Block, BlockHeader, Transaction, TransferTransaction}; // Import from types
+
+// Helper function to convert gas (u64) to tokens (u128)
+fn gas_to_tokens(gas: u64) -> u128 {
+    gas as u128
+}
 
 // AI Service Integration
 use anyhow::{anyhow, Result};
@@ -426,7 +430,7 @@ impl ConsensusEngine {
                     hash: String::new(), // Will be calculated
                     from: "dyt1genesis".to_string(),
                     to: format!("dyt1addr{}", block_number % 5), // Rotate between addresses
-                    amount: 100u128 + (block_number * 10),           // Variable amounts as u128
+                    amount: 100u128 + (block_number as u128 * 10), // Variable amounts as u128
                     fee: 1u128,
                     nonce: block_number,
                     timestamp: std::time::SystemTime::now()

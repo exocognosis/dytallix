@@ -470,8 +470,8 @@ impl ComplianceAPI {
             transaction_type_filter: request.transaction_types,
             oracle_filter: request.oracle_ids,
             address_filter: None, // Could be added to API if needed
-            min_amount: request.min_amount,
-            max_amount: request.max_amount,
+            min_amount: request.min_amount.map(|a| a as u128),
+            max_amount: request.max_amount.map(|a| a as u128),
             include_archived: request.include_archived.unwrap_or(false),
             offset,
             limit: page_size,

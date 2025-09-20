@@ -54,7 +54,7 @@ pub mod serde_opt_u128_string {
 /// Always serializes as string to avoid precision issues.
 pub mod serde_string_or_number {
     use super::*;
-    use serde::de::{self, Error as DeError, Visitor};
+    use serde::de::{self, Visitor};
     use std::fmt;
 
     pub fn serialize<S: Serializer>(v: &u128, s: S) -> Result<S::Ok, S::Error> {
@@ -127,10 +127,10 @@ mod tests {
         let test = TestStruct {
             amount: 12_345_678_901_234_567_890_123_456u128,
         };
-        
+
         let json = serde_json::to_string(&test).unwrap();
         assert!(json.contains("\"12345678901234567890123456\""));
-        
+
         let deserialized: TestStruct = serde_json::from_str(&json).unwrap();
         assert_eq!(test, deserialized);
     }

@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 // Enable smart contracts integration now that the crate compiles
-use crate::amounts::{tokens_to_gas, Gas, Tokens};
 use crate::crypto::PQCManager; // added
 use crate::genesis;
 use crate::staking::{
@@ -12,6 +11,7 @@ use crate::staking::{
     Validator,
 };
 use crate::storage::StorageManager;
+use crate::types::Amount as Tokens;
 use crate::types::{Address, BlockNumber};
 use crate::types::{Transaction, TxReceipt, TxStatus};
 use crate::wasm::host_env::{HostEnv, HostExecutionContext}; // keep host env

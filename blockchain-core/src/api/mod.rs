@@ -1,5 +1,5 @@
-use crate::amounts::Tokens;
 use crate::crypto::PQCManager;
+use crate::types::Amount as Tokens;
 use base64::Engine as _;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info}; // removed unused warn import
@@ -36,9 +36,9 @@ struct BlockInfo {
 struct TransferRequest {
     from: String,
     to: String,
-    #[serde(with = "crate::amounts::serde_string_or_number")]
+    #[serde(with = "crate::types::serde_string_or_number")]
     amount: Tokens,
-    #[serde(with = "crate::amounts::serde_string_or_number")]
+    #[serde(with = "crate::types::serde_opt_u128_string")]
     fee: Option<Tokens>,
     nonce: Option<u64>,
     signature: Option<TransferSignature>,
