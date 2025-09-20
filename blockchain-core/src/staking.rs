@@ -494,7 +494,10 @@ impl StakingState {
     }
 
     /// Record a missed block for a validator (uptime tracking)
-    pub fn _record_missed_block(&mut self, validator_address: &Address) -> Result<(), StakingError> {
+    pub fn _record_missed_block(
+        &mut self,
+        validator_address: &Address,
+    ) -> Result<(), StakingError> {
         // Work within a scope to release mutable borrow before emitting events or further mutable borrows
         let (should_jail, old_status, missed_blocks) = {
             let validator = self
@@ -888,7 +891,10 @@ impl StakingState {
     }
 
     /// Get current validator set with status filtering
-    pub fn _get_validator_set(&self, status_filter: Option<ValidatorStatus>) -> Vec<ValidatorStats> {
+    pub fn _get_validator_set(
+        &self,
+        status_filter: Option<ValidatorStatus>,
+    ) -> Vec<ValidatorStats> {
         self.validators
             .values()
             .filter(|v| status_filter.is_none() || Some(&v.status) == status_filter.as_ref())

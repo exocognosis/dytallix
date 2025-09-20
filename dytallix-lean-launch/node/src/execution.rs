@@ -168,9 +168,8 @@ pub fn execute_transaction(
     let sender_balance = state.balance_of(&tx.from, "udgt");
 
     if sender_balance < upfront_fee {
-        let err_msg = format!(
-            "InsufficientFunds: required {upfront_fee}, available {sender_balance}"
-        );
+        let err_msg =
+            format!("InsufficientFunds: required {upfront_fee}, available {sender_balance}");
         return ExecutionResult {
             receipt: create_failed_receipt(
                 tx,
@@ -434,7 +433,9 @@ mod tests {
     fn test_upfront_fee_overflow() {
         let ctx = ExecutionContext::new(u64::MAX, u64::MAX);
         // Multiplying two u64 values fits into u128 without overflow
-        let fee = ctx.calculate_upfront_fee().expect("no overflow for u64::MAX * u64::MAX");
+        let fee = ctx
+            .calculate_upfront_fee()
+            .expect("no overflow for u64::MAX * u64::MAX");
         let expected = (u128::from(u64::MAX)) * (u128::from(u64::MAX));
         assert_eq!(fee, expected);
     }

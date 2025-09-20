@@ -64,7 +64,9 @@ fn governance_manual_execute_test() {
     assert_eq!(initial_gas_limit, 21_000);
 
     // Process end_block to move proposal to Passed status (but don't auto-execute)
-    governance.end_block(701).expect("Failed to process end_block");
+    governance
+        .end_block(701)
+        .expect("Failed to process end_block");
 
     let proposal_after_tally = governance.get_proposal(proposal_id).unwrap().unwrap();
     assert_eq!(proposal_after_tally.status, ProposalStatus::Passed);
@@ -86,11 +88,17 @@ fn governance_manual_execute_test() {
 
     // Test that executing again fails
     let result = governance.execute(proposal_id);
-    assert!(result.is_err(), "Should not be able to execute proposal twice");
+    assert!(
+        result.is_err(),
+        "Should not be able to execute proposal twice"
+    );
 
     // Test executing non-existent proposal fails
     let result = governance.execute(999);
-    assert!(result.is_err(), "Should not be able to execute non-existent proposal");
+    assert!(
+        result.is_err(),
+        "Should not be able to execute non-existent proposal"
+    );
 }
 
 #[test]
@@ -116,6 +124,9 @@ fn governance_execute_not_passed_fails() {
 
     // Try to execute proposal that hasn't passed
     let result = governance.execute(proposal_id);
-    assert!(result.is_err(), "Should not be able to execute proposal that hasn't passed");
+    assert!(
+        result.is_err(),
+        "Should not be able to execute proposal that hasn't passed"
+    );
     assert!(result.unwrap_err().contains("has not passed"));
 }

@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stake_amount = 1_000_000_000_000u128;
 
     // Set initial balance
-    runtime.set_balance(&validator_addr, stake_amount as u64).await?;
+    runtime.set_balance(&validator_addr, stake_amount).await?;
 
     match runtime.delegate(validator_addr.clone(), validator_addr.clone(), stake_amount).await {
         Ok(_) => println!("   ✓ Self-delegation successful"),

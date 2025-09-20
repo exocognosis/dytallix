@@ -1,6 +1,6 @@
 use dytallix_lean_node::crypto::PQC;
-use dytallix_lean_node::types::{Msg, SignedTx};
 use dytallix_lean_node::types::tx::Tx;
+use dytallix_lean_node::types::{Msg, SignedTx};
 
 #[test]
 fn tamper_signature_failure_is_detected() {
@@ -37,6 +37,8 @@ fn tamper_signature_failure_is_detected() {
     // Verification must now fail
     let err = tampered.verify().expect_err("tamper must fail");
     let msg = format!("{err}");
-    assert!(msg.to_lowercase().contains("signature"), "unexpected error: {msg}");
+    assert!(
+        msg.to_lowercase().contains("signature"),
+        "unexpected error: {msg}"
+    );
 }
-

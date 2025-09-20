@@ -617,13 +617,10 @@ impl Metrics {
             .unwrap_or_default()
             .as_secs_f64();
         self.dyt_block_last_time_seconds.set(now);
-        self.dyt_transactions_in_block
-            .observe(tx_count as f64);
-        self.dyt_gas_used_per_block
-            .observe(gas_used as f64);
+        self.dyt_transactions_in_block.observe(tx_count as f64);
+        self.dyt_gas_used_per_block.observe(gas_used as f64);
         // Alias histogram
-        self.block_time
-            .observe(processing_time.as_secs_f64());
+        self.block_time.observe(processing_time.as_secs_f64());
     }
 
     /// Update mempool size and bytes

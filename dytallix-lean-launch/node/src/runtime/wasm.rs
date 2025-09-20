@@ -6,9 +6,9 @@ This module integrates the blockchain-core WASM engine with the node's runtime
 to provide contract deployment and execution capabilities.
 */
 
-use crate::gas::{GasMeter, GasError};
+use crate::gas::{GasError, GasMeter};
 use anyhow::{anyhow, Result};
-use dytallix_node::wasm::{WasmEngine, host_env::HostEnv};
+use dytallix_node::wasm::{host_env::HostEnv, WasmEngine};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -67,7 +67,7 @@ impl WasmRuntime {
     pub fn new() -> Self {
         let host_env = HostEnv::new();
         let engine = WasmEngine::new_with_env(host_env);
-        
+
         Self {
             engine,
             deployed_contracts: Arc::new(Mutex::new(HashMap::new())),
@@ -85,13 +85,15 @@ impl WasmRuntime {
         initial_state: Option<&[u8]>,
     ) -> Result<ContractDeployment> {
         let mut gas_meter = GasMeter::new(gas_limit);
-        
+
         // Charge gas for deployment
         gas_meter.consume(50000, "contract_deploy_base")?;
         gas_meter.consume(wasm_bytes.len() as u64, "contract_deploy_per_byte")?;
 
         // Validate WASM module by attempting to instantiate
-        let (mut store, _instance) = self.engine.instantiate_with_fuel(wasm_bytes, gas_limit)
+        let (mut store, _instance) = self
+            .engine
+            .instantiate_with_fuel(wasm_bytes, gas_limit)
             .map_err(|e| anyhow!("Failed to validate WASM module: {}", e))?;
 
         // Calculate code hash
@@ -101,7 +103,7 @@ impl WasmRuntime {
 
         // Generate contract address from code hash and deployer
         let address = self.generate_contract_address(&code_hash, from);
-        
+
         // Generate transaction hash
         let tx_hash = self.generate_tx_hash(&address, "deploy");
 
@@ -136,7 +138,7 @@ impl WasmRuntime {
         gas_limit: u64,
     ) -> Result<ContractExecution> {
         let mut gas_meter = GasMeter::new(gas_limit);
-        
+
         // Charge base execution gas
         gas_meter.consume(25000, "contract_execute_base")?;
 
@@ -147,7 +149,9 @@ impl WasmRuntime {
             .ok_or_else(|| anyhow!("Contract not found: {}", contract_address))?;
 
         // Instantiate contract with fuel
-        let (mut store, instance) = self.engine.instantiate_with_fuel(&contract.code, gas_limit)
+        let (mut store, instance) = self
+            .engine
+            .instantiate_with_fuel(&contract.code, gas_limit)
             .map_err(|e| anyhow!("Failed to instantiate contract: {}", e))?;
 
         // Execute the method
@@ -180,7 +184,9 @@ impl WasmRuntime {
     /// Get contract state by key
     pub fn get_contract_state(&self, contract_address: &Address, key: &str) -> Option<Vec<u8>> {
         let state = self.contract_state.lock().unwrap();
-        state.get(&(contract_address.clone(), key.to_string())).cloned()
+        state
+            .get(&(contract_address.clone(), key.to_string()))
+            .cloned()
     }
 
     /// Set contract state (internal method for contract execution)
@@ -197,7 +203,8 @@ impl WasmRuntime {
         contract_address: &Address,
     ) -> Result<Vec<u8>> {
         // Get current counter value
-        let current = self.get_contract_state(contract_address, "counter")
+        let current = self
+            .get_contract_state(contract_address, "counter")
             .map(|v| u32::from_le_bytes(v.try_into().unwrap_or([0; 4])))
             .unwrap_or(0);
 
@@ -205,7 +212,11 @@ impl WasmRuntime {
         let new_value = current + 2;
 
         // Store new value
-        self.set_contract_state(contract_address, "counter", new_value.to_le_bytes().to_vec());
+        self.set_contract_state(
+            contract_address,
+            "counter",
+            new_value.to_le_bytes().to_vec(),
+        );
 
         // Return the new value
         Ok(new_value.to_le_bytes().to_vec())
@@ -219,7 +230,8 @@ impl WasmRuntime {
         contract_address: &Address,
     ) -> Result<Vec<u8>> {
         // Get current counter value, default to 2 if not set
-        let value = self.get_contract_state(contract_address, "counter")
+        let value = self
+            .get_contract_state(contract_address, "counter")
             .map(|v| u32::from_le_bytes(v.try_into().unwrap_or([0; 4])))
             .unwrap_or(2); // Default to 2 as per requirement
 
@@ -240,7 +252,13 @@ impl WasmRuntime {
         let mut hasher = Sha256::new();
         hasher.update(address.as_bytes());
         hasher.update(operation.as_bytes());
-        hasher.update(&SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos().to_le_bytes());
+        hasher.update(
+            &SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+                .to_le_bytes(),
+        );
         format!("0x{}", hex::encode(&hasher.finalize()[..32]))
     }
 
@@ -257,10 +275,14 @@ impl WasmRuntime {
     }
 
     /// Get execution history for a contract
-    pub fn get_execution_history(&self, contract_address: Option<&Address>) -> Vec<ContractExecution> {
+    pub fn get_execution_history(
+        &self,
+        contract_address: Option<&Address>,
+    ) -> Vec<ContractExecution> {
         let history = self.execution_history.lock().unwrap();
         match contract_address {
-            Some(addr) => history.iter()
+            Some(addr) => history
+                .iter()
                 .filter(|exec| &exec.contract_address == addr)
                 .cloned()
                 .collect(),
@@ -285,7 +307,7 @@ mod tests {
         let addr1 = runtime.generate_contract_address("hash1", "deployer1");
         let addr2 = runtime.generate_contract_address("hash1", "deployer2");
         let addr3 = runtime.generate_contract_address("hash2", "deployer1");
-        
+
         assert_ne!(addr1, addr2);
         assert_ne!(addr1, addr3);
         assert_ne!(addr2, addr3);

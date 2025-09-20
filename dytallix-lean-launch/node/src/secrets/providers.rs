@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Context, Result};
-use rand::{rngs::OsRng, RngCore};
-use serde::{Deserialize, Serialize};
 use base64::engine::general_purpose;
 use base64::Engine as _;
+use rand::{rngs::OsRng, RngCore};
+use serde::{Deserialize, Serialize};
 
 // Async traits for providers
 #[async_trait::async_trait]
@@ -23,7 +23,13 @@ pub struct VaultProvider {
 impl VaultProvider {
     pub fn new(base_url: String, token: String, kv_mount: String, path_base: String) -> Self {
         let client = reqwest::Client::new();
-        Self { base_url, token, kv_mount, path_base, client }
+        Self {
+            base_url,
+            token,
+            kv_mount,
+            path_base,
+            client,
+        }
     }
 
     fn data_url(&self, id: &str) -> String {
@@ -83,7 +89,9 @@ impl KeyProvider for VaultProvider {
     async fn put_validator_key(&self, id: &str, key: &[u8]) -> Result<()> {
         let url = self.data_url(id);
         let b64 = general_purpose::STANDARD.encode(key);
-        let payload = VaultWrite { data: VaultData { private_key: &b64 } };
+        let payload = VaultWrite {
+            data: VaultData { private_key: &b64 },
+        };
         let res = self
             .client
             .post(url)

@@ -481,12 +481,7 @@ mod tests {
         };
 
         queue
-            .enqueue_transaction(
-                transaction,
-                hex::encode(tx_hash),
-                ai_result,
-                risk_decision,
-            )
+            .enqueue_transaction(transaction, hex::encode(tx_hash), ai_result, risk_decision)
             .await
             .unwrap();
 
@@ -511,12 +506,7 @@ mod tests {
         };
 
         let queue_id = queue
-            .enqueue_transaction(
-                transaction,
-                hex::encode(tx_hash),
-                ai_result,
-                risk_decision,
-            )
+            .enqueue_transaction(transaction, hex::encode(tx_hash), ai_result, risk_decision)
             .await
             .unwrap();
 
@@ -557,12 +547,7 @@ mod tests {
         };
 
         queue
-            .enqueue_transaction(
-                transaction,
-                hex::encode(tx_hash),
-                ai_result,
-                risk_decision,
-            )
+            .enqueue_transaction(transaction, hex::encode(tx_hash), ai_result, risk_decision)
             .await
             .unwrap();
 

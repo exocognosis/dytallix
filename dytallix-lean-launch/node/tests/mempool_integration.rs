@@ -8,8 +8,8 @@ use dytallix_lean_node::storage::tx::Transaction;
 use std::sync::Arc;
 use tempfile::TempDir;
 // Added: PQC signing utilities and base64 encoder
-use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use dytallix_lean_node::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
 
 #[allow(clippy::too_many_arguments)]
 fn create_test_transaction(

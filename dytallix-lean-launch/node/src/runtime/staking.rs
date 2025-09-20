@@ -90,11 +90,8 @@ impl StakingModule {
 
             // Apply any pending emission too using the same residual carry
             if self.pending_staking_emission > 0 {
-                let scaled_pending = self
-                    .pending_staking_emission
-                    .saturating_mul(REWARD_SCALE);
-                let numerator_pending =
-                    self.reward_index_residual.saturating_add(scaled_pending);
+                let scaled_pending = self.pending_staking_emission.saturating_mul(REWARD_SCALE);
+                let numerator_pending = self.reward_index_residual.saturating_add(scaled_pending);
                 let pending_per_unit = numerator_pending / self.total_stake;
                 self.reward_index = self.reward_index.saturating_add(pending_per_unit);
                 self.reward_index_residual = numerator_pending % self.total_stake;
@@ -113,16 +110,27 @@ impl StakingModule {
                     .get("emission:last_height")
                     .ok()
                     .flatten()
-                    .and_then(|v| if v.len() == 8 { let mut a=[0u8;8]; a.copy_from_slice(&v); Some(u64::from_be_bytes(a)) } else { None })
+                    .and_then(|v| {
+                        if v.len() == 8 {
+                            let mut a = [0u8; 8];
+                            a.copy_from_slice(&v);
+                            Some(u64::from_be_bytes(a))
+                        } else {
+                            None
+                        }
+                    })
                     .unwrap_or(0)
             };
             if latest_height > 0 {
-                if let Some(mut event) = self.storage
+                if let Some(mut event) = self
+                    .storage
                     .db
                     .get(format!("emission:event:{}", latest_height))
                     .ok()
                     .flatten()
-                    .and_then(|v| bincode::deserialize::<crate::runtime::emission::EmissionEvent>(&v).ok())
+                    .and_then(|v| {
+                        bincode::deserialize::<crate::runtime::emission::EmissionEvent>(&v).ok()
+                    })
                 {
                     event.reward_index_after = Some(self.reward_index);
                     let _ = self.storage.db.put(
@@ -145,9 +153,7 @@ impl StakingModule {
 
         // If stake becomes > 0 and we have pending emission, apply it using carry-aware division
         if stake > 0 && self.pending_staking_emission > 0 {
-            let scaled_pending = self
-                .pending_staking_emission
-                .saturating_mul(REWARD_SCALE);
+            let scaled_pending = self.pending_staking_emission.saturating_mul(REWARD_SCALE);
             let numerator = self.reward_index_residual.saturating_add(scaled_pending);
             let pending_per_unit = numerator / stake;
             self.reward_index = self.reward_index.saturating_add(pending_per_unit);
@@ -288,10 +294,10 @@ impl StakingModule {
     }
 
     fn save_reward_residual(&self) {
-        let _ = self
-            .storage
-            .db
-            .put("staking:reward_residual", bincode::serialize(&self.reward_index_residual).unwrap());
+        let _ = self.storage.db.put(
+            "staking:reward_residual",
+            bincode::serialize(&self.reward_index_residual).unwrap(),
+        );
     }
 
     /// Delegate tokens to a validator

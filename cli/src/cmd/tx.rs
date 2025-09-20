@@ -271,7 +271,7 @@ pub async fn handle_broadcast(
     fmt: OutputFormat,
 ) -> Result<()> {
     use std::io::Read;
-    
+
     // Read signed transaction from file or stdin
     let tx_data = if c.tx_file == "-" {
         let mut buffer = String::new();
@@ -280,15 +280,15 @@ pub async fn handle_broadcast(
     } else {
         std::fs::read_to_string(&c.tx_file)?
     };
-    
+
     // Parse the signed transaction
     let signed_tx: SignedTx = serde_json::from_str(&tx_data.trim())
         .map_err(|e| anyhow!("Failed to parse signed transaction: {}", e))?;
-    
+
     // Submit to node
     let client = RpcClient::new(rpc_url);
     let result = client.submit(&signed_tx).await?;
-    
+
     if fmt.is_json() {
         print_json(&result)?;
     } else {
@@ -296,6 +296,6 @@ pub async fn handle_broadcast(
         println!("  Hash: {}", result.hash);
         println!("  Status: {}", result.status);
     }
-    
+
     Ok(())
 }

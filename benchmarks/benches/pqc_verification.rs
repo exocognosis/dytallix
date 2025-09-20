@@ -3,7 +3,7 @@
 //! This benchmark compares the performance of different PQC algorithms
 //! for transaction signature verification to help inform algorithm selection.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use dytallix_pqc::{PQCManager, SignatureAlgorithm};
 use std::time::Duration;
 
@@ -85,10 +85,7 @@ fn generate_performance_report() {
     println!("💡 **Recommendation**: Use Dilithium5 as default with Falcon1024 for high-frequency trading");
 }
 
-criterion_group!(
-    benches,
-    benchmark_pqc_verification,
-);
+criterion_group!(benches, benchmark_pqc_verification,);
 
 criterion_main!(benches);
 

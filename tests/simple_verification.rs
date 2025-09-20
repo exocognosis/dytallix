@@ -16,21 +16,21 @@ mod simple_verification_test {
         // Basic payload structure (without imports since we're testing compilation)
         struct TestPayload {
             asset_id: String,
-            amount: u64,
+            amount: u128,
             source_chain: String,
             dest_chain: String,
         }
 
         let payload = TestPayload {
             asset_id: "TEST_TOKEN".to_string(),
-            amount: 1000000,
+            amount: 1000000u128,
             source_chain: "ethereum".to_string(),
             dest_chain: "cosmos".to_string(),
         };
 
         // Basic assertions
         assert_eq!(payload.asset_id, "TEST_TOKEN");
-        assert_eq!(payload.amount, 1000000);
+        assert_eq!(payload.amount, 1000000u128);
         assert_eq!(payload.source_chain, "ethereum");
         assert_eq!(payload.dest_chain, "cosmos");
 

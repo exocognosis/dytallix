@@ -22,7 +22,8 @@ pub async fn init_validator_key() -> anyhow::Result<Option<usize>> {
 
     let maybe_key = if let (Some(url), Some(token)) = (vault_url, vault_token) {
         // Vault path config
-        let mount = std::env::var("DYTALLIX_VAULT_KV_MOUNT").unwrap_or_else(|_| "secret".to_string());
+        let mount =
+            std::env::var("DYTALLIX_VAULT_KV_MOUNT").unwrap_or_else(|_| "secret".to_string());
         let base = std::env::var("DYTALLIX_VAULT_PATH_BASE")
             .unwrap_or_else(|_| "dytallix/validators".to_string());
         let provider = providers::VaultProvider::new(url, token, mount, base);

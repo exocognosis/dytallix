@@ -13,7 +13,8 @@ pub trait PQC {
 // We emit a doc comment instead of a hard error to allow `--all-features` clippy runs.
 #[cfg(all(feature = "pqc-real", feature = "pqc-mock"))]
 #[allow(dead_code)]
-const _PQC_FEATURE_NOTE: &str = "Both 'pqc-real' and 'pqc-mock' enabled; using real Dilithium implementation";
+const _PQC_FEATURE_NOTE: &str =
+    "Both 'pqc-real' and 'pqc-mock' enabled; using real Dilithium implementation";
 
 #[cfg(feature = "pqc-real")]
 mod dilithium;

@@ -175,7 +175,9 @@ fn test_execution_context_fee_calculation() {
 #[test]
 fn test_execution_context_fee_overflow() {
     let ctx = ExecutionContext::new(u64::MAX, u64::MAX);
-    let fee = ctx.calculate_upfront_fee().expect("should not overflow for u64::MAX product");
+    let fee = ctx
+        .calculate_upfront_fee()
+        .expect("should not overflow for u64::MAX product");
     let expected = (u128::from(u64::MAX)) * (u128::from(u64::MAX));
     assert_eq!(fee, expected);
 }

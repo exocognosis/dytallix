@@ -23,6 +23,7 @@ use dytallix_lean_node::runtime::bridge; // import bridge module for validator i
 use dytallix_lean_node::runtime::emission::EmissionEngine;
 use dytallix_lean_node::runtime::governance::GovernanceModule;
 use dytallix_lean_node::runtime::staking::StakingModule;
+use dytallix_lean_node::secrets; // validator key providers (Vault / sealed keystore)
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::{
     blocks::{Block, TpsWindow},
@@ -30,7 +31,6 @@ use dytallix_lean_node::storage::{
     state::Storage,
 };
 use dytallix_lean_node::ws::server::{ws_handler, WsHub};
-use dytallix_lean_node::secrets; // validator key providers (Vault / sealed keystore)
 use std::sync::atomic::Ordering;
 
 #[tokio::main]
@@ -81,10 +81,11 @@ async fn main() -> anyhow::Result<()> {
     let vault_url = std::env::var("DYTALLIX_VAULT_URL")
         .ok()
         .or_else(|| std::env::var("VAULT_URL").ok());
-    let vault_token_present = std::env::var("DYTALLIX_VAULT_TOKEN").is_ok()
-        || std::env::var("VAULT_TOKEN").is_ok();
+    let vault_token_present =
+        std::env::var("DYTALLIX_VAULT_TOKEN").is_ok() || std::env::var("VAULT_TOKEN").is_ok();
     if let (Some(url), true) = (vault_url.clone(), vault_token_present) {
-        let mount = std::env::var("DYTALLIX_VAULT_KV_MOUNT").unwrap_or_else(|_| "secret".to_string());
+        let mount =
+            std::env::var("DYTALLIX_VAULT_KV_MOUNT").unwrap_or_else(|_| "secret".to_string());
         let base = std::env::var("DYTALLIX_VAULT_PATH_BASE")
             .unwrap_or_else(|_| "dytallix/validators".to_string());
         // Redact token; show only host portion of URL
@@ -95,17 +96,13 @@ async fn main() -> anyhow::Result<()> {
             .split('/')
             .next()
             .unwrap_or(&url);
-        println!(
-            "Secrets mode: Vault (KV v2) url_host={host} mount={mount} base={base}"
-        );
+        println!("Secrets mode: Vault (KV v2) url_host={host} mount={mount} base={base}");
     } else {
         let dir = std::env::var("DYT_KEYSTORE_DIR").unwrap_or_else(|_| {
             let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
             format!("{home}/.dytallix/keystore")
         });
-        println!(
-            "Secrets mode: Plain Keystore (dev) path={dir} — no passphrase required"
-        );
+        println!("Secrets mode: Plain Keystore (dev) path={dir} — no passphrase required");
     }
 
     // Load validator private key securely (Vault preferred, sealed keystore fallback)
@@ -404,7 +401,10 @@ async fn main() -> anyhow::Result<()> {
         app = app
             .route("/contracts/deploy", post(rpc::contracts_deploy))
             .route("/contracts/call", post(rpc::contracts_call))
-            .route("/contracts/state/:contract_address/:key", get(rpc::contracts_state));
+            .route(
+                "/contracts/state/:contract_address/:key",
+                get(rpc::contracts_state),
+            );
     }
 
     // Oracle routes

@@ -962,9 +962,15 @@ pub fn execute_update_bridge_params(
         return Err(ContractError::Unauthorized {});
     }
 
-    if let Some(fee) = bridge_fee { state.bridge_fee = fee; }
-    if let Some(min_amt) = min_bridge_amount { state.min_bridge_amount = min_amt; }
-    if let Some(max_amt) = max_bridge_amount { state.max_bridge_amount = max_amt; }
+    if let Some(fee) = bridge_fee {
+        state.bridge_fee = fee;
+    }
+    if let Some(min_amt) = min_bridge_amount {
+        state.min_bridge_amount = min_amt;
+    }
+    if let Some(max_amt) = max_bridge_amount {
+        state.max_bridge_amount = max_amt;
+    }
     if state.min_bridge_amount > state.max_bridge_amount {
         return Err(ContractError::AmountAboveMaximum {}); // reuse as validation error (could define new error)
     }
@@ -1087,7 +1093,10 @@ mod tests {
             ExecuteMsg::Pause {},
         )
         .unwrap();
-        assert_eq!(pause_res.attributes.iter().any(|a| a.value == "paused"), true);
+        assert_eq!(
+            pause_res.attributes.iter().any(|a| a.value == "paused"),
+            true
+        );
 
         // Unpause
         let unpause_res = execute(
@@ -1097,6 +1106,9 @@ mod tests {
             ExecuteMsg::Unpause {},
         )
         .unwrap();
-        assert_eq!(unpause_res.attributes.iter().any(|a| a.value == "active"), true);
+        assert_eq!(
+            unpause_res.attributes.iter().any(|a| a.value == "active"),
+            true
+        );
     }
 }

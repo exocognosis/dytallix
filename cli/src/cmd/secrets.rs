@@ -89,7 +89,8 @@ async fn put_vault(validator_id: &str, key: &[u8]) -> Result<()> {
         .or_else(|| std::env::var("VAULT_TOKEN").ok())
         .ok_or_else(|| anyhow!("VAULT_TOKEN/DYTALLIX_VAULT_TOKEN not set"))?;
     let mount = std::env::var("DYTALLIX_VAULT_KV_MOUNT").unwrap_or_else(|_| "secret".to_string());
-    let base = std::env::var("DYTALLIX_VAULT_PATH_BASE").unwrap_or_else(|_| "dytallix/validators".to_string());
+    let base = std::env::var("DYTALLIX_VAULT_PATH_BASE")
+        .unwrap_or_else(|_| "dytallix/validators".to_string());
     let url = format!(
         "{}/v1/{}/data/{}/{}",
         base_url.trim_end_matches('/'),
@@ -98,11 +99,17 @@ async fn put_vault(validator_id: &str, key: &[u8]) -> Result<()> {
         validator_id
     );
     #[derive(Serialize)]
-    struct VaultWrite<'a> { data: VaultData<'a> }
+    struct VaultWrite<'a> {
+        data: VaultData<'a>,
+    }
     #[derive(Serialize)]
-    struct VaultData<'a> { private_key: &'a str }
+    struct VaultData<'a> {
+        private_key: &'a str,
+    }
     let b64 = general_purpose::STANDARD.encode(key);
-    let payload = VaultWrite { data: VaultData { private_key: &b64 } };
+    let payload = VaultWrite {
+        data: VaultData { private_key: &b64 },
+    };
     let client = reqwest::Client::new();
     let res = client
         .post(url)
@@ -149,26 +156,37 @@ fn put_keystore(validator_id: &str, key: &[u8]) -> Result<PathBuf> {
 
 pub async fn run(cmd: SecretsCmd) -> Result<()> {
     match cmd.action {
-        SecretsAction::RotateValidator { validator_id, length, backup_plaintext_path } => {
+        SecretsAction::RotateValidator {
+            validator_id,
+            length,
+            backup_plaintext_path,
+        } => {
             // Generate new key material (in-memory)
             let mut key = vec![0u8; length];
             OsRng.fill_bytes(&mut key);
 
-            let vault_url_present = std::env::var("DYTALLIX_VAULT_URL").is_ok() || std::env::var("VAULT_URL").is_ok();
-            let vault_token_present = std::env::var("DYTALLIX_VAULT_TOKEN").is_ok() || std::env::var("VAULT_TOKEN").is_ok();
+            let vault_url_present =
+                std::env::var("DYTALLIX_VAULT_URL").is_ok() || std::env::var("VAULT_URL").is_ok();
+            let vault_token_present = std::env::var("DYTALLIX_VAULT_TOKEN").is_ok()
+                || std::env::var("VAULT_TOKEN").is_ok();
 
             if vault_url_present && vault_token_present {
                 put_vault(&validator_id, &key).await?;
-                info!("event=validator_key_rotated mode=vault validator_id={}", validator_id);
+                info!(
+                    "event=validator_key_rotated mode=vault validator_id={}",
+                    validator_id
+                );
                 println!(
                     "Rotated validator key via Vault for id={} ({} bytes).",
-                    validator_id,
-                    length
+                    validator_id, length
                 );
             } else {
                 let path = put_keystore(&validator_id, &key)?;
-                info!("event=validator_key_rotated mode=keystore path={} validator_id={}"
-                    , path.display(), validator_id);
+                info!(
+                    "event=validator_key_rotated mode=keystore path={} validator_id={}",
+                    path.display(),
+                    validator_id
+                );
                 println!(
                     "Rotated validator key in sealed keystore at {} for id={} ({} bytes).",
                     path.display(),
@@ -186,4 +204,3 @@ pub async fn run(cmd: SecretsCmd) -> Result<()> {
     }
     Ok(())
 }
-

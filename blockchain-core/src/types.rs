@@ -59,7 +59,7 @@ pub mod serde_string_or_number {
 
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u128, D::Error> {
         struct U128Visitor;
-        
+
         impl<'de> de::Visitor<'de> for U128Visitor {
             type Value = u128;
 
