@@ -62,8 +62,8 @@ pub struct NetworkConditions {
 pub struct TokenProperties {
     pub token_type: TokenType,
     pub decimal_places: u8,
-    pub total_supply: u64,
-    pub transfer_amount: u64,
+    pub total_supply: u128,
+    pub transfer_amount: u128,
     pub has_special_logic: bool,
 }
 
