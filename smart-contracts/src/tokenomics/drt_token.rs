@@ -278,7 +278,7 @@ pub extern "C" fn drt_transfer(
     from_len: usize,
     to_ptr: *const u8,
     to_len: usize,
-    amount: u128, // TODO: WASM ABI might need u64 for compatibility
+    amount: u64, // Changed from u128 for FFI safety
 ) -> i32 {
     0
 }
@@ -289,7 +289,7 @@ pub extern "C" fn drt_mint(
     token_ptr: *mut DRTToken,
     to_ptr: *const u8,
     to_len: usize,
-    amount: u128, // TODO: WASM ABI might need u64 for compatibility
+    amount: u64, // Changed from u128 for FFI safety
     caller_ptr: *const u8,
     caller_len: usize,
 ) -> i32 {
@@ -302,7 +302,7 @@ pub extern "C" fn drt_burn(
     token_ptr: *mut DRTToken,
     from_ptr: *const u8,
     from_len: usize,
-    amount: u128, // TODO: WASM ABI might need u64 for compatibility
+    amount: u64, // Changed from u128 for FFI safety
 ) -> i32 {
     0
 }

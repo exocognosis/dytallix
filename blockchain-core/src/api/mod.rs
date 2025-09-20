@@ -1,3 +1,4 @@
+use crate::amounts::Tokens;
 use crate::crypto::PQCManager;
 use base64::Engine as _;
 use futures_util::{SinkExt, StreamExt};
@@ -35,10 +36,10 @@ struct BlockInfo {
 struct TransferRequest {
     from: String,
     to: String,
-    #[serde(with = "crate::types::serde_string_or_number")]
-    amount: u128,
-    #[serde(with = "crate::types::serde_string_or_number")]
-    fee: Option<u128>,
+    #[serde(with = "crate::amounts::serde_string_or_number")]
+    amount: Tokens,
+    #[serde(with = "crate::amounts::serde_string_or_number")]
+    fee: Option<Tokens>,
     nonce: Option<u64>,
     signature: Option<TransferSignature>,
 }
@@ -234,7 +235,7 @@ impl<T> ApiResponse<T> {
 
 // Address validation regex (dyt1 + 10+ lowercase alphanumerics)
 static ADDRESS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^dyt1[0-9a-z]{10,}$").unwrap());
-const MIN_FEE: u128 = 1;
+const MIN_FEE: Tokens = 1;
 const MAX_TX_BODY: usize = 8192;
 
 fn runtime_mocks() -> bool {

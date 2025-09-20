@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::amounts::Tokens;
 use crate::consensus::{
     replay_protection::{ReplayProtectionConfig, ReplayProtectionManager},
     signature_verification::{OracleRegistryEntry, SignatureVerifier, VerificationConfig},
@@ -280,7 +281,7 @@ impl AIIntegrationManager {
     pub async fn register_oracle(
         &self,
         oracle_identity: crate::consensus::OracleIdentity,
-        stake_amount: u128,
+        stake_amount: Tokens,
     ) -> Result<()> {
         self.verifier.register_oracle(oracle_identity, stake_amount)
     }

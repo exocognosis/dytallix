@@ -400,7 +400,7 @@ impl TransactionValidator {
                 analysis_data.insert("to".to_string(), Value::String(transfer_tx.to.clone()));
                 analysis_data.insert(
                     "amount".to_string(),
-                    Value::Number(transfer_tx.amount.into()),
+                    Value::String(transfer_tx.amount.to_string()),
                 );
                 analysis_data.insert("type".to_string(), Value::String("transfer".to_string()));
             }
