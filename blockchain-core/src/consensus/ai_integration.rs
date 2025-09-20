@@ -16,6 +16,7 @@ use crate::consensus::{
     signature_verification::{OracleRegistryEntry, SignatureVerifier, VerificationConfig},
     AIOracleClient, AIResponsePayload, AIServiceConfig, SignedAIOracleResponse,
 };
+use crate::types::Amount as Tokens;
 
 /// Risk-based processing decision
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -280,9 +281,10 @@ impl AIIntegrationManager {
     pub async fn register_oracle(
         &self,
         oracle_identity: crate::consensus::OracleIdentity,
-        stake_amount: u128,
+        stake_amount: Tokens,
     ) -> Result<()> {
-        self.verifier.register_oracle(oracle_identity, stake_amount)
+        self.verifier
+            .register_oracle(oracle_identity, stake_amount.try_into().unwrap())
     }
 
     /// Verify a signed AI response

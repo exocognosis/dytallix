@@ -11,6 +11,7 @@ use crate::staking::{
     Validator,
 };
 use crate::storage::StorageManager;
+use crate::types::Amount as Tokens;
 use crate::types::{Address, BlockNumber};
 use crate::types::{Transaction, TxReceipt, TxStatus};
 use crate::wasm::host_env::{HostEnv, HostExecutionContext}; // keep host env
@@ -402,11 +403,10 @@ impl DytallixRuntime {
         &self,
         delegator: Address,
         validator: Address,
-        amount: u128,
+        amount: Tokens,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Check if delegator has sufficient DGT balance
-        let dgt_balance = self.get_balance(&delegator).await? as u128;
-        let amount_u64 = amount as u64; // Convert for balance check (assuming u64 precision is sufficient)
+        let dgt_balance = self.get_balance(&delegator).await?;
 
         if dgt_balance < amount {
             return Err(Box::new(StakingError::InsufficientFunds));
@@ -416,12 +416,12 @@ impl DytallixRuntime {
 
         // Lock DGT tokens by reducing balance
         let current_balance = state.balances.get(&delegator).copied().unwrap_or(0);
-        if current_balance < amount_u64 {
+        if current_balance < amount {
             return Err(Box::new(StakingError::InsufficientFunds));
         }
         state
             .balances
-            .insert(delegator.clone(), current_balance - amount_u64);
+            .insert(delegator.clone(), current_balance - amount);
 
         // Create delegation
         state.staking.delegate(delegator, validator, amount)?;

@@ -1,3 +1,4 @@
+use crate::types::Amount as Tokens;
 use crate::types::{
     AccountState, Address, Amount, Block, BlockNumber, Timestamp, Transaction,
     Transaction as TxEnum, TxReceipt,
@@ -146,7 +147,7 @@ impl StorageManager {
                             ) {
                                 if addr.starts_with("dyt1") {
                                     let acct = AccountState {
-                                        balance: amount,
+                                        balance: amount as u128,
                                         ..Default::default()
                                     };
                                     self.store_account_state(addr, &acct)?;
@@ -236,14 +237,14 @@ impl StorageManager {
     pub async fn get_address_balance(
         &self,
         address: &str,
-    ) -> Result<u64, Box<dyn std::error::Error>> {
+    ) -> Result<Tokens, Box<dyn std::error::Error>> {
         Ok(self.get_account_state(address)?.balance)
     }
     /// External API: Set (overwrite) address balance (used only in tests / genesis)
     pub async fn _set_address_balance(
         &self,
         address: &str,
-        balance: u64,
+        balance: Tokens,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut st = self.get_account_state(address)?;
         st.balance = balance;

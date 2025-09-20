@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+pub mod amounts;
 pub mod api;
 pub mod config;
 pub mod consensus;

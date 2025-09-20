@@ -267,16 +267,16 @@ impl GenesisConfig {
         let validators = vec![
             ValidatorInfo {
                 address: "dyt1validator1000000000000000000000000000".to_string(),
-                // Using 32 DGT with 6 decimals instead of 18 to fit into u64 (example adjustment)
-                stake: 32_000_000_000_000u64, // 32 * 10^12 (represents 32 DGT if 12 decimals)
-                public_key: vec![0u8; 32],    // Placeholder - would be real keys in production
+                // Using 32 DGT with 6 decimals instead of 18 to fit into u128
+                stake: 32_000_000_000_000u128, // 32 * 10^12 (represents 32 DGT if 12 decimals)
+                public_key: vec![0u8; 32],     // Placeholder - would be real keys in production
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
                 commission: 500, // 5% commission
             },
             ValidatorInfo {
                 address: "dyt1validator2000000000000000000000000000".to_string(),
-                stake: 32_000_000_000_000u64,
+                stake: 32_000_000_000_000u128,
                 public_key: vec![1u8; 32],
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
@@ -284,7 +284,7 @@ impl GenesisConfig {
             },
             ValidatorInfo {
                 address: "dyt1validator3000000000000000000000000000".to_string(),
-                stake: 32_000_000_000_000u64,
+                stake: 32_000_000_000_000u128,
                 public_key: vec![2u8; 32],
                 signature_algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
                 active: true,
@@ -302,7 +302,7 @@ impl GenesisConfig {
 
         // Staking configuration
         let staking = StakingConfig {
-            minimum_validator_stake: 32_000_000_000_000u64,
+            minimum_validator_stake: 32_000_000_000_000u128,
             max_validators: 100,
             double_sign_slash_rate: 500,   // 5% slash for double signing
             downtime_slash_rate: 100,      // 1% slash for downtime

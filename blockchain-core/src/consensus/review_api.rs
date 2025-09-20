@@ -14,6 +14,15 @@ use crate::consensus::high_risk_queue::{
     HighRiskQueue, QueueStatistics, QueuedTransaction, ReviewPriority,
 };
 
+// Helper function to convert tokens (u128) to gas-sized value (u64) if it fits
+fn tokens_to_gas(tokens: u128) -> Option<u64> {
+    if tokens <= u64::MAX as u128 {
+        Some(tokens as u64)
+    } else {
+        None
+    }
+}
+
 /// Request to approve a transaction
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApprovalRequest {
@@ -214,7 +223,7 @@ impl TransactionReviewApi {
         let (transaction_type, amount, from_address, to_address) = match &tx.transaction {
             crate::types::Transaction::Transfer(transfer) => (
                 "Transfer".to_string(),
-                Some(transfer.amount),
+                tokens_to_gas(transfer.amount),
                 Some(transfer.from.clone()),
                 Some(transfer.to.clone()),
             ),
@@ -227,7 +236,7 @@ impl TransactionReviewApi {
             ),
             crate::types::Transaction::Stake(stake) => (
                 "Stake".to_string(),
-                Some(stake.amount),
+                tokens_to_gas(stake.amount),
                 Some(stake.validator.clone()),
                 None,
             ),

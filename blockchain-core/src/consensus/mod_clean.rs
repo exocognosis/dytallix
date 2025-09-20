@@ -10,6 +10,11 @@ use crate::crypto::PQCManager;
 use crate::runtime::DytallixRuntime;
 use crate::types::{AIServiceType, Block, BlockHeader, Transaction, TransferTransaction}; // Import from types
 
+// Helper function to convert gas (u64) to tokens (u128)
+fn gas_to_tokens(gas: u64) -> u128 {
+    gas as u128
+}
+
 // AI Service Integration
 use anyhow::{anyhow, Result};
 use reqwest::Client;
@@ -425,8 +430,8 @@ impl ConsensusEngine {
                     hash: String::new(), // Will be calculated
                     from: "dyt1genesis".to_string(),
                     to: format!("dyt1addr{}", block_number % 5), // Rotate between addresses
-                    amount: 100 + (block_number * 10),           // Variable amounts
-                    fee: 1,
+                    amount: 100u128 + (block_number as u128 * 10), // Variable amounts as u128
+                    fee: 1u128,
                     nonce: block_number,
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
@@ -976,7 +981,7 @@ impl ConsensusEngine {
             .await
             .map_err(|e| e.to_string())?;
 
-        let gas_cost = deploy_tx.gas_limit * deploy_tx.gas_price;
+        let gas_cost = gas_to_tokens(deploy_tx.gas_limit * deploy_tx.gas_price);
         if deployer_balance < gas_cost {
             return Ok(false);
         }
@@ -1013,7 +1018,7 @@ impl ConsensusEngine {
             .await
             .map_err(|e| e.to_string())?;
 
-        let gas_cost = call_tx.gas_limit * call_tx.gas_price;
+        let gas_cost = gas_to_tokens(call_tx.gas_limit * call_tx.gas_price);
         let total_cost = gas_cost + call_tx.value;
 
         if caller_balance < total_cost {
