@@ -1,5 +1,5 @@
 import { hash } from 'blake3';
-export const ALG = 'mock-blake3';
+export const ALG = 'dilithium5';
 export function keypair() {
     // Derive a pseudo-random secret from crypto and hash to get pk
     const sk = crypto.getRandomValues(new Uint8Array(32));

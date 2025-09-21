@@ -30,6 +30,8 @@ use base64;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -150,6 +152,16 @@ fn validate_signed_tx(
     Ok(())
 }
 
+fn append_submit_log(entry: &serde_json::Value) {
+    let dir = std::path::PathBuf::from("launch-evidence/tx");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("submit_demo.log");
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(path) {
+        let line = serde_json::to_string(entry).unwrap_or_else(|_| "{}".to_string());
+        let _ = writeln!(f, "{}", line);
+    }
+}
+
 #[axum::debug_handler]
 pub async fn submit(
     ctx: Extension<RpcContext>,
@@ -157,12 +169,26 @@ pub async fn submit(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let signed_tx = body.signed_tx;
 
+    // Precompute basic info for logging
+    let base_log = |accepted: bool, detail: serde_json::Value| {
+        json!({
+            "ts": current_timestamp(),
+            "accepted": accepted,
+            "detail": detail
+        })
+    };
+
     // Get chain ID and first sender address
     let chain_id = ctx.storage.get_chain_id().unwrap_or_default();
     let from = signed_tx.first_from_address().ok_or_else(|| {
-        ApiError::Validation(ValidationError::Internal(
+        let err = ApiError::Validation(ValidationError::Internal(
             "no sender address found".to_string(),
-        ))
+        ));
+        append_submit_log(&base_log(false, json!({
+            "reason": "no_sender",
+            "chain_id": chain_id,
+        })));
+        err
     })?;
 
     // Get current nonce and account state
@@ -172,22 +198,58 @@ pub async fn submit(
     drop(state);
 
     // Validate the signed transaction
-    validate_signed_tx(&signed_tx, &chain_id, current_nonce, &account_state)?;
+    if let Err(ve) = validate_signed_tx(&signed_tx, &chain_id, current_nonce, &account_state) {
+        let detail = match &ve {
+            ValidationError::InvalidChainId { expected, got } => json!({
+                "error": "INVALID_CHAIN_ID", "expected": expected, "got": got, "from": from, "nonce": signed_tx.tx.nonce
+            }),
+            ValidationError::InvalidNonce { expected, got } => json!({
+                "error": "INVALID_NONCE", "expected": expected, "got": got, "from": from, "nonce": signed_tx.tx.nonce
+            }),
+            ValidationError::InvalidSignature => json!({
+                "error": "INVALID_SIGNATURE", "from": from, "nonce": signed_tx.tx.nonce
+            }),
+            ValidationError::InsufficientFunds { required, available } => json!({
+                "error": "INSUFFICIENT_FUNDS", "required": required.to_string(), "available": available.to_string(), "from": from, "nonce": signed_tx.tx.nonce
+            }),
+            ValidationError::DuplicateTransaction => json!({
+                "error": "DUPLICATE_TRANSACTION", "from": from, "nonce": signed_tx.tx.nonce
+            }),
+            ValidationError::MempoolFull => json!({
+                "error": "MEMPOOL_FULL", "from": from, "nonce": signed_tx.tx.nonce
+            }),
+            ValidationError::Internal(msg) => json!({
+                "error": "INTERNAL_ERROR", "message": msg, "from": from, "nonce": signed_tx.tx.nonce
+            }),
+        };
+        append_submit_log(&base_log(false, detail));
+        return Err(ApiError::from(ve));
+    }
 
     // Generate transaction hash
     let tx_hash = signed_tx.tx_hash().map_err(|_| {
-        ApiError::Validation(ValidationError::Internal(
+        let err = ApiError::Validation(ValidationError::Internal(
             "failed to generate tx hash".to_string(),
-        ))
+        ));
+        append_submit_log(&base_log(false, json!({
+            "error": "INTERNAL_ERROR", "message": "tx_hash_failed", "from": from, "nonce": signed_tx.tx.nonce
+        })));
+        err
     })?;
 
     // Check for duplicate transaction
     {
         let mempool = ctx.mempool.lock().unwrap();
         if mempool.contains(&tx_hash) {
+            append_submit_log(&base_log(false, json!({
+                "error": "DUPLICATE_TRANSACTION", "tx_hash": tx_hash, "from": from
+            })));
             return Err(ApiError::Validation(ValidationError::DuplicateTransaction));
         }
         if mempool.is_full() {
+            append_submit_log(&base_log(false, json!({
+                "error": "MEMPOOL_FULL", "tx_hash": tx_hash
+            })));
             return Err(ApiError::Validation(ValidationError::MempoolFull));
         }
     }
@@ -209,14 +271,23 @@ pub async fn submit(
         let state = ctx.state.lock().unwrap();
         if let Err(e) = basic_validate(&state, &legacy_tx) {
             if e.starts_with("InvalidNonce") {
+                append_submit_log(&base_log(false, json!({
+                    "error": "INVALID_NONCE", "expected": current_nonce, "got": signed_tx.tx.nonce, "tx_hash": tx_hash
+                })));
                 return Err(ApiError::InvalidNonce {
                     expected: current_nonce,
                     got: signed_tx.tx.nonce,
                 });
             }
             if e.contains("InsufficientBalance") {
+                append_submit_log(&base_log(false, json!({
+                    "error": "INSUFFICIENT_FUNDS", "tx_hash": tx_hash
+                })));
                 return Err(ApiError::InsufficientFunds);
             }
+            append_submit_log(&base_log(false, json!({
+                "error": "INTERNAL_ERROR", "message": e, "tx_hash": tx_hash
+            })));
             return Err(ApiError::Internal);
         }
     }
@@ -226,24 +297,40 @@ pub async fn submit(
         let mut mempool = ctx.mempool.lock().unwrap();
         // Use add_transaction directly to capture detailed rejection reasons
         if let Err(reason) = mempool.add_transaction(&State::default(), legacy_tx.clone()) {
-            return Err(match reason {
-                crate::mempool::RejectionReason::InvalidSignature => ApiError::InvalidSignature,
-                crate::mempool::RejectionReason::NonceGap { expected, got } => {
-                    ApiError::InvalidNonce { expected, got }
+            let (api_err, code) = match reason {
+                crate::mempool::RejectionReason::InvalidSignature => {
+                    (ApiError::InvalidSignature, "INVALID_SIGNATURE")
                 }
-                crate::mempool::RejectionReason::InsufficientFunds => ApiError::InsufficientFunds,
+                crate::mempool::RejectionReason::NonceGap { expected, got } => {
+                    let e = ApiError::InvalidNonce { expected, got };
+                    append_submit_log(&base_log(false, json!({
+                        "error": "INVALID_NONCE", "expected": expected, "got": got, "tx_hash": tx_hash
+                    })));
+                    return Err(e);
+                }
+                crate::mempool::RejectionReason::InsufficientFunds => {
+                    (ApiError::InsufficientFunds, "INSUFFICIENT_FUNDS")
+                }
                 crate::mempool::RejectionReason::UnderpricedGas { .. } => {
-                    ApiError::BadRequest("underpriced gas".to_string())
+                    (ApiError::BadRequest("underpriced gas".to_string()), "UNDERPRICED_GAS")
                 }
                 crate::mempool::RejectionReason::OversizedTx { .. } => {
-                    ApiError::BadRequest("oversized transaction".to_string())
+                    (ApiError::BadRequest("oversized transaction".to_string()), "OVERSIZED_TX")
                 }
-                crate::mempool::RejectionReason::Duplicate(_) => ApiError::DuplicateTx,
+                crate::mempool::RejectionReason::Duplicate(_) => {
+                    (ApiError::DuplicateTx, "DUPLICATE_TRANSACTION")
+                }
                 crate::mempool::RejectionReason::PolicyViolation(msg) => {
-                    ApiError::BadRequest(format!("policy violation: {msg}"))
+                    (ApiError::BadRequest(format!("policy violation: {msg}")), "POLICY_VIOLATION")
                 }
-                crate::mempool::RejectionReason::InternalError(_) => ApiError::Internal,
-            });
+                crate::mempool::RejectionReason::InternalError(_) => {
+                    (ApiError::Internal, "INTERNAL_ERROR")
+                }
+            };
+            append_submit_log(&base_log(false, json!({
+                "error": code, "tx_hash": tx_hash
+            })));
+            return Err(api_err);
         }
     }
 
@@ -261,6 +348,15 @@ pub async fn submit(
         "type": "new_transaction",
         "hash": tx_hash
     }));
+
+    // Success evidence log
+    append_submit_log(&base_log(true, json!({
+        "tx_hash": tx_hash,
+        "from": from,
+        "nonce": signed_tx.tx.nonce,
+        "fee": signed_tx.tx.fee.to_string(),
+        "chain_id": chain_id
+    })));
 
     Ok(Json(json!({
         "hash": tx_hash,

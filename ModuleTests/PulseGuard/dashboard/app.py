@@ -9,6 +9,7 @@ import streamlit as st
 import plotly.express as px
 from plotly.subplots import make_subplots  # type: ignore
 import plotly.graph_objects as go  # type: ignore
+import re
 
 # Optional sklearn metrics for PR/ROC
 try:  # type: ignore
@@ -210,10 +211,21 @@ if col_refresh.button("Refresh now"):
     _rerun()
 
 st.sidebar.write("Latest Artifacts:")
-artifacts = sorted([p for p in ART_DIR.glob("*") if p.is_dir()], reverse=True)[:25]
+# Only include timestamped run directories like 20250920T144632Z (exclude 'gan', etc.)
+artifacts = sorted(
+    [p for p in ART_DIR.glob("*") if p.is_dir() and re.match(r"^\d{8}T\d{6}Z$", p.name)],
+    reverse=True,
+)[:25]
 
 if follow_latest:
-    selected = artifacts[0].name if artifacts else "<none>"
+    # Prefer the newest directory that already has results.csv
+    selected = "<none>"
+    for d in artifacts:
+        if (d / "results.csv").exists():
+            selected = d.name
+            break
+    if selected == "<none>" and artifacts:
+        selected = artifacts[0].name
     st.sidebar.caption(f"Following: {selected}")
 else:
     selected = st.sidebar.selectbox("Run", [a.name for a in artifacts] if artifacts else ["<none>"])
@@ -307,6 +319,14 @@ if selected != "<none>":
                     fig_nl.update_yaxes(title_text="tps", secondary_y=True)
                     st.plotly_chart(fig_nl, use_container_width=True)
 
+                # Mempool gas pressure (moved here to left column, third row)
+                if "mempool_gas_pressure" in dfv.columns:
+                    fig_gp_left = px.line(dfv, x="time", y="mempool_gas_pressure", title="Mempool Gas Pressure",
+                                          color_discrete_sequence=[PALETTE[5]])
+                    fig_gp_left.update_traces(mode="lines+markers", line_shape="spline")
+                    fig_gp_left.update_layout(height=240)
+                    st.plotly_chart(fig_gp_left, use_container_width=True)
+
             with col2:
                 # API latency (or fallback build time)
                 if "api_latency_ms" in dfv.columns and dfv["api_latency_ms"].notna().any():
@@ -338,15 +358,7 @@ if selected != "<none>":
                                          nbins=30, barmode="overlay", title="Score Distribution: Baseline vs GAN")
                     st.plotly_chart(fig_g, use_container_width=True)
 
-                # Mempool gas pressure
-                if "mempool_gas_pressure" in dfv.columns:
-                    fig_gp = px.line(dfv, x="time", y="mempool_gas_pressure", title="Mempool Gas Pressure",
-                                     color_discrete_sequence=[PALETTE[5]])
-                    fig_gp.update_traces(mode="lines+markers", line_shape="spline")
-                    fig_gp.update_layout(height=240)
-                    st.plotly_chart(fig_gp, use_container_width=True)
-
-                # Optional: Resource usage
+                # Resource usage (single set)
                 rcol1, rcol2 = st.columns(2)
                 with rcol1:
                     if "cpu_pct" in dfv.columns and dfv["cpu_pct"].notna().any():
@@ -597,12 +609,27 @@ if selected != "<none>":
                 """
             )
 
-        # Auto-refresh logic (kept simple for compatibility across streamlit versions)
-        if auto_refresh:
-            st.caption(f"Auto-refreshing every {refresh_interval}s…")
-            time.sleep(refresh_interval)
-            _rerun()
-    else:
-        st.info("No results.csv found in selected run.")
+            # --- GAN mode overview ---
+            st.subheader("GAN mode")
+            st.markdown(
+                """
+                - When enabled, the generator injects synthetic traffic labeled `is_gan=1` alongside baseline data.
+                - Modes: `near_normal` (subtle distribution shifts) and `adversarial` (hard-to-detect anomalies).
+                - `GAN mix ratio` sets what fraction of events come from the GAN stream.
+                - The dashboard compares baseline vs GAN in the "Score Distribution" chart and metrics.
+                - Useful for robustness testing, drift simulation, and stress-testing detection thresholds.
+                """
+            )
+
+    # Auto-refresh logic (kept simple for compatibility across streamlit versions)
+    if auto_refresh:
+        st.caption(f"Auto-refreshing every {refresh_interval}s…")
+        time.sleep(refresh_interval)
+        _rerun()
 else:
     st.info("No artifacts yet. Run `make test-pulseguard` or use 'Run 10s Test'.")
+    # Keep polling for artifacts to be created
+    if auto_refresh:
+        st.caption(f"Waiting for new run… refreshing every {refresh_interval}s…")
+        time.sleep(refresh_interval)
+        _rerun()

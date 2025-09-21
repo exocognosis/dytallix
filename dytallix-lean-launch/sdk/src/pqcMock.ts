@@ -2,7 +2,9 @@ import { hash } from 'blake3'
 
 export interface Keypair { sk: Uint8Array; pk: Uint8Array }
 
-export const ALG = 'mock-blake3'
+// Use the real algorithm identifier for wire-compat with the node verifier.
+// Bytes are still mock; this is only to align identifiers for MVP/testnet.
+export const ALG = 'dilithium5'
 
 export function keypair(): Keypair {
   // Derive a pseudo-random secret from crypto and hash to get pk

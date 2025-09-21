@@ -3,8 +3,12 @@ set -euo pipefail
 
 # Config
 RPC_URL="${DYTALLIX_RPC_URL:-http://127.0.0.1:8545}"
+CLI_BIN="dytx"
 OUT_DIR="launch-evidence/cli"
-mkdir -p "$OUT_DIR"
+CONTRACT_LOG="launch-evidence/contracts/counter_demo.log"
+mkdir -p "$OUT_DIR" "$(dirname "$CONTRACT_LOG")"
+
+jq --version >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
 
 echo "Using RPC: $RPC_URL"
 
@@ -30,23 +34,42 @@ dytx --rpc "$RPC_URL" --output json gov tally --proposal "$PID" | jq . >"$OUT_DI
 
 # 2) WASM: deploy -> exec twice -> query
 
-if [[ -f "examples/counter.wasm" ]]; then
-  WASM=examples/counter.wasm
-else
-  # Minimal placeholder wasm; this path may not exist in all repos
-  echo "WASM example not found at examples/counter.wasm; skipping deploy"
+# Locate contract artifact
+WASM="examples/counter.wasm"
+if [[ ! -f "$WASM" ]]; then
+  ALT="dytallix-lean-launch/artifacts/counter.wasm"
+  if [[ -f "$ALT" ]]; then WASM="$ALT"; fi
+fi
+
+if [[ ! -f "$WASM" ]]; then
+  echo "WASM example not found at examples/counter.wasm or $ALT; skipping deploy" >&2
   exit 0
 fi
 
-ADDR=$(dytx --rpc "$RPC_URL" --output json contract deploy --wasm "$WASM" | jq -r .address)
-echo "Contract: $ADDR"
+# Clear previous log
+: > "$CONTRACT_LOG"
 
-dytx --rpc "$RPC_URL" contract exec --address "$ADDR" --method increment
-dytx --rpc "$RPC_URL" contract exec --address "$ADDR" --method increment
+# Deploy
+DEPLOY_JSON=$($CLI_BIN --rpc "$RPC_URL" --output json contract deploy --wasm "$WASM")
+echo "$DEPLOY_JSON" | jq -c . >> "$CONTRACT_LOG"
+ADDR=$(echo "$DEPLOY_JSON" | jq -r .address)
+CODE_HASH=$(echo "$DEPLOY_JSON" | jq -r .code_hash 2>/dev/null || echo null)
+TX_DEPLOY=$(echo "$DEPLOY_JSON" | jq -r .tx_hash 2>/dev/null || echo null)
+echo "Contract deployed: $ADDR"
 
-dytx --rpc "$RPC_URL" --output json contract query --address "$ADDR" | jq . >"$OUT_DIR/query_result.json"
-COUNT=$(jq -r .parsed.count "$OUT_DIR/query_result.json" 2>/dev/null || echo "unknown")
-echo "Query count: $COUNT"
+# Exec increment twice
+for i in 1 2; do
+  EXEC_JSON=$($CLI_BIN --rpc "$RPC_URL" --output json contract exec --address "$ADDR" --method increment)
+  echo "$EXEC_JSON" | jq -c . >> "$CONTRACT_LOG"
+  echo "Exec #$i ok"
+  sleep 0.2
+done
 
-echo "Artifacts written under $OUT_DIR"
+# Query
+QUERY_JSON=$($CLI_BIN --rpc "$RPC_URL" --output json contract query --address "$ADDR")
+echo "$QUERY_JSON" | jq -c . >> "$CONTRACT_LOG"
+COUNT=$(echo "$QUERY_JSON" | jq -r '.parsed.count // .count // .data.value // .value // "unknown"')
+echo "Final count: $COUNT"
+
+echo "Artifacts written under $OUT_DIR and contract log at $CONTRACT_LOG"
 

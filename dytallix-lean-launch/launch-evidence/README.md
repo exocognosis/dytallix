@@ -34,6 +34,38 @@ Security audit evidence including npm and cargo audit reports. Demonstrates depe
 ### onboarding/
 User onboarding evidence including documentation and interface screenshots. Shows user experience validation and accessibility compliance.
 
+## PQC algorithm identifiers (launch alignment)
+
+- Default wire identifier expected by the node: "dilithium5".
+- SDK mock signer now emits algorithm: "dilithium5" for compatibility. Signature bytes remain mock (Blake3-based) in dev/test; production builds use real Dilithium5 verification on the node.
+- Switching between real and mock PQC:
+  - Node (Rust):
+    - Real (default): cargo build -p dytallix-lean-node (feature "pqc-real" enabled by default).
+    - Mock (dev only): cargo build -p dytallix-lean-node --no-default-features --features pqc-mock
+  - CLI (Rust): similar feature flags per crate.
+  - SDK (TypeScript): mock signer is used in dev; it now labels signatures as "dilithium5" for MVP/testnet acceptance.
+- Rationale: maintain acceptance on private testnet while separating mock bytes from production cryptography. Node enforces real verification when pqc-real is enabled.
+
+## WASM contracts demo (MVP)
+
+- Build sample contract (counter):
+  - rustup target add wasm32-unknown-unknown
+  - ./dytallix-lean-launch/scripts/build_counter_wasm.sh
+  - This produces dytallix-lean-launch/artifacts/counter.wasm. Optionally copy to repository root as examples/counter.wasm for the CLI script to auto-pick it up.
+
+- Enable node runtime with contracts:
+  - cargo build -p dytallix-lean-node --release --features contracts
+  - Start the node normally; REST routes /wasm/deploy, /wasm/exec, /wasm/query become available.
+
+- Run integration script:
+  - ./dytallix-lean-launch/launch-evidence/cli/run_cli_integration.sh
+  - This deploys the contract, executes increment twice, queries get, and writes JSON lines to launch-evidence/contracts/counter_demo.log.
+
+- Evidence expectations in contracts/counter_demo.log (JSONL):
+  - Line 1: deploy result { address, code_hash, gas_used, tx_hash? }
+  - Lines 2-3: exec receipts for increment calls
+  - Final line: query response with count matching number of increments (>=2)
+
 ## Usage
 
 Run `scripts/init-launch-evidence.sh` to initialize or refresh this evidence pack structure. The script is idempotent and will not overwrite existing evidence files.

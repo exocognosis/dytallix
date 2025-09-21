@@ -44,6 +44,9 @@ impl PQCAlgorithm {
             "dilithium5" => Ok(PQCAlgorithm::Dilithium5),
             "falcon1024" => Ok(PQCAlgorithm::Falcon1024),
             "sphincs_sha2_128s_simple" => Ok(PQCAlgorithm::SphincsPlus),
+            #[cfg(not(feature = "pqc-real"))]
+            // In non-prod/mock builds, accept legacy mock identifier and map to Dilithium5 path
+            "mock-blake3" => Ok(PQCAlgorithm::Dilithium5),
             _ => Err(PQCVerifyError::UnsupportedAlgorithm(s.to_string())),
         }
     }

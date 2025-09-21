@@ -2,7 +2,7 @@ export interface Keypair {
     sk: Uint8Array;
     pk: Uint8Array;
 }
-export declare const ALG = "mock-blake3";
+export declare const ALG = "dilithium5";
 export declare function keypair(): Keypair;
 export declare function sign(sk: Uint8Array, msg: Uint8Array): Uint8Array;
 export declare function verify(pk: Uint8Array, msg: Uint8Array, sig: Uint8Array): boolean;

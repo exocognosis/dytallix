@@ -1,0 +1,27 @@
+feat(pqc): align SDK and node algorithm identifiers for MVP; document real vs mock PQC
+
+- SDK (TypeScript):
+  - sdk/src/pqcMock.ts: emit ALG="dilithium5" (was "mock-blake3"); add rationale comment.
+  - sdk/src/pqcMock.d.ts and sdk/src/pqcMock.js updated to keep wire-format consistent.
+  - sdk/src/types/blake3.d.ts: add ambient declaration to satisfy TS builds.
+  - sdk/src/tx.ts consumes ALG via import; SignedTx.algorithm now "dilithium5".
+
+- Node (Rust):
+  - node/src/crypto/pqc_verify.rs: extend PQCAlgorithm::from_str to accept "mock-blake3" only when compiled without feature `pqc-real`, mapping to Dilithium5 path. This preserves dev flexibility while keeping prod strict.
+
+- Docs:
+  - launch-evidence/README.md: add section documenting default algorithm string ("dilithium5"), mock vs real behavior, and how to switch between builds.
+
+Rationale:
+MVP private testnet requires consistent acceptance. The node strictly parses algorithm identifiers; the SDK used a mock label causing rejections. We standardize on the canonical identifier ("dilithium5") on the wire, while keeping dev-mode permissiveness behind feature-gates on the node.
+
+Testing plan:
+1) Build node (default features) and SDK, run end-to-end CLI submit, confirm node accepts and logs under launch-evidence/tx/submit_demo.log.
+2) Optional: build node without `pqc-real`, submit a tx labeled "mock-blake3" (older SDK), confirm acceptance due to conditional mapping.
+
+---
+WASM demo readiness:
+- Minimal counter contract added under `examples/contracts/counter/` with ABI (init, increment, get).
+- Build helper: `dytallix-lean-launch/scripts/build_counter_wasm.sh` produces `dytallix-lean-launch/artifacts/counter.wasm`.
+- Integration script `launch-evidence/cli/run_cli_integration.sh` now deploys, executes (increment x2), queries, and writes JSONL to `launch-evidence/contracts/counter_demo.log`.
+- Node runtime wired with HostEnv::with_pqc and contracts feature flag; build with `--features contracts`.

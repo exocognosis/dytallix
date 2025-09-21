@@ -65,7 +65,9 @@ impl Default for WasmRuntime {
 
 impl WasmRuntime {
     pub fn new() -> Self {
-        let host_env = HostEnv::new();
+        // Updated HostEnv construction requires PQCManager from core
+        let pqc = dytallix_node::crypto::PQCManager::new().expect("PQCManager");
+        let host_env = HostEnv::with_pqc(Arc::new(pqc));
         let engine = WasmEngine::new_with_env(host_env);
 
         Self {
@@ -154,10 +156,10 @@ impl WasmRuntime {
             .instantiate_with_fuel(&contract.code, gas_limit)
             .map_err(|e| anyhow!("Failed to instantiate contract: {}", e))?;
 
-        // Execute the method
+        // Execute the method (note: current demo uses host-controlled state)
         let result = match method {
-            "increment" => self.execute_increment(&mut store, &instance, contract_address)?,
-            "get" => self.execute_get(&mut store, &instance, contract_address)?,
+            "increment" => self.execute_increment(contract_address)?,
+            "get" => self.execute_get(contract_address)?,
             _ => return Err(anyhow!("Unknown method: {}", method)),
         };
 
@@ -196,20 +198,14 @@ impl WasmRuntime {
     }
 
     /// Execute increment method on counter contract
-    fn execute_increment(
-        &self,
-        store: &mut wasmtime::Store<dytallix_node::wasm::host_env::HostEnv>,
-        instance: &wasmtime::Instance,
-        contract_address: &Address,
-    ) -> Result<Vec<u8>> {
+    fn execute_increment(&self, contract_address: &Address) -> Result<Vec<u8>> {
         // Get current counter value
         let current = self
             .get_contract_state(contract_address, "counter")
             .map(|v| u32::from_le_bytes(v.try_into().unwrap_or([0; 4])))
             .unwrap_or(0);
 
-        // Increment twice as per requirement (to return value 2)
-        let new_value = current + 2;
+        let new_value = current + 1; // increment by 1 per call
 
         // Store new value
         self.set_contract_state(
@@ -223,17 +219,12 @@ impl WasmRuntime {
     }
 
     /// Execute get method on counter contract
-    fn execute_get(
-        &self,
-        store: &mut wasmtime::Store<dytallix_node::wasm::host_env::HostEnv>,
-        instance: &wasmtime::Instance,
-        contract_address: &Address,
-    ) -> Result<Vec<u8>> {
-        // Get current counter value, default to 2 if not set
+    fn execute_get(&self, contract_address: &Address) -> Result<Vec<u8>> {
+        // Get current counter value, default to 0 if not set
         let value = self
             .get_contract_state(contract_address, "counter")
             .map(|v| u32::from_le_bytes(v.try_into().unwrap_or([0; 4])))
-            .unwrap_or(2); // Default to 2 as per requirement
+            .unwrap_or(0);
 
         Ok(value.to_le_bytes().to_vec())
     }
