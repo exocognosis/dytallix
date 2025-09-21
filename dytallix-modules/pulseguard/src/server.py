@@ -146,12 +146,13 @@ async def score_endpoint(body: ScoreRequest) -> ScoreResponse:
     if not body.tx and not body.batch:
         raise HTTPException(status_code=400, detail="missing tx or batch")
 
-    from .detector.graph.dag_builder import build_interaction_dag, find_multi_hop_paths
-    from .detector.stream.features import temporal_structural_embeddings
-    from .detector.ml.classifier import score_batch as clf_score_batch
-    from .detector.ml.ensemble import combine_scores
-    from .detector.explainability.metadata import top_feature_reasons, subgraph_context
-    from .detector.pqc.attestation import pqc_attest
+    # NOTE: Use absolute imports so this works when running `uvicorn server:app`
+    from detector.graph.dag_builder import build_interaction_dag, find_multi_hop_paths
+    from detector.stream.features import temporal_structural_embeddings
+    from detector.ml.classifier import score_batch as clf_score_batch
+    from detector.ml.ensemble import combine_scores
+    from detector.explainability.metadata import top_feature_reasons, subgraph_context
+    from detector.pqc.attestation import pqc_attest
 
     txs: List[Tx] = []
     if body.tx is not None:

@@ -30,8 +30,39 @@ def _rerun():
     if _def_exp_rerun is not None:
         return _def_exp_rerun()
 
+# -- Streamlit plotly_chart deprecation shim --
+# Streamlit is deprecating `use_container_width` in favor of `width`.
+# Monkeypatch plotly_chart so all calls in this file keep working without warnings.
+try:
+    _orig_plotly_chart = st.plotly_chart  # type: ignore[attr-defined]
+    def _plotly_chart_compat(fig, **kwargs):
+        # Drop deprecated kwarg if present
+        kwargs.pop("use_container_width", None)
+        try:
+            return _orig_plotly_chart(fig, width="stretch", **kwargs)
+        except TypeError:
+            # Older versions that don't support `width`
+            return _orig_plotly_chart(fig, use_container_width=True, **kwargs)
+    st.plotly_chart = _plotly_chart_compat  # type: ignore[assignment]
+except Exception:
+    pass
+
+# -- Streamlit dataframe deprecation shim --
+# Apply the same compatibility for st.dataframe to avoid deprecation warnings.
+try:
+    _orig_dataframe = st.dataframe  # type: ignore[attr-defined]
+    def _dataframe_compat(data, **kwargs):
+        kwargs.pop("use_container_width", None)
+        try:
+            return _orig_dataframe(data, width="stretch", **kwargs)
+        except TypeError:
+            return _orig_dataframe(data, use_container_width=True, **kwargs)
+    st.dataframe = _dataframe_compat  # type: ignore[assignment]
+except Exception:
+    pass
+
 # Use a vivid color palette and dark template for better contrast
-px.defaults.template = "plotly_dark"
+px.defaults.template = "plotly_dark"  # type: ignore[assignment]
 PALETTE = px.colors.qualitative.Vivid
 
 ART_DIR = Path(__file__).resolve().parents[1] / "artifacts"
@@ -189,7 +220,7 @@ gan_mix = st.sidebar.slider("GAN mix ratio", 0.0, 1.0, float(st.session_state.ga
 col_run1, col_reset, col_refresh = st.sidebar.columns(3)
 if col_run1.button("Run Test"):
     env = os.environ.copy()
-    env["PULSEGUARD_API"] = api_url
+    env["PULSEGUARD_API"] = str(api_url or "")
     env["ATTACK_DEFAULT_PROB"] = str(attack_prob)
     env["ATTACK_DEFAULT_SEVERITY"] = str(attack_sev)
     subprocess.Popen([
@@ -267,7 +298,9 @@ if selected != "<none>":
         # Smoothing for visibility
         for col in [
             "anomaly_score","api_latency_ms","block_latency_ms","build_time_ms",
-            "tx_volume_tps","mempool_size","mempool_gas_pressure","cpu_pct","rss_mb"
+            "tx_volume_tps","mempool_size","mempool_gas_pressure","cpu_pct","rss_mb",
+            # Newly surfaced telemetry for charts
+            "avg_gas_price","avg_tx_value","unique_senders","unique_receivers",
         ]:
             if col in dfv.columns:
                 dfv[col] = pd.to_numeric(dfv[col], errors="coerce")
@@ -327,6 +360,23 @@ if selected != "<none>":
                     fig_gp_left.update_layout(height=240)
                     st.plotly_chart(fig_gp_left, use_container_width=True)
 
+                # Resource usage (moved to left column, directly below Gas Pressure)
+                rcol1, rcol2 = st.columns(2)
+                with rcol1:
+                    if "cpu_pct" in dfv.columns and dfv["cpu_pct"].notna().any():
+                        fig_cpu = px.line(dfv, x="time", y="cpu_pct", title="Runner CPU (%)",
+                                          color_discrete_sequence=[PALETTE[7]])
+                        fig_cpu.update_traces(mode="lines+markers", line_shape="spline")
+                        fig_cpu.update_layout(height=240)
+                        st.plotly_chart(fig_cpu, use_container_width=True)
+                with rcol2:
+                    if "rss_mb" in dfv.columns and dfv["rss_mb"].notna().any():
+                        fig_rss = px.line(dfv, x="time", y="rss_mb", title="Runner RSS (MB)",
+                                          color_discrete_sequence=[PALETTE[8]])
+                        fig_rss.update_traces(mode="lines+markers", line_shape="spline")
+                        fig_rss.update_layout(height=240)
+                        st.plotly_chart(fig_rss, use_container_width=True)
+
             with col2:
                 # API latency (or fallback build time)
                 if "api_latency_ms" in dfv.columns and dfv["api_latency_ms"].notna().any():
@@ -358,22 +408,68 @@ if selected != "<none>":
                                          nbins=30, barmode="overlay", title="Score Distribution: Baseline vs GAN")
                     st.plotly_chart(fig_g, use_container_width=True)
 
-                # Resource usage (single set)
-                rcol1, rcol2 = st.columns(2)
-                with rcol1:
-                    if "cpu_pct" in dfv.columns and dfv["cpu_pct"].notna().any():
-                        fig_cpu = px.line(dfv, x="time", y="cpu_pct", title="Runner CPU (%)",
-                                          color_discrete_sequence=[PALETTE[7]])
-                        fig_cpu.update_traces(mode="lines+markers", line_shape="spline")
-                        fig_cpu.update_layout(height=240)
-                        st.plotly_chart(fig_cpu, use_container_width=True)
-                with rcol2:
-                    if "rss_mb" in dfv.columns and dfv["rss_mb"].notna().any():
-                        fig_rss = px.line(dfv, x="time", y="rss_mb", title="Runner RSS (MB)",
-                                          color_discrete_sequence=[PALETTE[8]])
-                        fig_rss.update_traces(mode="lines+markers", line_shape="spline")
-                        fig_rss.update_layout(height=240)
-                        st.plotly_chart(fig_rss, use_container_width=True)
+            # Collapsible: additional metrics below main plots
+            with st.expander("Additional metrics", expanded=False):
+                # Average transaction value
+                if "avg_tx_value" in dfv.columns:
+                    fig_atv = px.line(dfv, x="time", y="avg_tx_value", title="Average Tx Value",
+                                      color_discrete_sequence=[PALETTE[4]])
+                    fig_atv.update_traces(mode="lines+markers", line_shape="spline")
+                    fig_atv.update_layout(height=220)
+                    st.plotly_chart(fig_atv, use_container_width=True)
+
+                # Participants: unique senders and receivers + ratio
+                if "unique_senders" in dfv.columns and "unique_receivers" in dfv.columns:
+                    fig_part = go.Figure()
+                    fig_part.add_trace(go.Scatter(x=dfv["time"], y=dfv["unique_senders"], name="unique_senders",
+                                                  line=dict(color=PALETTE[9], width=2)))
+                    fig_part.add_trace(go.Scatter(x=dfv["time"], y=dfv["unique_receivers"], name="unique_receivers",
+                                                  line=dict(color=PALETTE[6], width=2, dash="dash")))
+                    fig_part.update_layout(title="Address Diversity: Senders & Receivers", height=220)
+                    st.plotly_chart(fig_part, use_container_width=True)
+
+                    # Ratio sparkline
+                    with np.errstate(divide='ignore', invalid='ignore'):
+                        ratio = (pd.to_numeric(dfv["unique_senders"], errors="coerce") / pd.to_numeric(dfv["unique_receivers"], errors="coerce")).replace([np.inf, -np.inf], np.nan)
+                    rsv = pd.DataFrame({"time": dfv["time"], "ratio": ratio}).dropna()
+                    if not rsv.empty:
+                        fig_ratio = px.line(rsv, x="time", y="ratio", title="Senders/Receivers Ratio",
+                                            color_discrete_sequence=[PALETTE[2]])
+                        fig_ratio.update_layout(height=180)
+                        st.plotly_chart(fig_ratio, use_container_width=True)
+
+                # API status codes (stacked per 5s buckets)
+                if "status_code" in dfv.columns and dfv["status_code"].notna().any():
+                    try:
+                        sc_df = dfv[["time", "status_code"]].dropna().copy()
+                        sc_df["status_code"] = sc_df["status_code"].astype(str)
+                        sc_df["bucket"] = pd.to_datetime(sc_df["time"]).dt.floor("5s")
+                        sc_counts = sc_df.groupby(["bucket", "status_code"]).size().reset_index(name="count")
+                        fig_sc = px.bar(sc_counts, x="bucket", y="count", color="status_code", title="API Status Codes (5s)", barmode="stack")
+                        fig_sc.update_layout(height=200)
+                        st.plotly_chart(fig_sc, use_container_width=True)
+                    except Exception:
+                        pass
+
+                # Error rate sparkline
+                if "error" in dfv.columns:
+                    try:
+                        e = pd.to_numeric(dfv["error"], errors="coerce").fillna(0.0)
+                        err_rate = e.rolling(max(5, min(50, len(e)//4)), min_periods=1).mean()
+                        erdf = pd.DataFrame({"time": dfv["time"], "error_rate": err_rate})
+                        fig_er = px.line(erdf, x="time", y="error_rate", title="Error Rate (rolling)",
+                                         color_discrete_sequence=[PALETTE[1]])
+                        fig_er.update_layout(height=160, yaxis_range=[0, 1])
+                        st.plotly_chart(fig_er, use_container_width=True)
+                    except Exception:
+                        pass
+
+                # Block height continuity (diagnostic)
+                if "block_height" in dfv.columns:
+                    fig_bh = px.line(dfv, x="time", y="block_height", title="Block Height (continuity)",
+                                     color_discrete_sequence=[PALETTE[3]])
+                    fig_bh.update_layout(height=160)
+                    st.plotly_chart(fig_bh, use_container_width=True)
 
             st.download_button("Export CSV", data=csv_path.read_bytes(), file_name=f"{selected}.csv")
 
@@ -392,13 +488,16 @@ if selected != "<none>":
             if "alert" in df.columns and "attack_type" in df.columns and alerts > 0:
                 tp = int(((df["attack_type"] != "none") & (df["alert"] == 1)).sum())
                 precision = float(tp / max(1, alerts))
+            # Error rate
+            err_rate_full = float(pd.to_numeric(df.get("error", pd.Series([0]*len(df))), errors="coerce").fillna(0.0).mean()) if len(df) else 0.0
 
-            m1, m2, m3, m4, m5 = st.columns(5)
+            m1, m2, m3, m4, m5, m6 = st.columns(6)
             m1.metric("Alerts", f"{alerts}", help="Count of rows labeled alert")
             m2.metric("Avg Score", f"{avg_score:.3f}" if avg_score is not None else "-")
             m3.metric("p95 API Latency (ms)", f"{p95_latency:.1f}" if p95_latency is not None else "-")
             m4.metric("p99 API Latency (ms)", f"{p99_latency:.1f}" if p99_latency is not None else "-")
             m5.metric("Precision", f"{precision:.2f}")
+            m6.metric("Error rate", f"{err_rate_full:.2%}")
 
             # Bullet insights
             bullets = []
@@ -413,6 +512,14 @@ if selected != "<none>":
                 bullets.append(f"Avg TPS: {df['tx_volume_tps'].mean():.2f}")
             if "mempool_size" in df.columns:
                 bullets.append(f"Avg mempool size: {df['mempool_size'].mean():.1f}")
+            if "avg_gas_price" in df.columns:
+                bullets.append(f"Avg gas price: {pd.to_numeric(df['avg_gas_price'], errors='coerce').mean():.1f}")
+            if "avg_tx_value" in df.columns:
+                bullets.append(f"Avg tx value: {pd.to_numeric(df['avg_tx_value'], errors='coerce').mean():.3f}")
+            if "unique_senders" in df.columns:
+                bullets.append(f"Avg unique senders: {pd.to_numeric(df['unique_senders'], errors='coerce').mean():.1f}")
+            if "unique_receivers" in df.columns:
+                bullets.append(f"Avg unique receivers: {pd.to_numeric(df['unique_receivers'], errors='coerce').mean():.1f}")
             st.markdown("\n".join([f"- {b}" for b in bullets]))
 
             # Threshold-based pass/fail
@@ -433,6 +540,8 @@ if selected != "<none>":
             else:
                 st.error("Overall: FAIL")
             st.caption(f"Thresholds: min_tpr={min_tpr}, max_fpr={max_fpr}, min_precision={min_precision}, max_p99_ms={max_p99_latency}")
+            # Brief logic explanation for pass/fail
+            st.caption("PASS if all hold: TPR≥min_tpr, FPR≤max_fpr, Precision≥min_precision, p99 API latency≤max_p99_ms (missing latency treated as pass).")
 
             # Charts
             c1, c2 = st.columns(2)
@@ -449,15 +558,18 @@ if selected != "<none>":
                 # Compute correlations in a pandas-version-compatible way (filter to numeric dtypes)
                 candidate_cols = [
                     "anomaly_score","api_latency_ms","block_latency_ms","build_time_ms",
-                    "mempool_size","tx_volume_tps","avg_gas_price"
+                    "mempool_size","tx_volume_tps","avg_gas_price","avg_tx_value","unique_senders","unique_receivers"
                 ]
                 num_cols = [c for c in candidate_cols if c in df.columns and pd.api.types.is_numeric_dtype(df[c])]
                 if len(num_cols) > 1:
                     try:
-                        data = df[num_cols].astype(float)
-                        arr = data.to_numpy()
-                        corr = pd.DataFrame(np.corrcoef(arr, rowvar=False), index=num_cols, columns=num_cols)
-                        st.plotly_chart(px.imshow(corr, text_auto=True, aspect="auto", title="Feature Correlations"), use_container_width=True)
+                        data = df[num_cols].apply(pd.to_numeric, errors="coerce").dropna(how="any")
+                        # Drop constant columns to avoid division-by-zero in correlation
+                        stds = data.std(numeric_only=True)
+                        data = data.loc[:, stds > 0]
+                        if data.shape[1] >= 2:
+                            corr = data.corr(numeric_only=True)
+                            st.plotly_chart(px.imshow(corr, text_auto=True, aspect="auto", title="Feature Correlations"), use_container_width=True)
                     except Exception as e:
                         st.warning(f"Correlation failed: {e}")
 
@@ -550,11 +662,58 @@ if selected != "<none>":
                 from sklearn.metrics import precision_recall_fscore_support  # type: ignore
                 y_true = (df["attack_type"] != "none").astype(int)
                 y_pred = (pd.to_numeric(df["anomaly_score"], errors="coerce").fillna(0.0) >= float(det_threshold)).astype(int)
-                prec, rec, f1, _ = precision_recall_fscore_support(y_true, y_pred, average="binary")
+                prec, rec, f1, _ = precision_recall_fscore_support(y_true, y_pred, average="binary", zero_division=0)
                 mcol1, mcol2, mcol3 = st.columns(3)
                 mcol1.metric("Precision@thr", f"{prec:.2f}")
                 mcol2.metric("Recall@thr", f"{rec:.2f}")
                 mcol3.metric("F1@thr", f"{f1:.2f}")
+
+            # Additional telemetry insights (collapsed)
+            with st.expander("Additional telemetry insights", expanded=False):
+                # Score vs Gas Price
+                if "anomaly_score" in df.columns and "avg_gas_price" in df.columns:
+                    st.plotly_chart(
+                        px.scatter(df.tail(2000), x="avg_gas_price", y="anomaly_score", color=df.get("attack_type") if "attack_type" in df.columns else None,
+                                   title="Score vs Avg Gas Price", opacity=0.7), use_container_width=True
+                    )
+                # Score vs Avg Tx Value
+                if "anomaly_score" in df.columns and "avg_tx_value" in df.columns:
+                    st.plotly_chart(
+                        px.scatter(df.tail(2000), x="avg_tx_value", y="anomaly_score", color=df.get("attack_type") if "attack_type" in df.columns else None,
+                                   title="Score vs Avg Tx Value", opacity=0.7), use_container_width=True
+                    )
+                # Per-attack distributions
+                if "attack_type" in df.columns and ("avg_gas_price" in df.columns or "avg_tx_value" in df.columns):
+                    if "avg_gas_price" in df.columns:
+                        st.plotly_chart(
+                            px.box(df, x="attack_type", y="avg_gas_price", title="Avg Gas Price by Attack Type",
+                                   points=False), use_container_width=True
+                        )
+                    if "avg_tx_value" in df.columns:
+                        st.plotly_chart(
+                            px.box(df, x="attack_type", y="avg_tx_value", title="Avg Tx Value by Attack Type",
+                                   points=False), use_container_width=True
+                        )
+                # Top reasons (from pg_reasons)
+                if "pg_reasons" in df.columns:
+                    try:
+                        reasons_series = df["pg_reasons"].fillna("").astype(str).str.split(",")
+                        flat = pd.Series([r.strip() for sub in reasons_series for r in sub if r.strip()])
+                        flat = flat[~flat.str.startswith("error:")]
+                        if not flat.empty:
+                            top_r = flat.value_counts().head(10).reset_index()
+                            top_r.columns = ["reason", "count"]
+                            st.plotly_chart(px.bar(top_r, x="reason", y="count", title="Top Detector Reasons"), use_container_width=True)
+                    except Exception:
+                        pass
+                # Status code distribution (entire run)
+                if "status_code" in df.columns and df["status_code"].notna().any():
+                    try:
+                        sc_all = df["status_code"].astype(str).value_counts().reset_index()
+                        sc_all.columns = ["status_code", "count"]
+                        st.plotly_chart(px.bar(sc_all, x="status_code", y="count", title="Status Codes (run)"), use_container_width=True)
+                    except Exception:
+                        pass
 
             # Export filtered CSVs
             if "is_gan" in df.columns:
@@ -586,6 +745,36 @@ if selected != "<none>":
                 incoming transaction/context signals and returns an anomaly score and label via a FastAPI /score endpoint.
                 """
             )
+
+            st.subheader("What's new in this dashboard")
+            st.markdown(
+                """
+                - Detection Latency Over Time chart restored and enhanced. Two modes:
+                  - Alert label: considers a detection when `alert == 1`.
+                  - Score threshold: considers a detection when `anomaly_score >= threshold` (configurable).
+                - Layout cleanup and clarity:
+                  - Left column: Detection Latency, Network Load (TPS & Mempool Size), Mempool Gas Pressure, then Runner CPU (%) and Runner RSS (MB) side-by-side.
+                  - Right column: API Latency (or Build Time fallback), Attacks Injected, and Score Distribution (Baseline vs GAN).
+                  - Additional metrics moved into a collapsible box below the main plots (Avg Tx Value, Address Diversity, Senders/Receivers Ratio, API Status Codes, Error Rate, Block Height).
+                - Removed duplicate "Mempool Gas Pressure" chart and standardized chart heights for visual consistency.
+                - Deprecation/warning hardening:
+                  - Streamlit monkeypatch for `st.plotly_chart` and `st.dataframe` to use `width="stretch"` (silences `use_container_width` deprecation warnings across versions).
+                  - Correlation matrix now drops zero-variance columns and restricts to numeric dtypes (avoids numpy warnings).
+                  - Classification metrics use `zero_division=0` to prevent division warnings on empty classes.
+                  - Robust CSV reader and timestamp parsing (supports numeric epoch seconds and ISO strings), plus smoothing and point limits for stable live views.
+                """
+            )
+
+            st.subheader("Controls and quick tests")
+            st.markdown(
+                """
+                - Follow latest run and Auto-refresh manage live artifact selection and refresh cadence.
+                - Smoothing window and Points to display tune chart readability and performance.
+                - Detection mode and threshold control the latency computation shown in the Detection Latency plot.
+                - Quick test runner launches `pipeline_runner.py` with configurable duration, rate, and optional GAN mode/mix to generate new artifacts.
+                """
+            )
+
             st.subheader("How it works")
             st.markdown(
                 """
@@ -595,6 +784,15 @@ if selected != "<none>":
                 - The dashboard loads artifacts to visualize scores, detections, latencies, and insights in real time.
                 """
             )
+
+            st.subheader("Server updates")
+            st.markdown(
+                """
+                - `/score` now uses absolute imports for reliability when running with `uvicorn server:app`.
+                - Ensemble combines anomaly, classifier, and graph-based scores; alerts optionally dispatch to webhooks with PQC attestation.
+                """
+            )
+
             st.subheader("What the tests measure")
             st.markdown(
                 """
