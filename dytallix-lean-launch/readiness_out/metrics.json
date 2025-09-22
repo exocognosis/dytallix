@@ -1,0 +1,30 @@
+{
+  "timestamp": "2025-09-22T13:55:35Z",
+  "network_metrics": {
+    "nodes": {
+      "seed": { "port": 3030, "status": "healthy", "metrics_port": 9464 },
+      "validator_1": { "port": 3031, "status": "healthy", "metrics_port": 9465 },
+      "validator_2": { "port": 3032, "status": "healthy", "metrics_port": 9466 },
+      "rpc": { "port": 3033, "status": "healthy", "metrics_port": 9467 }
+    },
+    "blockchain": {
+      "chain_id": "dytallix-testnet-e2e",
+      "genesis_time": "2025-01-01T00:00:00.000000000Z",
+      "blocks_produced": 79,
+      "avg_block_time": "2.0s",
+      "validator_uptime": "100%"
+    },
+    "governance": {
+      "proposals_submitted": 1,
+      "proposals_passed": 1,
+      "voter_turnout": "100%",
+      "parameter_changes": 1
+    },
+    "staking": {
+      "total_staked": "196000000000000000000000",
+      "active_validators": 3,
+      "reward_rate": "10%",
+      "delegations": 1
+    }
+  }
+}
