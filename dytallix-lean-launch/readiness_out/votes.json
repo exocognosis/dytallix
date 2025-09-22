@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-09-22T13:55:35Z",
+  "proposal_id": 1,
+  "votes": [
+    {
+      "voter": "dyt1validator1000000000000000000000000000",
+      "option": "Yes",
+      "height": 25,
+      "voting_power": "32000000000000000000000"
+    },
+    {
+      "voter": "dyt1validator2000000000000000000000000000",
+      "option": "Yes", 
+      "height": 26,
+      "voting_power": "32000000000000000000000"
+    },
+    {
+      "voter": "dyt1validator3000000000000000000000000000",
+      "option": "Yes",
+      "height": 27,
+      "voting_power": "32000000000000000000000"
+    }
+  ],
+  "total_voting_power": "96000000000000000000000",
+  "turnout": "100%",
+  "result": "PASSED"
+}
