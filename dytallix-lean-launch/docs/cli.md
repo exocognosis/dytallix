@@ -4,6 +4,10 @@
 
 The `dytx` CLI provides command-line access to Dytallix PQC wallet operations. Built with TypeScript and designed for both development and production use.
 
+- Default signing: Dilithium (post-quantum)
+- No mock or degraded signing fallbacks
+- Nonce/sequence is always fetched from the chain RPC before signing/broadcast
+
 ## Installation
 
 ```bash
@@ -18,7 +22,7 @@ npm run build
 |--------|-------------|---------|
 | `--rpc <url>` | RPC endpoint URL | `https://rpc-testnet.dytallix.com` |
 | `--chain-id <id>` | Chain identifier | `dytallix-testnet-1` |
-| `--output <format>` | Output format (`json`\|`text`) | `text` |
+| `--output <format>` | Output format (`json`|`text`) | `text` |
 
 Environment variables:
 - `DYTALLIX_RPC_URL` - Override default RPC URL
@@ -35,7 +39,7 @@ dytx keygen [options]
 ```
 
 **Options:**
-- `--algo <algorithm>` - PQC algorithm (`dilithium`\|`falcon`\|`sphincs+`) [default: `dilithium`]
+- `--algo <algorithm>` - PQC algorithm (`dilithium`|`falcon`|`sphincs+`) [default: `dilithium`]
 - `--label <label>` - Human-readable key label [default: `"Default Key"`]
 - `--output <file>` - Save keystore to file
 
@@ -97,6 +101,10 @@ dytx sign [options]
 - `--keystore <file>` - Keystore file containing private key
 - `--out <file>` - Output file for signed transaction
 
+**Behavior:**
+- The CLI fetches the current account nonce/sequence from the RPC before signing.
+- Signing uses Dilithium by default; the `--algo` flag is optional and defaults to PQC Dilithium.
+
 **Example:**
 ```bash
 dytx sign \
@@ -114,7 +122,7 @@ Payload: examples/transfer.json
 ✅ Transaction signed successfully!
 Transaction Hash: 0xdef456...
 Algorithm: dilithium
-Signature: mock_signature_data...
+Signature: <base64_signature>
 💾 Signed transaction saved to: signed-tx.json
 ```
 
@@ -157,9 +165,13 @@ dytx transfer [options]
 - `--from <address>` - Sender address (required)
 - `--to <address>` - Recipient address (required)
 - `--amount <amount>` - Amount to send (required)
-- `--denom <denom>` - Token denomination (`udgt`\|`udrt`) [default: `udgt`]
+- `--denom <denom>` - Token denomination (`udgt`|`udrt`) [default: `udgt`]
 - `--memo <memo>` - Transaction memo [default: `""`]
 - `--keystore <file>` - Keystore file
+
+**Behavior:**
+- Nonce/sequence is fetched from RPC; if the account is new, it defaults to 0.
+- Signing uses Dilithium by default.
 
 **Example:**
 ```bash

@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  node:
+    build:
+      context: ..
+      dockerfile: dytallix-lean-launch/Dockerfile.node
+    image: dytallix-lean-node:oracle
+    container_name: dyt-ai-node
+    restart: unless-stopped
+    environment:
+      DYT_NODE_ROLE: rpc
+      DYT_CHAIN_ID: dytallix-mvp-1
+      DYT_DATA_DIR: /var/lib/dytallix/data
+      DYT_ENABLE_GOVERNANCE: "true"
+      DYT_ENABLE_STAKING: "true"
+      DYT_ENABLE_ORACLE: "true"
+      DYT_BLOCK_INTERVAL_MS: "1000"
+      DYT_EMPTY_BLOCKS: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: 0.0.0.0:9464
+    volumes:
+      - node-data:/var/lib/dytallix
+    ports:
+      - "3030:3030"
+      - "9464:9464"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3030/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ai-oracle:
+    build:
+      context: ..
+      dockerfile: dytallix-lean-launch/services/ai-oracle/Dockerfile
+    image: dytallix-ai-oracle:local
+    container_name: dyt-ai-oracle
+    restart: unless-stopped
+    environment:
+      AI_MODEL_ID: risk-v1
+      AI_MIN_LATENCY_MS: "25"
+      AI_MAX_LATENCY_MS: "750"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    depends_on:
+      node:
+        condition: service_healthy
+
+volumes:
+  node-data:

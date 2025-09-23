@@ -72,11 +72,11 @@ pub async fn handle_transfer(
         pk_clone = g.public_key().to_vec();
     }
     let client = RpcClient::new(rpc_url);
-    let nonce = client
-        .get_nonce(&guard_addr)
-        .await
-        .unwrap_or(Some(0))
-        .unwrap_or(0); // fallback to 0
+    let nonce = match client.get_nonce(&guard_addr).await {
+        Ok(Some(n)) => n,
+        Ok(None) => 0, // new account
+        Err(e) => return Err(anyhow!(format!("failed to fetch nonce from RPC: {e}"))),
+    };
     let msg = Msg::Send {
         from: guard_addr.clone(),
         to: c.to.clone(),
@@ -181,11 +181,11 @@ pub async fn handle_batch(
     };
     let client = RpcClient::new(rpc_url);
     let nonce = match b.nonce {
-        NonceSpec::Auto => client
-            .get_nonce(&guard_addr)
-            .await
-            .unwrap_or(Some(0))
-            .unwrap_or(0),
+        NonceSpec::Auto => match client.get_nonce(&guard_addr).await {
+            Ok(Some(n)) => n,
+            Ok(None) => 0,
+            Err(e) => return Err(anyhow!(format!("failed to fetch nonce from RPC: {e}"))),
+        },
         NonceSpec::Exact(n) => n,
     };
     // Build messages

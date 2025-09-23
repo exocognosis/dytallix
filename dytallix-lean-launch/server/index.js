@@ -1,11 +1,11 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import { requestLogger, logError, logInfo } from './logger.js'
+import { requestLogger, logError, logInfo, logWarn } from './logger.js'
 import { WebSocketServer } from 'ws'
 import { assertNotLimited, markGranted, __testResetRateLimiter } from './rateLimit.js'
 import { transfer, getMaxFor } from './transfer.js'
-import { register, rateLimitHitsTotal, faucetRequestsTotal } from './metrics.js'
+import { register, rateLimitHitsTotal, faucetRequestsTotal, aiOracleFailuresTotal, aiOracleLatencySeconds, aiOracleRequestsTotal } from './metrics.js'
 import { ContractScanner } from './src/scanner/index.js'
 import { AnomalyDetectionEngine } from '../backend/pulsescan/anomaly_engine.js'
 import fs from 'fs'
@@ -43,6 +43,8 @@ const COOLDOWN_MIN = parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10)
 const ENABLE_SEC_HEADERS = process.env.ENABLE_SEC_HEADERS === '1'
 const ENABLE_CSP = process.env.ENABLE_CSP === '1' || ENABLE_SEC_HEADERS
 const BECH32_PREFIX = process.env.CHAIN_PREFIX || process.env.BECH32_PREFIX || 'dytallix'
+const AI_ORACLE_URL = (process.env.AI_ORACLE_URL || 'http://localhost:8080/api/ai/risk').replace(/\/$/, '')
+const AI_ORACLE_TIMEOUT_MS = Math.max(250, parseInt(process.env.AI_ORACLE_TIMEOUT_MS || '1000', 10))
 
 // Initialize contract scanner
 const contractScanner = new ContractScanner({
@@ -322,6 +324,90 @@ app.get('/api/transactions/:hash', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// AI risk proxy – enrich a transaction receipt with oracle scoring
+app.get('/api/ai/risk/transaction/:hash', async (req, res, next) => {
+  const hash = req.params.hash
+  if (typeof hash !== 'string' || !/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+    const err = new Error('INVALID_TX_HASH')
+    err.status = 400
+    return next(err)
+  }
+
+  const toNumber = (value) => {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : 0
+  }
+
+  const started = Date.now()
+
+  try {
+    const receipt = await nodeGet(`/tx/${encodeURIComponent(hash)}`)
+
+    const payload = {
+      tx_hash: receipt?.hash || hash,
+      from: receipt?.from || receipt?.sender || null,
+      to: receipt?.to || receipt?.recipient || null,
+      amount: toNumber(receipt?.amount ?? receipt?.value ?? receipt?.amount_udgt ?? 0),
+      fee: toNumber(receipt?.fee ?? receipt?.gas_fee ?? receipt?.gas ?? 0),
+      nonce: toNumber(receipt?.nonce ?? receipt?.sequence ?? 0),
+    }
+
+    const stopTimer = aiOracleLatencySeconds.startTimer()
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), AI_ORACLE_TIMEOUT_MS)
+
+    try {
+      const aiResponse = await fetch(AI_ORACLE_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      })
+
+      if (!aiResponse.ok) {
+        const err = new Error(`AI_ORACLE_HTTP_${aiResponse.status}`)
+        err.status = aiResponse.status
+        throw err
+      }
+
+      const parsed = await aiResponse.json().catch(() => null)
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('AI_ORACLE_INVALID_RESPONSE')
+      }
+
+      const scoreValue = Number(parsed.score ?? parsed.ai_risk_score ?? parsed.result)
+      const aiScore = Number.isFinite(scoreValue) ? scoreValue : null
+
+      aiOracleRequestsTotal.inc({ result: 'success' })
+      logInfo('ai.risk.enriched', { hash, score: aiScore, ms: Date.now() - started })
+
+      return res.json({
+        ...receipt,
+        ai_risk_score: aiScore,
+        ai_risk_model: parsed.model_id || parsed.version || null,
+        ai_risk_signature: parsed.signature || null,
+        ai_risk_timestamp: parsed.timestamp || parsed.ts || null,
+        risk_status: 'ok',
+      })
+    } catch (err) {
+      const reason = err.name === 'AbortError' ? 'timeout' : (err.status ? 'http' : 'exception')
+      aiOracleRequestsTotal.inc({ result: 'failure' })
+      aiOracleFailuresTotal.inc({ reason })
+      logWarn('AI oracle request failed; returning fallback response', { hash, reason, ms: Date.now() - started, error: err.message })
+      return res.json({
+        ...receipt,
+        ai_risk_score: null,
+        risk_status: 'unavailable',
+      })
+    } finally {
+      clearTimeout(timeout)
+      stopTimer()
+    }
+  } catch (err) {
+    next(err)
+  }
+})
+
 // Address overview + balances
 app.get('/api/addresses/:addr', async (req, res, next) => {
   try {
@@ -456,6 +542,26 @@ const BLOCKS_PER_YEAR = 5_256_000 // must match EmissionEngine constant in emiss
 const DEFAULT_STAKING_SHARE_PCT = 25 // percent (matches default EmissionBreakdown.staking_rewards)
 let __aprSample = { lastHeight: null, lastStakingPool: null }
 
+const toNumeric = (value) => {
+  if (value == null) return NaN
+  if (typeof value === 'number') return Number.isFinite(value) ? value : NaN
+  if (typeof value === 'bigint') return Number(value)
+  if (typeof value === 'string') {
+    const sanitized = value.replace(/[,_\s]/g, '')
+    if (sanitized === '') return NaN
+    const num = Number(sanitized)
+    return Number.isFinite(num) ? num : NaN
+  }
+  return NaN
+}
+
+const toPositiveInt = (value) => {
+  const num = toNumeric(value)
+  if (!Number.isFinite(num)) return NaN
+  const int = Math.trunc(num)
+  return int > 0 ? int : NaN
+}
+
 app.get('/api/staking/apr', async (req, res, next) => {
   try {
     // Fetch enriched stats from node (includes emission snapshot and staking totals)
@@ -468,19 +574,54 @@ app.get('/api/staking/apr', async (req, res, next) => {
       try { stats = await nodeGet('/stats') } catch (e2) { return next(e) }
     }
 
-    const height = Number(stats?.height || stats?.status?.height || 0)
+    const height = toPositiveInt(stats?.height || stats?.status?.height || 0) || 0
     const stakingTotals = stats?.staking || {}
-    const totalStaked = Number(stakingTotals.total_stake || 0) // udgt
+    const totalStakedRaw = stakingTotals.total_stake || stakingTotals.totalStake || 0
+    const totalStaked = toNumeric(totalStakedRaw)
 
     // Extract staking pool cumulative amount if present
-    const pools = stats?.emission_pools || {}
-    const stakingPoolNow = Number(pools.staking_rewards || pools['staking_rewards'] || 0)
+    const pools = stats?.emission_pools || stats?.emissionPools || {}
+    const stakingPoolNow = toNumeric(pools.staking_rewards || pools['staking_rewards'] || pools.stakingRewards)
 
     let perBlockStaking = 0
     let method = 'unknown'
-    // Preferred method: use pool delta across heights to get per-block staking rewards
-    if (Number.isFinite(stakingPoolNow) && stakingPoolNow >= 0 && Number.isFinite(height) && height > 0) {
-      if (__aprSample.lastHeight != null && height > __aprSample.lastHeight && __aprSample.lastStakingPool != null) {
+    let eventHeight
+
+    const candidateHeights = []
+    const pushCandidate = (value) => {
+      const normalized = toPositiveInt(value)
+      if (Number.isFinite(normalized) && !candidateHeights.includes(normalized)) candidateHeights.push(normalized)
+    }
+    pushCandidate(stats?.latest_emission?.height)
+    if (height > 0) {
+      pushCandidate(height)
+      pushCandidate(height - 1)
+    }
+
+    for (const candidate of candidateHeights) {
+      try {
+        const event = await nodeGet(`/api/rewards/${candidate}`)
+        const eventPools = event?.pools || event?.result?.pools || {}
+        const stakingRewardRaw = eventPools.staking_rewards || eventPools['staking_rewards'] || eventPools.stakingRewards || eventPools['stakingRewards']
+        const stakingReward = toNumeric(stakingRewardRaw)
+        if (Number.isFinite(stakingReward) && stakingReward > 0) {
+          perBlockStaking = stakingReward
+          method = 'emission_event'
+          eventHeight = candidate
+          break
+        }
+      } catch (err) {
+        if (!err || err.status !== 404) throw err
+      }
+    }
+
+    if (Number.isFinite(stakingPoolNow) && stakingPoolNow >= 0 && height > 0) {
+      if (
+        perBlockStaking === 0 &&
+        __aprSample.lastHeight != null &&
+        height > __aprSample.lastHeight &&
+        __aprSample.lastStakingPool != null
+      ) {
         const delta = stakingPoolNow - __aprSample.lastStakingPool
         if (delta >= 0) {
           perBlockStaking = delta
@@ -488,15 +629,14 @@ app.get('/api/staking/apr', async (req, res, next) => {
         }
       }
       // Update sample cache for next call
-      __aprSample.lastHeight = height
-      __aprSample.lastStakingPool = stakingPoolNow
+      __aprSample = { lastHeight: height, lastStakingPool: stakingPoolNow }
     }
 
     // Fallback method: derive from latest emission event and assumed staking share
     if (perBlockStaking === 0) {
       const latestEmission = stats?.latest_emission || {}
-      const totalPerBlock = Number(latestEmission.total_emitted || 0) // udrt emitted this block (all pools)
-      if (totalPerBlock > 0) {
+      const totalPerBlock = toNumeric(latestEmission.total_emitted || latestEmission.totalEmitted || 0)
+      if (Number.isFinite(totalPerBlock) && totalPerBlock > 0) {
         perBlockStaking = Math.floor((totalPerBlock * DEFAULT_STAKING_SHARE_PCT) / 100)
         method = 'latest_emission_pct'
       }
@@ -506,7 +646,7 @@ app.get('/api/staking/apr', async (req, res, next) => {
     // Where annualized_rewards = per_block_staking * BLOCKS_PER_YEAR
     let apr = 0
     let annualizedRewards = 0
-    if (perBlockStaking > 0 && totalStaked > 0) {
+    if (perBlockStaking > 0 && Number.isFinite(totalStaked) && totalStaked > 0) {
       annualizedRewards = perBlockStaking * BLOCKS_PER_YEAR
       apr = Number(((annualizedRewards / totalStaked) * 100).toFixed(4))
     }
@@ -515,8 +655,9 @@ app.get('/api/staking/apr', async (req, res, next) => {
       apr, // percent
       perBlockStaking,
       annualizedRewards,
-      totalStaked,
+      totalStaked: Number.isFinite(totalStaked) && totalStaked > 0 ? totalStaked : 0,
       method,
+      eventHeight: method === 'emission_event' ? eventHeight : undefined,
       assumptions: method === 'latest_emission_pct' ? { stakingSharePct: DEFAULT_STAKING_SHARE_PCT } : undefined,
       height,
       asOf: new Date().toISOString()

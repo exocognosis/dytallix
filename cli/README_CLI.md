@@ -39,6 +39,18 @@ Secret keys stored only encrypted in `keystore.json` with:
 - Passphrase retry UX with bounded attempts + backoff (env override)
 - CI no-confirm mode to skip interactive confirmation in automation
 
+## PQC Signing (Default)
+- All signing operations use post-quantum Dilithium5 by default.
+- No mock or degraded signing fallbacks remain in the CLI.
+- The on-wire algorithm identifier is `"dilithium5"`.
+- Transactions compute SHA3-256 over the canonical JSON and sign that digest.
+- The CLI verifies signatures locally before broadcast.
+
+Nonce/sequence handling:
+- The CLI queries the chain RPC for the current account nonce before building a transaction.
+- If the account is not found, nonce defaults to 0.
+- RPC errors are treated as fatal; the CLI will not broadcast without a confirmed nonce.
+
 ### Passphrase UX (Retries & Backoff)
 Defaults (configurable):
 - Max retries: 3 (`DX_PASSPHRASE_MAX_RETRIES`)
@@ -133,7 +145,6 @@ $ dcli tx batch --file batch.json --output json
 ## Testing
 ```
 cargo test -q -p dcli
-cargo test -q -p dcli --no-default-features --features pqc-mock
 ```
 
 ## Migration Notes
