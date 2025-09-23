@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #!/bin/bash
 
 # Automated End-to-End Governance + Staking Rewards Simulation
