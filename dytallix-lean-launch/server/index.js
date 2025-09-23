@@ -1,11 +1,11 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import { requestLogger, logError, logInfo } from './logger.js'
+import { requestLogger, logError, logInfo, logWarn } from './logger.js'
 import { WebSocketServer } from 'ws'
 import { assertNotLimited, markGranted, __testResetRateLimiter } from './rateLimit.js'
 import { transfer, getMaxFor } from './transfer.js'
-import { register, rateLimitHitsTotal, faucetRequestsTotal } from './metrics.js'
+import { register, rateLimitHitsTotal, faucetRequestsTotal, aiOracleFailuresTotal, aiOracleLatencySeconds, aiOracleRequestsTotal } from './metrics.js'
 import { ContractScanner } from './src/scanner/index.js'
 import { AnomalyDetectionEngine } from '../backend/pulsescan/anomaly_engine.js'
 import fs from 'fs'
@@ -43,6 +43,8 @@ const COOLDOWN_MIN = parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10)
 const ENABLE_SEC_HEADERS = process.env.ENABLE_SEC_HEADERS === '1'
 const ENABLE_CSP = process.env.ENABLE_CSP === '1' || ENABLE_SEC_HEADERS
 const BECH32_PREFIX = process.env.CHAIN_PREFIX || process.env.BECH32_PREFIX || 'dytallix'
+const AI_ORACLE_URL = (process.env.AI_ORACLE_URL || 'http://localhost:8080/api/ai/risk').replace(/\/$/, '')
+const AI_ORACLE_TIMEOUT_MS = Math.max(250, parseInt(process.env.AI_ORACLE_TIMEOUT_MS || '1000', 10))
 
 // Initialize contract scanner
 const contractScanner = new ContractScanner({
@@ -320,6 +322,90 @@ app.get('/api/transactions/:hash', async (req, res, next) => {
     const r = await nodeGet(`/tx/${encodeURIComponent(h)}`)
     res.json(r)
   } catch (err) { next(err) }
+})
+
+// AI risk proxy – enrich a transaction receipt with oracle scoring
+app.get('/api/ai/risk/transaction/:hash', async (req, res, next) => {
+  const hash = req.params.hash
+  if (typeof hash !== 'string' || !/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+    const err = new Error('INVALID_TX_HASH')
+    err.status = 400
+    return next(err)
+  }
+
+  const toNumber = (value) => {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : 0
+  }
+
+  const started = Date.now()
+
+  try {
+    const receipt = await nodeGet(`/tx/${encodeURIComponent(hash)}`)
+
+    const payload = {
+      tx_hash: receipt?.hash || hash,
+      from: receipt?.from || receipt?.sender || null,
+      to: receipt?.to || receipt?.recipient || null,
+      amount: toNumber(receipt?.amount ?? receipt?.value ?? receipt?.amount_udgt ?? 0),
+      fee: toNumber(receipt?.fee ?? receipt?.gas_fee ?? receipt?.gas ?? 0),
+      nonce: toNumber(receipt?.nonce ?? receipt?.sequence ?? 0),
+    }
+
+    const stopTimer = aiOracleLatencySeconds.startTimer()
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), AI_ORACLE_TIMEOUT_MS)
+
+    try {
+      const aiResponse = await fetch(AI_ORACLE_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      })
+
+      if (!aiResponse.ok) {
+        const err = new Error(`AI_ORACLE_HTTP_${aiResponse.status}`)
+        err.status = aiResponse.status
+        throw err
+      }
+
+      const parsed = await aiResponse.json().catch(() => null)
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('AI_ORACLE_INVALID_RESPONSE')
+      }
+
+      const scoreValue = Number(parsed.score ?? parsed.ai_risk_score ?? parsed.result)
+      const aiScore = Number.isFinite(scoreValue) ? scoreValue : null
+
+      aiOracleRequestsTotal.inc({ result: 'success' })
+      logInfo('ai.risk.enriched', { hash, score: aiScore, ms: Date.now() - started })
+
+      return res.json({
+        ...receipt,
+        ai_risk_score: aiScore,
+        ai_risk_model: parsed.model_id || parsed.version || null,
+        ai_risk_signature: parsed.signature || null,
+        ai_risk_timestamp: parsed.timestamp || parsed.ts || null,
+        risk_status: 'ok',
+      })
+    } catch (err) {
+      const reason = err.name === 'AbortError' ? 'timeout' : (err.status ? 'http' : 'exception')
+      aiOracleRequestsTotal.inc({ result: 'failure' })
+      aiOracleFailuresTotal.inc({ reason })
+      logWarn('AI oracle request failed; returning fallback response', { hash, reason, ms: Date.now() - started, error: err.message })
+      return res.json({
+        ...receipt,
+        ai_risk_score: null,
+        risk_status: 'unavailable',
+      })
+    } finally {
+      clearTimeout(timeout)
+      stopTimer()
+    }
+  } catch (err) {
+    next(err)
+  }
 })
 
 // Address overview + balances

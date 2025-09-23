@@ -36,6 +36,12 @@ export function logInfo(...args) {
   console.log('[INFO]', new Date().toISOString(), ...args.map(a => typeof a === 'object' ? oneline(safeStringify(a)) : oneline(a)))
 }
 
+export function logWarn(...args) {
+  // eslint-disable-next-line no-console
+  const mapped = args.map(a => (typeof a === 'object' ? oneline(safeStringify(a)) : oneline(a)))
+  console.warn('[WARN]', new Date().toISOString(), ...mapped)
+}
+
 export function logError(...args) {
   // eslint-disable-next-line no-console
   const mapped = args.map(a => {

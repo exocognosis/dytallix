@@ -12,7 +12,7 @@ COPY dytallix-lean-launch ./dytallix-lean-launch
 COPY blockchain-core ./blockchain-core
 COPY pqc-crypto ./pqc-crypto
 COPY smart-contracts ./smart-contracts
-RUN cd dytallix-lean-launch && cargo build --locked --release -p dytallix-lean-node
+RUN cd dytallix-lean-launch && cargo build --locked --release -p dytallix-lean-node --no-default-features --features "oracle,metrics,pqc-real"
 
 FROM debian:bullseye-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl jq && rm -rf /var/lib/apt/lists/*
