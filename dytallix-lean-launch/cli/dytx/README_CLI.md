@@ -5,10 +5,18 @@ This doc shows end-to-end usage of governance proposals and WASM contract lifecy
 Prereqs
 - Install: `cd dytallix-lean-launch/cli/dytx && npm install && npm run build`
 - RPC URL: set `--rpc` flag or `DYTALLIX_RPC_URL` env (default: https://rpc-testnet.dytallix.com)
+- Rust toolchain: ensure `cargo` is available so the CLI can build the Dilithium signer binaries on first use
 
 Global flags
 - `--rpc <url>` RPC endpoint URL
 - `--output json|text` Output format
+
+PQC keys & transfers
+- `dytx keys add --name <label>` generates a Dilithium5 keypair via the Rust `dytallix-pqc` binaries and saves an encrypted keystore (passphrase prompted or provided via `DYTX_PASSPHRASE`).
+- `dytx keygen --label <label>` produces the same Dilithium5 keystore, optionally writing to a custom path when `--output` is supplied.
+- `dytx transfer --from <addr> --to <addr> --amount <amt> --denom udgt` fetches the current nonce from the RPC, builds the canonical transaction, signs the SHA3-256 hash with Dilithium5, and broadcasts it to the node.
+- `dytx sign --address <addr> --payload transfer.json --out signed.json` performs the same Dilithium5 signing flow but writes the signed transaction to disk; combine with `dytx broadcast --file signed.json` for offline signing workflows.
+- The CLI defaults to Dilithium5 signing for every transaction path. Set `DYTX_PQC_MANIFEST` if the `dytallix-pqc` crate lives outside the default `../../../../pqc-crypto` location.
 
 Governance
 - Submit proposal
@@ -62,5 +70,4 @@ Integration Flow (MVP test)
 
 Notes
 - CLI uses the node’s REST and JSON-RPC endpoints exposed in `node/src/main.rs`.
-- For production PQC signing of transactions, use the `pqc-sign` subcommand and native binaries. Governance and contract flows here use direct RPC calls and JSON-RPC contract facade designed for MVP.
-
+- All transaction helpers now call the Dilithium5 signer by default; the standalone `pqc-sign` command remains as a low-level bridge for raw message signing or diagnostics.

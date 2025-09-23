@@ -1,156 +1,102 @@
+version: "3.9"
+
+x-node-env: &node-env
+  DYT_CHAIN_ID: dytallix-mvp-1
+  DYT_DATA_DIR: /var/lib/dytallix/data
+  DYT_ENABLE_GOVERNANCE: "true"
+  DYT_ENABLE_STAKING: "true"
+  DYT_BLOCK_INTERVAL_MS: "1000"
+  DYT_EMPTY_BLOCKS: "true"
+  DY_METRICS: "1"
+  DY_METRICS_ADDR: 0.0.0.0:9464
+  DYT_GOV_MIN_DEPOSIT: "1000000000"
+  DYT_GOV_DEPOSIT_PERIOD: "5"
+  DYT_GOV_VOTING_PERIOD: "5"
+  DYT_GOV_QUORUM_BPS: "3333"
+  DYT_GOV_THRESHOLD_BPS: "5000"
+  DYT_GOV_VETO_BPS: "3333"
+
+x-node-service: &node-service
+  build:
+    context: .
+    dockerfile: Dockerfile.node
+  image: dytallix-lean-node:local
+  restart: unless-stopped
+  environment:
+    <<: *node-env
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  healthcheck:
+    test: ["CMD", "curl", "-sf", "http://localhost:3030/status"]
+    interval: 10s
+    timeout: 5s
+    retries: 12
+
 services:
-  # Seed node
-  dytallix-seed:
-    build: .
-    container_name: dyt-seed-node
+  seed:
+    <<: *node-service
+    container_name: dyt-seed
+    volumes:
+      - seed-data:/var/lib/dytallix
+    ports:
+      - "3031:3030"
+      - "9465:9464"
     environment:
-      DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: seed-node
-      DYTALLIX_PORT: 3030
-      DYTALLIX_P2P_PORT: 30303
-      DYTALLIX_VALIDATOR: "false"
-      DYTALLIX_SEED_MODE: "true"
-      DYTALLIX_LOG_LEVEL: info
-      DYTALLIX_METRICS_ENABLED: "true"
-      DY_METRICS: "1"
-      DY_METRICS_ADDR: "0.0.0.0:9464"
-      DYT_ENABLE_GOVERNANCE: "true"
-      DYT_ENABLE_STAKING: "true"
+      <<: *node-env
+      DYT_NODE_ROLE: seed
+      DYT_EMPTY_BLOCKS: "false"
+
+  validator1:
+    <<: *node-service
+    container_name: dyt-validator-1
+    volumes:
+      - val1-data:/var/lib/dytallix
+    ports:
+      - "3032:3030"
+      - "9466:9464"
+    environment:
+      <<: *node-env
+      DYT_NODE_ROLE: validator
+      DYT_VALIDATOR_NAME: validator1
+      DYT_EMPTY_BLOCKS: "false"
+
+  validator2:
+    <<: *node-service
+    container_name: dyt-validator-2
+    volumes:
+      - val2-data:/var/lib/dytallix
+    ports:
+      - "3033:3030"
+      - "9467:9464"
+    environment:
+      <<: *node-env
+      DYT_NODE_ROLE: validator
+      DYT_VALIDATOR_NAME: validator2
+      DYT_EMPTY_BLOCKS: "false"
+
+  rpc:
+    <<: *node-service
+    container_name: dyt-rpc
+    volumes:
+      - rpc-data:/var/lib/dytallix
     ports:
       - "3030:3030"
-      - "30303:30303"
       - "9464:9464"
-    volumes:
-      - seed_data:/var/lib/dytallix
-      - seed_logs:/var/log/dytallix
-      - ./genesis.json:/var/lib/dytallix/genesis.json:ro
-    networks:
-      - dytallix_testnet
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3030/stats"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-
-  # Validator node 1
-  dytallix-validator-1:
-    build: .
-    container_name: dyt-validator-1
     environment:
-      DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: validator-1
-      DYTALLIX_PORT: 3031
-      DYTALLIX_P2P_PORT: 30304
-      DYTALLIX_VALIDATOR: "true"
-      DYTALLIX_LOG_LEVEL: info
-      DYTALLIX_METRICS_ENABLED: "true"
-      DY_METRICS: "1"
-      DY_METRICS_ADDR: "0.0.0.0:9464"
-      DYT_ENABLE_GOVERNANCE: "true"
-      DYT_ENABLE_STAKING: "true"
-    ports:
-      - "3031:3031"
-      - "30304:30304"
-      - "9465:9464"
-    volumes:
-      - validator1_data:/var/lib/dytallix
-      - validator1_logs:/var/log/dytallix
-      - ./genesis.json:/var/lib/dytallix/genesis.json:ro
-    networks:
-      - dytallix_testnet
+      <<: *node-env
+      DYT_NODE_ROLE: rpc
+      DYT_BLOCK_INTERVAL_MS: "800"
+      DYT_EMPTY_BLOCKS: "true"
     depends_on:
-      dytallix-seed:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3031/stats"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-
-  # Validator node 2
-  dytallix-validator-2:
-    build: .
-    container_name: dyt-validator-2
-    environment:
-      DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: validator-2
-      DYTALLIX_PORT: 3032
-      DYTALLIX_P2P_PORT: 30305
-      DYTALLIX_VALIDATOR: "true"
-      DYTALLIX_LOG_LEVEL: info
-      DYTALLIX_METRICS_ENABLED: "true"
-      DY_METRICS: "1"
-      DY_METRICS_ADDR: "0.0.0.0:9464"
-      DYT_ENABLE_GOVERNANCE: "true"
-      DYT_ENABLE_STAKING: "true"
-    ports:
-      - "3032:3032"
-      - "30305:30305"
-      - "9466:9464"
-    volumes:
-      - validator2_data:/var/lib/dytallix
-      - validator2_logs:/var/log/dytallix
-      - ./genesis.json:/var/lib/dytallix/genesis.json:ro
-    networks:
-      - dytallix_testnet
-    depends_on:
-      dytallix-seed:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3032/stats"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-
-  # RPC node
-  dytallix-rpc:
-    build: .
-    container_name: dyt-rpc-node
-    environment:
-      DYTALLIX_ENVIRONMENT: testnet
-      DYTALLIX_NODE_ID: rpc-node
-      DYTALLIX_PORT: 3033
-      DYTALLIX_P2P_PORT: 30306
-      DYTALLIX_VALIDATOR: "false"
-      DYTALLIX_RPC_MODE: "true"
-      DYTALLIX_LOG_LEVEL: info
-      DYTALLIX_METRICS_ENABLED: "true"
-      DY_METRICS: "1"
-      DY_METRICS_ADDR: "0.0.0.0:9464"
-      DYT_ENABLE_GOVERNANCE: "true"
-      DYT_ENABLE_STAKING: "true"
-    ports:
-      - "3033:3033"
-      - "30306:30306"
-      - "9467:9464"
-    volumes:
-      - rpc_data:/var/lib/dytallix
-      - rpc_logs:/var/log/dytallix
-      - ./genesis.json:/var/lib/dytallix/genesis.json:ro
-    networks:
-      - dytallix_testnet
-    depends_on:
-      dytallix-seed:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3033/stats"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
+      - seed
+      - validator1
+      - validator2
 
 volumes:
-  seed_data:
-  seed_logs:
-  validator1_data:
-  validator1_logs:
-  validator2_data:
-  validator2_logs:
-  rpc_data:
-  rpc_logs:
-
-networks:
-  dytallix_testnet:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
+  seed-data:
+  val1-data:
+  val2-data:
+  rpc-data:

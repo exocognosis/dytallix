@@ -136,3 +136,5 @@ ModuleTests/PulseGuard/artifacts/gan/model_checkpoint/*
 *.pth
 *.pkl
 *.ckpt
+
+**/target/

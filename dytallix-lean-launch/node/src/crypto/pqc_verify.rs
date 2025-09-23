@@ -8,7 +8,6 @@
 //! The module supports feature flags to enable/disable specific algorithms
 //! and provides structured error handling for unsupported algorithms or malformed inputs.
 
-use anyhow::{anyhow, Result};
 use thiserror::Error;
 
 #[cfg(feature = "pqc-real")]

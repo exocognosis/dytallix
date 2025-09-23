@@ -82,3 +82,7 @@ full-node = [
   "ai",
   "staking",
 ]
+
+[[test]]
+name = "staking_emission"
+path = "../tests/staking_emission.rs"

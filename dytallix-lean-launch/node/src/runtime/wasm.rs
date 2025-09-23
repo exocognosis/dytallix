@@ -6,7 +6,7 @@ This module integrates the blockchain-core WASM engine with the node's runtime
 to provide contract deployment and execution capabilities.
 */
 
-use crate::gas::{GasError, GasMeter};
+use crate::gas::GasMeter;
 use anyhow::{anyhow, Result};
 use dytallix_node::wasm::{host_env::HostEnv, WasmEngine};
 use serde::{Deserialize, Serialize};
@@ -93,7 +93,7 @@ impl WasmRuntime {
         gas_meter.consume(wasm_bytes.len() as u64, "contract_deploy_per_byte")?;
 
         // Validate WASM module by attempting to instantiate
-        let (mut store, _instance) = self
+        let (_store, _instance) = self
             .engine
             .instantiate_with_fuel(wasm_bytes, gas_limit)
             .map_err(|e| anyhow!("Failed to validate WASM module: {}", e))?;
@@ -114,7 +114,7 @@ impl WasmRuntime {
             code_hash,
             code: wasm_bytes.to_vec(),
             tx_hash,
-            gas_used: gas_limit - store.fuel_consumed().unwrap_or(0),
+            gas_used: gas_meter.gas_used(),
             deployed_at: SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
         };
 
@@ -151,7 +151,7 @@ impl WasmRuntime {
             .ok_or_else(|| anyhow!("Contract not found: {}", contract_address))?;
 
         // Instantiate contract with fuel
-        let (mut store, instance) = self
+        let (_store, _instance) = self
             .engine
             .instantiate_with_fuel(&contract.code, gas_limit)
             .map_err(|e| anyhow!("Failed to instantiate contract: {}", e))?;
@@ -163,7 +163,7 @@ impl WasmRuntime {
             _ => return Err(anyhow!("Unknown method: {}", method)),
         };
 
-        let gas_used = gas_limit - store.fuel_consumed().unwrap_or(0);
+        let gas_used = gas_meter.gas_used();
         let tx_hash = self.generate_tx_hash(contract_address, method);
 
         let execution = ContractExecution {

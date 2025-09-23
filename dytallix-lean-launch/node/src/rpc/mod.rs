@@ -26,7 +26,8 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
-use base64;
+#[cfg(feature = "contracts")]
+use base64::Engine;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
@@ -256,15 +257,34 @@ pub async fn submit(
 
     // Build legacy Transaction wrapper for storage compatibility
     // TODO: Remove this legacy conversion once storage is updated
-    let legacy_tx = Transaction::new(
+    let mut legacy_tx = Transaction::new(
         tx_hash.clone(),
         from.to_string(),
         from.to_string(),
-        0, // value - calculated from msgs
+        0, // populate below based on msgs
         signed_tx.tx.fee,
         signed_tx.tx.nonce,
         Some(signed_tx.signature.clone()),
+    )
+    .with_pqc(
+        signed_tx.public_key.clone(),
+        signed_tx.tx.chain_id.clone(),
+        signed_tx.tx.memo.clone(),
     );
+
+    // Sum send amounts so legacy accounting reserves the correct value
+    let mut total_amount: u128 = 0;
+    let mut first_to = legacy_tx.to.clone();
+    for msg in &signed_tx.tx.msgs {
+        if let Msg::Send { to, amount, .. } = msg {
+            total_amount = total_amount.saturating_add(*amount);
+            if first_to == from {
+                first_to = to.clone();
+            }
+        }
+    }
+    legacy_tx.amount = total_amount;
+    legacy_tx.to = first_to;
 
     // Additional validation using legacy system
     {
@@ -293,10 +313,28 @@ pub async fn submit(
     }
 
     // Add to mempool
+    let state_snapshot = {
+        // Clone so we can drop the lock before touching the mempool
+        ctx.state.lock().unwrap().clone()
+    };
     {
         let mut mempool = ctx.mempool.lock().unwrap();
+        let min_gas_price = mempool.config().min_gas_price;
+        legacy_tx.gas_price = min_gas_price;
+        if legacy_tx.gas_limit == 0 {
+            // Default legacy gas limit: ENV override -> governance parameter
+            let fallback_gas_limit = std::env::var("DYTALLIX_DEFAULT_GAS_LIMIT")
+                .ok()
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or_else(|| {
+                    // Read from governance config as the canonical default
+                    let gov = ctx.governance.lock().unwrap();
+                    gov.get_config().gas_limit
+                });
+            legacy_tx.gas_limit = fallback_gas_limit;
+        }
         // Use add_transaction directly to capture detailed rejection reasons
-        if let Err(reason) = mempool.add_transaction(&State::default(), legacy_tx.clone()) {
+        if let Err(reason) = mempool.add_transaction_trusted(&state_snapshot, legacy_tx.clone()) {
             let (api_err, code) = match reason {
                 crate::mempool::RejectionReason::InvalidSignature => {
                     (ApiError::InvalidSignature, "INVALID_SIGNATURE")
@@ -1243,9 +1281,10 @@ pub async fn staking_get_balance(
 }
 
 /// POST /api/staking/delegate - Delegate tokens to a validator
+#[axum::debug_handler]
 pub async fn staking_delegate(
-    Json(payload): Json<serde_json::Value>,
     Extension(ctx): Extension<RpcContext>,
+    Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     if !ctx.features.staking {
         return Err(ApiError::NotImplemented("staking feature disabled".into()));
@@ -1271,9 +1310,10 @@ pub async fn staking_delegate(
 }
 
 /// POST /api/staking/undelegate - Undelegate tokens from a validator
+#[axum::debug_handler]
 pub async fn staking_undelegate(
-    Json(payload): Json<serde_json::Value>,
     Extension(ctx): Extension<RpcContext>,
+    Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     if !ctx.features.staking {
         return Err(ApiError::NotImplemented("staking feature disabled".into()));
@@ -1303,8 +1343,8 @@ pub async fn staking_undelegate(
 /// Returns: { contract_address, tx_hash }
 #[cfg(feature = "contracts")]
 pub async fn contracts_deploy(
-    Json(payload): Json<serde_json::Value>,
     Extension(ctx): Extension<RpcContext>,
+    Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let wasm_bytes = if let Some(bytes_b64) = payload["wasm_bytes"].as_str() {
         base64::engine::general_purpose::STANDARD
@@ -1346,12 +1386,13 @@ pub async fn contracts_deploy(
 /// Returns: { result, gas_used, tx_hash }
 #[cfg(feature = "contracts")]
 pub async fn contracts_call(
-    Json(payload): Json<serde_json::Value>,
     Extension(ctx): Extension<RpcContext>,
+    Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let contract_address = payload["contract_address"]
         .as_str()
-        .ok_or(ApiError::BadRequest("missing contract_address".to_string()))?;
+        .ok_or(ApiError::BadRequest("missing contract_address".to_string()))?
+        .to_string();
     let method = payload["method"]
         .as_str()
         .ok_or(ApiError::BadRequest("missing method".to_string()))?;
@@ -1360,7 +1401,7 @@ pub async fn contracts_call(
 
     let execution = ctx
         .wasm_runtime
-        .execute_contract(contract_address, method, args, gas_limit)
+        .execute_contract(&contract_address, method, args, gas_limit)
         .map_err(|e| ApiError::BadRequest(format!("Execution failed: {}", e)))?;
 
     // Parse result based on method

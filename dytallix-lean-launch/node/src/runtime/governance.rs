@@ -71,7 +71,7 @@ pub struct Vote {
     pub proposal_id: u64,
     pub voter: String,
     pub option: VoteOption,
-    pub weight: u128, // DGT balance at time of vote
+    pub weight: u128 // DGT balance at time of vote
 }
 
 /// Deposit on a proposal (for tracking individual deposits)
@@ -519,7 +519,7 @@ impl GovernanceModule {
 
     /// Execute a passed proposal
     pub fn execute(&mut self, proposal_id: u64) -> Result<(), String> {
-        let proposal = self
+        let mut proposal = self
             ._get_proposal(proposal_id)?
             .ok_or("Proposal not found")?;
 
@@ -529,11 +529,31 @@ impl GovernanceModule {
 
         match &proposal.proposal_type {
             ProposalType::ParameterChange { key, value } => {
-                self.apply_parameter_change(key, value)?;
+                // Apply change and transition status within this method to avoid double execution
+                match self.apply_parameter_change(key, value) {
+                    Ok(_) => {
+                        // Success: mark executed, persist, refund deposits, emit event
+                        proposal.status = ProposalStatus::Executed;
+                        self.store_proposal(&proposal)?;
+                        // Refund deposits for successfully executed proposals (mirror end_block behavior)
+                        let _ = self.refund_deposits(proposal_id);
+                        self.emit_event(GovernanceEvent::ProposalExecuted { id: proposal_id });
+                        let _ = self.write_governance_evidence();
+                        Ok(())
+                    }
+                    Err(e) => {
+                        // Failure: mark failed execution, persist, refund deposits, emit event
+                        proposal.status = ProposalStatus::FailedExecution;
+                        self.store_proposal(&proposal)?;
+                        // Refund deposits for failed execution (not proposer's fault)
+                        let _ = self.refund_deposits(proposal_id);
+                        self.emit_event(GovernanceEvent::ExecutionFailed { id: proposal_id, error: e.clone() });
+                        let _ = self.write_governance_evidence();
+                        Err(e)
+                    }
+                }
             }
         }
-
-        Ok(())
     }
 
     /// Apply parameter changes with enhanced governance event emission

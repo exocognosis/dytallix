@@ -3,6 +3,8 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
 import { readFileSync } from 'fs'
+import { DytClient } from '../lib/client.js'
+import { txHashHex } from '../lib/tx.js'
 
 export const broadcastCommand = new Command('broadcast')
   .description('Broadcast a signed transaction')
@@ -17,30 +19,21 @@ export const broadcastCommand = new Command('broadcast')
 
       // Load signed transaction
       const signedTx = JSON.parse(readFileSync(options.file, 'utf8'))
-      
+
       console.log(chalk.blue('📡 Broadcasting transaction...'))
       console.log(chalk.gray(`File: ${options.file}`))
       console.log(chalk.gray(`RPC: ${globalOpts.rpc}`))
 
-      // TODO: Implement actual RPC call to broadcast transaction
-      // For now, simulate broadcast
-      const mockResult = {
-        txHash: signedTx.hash || '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join(''),
-        height: Math.floor(Math.random() * 1000000) + 100000,
-        gasUsed: 50000,
-        gasWanted: 60000
-      }
+      const client = new DytClient(globalOpts.rpc)
+      const result = await client.submitSignedTx(signedTx)
+      const hash = result.hash || (signedTx.tx ? txHashHex(signedTx.tx) : undefined)
 
       if (globalOpts.output === 'json') {
-        console.log(JSON.stringify(mockResult, null, 2))
+        console.log(JSON.stringify({ ...result, hash }, null, 2))
       } else {
         console.log(chalk.green('✅ Transaction broadcast successfully!'))
-        console.log(chalk.bold('Transaction Hash:'), mockResult.txHash)
-        console.log(chalk.bold('Block Height:'), mockResult.height)
-        console.log(chalk.bold('Gas Used:'), mockResult.gasUsed)
-        console.log(chalk.bold('Gas Wanted:'), mockResult.gasWanted)
+        if (hash) console.log(chalk.bold('Transaction Hash:'), hash)
+        console.log(chalk.bold('Status:'), result.status)
       }
 
     } catch (error) {

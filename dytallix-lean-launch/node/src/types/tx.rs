@@ -1,6 +1,4 @@
-use crate::crypto::{
-    canonical_json, sha3_256, verify, ActivePQC, PQCAlgorithm, PQCVerifyError, PQC,
-};
+use crate::crypto::{canonical_json, sha3_256, verify, ActivePQC, PQCAlgorithm, PQC};
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use serde::{Deserialize, Serialize};

@@ -1,93 +1,92 @@
 {
-  "network": {
-    "name": "dytallix-testnet",
-    "chain_id": "dytallix-testnet-e2e",
-    "genesis_time": "2025-01-01T00:00:00.000000000Z"
-  },
-  "dgt_allocations": [
-    {
-      "address": "dyt1validator1000000000000000000000000000",
-      "amount": 1000000000000000000000000,
-      "vesting": null
-    },
-    {
-      "address": "dyt1validator2000000000000000000000000000",
-      "amount": 1000000000000000000000000,
-      "vesting": null
-    },
-    {
-      "address": "dyt1validator3000000000000000000000000000",
-      "amount": 1000000000000000000000000,
-      "vesting": null
-    },
-    {
-      "address": "dyt1user1000000000000000000000000000000",
-      "amount": 500000000000000000000000,
-      "vesting": null
-    }
-  ],
-  "drt_emission": {
-    "annual_inflation_rate": 500,
-    "emission_breakdown": {
-      "block_rewards": 60,
-      "staking_rewards": 25,
-      "ai_module_incentives": 10,
-      "bridge_operations": 5
-    }
-  },
-  "burn_rules": {
-    "transaction_fee_burn_rate": 100,
-    "ai_service_fee_burn_rate": 50,
-    "bridge_fee_burn_rate": 75
-  },
-  "validators": [
-    {
-      "address": "dyt1validator1000000000000000000000000000",
-      "stake": 32000000000000000000000,
-      "public_key": [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
-      ],
-      "signature_algorithm": "Dilithium5",
-      "active": true,
-      "commission": 500
-    },
-    {
-      "address": "dyt1validator2000000000000000000000000000",
-      "stake": 32000000000000000000000,
-      "public_key": [
-        33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
-        49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64
-      ],
-      "signature_algorithm": "Dilithium5",
-      "active": true,
-      "commission": 500
-    },
-    {
-      "address": "dyt1validator3000000000000000000000000000",
-      "stake": 32000000000000000000000,
-      "public_key": [
-        65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
-        81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96
-      ],
-      "signature_algorithm": "Dilithium5", 
-      "active": true,
-      "commission": 500
-    }
-  ],
+  "chain_id": "dytallix-mvp-1",
   "governance": {
-    "min_deposit": 1000000000000000000000,
-    "voting_period": 300,
-    "quorum": 3400,
-    "threshold": 5000,
-    "veto_threshold": 3340,
-    "deposit_period": 300
+    "deposit_period": 5,
+    "voting_period": 5,
+    "min_deposit_udgt": "1000000000",
+    "quorum_bps": "3333",
+    "threshold_bps": "5000",
+    "veto_threshold_bps": "3333"
   },
+  "emission": {
+    "initial_annual_inflation_rate_bps": 500,
+    "proposal_target_annual_inflation_rate_bps": 1000
+  },
+  "accounts": [
+    {
+      "name": "validator1",
+      "address": "dyt1valoper000000000001",
+      "roles": ["validator"],
+      "balances": {
+        "udgt": "2000000000",
+        "udrt": "100000000"
+      }
+    },
+    {
+      "name": "validator2",
+      "address": "dyt1valoper000000000002",
+      "roles": ["validator"],
+      "balances": {
+        "udgt": "2000000000",
+        "udrt": "100000000"
+      }
+    },
+    {
+      "name": "validator3",
+      "address": "dyt1valoper000000000003",
+      "roles": ["validator"],
+      "balances": {
+        "udgt": "2000000000",
+        "udrt": "100000000"
+      }
+    },
+    {
+      "name": "user1",
+      "address": "dyt1userstake0000000001",
+      "roles": ["delegator"],
+      "balances": {
+        "udgt": "500000000",
+        "udrt": "0"
+      }
+    }
+  ],
   "staking": {
-    "reward_rate": 500,
-    "unbonding_period": 86400,
-    "max_validators": 100,
-    "min_stake": 1000000000000000000
+    "delegations": [
+      {
+        "delegator": "dyt1valoper000000000001",
+        "validator": "dyt1valoper000000000001",
+        "amount_udgt": "600000000000"
+      },
+      {
+        "delegator": "dyt1valoper000000000002",
+        "validator": "dyt1valoper000000000002",
+        "amount_udgt": "400000000000"
+      },
+      {
+        "delegator": "dyt1valoper000000000003",
+        "validator": "dyt1valoper000000000003",
+        "amount_udgt": "300000000000"
+      }
+    ],
+    "user_delegation": {
+      "delegator": "dyt1userstake0000000001",
+      "validator": "dyt1valoper000000000001",
+      "amount_udgt": "150000000000"
+    }
   },
-  "genesis_hash": null
+  "governance_proposal": {
+    "title": "Increase Annual Emission To 10%",
+    "description": "Raise emission rate from 5% to 10% to accelerate staking rewards for active validators.",
+    "parameter_key": "emission.annual_inflation_rate",
+    "target_rate_bps": 1000,
+    "depositors": ["dyt1valoper000000000001"],
+    "voters": [
+      {"address": "dyt1valoper000000000001", "option": "yes"},
+      {"address": "dyt1valoper000000000002", "option": "yes"},
+      {"address": "dyt1valoper000000000003", "option": "yes"}
+    ]
+  },
+  "simulation": {
+    "blocks_to_run": 50
+  }
 }

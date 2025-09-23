@@ -2,58 +2,107 @@
 
 import { Command } from 'commander'
 import chalk from 'chalk'
-import { readFileSync } from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
+import inquirer from 'inquirer'
+import { DytClient } from '../lib/client.js'
+import { buildSendTx, signTx, txHashHex } from '../lib/tx.js'
+import { amountToMicro } from '../lib/amount.js'
+import { decryptSecretKey } from '../keystore.js'
+import { loadKeystoreRecord } from '../lib/keystore-loader.js'
+
+function validateAddress(addr: string): void {
+  if (typeof addr !== 'string' || !addr.startsWith('dyt') || addr.length < 12) {
+    throw new Error('Invalid address format; expected dyt* prefix')
+  }
+}
+
+function normalizeFee(fee?: string | number): string | undefined {
+  if (fee === undefined || fee === null) return undefined
+  const feeStr = String(fee)
+  if (feeStr.includes('.')) {
+    return amountToMicro(feeStr)
+  }
+  if (!/^\d+$/.test(feeStr)) {
+    throw new Error('Fee must be a positive integer or decimal value')
+  }
+  return feeStr
+}
+
+type SignPayload = {
+  to: string
+  amount: string | number
+  denom?: string
+  memo?: string
+  fee?: string | number
+}
 
 export const signCommand = new Command('sign')
-  .description('Sign a transaction payload')
-  .option('--address <address>', 'Signer address')
-  .option('--payload <file>', 'JSON file containing transaction payload')
-  .option('--keystore <file>', 'Keystore file')
-  .option('--out <file>', 'Output file for signed transaction')
+  .description('Sign a transaction payload with Dilithium')
+  .requiredOption('--address <address>', 'Signer address')
+  .requiredOption('--payload <file>', 'JSON file containing transaction payload (transfer descriptor)')
+  .option('--keystore <fileOrName>', 'Keystore file path or saved keystore name')
+  .option('--passphrase <pass>', 'Keystore passphrase (or set DYTX_PASSPHRASE)')
+  .option('--out <file>', 'Output file for signed transaction JSON')
   .action(async (options, command) => {
     try {
       const globalOpts = command.parent.opts()
-      
-      if (!options.address) {
-        throw new Error('--address is required')
-      }
-      
-      if (!options.payload) {
-        throw new Error('--payload is required')
-      }
 
-      // Load payload
-      const payloadData = JSON.parse(readFileSync(options.payload, 'utf8'))
-      
+      validateAddress(options.address)
+
+      const payloadRaw = readFileSync(options.payload, 'utf8')
+      const payload = JSON.parse(payloadRaw) as SignPayload
+
+      validateAddress(payload.to)
+      const amountMicro = amountToMicro(String(payload.amount))
+      const denomInput = (payload.denom || 'udgt').toString().toLowerCase()
+      if (!['udgt', 'udrt'].includes(denomInput)) {
+        throw new Error('Denomination must be udgt or udrt')
+      }
+      const denom = denomInput === 'udrt' ? 'DRT' : 'DGT'
+      const feeMicro = normalizeFee(payload.fee)
+
       console.log(chalk.blue('✍️  Signing transaction...'))
-      console.log(chalk.gray(`Address: ${options.address}`))
-      console.log(chalk.gray(`Payload: ${options.payload}`))
+      console.log(chalk.gray(`Signer: ${options.address}`))
+      console.log(chalk.gray(`Payload file: ${options.payload}`))
 
-      // TODO: Load keystore and prompt for passphrase
-      // TODO: Sign with PQC algorithm
-      
-      const mockSignedTx = {
-        payload: payloadData,
-        algo: 'dilithium',
-        pubkey: 'mock_public_key',
-        sig: 'mock_signature_data',
-        hash: '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('')
+      const client = new DytClient(globalOpts.rpc)
+      const acct = await client.getAccount(options.address)
+      const nonce = Number(acct.nonce || 0)
+      const chainId = globalOpts.chainId || (await client.getStats()).chain_id
+
+      const tx = buildSendTx(
+        chainId,
+        nonce,
+        options.address,
+        payload.to,
+        denom,
+        amountMicro,
+        payload.memo || '',
+        feeMicro
+      )
+
+      const { record } = loadKeystoreRecord(options.address, options.keystore)
+      const passFromEnv = process.env.DYTX_PASSPHRASE
+      const passFromFlag = options.passphrase as string | undefined
+      const pass = passFromFlag || passFromEnv || (await inquirer.prompt<{ passphrase: string }>([
+        { type: 'password', name: 'passphrase', message: 'Enter keystore passphrase:', mask: '*' }
+      ])).passphrase
+      const sk = decryptSecretKey(record, pass)
+      const pk = Buffer.from(record.pubkey_b64, 'base64')
+      const signed = signTx(tx, sk, new Uint8Array(pk))
+      const hash = txHashHex(tx)
+
+      if (options.out) {
+        writeFileSync(options.out, JSON.stringify(signed, null, 2) + '\n')
+        console.log(chalk.blue(`💾 Signed transaction saved to: ${options.out}`))
       }
 
       if (globalOpts.output === 'json') {
-        console.log(JSON.stringify(mockSignedTx, null, 2))
+        console.log(JSON.stringify({ signed_tx: signed, hash }, null, 2))
       } else {
         console.log(chalk.green('✅ Transaction signed successfully!'))
-        console.log(chalk.bold('Transaction Hash:'), mockSignedTx.hash)
-        console.log(chalk.bold('Algorithm:'), mockSignedTx.algo)
-        console.log(chalk.bold('Signature:'), mockSignedTx.sig.substring(0, 20) + '...')
-      }
-
-      if (options.out) {
-        // TODO: Write signed transaction to file
-        console.log(chalk.blue(`💾 Signed transaction saved to: ${options.out}`))
+        console.log(chalk.bold('Transaction Hash:'), hash)
+        console.log(chalk.bold('Algorithm:'), signed.algorithm)
       }
 
     } catch (error) {

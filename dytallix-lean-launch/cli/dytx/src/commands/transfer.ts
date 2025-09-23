@@ -3,9 +3,11 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
 import { DytClient } from '../lib/client.js'
-import { signTxMock, buildSendTx } from '../lib/tx.js'
+import { buildSendTx, signTx, txHashHex } from '../lib/tx.js'
 import inquirer from 'inquirer'
-import { decryptSecretKey, findKeystoreByAddress, loadKeystoreByName } from '../keystore.js'
+import { decryptSecretKey } from '../keystore.js'
+import { amountToMicro } from '../lib/amount.js'
+import { loadKeystoreRecord } from '../lib/keystore-loader.js'
 
 export const transferCommand = new Command('transfer')
   .description('Send tokens to another address')
@@ -34,10 +36,7 @@ export const transferCommand = new Command('transfer')
       if (!validAddr(options.to)) throw new Error('Invalid recipient address format')
 
       // Validate amount
-      const amount = parseFloat(options.amount)
-      if (isNaN(amount) || amount <= 0) {
-        throw new Error('Amount must be a positive number')
-      }
+      const amountMicro = amountToMicro(String(options.amount))
 
       // Validate denomination
       if (!['udgt', 'udrt'].includes(options.denom)) {
@@ -58,24 +57,11 @@ export const transferCommand = new Command('transfer')
       const acct = await client.getAccount(options.from)
       const nonce = Number(acct.nonce || 0)
       const chainId = globalOpts.chainId || (await client.getStats()).chain_id
-      const amountMicro = Math.round(amount * 1e6).toString()
-      const tx = buildSendTx(chainId, nonce, options.from, options.to, options.denom.toUpperCase() === 'UDRT' ? 'DRT' : 'DGT', amountMicro, options.memo)
+      const denom = options.denom.toUpperCase() === 'UDRT' ? 'DRT' : 'DGT'
+      const tx = buildSendTx(chainId, nonce, options.from, options.to, denom, amountMicro, options.memo)
 
       // Load keystore (by name or by matching address) and decrypt
-      let rec: any
-      const fs = await import('fs')
-      if (options.keystore) {
-        if (fs.existsSync(options.keystore)) {
-          rec = JSON.parse(fs.readFileSync(options.keystore, 'utf8'))
-        } else {
-          // treat as keystore name
-          rec = loadKeystoreByName(options.keystore)
-        }
-      } else {
-        const found = findKeystoreByAddress(options.from)
-        if (!found) throw new Error('No keystore found for --from address; provide --keystore <nameOrPath>')
-        rec = found.rec
-      }
+      const { record: rec } = loadKeystoreRecord(options.from, options.keystore)
       const passFromEnv = process.env.DYTX_PASSPHRASE
       const passFromFlag = options.passphrase as string | undefined
       const pass = passFromFlag || passFromEnv || (await inquirer.prompt<{ passphrase: string }>([
@@ -83,14 +69,15 @@ export const transferCommand = new Command('transfer')
       ])).passphrase
       const sk = decryptSecretKey(rec, pass)
       const pk = Buffer.from(rec.pubkey_b64, 'base64')
-      const signed = signTxMock(tx, sk, new Uint8Array(pk))
+      const signed = signTx(tx, sk, new Uint8Array(pk))
       const res = await client.submitSignedTx(signed)
+      const hash = res.hash || txHashHex(tx)
 
       if (globalOpts.output === 'json') {
-        console.log(JSON.stringify(res, null, 2))
+        console.log(JSON.stringify({ ...res, hash }, null, 2))
       } else {
         console.log(chalk.green('✅ Transfer submitted!'))
-        console.log(chalk.bold('Transaction Hash:'), res.hash)
+        console.log(chalk.bold('Transaction Hash:'), hash)
         console.log(chalk.bold('Status:'), res.status)
         console.log(chalk.cyan('Transfer:'), `${options.amount} ${options.denom.toUpperCase()} from ${options.from} to ${options.to}`)
       }

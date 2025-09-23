@@ -226,10 +226,10 @@ app.get('/api/status', async (req, res, next) => {
 // -------------------------
 // Explorer proxy to Node (port 3030)
 // -------------------------
-const NODE_BASE = process.env.RPC_HTTP_URL || 'http://localhost:3030'
+function getNodeBase() { return (process.env.RPC_HTTP_URL || 'http://localhost:3030').replace(/\/$/, '') }
 
 async function nodeGet(path) {
-  const r = await fetch(NODE_BASE + path)
+  const r = await fetch(getNodeBase() + path)
   if (!r.ok) {
     const e = new Error(`NODE_${r.status}`)
     e.status = r.status
@@ -387,7 +387,7 @@ app.get('/api/governance/proposals/:id/tally', async (req, res, next) => {
 })
 app.post('/api/governance/submit', async (req, res, next) => {
   try {
-    const r = await fetch(NODE_BASE + '/gov/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
+    const r = await fetch(getNodeBase() + '/gov/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
     const j = await r.json().catch(() => null)
     if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
     res.json(j)
@@ -395,7 +395,7 @@ app.post('/api/governance/submit', async (req, res, next) => {
 })
 app.post('/api/governance/deposit', async (req, res, next) => {
   try {
-    const r = await fetch(NODE_BASE + '/gov/deposit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
+    const r = await fetch(getNodeBase() + '/gov/deposit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
     const j = await r.json().catch(() => null)
     if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
     res.json(j)
@@ -403,7 +403,7 @@ app.post('/api/governance/deposit', async (req, res, next) => {
 })
 app.post('/api/governance/vote', async (req, res, next) => {
   try {
-    const r = await fetch(NODE_BASE + '/gov/vote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
+    const r = await fetch(getNodeBase() + '/gov/vote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
     const j = await r.json().catch(() => null)
     if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
     res.json(j)
@@ -425,7 +425,7 @@ app.post('/api/contracts/deploy', async (req, res, next) => {
     const gasLimit = Number(req.body?.gas_limit || 100000)
     if (!codeHex) return res.status(400).json({ error: 'missing code_hex' })
     const body = { jsonrpc: '2.0', id: 1, method: 'contract_deploy', params: [{ code: codeHex, gas_limit: gasLimit }] }
-    const r = await fetch(NODE_BASE + '/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    const r = await fetch(getNodeBase() + '/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
     const j = await r.json().catch(() => null)
     if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
     res.json(j?.result || j)
@@ -437,14 +437,91 @@ app.post('/api/contracts/:address/execute', async (req, res, next) => {
     const func = String(req.body?.function || 'get')
     const gasLimit = Number(req.body?.gas_limit || 100000)
     const body = { jsonrpc: '2.0', id: 1, method: 'contract_execute', params: [{ contract_address: address, function: func, gas_limit: gasLimit }] }
-    const r = await fetch(NODE_BASE + '/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    const r = await fetch(getNodeBase() + '/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
     const j = await r.json().catch(() => null)
     if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
     res.json(j?.result || j)
   } catch (e) { next(e) }
 })
-app.get('/api/staking/apr', (req, res) => {
-  res.json({ apr: 0.12, asOf: new Date().toISOString() }) // placeholder 12%
+
+// Replace placeholder APR with real computation from chain state
+// References:
+// - EmissionEngine source of truth: node/src/runtime/emission.rs
+//   * calculate_per_block_emission() uses BLOCKS_PER_YEAR = 5_256_000 and emission schedule
+//   * pool breakdown includes a staking_rewards pool. We derive per-block staking rewards
+//     by sampling the staking_rewards pool delta across heights when available.
+// - Application of emission to staking happens in node/src/main.rs during block production
+//   (see: apply_external_emission and metrics updates around emission snapshot)
+const BLOCKS_PER_YEAR = 5_256_000 // must match EmissionEngine constant in emission.rs
+const DEFAULT_STAKING_SHARE_PCT = 25 // percent (matches default EmissionBreakdown.staking_rewards)
+let __aprSample = { lastHeight: null, lastStakingPool: null }
+
+app.get('/api/staking/apr', async (req, res, next) => {
+  try {
+    // Fetch enriched stats from node (includes emission snapshot and staking totals)
+    // Path provided by axum router in node/src/main.rs -> "/api/stats" -> rpc::stats_with_emission
+    let stats
+    try {
+      stats = await nodeGet('/api/stats')
+    } catch (e) {
+      // Fallback: try legacy /stats
+      try { stats = await nodeGet('/stats') } catch (e2) { return next(e) }
+    }
+
+    const height = Number(stats?.height || stats?.status?.height || 0)
+    const stakingTotals = stats?.staking || {}
+    const totalStaked = Number(stakingTotals.total_stake || 0) // udgt
+
+    // Extract staking pool cumulative amount if present
+    const pools = stats?.emission_pools || {}
+    const stakingPoolNow = Number(pools.staking_rewards || pools['staking_rewards'] || 0)
+
+    let perBlockStaking = 0
+    let method = 'unknown'
+    // Preferred method: use pool delta across heights to get per-block staking rewards
+    if (Number.isFinite(stakingPoolNow) && stakingPoolNow >= 0 && Number.isFinite(height) && height > 0) {
+      if (__aprSample.lastHeight != null && height > __aprSample.lastHeight && __aprSample.lastStakingPool != null) {
+        const delta = stakingPoolNow - __aprSample.lastStakingPool
+        if (delta >= 0) {
+          perBlockStaking = delta
+          method = 'delta'
+        }
+      }
+      // Update sample cache for next call
+      __aprSample.lastHeight = height
+      __aprSample.lastStakingPool = stakingPoolNow
+    }
+
+    // Fallback method: derive from latest emission event and assumed staking share
+    if (perBlockStaking === 0) {
+      const latestEmission = stats?.latest_emission || {}
+      const totalPerBlock = Number(latestEmission.total_emitted || 0) // udrt emitted this block (all pools)
+      if (totalPerBlock > 0) {
+        perBlockStaking = Math.floor((totalPerBlock * DEFAULT_STAKING_SHARE_PCT) / 100)
+        method = 'latest_emission_pct'
+      }
+    }
+
+    // Compute APR = (annualized_rewards / total_staked) * 100
+    // Where annualized_rewards = per_block_staking * BLOCKS_PER_YEAR
+    let apr = 0
+    let annualizedRewards = 0
+    if (perBlockStaking > 0 && totalStaked > 0) {
+      annualizedRewards = perBlockStaking * BLOCKS_PER_YEAR
+      apr = Number(((annualizedRewards / totalStaked) * 100).toFixed(4))
+    }
+
+    res.json({
+      apr, // percent
+      perBlockStaking,
+      annualizedRewards,
+      totalStaked,
+      method,
+      assumptions: method === 'latest_emission_pct' ? { stakingSharePct: DEFAULT_STAKING_SHARE_PCT } : undefined,
+      height,
+      asOf: new Date().toISOString()
+    })
+  } catch (e) { next(e) }
 })
 
 // AI risk passthrough for a transaction (if present on node receipts)

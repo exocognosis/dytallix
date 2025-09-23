@@ -1,8 +1,8 @@
 import { Command } from 'commander'
 import inquirer from 'inquirer'
 import chalk from 'chalk'
-import { keypair } from '../lib/pqcMock.js'
-import { defaultKeystoreDir, encryptSecretKey, saveKeystore, findKeystoreByAddress, loadKeystoreByName } from '../keystore.js'
+import { generateDilithiumKeypair, DILITHIUM_ALGO } from '../lib/pqc.js'
+import { defaultKeystoreDir, encryptSecretKey, saveKeystore } from '../keystore.js'
 
 export const keysCommand = new Command('keys')
   .description('Key management commands')
@@ -23,12 +23,17 @@ export const keysCommand = new Command('keys')
           ])).passphrase
         }
       }
-      const { sk, pk } = keypair()
-      const rec = encryptSecretKey(opts.name, sk, pk, passphrase!, opts.algo)
+      if (opts.algo !== 'dilithium') {
+        throw new Error('Only dilithium algorithm is supported for key generation')
+      }
+
+      const { sk, pk } = generateDilithiumKeypair()
+      const rec = encryptSecretKey(opts.name, sk, pk, passphrase!, DILITHIUM_ALGO)
       const file = saveKeystore(rec)
       console.log(chalk.green('✅ Key stored'))
       console.log(chalk.gray('Keystore:'), file)
       console.log(chalk.gray('Address:'), rec.address)
+      console.log(chalk.gray('Algorithm:'), rec.algo)
     }))
   .addCommand(new Command('import')
     .description('Import an existing keystore JSON file')

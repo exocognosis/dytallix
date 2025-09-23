@@ -2,9 +2,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::crypto::{
-    canonical_json, sha3_256, verify_default, ActivePQC, PQCAlgorithm, PQCVerifyError, PQC,
-};
+use crate::crypto::{canonical_json, sha3_256, PQCAlgorithm, PQCVerifyError};
 use crate::gas::{validate_gas_limit, GasSchedule, TxKind};
 use crate::state::State;
 use crate::storage::tx::Transaction;
@@ -242,8 +240,26 @@ impl Mempool {
         state: &State,
         tx: Transaction,
     ) -> Result<(), RejectionReason> {
-        // 1. Signature verification
-        if !verify_envelope(&tx) {
+        self.add_transaction_internal(state, tx, false)
+    }
+
+    /// Add a transaction when the caller has already performed signature validation.
+    pub fn add_transaction_trusted(
+        &mut self,
+        state: &State,
+        tx: Transaction,
+    ) -> Result<(), RejectionReason> {
+        self.add_transaction_internal(state, tx, true)
+    }
+
+    fn add_transaction_internal(
+        &mut self,
+        state: &State,
+        tx: Transaction,
+        skip_signature: bool,
+    ) -> Result<(), RejectionReason> {
+        // 1. Signature verification (unless caller opted out after verifying upstream)
+        if !skip_signature && !verify_envelope(&tx) {
             return Err(RejectionReason::InvalidSignature);
         }
 
