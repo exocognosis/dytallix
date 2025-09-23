@@ -456,6 +456,26 @@ const BLOCKS_PER_YEAR = 5_256_000 // must match EmissionEngine constant in emiss
 const DEFAULT_STAKING_SHARE_PCT = 25 // percent (matches default EmissionBreakdown.staking_rewards)
 let __aprSample = { lastHeight: null, lastStakingPool: null }
 
+const toNumeric = (value) => {
+  if (value == null) return NaN
+  if (typeof value === 'number') return Number.isFinite(value) ? value : NaN
+  if (typeof value === 'bigint') return Number(value)
+  if (typeof value === 'string') {
+    const sanitized = value.replace(/[,_\s]/g, '')
+    if (sanitized === '') return NaN
+    const num = Number(sanitized)
+    return Number.isFinite(num) ? num : NaN
+  }
+  return NaN
+}
+
+const toPositiveInt = (value) => {
+  const num = toNumeric(value)
+  if (!Number.isFinite(num)) return NaN
+  const int = Math.trunc(num)
+  return int > 0 ? int : NaN
+}
+
 app.get('/api/staking/apr', async (req, res, next) => {
   try {
     // Fetch enriched stats from node (includes emission snapshot and staking totals)
@@ -468,19 +488,58 @@ app.get('/api/staking/apr', async (req, res, next) => {
       try { stats = await nodeGet('/stats') } catch (e2) { return next(e) }
     }
 
-    const height = Number(stats?.height || stats?.status?.height || 0)
+    const height = toPositiveInt(stats?.height || stats?.status?.height || 0) || 0
     const stakingTotals = stats?.staking || {}
-    const totalStaked = Number(stakingTotals.total_stake || 0) // udgt
+    const totalStakedRaw = stakingTotals.total_stake || stakingTotals.totalStake || 0
+    const totalStaked = toNumeric(totalStakedRaw)
 
     // Extract staking pool cumulative amount if present
-    const pools = stats?.emission_pools || {}
-    const stakingPoolNow = Number(pools.staking_rewards || pools['staking_rewards'] || 0)
+    const pools = stats?.emission_pools || stats?.emissionPools || {}
+    const stakingPoolNow = toNumeric(pools.staking_rewards || pools['staking_rewards'] || pools.stakingRewards)
 
     let perBlockStaking = 0
     let method = 'unknown'
-    // Preferred method: use pool delta across heights to get per-block staking rewards
-    if (Number.isFinite(stakingPoolNow) && stakingPoolNow >= 0 && Number.isFinite(height) && height > 0) {
-      if (__aprSample.lastHeight != null && height > __aprSample.lastHeight && __aprSample.lastStakingPool != null) {
+    let eventHeight
+
+    const candidateHeights = []
+    const candidateHeightsSet = new Set()
+    const pushCandidate = (value) => {
+      const normalized = toPositiveInt(value)
+      if (Number.isFinite(normalized) && !candidateHeightsSet.has(normalized)) {
+        candidateHeights.push(normalized)
+        candidateHeightsSet.add(normalized)
+      }
+    }
+    pushCandidate(stats?.latest_emission?.height)
+    if (height > 0) {
+      pushCandidate(height)
+      pushCandidate(height - 1)
+    }
+
+    for (const candidate of candidateHeights) {
+      try {
+        const event = await nodeGet(`/api/rewards/${candidate}`)
+        const eventPools = event?.pools || event?.result?.pools || {}
+        const stakingRewardRaw = eventPools.staking_rewards || eventPools['staking_rewards'] || eventPools.stakingRewards || eventPools['stakingRewards']
+        const stakingReward = toNumeric(stakingRewardRaw)
+        if (Number.isFinite(stakingReward) && stakingReward > 0) {
+          perBlockStaking = stakingReward
+          method = 'emission_event'
+          eventHeight = candidate
+          break
+        }
+      } catch (err) {
+        if (!err || err.status !== 404) throw err
+      }
+    }
+
+    if (Number.isFinite(stakingPoolNow) && stakingPoolNow >= 0 && height > 0) {
+      if (
+        perBlockStaking === 0 &&
+        __aprSample.lastHeight != null &&
+        height > __aprSample.lastHeight &&
+        __aprSample.lastStakingPool != null
+      ) {
         const delta = stakingPoolNow - __aprSample.lastStakingPool
         if (delta >= 0) {
           perBlockStaking = delta
@@ -488,15 +547,14 @@ app.get('/api/staking/apr', async (req, res, next) => {
         }
       }
       // Update sample cache for next call
-      __aprSample.lastHeight = height
-      __aprSample.lastStakingPool = stakingPoolNow
+      __aprSample = { lastHeight: height, lastStakingPool: stakingPoolNow }
     }
 
     // Fallback method: derive from latest emission event and assumed staking share
     if (perBlockStaking === 0) {
       const latestEmission = stats?.latest_emission || {}
-      const totalPerBlock = Number(latestEmission.total_emitted || 0) // udrt emitted this block (all pools)
-      if (totalPerBlock > 0) {
+      const totalPerBlock = toNumeric(latestEmission.total_emitted || latestEmission.totalEmitted || 0)
+      if (Number.isFinite(totalPerBlock) && totalPerBlock > 0) {
         perBlockStaking = Math.floor((totalPerBlock * DEFAULT_STAKING_SHARE_PCT) / 100)
         method = 'latest_emission_pct'
       }
@@ -506,7 +564,7 @@ app.get('/api/staking/apr', async (req, res, next) => {
     // Where annualized_rewards = per_block_staking * BLOCKS_PER_YEAR
     let apr = 0
     let annualizedRewards = 0
-    if (perBlockStaking > 0 && totalStaked > 0) {
+    if (perBlockStaking > 0 && Number.isFinite(totalStaked) && totalStaked > 0) {
       annualizedRewards = perBlockStaking * BLOCKS_PER_YEAR
       apr = Number(((annualizedRewards / totalStaked) * 100).toFixed(4))
     }
@@ -515,8 +573,9 @@ app.get('/api/staking/apr', async (req, res, next) => {
       apr, // percent
       perBlockStaking,
       annualizedRewards,
-      totalStaked,
+      totalStaked: Number.isFinite(totalStaked) && totalStaked > 0 ? totalStaked : 0,
       method,
+      eventHeight: method === 'emission_event' ? eventHeight : undefined,
       assumptions: method === 'latest_emission_pct' ? { stakingSharePct: DEFAULT_STAKING_SHARE_PCT } : undefined,
       height,
       asOf: new Date().toISOString()
