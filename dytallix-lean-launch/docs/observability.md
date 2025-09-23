@@ -34,6 +34,23 @@ Quick query checks
 - If your nodes export a distinct metric, e.g. process_cpu_seconds_total, query it by target:
   - process_cpu_seconds_total{instance="localhost:26660"}
 
+## AI oracle proxy metrics
+
+The Express API now exports dedicated counters and latency tracking for the AI oracle path. Scrape the server's `/metrics` endpoint (default port 8787) and query:
+
+- `ai_oracle_requests_total{result="success"}` – number of successful enrichments returned to clients.
+- `ai_oracle_requests_total{result="failure"}` – number of proxy attempts that fell back to `risk_status="unavailable"`.
+- `ai_oracle_latency_seconds` – histogram buckets showing the time spent waiting on the microservice (aim for <1 second).
+- `ai_oracle_failures_total{reason="timeout"|"http"|"exception"}` – categorised failure counts to distinguish transport errors from downstream outages.
+
+The AI oracle microservice itself exposes complementary metrics on `http://localhost:8080/metrics`, including:
+
+- `ai_oracle_microservice_requests_total{outcome="ok"}` – volume of scoring requests handled by the FastAPI service.
+- `ai_oracle_microservice_latency_seconds_bucket` – latency histogram inside the microservice to correlate with the proxy timings.
+- `ai_oracle_microservice_failures_total{reason="..."}` – internal scoring errors before a response is generated.
+
+These metrics allow dashboards to validate the <1s latency objective and alert when the fallback path is activated.
+
 Troubleshooting
 - Ports not listening: ensure nodes are running with metrics enabled.
 - Firewall/local security tools: allow inbound connections to 9090 (Prometheus UI) if accessing from another host.
