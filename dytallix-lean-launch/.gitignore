@@ -125,3 +125,7 @@ reports/*.tmp
 .docs-build/
 # Spell checker cache
 .cspell-cache/
+
+# Allow checked-in CLI support libraries
+!cli/dytx/src/lib/
+!cli/dytx/src/lib/*.ts
