@@ -588,9 +588,13 @@ app.get('/api/staking/apr', async (req, res, next) => {
     let eventHeight
 
     const candidateHeights = []
+    const candidateHeightsSet = new Set()
     const pushCandidate = (value) => {
       const normalized = toPositiveInt(value)
-      if (Number.isFinite(normalized) && !candidateHeights.includes(normalized)) candidateHeights.push(normalized)
+      if (Number.isFinite(normalized) && !candidateHeightsSet.has(normalized)) {
+        candidateHeights.push(normalized)
+        candidateHeightsSet.add(normalized)
+      }
     }
     pushCandidate(stats?.latest_emission?.height)
     if (height > 0) {

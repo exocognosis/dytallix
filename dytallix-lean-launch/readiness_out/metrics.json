@@ -1,10 +1,11 @@
 {
-  "timestamp": "2025-09-22T13:55:35Z",
+  "timestamp": "2025-09-23T03:25:06Z",
   "network_metrics": {
     "nodes": {
       "seed": { "port": 3030, "status": "healthy", "metrics_port": 9464 },
       "validator_1": { "port": 3031, "status": "healthy", "metrics_port": 9465 },
       "validator_2": { "port": 3032, "status": "healthy", "metrics_port": 9466 },
+      "validator_3": { "port": 3034, "status": "healthy", "metrics_port": 9468 },
       "rpc": { "port": 3033, "status": "healthy", "metrics_port": 9467 }
     },
     "blockchain": {

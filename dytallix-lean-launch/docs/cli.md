@@ -2,9 +2,9 @@
 
 ## Overview
 
-The `dytx` CLI provides command-line access to Dytallix PQC wallet operations. Built with TypeScript and designed for both development and production use.
+The `dytx` CLI provides command-line access to Dytallix PQC wallet operations. Built with TypeScript and designed for both development and production use. All signing flows now use **Dilithium5** by default with no legacy fallback paths; omitting any signing algorithm flag will automatically use the post-quantum implementation that the chain enforces.
 
-- Default signing: Dilithium (post-quantum)
+- Default signing: Dilithium (Dilithium5 implementation)
 - No mock or degraded signing fallbacks
 - Nonce/sequence is always fetched from the chain RPC before signing/broadcast
 
@@ -39,24 +39,26 @@ dytx keygen [options]
 ```
 
 **Options:**
-- `--algo <algorithm>` - PQC algorithm (`dilithium`|`falcon`|`sphincs+`) [default: `dilithium`]
+- `--algo <algorithm>` - PQC algorithm (`dilithium`) [default: `dilithium`]
 - `--label <label>` - Human-readable key label [default: `"Default Key"`]
 - `--output <file>` - Save keystore to file
 
+> Note: Internally `dilithium` maps to the Dilithium5 parameter set. The legacy `pqc` tag and explicit `dilithium5` alias are treated equivalently.
+
 **Example:**
 ```bash
-dytx keygen --algo falcon --label "My Falcon Key" --output my-key.json
+dytx keygen --label "My Dilithium Key" --output my-key.json
 ```
 
 **Output:**
 ```
 🔐 Generating PQC keypair...
-Algorithm: falcon
-Label: My Falcon Key
+Algorithm: dilithium5
+Label: My Dilithium Key
 ✅ Key generated successfully!
 Address: dytallix1abc123def456...
-Algorithm: falcon
-Label: My Falcon Key
+Algorithm: dilithium5
+Label: My Dilithium Key
 💾 Keystore saved to: my-key.json
 ```
 
@@ -95,7 +97,6 @@ Sign a transaction payload:
 dytx sign [options]
 ```
 
-**Options:**
 - `--address <address>` - Signer address (required)
 - `--payload <file>` - JSON file with transaction payload (required)
 - `--keystore <file>` - Keystore file containing private key
@@ -103,7 +104,7 @@ dytx sign [options]
 
 **Behavior:**
 - The CLI fetches the current account nonce/sequence from the RPC before signing.
-- Signing uses Dilithium by default; the `--algo` flag is optional and defaults to PQC Dilithium.
+- Signing uses Dilithium (Dilithium5) by default; the `--algo` flag is optional and defaults to PQC Dilithium.
 
 **Example:**
 ```bash
@@ -121,8 +122,8 @@ Address: dytallix1abc123...
 Payload: examples/transfer.json
 ✅ Transaction signed successfully!
 Transaction Hash: 0xdef456...
-Algorithm: dilithium
-Signature: <base64_signature>
+Algorithm: dilithium5
+Signature: <base64 Dilithium signature>
 💾 Signed transaction saved to: signed-tx.json
 ```
 

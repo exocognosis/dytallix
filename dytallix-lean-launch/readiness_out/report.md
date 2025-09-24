@@ -1,8 +1,8 @@
 # Dytallix Testnet MVP - Governance + Staking Rewards E2E Report
 
-**Test Date:** 2025-09-22  
-**Environment:** dytallix-testnet-e2e  
-**Test Duration:** 5 minutes (simulated)  
+**Test Date:** 2025-09-23  
+**Environment:** dytallix-mvp-1  
+**Test Duration:** 3 minutes (simulated)  
 
 ## Executive Summary
 
@@ -19,13 +19,14 @@ This report documents the end-to-end testing of the Dytallix testnet MVP's gover
 - **Seed Node**: `dytallix-seed` (port 3030, metrics 9464)
 - **Validator 1**: `dytallix-validator-1` (port 3031, metrics 9465) 
 - **Validator 2**: `dytallix-validator-2` (port 3032, metrics 9466)
+- **Validator 3**: `dytallix-validator-3` (port 3034, metrics 9468)
 - **RPC Node**: `dytallix-rpc` (port 3033, metrics 9467)
 
 ### Genesis Configuration
-- **Chain ID**: dytallix-testnet-e2e
+- **Chain ID**: dytallix-mvp-1
 - **Initial Validators**: 3 validators with 32k DGT stake each
 - **Test User**: 500k DGT initial balance
-- **Governance**: 1k DGT min deposit, 300 block voting period
+- **Governance**: 1k DGT min deposit, 5 block voting period
 - **Staking**: 5% initial reward rate, 1 DGT minimum stake
 
 ## Governance Test Results

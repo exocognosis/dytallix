@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-node-env: &node-env
   DYT_CHAIN_ID: dytallix-mvp-1
   DYT_DATA_DIR: /var/lib/dytallix/data
@@ -18,8 +16,8 @@ x-node-env: &node-env
 
 x-node-service: &node-service
   build:
-    context: .
-    dockerfile: Dockerfile.node
+    context: ..
+    dockerfile: dytallix-lean-launch/Dockerfile.node
   image: dytallix-lean-node:local
   restart: unless-stopped
   environment:
@@ -42,8 +40,8 @@ services:
     volumes:
       - seed-data:/var/lib/dytallix
     ports:
-      - "3031:3030"
-      - "9465:9464"
+      - "3030:3030"
+      - "9464:9464"
     environment:
       <<: *node-env
       DYT_NODE_ROLE: seed
@@ -55,8 +53,8 @@ services:
     volumes:
       - val1-data:/var/lib/dytallix
     ports:
-      - "3032:3030"
-      - "9466:9464"
+      - "3031:3030"
+      - "9465:9464"
     environment:
       <<: *node-env
       DYT_NODE_ROLE: validator
@@ -69,12 +67,26 @@ services:
     volumes:
       - val2-data:/var/lib/dytallix
     ports:
-      - "3033:3030"
-      - "9467:9464"
+      - "3032:3030"
+      - "9466:9464"
     environment:
       <<: *node-env
       DYT_NODE_ROLE: validator
       DYT_VALIDATOR_NAME: validator2
+      DYT_EMPTY_BLOCKS: "false"
+
+  validator3:
+    <<: *node-service
+    container_name: dyt-validator-3
+    volumes:
+      - val3-data:/var/lib/dytallix
+    ports:
+      - "3034:3030"
+      - "9468:9464"
+    environment:
+      <<: *node-env
+      DYT_NODE_ROLE: validator
+      DYT_VALIDATOR_NAME: validator3
       DYT_EMPTY_BLOCKS: "false"
 
   rpc:
@@ -83,8 +95,8 @@ services:
     volumes:
       - rpc-data:/var/lib/dytallix
     ports:
-      - "3030:3030"
-      - "9464:9464"
+      - "3033:3030"
+      - "9467:9464"
     environment:
       <<: *node-env
       DYT_NODE_ROLE: rpc
@@ -94,9 +106,11 @@ services:
       - seed
       - validator1
       - validator2
+      - validator3
 
 volumes:
   seed-data:
   val1-data:
   val2-data:
+  val3-data:
   rpc-data:
