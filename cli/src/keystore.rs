@@ -273,7 +273,8 @@ pub fn create_new_with_algorithm(
     let address: String;
 
     match algorithm {
-        "pqc" => {
+        // Treat both legacy 'pqc' tag and explicit 'dilithium5' as the active Dilithium implementation
+        "pqc" | "dilithium5" => {
             let (sk_gen, pk_gen) = ActiveSignatureScheme::keypair();
             address = if legacy {
                 crate::addr::legacy_address_from_pk(&pk_gen)
