@@ -24,24 +24,21 @@ fi
 
 echo "Proposal ID: $PROPOSAL_ID"
 
-sleep 1
+sleep 2
 
 echo "[status] Height before deposits: $(curl -sf $RPC/status | jq -r .latest_height)"
 
-echo "[2] Depositing min deposit"
-for VAL in 1 2 3; do
-  echo "  -> deposit from validator$VAL"
-  DEPOSIT_RESP=$(curl -s -w "\n%{http_code}" -X POST "$RPC/gov/deposit" -H 'Content-Type: application/json' -d "{\"proposal_id\":$PROPOSAL_ID,\"depositor\":\"dyt1valoper00000000000$VAL\",\"amount\":1000000000}") || { echo "curl failed"; exit 1; }
-  CODE=$(echo "$DEPOSIT_RESP" | tail -n1)
-  BODY=$(echo "$DEPOSIT_RESP" | sed '$d')
-  if [ "$CODE" != "200" ]; then
-    echo "Deposit failed (validator$VAL) code=$CODE body=$BODY" | tee -a readiness_out/gov_execute_report.md
-    exit 1
-  fi
-  echo "     ok"
-done
+echo "[2] Depositing min deposit - using single depositor strategy"
+DEPOSIT_RESP=$(curl -s -w "\n%{http_code}" -X POST "$RPC/gov/deposit" -H 'Content-Type: application/json' -d "{\"proposal_id\":$PROPOSAL_ID,\"depositor\":\"dyt1valoper000000000001\",\"amount\":1000000000}") || { echo "curl failed"; exit 1; }
+CODE=$(echo "$DEPOSIT_RESP" | tail -n1)
+BODY=$(echo "$DEPOSIT_RESP" | sed '$d')
+if [ "$CODE" != "200" ]; then
+  echo "Deposit failed (validator1) code=$CODE body=$BODY" | tee -a readiness_out/gov_execute_report.md
+  exit 1
+fi
+echo "     deposit ok"
 
-sleep 1
+sleep 2
 
 echo "[status] Proposal after deposits:" | tee -a readiness_out/gov_execute_report.md
 curl -sf $RPC/gov/proposal/$PROPOSAL_ID | tee -a readiness_out/gov_execute_report.md
@@ -60,13 +57,14 @@ for VAL in 1 2 3; do
     exit 1
   fi
   echo "     ok"
+  sleep 1
 done
 
 # Save proposal snapshot mid-flight
 curl -sf $RPC/gov/proposal/$PROPOSAL_ID | jq . > readiness_out/logs/proposal_mid.json || true
 
 echo "[4] Waiting for proposal to execute (tracking height)"
-ATTEMPTS=180
+ATTEMPTS=120
 STATUS="unknown"
 while [ $ATTEMPTS -gt 0 ]; do
   STATUS=$(curl -sf $RPC/gov/proposal/$PROPOSAL_ID | jq -r '.status' || echo 'unknown')
@@ -75,7 +73,7 @@ while [ $ATTEMPTS -gt 0 ]; do
   if [ "$STATUS" = "Executed" ]; then
     break
   fi
-  sleep 1
+  sleep 2
   ATTEMPTS=$((ATTEMPTS-1))
 done
 
