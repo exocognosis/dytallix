@@ -268,11 +268,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_polkadot_asset_locking() {
-        let config = PolkadotConfig::default();
+        let _config = PolkadotConfig::default();
         // Skip actual connection in tests - would require live network
         // let connector = PolkadotConnector::new(config).await.unwrap();
 
-        let asset = Asset {
+        let _asset = Asset {
             id: "DOT".to_string(),
             amount: 1000000000000, // 1 DOT (10 decimals)
             decimals: 10,
@@ -284,9 +284,9 @@ mod tests {
             },
         };
 
-        let bridge_tx = BridgeTx {
+        let _bridge_tx = BridgeTx {
             id: BridgeTxId("test_polkadot_tx_123".to_string()),
-            asset: asset.clone(),
+            asset: _asset.clone(),
             source_chain: "polkadot".to_string(),
             dest_chain: "dytallix".to_string(),
             source_address: "1FRMM8PEiWXYax7rpS6X4XZX1aAAxSWx1CrKTyrVYhV24fg".to_string(),
@@ -304,14 +304,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_polkadot_xcm_transfer() {
-        let config = PolkadotConfig {
+        let _config = PolkadotConfig {
             para_id: Some(1000), // Statemint
             ..Default::default()
         };
         // Skip actual connection in tests
         // let connector = PolkadotConnector::new(config).await.unwrap();
 
-        let asset = Asset {
+        let _asset = Asset {
             id: "USDC".to_string(),
             amount: 1000000, // 1 USDC (6 decimals)
             decimals: 6,
@@ -323,9 +323,9 @@ mod tests {
             },
         };
 
-        let bridge_tx = BridgeTx {
+        let _bridge_tx = BridgeTx {
             id: BridgeTxId("test_xcm_tx_123".to_string()),
-            asset: asset.clone(),
+            asset: _asset.clone(),
             source_chain: "statemint".to_string(),
             dest_chain: "dytallix".to_string(),
             source_address: "1FRMM8PEiWXYax7rpS6X4XZX1aAAxSWx1CrKTyrVYhV24fg".to_string(),
@@ -343,7 +343,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_polkadot_current_block() {
-        let config = PolkadotConfig::default();
+        let _config = PolkadotConfig::default();
         // Skip actual connection in tests
         // let connector = PolkadotConnector::new(config).await.unwrap();
 

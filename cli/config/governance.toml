@@ -1,0 +1,5 @@
+quorum='0.33'
+threshold='0.50'
+veto='0.334'
+deposit_min='1000udgt'
+voting_period='100'

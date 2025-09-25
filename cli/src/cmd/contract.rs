@@ -571,7 +571,7 @@ impl ContractArgs {
             WasmCommand::Query { address } => {
                 info!("Querying WASM contract state: {}", address);
                 let response = rpc_client
-                    .get(&format!("/contracts/state/{}/counter", address))
+                    .get(&format!("/contracts/state/{address}/counter"))
                     .await?;
                 println!("✓ Contract state queried successfully");
                 println!(

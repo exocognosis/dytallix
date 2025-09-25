@@ -30,6 +30,8 @@ pub struct StakingModule {
     /// This value is in units of (uDRT * REWARD_SCALE) modulo total_stake at last update,
     /// but can be safely carried across stake changes as a count of leftover scaled units.
     pub reward_index_residual: u128,
+    /// Governable per-block staking reward rate in basis points (scaled by 1e4). Example: 500 = 0.05 (5%).
+    pub reward_rate_bps: u64,
 }
 
 impl StakingModule {
@@ -66,6 +68,14 @@ impl StakingModule {
             .flatten()
             .and_then(|v| bincode::deserialize::<u128>(&v).ok())
             .unwrap_or(0);
+        // Load reward rate (default 0.05 = 500 bps)
+        let reward_rate_bps = storage
+            .db
+            .get("staking:reward_rate_bps")
+            .ok()
+            .flatten()
+            .and_then(|v| bincode::deserialize::<u64>(&v).ok())
+            .unwrap_or(500);
 
         Self {
             storage,
@@ -73,8 +83,21 @@ impl StakingModule {
             reward_index,
             pending_staking_emission,
             reward_index_residual,
+            reward_rate_bps,
         }
     }
+
+    /// Set new staking reward rate (basis points)
+    pub fn set_reward_rate_bps(&mut self, new_bps: u64) {
+        self.reward_rate_bps = new_bps;
+        let _ = self
+            .storage
+            .db
+            .put("staking:reward_rate_bps", bincode::serialize(&new_bps).unwrap());
+    }
+
+    /// Get current staking reward rate (bps)
+    pub fn get_reward_rate_bps(&self) -> u64 { self.reward_rate_bps }
 
     /// Apply external emission from emission engine
     /// If total_stake > 0, update reward_index proportionally

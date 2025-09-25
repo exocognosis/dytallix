@@ -95,6 +95,13 @@ class SimpleGovernanceSimulator:
         self.trained = False
         self.voters = []
         self.historical_accuracy = 0.0
+        # Make runs deterministic when GOVSIM_SEED is set
+        try:
+            seed_env = os.getenv("GOVSIM_SEED")
+            if seed_env is not None:
+                random.seed(int(seed_env))
+        except Exception:
+            pass
         
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration"""
@@ -437,12 +444,94 @@ class SimpleGovernanceSimulator:
         except Exception as e:
             print(f"Warning: Could not save metrics: {e}")
 
+# --- New helpers to simulate against a live node ---
+
+def _http_get_json(url: str) -> Any:
+    import urllib.request
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = resp.read().decode("utf-8")
+            try:
+                return json.loads(data)
+            except json.JSONDecodeError:
+                return data
+    except Exception as e:
+        raise RuntimeError(f"GET {url} failed: {e}")
+
+
+def simulate_live_proposal(rpc: str, proposal_id: int, out_path: str | None = None) -> Dict[str, Any]:
+    """Fetch a proposal from the live node and run simulation, writing a report if out_path provided."""
+    # Fetch proposal detail
+    prop = _http_get_json(f"{rpc.rstrip('/')}/gov/proposal/{proposal_id}")
+    if not isinstance(prop, dict):
+        raise RuntimeError(f"Unexpected proposal payload: {prop}")
+
+    # Build a lightweight proposal description for the simulator
+    ptype = "parameter_change"
+    impact = 0.5
+    # Heuristic: higher impact for staking reward changes
+    try:
+        p = prop.get("proposal_type", {})
+        if isinstance(p, dict) and p.get("ParameterChange"):
+            inner = p.get("ParameterChange")
+            key = inner.get("key") if isinstance(inner, dict) else None
+            if key == "staking_reward_rate":
+                impact = 0.75
+    except Exception:
+        pass
+
+    sim = SimpleGovernanceSimulator()
+    sim.train()
+
+    network_context = {"market_conditions": {"token_price": 10.0}}
+    result = sim.simulate_proposal({"proposal": {"type": ptype, "impact_score": impact}, "network_context": network_context})
+
+    report = {
+        "generated_at": datetime.now().isoformat(),
+        "rpc": rpc,
+        "proposal_id": proposal_id,
+        "chain_proposal": prop,
+        "simulation": result,
+    }
+
+    if out_path:
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, "w") as f:
+            json.dump(report, f, indent=2)
+
+    return report
+
 
 def main():
     """Main function"""
     print("GovSim - Governance Simulation")
     print("=" * 35)
     
+    # Simple CLI
+    import argparse
+    parser = argparse.ArgumentParser(description="Governance simulator")
+    sub = parser.add_subparsers(dest="cmd")
+
+    sub.add_parser("train", help="Train model and run a demo simulation")
+
+    p_live = sub.add_parser("simulate-live", help="Simulate a live chain proposal by id")
+    p_live.add_argument("--rpc", default=os.getenv("DYT_RPC", "http://localhost:3030"))
+    p_live.add_argument("--proposal-id", type=int, required=True)
+    p_live.add_argument("--out", default="readiness_out/govsim/proposal_report.json")
+
+    args = parser.parse_args()
+
+    if args.cmd == "simulate-live":
+        out = args.out
+        report = simulate_live_proposal(args.rpc, int(args.proposal_id), out)
+        print(f"Wrote simulation report -> {out}")
+        print(json.dumps({
+            "pass_p": report["simulation"]["prediction"]["outcome_probability"]["pass"],
+            "turnout": report["simulation"]["prediction"]["expected_turnout"],
+        }, indent=2))
+        return
+
+    # default: train demo
     simulator = SimpleGovernanceSimulator()
     
     # Train

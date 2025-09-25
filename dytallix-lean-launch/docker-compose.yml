@@ -13,6 +13,7 @@ x-node-env: &node-env
   DYT_GOV_QUORUM_BPS: "3333"
   DYT_GOV_THRESHOLD_BPS: "5000"
   DYT_GOV_VETO_BPS: "3333"
+  DYT_STAKING_REWARD_RATE_BPS: "500"  # 5% initial reward rate governed via staking_reward_rate param
 
 x-node-service: &node-service
   build:
@@ -45,7 +46,7 @@ services:
     environment:
       <<: *node-env
       DYT_NODE_ROLE: seed
-      DYT_EMPTY_BLOCKS: "false"
+      DYT_EMPTY_BLOCKS: "true"  # enable empty blocks so heights advance for governance
 
   validator1:
     <<: *node-service
@@ -59,7 +60,8 @@ services:
       <<: *node-env
       DYT_NODE_ROLE: validator
       DYT_VALIDATOR_NAME: validator1
-      DYT_EMPTY_BLOCKS: "false"
+      DYT_EMPTY_BLOCKS: "true"   # was false; allow empty blocks for governance periods
+      DYT_STAKING_REWARD_RATE_BPS: "500"
 
   validator2:
     <<: *node-service
@@ -73,7 +75,8 @@ services:
       <<: *node-env
       DYT_NODE_ROLE: validator
       DYT_VALIDATOR_NAME: validator2
-      DYT_EMPTY_BLOCKS: "false"
+      DYT_EMPTY_BLOCKS: "true"   # enable empty blocks
+      DYT_STAKING_REWARD_RATE_BPS: "500"
 
   validator3:
     <<: *node-service
@@ -87,7 +90,8 @@ services:
       <<: *node-env
       DYT_NODE_ROLE: validator
       DYT_VALIDATOR_NAME: validator3
-      DYT_EMPTY_BLOCKS: "false"
+      DYT_EMPTY_BLOCKS: "true"   # enable empty blocks
+      DYT_STAKING_REWARD_RATE_BPS: "500"
 
   rpc:
     <<: *node-service
@@ -102,6 +106,7 @@ services:
       DYT_NODE_ROLE: rpc
       DYT_BLOCK_INTERVAL_MS: "800"
       DYT_EMPTY_BLOCKS: "true"
+      DYT_STAKING_REWARD_RATE_BPS: "500"
     depends_on:
       - seed
       - validator1

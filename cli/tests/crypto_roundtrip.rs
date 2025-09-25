@@ -15,6 +15,6 @@ fn address_derivation_stable() {
     // For deterministic test use fixed pk bytes pattern
     let pk = [1u8; 64];
     let addr = addr::address_from_pk(&pk);
-    assert!(addr.starts_with("dyt1"));
-    assert_eq!(addr.len(), 48);
+    assert!(addr.starts_with("dytallix"));
+    assert_eq!(addr.len(), "dytallix".len() + 40); // prefix + 20 bytes hex
 }

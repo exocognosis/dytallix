@@ -1093,10 +1093,7 @@ mod tests {
             ExecuteMsg::Pause {},
         )
         .unwrap();
-        assert_eq!(
-            pause_res.attributes.iter().any(|a| a.value == "paused"),
-            true
-        );
+        assert!(pause_res.attributes.iter().any(|a| a.value == "paused"));
 
         // Unpause
         let unpause_res = execute(
@@ -1106,9 +1103,6 @@ mod tests {
             ExecuteMsg::Unpause {},
         )
         .unwrap();
-        assert_eq!(
-            unpause_res.attributes.iter().any(|a| a.value == "active"),
-            true
-        );
+        assert!(unpause_res.attributes.iter().any(|a| a.value == "active"));
     }
 }

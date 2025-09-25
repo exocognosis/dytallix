@@ -731,7 +731,7 @@ mod tests {
             let votes = governance.get_votes(proposal_id).unwrap();
             assert_eq!(votes.len(), 1);
             assert_eq!(votes[0].voter, "persistent_voter");
-            assert_eq!(votes[0].vote, true);
+            assert!(votes[0].vote);
 
             let result = governance.tally(proposal_id).unwrap();
             assert_eq!(result.yes_votes, 1);

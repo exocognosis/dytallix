@@ -333,6 +333,18 @@ impl GovernanceModule {
             if let Some(mut proposal) = self._get_proposal(proposal_id)? {
                 match proposal.status {
                     ProposalStatus::DepositPeriod => {
+                        // Updated: if min deposit has been reached (at any time), transition to voting now.
+                        // Deposits after deposit_end_height are rejected in `deposit`, so this is safe and fixes timing races.
+                        if proposal.total_deposit >= self.config.min_deposit {
+                            proposal.status = ProposalStatus::VotingPeriod;
+                            proposal.voting_start_height = height;
+                            proposal.voting_end_height = height + self.config.voting_period;
+                            self.store_proposal(&proposal)?;
+                            self.emit_event(GovernanceEvent::VotingStarted { id: proposal_id });
+                            let _ = self.write_governance_evidence();
+                            continue;
+                        }
+
                         if height > proposal.deposit_end_height {
                             // Deposit period ended without reaching min deposit
                             proposal.status = ProposalStatus::Failed;
@@ -371,8 +383,7 @@ impl GovernanceModule {
                                 {
                                     "Quorum not met"
                                 } else if tally.no_with_veto
-                                    >= (tally.total_voting_power * self.config.veto_threshold)
-                                        / 10000
+                                    >= (tally.total_voting_power * self.config.veto_threshold) / 10000
                                 {
                                     "Proposal vetoed"
                                 } else {
@@ -388,32 +399,11 @@ impl GovernanceModule {
                         }
                     }
                     ProposalStatus::Passed => {
-                        // Execute passed proposals
-                        match self.execute(proposal_id) {
-                            Ok(_) => {
-                                proposal.status = ProposalStatus::Executed;
-                                self.store_proposal(&proposal)?;
-                                // Refund deposits for successfully executed proposals
-                                self.refund_deposits(proposal_id)?;
-                                self.emit_event(GovernanceEvent::ProposalExecuted {
-                                    id: proposal_id,
-                                });
-                                let _ = self.write_governance_evidence();
-                            }
-                            Err(e) => {
-                                proposal.status = ProposalStatus::FailedExecution;
-                                self.store_proposal(&proposal)?;
-                                // Refund deposits for failed execution (not the proposer's fault)
-                                self.refund_deposits(proposal_id)?;
-                                self.emit_event(GovernanceEvent::ExecutionFailed {
-                                    id: proposal_id,
-                                    error: e,
-                                });
-                                let _ = self.write_governance_evidence();
-                            }
-                        }
+                        // Execute once; execute() handles status updates, refunds, and events.
+                        let _ = self.execute(proposal_id);
+                        // Do not mutate proposal here to avoid double writes or loops.
                     }
-                    _ => {} // Terminal states
+                    _ => {}
                 }
             }
         }
@@ -609,6 +599,19 @@ impl GovernanceModule {
                 let _ = self.write_governance_evidence();
                 Ok(())
             }
+            "staking_reward_rate" => {
+                // Parse as decimal fraction (e.g. "0.05" for 5%) then convert to basis points
+                let rate: f64 = value.parse().map_err(|_| "Invalid staking_reward_rate: must be decimal fraction".to_string())?;
+                if !(0.0..=1.0).contains(&rate) { return Err("staking_reward_rate must be between 0.0 and 1.0".to_string()); }
+                let bps = (rate * 10_000.0).round() as u64; // basis points
+                {
+                    let mut staking = self.staking.lock().unwrap();
+                    staking.set_reward_rate_bps(bps);
+                }
+                self.emit_event(GovernanceEvent::ParameterChanged { key: key.to_string(), old_value, new_value: value.to_string() });
+                let _ = self.write_governance_evidence();
+                Ok(())
+            }
             _ => Err(format!(
                 "Parameter '{}' is not governable. Allowed parameters: {:?}",
                 key,
@@ -617,24 +620,30 @@ impl GovernanceModule {
         }
     }
 
-    /// Get current value of a governance parameter
     fn get_parameter_value(&self, key: &str) -> Result<String, String> {
         match key {
             "gas_limit" => Ok(self.config.gas_limit.to_string()),
             "consensus.max_gas_per_block" => Ok(self.config.max_gas_per_block.to_string()),
+            "staking_reward_rate" => {
+                let staking = self.staking.lock().unwrap();
+                let bps = staking.get_reward_rate_bps();
+                // Convert back to decimal fraction string
+                let frac = (bps as f64) / 10_000.0;
+                Ok(format!("{:.4}", frac))
+            }
             _ => Err(format!("Unknown parameter: {key}")),
         }
     }
 
-    /// Get list of governable parameters
     pub fn get_governable_parameters(&self) -> Vec<String> {
         vec![
             "gas_limit".to_string(),
             "consensus.max_gas_per_block".to_string(),
+            "staking_reward_rate".to_string(),
         ]
     }
 
-    /// Get current governance configuration
+    /// Get current value of a governance parameter
     pub fn get_config(&self) -> &GovernanceConfig {
         &self.config
     }
@@ -1159,9 +1168,40 @@ mod tests {
             .unwrap();
         assert_eq!(governance.config.max_gas_per_block, 20000000);
 
+        // Test staking_reward_rate parameter change
+        governance
+            .apply_parameter_change("staking_reward_rate", "0.10")
+            .unwrap();
+        {
+            let staking = governance.staking.lock().unwrap();
+            assert_eq!(staking.get_reward_rate_bps(), 1000); // 10% as basis points
+        }
+
         // Test invalid parameter
         assert!(governance
             .apply_parameter_change("invalid_param", "123")
             .is_err());
+    }
+}
+
+impl GovernanceModule {
+    /// Apply environment variable overrides for governance parameters (runtime init)
+    /// Recognized env vars (all optional):
+    ///  DYT_GOV_MIN_DEPOSIT (u128, micro udgt)
+    ///  DYT_GOV_DEPOSIT_PERIOD (u64, blocks)
+    ///  DYT_GOV_VOTING_PERIOD (u64, blocks)
+    ///  DYT_GOV_QUORUM_BPS (u64, basis points)
+    ///  DYT_GOV_THRESHOLD_BPS (u64, basis points)
+    ///  DYT_GOV_VETO_BPS (u64, basis points)
+    pub fn apply_env_overrides(&mut self) {
+        use std::env;
+        let mut changed = false;
+        if let Ok(raw) = env::var("DYT_GOV_MIN_DEPOSIT") { if let Ok(v) = raw.parse::<u128>() { self.config.min_deposit = v; changed = true; } }
+        if let Ok(raw) = env::var("DYT_GOV_DEPOSIT_PERIOD") { if let Ok(v) = raw.parse::<u64>() { self.config.deposit_period = v; changed = true; } }
+        if let Ok(raw) = env::var("DYT_GOV_VOTING_PERIOD") { if let Ok(v) = raw.parse::<u64>() { self.config.voting_period = v; changed = true; } }
+        if let Ok(raw) = env::var("DYT_GOV_QUORUM_BPS") { if let Ok(v) = raw.parse::<u128>() { self.config.quorum = v; changed = true; } }
+        if let Ok(raw) = env::var("DYT_GOV_THRESHOLD_BPS") { if let Ok(v) = raw.parse::<u128>() { self.config.threshold = v; changed = true; } }
+        if let Ok(raw) = env::var("DYT_GOV_VETO_BPS") { if let Ok(v) = raw.parse::<u128>() { self.config.veto_threshold = v; changed = true; } }
+        if changed { let _ = self.store_config(); }
     }
 }

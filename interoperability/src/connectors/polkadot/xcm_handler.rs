@@ -385,13 +385,13 @@ mod tests {
 
         let message = XcmMessage {
             version: 3,
-            instructions: vec![XcmInstruction::WithdrawAsset(MultiAsset {
-                id: AssetId::Concrete(MultiLocation {
+            instructions: vec![XcmInstruction::WithdrawAsset(Box::new(MultiAsset {
+                id: AssetId::Concrete(Box::new(MultiLocation {
                     parents: 0,
                     interior: InteriorMultiLocation::Here,
-                }),
+                })),
                 fun: Fungibility::Fungible(1000000000000),
-            })],
+            }))],
         };
 
         let result = handler.execute_message(&message).await;
@@ -408,21 +408,21 @@ mod tests {
         let message = XcmMessage {
             version: 3,
             instructions: vec![
-                XcmInstruction::WithdrawAsset(MultiAsset {
-                    id: AssetId::Concrete(MultiLocation {
+                XcmInstruction::WithdrawAsset(Box::new(MultiAsset {
+                    id: AssetId::Concrete(Box::new(MultiLocation {
                         parents: 0,
                         interior: InteriorMultiLocation::Here,
-                    }),
+                    })),
                     fun: Fungibility::Fungible(1000000000000),
-                }),
+                })),
                 XcmInstruction::DepositAsset {
-                    assets: MultiAsset {
-                        id: AssetId::Concrete(MultiLocation {
+                    assets: Box::new(MultiAsset {
+                        id: AssetId::Concrete(Box::new(MultiLocation {
                             parents: 0,
                             interior: InteriorMultiLocation::Here,
-                        }),
+                        })),
                         fun: Fungibility::Fungible(1000000000000),
-                    },
+                    }),
                     max_assets: 1,
                     beneficiary: MultiLocation {
                         parents: 1,

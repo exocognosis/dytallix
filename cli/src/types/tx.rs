@@ -217,7 +217,7 @@ impl SignedTx {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::PQC; // only needed in tests for keypair trait bound
+    use crate::crypto::{ActivePQC, PQC}; // only needed in tests for keypair trait bound
 
     #[test]
     fn test_msg_validation() {

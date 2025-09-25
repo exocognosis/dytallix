@@ -17,6 +17,7 @@ RUN cd dytallix-lean-launch && cargo build --locked --release -p dytallix-lean-n
 FROM debian:bullseye-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl jq && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /workspace/dytallix-lean-launch/target/release/dytallix-lean-node /usr/local/bin/dytallix-lean-node
+COPY dytallix-lean-launch/genesis.json /var/lib/dytallix/genesis.json
 ENV HOME=/var/lib/dytallix
 WORKDIR /var/lib/dytallix
 EXPOSE 3030 9464

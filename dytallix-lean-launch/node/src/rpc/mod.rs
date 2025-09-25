@@ -1717,3 +1717,14 @@ pub async fn ai_risk_get(
         "stored_at": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
     })))
 }
+
+// --- Added staking reward rate params endpoint ---
+/// GET /params/staking_reward_rate -> plain decimal string (e.g. "0.0500")
+pub async fn params_staking_reward_rate(
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<String, ApiError> {
+    let staking = ctx.staking.lock().unwrap();
+    let bps = staking.get_reward_rate_bps();
+    let frac = (bps as f64) / 10_000.0;
+    Ok(format!("{:.4}", frac))
+}

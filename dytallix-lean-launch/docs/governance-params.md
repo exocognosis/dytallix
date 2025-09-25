@@ -86,5 +86,33 @@ dytallixd tx gov submit-proposal param-change \
   --from proposer --chain-id dytallix-lean
 ```
 
+## Setting Parameters via CLI or Env
+
+You can override initial governance parameters during chain initialization using either environment variables or CLI flags. Precedence: explicit CLI flag > environment variable > value in `config/governance.toml`.
+
+Supported environment variables:
+- `GOV_QUORUM` (e.g. 0.40)
+- `GOV_THRESHOLD` (e.g. 0.60)
+- `GOV_VETO` (e.g. 0.40)
+
+CLI flags (used with `dcli init`):
+- `--gov.quorum <float>`
+- `--gov.threshold <float>`
+- `--gov.veto <float>`
+
+Examples:
+```bash
+# Override quorum via environment variable
+GOV_QUORUM=0.40 dcli init
+
+# Override threshold via CLI flag
+dcli init --gov.threshold 0.60
+
+# Mixed: env for veto + flag for quorum
+GOV_VETO=0.30 dcli init --gov.quorum 0.40
+```
+
+If none are provided, defaults from `config/governance.toml` are used (quorum 0.33, threshold 0.50, veto 0.334).
+
 ## Source of Truth
 The file `../config/governance.toml` is the single source of truth. Automated deployment pipelines ingest that file to set initial chain parameters. Always update both this document and the TOML file in the same pull request when modifying values.

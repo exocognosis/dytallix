@@ -282,7 +282,7 @@ pub async fn handle_broadcast(
     };
 
     // Parse the signed transaction
-    let signed_tx: SignedTx = serde_json::from_str(&tx_data.trim())
+    let signed_tx: SignedTx = serde_json::from_str(tx_data.trim())
         .map_err(|e| anyhow!("Failed to parse signed transaction: {}", e))?;
 
     // Submit to node

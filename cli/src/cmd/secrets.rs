@@ -177,8 +177,7 @@ pub async fn run(cmd: SecretsCmd) -> Result<()> {
                     validator_id
                 );
                 println!(
-                    "Rotated validator key via Vault for id={} ({} bytes).",
-                    validator_id, length
+                    "Rotated validator key via Vault for id={validator_id} ({length} bytes)."
                 );
             } else {
                 let path = put_keystore(&validator_id, &key)?;
@@ -188,10 +187,8 @@ pub async fn run(cmd: SecretsCmd) -> Result<()> {
                     validator_id
                 );
                 println!(
-                    "Rotated validator key in sealed keystore at {} for id={} ({} bytes).",
+                    "Rotated validator key in sealed keystore at {} for id={validator_id} ({length} bytes).",
                     path.display(),
-                    validator_id,
-                    length
                 );
             }
 

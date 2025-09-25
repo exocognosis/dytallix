@@ -1,8 +1,8 @@
 {
-  "chain_id": "dytallix-mvp-1",
+  "chain_id": "dytallix-gov-e2e",
   "governance": {
     "deposit_period": 5,
-    "voting_period": 5,
+    "voting_period": 10,
     "min_deposit_udgt": "1000000000",
     "quorum_bps": "3333",
     "threshold_bps": "5000",
@@ -88,5 +88,6 @@
   },
   "simulation": {
     "blocks_to_run": 50
-  }
+  },
+  "staking_reward_rate_bps": 500
 }

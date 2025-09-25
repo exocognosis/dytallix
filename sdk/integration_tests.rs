@@ -168,7 +168,7 @@ fn test_pqc_transaction_acceptance() {
 
     // Create transaction
     let tx = MockTransaction::new(
-        &sender_address,
+        sender_address,
         "dytallix1qw508d6qejxtdg4y5r3zarvary0c5xw7k3lh9z3",
         1000000, // 1 DYT
     );
@@ -241,7 +241,7 @@ fn test_signature_verification_round_trip() {
     let sender_address = wallet.address();
 
     let tx = MockTransaction::new(
-        &sender_address,
+        sender_address,
         "dytallix1receiver123456789abcdef123456789abcdef12",
         500000,
     );
@@ -284,9 +284,9 @@ fn test_gas_cost_estimation() {
     let total_gas = base_gas + signature_gas;
 
     println!("Gas estimation for PQC transaction:");
-    println!("  Signature size: {} bytes", signature_size);
-    println!("  Public key size: {} bytes", public_key_size);
-    println!("  Estimated gas: {}", total_gas);
+    println!("  Signature size: {signature_size} bytes");
+    println!("  Public key size: {public_key_size} bytes");
+    println!("  Estimated gas: {total_gas}");
 
     // Verify PQC transactions require significantly more gas
     assert!(
@@ -298,7 +298,7 @@ fn test_gas_cost_estimation() {
     let gas_multiplier = total_gas as f64 / base_gas as f64;
     assert!(gas_multiplier > 3.0, "PQC gas multiplier should be > 3x");
 
-    println!("  Gas multiplier: {:.1}x", gas_multiplier);
+    println!("  Gas multiplier: {gas_multiplier:.1}x");
 }
 
 /// Test multiple wallet deterministic generation

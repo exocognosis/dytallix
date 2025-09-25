@@ -21,6 +21,7 @@ use dytallix_lean_node::metrics::{parse_metrics_config, MetricsServer};
 use dytallix_lean_node::rpc::{self, RpcContext};
 use dytallix_lean_node::runtime::bridge; // import bridge module for validator init
 use dytallix_lean_node::runtime::emission::EmissionEngine;
+use dytallix_lean_node::runtime::governance::GovernanceConfig;
 use dytallix_lean_node::runtime::governance::GovernanceModule;
 use dytallix_lean_node::runtime::staking::StakingModule;
 use dytallix_lean_node::secrets; // validator key providers (Vault / sealed keystore)
@@ -72,6 +73,132 @@ async fn main() -> anyhow::Result<()> {
             st.credit("dyt1senderdev000000", "udgt", 1_000_000);
         }
     }
+
+    // Prefund governance validator accounts (E2E) if governance enabled
+    if enable_governance {
+        let mut st = state.lock().unwrap();
+        for addr in [
+            "dyt1valoper000000000001",
+            "dyt1valoper000000000002",
+            "dyt1valoper000000000003",
+        ] {
+            if st.balance_of(addr, "udgt") == 0 {
+                // 2000 DGT (micro units) for deposits + voting
+                st.credit(addr, "udgt", 2_000_000_000);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Genesis + ENV configuration loading (governance + staking parameters)
+    // ---------------------------------------------------------------------
+    let genesis_json: Option<serde_json::Value> = std::fs::read_to_string("genesis.json")
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok());
+
+    // Apply account balances from genesis (if any)
+    if let Some(genesis) = genesis_json.as_ref() {
+        if let Some(accounts) = genesis.get("accounts").and_then(|v| v.as_array()) {
+            let mut st = state.lock().unwrap();
+            for acc in accounts {
+                if let (Some(address), Some(balances_obj)) = (
+                    acc.get("address").and_then(|v| v.as_str()),
+                    acc.get("balances").and_then(|v| v.as_object()),
+                ) {
+                    for (denom, amount_val) in balances_obj.iter() {
+                        if let Some(amount_str) = amount_val.as_str() {
+                            if let Ok(amount) = amount_str.parse::<u128>() {
+                                st.credit(address, denom, amount);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Create staking module then apply delegations from genesis if present
+    let staking_module = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
+    if let Some(genesis) = genesis_json.as_ref() {
+        if let Some(staking) = genesis.get("staking") {
+            let mut total_stake: u128 = 0;
+            if let Some(delegations) = staking.get("delegations").and_then(|v| v.as_array()) {
+                let mut sm = staking_module.lock().unwrap();
+                for d in delegations {
+                    if let (Some(delegator), Some(amount_str)) = (
+                        d.get("delegator").and_then(|v| v.as_str()),
+                        d.get("amount_udgt").and_then(|v| v.as_str()),
+                    ) {
+                        if let Ok(amount) = amount_str.parse::<u128>() {
+                            sm.update_delegator_stake(delegator, amount);
+                            total_stake = total_stake.saturating_add(amount);
+                        }
+                    }
+                }
+                // Optional single user_delegation
+                if let Some(user_del) = staking.get("user_delegation").and_then(|v| v.as_object()) {
+                    if let (Some(delegator), Some(amount_str)) = (
+                        user_del.get("delegator").and_then(|v| v.as_str()),
+                        user_del.get("amount_udgt").and_then(|v| v.as_str()),
+                    ) {
+                        if let Ok(amount) = amount_str.parse::<u128>() {
+                            sm.update_delegator_stake(delegator, amount);
+                            total_stake = total_stake.saturating_add(amount);
+                        }
+                    }
+                }
+                sm.set_total_stake(total_stake);
+            }
+        }
+        // Staking reward rate from genesis (if provided) unless env override exists
+        if std::env::var("DYT_STAKING_REWARD_RATE_BPS").is_err() {
+            if let Some(bps_val) = genesis.get("staking_reward_rate_bps") {
+                if let Some(bps) = bps_val.as_u64() {
+                    staking_module.lock().unwrap().set_reward_rate_bps(bps);
+                }
+            }
+        } else if let Ok(bps_env) = std::env::var("DYT_STAKING_REWARD_RATE_BPS") {
+            if let Ok(bps) = bps_env.parse::<u64>() { staking_module.lock().unwrap().set_reward_rate_bps(bps); }
+        }
+    }
+
+    // Build governance config from ENV first, then fall back to genesis.json, finally defaults
+    let mut gov_cfg = GovernanceConfig::default();
+    // Helper closures
+    let parse_u64 = |k: &str| -> Option<u64> { std::env::var(k).ok().and_then(|v| v.parse().ok()) };
+    let parse_u128 = |k: &str| -> Option<u128> { std::env::var(k).ok().and_then(|v| v.parse().ok()) };
+
+    if let Some(v) = parse_u128("DYT_GOV_MIN_DEPOSIT") { gov_cfg.min_deposit = v; }
+    if let Some(v) = parse_u64("DYT_GOV_DEPOSIT_PERIOD") { gov_cfg.deposit_period = v; }
+    if let Some(v) = parse_u64("DYT_GOV_VOTING_PERIOD") { gov_cfg.voting_period = v; }
+    if let Some(v) = parse_u128("DYT_GOV_QUORUM_BPS") { gov_cfg.quorum = v; }
+    if let Some(v) = parse_u128("DYT_GOV_THRESHOLD_BPS") { gov_cfg.threshold = v; }
+    if let Some(v) = parse_u128("DYT_GOV_VETO_BPS") { gov_cfg.veto_threshold = v; }
+
+    // Genesis fallbacks (only if env not set / still default)
+    if let Some(genesis) = genesis_json.as_ref() {
+        if let Some(gov) = genesis.get("governance") {
+            if gov_cfg.min_deposit == GovernanceConfig::default().min_deposit {
+                if let Some(v) = gov.get("min_deposit_udgt").and_then(|v| v.as_str()).and_then(|s| s.parse::<u128>().ok()) { gov_cfg.min_deposit = v; }
+            }
+            if gov_cfg.deposit_period == GovernanceConfig::default().deposit_period {
+                if let Some(v) = gov.get("deposit_period").and_then(|v| v.as_u64()) { gov_cfg.deposit_period = v; }
+            }
+            if gov_cfg.voting_period == GovernanceConfig::default().voting_period {
+                if let Some(v) = gov.get("voting_period").and_then(|v| v.as_u64()) { gov_cfg.voting_period = v; }
+            }
+            if gov_cfg.quorum == GovernanceConfig::default().quorum {
+                if let Some(v) = gov.get("quorum_bps").and_then(|v| v.as_str()).and_then(|s| s.parse::<u128>().ok()) { gov_cfg.quorum = v; }
+            }
+            if gov_cfg.threshold == GovernanceConfig::default().threshold {
+                if let Some(v) = gov.get("threshold_bps").and_then(|v| v.as_str()).and_then(|s| s.parse::<u128>().ok()) { gov_cfg.threshold = v; }
+            }
+            if gov_cfg.veto_threshold == GovernanceConfig::default().veto_threshold {
+                if let Some(v) = gov.get("veto_threshold_bps").and_then(|v| v.as_str()).and_then(|s| s.parse::<u128>().ok()) { gov_cfg.veto_threshold = v; }
+            }
+        }
+    }
+    println!("GovernanceConfig:min_deposit={} deposit_period={} voting_period={} quorum_bps={} threshold_bps={} veto_bps={} ", gov_cfg.min_deposit, gov_cfg.deposit_period, gov_cfg.voting_period, gov_cfg.quorum, gov_cfg.threshold, gov_cfg.veto_threshold);
 
     let mempool = Arc::new(Mutex::new(Mempool::new()));
     let ws_hub = WsHub::new();
@@ -149,8 +276,7 @@ async fn main() -> anyhow::Result<()> {
         .map(|v| v == "1" || v.to_lowercase() == "true")
         .unwrap_or(false);
 
-    let staking_module = Arc::new(Mutex::new(StakingModule::new(storage.clone())));
-
+    // Replace previous ctx creation to use custom governance config
     let ctx = RpcContext {
         storage: storage.clone(),
         mempool: mempool.clone(),
@@ -176,6 +302,9 @@ async fn main() -> anyhow::Result<()> {
         #[cfg(feature = "contracts")]
         wasm_runtime: Arc::new(dytallix_lean_node::runtime::wasm::WasmRuntime::new()),
     };
+
+    // Apply governance env overrides (after ctx creation so we can mutate inside mutex)
+    if enable_governance { ctx.governance.lock().unwrap().apply_env_overrides(); }
 
     // Initialize bridge validators if provided
     bridge::ensure_bridge_validators(&storage.db).ok();
@@ -389,6 +518,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/rewards/:height", get(rpc::get_rewards_by_height))
         .route("/api/stats", get(rpc::stats_with_emission))
         .route("/api/contracts", get(rpc::list_contracts))
+        .route("/params/staking_reward_rate", get(rpc::params_staking_reward_rate))
         // Dev faucet (credits balances directly; for local E2E only)
         .route("/dev/faucet", post(rpc::dev_faucet))
         // Ops simulation endpoints (pause/resume producer)

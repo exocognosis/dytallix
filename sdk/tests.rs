@@ -5,7 +5,6 @@
 
 use crate::{Argon2Params, PQCWallet, SignatureAlgorithm};
 use sha2::Digest; // For Sha256::new()
-use tempfile::NamedTempFile;
 
 /// Test deterministic key generation
 /// Requirement: Same passphrase yields identical keys
@@ -266,11 +265,10 @@ fn test_key_generation_performance() {
     // Key generation should complete within reasonable time (10 seconds)
     assert!(
         duration.as_secs() < 10,
-        "Key generation too slow: {:?}",
-        duration
+        "Key generation too slow: {duration:?}",
     );
 
-    println!("Key generation took: {:?}", duration);
+    println!("Key generation took: {duration:?}");
 }
 
 /// Test memory safety and zeroization
