@@ -623,7 +623,7 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "storage_get",
-                |mut caller: Caller<HostCallContext>,
+                |caller: Caller<HostCallContext>,
                  key_ptr: i32,
                  key_len: i32,
                  value_ptr: i32,

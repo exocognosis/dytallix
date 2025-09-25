@@ -40,7 +40,7 @@ async fn create_test_consensus_engine() -> Result<ConsensusEngine> {
 }
 
 /// Create a test transfer transaction
-fn create_test_transfer_transaction(amount: u64, from: &str, to: &str) -> Transaction {
+fn create_test_transfer_transaction(amount: u128, from: &str, to: &str) -> Transaction {
     let mut transfer_tx = TransferTransaction {
         hash: String::new(),
         from: from.to_string(),

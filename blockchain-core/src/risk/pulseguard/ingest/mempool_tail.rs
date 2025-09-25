@@ -9,9 +9,9 @@ pub async fn stream_mempool(tx: Sender<RiskEvent>, mem: Vec<Transaction>) {
     for t in mem {
         let enriched = enrich(&t);
         let (to_addr, amount_u128) = match &t {
-            Transaction::Transfer(tr) => (tr.to.clone(), tr.amount as u128),
-            Transaction::Call(c) => (c.to.clone(), c.value as u128),
-            Transaction::Stake(s) => (s.validator.clone(), s.amount as u128),
+            Transaction::Transfer(tr) => (tr.to.clone(), tr.amount),
+            Transaction::Call(c) => (c.to.clone(), c.value),
+            Transaction::Stake(s) => (s.validator.clone(), s.amount),
             Transaction::Deploy(_) => ("".to_string(), 0u128),
             Transaction::AIRequest(_) => ("".to_string(), 0u128),
         };
