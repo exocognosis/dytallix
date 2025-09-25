@@ -90,14 +90,16 @@ impl StakingModule {
     /// Set new staking reward rate (basis points)
     pub fn set_reward_rate_bps(&mut self, new_bps: u64) {
         self.reward_rate_bps = new_bps;
-        let _ = self
-            .storage
-            .db
-            .put("staking:reward_rate_bps", bincode::serialize(&new_bps).unwrap());
+        let _ = self.storage.db.put(
+            "staking:reward_rate_bps",
+            bincode::serialize(&new_bps).unwrap(),
+        );
     }
 
     /// Get current staking reward rate (bps)
-    pub fn get_reward_rate_bps(&self) -> u64 { self.reward_rate_bps }
+    pub fn get_reward_rate_bps(&self) -> u64 {
+        self.reward_rate_bps
+    }
 
     /// Apply external emission from emission engine
     /// If total_stake > 0, update reward_index proportionally

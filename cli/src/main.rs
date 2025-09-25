@@ -88,9 +88,17 @@ enum ConfigAction {
 
 #[derive(Args, Debug, Clone)]
 struct InitCmd {
-    #[arg(long, default_value = "genesis.json", help = "Output genesis file path (will be created or updated)")] 
+    #[arg(
+        long,
+        default_value = "genesis.json",
+        help = "Output genesis file path (will be created or updated)"
+    )]
     genesis_out: String,
-    #[arg(long, help = "Force overwrite existing genesis file instead of patching", default_value_t = false)]
+    #[arg(
+        long,
+        help = "Force overwrite existing genesis file instead of patching",
+        default_value_t = false
+    )]
     force: bool,
 }
 
@@ -124,18 +132,25 @@ struct GovernanceParams {
 
 impl GovernanceParams {
     fn from_config(path: &str) -> Result<Option<toml::Value>> {
-        if !Path::new(path).exists() { return Ok(None); }
-        let s = std::fs::read_to_string(path).with_context(|| format!("reading governance config {path}"))?;
+        if !Path::new(path).exists() {
+            return Ok(None);
+        }
+        let s = std::fs::read_to_string(path)
+            .with_context(|| format!("reading governance config {path}"))?;
         let v: toml::Value = toml::from_str(&s).with_context(|| "parsing governance.toml")?;
         Ok(Some(v))
     }
 
     fn parse_fraction(raw: Option<&toml::Value>, key: &str) -> Option<f64> {
-        raw.and_then(|v| v.get(key)).and_then(|x| x.as_str()).and_then(|s| s.parse::<f64>().ok())
+        raw.and_then(|v| v.get(key))
+            .and_then(|x| x.as_str())
+            .and_then(|s| s.parse::<f64>().ok())
     }
 
     fn parse_deposit(raw: Option<&toml::Value>) -> Option<(u64, String)> {
-        let dep = raw.and_then(|v| v.get("deposit_min")).and_then(|x| x.as_str())?;
+        let dep = raw
+            .and_then(|v| v.get("deposit_min"))
+            .and_then(|x| x.as_str())?;
         let re = Regex::new(r"^(?P<amount>[0-9]+)(?P<denom>[a-zA-Z][a-zA-Z0-9]*)$").ok()?;
         let caps = re.captures(dep)?;
         let amount: u64 = caps.name("amount")?.as_str().parse().ok()?;
@@ -150,33 +165,132 @@ impl GovernanceParams {
             bail!("governance config missing at {cfg_path}");
         }
         let cfg_val_ref = cfg_val.as_ref();
-        let quorum = if let Some(v) = cli.gov_quorum { ParamWithSource { value: v, source: "flag" } } else if let Some(v) = Self::parse_fraction(cfg_val_ref, "quorum") { ParamWithSource { value: v, source: "config" } } else { ParamWithSource { value: 0.33, source: "default" } };
-        let threshold = if let Some(v) = cli.gov_threshold { ParamWithSource { value: v, source: "flag" } } else if let Some(v) = Self::parse_fraction(cfg_val_ref, "threshold") { ParamWithSource { value: v, source: "config" } } else { ParamWithSource { value: 0.50, source: "default" } };
-        let veto = if let Some(v) = cli.gov_veto { ParamWithSource { value: v, source: "flag" } } else if let Some(v) = Self::parse_fraction(cfg_val_ref, "veto") { ParamWithSource { value: v, source: "config" } } else { ParamWithSource { value: 0.334, source: "default" } };
+        let quorum = if let Some(v) = cli.gov_quorum {
+            ParamWithSource {
+                value: v,
+                source: "flag",
+            }
+        } else if let Some(v) = Self::parse_fraction(cfg_val_ref, "quorum") {
+            ParamWithSource {
+                value: v,
+                source: "config",
+            }
+        } else {
+            ParamWithSource {
+                value: 0.33,
+                source: "default",
+            }
+        };
+        let threshold = if let Some(v) = cli.gov_threshold {
+            ParamWithSource {
+                value: v,
+                source: "flag",
+            }
+        } else if let Some(v) = Self::parse_fraction(cfg_val_ref, "threshold") {
+            ParamWithSource {
+                value: v,
+                source: "config",
+            }
+        } else {
+            ParamWithSource {
+                value: 0.50,
+                source: "default",
+            }
+        };
+        let veto = if let Some(v) = cli.gov_veto {
+            ParamWithSource {
+                value: v,
+                source: "flag",
+            }
+        } else if let Some(v) = Self::parse_fraction(cfg_val_ref, "veto") {
+            ParamWithSource {
+                value: v,
+                source: "config",
+            }
+        } else {
+            ParamWithSource {
+                value: 0.334,
+                source: "default",
+            }
+        };
 
         // deposit
-        let (dep_amt, dep_src) = if let Some(_c) = cfg_val_ref { if let Some((amt, denom)) = Self::parse_deposit(cfg_val_ref) { if denom != "udgt" { bail!("unexpected denom {denom} (expected udgt)"); } (amt, "config") } else { (1000, "default") } } else { (1000, "default") };
-        let voting_period = if let Some(c) = cfg_val_ref { c.get("voting_period").and_then(|x| x.as_str()).and_then(|s| s.parse::<u64>().ok()).unwrap_or(100) } else { 100 };
-        let vp_src = if cfg_val_ref.is_some() { "config" } else { "default" };
+        let (dep_amt, dep_src) = if let Some(_c) = cfg_val_ref {
+            if let Some((amt, denom)) = Self::parse_deposit(cfg_val_ref) {
+                if denom != "udgt" {
+                    bail!("unexpected denom {denom} (expected udgt)");
+                }
+                (amt, "config")
+            } else {
+                (1000, "default")
+            }
+        } else {
+            (1000, "default")
+        };
+        let voting_period = if let Some(c) = cfg_val_ref {
+            c.get("voting_period")
+                .and_then(|x| x.as_str())
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(100)
+        } else {
+            100
+        };
+        let vp_src = if cfg_val_ref.is_some() {
+            "config"
+        } else {
+            "default"
+        };
 
-        let params = GovernanceParams { quorum, threshold, veto, min_deposit_udgt: ParamWithSource { value: dep_amt, source: dep_src }, voting_period: ParamWithSource { value: voting_period, source: vp_src } };
+        let params = GovernanceParams {
+            quorum,
+            threshold,
+            veto,
+            min_deposit_udgt: ParamWithSource {
+                value: dep_amt,
+                source: dep_src,
+            },
+            voting_period: ParamWithSource {
+                value: voting_period,
+                source: vp_src,
+            },
+        };
         params.validate()?;
         Ok(params)
     }
 
     fn validate(&self) -> Result<()> {
-        let q = self.quorum.value; let t = self.threshold.value; let v = self.veto.value;
-        if !(q > 0.0 && q < 1.0) { bail!("invalid quorum {q} (must be 0.0<q<1.0)"); }
-        if !(t > 0.0 && t <= 1.0) { bail!("invalid threshold {t} (must be 0.0<t<=1.0)"); }
-        if !(v > 0.0 && v < 1.0) { bail!("invalid veto {v} (must be 0.0<v<1.0)"); }
-        if q > t { bail!("quorum {q} cannot exceed threshold {t}"); }
-        if v >= 1.0 { bail!("veto must be < 1.0"); }
+        let q = self.quorum.value;
+        let t = self.threshold.value;
+        let v = self.veto.value;
+        if !(q > 0.0 && q < 1.0) {
+            bail!("invalid quorum {q} (must be 0.0<q<1.0)");
+        }
+        if !(t > 0.0 && t <= 1.0) {
+            bail!("invalid threshold {t} (must be 0.0<t<=1.0)");
+        }
+        if !(v > 0.0 && v < 1.0) {
+            bail!("invalid veto {v} (must be 0.0<v<1.0)");
+        }
+        if q > t {
+            bail!("quorum {q} cannot exceed threshold {t}");
+        }
+        if v >= 1.0 {
+            bail!("veto must be < 1.0");
+        }
         // Optional: reject more than 4 decimal places
-        for (name, val) in [("quorum", q), ("threshold", t), ("veto", v)] { let scaled = (val * 10_000.0).round(); let back = scaled / 10_000.0; if (val - back).abs() > 1e-9 { bail!("{name} has more than 4 decimal places: {val}"); } }
+        for (name, val) in [("quorum", q), ("threshold", t), ("veto", v)] {
+            let scaled = (val * 10_000.0).round();
+            let back = scaled / 10_000.0;
+            if (val - back).abs() > 1e-9 {
+                bail!("{name} has more than 4 decimal places: {val}");
+            }
+        }
         Ok(())
     }
 
-    fn as_bps_floor(val: f64) -> u64 { (val * 10_000.0).floor() as u64 }
+    fn as_bps_floor(val: f64) -> u64 {
+        (val * 10_000.0).floor() as u64
+    }
 }
 
 fn expand_home(p: &str) -> String {
@@ -206,29 +320,35 @@ async fn main() -> Result<()> {
     let gov_params_res = GovernanceParams::load(&cli);
 
     let mut cfg = config::load()?;
-    if let Some(r) = cli.rpc.as_ref() { cfg.rpc = r.clone(); }
-    if let Some(c) = cli.chain_id.as_ref() { cfg.chain_id = c.clone(); }
+    if let Some(r) = cli.rpc.as_ref() {
+        cfg.rpc = r.clone();
+    }
+    if let Some(c) = cli.chain_id.as_ref() {
+        cfg.chain_id = c.clone();
+    }
     let fmt: OutputFormat = cli.output.into();
 
     match cli.cmd.clone() {
-        Commands::Governance(gc) => {
-            match gc.action {
-                GovernanceAction::Validate => {
-                    match gov_params_res {
-                        Ok(p) => { println!("governance parameters valid: quorum={} ({}), threshold={} ({}), veto={} ({})", p.quorum.value, p.quorum.source, p.threshold.value, p.threshold.source, p.veto.value, p.veto.source); }
-                        Err(e) => { eprintln!("validation error: {e}"); std::process::exit(1); }
-                    }
+        Commands::Governance(gc) => match gc.action {
+            GovernanceAction::Validate => match gov_params_res {
+                Ok(p) => {
+                    println!("governance parameters valid: quorum={} ({}), threshold={} ({}), veto={} ({})", p.quorum.value, p.quorum.source, p.threshold.value, p.threshold.source, p.veto.value, p.veto.source);
                 }
-                GovernanceAction::PrintEffective => {
-                    match gov_params_res {
-                        Ok(p) => {
-                            println!("quorum={} source={} threshold={} source={} veto={} source={} min_deposit_udgt={} source={} voting_period={} source={}", p.quorum.value, p.quorum.source, p.threshold.value, p.threshold.source, p.veto.value, p.veto.source, p.min_deposit_udgt.value, p.min_deposit_udgt.source, p.voting_period.value, p.voting_period.source);
-                        }
-                        Err(e) => { eprintln!("error loading governance params: {e}"); std::process::exit(1); }
-                    }
+                Err(e) => {
+                    eprintln!("validation error: {e}");
+                    std::process::exit(1);
                 }
-            }
-        }
+            },
+            GovernanceAction::PrintEffective => match gov_params_res {
+                Ok(p) => {
+                    println!("quorum={} source={} threshold={} source={} veto={} source={} min_deposit_udgt={} source={} voting_period={} source={}", p.quorum.value, p.quorum.source, p.threshold.value, p.threshold.source, p.veto.value, p.veto.source, p.min_deposit_udgt.value, p.min_deposit_udgt.source, p.voting_period.value, p.voting_period.source);
+                }
+                Err(e) => {
+                    eprintln!("error loading governance params: {e}");
+                    std::process::exit(1);
+                }
+            },
+        },
         Commands::Init(ic) => {
             let params = gov_params_res?; // fail fast if invalid
             let qb = GovernanceParams::as_bps_floor(params.quorum.value);
@@ -238,12 +358,27 @@ async fn main() -> Result<()> {
             let voting_period_blocks = params.voting_period.value;
             let path = &ic.genesis_out;
             let path_exists = Path::new(path).exists();
-            let mut genesis: serde_json::Value = if path_exists && !ic.force { serde_json::from_str(&fs::read_to_string(path)?).unwrap_or_else(|_| serde_json::json!({})) } else { serde_json::json!({}) };
-            if genesis.get("chain_id").is_none() { genesis["chain_id"] = serde_json::Value::String(cfg.chain_id.clone()); }
-            let mut gov = genesis.get("governance").cloned().unwrap_or_else(|| serde_json::json!({}));
-            if !gov.is_object() { gov = serde_json::json!({}); }
+            let mut genesis: serde_json::Value = if path_exists && !ic.force {
+                serde_json::from_str(&fs::read_to_string(path)?)
+                    .unwrap_or_else(|_| serde_json::json!({}))
+            } else {
+                serde_json::json!({})
+            };
+            if genesis.get("chain_id").is_none() {
+                genesis["chain_id"] = serde_json::Value::String(cfg.chain_id.clone());
+            }
+            let mut gov = genesis
+                .get("governance")
+                .cloned()
+                .unwrap_or_else(|| serde_json::json!({}));
+            if !gov.is_object() {
+                gov = serde_json::json!({});
+            }
             gov["min_deposit_udgt"] = serde_json::Value::String(min_dep_micro.clone());
-            gov["deposit_period"] = gov.get("deposit_period").cloned().unwrap_or(serde_json::Value::Number(5u64.into()));
+            gov["deposit_period"] = gov
+                .get("deposit_period")
+                .cloned()
+                .unwrap_or(serde_json::Value::Number(5u64.into()));
             gov["voting_period"] = serde_json::Value::Number(voting_period_blocks.into());
             gov["quorum_bps"] = serde_json::Value::String(qb.to_string());
             gov["threshold_bps"] = serde_json::Value::String(tb.to_string());

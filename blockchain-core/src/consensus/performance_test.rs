@@ -41,7 +41,7 @@ async fn test_fallback_modes() {
     let config = PerformanceConfig::default();
     let optimizer = PerformanceOptimizer::new(config);
 
-    let tx = create_test_transaction(5000);
+    let tx = create_test_transaction(5000u128);
     let tx_hash = "test_tx".to_string();
 
     // Test different fallback modes
@@ -81,7 +81,7 @@ async fn test_performance_metrics() {
     println!("✓ Performance metrics working correctly");
 }
 
-fn create_test_transaction(amount: u64) -> Transaction {
+fn create_test_transaction(amount: u128) -> Transaction {
     Transaction::Transfer(TransferTransaction {
         hash: "test_tx".to_string(),
         from: "sender".to_string(),

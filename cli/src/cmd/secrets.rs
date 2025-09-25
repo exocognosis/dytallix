@@ -176,9 +176,7 @@ pub async fn run(cmd: SecretsCmd) -> Result<()> {
                     "event=validator_key_rotated mode=vault validator_id={}",
                     validator_id
                 );
-                println!(
-                    "Rotated validator key via Vault for id={validator_id} ({length} bytes)."
-                );
+                println!("Rotated validator key via Vault for id={validator_id} ({length} bytes).");
             } else {
                 let path = put_keystore(&validator_id, &key)?;
                 info!(

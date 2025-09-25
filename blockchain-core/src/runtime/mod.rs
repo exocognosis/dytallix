@@ -83,7 +83,7 @@ impl RuntimeState {
                 let _ = state.staking.delegate(
                     validator_info.address.clone(),
                     validator_info.address.clone(),
-                    validator_info.stake as u128,
+                    validator_info.stake,
                 );
             }
         }

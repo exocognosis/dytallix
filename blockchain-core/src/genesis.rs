@@ -139,7 +139,7 @@ impl StakingConfig {
         let defaults = crate::staking::StakingParams::default();
         crate::staking::StakingParams {
             max_validators: self.max_validators,
-            min_self_stake: self.minimum_validator_stake as u128,
+            min_self_stake: self.minimum_validator_stake,
             slash_double_sign: self.double_sign_slash_rate,
             slash_downtime: self.downtime_slash_rate,
             emission_per_block: self.emission_per_block,
@@ -184,6 +184,16 @@ pub struct GenesisConfig {
 }
 
 impl GenesisConfig {
+    /// Create the mainnet genesis configuration
+    pub fn mainnet() -> Self {
+        Self::_mainnet()
+    }
+
+    /// Import from JSON string
+    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+        Self::_from_json(json)
+    }
+
     /// Create the mainnet genesis configuration
     pub fn _mainnet() -> Self {
         let genesis_time = DateTime::parse_from_rfc3339("2025-08-03T19:00:26.000000000Z")

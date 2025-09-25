@@ -1090,6 +1090,35 @@ impl StakingState {
             positions,
         }
     }
+
+    // Public API wrappers for underscore-only methods
+    pub fn validator_leave(&mut self, id: &String) -> Result<(), StakingError> {
+        self._validator_leave(id)
+    }
+    pub fn record_missed_block(&mut self, id: &String) -> Result<(), StakingError> {
+        self._record_missed_block(id)
+    }
+    pub fn record_validator_present(&mut self, id: &String) -> Result<(), StakingError> {
+        self._record_validator_present(id)
+    }
+    pub fn slash_validator(&mut self, id: &String, t: SlashType) -> Result<(), StakingError> {
+        self._slash_validator(id, t)
+    }
+    pub fn handle_evidence(&mut self, e: Evidence) -> Result<(), StakingError> {
+        self._handle_evidence(e)
+    }
+    pub fn get_events(&self) -> &[ValidatorEvent] {
+        self._get_events()
+    }
+    pub fn clear_events(&mut self) {
+        self._clear_events()
+    }
+    pub fn get_validator_stats(&self, id: &String) -> Option<&ValidatorStats> {
+        self._get_validator_stats(id)
+    }
+    pub fn get_validator_set(&self, f: Option<ValidatorStatus>) -> Vec<String> {
+        self._get_validator_set(f)
+    }
 }
 
 /// Per-validator reward information for a delegator

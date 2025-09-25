@@ -71,7 +71,7 @@ pub struct Vote {
     pub proposal_id: u64,
     pub voter: String,
     pub option: VoteOption,
-    pub weight: u128 // DGT balance at time of vote
+    pub weight: u128, // DGT balance at time of vote
 }
 
 /// Deposit on a proposal (for tracking individual deposits)
@@ -383,7 +383,8 @@ impl GovernanceModule {
                                 {
                                     "Quorum not met"
                                 } else if tally.no_with_veto
-                                    >= (tally.total_voting_power * self.config.veto_threshold) / 10000
+                                    >= (tally.total_voting_power * self.config.veto_threshold)
+                                        / 10000
                                 {
                                     "Proposal vetoed"
                                 } else {
@@ -537,7 +538,10 @@ impl GovernanceModule {
                         self.store_proposal(&proposal)?;
                         // Refund deposits for failed execution (not proposer's fault)
                         let _ = self.refund_deposits(proposal_id);
-                        self.emit_event(GovernanceEvent::ExecutionFailed { id: proposal_id, error: e.clone() });
+                        self.emit_event(GovernanceEvent::ExecutionFailed {
+                            id: proposal_id,
+                            error: e.clone(),
+                        });
                         let _ = self.write_governance_evidence();
                         Err(e)
                     }
@@ -601,14 +605,22 @@ impl GovernanceModule {
             }
             "staking_reward_rate" => {
                 // Parse as decimal fraction (e.g. "0.05" for 5%) then convert to basis points
-                let rate: f64 = value.parse().map_err(|_| "Invalid staking_reward_rate: must be decimal fraction".to_string())?;
-                if !(0.0..=1.0).contains(&rate) { return Err("staking_reward_rate must be between 0.0 and 1.0".to_string()); }
+                let rate: f64 = value.parse().map_err(|_| {
+                    "Invalid staking_reward_rate: must be decimal fraction".to_string()
+                })?;
+                if !(0.0..=1.0).contains(&rate) {
+                    return Err("staking_reward_rate must be between 0.0 and 1.0".to_string());
+                }
                 let bps = (rate * 10_000.0).round() as u64; // basis points
                 {
                     let mut staking = self.staking.lock().unwrap();
                     staking.set_reward_rate_bps(bps);
                 }
-                self.emit_event(GovernanceEvent::ParameterChanged { key: key.to_string(), old_value, new_value: value.to_string() });
+                self.emit_event(GovernanceEvent::ParameterChanged {
+                    key: key.to_string(),
+                    old_value,
+                    new_value: value.to_string(),
+                });
                 let _ = self.write_governance_evidence();
                 Ok(())
             }
@@ -1196,12 +1208,44 @@ impl GovernanceModule {
     pub fn apply_env_overrides(&mut self) {
         use std::env;
         let mut changed = false;
-        if let Ok(raw) = env::var("DYT_GOV_MIN_DEPOSIT") { if let Ok(v) = raw.parse::<u128>() { self.config.min_deposit = v; changed = true; } }
-        if let Ok(raw) = env::var("DYT_GOV_DEPOSIT_PERIOD") { if let Ok(v) = raw.parse::<u64>() { self.config.deposit_period = v; changed = true; } }
-        if let Ok(raw) = env::var("DYT_GOV_VOTING_PERIOD") { if let Ok(v) = raw.parse::<u64>() { self.config.voting_period = v; changed = true; } }
-        if let Ok(raw) = env::var("DYT_GOV_QUORUM_BPS") { if let Ok(v) = raw.parse::<u128>() { self.config.quorum = v; changed = true; } }
-        if let Ok(raw) = env::var("DYT_GOV_THRESHOLD_BPS") { if let Ok(v) = raw.parse::<u128>() { self.config.threshold = v; changed = true; } }
-        if let Ok(raw) = env::var("DYT_GOV_VETO_BPS") { if let Ok(v) = raw.parse::<u128>() { self.config.veto_threshold = v; changed = true; } }
-        if changed { let _ = self.store_config(); }
+        if let Ok(raw) = env::var("DYT_GOV_MIN_DEPOSIT") {
+            if let Ok(v) = raw.parse::<u128>() {
+                self.config.min_deposit = v;
+                changed = true;
+            }
+        }
+        if let Ok(raw) = env::var("DYT_GOV_DEPOSIT_PERIOD") {
+            if let Ok(v) = raw.parse::<u64>() {
+                self.config.deposit_period = v;
+                changed = true;
+            }
+        }
+        if let Ok(raw) = env::var("DYT_GOV_VOTING_PERIOD") {
+            if let Ok(v) = raw.parse::<u64>() {
+                self.config.voting_period = v;
+                changed = true;
+            }
+        }
+        if let Ok(raw) = env::var("DYT_GOV_QUORUM_BPS") {
+            if let Ok(v) = raw.parse::<u128>() {
+                self.config.quorum = v;
+                changed = true;
+            }
+        }
+        if let Ok(raw) = env::var("DYT_GOV_THRESHOLD_BPS") {
+            if let Ok(v) = raw.parse::<u128>() {
+                self.config.threshold = v;
+                changed = true;
+            }
+        }
+        if let Ok(raw) = env::var("DYT_GOV_VETO_BPS") {
+            if let Ok(v) = raw.parse::<u128>() {
+                self.config.veto_threshold = v;
+                changed = true;
+            }
+        }
+        if changed {
+            let _ = self.store_config();
+        }
     }
 }
