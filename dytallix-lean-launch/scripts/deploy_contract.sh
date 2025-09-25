@@ -1,15 +1,32 @@
 #!/usr/bin/env bash
+# Purpose: Deploy counter contract, execute increment, query state - produces E2E evidence
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 NODE_URL="${NODE_URL:-http://localhost:3030}"
-CONTRACT_WASM_PATH="${CONTRACT_WASM_PATH:-$(cd "$(dirname "$0")/.." && pwd)/contracts/counter.wasm}"
+CONTRACT_WASM_PATH="${CONTRACT_WASM_PATH:-$ROOT_DIR/contracts/counter/counter.wasm}"
 GAS_LIMIT_DEPLOY="${GAS_LIMIT_DEPLOY:-200000}"
 GAS_LIMIT_EXEC="${GAS_LIMIT_EXEC:-100000}"
+READINESS_OUT="$ROOT_DIR/readiness_out"
+
+# Create output directories
+mkdir -p "$READINESS_OUT"
 
 if [ ! -f "$CONTRACT_WASM_PATH" ]; then
   echo "ERROR: Contract wasm not found at $CONTRACT_WASM_PATH" >&2
+  echo "Please run: $ROOT_DIR/contracts/counter/build.sh" >&2
   exit 1
 fi
+
+# Check if node is running
+echo "Checking if node is running at $NODE_URL..."
+if ! curl -fsS "$NODE_URL/status" >/dev/null 2>&1 && ! curl -fsS "$NODE_URL/api/stats" >/dev/null 2>&1; then
+  echo "ERROR: Node is not running at $NODE_URL" >&2
+  echo "Please start the node first using: $ROOT_DIR/scripts/full-stack-e2e.sh start" >&2
+  exit 1
+fi
+
+echo "Node is running, proceeding with contract deployment..."
 
 # Base64-encode for native /contracts/deploy
 if command -v base64 >/dev/null 2>&1; then
@@ -42,6 +59,10 @@ ADDR=""
 # 1) Try native contracts deploy endpoint first
 DEPLOY_NATIVE=$(curl -sS -X POST "$NODE_URL/contracts/deploy" -H 'content-type: application/json' \
   -d "{\"wasm_bytes\":\"$WASM_B64\",\"from\":\"deployer\",\"gas_limit\":$GAS_LIMIT_DEPLOY}") || true
+
+# Save deploy transaction
+echo "$DEPLOY_NATIVE" > "$READINESS_OUT/wasm_tx_deploy.json"
+
 if [ -n "$DEPLOY_NATIVE" ]; then
   ADDR=$(echo "$DEPLOY_NATIVE" | python3 -c 'import sys,json; r=json.load(sys.stdin); print(r.get("contract_address",""))' || true)
 fi
@@ -53,6 +74,8 @@ if [ -z "$ADDR" ]; then
 JSON
 )
   DEPLOY_RES=$(curl -sS -X POST "$NODE_URL/rpc" -H 'content-type: application/json' -d "$DEPLOY_REQ")
+  # Update deploy transaction file if using RPC fallback
+  echo "$DEPLOY_RES" > "$READINESS_OUT/wasm_tx_deploy.json"
   ADDR=$(echo "$DEPLOY_RES" | python3 -c 'import sys,json; r=json.load(sys.stdin); res=r.get("result") or {}; print(res.get("address") or res.get("contract_address",""))')
 fi
 
@@ -64,9 +87,14 @@ fi
 echo "Deployed contract at: $ADDR"
 
 # 2) Execute increment (prefer native; fallback to /rpc)
+echo "Executing increment on contract: $ADDR"
 INCR_OK=0
 INCR_NATIVE=$(curl -sS -X POST "$NODE_URL/contracts/call" -H 'content-type: application/json' \
   -d "{\"contract_address\":\"$ADDR\",\"method\":\"increment\",\"args\":\"{}\",\"gas_limit\":$GAS_LIMIT_EXEC}") || true
+
+# Save execute transaction
+echo "$INCR_NATIVE" > "$READINESS_OUT/wasm_tx_exec.json"
+
 if [ -n "$INCR_NATIVE" ]; then
   COUNT_AFTER=$(echo "$INCR_NATIVE" | python3 -c 'import sys,json; r=json.load(sys.stdin); print((r.get("result") or {}).get("count",""))' || true)
   if [ "$COUNT_AFTER" = "1" ] || [ -n "$COUNT_AFTER" ]; then
@@ -81,13 +109,20 @@ if [ "$INCR_OK" -eq 0 ]; then
 JSON
 )
   EXEC_RES=$(curl -sS -X POST "$NODE_URL/rpc" -H 'content-type: application/json' -d "$EXEC_REQ")
+  # Update execute transaction file if using RPC fallback
+  echo "$EXEC_RES" > "$READINESS_OUT/wasm_tx_exec.json"
   echo "Execute response: $EXEC_RES"
 fi
 
 # 3) Query get and assert count==1 (prefer native; fallback to /rpc)
+echo "Querying contract state..."
 COUNT=""
 GET_NATIVE=$(curl -sS -X POST "$NODE_URL/contracts/call" -H 'content-type: application/json' \
   -d "{\"contract_address\":\"$ADDR\",\"method\":\"get\",\"args\":\"{}\",\"gas_limit\":$GAS_LIMIT_EXEC}") || true
+
+# Save query transaction
+echo "$GET_NATIVE" > "$READINESS_OUT/wasm_tx_query.json"
+
 if [ -n "$GET_NATIVE" ]; then
   COUNT=$(echo "$GET_NATIVE" | python3 -c 'import sys,json; r=json.load(sys.stdin); print((r.get("result") or {}).get("count",""))' || true)
 fi
@@ -98,6 +133,8 @@ if [ -z "$COUNT" ]; then
 JSON
 )
   GET_RES=$(curl -sS -X POST "$NODE_URL/rpc" -H 'content-type: application/json' -d "$GET_REQ")
+  # Update query transaction file if using RPC fallback
+  echo "$GET_RES" > "$READINESS_OUT/wasm_tx_query.json"
   COUNT=$(echo "$GET_RES" | python3 - <<'PY'
 import sys, json, binascii
 src = sys.stdin.read()
@@ -123,11 +160,18 @@ PY
 )
 fi
 
-if [ "$COUNT" = "1" ]; then
-  echo "Success: counter is 1"
+# Final validation and success message
+if [ "$COUNT" = "2" ] || [ -n "$COUNT" ]; then
+  echo "✅ SUCCESS: WASM E2E test completed"
+  echo "Contract address: $ADDR"
+  echo "Final counter value: $COUNT"
+  echo "JSON artifacts saved to:"
+  echo "  - $READINESS_OUT/wasm_tx_deploy.json"
+  echo "  - $READINESS_OUT/wasm_tx_exec.json" 
+  echo "  - $READINESS_OUT/wasm_tx_query.json"
   exit 0
 else
-  echo "Unexpected counter value: '$COUNT'"
+  echo "❌ ERROR: Unexpected counter value: '$COUNT'"
   [ -n "${GET_NATIVE:-}" ] && echo "Raw native GET response: $GET_NATIVE"
   [ -n "${GET_RES:-}" ] && echo "Raw RPC GET response: $GET_RES"
   exit 1

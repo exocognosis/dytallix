@@ -17,6 +17,7 @@ export default defineConfig({
       'src/**/*.{test,spec}.{js,jsx,ts,tsx}',
       'frontend/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
       'test/**/*.{test,spec}.{js,jsx,ts,tsx}',
+      'tests/**/*.{test,spec}.{js,jsx,ts,tsx}', // Added for live endpoints tests
       'server/src/test/**/*.{test,spec}.ts'
     ],
     exclude: [
