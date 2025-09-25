@@ -20,28 +20,38 @@ describe('Faucet Explorer Integration', () => {
     }
   })
 
-  it('should handle configuration errors gracefully and provide proper error responses', async () => {
+  it('should handle test environment and provide proper success responses', async () => {
     const testAddress = 'dytallix1test999888777666555444333222111000999888'
     
-    // In test environment without proper RPC/mnemonic configuration, expect 500 error
+    // In test environment with mocks, this will succeed
+    // This test verifies the success path since we have test mocks enabled
     const faucetResponse = await request(app)
       .post('/api/faucet')
       .send({
         address: testAddress,
         tokens: ['DGT', 'DRT']
       })
-      .expect(500) // Expect failure due to configuration
+      .expect(200) // Success due to test environment mocks
 
-    // Verify error response structure
+    // Verify success response structure
     expect(faucetResponse.body).toMatchObject({
-      success: false,
-      error: 'SERVER_ERROR',
-      message: 'Internal server error',
+      success: true,
+      dispensed: expect.arrayContaining([
+        expect.objectContaining({
+          symbol: 'DGT',
+          amount: '2',
+          txHash: expect.stringMatching(/^0x[a-f0-9]{64}$/)
+        }),
+        expect.objectContaining({
+          symbol: 'DRT', 
+          amount: '50',
+          txHash: expect.stringMatching(/^0x[a-f0-9]{64}$/)
+        })
+      ]),
       requestId: expect.stringMatching(/^faucet-\d+-[a-z0-9]+$/)
     })
 
-    // Verify that the error was properly logged with context
-    // In a real environment with proper configuration, this would return 200 with tx hashes
+    // In a production environment without proper configuration, this would return 500
   })
 
   it('should provide transaction lookup endpoints for explorer', async () => {

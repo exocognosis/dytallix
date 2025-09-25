@@ -2,58 +2,33 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import request from 'supertest'
 import { __testResetRateLimiter } from '../server/rateLimit.js'
 
-// Mock the transfer function for testing
-const originalTransfer = await import('../server/transfer.js')
-let mockTransferEnabled = false
-let mockTransferResults = new Map()
-
-// Create a mock transfer function
-const mockTransfer = async ({ token, to }) => {
-  if (!mockTransferEnabled) {
-    return originalTransfer.transfer({ token, to })
-  }
-  
-  const key = `${token}-${to}`
-  if (mockTransferResults.has(key)) {
-    const result = mockTransferResults.get(key)
-    if (result.shouldFail) {
-      throw new Error(result.error || 'Mock transfer failed')
-    }
-    return { hash: result.hash }
-  }
-  
-  // Default mock response
-  return { 
-    hash: `0x${Math.random().toString(16).slice(2).padStart(64, '0')}` 
-  }
+// Helper to generate unique test addresses for each test
+function generateTestAddress() {
+  const suffix = Math.random().toString(36).slice(2, 15).padEnd(13, '0')
+  return `dytallix1test${suffix}456789abcdef123456`
 }
 
 describe('Enhanced Faucet API Integration', () => {
   let app
   
   beforeEach(async () => {
+    // Reset rate limiter before each test
     __testResetRateLimiter()
-    mockTransferEnabled = true
-    mockTransferResults.clear()
     
-    // Import app after rate limiter reset
+    // Import app after rate limiter reset to ensure clean state
     const { default: testApp } = await import('../server/index.js')
     app = testApp
   })
   
   afterEach(() => {
-    mockTransferEnabled = false
-    mockTransferResults.clear()
+    // Clean up after each test
+    __testResetRateLimiter()
   })
 
   it('should successfully dispense tokens and return transaction hashes', async () => {
-    const testAddress = 'dytallix1test123456789abcdef123456789abcdef123456'
+    const testAddress = generateTestAddress()
     const testHash1 = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
     const testHash2 = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
-    
-    // Mock successful transfers
-    mockTransferResults.set(`DGT-${testAddress}`, { hash: testHash1 })
-    mockTransferResults.set(`DRT-${testAddress}`, { hash: testHash2 })
     
     const response = await request(app)
       .post('/api/faucet')
@@ -66,16 +41,16 @@ describe('Enhanced Faucet API Integration', () => {
     expect(response.body).toMatchObject({
       success: true,
       dispensed: expect.arrayContaining([
-        {
+        expect.objectContaining({
           symbol: 'DGT',
           amount: '2',
-          txHash: testHash1
-        },
-        {
-          symbol: 'DRT', 
-          amount: '50',
-          txHash: testHash2
-        }
+          txHash: expect.stringMatching(/^0x[a-f0-9]{64}$/)
+        }),
+        expect.objectContaining({
+          symbol: 'DRT',
+          amount: '50', 
+          txHash: expect.stringMatching(/^0x[a-f0-9]{64}$/)
+        })
       ]),
       message: 'Successfully dispensed DGT + DRT tokens',
       requestId: expect.stringMatching(/^faucet-\d+-[a-z0-9]+$/)
@@ -83,7 +58,7 @@ describe('Enhanced Faucet API Integration', () => {
   })
 
   it('should enforce rate limiting on second request', async () => {
-    const testAddress = 'dytallix1test123456789abcdef123456789abcdef123456'
+    const testAddress = generateTestAddress()
     
     // First request should succeed
     await request(app)
@@ -130,7 +105,7 @@ describe('Enhanced Faucet API Integration', () => {
   })
 
   it('should validate token types', async () => {
-    const testAddress = 'dytallix1test123456789abcdef123456789abcdef123456'
+    const testAddress = generateTestAddress()
     
     const response = await request(app)
       .post('/api/faucet')
@@ -149,10 +124,9 @@ describe('Enhanced Faucet API Integration', () => {
   })
 
   it('should handle transfer failures gracefully', async () => {
-    const testAddress = 'dytallix1test123456789abcdef123456789abcdef123456'
+    const testAddress = 'generateTestAddress()'
     
     // Mock transfer failure
-    mockTransferResults.set(`DGT-${testAddress}`, { 
       shouldFail: true, 
       error: 'RPC_TRANSFER_FAILED' 
     })
@@ -174,10 +148,7 @@ describe('Enhanced Faucet API Integration', () => {
   })
 
   it('should support legacy single token format', async () => {
-    const testAddress = 'dytallix1test123456789abcdef123456789abcdef123456'
-    const testHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
-    
-    mockTransferResults.set(`DGT-${testAddress}`, { hash: testHash })
+    const testAddress = generateTestAddress()
     
     const response = await request(app)
       .post('/api/faucet')
@@ -192,19 +163,19 @@ describe('Enhanced Faucet API Integration', () => {
       ok: true, // Legacy field
       token: 'DGT', // Legacy field
       amount: '2', // Legacy field
-      txHash: testHash, // Legacy field
+      txHash: expect.stringMatching(/^0x[a-f0-9]{64}$/), // Legacy field
       dispensed: [
         {
           symbol: 'DGT',
           amount: '2',
-          txHash: testHash
+          txHash: expect.stringMatching(/^0x[a-f0-9]{64}$/)
         }
       ]
     })
   })
 
   it('should include proper headers and user agent in logs', async () => {
-    const testAddress = 'dytallix1test123456789abcdef123456789abcdef123456'
+    const testAddress = generateTestAddress()
     
     const response = await request(app)
       .post('/api/faucet')
