@@ -54,6 +54,14 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or(true);
     let chain_id = std::env::var("DYT_CHAIN_ID").unwrap_or("dyt-local-1".to_string());
 
+    // Runtime feature flags (default disabled) - moved up to fix compilation
+    let enable_governance = std::env::var("DYT_ENABLE_GOVERNANCE")
+        .map(|v| v == "1" || v.to_lowercase() == "true")
+        .unwrap_or(false);
+    let enable_staking = std::env::var("DYT_ENABLE_STAKING")
+        .map(|v| v == "1" || v.to_lowercase() == "true")
+        .unwrap_or(false);
+
     std::fs::create_dir_all(&data_dir)?;
     let storage = Arc::new(Storage::open(PathBuf::from(format!("{data_dir}/node.db")))?);
     // Chain ID persistence
@@ -310,14 +318,6 @@ async fn main() -> anyhow::Result<()> {
 
     #[cfg(not(feature = "metrics"))]
     let mut alerts_engine = AlertsEngine::new(alerts_config.clone())?;
-
-    // Runtime feature flags (default disabled)
-    let enable_governance = std::env::var("DYT_ENABLE_GOVERNANCE")
-        .map(|v| v == "1" || v.to_lowercase() == "true")
-        .unwrap_or(false);
-    let enable_staking = std::env::var("DYT_ENABLE_STAKING")
-        .map(|v| v == "1" || v.to_lowercase() == "true")
-        .unwrap_or(false);
 
     // Replace previous ctx creation to use custom governance config
     let ctx = RpcContext {
