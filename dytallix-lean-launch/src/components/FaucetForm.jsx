@@ -87,6 +87,20 @@ const FaucetForm = () => {
     }
   }
 
+  // Get dynamic submit button text based on selection
+  const getSubmitButtonText = () => {
+    if (selectedOption === 'both') {
+      return 'Request Both DGT + DRT (Recommended)'
+    }
+    if (selectedOption === 'DGT') {
+      return 'Request DGT Only'
+    }
+    if (selectedOption === 'DRT') {
+      return 'Request DRT Only'
+    }
+    return 'Request Tokens'
+  }
+
   // Get last success details for display
   const getLastSuccessDetails = () => {
     try {
@@ -282,7 +296,7 @@ const FaucetForm = () => {
           ) : anyCooldown ? (
             `Wait ${maxCooldownMinutes}m for ${selectedTokens.filter(t => isOnCooldown(t)).join(', ')}`
           ) : (
-            'Request Tokens'
+            getSubmitButtonText()
           )}
         </button>
 

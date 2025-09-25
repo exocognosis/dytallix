@@ -826,6 +826,10 @@ app.get('/api/dashboard/timeseries', async (req, res, next) => {
 app.post('/api/faucet', async (req, res, next) => {
   const startTime = Date.now()
   const requestId = `faucet-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  
+  // Set request ID header for all responses
+  res.setHeader('x-request-id', requestId)
+  
   try {
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
     const userAgent = req.headers['user-agent'] || 'unknown'
@@ -867,7 +871,8 @@ app.post('/api/faucet', async (req, res, next) => {
       return res.status(400).json({
         success: false,
         error: 'INVALID_ADDRESS',
-        message: 'Please enter a valid Dytallix bech32 address'
+        message: 'Please enter a valid Dytallix bech32 address',
+        requestId
       })
     }
 
@@ -883,7 +888,8 @@ app.post('/api/faucet', async (req, res, next) => {
       return res.status(400).json({
         success: false,
         error: 'INVALID_TOKEN',
-        message: 'Please specify valid token(s): DGT, DRT, or both'
+        message: 'Please specify valid token(s): DGT, DRT, or both',
+        requestId
       })
     }
 
@@ -900,7 +906,8 @@ app.post('/api/faucet', async (req, res, next) => {
       return res.status(400).json({
         success: false,
         error: 'INVALID_ADDRESS',
-        message: 'Address prefix mismatch'
+        message: 'Address prefix mismatch',
+        requestId
       })
     }
 
