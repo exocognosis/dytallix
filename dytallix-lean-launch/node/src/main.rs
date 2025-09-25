@@ -158,7 +158,9 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         } else if let Ok(bps_env) = std::env::var("DYT_STAKING_REWARD_RATE_BPS") {
-            if let Ok(bps) = bps_env.parse::<u64>() { staking_module.lock().unwrap().set_reward_rate_bps(bps); }
+            if let Ok(bps) = bps_env.parse::<u64>() {
+                staking_module.lock().unwrap().set_reward_rate_bps(bps);
+            }
         }
     }
 
@@ -166,35 +168,76 @@ async fn main() -> anyhow::Result<()> {
     let mut gov_cfg = GovernanceConfig::default();
     // Helper closures
     let parse_u64 = |k: &str| -> Option<u64> { std::env::var(k).ok().and_then(|v| v.parse().ok()) };
-    let parse_u128 = |k: &str| -> Option<u128> { std::env::var(k).ok().and_then(|v| v.parse().ok()) };
+    let parse_u128 =
+        |k: &str| -> Option<u128> { std::env::var(k).ok().and_then(|v| v.parse().ok()) };
 
-    if let Some(v) = parse_u128("DYT_GOV_MIN_DEPOSIT") { gov_cfg.min_deposit = v; }
-    if let Some(v) = parse_u64("DYT_GOV_DEPOSIT_PERIOD") { gov_cfg.deposit_period = v; }
-    if let Some(v) = parse_u64("DYT_GOV_VOTING_PERIOD") { gov_cfg.voting_period = v; }
-    if let Some(v) = parse_u128("DYT_GOV_QUORUM_BPS") { gov_cfg.quorum = v; }
-    if let Some(v) = parse_u128("DYT_GOV_THRESHOLD_BPS") { gov_cfg.threshold = v; }
-    if let Some(v) = parse_u128("DYT_GOV_VETO_BPS") { gov_cfg.veto_threshold = v; }
+    if let Some(v) = parse_u128("DYT_GOV_MIN_DEPOSIT") {
+        gov_cfg.min_deposit = v;
+    }
+    if let Some(v) = parse_u64("DYT_GOV_DEPOSIT_PERIOD") {
+        gov_cfg.deposit_period = v;
+    }
+    if let Some(v) = parse_u64("DYT_GOV_VOTING_PERIOD") {
+        gov_cfg.voting_period = v;
+    }
+    if let Some(v) = parse_u128("DYT_GOV_QUORUM_BPS") {
+        gov_cfg.quorum = v;
+    }
+    if let Some(v) = parse_u128("DYT_GOV_THRESHOLD_BPS") {
+        gov_cfg.threshold = v;
+    }
+    if let Some(v) = parse_u128("DYT_GOV_VETO_BPS") {
+        gov_cfg.veto_threshold = v;
+    }
 
     // Genesis fallbacks (only if env not set / still default)
     if let Some(genesis) = genesis_json.as_ref() {
         if let Some(gov) = genesis.get("governance") {
             if gov_cfg.min_deposit == GovernanceConfig::default().min_deposit {
-                if let Some(v) = gov.get("min_deposit_udgt").and_then(|v| v.as_str()).and_then(|s| s.parse::<u128>().ok()) { gov_cfg.min_deposit = v; }
+                if let Some(v) = gov
+                    .get("min_deposit_udgt")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| s.parse::<u128>().ok())
+                {
+                    gov_cfg.min_deposit = v;
+                }
             }
             if gov_cfg.deposit_period == GovernanceConfig::default().deposit_period {
-                if let Some(v) = gov.get("deposit_period").and_then(|v| v.as_u64()) { gov_cfg.deposit_period = v; }
+                if let Some(v) = gov.get("deposit_period").and_then(|v| v.as_u64()) {
+                    gov_cfg.deposit_period = v;
+                }
             }
             if gov_cfg.voting_period == GovernanceConfig::default().voting_period {
-                if let Some(v) = gov.get("voting_period").and_then(|v| v.as_u64()) { gov_cfg.voting_period = v; }
+                if let Some(v) = gov.get("voting_period").and_then(|v| v.as_u64()) {
+                    gov_cfg.voting_period = v;
+                }
             }
             if gov_cfg.quorum == GovernanceConfig::default().quorum {
-                if let Some(v) = gov.get("quorum_bps").and_then(|v| v.as_str()).and_then(|s| s.parse::<u128>().ok()) { gov_cfg.quorum = v; }
+                if let Some(v) = gov
+                    .get("quorum_bps")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| s.parse::<u128>().ok())
+                {
+                    gov_cfg.quorum = v;
+                }
             }
             if gov_cfg.threshold == GovernanceConfig::default().threshold {
-                if let Some(v) = gov.get("threshold_bps").and_then(|v| v.as_str()).and_then(|s| s.parse::<u128>().ok()) { gov_cfg.threshold = v; }
+                if let Some(v) = gov
+                    .get("threshold_bps")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| s.parse::<u128>().ok())
+                {
+                    gov_cfg.threshold = v;
+                }
             }
             if gov_cfg.veto_threshold == GovernanceConfig::default().veto_threshold {
-                if let Some(v) = gov.get("veto_threshold_bps").and_then(|v| v.as_str()).and_then(|s| s.parse::<u128>().ok()) { gov_cfg.veto_threshold = v; }
+                if let Some(v) = gov
+                    .get("veto_threshold_bps")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| s.parse::<u128>().ok())
+                {
+                    gov_cfg.veto_threshold = v;
+                }
             }
         }
     }
@@ -304,7 +347,9 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Apply governance env overrides (after ctx creation so we can mutate inside mutex)
-    if enable_governance { ctx.governance.lock().unwrap().apply_env_overrides(); }
+    if enable_governance {
+        ctx.governance.lock().unwrap().apply_env_overrides();
+    }
 
     // Initialize bridge validators if provided
     bridge::ensure_bridge_validators(&storage.db).ok();
@@ -518,7 +563,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/rewards/:height", get(rpc::get_rewards_by_height))
         .route("/api/stats", get(rpc::stats_with_emission))
         .route("/api/contracts", get(rpc::list_contracts))
-        .route("/params/staking_reward_rate", get(rpc::params_staking_reward_rate))
+        .route(
+            "/params/staking_reward_rate",
+            get(rpc::params_staking_reward_rate),
+        )
         // Dev faucet (credits balances directly; for local E2E only)
         .route("/dev/faucet", post(rpc::dev_faucet))
         // Ops simulation endpoints (pause/resume producer)

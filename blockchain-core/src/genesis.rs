@@ -185,11 +185,15 @@ pub struct GenesisConfig {
 
 impl GenesisConfig {
     /// Create the mainnet genesis configuration
-    pub fn mainnet() -> Self { Self::_mainnet() }
-    
+    pub fn mainnet() -> Self {
+        Self::_mainnet()
+    }
+
     /// Import from JSON string
-    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> { Self::_from_json(json) }
-    
+    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+        Self::_from_json(json)
+    }
+
     /// Create the mainnet genesis configuration
     pub fn _mainnet() -> Self {
         let genesis_time = DateTime::parse_from_rfc3339("2025-08-03T19:00:26.000000000Z")

@@ -16,7 +16,11 @@ fn perf_factor() -> u64 {
         }
     }
     // Heuristic: relax timings on CI where machines may be slower
-    if std::env::var("CI").is_ok() { 3 } else { 1 }
+    if std::env::var("CI").is_ok() {
+        3
+    } else {
+        1
+    }
 }
 
 // Added: crypto and base64 imports for valid PQC signatures
@@ -204,10 +208,7 @@ async fn test_performance_threshold_admission() {
 
     println!(
         "✅ Performance test passed: {} transactions admitted in {:?} (limit {:?}, factor {})",
-        successful_admissions,
-        admission_duration,
-        admission_limit,
-        factor
+        successful_admissions, admission_duration, admission_limit, factor
     );
 
     // Test snapshot performance
