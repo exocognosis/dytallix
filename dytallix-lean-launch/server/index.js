@@ -321,7 +321,11 @@ app.get('/api/transactions/:hash', async (req, res, next) => {
     const h = req.params.hash
     const r = await nodeGet(`/tx/${encodeURIComponent(h)}`)
     res.json(r)
-  } catch (err) { next(err) }
+  } catch (err) {
+    // Graceful fallback: return minimal structure instead of 500
+    logWarn('api.transactions.hash.fetch_failed', { hash: req.params.hash, error: err?.message })
+    res.json({ hash: req.params.hash, status: 'unknown' })
+  }
 })
 
 // AI risk proxy – enrich a transaction receipt with oracle scoring
@@ -341,7 +345,13 @@ app.get('/api/ai/risk/transaction/:hash', async (req, res, next) => {
   const started = Date.now()
 
   try {
-    const receipt = await nodeGet(`/tx/${encodeURIComponent(hash)}`)
+    // Try to fetch receipt, but don't fail the whole request if node is down
+    let receipt = null
+    try {
+      receipt = await nodeGet(`/tx/${encodeURIComponent(hash)}`)
+    } catch (e) {
+      logWarn('ai.risk.receipt_unavailable', { hash, error: e?.message })
+    }
 
     const payload = {
       tx_hash: receipt?.hash || hash,
@@ -381,8 +391,9 @@ app.get('/api/ai/risk/transaction/:hash', async (req, res, next) => {
       aiOracleRequestsTotal.inc({ result: 'success' })
       logInfo('ai.risk.enriched', { hash, score: aiScore, ms: Date.now() - started })
 
+      const base = (receipt && typeof receipt === 'object') ? receipt : { hash }
       return res.json({
-        ...receipt,
+        ...base,
         ai_risk_score: aiScore,
         ai_risk_model: parsed.model_id || parsed.version || null,
         ai_risk_signature: parsed.signature || null,
@@ -394,8 +405,9 @@ app.get('/api/ai/risk/transaction/:hash', async (req, res, next) => {
       aiOracleRequestsTotal.inc({ result: 'failure' })
       aiOracleFailuresTotal.inc({ reason })
       logWarn('AI oracle request failed; returning fallback response', { hash, reason, ms: Date.now() - started, error: err.message })
+      const base = (receipt && typeof receipt === 'object') ? receipt : { hash }
       return res.json({
-        ...receipt,
+        ...base,
         ai_risk_score: null,
         risk_status: 'unavailable',
       })
@@ -670,16 +682,17 @@ app.get('/api/staking/apr', async (req, res, next) => {
 })
 
 // AI risk passthrough for a transaction (if present on node receipts)
-app.get('/api/ai/risk/transaction/:hash', async (req, res) => {
-  try {
-    const r = await nodeGet(`/tx/${encodeURIComponent(req.params.hash)}`)
-    if (r && (r.ai_risk_score != null)) {
-      const level = r.ai_risk_score < 0.3 ? 'low' : (r.ai_risk_score < 0.7 ? 'medium' : 'high')
-      return res.json({ score: r.ai_risk_score, level, model: r.ai_model_id || 'default' })
-    }
-    res.status(404).json({ error: 'NO_RISK_DATA' })
-  } catch { res.status(404).json({ error: 'NO_RISK_DATA' }) }
-})
+// [Removed duplicate endpoint in favor of the oracle-backed implementation above]
+// app.get('/api/ai/risk/transaction/:hash', async (req, res) => {
+//   try {
+//     const r = await nodeGet(`/tx/${encodeURIComponent(req.params.hash)}`)
+//     if (r && (r.ai_risk_score != null)) {
+//       const level = r.ai_risk_score < 0.3 ? 'low' : (r.ai_risk_score < 0.7 ? 'medium' : 'high')
+//       return res.json({ score: r.ai_risk_score, level, model: r.ai_model_id || 'default' })
+//     }
+//     res.status(404).json({ error: 'NO_RISK_DATA' })
+//   } catch { res.status(404).json({ error: 'NO_RISK_DATA' }) }
+// })
 
 // Enhanced balance endpoint - support query parameter format
 app.get('/api/balance', async (req, res, next) => {
