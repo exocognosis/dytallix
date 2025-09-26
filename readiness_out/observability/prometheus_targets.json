@@ -1,0 +1,75 @@
+{
+  "timestamp": "2025-09-26T11:45:48Z",
+  "scrape_configs": [
+    {
+      "job_name": "dytallix-node",
+      "scrape_interval": "15s",
+      "metrics_path": "/metrics",
+      "static_configs": [
+        {
+          "targets": [
+            "localhost:3030",
+            "localhost:26657"
+          ],
+          "labels": {
+            "service": "dytallix-node",
+            "env": "production",
+            "role": "validator"
+          }
+        }
+      ]
+    },
+    {
+      "job_name": "dytallix-api",
+      "scrape_interval": "15s",
+      "metrics_path": "/metrics",
+      "static_configs": [
+        {
+          "targets": [
+            "localhost:3001",
+            "localhost:8787"
+          ],
+          "labels": {
+            "service": "dytallix-api",
+            "env": "production",
+            "role": "api-server"
+          }
+        }
+      ]
+    },
+    {
+      "job_name": "dytallix-ai-services",
+      "scrape_interval": "30s",
+      "metrics_path": "/metrics",
+      "static_configs": [
+        {
+          "targets": [
+            "localhost:9091",
+            "localhost:9092"
+          ],
+          "labels": {
+            "service": "dytallix-ai",
+            "env": "production",
+            "role": "ai-risk-management"
+          }
+        }
+      ]
+    }
+  ],
+  "alerting": {
+    "alertmanagers": [
+      {
+        "static_configs": [
+          {
+            "targets": [
+              "localhost:9093"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "rule_files": [
+    "alerts/*.yml"
+  ]
+}

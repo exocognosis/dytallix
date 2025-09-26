@@ -1,0 +1,119 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Dytallix Network Monitoring",
+    "tags": [
+      "dytallix",
+      "blockchain",
+      "monitoring"
+    ],
+    "timezone": "UTC",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Block Height",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dyt_block_height",
+            "legendFormat": "{{validator}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Block Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(dyt_block_time_seconds[5m])",
+            "legendFormat": "Block Time"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Transaction Throughput",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(dyt_transactions_total[5m])",
+            "legendFormat": "TPS"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Validator Status",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "dyt_validator_voting_power",
+            "legendFormat": "{{validator}}"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Network Consensus",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dyt_consensus_rounds",
+            "legendFormat": "Consensus Rounds"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "AI Risk Metrics",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "dyt_ai_risk_score",
+            "legendFormat": "Risk Score"
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  },
+  "meta": {
+    "type": "db",
+    "canSave": true,
+    "canEdit": true,
+    "canAdmin": true,
+    "canStar": true,
+    "slug": "dytallix-network-monitoring",
+    "url": "/d/dytallix/dytallix-network-monitoring",
+    "expires": "0001-01-01T00:00:00Z",
+    "created": "2025-09-26T11:44:43Z",
+    "updated": "2025-09-26T11:44:43Z",
+    "updatedBy": "admin",
+    "createdBy": "admin",
+    "version": 1
+  }
+}

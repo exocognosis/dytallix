@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-09-26T11:45:48Z",
+  "bins": [
+    {
+      "range": "0-500ms",
+      "count": 1
+    },
+    {
+      "range": "500-1000ms",
+      "count": 0
+    },
+    {
+      "range": "1000-1500ms",
+      "count": 0
+    },
+    {
+      "range": "1500-2000ms",
+      "count": 0
+    },
+    {
+      "range": "2000-2500ms",
+      "count": 0
+    },
+    {
+      "range": "2500-3000ms",
+      "count": 0
+    },
+    {
+      "range": "3000-3500ms",
+      "count": 0
+    },
+    {
+      "range": "3500-4000ms",
+      "count": 0
+    },
+    {
+      "range": "4000-4500ms",
+      "count": 0
+    },
+    {
+      "range": "4500-∞ms",
+      "count": 0
+    }
+  ],
+  "total_samples": 1
+}
