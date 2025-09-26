@@ -1751,6 +1751,83 @@ pub async fn ai_risk_get(
     })))
 }
 
+// --- Transaction Lifecycle Endpoints (Phase 1) ---
+
+/// GET /transactions/{hash} - Get transaction receipt by hash
+pub async fn get_transaction(
+    Extension(ctx): Extension<RpcContext>,
+    Path(hash): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    // Try to get from storage first (confirmed transactions)
+    if let Some(receipt) = ctx.storage.get_receipt(&hash) {
+        let response = json!({
+            "tx_hash": receipt.tx_hash,
+            "status": match receipt.status {
+                crate::storage::receipts::TxStatus::Pending => "pending",
+                crate::storage::receipts::TxStatus::Success => "success",
+                crate::storage::receipts::TxStatus::Failed => "failed",
+            },
+            "height": receipt.block_height,
+            "gas_used": receipt.gas_used,
+            "gas_limit": receipt.gas_limit,
+            "gas_price": receipt.gas_price,
+            "fee": receipt.fee.to_string(),
+            "from": receipt.from,
+            "to": receipt.to,
+            "amount": receipt.amount.to_string(),
+            "nonce": receipt.nonce,
+            "error": receipt.error
+        });
+        return Ok(Json(response));
+    }
+
+    // Check if transaction is in mempool (pending)
+    let mempool = ctx.mempool.lock().unwrap();
+    if mempool.contains(&hash) {
+        // Transaction is pending in mempool
+        let response = json!({
+            "tx_hash": hash,
+            "status": "pending",
+            "height": null,
+            "gas_used": 0,
+            "error": null
+        });
+        return Ok(Json(response));
+    }
+
+    // Transaction not found
+    Err(ApiError::NotFound)
+}
+
+/// GET /transactions/pending - List pending transactions in mempool (debug only)
+pub async fn get_pending_transactions(
+    Extension(ctx): Extension<RpcContext>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let mempool = ctx.mempool.lock().unwrap(); 
+    let pending_txs = mempool.take_snapshot(1000); // Get up to 1000 pending transactions
+    
+    let tx_list: Vec<serde_json::Value> = pending_txs
+        .iter()
+        .map(|tx| {
+            json!({
+                "tx_hash": tx.hash,
+                "from": tx.from,
+                "to": tx.to,
+                "amount": tx.amount.to_string(),
+                "fee": tx.fee.to_string(),
+                "nonce": tx.nonce,
+                "gas_limit": tx.gas_limit,
+                "gas_price": tx.gas_price
+            })
+        })
+        .collect();
+
+    Ok(Json(json!({
+        "pending_transactions": tx_list,
+        "count": tx_list.len()
+    })))
+}
+
 // --- Added staking reward rate params endpoint ---
 /// GET /params/staking_reward_rate -> plain decimal string (e.g. "0.0500")
 pub async fn params_staking_reward_rate(

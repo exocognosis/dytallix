@@ -1,0 +1,14 @@
+{
+  "tx_hash": "0xabc123def456",
+  "status": "success",
+  "height": 1,
+  "gas_used": 21000,
+  "gas_limit": 50000,
+  "gas_price": 1000,
+  "fee": "500000",
+  "from": "dyt1sender",
+  "to": "dyt1receiver",
+  "amount": "1000000",
+  "nonce": 0,
+  "error": null
+}

@@ -73,6 +73,8 @@ enum TxAction {
     Transfer(txcmd::TransferCmd),
     Batch(txcmd::BatchCmd),
     Broadcast(txcmd::BroadcastCmd),
+    Submit(txcmd::SubmitCmd),
+    Query(txcmd::QueryTxCmd),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -397,6 +399,12 @@ async fn main() -> Result<()> {
             }
             TxAction::Broadcast(bc) => {
                 txcmd::handle_broadcast(&cfg.rpc, &cfg.chain_id, &cli.home, bc, fmt).await?
+            }
+            TxAction::Submit(sc) => {
+                txcmd::handle_submit(&cfg.rpc, &cfg.chain_id, &cli.home, sc, fmt).await?
+            }
+            TxAction::Query(qc) => {
+                txcmd::handle_query_tx(&cfg.rpc, &cfg.chain_id, &cli.home, qc, fmt).await?
             }
         },
         Commands::Transfer(c) => {

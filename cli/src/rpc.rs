@@ -120,6 +120,25 @@ impl RpcClient {
 
         resp.json().await.map_err(Into::into)
     }
+
+    pub async fn get_transaction(&self, hash: &str) -> Result<TransactionReceipt> {
+        let url = format!("{}/transactions/{}", self.base, hash);
+        let resp = self.client.get(&url).send().await?;
+
+        if resp.status() == StatusCode::NOT_FOUND {
+            return Err(anyhow!("Transaction not found"));
+        }
+
+        if !resp.status().is_success() {
+            return Err(anyhow!(format!(
+                "Transaction query failed {}: {}",
+                resp.status(),
+                resp.text().await.unwrap_or_default()
+            )));
+        }
+
+        resp.json().await.map_err(Into::into)
+    }
 }
 
 pub async fn post_json(base_url: &str, path: &str, payload: &serde_json::Value) -> Result<String> {
@@ -170,4 +189,20 @@ pub async fn get_json(base_url: &str, path: &str) -> Result<String> {
 pub struct BroadcastResponse {
     pub hash: String,
     pub status: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TransactionReceipt {
+    pub tx_hash: String,
+    pub status: String,
+    pub height: Option<u64>,
+    pub gas_used: u64,
+    pub gas_limit: u64,
+    pub gas_price: u64,
+    pub fee: String,
+    pub from: String,
+    pub to: String,
+    pub amount: String,
+    pub nonce: u64,
+    pub error: Option<String>,
 }

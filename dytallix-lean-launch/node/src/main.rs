@@ -545,6 +545,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/account/:addr", get(rpc::get_account))
         .route("/tx/:hash", get(rpc::get_tx))
         .route("/transactions/:hash", get(rpc::get_tx)) // Standard endpoint path
+        .route("/transactions/pending", get(rpc::get_pending_transactions)) // Pending transactions list
         // Minimal JSON-RPC endpoint used by the dashboard server for WASM demos
         .route("/rpc", post(rpc::json_rpc))
         // AI risk utility routes

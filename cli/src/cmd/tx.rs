@@ -49,6 +49,18 @@ pub struct BroadcastCmd {
     pub tx_file: String,
 }
 
+#[derive(Args, Debug, Clone)]
+pub struct SubmitCmd {
+    #[arg(long, help = "Signed transaction JSON file")]
+    pub file: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct QueryTxCmd {
+    #[arg(help = "Transaction hash to query")]
+    pub hash: String,
+}
+
 pub async fn handle_transfer(
     rpc_url: &str,
     chain_id: &str,
@@ -295,6 +307,71 @@ pub async fn handle_broadcast(
         println!("Transaction broadcast successfully:");
         println!("  Hash: {}", result.hash);
         println!("  Status: {}", result.status);
+    }
+
+    Ok(())
+}
+
+pub async fn handle_submit(
+    rpc_url: &str,
+    _chain_id: &str,
+    _home: &str,
+    c: SubmitCmd,
+    fmt: OutputFormat,
+) -> Result<()> {
+    // Read the signed transaction from file
+    let tx_data = std::fs::read_to_string(&c.file)
+        .map_err(|e| anyhow!("Failed to read transaction file '{}': {}", c.file, e))?;
+
+    // Parse the signed transaction
+    let signed_tx: SignedTx = serde_json::from_str(tx_data.trim())
+        .map_err(|e| anyhow!("Failed to parse signed transaction: {}", e))?;
+
+    // Submit to node
+    let client = RpcClient::new(rpc_url);
+    let result = client.submit(&signed_tx).await?;
+
+    if fmt.is_json() {
+        print_json(&result)?;
+    } else {
+        println!("Transaction submitted successfully:");
+        println!("  Hash: {}", result.hash);
+        println!("  Status: {}", result.status);
+    }
+
+    Ok(())
+}
+
+pub async fn handle_query_tx(
+    rpc_url: &str,
+    _chain_id: &str,
+    _home: &str,
+    c: QueryTxCmd,
+    fmt: OutputFormat,
+) -> Result<()> {
+    let client = RpcClient::new(rpc_url);
+    
+    // Query transaction receipt
+    let receipt = client.get_transaction(&c.hash).await?;
+
+    if fmt.is_json() {
+        print_json(&receipt)?;
+    } else {
+        println!("Transaction Receipt:");
+        println!("  Hash: {}", receipt.tx_hash);
+        println!("  Status: {}", receipt.status);
+        if let Some(height) = receipt.height {
+            println!("  Block Height: {}", height);
+        }
+        println!("  Gas Used: {}", receipt.gas_used);
+        if let Some(error) = receipt.error {
+            println!("  Error: {}", error);
+        }
+        println!("  From: {}", receipt.from);
+        println!("  To: {}", receipt.to);
+        println!("  Amount: {}", receipt.amount);
+        println!("  Fee: {}", receipt.fee);
+        println!("  Nonce: {}", receipt.nonce);
     }
 
     Ok(())
