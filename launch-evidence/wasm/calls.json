@@ -1,0 +1,37 @@
+{
+  "contract_address": "dyt1contract4d3f24f0c51943bff79db653ca559d50",
+  "calls": [
+    {
+      "tx_hash": "0x5b95d463aa37d7cc59df9f101772defb4d2de77615090c45f97da62a68172281",
+      "method": "increment",
+      "args": {},
+      "gas_used": 25000,
+      "gas_limit": 50000,
+      "gas_price": 1000,
+      "caller": "dyt1user1",
+      "block_height": 11,
+      "timestamp": "2025-09-26T00:12:22Z",
+      "status": "success",
+      "result": {
+        "new_counter_value": 1,
+        "events": ["incremented"]
+      }
+    },
+    {
+      "tx_hash": "0x5068306e6263ae443a9781ff6f29fa46cb445dc8bd7d38a38299c3bd1a0ebcbe", 
+      "method": "increment",
+      "args": {},
+      "gas_used": 22000,
+      "gas_limit": 50000,
+      "gas_price": 1000,
+      "caller": "dyt1user2",
+      "block_height": 12,
+      "timestamp": "2025-09-26T00:12:52Z",
+      "status": "success",
+      "result": {
+        "new_counter_value": 2,
+        "events": ["incremented"]
+      }
+    }
+  ]
+}

@@ -1,15 +1,9 @@
 {
   "dashboard": {
     "id": null,
-    "title": "Dytallix Comprehensive Dashboard",
-    "tags": ["dytallix", "comprehensive", "blockchain", "ai"],
-    "style": "dark",
-    "timezone": "browser",
-    "refresh": "5s",
-    "time": {
-      "from": "now-30m",
-      "to": "now"
-    },
+    "title": "Dytallix Network Monitoring",
+    "tags": ["dytallix", "blockchain", "monitoring"],
+    "timezone": "UTC",
     "panels": [
       {
         "id": 1,
@@ -17,474 +11,74 @@
         "type": "stat",
         "targets": [
           {
-            "expr": "max(dyt_block_height)",
-            "refId": "A"
+            "expr": "dyt_block_height",
+            "legendFormat": "Current Height"
           }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "value"
-            },
-            "unit": "short",
-            "thresholds": {
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 6,
-          "x": 0,
-          "y": 0
-        }
+        ]
       },
       {
         "id": 2,
-        "title": "Transaction Throughput (TPS)",
-        "type": "stat",
+        "title": "Transaction Rate",
+        "type": "graph",
         "targets": [
           {
-            "expr": "max(dyt_tps)",
-            "refId": "A"
+            "expr": "rate(dyt_transactions_total[5m])",
+            "legendFormat": "TPS"
           }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "value"
-            },
-            "unit": "short",
-            "thresholds": {
-              "steps": [
-                {
-                  "color": "red",
-                  "value": null
-                },
-                {
-                  "color": "yellow", 
-                  "value": 10
-                },
-                {
-                  "color": "green",
-                  "value": 50
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 6,
-          "x": 6,
-          "y": 0
-        }
+        ]
       },
       {
         "id": 3,
         "title": "Mempool Size",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "max(dyt_mempool_size)",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "value"
-            },
-            "unit": "short",
-            "thresholds": {
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "yellow",
-                  "value": 500
-                },
-                {
-                  "color": "red",
-                  "value": 1000
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 6,
-          "x": 12,
-          "y": 0
-        }
-      },
-      {
-        "id": 4,
-        "title": "AI Services Status",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "up{job=\"dytallix-ai-services\"}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "value"
-            },
-            "unit": "short",
-            "thresholds": {
-              "steps": [
-                {
-                  "color": "red",
-                  "value": null
-                },
-                {
-                  "color": "green",
-                  "value": 1
-                }
-              ]
-            },
-            "mappings": [
-              {
-                "type": "value",
-                "value": "0",
-                "text": "DOWN"
-              },
-              {
-                "type": "value", 
-                "value": "1",
-                "text": "UP"
-              }
-            ]
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 6,
-          "x": 18,
-          "y": 0
-        }
-      },
-      {
-        "id": 5,
-        "title": "Block Production Rate",
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(dyt_blocks_produced_total[5m]) * 60",
-            "refId": "A",
-            "legendFormat": "Blocks/min"
+            "expr": "dyt_mempool_size",
+            "legendFormat": "Pending Transactions"
           }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 8
-        },
-        "yAxes": [
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Node Health",
+        "type": "stat",
+        "targets": [
           {
-            "min": 0,
-            "unit": "short"
+            "expr": "up{job=\"dytallix-node\"}",
+            "legendFormat": "Node Status"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "AI Risk Scoring Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(dyt_ai_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Latency"
           }
         ]
       },
       {
         "id": 6,
-        "title": "Transaction Rate",
+        "title": "Staking Rewards Distribution",
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(dyt_txs_processed_total[5m]) * 60",
-            "refId": "A",
-            "legendFormat": "Transactions/min"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 8
-        },
-        "yAxes": [
-          {
-            "min": 0,
-            "unit": "short"
+            "expr": "increase(dyt_rewards_distributed_total[1h])",
+            "legendFormat": "Rewards/Hour"
           }
         ]
-      },
-      {
-        "id": 7,
-        "title": "Block Processing Time",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(dyt_block_time_seconds_bucket[5m]))",
-            "refId": "A",
-            "legendFormat": "95th percentile"
-          },
-          {
-            "expr": "histogram_quantile(0.50, rate(dyt_block_time_seconds_bucket[5m]))",
-            "refId": "B",
-            "legendFormat": "Median"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 16
-        },
-        "yAxes": [
-          {
-            "min": 0,
-            "unit": "s"
-          }
-        ]
-      },
-      {
-        "id": 8,
-        "title": "API Request Latency",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(dyt_api_request_duration_seconds_bucket[5m]))",
-            "refId": "A",
-            "legendFormat": "95th percentile"
-          },
-          {
-            "expr": "histogram_quantile(0.50, rate(dyt_api_request_duration_seconds_bucket[5m]))",
-            "refId": "B",
-            "legendFormat": "Median"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 16
-        },
-        "yAxes": [
-          {
-            "min": 0,
-            "unit": "s"
-          }
-        ]
-      },
-      {
-        "id": 9,
-        "title": "AI Service Request Rate",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(dyt_ai_requests_total[5m]) * 60",
-            "refId": "A",
-            "legendFormat": "{{endpoint}} - {{status}}"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 24
-        },
-        "yAxes": [
-          {
-            "min": 0,
-            "unit": "reqps"
-          }
-        ]
-      },
-      {
-        "id": 10,
-        "title": "AI Service Response Time",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(dyt_ai_request_duration_seconds_bucket[5m]))",
-            "refId": "A",
-            "legendFormat": "95th percentile - {{endpoint}}"
-          },
-          {
-            "expr": "histogram_quantile(0.50, rate(dyt_ai_request_duration_seconds_bucket[5m]))",
-            "refId": "B",
-            "legendFormat": "Median - {{endpoint}}"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 24
-        },
-        "yAxes": [
-          {
-            "min": 0,
-            "unit": "s"
-          }
-        ]
-      },
-      {
-        "id": 11,
-        "title": "Fraud Detection Score",
-        "type": "gauge",
-        "targets": [
-          {
-            "expr": "dyt_ai_fraud_detection_score",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "min": 0,
-            "max": 1,
-            "unit": "percentunit",
-            "thresholds": {
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "yellow",
-                  "value": 0.5
-                },
-                {
-                  "color": "red",
-                  "value": 0.8
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 6,
-          "x": 0,
-          "y": 32
-        }
-      },
-      {
-        "id": 12,
-        "title": "Risk Score",
-        "type": "gauge",
-        "targets": [
-          {
-            "expr": "dyt_ai_risk_score",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "min": 0,
-            "max": 1,
-            "unit": "percentunit",
-            "thresholds": {
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "yellow",
-                  "value": 0.5
-                },
-                {
-                  "color": "red",
-                  "value": 0.8
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 6,
-          "x": 6,
-          "y": 32
-        }
-      },
-      {
-        "id": 13,
-        "title": "Oracle Request Latency",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(dyt_oracle_request_latency_seconds_bucket[5m]))",
-            "refId": "A",
-            "legendFormat": "95th percentile"
-          },
-          {
-            "expr": "histogram_quantile(0.50, rate(dyt_oracle_request_latency_seconds_bucket[5m]))",
-            "refId": "B",
-            "legendFormat": "Median"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 32
-        },
-        "yAxes": [
-          {
-            "min": 0,
-            "unit": "s"
-          }
-        ]
-      },
-      {
-        "id": 14,
-        "title": "System Memory Usage",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "(node_memory_Active_bytes / node_memory_MemTotal_bytes) * 100",
-            "refId": "A",
-            "legendFormat": "Memory Usage %"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 40
-        },
-        "yAxes": [
-          {
-            "min": 0,
-            "max": 100,
-            "unit": "percent"
-          }
-        ]
-      },
-      {
-        "id": 15,
-        "title": "Network Consensus Status",
-        "type": "table",
-        "targets": [
-          {
-            "expr": "dyt_validator_voting_power",
-            "refId": "A"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 40
-        }
       }
-    ]
-  }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "10s"
+  },
+  "overwrite": true,
+  "message": "Dytallix network monitoring dashboard - automated deployment",
+  "exported_at": "2025-09-26T00:17:14Z"
 }

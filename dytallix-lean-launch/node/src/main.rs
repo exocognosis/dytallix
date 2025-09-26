@@ -326,10 +326,33 @@ async fn main() -> anyhow::Result<()> {
         state: state.clone(),
         ws: ws_hub.clone(),
         tps: tps_window.clone(),
-        emission: Arc::new(Mutex::new(EmissionEngine::new(
-            storage.clone(),
-            state.clone(),
-        ))),
+        emission: Arc::new(Mutex::new({
+            // Check for DYT_EMISSION_CONFIG environment variable
+            let emission_engine = if let Ok(config_path) = std::env::var("DYT_EMISSION_CONFIG") {
+                eprintln!("Loading emission config from: {}", config_path);
+                match std::fs::read_to_string(&config_path) {
+                    Ok(config_json) => {
+                        match serde_json::from_str::<dytallix_lean_node::runtime::emission::EmissionConfig>(&config_json) {
+                            Ok(config) => {
+                                eprintln!("✅ Loaded emission config: {:?}", config.schedule);
+                                EmissionEngine::new_with_config(storage.clone(), state.clone(), config)
+                            }
+                            Err(e) => {
+                                eprintln!("❌ Failed to parse emission config: {}", e);
+                                EmissionEngine::new(storage.clone(), state.clone())
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("❌ Failed to read emission config file {}: {}", config_path, e);
+                        EmissionEngine::new(storage.clone(), state.clone())
+                    }
+                }
+            } else {
+                EmissionEngine::new(storage.clone(), state.clone())
+            };
+            emission_engine
+        })),
         governance: Arc::new(Mutex::new(GovernanceModule::new(
             storage.clone(),
             state.clone(),
@@ -545,6 +568,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/account/:addr", get(rpc::get_account))
         .route("/tx/:hash", get(rpc::get_tx))
         .route("/transactions/:hash", get(rpc::get_tx)) // Standard endpoint path
+        .route("/transactions/pending", get(rpc::get_pending_transactions)) // Pending transactions list
         // Minimal JSON-RPC endpoint used by the dashboard server for WASM demos
         .route("/rpc", post(rpc::json_rpc))
         // AI risk utility routes
