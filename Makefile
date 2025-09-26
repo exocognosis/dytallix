@@ -23,6 +23,13 @@ help:
 	@echo "  faucet                - Test faucet functionality"
 	@echo "  verify-token-migration - Verify no legacy DYT references remain"
 	@echo ""
+	@echo "Release/Ops Evidence Finisher targets:"
+	@echo "  evidence-perf         - Generate performance SLO evidence pack"
+	@echo "  evidence-observability - Generate observability & monitoring evidence"
+	@echo "  evidence-security     - Generate security headers/CSP evidence"
+	@echo "  evidence-faucet       - Generate faucet E2E testing evidence"
+	@echo "  evidence-all          - Run all evidence packs + generate index"
+	@echo ""
 	@echo "CI/CD targets for dytallix-lean-launch:"
 	@echo "  ci                    - Run full CI pipeline (install, lint, test, build, checksum)"
 	@echo "  install               - Install dytallix-lean-launch dependencies"
@@ -47,6 +54,10 @@ help:
 	@echo "  FRONTEND_DIR         - Frontend directory (default: $(FRONTEND_DIR))"
 	@echo "  FAUCET_ENDPOINT      - Faucet API endpoint (default: $(FAUCET_ENDPOINT))"
 	@echo "  FAUCET_ADDRESS       - Test address for faucet (default: $(FAUCET_ADDRESS))"
+	@echo "  NODE_RPC             - Node RPC endpoint for evidence tests (default: http://127.0.0.1:3030)"
+	@echo "  RPS                  - Requests per second for perf tests (default: 50)"
+	@echo "  DURATION_S           - Test duration in seconds (default: 60)"
+	@echo "  CONCURRENCY          - Concurrent requests for perf tests (default: 64)"
 	@echo ""
 
 # Development environment
@@ -378,6 +389,34 @@ critical_gaps:
 	@echo "  1. Review final readiness report: launch-evidence/final_report/READINESS_REPORT_FINAL.md"
 	@echo "  2. Deploy test network: docker-compose -f docker-compose.multi.yml up"
 	@echo "  3. Execute live performance validation"
+
+# Release/Ops Evidence Finisher Targets
+.PHONY: evidence-perf evidence-observability evidence-security evidence-faucet evidence-all
+
+evidence-perf:
+	@echo "🚀 Running Performance SLO Evidence Pack..."
+	@bash scripts/evidence/perf_slo.sh
+	@echo "✅ Performance evidence complete"
+
+evidence-observability:
+	@echo "🚀 Running Observability Evidence Pack..."
+	@bash scripts/evidence/observability_pack.sh
+	@echo "✅ Observability evidence complete"
+
+evidence-security:
+	@echo "🚀 Running Security Headers/CSP Evidence Pack..."
+	@bash scripts/evidence/csp_headers_check.sh
+	@echo "✅ Security evidence complete"
+
+evidence-faucet:
+	@echo "🚀 Running Faucet E2E Evidence Pack..."
+	@bash scripts/evidence/faucet_e2e.sh
+	@echo "✅ Faucet evidence complete"
+
+evidence-all: evidence-perf evidence-observability evidence-security evidence-faucet
+	@echo "🚀 Generating consolidated evidence index..."
+	@bash -c 'cd readiness_out && echo "# Release Readiness Evidence" > index.md && echo "" >> index.md && echo "Generated: $$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> index.md && echo "" >> index.md && echo "## Performance" >> index.md && echo "- [Performance Report](perf_report.md)" >> index.md && echo "- [Latency Histogram](perf/latency_hist.json)" >> index.md && echo "- [Summary Metrics](perf/summary.json)" >> index.md && echo "" >> index.md && echo "## Observability" >> index.md && echo "- [Observability Report](observability_report.md)" >> index.md && echo "- [Prometheus Targets](observability/prometheus_targets.json)" >> index.md && echo "- [Grafana Dashboard](observability/grafana_dashboard.json)" >> index.md && echo "- [Alert Test Log](observability/alert_test_output.log)" >> index.md && echo "" >> index.md && echo "## Security" >> index.md && echo "- [Security Headers Report](security_headers_report.md)" >> index.md && echo "- [Raw Headers](security/curl_headers.txt)" >> index.md && echo "- [CSP Validation](security/csp_headers_check.txt)" >> index.md && echo "" >> index.md && echo "## Faucet E2E" >> index.md && echo "- [Faucet E2E Report](faucet_e2e_report.md)" >> index.md && echo "- [Request/Response Artifacts](faucet_e2e/)" >> index.md && echo "- [Balance Verification](faucet_e2e/balances_after.json)" >> index.md'
+	@echo "✅ All evidence generation complete - see readiness_out/index.md"
 
 # Launch Evidence Orchestrator targets (phase0..phase6, all-evidence)
 # Automatically selects orchestrator location (prefers scripts/ wrapper if present)

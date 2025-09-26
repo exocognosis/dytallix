@@ -1,0 +1,18 @@
+# CSP Headers Validation - 2025-09-26T11:44:43Z
+
+ENDPOINT: http://localhost:8787/
+STATUS: FAIL - HTTP 000 (unreachable)
+
+ENDPOINT: http://localhost:5173/
+STATUS: FAIL - HTTP 000 (unreachable)
+
+ENDPOINT: http://localhost:3001/
+STATUS: FAIL - HTTP 000 (unreachable)
+
+ENDPOINT: http://127.0.0.1:3030/
+STATUS: FAIL - HTTP 000 (unreachable)
+
+
+=== OVERALL RESULT ===
+Status: FAIL
+Timestamp: 2025-09-26T11:44:43Z
