@@ -30,6 +30,10 @@ pub struct KeygenCmd {
     /// Force overwrite existing keys
     #[arg(long)]
     pub force: bool,
+
+    /// PQC Algorithm (only dilithium5 is supported)
+    #[arg(long, default_value = "dilithium5")]
+    pub algo: String,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -71,6 +75,14 @@ pub async fn handle_pqc(fmt: OutputFormat, cmd: PQCCmd) -> Result<()> {
 }
 
 async fn handle_keygen(fmt: OutputFormat, cmd: KeygenCmd) -> Result<()> {
+    // Validate algorithm
+    if cmd.algo != "dilithium5" {
+        return Err(anyhow!(
+            "Unsupported algorithm '{}'. Only 'dilithium5' is supported.",
+            cmd.algo
+        ));
+    }
+
     let output_dir = Path::new(&cmd.output_dir);
     let private_key_path = output_dir.join("private.key");
     let public_key_path = output_dir.join("public.key");

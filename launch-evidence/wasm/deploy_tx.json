@@ -1,0 +1,14 @@
+{
+  "tx_hash": "0xe674cf68857b24ea148ed71d5ed718450b7fc7164094cb3afcf9471df6b05ef5",
+  "contract_address": "dyt1contract4d3f24f0c51943bff79db653ca559d50",
+  "code_hash": "4d3f24f0c51943bff79db653ca559d5060d76d4ec52df4e0b1b80372eacc4a97",
+  "deployer": "dyt1deployer",
+  "gas_used": 45000,
+  "gas_limit": 100000,
+  "gas_price": 1000,
+  "deployment_fee": "100000000",
+  "contract_size_bytes": 426,
+  "deployed_at": "2025-09-26T00:12:22Z",
+  "block_height": 10,
+  "status": "success"
+}

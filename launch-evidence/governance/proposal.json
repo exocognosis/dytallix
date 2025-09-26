@@ -1,0 +1,21 @@
+{
+  "id": 1,
+  "title": "Increase Gas Limit Parameter",
+  "description": "Proposal to increase the gas_limit parameter from 21000 to 250000 to support more complex transactions",
+  "type": "param_change",
+  "parameter": {
+    "key": "gas_limit",
+    "current_value": "21000",
+    "proposed_value": "250000"
+  },
+  "proposer": "dyt1validator1",
+  "status": "voting",
+  "submitted_at": "2025-09-26T00:11:14Z",
+  "voting_start_time": "2025-09-26T00:11:14Z",
+  "voting_end_time": "2025-10-03T00:11:14Z",
+  "min_deposit": "1000000000",
+  "total_deposit": "2000000000",
+  "voting_power_threshold": "0.50",
+  "quorum": "0.33",
+  "veto_threshold": "0.334"
+}

@@ -1,0 +1,23 @@
+{
+  "chain_parameters": {
+    "gas_limit": "250000",
+    "gas_price_minimum": "1000",
+    "block_max_gas": "10000000",
+    "block_max_tx": "1000",
+    "voting_period": "604800",
+    "min_deposit": "1000000000",
+    "governance_quorum": "0.33",
+    "governance_threshold": "0.50",
+    "governance_veto": "0.334"
+  },
+  "updated_at": "2025-10-03T00:11:14Z",
+  "updated_by_proposal": 1,
+  "previous_values": {
+    "gas_limit": "21000"
+  },
+  "validation": {
+    "parameter_update_applied": true,
+    "new_value_active": true,
+    "rollback_available": false
+  }
+}
