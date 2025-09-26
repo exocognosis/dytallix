@@ -1,89 +1,67 @@
 {
-  "timestamp": "2024-12-19T23:30:00Z",
-  "prometheus_targets": [
+  "scrape_configs": [
     {
-      "job": "prometheus",
-      "instance": "localhost:9090",
-      "status": "UP",
-      "last_scrape": "2024-12-19T23:29:55Z",
-      "scrape_duration": "0.003s",
-      "health": "up"
-    },
-    {
-      "job": "dytallix-node",
-      "instance": "dytallix-node:26680",
-      "status": "UP",
-      "last_scrape": "2024-12-19T23:29:58Z",
-      "scrape_duration": "0.015s",
-      "health": "up",
-      "metrics_exposed": [
-        "dyt_block_height",
-        "dyt_blocks_produced_total",
-        "dyt_tps", 
-        "dyt_mempool_size",
-        "dyt_block_time_seconds",
-        "dyt_txs_processed_total"
+      "job_name": "dytallix-node",
+      "scrape_interval": "15s",
+      "metrics_path": "/metrics",
+      "static_configs": [
+        {
+          "targets": ["localhost:3030"],
+          "labels": {
+            "service": "dytallix-node",
+            "env": "production",
+            "chain": "dytallix-mainnet"
+          }
+        }
       ]
     },
     {
-      "job": "dytallix-faucet",
-      "instance": "dytallix-faucet:9101",
-      "status": "UP",
-      "last_scrape": "2024-12-19T23:29:56Z",
-      "scrape_duration": "0.008s",
-      "health": "up",
-      "metrics_exposed": [
-        "dyt_faucet_requests_total",
-        "dyt_faucet_request_duration_seconds"
+      "job_name": "dytallix-api",
+      "scrape_interval": "15s", 
+      "metrics_path": "/metrics",
+      "static_configs": [
+        {
+          "targets": ["localhost:3001"],
+          "labels": {
+            "service": "dytallix-api",
+            "env": "production",
+            "component": "api-gateway"
+          }
+        }
       ]
     },
     {
-      "job": "dytallix-explorer",
-      "instance": "dytallix-explorer:9102",
-      "status": "UP",
-      "last_scrape": "2024-12-19T23:29:57Z",
-      "scrape_duration": "0.012s",
-      "health": "up",
-      "metrics_exposed": [
-        "dyt_api_request_duration_seconds",
-        "dyt_explorer_requests_total",
-        "dyt_oracle_request_latency_seconds"
-      ]
-    },
-    {
-      "job": "dytallix-ai-services",
-      "instance": "host.docker.internal:9103",
-      "status": "UP",
-      "last_scrape": "2024-12-19T23:29:59Z",
-      "scrape_duration": "0.005s",
-      "health": "up",
-      "metrics_exposed": [
-        "dyt_ai_requests_total",
-        "dyt_ai_request_duration_seconds",
-        "dyt_ai_model_inference_seconds",
-        "dyt_ai_oracle_latency_seconds",
-        "dyt_ai_fraud_detection_score",
-        "dyt_ai_risk_score"
-      ]
-    },
-    {
-      "job": "node-exporter",
-      "instance": "node-exporter:9100", 
-      "status": "UP",
-      "last_scrape": "2024-12-19T23:29:54Z",
-      "scrape_duration": "0.025s",
-      "health": "up",
-      "metrics_exposed": [
-        "node_memory_Active_bytes",
-        "node_memory_MemTotal_bytes",
-        "node_cpu_seconds_total"
+      "job_name": "dytallix-ai",
+      "scrape_interval": "30s",
+      "metrics_path": "/metrics", 
+      "static_configs": [
+        {
+          "targets": ["localhost:9091"],
+          "labels": {
+            "service": "dytallix-ai",
+            "env": "production",
+            "component": "risk-scoring"
+          }
+        }
       ]
     }
   ],
-  "summary": {
-    "total_targets": 6,
-    "healthy_targets": 6,
-    "unhealthy_targets": 0,
-    "scrape_success_rate": "100%"
+  "alerting": {
+    "alertmanagers": [
+      {
+        "static_configs": [
+          {
+            "targets": ["localhost:9093"]
+          }
+        ]
+      }
+    ]
+  },
+  "rule_files": [
+    "alerts/*.yml"
+  ],
+  "global": {
+    "scrape_interval": "15s",
+    "evaluation_interval": "15s"
   }
 }

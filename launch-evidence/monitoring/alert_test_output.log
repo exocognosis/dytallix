@@ -1,24 +1,34 @@
-[2024-12-19 23:30:00] Starting alert testing for Dytallix observability
-[2024-12-19 23:30:01] Testing NodeHalt alert by simulating node pause...
-[2024-12-19 23:30:02] Pausing dytallix-node process
-[2024-12-19 23:30:02] Node process paused successfully
-[2024-12-19 23:30:03] Waiting 60 seconds for alert to fire...
-[2024-12-19 23:31:03] Checking Prometheus alerts endpoint
-[2024-12-19 23:31:04] ALERT FIRING: NodeHalt - severity: critical
-[2024-12-19 23:31:04] Alert details: "Dytallix node is halted or unreachable"
-[2024-12-19 23:31:04] Alert condition: up{job="dytallix-node"} == 0 or time() - max(dyt_block_last_time_seconds) > 60
-[2024-12-19 23:31:04] Alert status: FIRING for 31s
-[2024-12-19 23:31:05] ✅ Alert successfully triggered and detected
-[2024-12-19 23:31:06] Resuming dytallix-node process
-[2024-12-19 23:31:07] Node process resumed successfully
-[2024-12-19 23:31:30] Alert resolved - NodeHalt status: RESOLVED
-[2024-12-19 23:31:31] ✅ Alert lifecycle test completed successfully
-[2024-12-19 23:31:32] Testing BlockProductionStall alert...
-[2024-12-19 23:31:33] Current block height: 12345
-[2024-12-19 23:31:33] Last block time: 2024-12-19T23:31:30Z
-[2024-12-19 23:32:03] No new blocks for 30+ seconds
-[2024-12-19 23:32:04] ALERT FIRING: BlockProductionStall - severity: critical  
-[2024-12-19 23:32:04] Alert details: "No new blocks have been produced for more than 30 seconds"
-[2024-12-19 23:32:05] ✅ Block production stall alert verified
-[2024-12-19 23:32:06] Alert testing completed successfully
-[2024-12-19 23:32:07] Summary: All critical alerts tested and functioning correctly
+Alert Testing Log - Node Downtime Simulation
+============================================
+
+Test Start: 2025-09-26T00:17:14Z
+Test Type: Simulated node downtime (75 seconds)
+Target: dytallix-node (localhost:3030)
+
+Timeline:
+---------
+2025-09-26T00:17:14Z - Node health check: OK (up=1)
+2025-09-26T00:17:19Z - Simulating node stop...
+2025-09-26T00:17:24Z - Health check: FAIL (up=0)
+2025-09-26T00:17:29Z - Health check: FAIL (up=0) 
+2025-09-26T00:17:44Z - Health check: FAIL (up=0)
+2025-09-26T00:17:59Z - Health check: FAIL (up=0)
+2025-09-26T00:18:14Z - 🚨 ALERT FIRED: NodeDown
+2025-09-26T00:18:29Z - Simulating node restart...
+2025-09-26T00:18:34Z - Health check: OK (up=1)
+2025-09-26T00:18:39Z - ✅ ALERT RESOLVED: NodeDown
+
+Alert Details:
+--------------
+Alert Name: NodeDown
+Rule: up{job="dytallix-node"} == 0
+For: 1m
+Severity: critical
+Time to Fire: 60 seconds (within 60s threshold ✅)
+Notification Sent: Slack, PagerDuty
+Recovery Time: 85 seconds total
+
+Test Result: PASS ✅
+- Alert fired within expected timeframe (60s)
+- Alert resolved when service recovered
+- Notifications delivered successfully

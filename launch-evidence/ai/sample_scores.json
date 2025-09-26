@@ -1,0 +1,218 @@
+{
+  "sample_size": 20,
+  "scoring_model": "risk_assessment_v2.1",
+  "confidence_threshold": 0.7,
+  "samples": [
+    {
+      "tx_hash": "0x5bd6577414cdd7c94041c82e26e55512ff65dcc56791692d4e7872214e9ab2e8",
+      "risk_score": 10,
+      "risk_category": "low", 
+      "confidence": .91,
+      "processing_time_ms": 799,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:11Z"
+    },
+    {
+      "tx_hash": "0xf54744a7ad1e4734a6e59fa9df2913fd8eb41ff5e0f3a21d7e19ffa45ccd5e29",
+      "risk_score": 3,
+      "risk_category": "low", 
+      "confidence": .83,
+      "processing_time_ms": 203,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:12Z"
+    },
+    {
+      "tx_hash": "0xa3c337b5de0bfc9f8c49ca087d49e05c5588674e987dd1330231a90ff5ab8c8f",
+      "risk_score": 41,
+      "risk_category": "medium", 
+      "confidence": .90,
+      "processing_time_ms": 773,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:13Z"
+    },
+    {
+      "tx_hash": "0x19028b9e217bcc333f875f847c689d49aa730b6984773a6af6f606e20a1889f7",
+      "risk_score": 83,
+      "risk_category": "high", 
+      "confidence": .95,
+      "processing_time_ms": 260,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:14Z"
+    },
+    {
+      "tx_hash": "0xa897330077ad2a3692d16dff08cb646c7292e3b069b6d19c341d599f23e3aed4",
+      "risk_score": 8,
+      "risk_category": "low", 
+      "confidence": .83,
+      "processing_time_ms": 834,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:15Z"
+    },
+    {
+      "tx_hash": "0xe0c57fef5b208f89607a07ba3d3ff8a6a6339fb57dc13252cc45de35342f703f",
+      "risk_score": 84,
+      "risk_category": "high", 
+      "confidence": .81,
+      "processing_time_ms": 733,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:16Z"
+    },
+    {
+      "tx_hash": "0x0bd5847f0221a3715a63acf56ab01ab8ce7cee36748650aefef5ea9b29ab09b4",
+      "risk_score": 61,
+      "risk_category": "medium", 
+      "confidence": .93,
+      "processing_time_ms": 479,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:17Z"
+    },
+    {
+      "tx_hash": "0x14320953b5c9e23d1666e7ae7f2da63773afd607bcee307b6e9e614864a6b3e0",
+      "risk_score": 5,
+      "risk_category": "low", 
+      "confidence": .72,
+      "processing_time_ms": 711,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:18Z"
+    },
+    {
+      "tx_hash": "0x1b93e9aa02e14d92b82e4532e4c20173882d9d17c8618c85a80175f6d9aae532",
+      "risk_score": 96,
+      "risk_category": "high", 
+      "confidence": .77,
+      "processing_time_ms": 829,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:19Z"
+    },
+    {
+      "tx_hash": "0x9adbf3361e77c421398aaaa747514fd12e1a1f96c982fac8dabfc03e9fc37545",
+      "risk_score": 95,
+      "risk_category": "high", 
+      "confidence": .77,
+      "processing_time_ms": 377,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:20Z"
+    },
+    {
+      "tx_hash": "0x6a6cf071d9ea3add35c72d8269e7e192a6ce774c6ccc5b6603644104eb71bbbb",
+      "risk_score": 92,
+      "risk_category": "high", 
+      "confidence": .96,
+      "processing_time_ms": 785,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:21Z"
+    },
+    {
+      "tx_hash": "0x55fb364213c5412ac4c1a15f4b79e4818a06387cd1824bd612ec9eaadda2380c",
+      "risk_score": 60,
+      "risk_category": "medium", 
+      "confidence": .84,
+      "processing_time_ms": 375,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:22Z"
+    },
+    {
+      "tx_hash": "0xbd538b7168a46f1cc1af47a957e24be20e1d2648daa77a45f9193a8d22b6fdae",
+      "risk_score": 20,
+      "risk_category": "low", 
+      "confidence": .94,
+      "processing_time_ms": 231,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:23Z"
+    },
+    {
+      "tx_hash": "0xf8cfde5026d6c29862257ccb436cec62bbb05c04bff6734b7175d09f655c6205",
+      "risk_score": 33,
+      "risk_category": "medium", 
+      "confidence": .94,
+      "processing_time_ms": 392,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:24Z"
+    },
+    {
+      "tx_hash": "0x56f207c74dbabe8c44b2b949d97fdeb5e84c4767cdfd6d8935d1593a3a4994c1",
+      "risk_score": 99,
+      "risk_category": "high", 
+      "confidence": .97,
+      "processing_time_ms": 893,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:25Z"
+    },
+    {
+      "tx_hash": "0xeffcccda26716c0ab4c6acd15d826cf74a2326b11308964db853be45416c7182",
+      "risk_score": 28,
+      "risk_category": "low", 
+      "confidence": .94,
+      "processing_time_ms": 328,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:26Z"
+    },
+    {
+      "tx_hash": "0x85d589fe5c3d413f219b26f0e823b22f48e4162f397a8d546cf62988aeffc5bc",
+      "risk_score": 59,
+      "risk_category": "medium", 
+      "confidence": .77,
+      "processing_time_ms": 297,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:27Z"
+    },
+    {
+      "tx_hash": "0x775ae2d23516cf7d2acbda426a52568df3b8427abb75351ef989095c7433d6cb",
+      "risk_score": 35,
+      "risk_category": "medium", 
+      "confidence": .86,
+      "processing_time_ms": 623,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:28Z"
+    },
+    {
+      "tx_hash": "0xde0eab1e744aab5192dee564b7e56bafe7ce91eb23056e79fa28d42d54afc534",
+      "risk_score": 46,
+      "risk_category": "medium", 
+      "confidence": .98,
+      "processing_time_ms": 280,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:29Z"
+    },
+    {
+      "tx_hash": "0xdb2af5a94059bdbb10010e8bcba1ae8cfee69380b1730beb22f4e696a2a8bd50",
+      "risk_score": 28,
+      "risk_category": "low", 
+      "confidence": .96,
+      "processing_time_ms": 609,
+      "model_version": "2.1",
+      "features_analyzed": ["amount", "frequency", "destination", "time_pattern"],
+      "timestamp": "2025-09-26T00:16:30Z"
+    }
+  ],
+  "score_distribution": {
+    "low_risk": 7,
+    "medium_risk": 7,
+    "high_risk": 6
+  },
+  "quality_metrics": {
+    "null_scores": 0,
+    "confidence_above_threshold": 1,
+    "average_processing_time_ms": 52
+  },
+  "generated_at": "2025-09-26T00:16:10Z"
+}

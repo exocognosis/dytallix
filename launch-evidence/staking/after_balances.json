@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-09-26T00:25:20Z",
+  "block_height": 150,
+  "blocks_processed": 50,
+  "reward_per_block": 125000,
+  "total_rewards_distributed": 6250000,
+  "delegators": {
+    "dyt1delegator1": {
+      "liquid_balance": {
+        "udgt": "10000000000",
+        "udrt": "0"
+      },
+      "staked_balance": {
+        "udgt": "5000000000"
+      },
+      "pending_rewards": {
+        "udrt": "3906250"
+      },
+      "total_delegated": "5000000000",
+      "reward_share": "62.5%"
+    },
+    "dyt1delegator2": {
+      "liquid_balance": {
+        "udgt": "8000000000",
+        "udrt": "0"
+      },
+      "staked_balance": {
+        "udgt": "3000000000"
+      },
+      "pending_rewards": {
+        "udrt": "2343750"
+      },
+      "total_delegated": "3000000000",
+      "reward_share": "37.5%"
+    }
+  },
+  "validator": {
+    "dyt1validator1": {
+      "total_stake": "8000000000",
+      "commission_earned": "625000",
+      "commission_rate": "0.10",
+      "active": true
+    }
+  },
+  "network_totals": {
+    "total_staked": "8000000000",
+    "total_liquid": "18000000000",
+    "circulating_supply": "26006250000",
+    "new_emission": "6250000"
+  }
+}

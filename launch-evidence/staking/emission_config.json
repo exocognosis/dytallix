@@ -1,0 +1,21 @@
+{
+  "schedule": {
+    "type": "percentage",
+    "annual_inflation_rate": 500
+  },
+  "initial_supply": 0,
+  "emission_breakdown": {
+    "block_rewards": 60,
+    "staking_rewards": 25,
+    "ai_module_incentives": 10,
+    "bridge_operations": 5
+  },
+  "pool_allocations": {
+    "block_rewards": "60%",
+    "staking_rewards": "25%", 
+    "ai_module_incentives": "10%",
+    "bridge_operations": "5%"
+  },
+  "effective_date": "2025-09-26T00:15:20Z",
+  "annual_inflation_rate_human": "5.00%"
+}
