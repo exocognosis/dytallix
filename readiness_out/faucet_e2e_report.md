@@ -1,19 +1,19 @@
 # Faucet E2E Evidence Report
 
-**Generated:** 2025-09-26T11:36:33Z  
-**Test Address:** `dyt1ff7d387200fd603ce21a58e582fe9a2643da39a`
+**Generated:** 2025-09-26T11:44:45Z  
+**Test Address:** `dyt193660bbbf7152558df64e33a43def19fc024ab6`
 
 ## Test Sequence Results
 
 ### Request 1: Initial Token Dispense
 - **Token:** DGT
-- **Timestamp:** 2025-09-26T11:36:31Z
+- **Timestamp:** 2025-09-26T11:44:43Z
 - **Result:** ❌ FAILED
 - **Status:** First request should succeed
 
 ### Request 2: Rate Limit Test  
 - **Token:** DRT
-- **Timestamp:** 2025-09-26T11:36:33Z
+- **Timestamp:** 2025-09-26T11:44:45Z
 - **Result:** ⚠️ NOT RATE LIMITED
 - **Status:** Second rapid request should be rate limited
 
@@ -53,8 +53,8 @@ The faucet E2E test validates the dual-token system:
 
 ## Timestamps & Timing
 
-- **Request 1:** 2025-09-26T11:36:31Z
-- **Request 2:** 2025-09-26T11:36:33Z
+- **Request 1:** 2025-09-26T11:44:43Z
+- **Request 2:** 2025-09-26T11:44:45Z
 - **Time Gap:** Rapid succession (< 5s)
 
 ---

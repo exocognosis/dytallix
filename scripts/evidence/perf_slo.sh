@@ -61,6 +61,7 @@ run_performance_test() {
     # Generate lightweight transactions and submit them
     local submitted=0
     local start_time=$(date +%s)
+    local pids=()  # Track background processes
     
     while [[ $submitted -lt $target_requests ]]; do
         local current_time=$(date +%s)
@@ -73,11 +74,15 @@ run_performance_test() {
         
         for ((i=0; i<batch_size; i++)); do
             submit_test_transaction "$submitted" "$results_file" &
+            pids+=($!)
             ((submitted++)) || true
         done
         
-        # Wait for batch to complete
-        wait
+        # Wait for batch to complete to avoid file conflicts
+        for pid in "${pids[@]}"; do
+            wait "$pid" 2>/dev/null || true
+        done
+        pids=()
         
         # Rate limiting - sleep to maintain RPS
         sleep "0.$(printf "%03d" $((interval_ms % 1000)))" || true
@@ -135,7 +140,7 @@ submit_test_transaction() {
         fi
     fi
     
-    # Record result
+    # Record result with file locking to avoid concurrent write issues
     local result
     result=$(jq -n \
         --arg tx_id "$tx_id" \
@@ -157,7 +162,11 @@ submit_test_transaction() {
             timestamp: $timestamp
         }')
     
-    echo "$result" >> "$results_file"
+    # Use file locking to prevent concurrent writes
+    (
+        flock -w 10 200
+        echo "$result" >> "$results_file"
+    ) 200>>"$results_file.lock" 2>/dev/null || echo "$result" >> "$results_file"
 }
 
 analyze_performance_results() {

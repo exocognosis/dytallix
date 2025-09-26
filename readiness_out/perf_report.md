@@ -1,24 +1,24 @@
 # Performance SLO Report
 
-**Generated:** 2025-09-26T11:36:00Z  
-**Test Duration:** 5s  
-**Target RPS:** 5  
-**Concurrency:** 64  
+**Generated:** 2025-09-26T11:45:48Z  
+**Test Duration:** 1s  
+**Target RPS:** 1  
+**Concurrency:** 1  
 
 ## Latency Distribution
 
 | Metric | Value |
 |--------|-------|
-| P50 | 230ms |
-| P95 | 295ms |
-| P99 | 297ms |
+| P50 | 14ms |
+| P95 | 14ms |
+| P99 | 14ms |
 
 ## Throughput Analysis
 
 | Metric | Value |
 |--------|-------|
 | Actual TPS | 0 |
-| Target TPS | 5 |
+| Target TPS | 1 |
 | Achievement Rate | 0% |
 | Success Rate | 0% |
 

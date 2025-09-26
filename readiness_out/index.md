@@ -1,6 +1,6 @@
 # Release Readiness Evidence
 
-Generated: 2025-09-26T11:36:33Z
+Generated: 2025-09-26T11:44:45Z
 
 ## Performance
 - [Performance Report](perf_report.md)
