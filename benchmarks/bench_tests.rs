@@ -2,7 +2,6 @@
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
     use std::env;
 
     #[derive(serde::Serialize, serde::Deserialize)]
@@ -64,7 +63,7 @@ mod tests {
         assert_eq!(parsed.algorithm, "Dilithium5");
         assert_eq!(parsed.total_txs, 1000);
 
-        println!("Benchmark JSON structure:\n{}", json);
+        println!("Benchmark JSON structure:\n{json}");
     }
 
     #[test]

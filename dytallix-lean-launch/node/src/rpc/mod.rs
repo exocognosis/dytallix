@@ -159,7 +159,7 @@ fn append_submit_log(entry: &serde_json::Value) {
     let path = dir.join("submit_demo.log");
     if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(path) {
         let line = serde_json::to_string(entry).unwrap_or_else(|_| "{}".to_string());
-        let _ = writeln!(f, "{}", line);
+        let _ = writeln!(f, "{line}");
     }
 }
 
@@ -288,11 +288,10 @@ pub async fn submit(
     let mut total_amount: u128 = 0;
     let mut first_to = legacy_tx.to.clone();
     for msg in &signed_tx.tx.msgs {
-        if let Msg::Send { to, amount, .. } = msg {
-            total_amount = total_amount.saturating_add(*amount);
-            if first_to == from {
-                first_to = to.clone();
-            }
+        let Msg::Send { to, amount, .. } = msg;
+        total_amount = total_amount.saturating_add(*amount);
+        if first_to == from {
+            first_to = to.clone();
         }
     }
     legacy_tx.amount = total_amount;
@@ -1231,7 +1230,7 @@ pub async fn stats_with_emission(
             "total_emitted": event.total_emitted.to_string(),
             "circulating_supply": event.circulating_supply.to_string(),
         })),
-        "staking": {"total_stake": total_stake.to_string(), "reward_index": reward_index.to_string(), "pending_emission": pending_emission.to_string()},
+        "staking": {"total_stake": total_stake.to_string(), "reward_index": reward_index.to_string(), "pending_emission": pending_emission to_string()},
     })))
 }
 
@@ -1379,24 +1378,13 @@ pub async fn contracts_deploy(
     Extension(ctx): Extension<RpcContext>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let wasm_bytes = if let Some(bytes_b64) = payload["wasm_bytes"].as_str() {
-        base64::engine::general_purpose::STANDARD
-            .decode(bytes_b64)
-            .map_err(|e| ApiError::BadRequest(format!("Invalid base64 wasm_bytes: {}", e)))?
-    } else if let Some(artifact_ref) = payload["artifact_ref"].as_str() {
-        // Load from predefined artifacts
-        match artifact_ref {
-            "counter" => std::fs::read("artifacts/counter.wasm").map_err(|e| {
-                ApiError::BadRequest(format!("Failed to load counter artifact: {}", e))
-            })?,
-            _ => return Err(ApiError::BadRequest("Unknown artifact_ref".to_string())),
-        }
-    } else {
-        return Err(ApiError::BadRequest(
-            "Missing wasm_bytes or artifact_ref".to_string(),
-        ));
-    };
-
+    let wasm_b64 = payload
+        .get("wasm_bytes")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| ApiError::BadRequest("missing wasm_bytes".to_string()))?;
+    let wasm_bytes = base64::engine::general_purpose::STANDARD
+        .decode(wasm_b64)
+        .map_err(|e| ApiError::BadRequest(format!("Invalid base64 wasm_bytes: {e}")))?;
     let from = payload["from"].as_str().unwrap_or("deployer");
     let gas_limit = payload["gas_limit"].as_u64().unwrap_or(1000000);
     let initial_state = payload["initial_state"].as_str().map(|s| s.as_bytes());
@@ -1404,7 +1392,7 @@ pub async fn contracts_deploy(
     let deployment = ctx
         .wasm_runtime
         .deploy_contract(&wasm_bytes, from, gas_limit, initial_state)
-        .map_err(|e| ApiError::BadRequest(format!("Deployment failed: {}", e)))?;
+        .map_err(|e| ApiError::BadRequest(format!("Deployment failed: {e}")))?;
 
     Ok(Json(json!({
         "contract_address": deployment.address,
@@ -1435,7 +1423,7 @@ pub async fn contracts_call(
     let execution = ctx
         .wasm_runtime
         .execute_contract(&contract_address, method, args, gas_limit)
-        .map_err(|e| ApiError::BadRequest(format!("Execution failed: {}", e)))?;
+        .map_err(|e| ApiError::BadRequest(format!("Execution failed: {e}")))?;
 
     // Parse result based on method
     let result = match method {
@@ -1836,5 +1824,5 @@ pub async fn params_staking_reward_rate(
     let staking = ctx.staking.lock().unwrap();
     let bps = staking.get_reward_rate_bps();
     let frac = (bps as f64) / 10_000.0;
-    Ok(format!("{:.4}", frac))
+    Ok(format!("{frac:.4}"))
 }

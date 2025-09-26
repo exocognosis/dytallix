@@ -26,7 +26,7 @@ fn read_passphrase(hidden: bool, prompt: &str) -> io::Result<String> {
             }
         }
     }
-    print!("{}", prompt);
+    print!("{prompt}");
     io::stdout().flush()?;
     let mut buf = String::new();
     io::stdin().read_line(&mut buf)?;

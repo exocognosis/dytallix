@@ -40,7 +40,6 @@ mod pqc_crypto {
     }
 }
 
-use blake3;
 use pqc_crypto::PQCAlgorithm;
 use pqc_crypto::{DummyPQC, PQCKeyPair, Signature};
 use sha2::{Digest, Sha256};
@@ -82,7 +81,7 @@ impl Wallet {
         let encoded = hex::encode(&payload);
 
         // Step 6: Add prefix
-        format!("dyt1{}", encoded)
+        format!("dyt1{encoded}")
     }
 
     /// Validate a Dytallix address

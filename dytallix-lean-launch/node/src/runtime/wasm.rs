@@ -20,6 +20,10 @@ pub type Address = String;
 pub type Hash = String;
 pub type TxHash = String;
 
+// Factor complex types to reduce clippy type_complexity
+pub type ContractStateKey = (Address, String);
+pub type ContractStateMap = HashMap<ContractStateKey, Vec<u8>>;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContractDeployment {
     pub address: Address,
@@ -53,7 +57,7 @@ pub struct ContractState {
 pub struct WasmRuntime {
     engine: WasmEngine,
     deployed_contracts: Arc<Mutex<HashMap<Address, ContractDeployment>>>,
-    contract_state: Arc<Mutex<HashMap<(Address, String), Vec<u8>>>>,
+    contract_state: Arc<Mutex<ContractStateMap>>,
     execution_history: Arc<Mutex<Vec<ContractExecution>>>,
 }
 
@@ -244,7 +248,7 @@ impl WasmRuntime {
         hasher.update(address.as_bytes());
         hasher.update(operation.as_bytes());
         hasher.update(
-            &SystemTime::now()
+            SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_nanos()

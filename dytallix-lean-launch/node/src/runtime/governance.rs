@@ -71,7 +71,7 @@ pub struct Vote {
     pub proposal_id: u64,
     pub voter: String,
     pub option: VoteOption,
-    pub weight: u128, // DGT balance at time of vote
+    pub weight: u128 // DGT balance at time of vote
 }
 
 /// Deposit on a proposal (for tracking individual deposits)
@@ -641,7 +641,7 @@ impl GovernanceModule {
                 let bps = staking.get_reward_rate_bps();
                 // Convert back to decimal fraction string
                 let frac = (bps as f64) / 10_000.0;
-                Ok(format!("{:.4}", frac))
+                Ok(format!("{frac:.4}"))
             }
             _ => Err(format!("Unknown parameter: {key}")),
         }

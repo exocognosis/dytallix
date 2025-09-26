@@ -361,11 +361,11 @@ pub async fn handle_query_tx(
         println!("  Hash: {}", receipt.tx_hash);
         println!("  Status: {}", receipt.status);
         if let Some(height) = receipt.height {
-            println!("  Block Height: {}", height);
+            println!("  Block Height: {height}");
         }
         println!("  Gas Used: {}", receipt.gas_used);
         if let Some(error) = receipt.error {
-            println!("  Error: {}", error);
+            println!("  Error: {error}");
         }
         println!("  From: {}", receipt.from);
         println!("  To: {}", receipt.to);

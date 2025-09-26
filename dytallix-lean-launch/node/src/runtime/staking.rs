@@ -150,7 +150,7 @@ impl StakingModule {
                 if let Some(mut event) = self
                     .storage
                     .db
-                    .get(format!("emission:event:{}", latest_height))
+                    .get(format!("emission:event:{latest_height}"))
                     .ok()
                     .flatten()
                     .and_then(|v| {
@@ -159,7 +159,7 @@ impl StakingModule {
                 {
                     event.reward_index_after = Some(self.reward_index);
                     let _ = self.storage.db.put(
-                        format!("emission:event:{}", latest_height),
+                        format!("emission:event:{latest_height}"),
                         bincode::serialize(&event).unwrap(),
                     );
                 }

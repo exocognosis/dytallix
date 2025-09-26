@@ -22,7 +22,7 @@ async fn test_wasm_counter_flow() {
     }
 
     let wasm_bytes = std::fs::read(&counter_wasm_path).expect("Failed to read counter.wasm");
-    assert!(wasm_bytes.len() > 0, "WASM artifact should not be empty");
+    assert!(!wasm_bytes.is_empty(), "WASM artifact should not be empty");
 
     // 2. Verify WASM file has correct magic number
     assert_eq!(
@@ -56,7 +56,7 @@ fn test_counter_increment() {
     assert!(mock_result, "Increment should succeed");
     assert!(mock_gas_used > 0, "Gas should be consumed");
 
-    println!("✓ Counter increment: gas_used={}", mock_gas_used);
+    println!("✓ Counter increment: gas_used={mock_gas_used}");
 }
 
 fn test_counter_get() {
@@ -68,8 +68,7 @@ fn test_counter_get() {
     assert!(mock_gas_used > 0, "Gas should be consumed");
 
     println!(
-        "✓ Counter get: value={}, gas_used={}",
-        mock_value, mock_gas_used
+        "✓ Counter get: value={mock_value}, gas_used={mock_gas_used}"
     );
 }
 
@@ -91,8 +90,7 @@ async fn test_wasm_gas_metering() {
     // Should fail if gas_used > gas_limit (in real implementation)
     if gas_used > gas_limit {
         println!(
-            "✓ Gas limit enforcement: used {} > limit {}",
-            gas_used, gas_limit
+            "✓ Gas limit enforcement: used {gas_used} > limit {gas_limit}"
         );
     }
 
@@ -104,11 +102,11 @@ fn test_wasm_contract_validation() {
     // Test WASM bytecode validation
 
     // Valid WASM magic number
-    let valid_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+    let valid_wasm = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
     assert_eq!(&valid_wasm[0..4], &[0x00, 0x61, 0x73, 0x6d]);
 
     // Invalid magic number should fail
-    let invalid_wasm = vec![0xFF, 0xFF, 0xFF, 0xFF];
+    let invalid_wasm = [0xFF, 0xFF, 0xFF, 0xFF];
     assert_ne!(&invalid_wasm[0..4], &[0x00, 0x61, 0x73, 0x6d]);
 
     println!("✓ WASM contract validation tests passed");

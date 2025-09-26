@@ -8,8 +8,7 @@ throughput under various load conditions.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
-use tokio::time::sleep;
+use std::time::Instant;
 
 // Benchmark configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -230,7 +229,7 @@ impl OsmosisWasmBenchmark {
             }
 
             interval_results.push(interval_ops);
-            println!("Interval TPS: {}", interval_ops);
+            println!("Interval TPS: {interval_ops}");
         }
 
         Ok(())
@@ -249,7 +248,8 @@ impl OsmosisWasmBenchmark {
         // Simulate query to Osmosis testnet
         let query_url = format!(
             "{}/cosmwasm/wasm/v1/contract/{}/smart",
-            self.config.testnet_endpoint, contract_address
+            self.config.testnet_endpoint,
+            contract_address
         );
 
         let response = self
@@ -361,8 +361,7 @@ impl OsmosisWasmBenchmark {
 
         // Simulate high-frequency transaction
         let query_url = format!(
-            "{}/cosmwasm/wasm/v1/contract/{}/smart",
-            endpoint, contract_address
+            "{endpoint}/cosmwasm/wasm/v1/contract/{contract_address}/smart"
         );
 
         let response = client
@@ -501,6 +500,15 @@ impl Default for BenchmarkConfig {
     }
 }
 
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Run with default configuration targeting placeholder endpoints/contracts
+    let mut bench = OsmosisWasmBenchmark::new(BenchmarkConfig::default());
+    // Execute a small, quick run to ensure binary entry compiles and runs
+    let _ = bench.run_comprehensive_benchmark().await;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -537,13 +545,4 @@ mod tests {
         assert_eq!(results.successful_operations, 1);
         assert!(results.average_tps > 0.0);
     }
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Run with default configuration targeting placeholder endpoints/contracts
-    let mut bench = OsmosisWasmBenchmark::new(BenchmarkConfig::default());
-    // Execute a small, quick run to ensure binary entry compiles and runs
-    let _ = bench.run_comprehensive_benchmark().await;
-    Ok(())
 }

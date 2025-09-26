@@ -373,8 +373,9 @@ impl Mempool {
         self.deferred_index.insert(key.clone());
         self.deferred_by_sender
             .entry(pending_tx.tx.from.clone())
-            .or_insert_with(BTreeMap::new)
-            .insert(pending_tx.tx.nonce, pending_tx.tx.hash.clone());
+            .or_default()
+            .entry(pending_tx.tx.nonce)
+            .or_default();
         // Track reserved value for deferred txs as well
         let delta = Self::reserved_value_of_tx(&pending_tx.tx);
         *self
@@ -766,15 +767,15 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
         }
         Err(PQCVerifyError::UnsupportedAlgorithm(alg)) => {
             tracing::error!("Unsupported PQC algorithm: {}", alg);
-            Err(format!("unsupported algorithm: {}", alg))
+            Err(format!("unsupported algorithm: {alg}"))
         }
         Err(PQCVerifyError::InvalidPublicKey { algorithm, details }) => {
             tracing::error!("Invalid public key for {}: {}", algorithm, details);
-            Err(format!("invalid public key: {}", details))
+            Err(format!("invalid public key: {details}"))
         }
         Err(PQCVerifyError::InvalidSignature { algorithm, details }) => {
             tracing::error!("Invalid signature for {}: {}", algorithm, details);
-            Err(format!("invalid signature: {}", details))
+            Err(format!("invalid signature: {details}"))
         }
         Err(PQCVerifyError::VerificationFailed { algorithm }) => {
             tracing::warn!("Signature verification failed for algorithm: {}", algorithm);
@@ -782,7 +783,7 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
         }
         Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
             tracing::error!("PQC feature not compiled: {}", feature);
-            Err(format!("feature not available: {}", feature))
+            Err(format!("feature not available: {feature}"))
         }
     }
 }

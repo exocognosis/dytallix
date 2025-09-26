@@ -719,7 +719,7 @@ mod tests {
             hash: "test_tx".to_string(),
             from: "sender".to_string(),
             to: "recipient".to_string(),
-            amount,
+            amount: amount as u128,
             fee: 10,
             nonce: 1,
             timestamp: Utc::now().timestamp() as u64,

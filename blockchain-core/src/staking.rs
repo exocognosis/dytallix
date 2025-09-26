@@ -1113,11 +1113,14 @@ impl StakingState {
     pub fn clear_events(&mut self) {
         self._clear_events()
     }
-    pub fn get_validator_stats(&self, id: &String) -> Option<&ValidatorStats> {
+    pub fn get_validator_stats(&self, id: &String) -> Option<ValidatorStats> {
         self._get_validator_stats(id)
     }
-    pub fn get_validator_set(&self, f: Option<ValidatorStatus>) -> Vec<String> {
+    pub fn get_validator_set(&self, f: Option<ValidatorStatus>) -> Vec<ValidatorStats> {
         self._get_validator_set(f)
+    }
+    pub fn unjail_validator(&mut self, id: &String) -> Result<(), StakingError> {
+        self._unjail_validator(id)
     }
 }
 
@@ -1518,11 +1521,8 @@ mod tests {
 
         // Check event types
         let events = state.get_events();
-        assert!(matches!(events[0], ValidatorEvent::ValidatorJoined { .. }));
-        assert!(matches!(
-            events[1],
-            ValidatorEvent::ValidatorStatusChanged { .. }
-        ));
+        assert!(matches!(events[0], ValidatorEvent::Joined { .. }));
+        assert!(matches!(events[1], ValidatorEvent::StatusChanged { .. }));
 
         // Clear events
         state.clear_events();

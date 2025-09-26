@@ -1,8 +1,9 @@
 // Integration tests for the staking system
 // Tests the full workflow from validator registration to reward claiming
 
-use blockchain_core::staking::{
-    Evidence, SlashType, StakingError, StakingState, ValidatorEvent, ValidatorStatus,
+use dytallix_node::staking::{
+    Evidence, SlashType, StakingError, StakingState, ValidatorEvent, ValidatorStatus, Delegation,
+    REWARD_SCALE,
 };
 use std::collections::HashMap;
 
@@ -529,7 +530,7 @@ fn test_unjail_validator() {
     let events = staking.get_events();
     assert!(events.iter().any(|e| matches!(
         e,
-        ValidatorEvent::ValidatorStatusChanged {
+        ValidatorEvent::StatusChanged {
             new_status: ValidatorStatus::Inactive,
             ..
         }
@@ -562,11 +563,8 @@ fn test_events_system() {
 
     // Check event types
     let events = staking.get_events();
-    assert!(matches!(events[0], ValidatorEvent::ValidatorJoined { .. }));
-    assert!(matches!(
-        events[1],
-        ValidatorEvent::ValidatorStatusChanged { .. }
-    ));
+    assert!(matches!(events[0], ValidatorEvent::Joined { .. }));
+    assert!(matches!(events[1], ValidatorEvent::StatusChanged { .. }));
 
     // Clear events
     staking.clear_events();
@@ -836,8 +834,7 @@ fn test_backward_compatibility() {
         "reward_cursor_index": 123456
     }"#;
 
-    let delegation: blockchain_core::staking::Delegation =
-        serde_json::from_str(old_delegation_json).unwrap();
+    let delegation: Delegation = serde_json::from_str(old_delegation_json).unwrap();
     assert_eq!(delegation.accrued_rewards, 0); // Should default to 0
     assert_eq!(delegation.stake_amount, 1000000000000);
     assert_eq!(delegation.reward_cursor_index, 123456);
@@ -896,7 +893,7 @@ fn test_global_reward_index_system() {
 
     // Global reward index should be updated
     let expected_increment = (staking.params.emission_per_block
-        * blockchain_core::staking::REWARD_SCALE)
+        * REWARD_SCALE)
         / 6_000_000_000_000;
     assert_eq!(staking.global_reward_index, expected_increment);
 

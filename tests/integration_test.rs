@@ -1,7 +1,12 @@
+#![cfg(feature = "integration-tests")]
+
 use std::time::Duration;
-use tempfile::NamedTempFile;
 use tokio::time::sleep;
 
+// Optional dev-deps used only when feature is enabled
+#[cfg(feature = "integration-tests")]
+use tempfile::NamedTempFile;
+#[cfg(feature = "integration-tests")]
 use dytallix_explorer_indexer::{models::Block, rpc::RpcClient, store::Store};
 
 #[tokio::test]
@@ -28,6 +33,7 @@ async fn test_integration_with_live_node() {
 }
 
 #[tokio::test]
+#[cfg(feature = "integration-tests")]
 async fn test_indexer_with_mock_data() {
     let temp_db = NamedTempFile::new().unwrap();
     let store = Store::new(temp_db.path().to_str().unwrap()).unwrap();
@@ -36,8 +42,8 @@ async fn test_indexer_with_mock_data() {
     for height in 1..=5 {
         let block = Block {
             height,
-            hash: format!("hash_{}", height),
-            time: format!("2024-01-0{}T00:00:00Z", height),
+            hash: format!("hash_{height}"),
+            time: format!("2024-01-0{height}T00:00:00Z"),
             tx_count: height as u32 % 3, // 0, 1, 2, 0, 1
         };
 
@@ -61,14 +67,5 @@ async fn test_indexer_with_mock_data() {
 
 #[tokio::test]
 async fn test_api_endpoints() {
-    // This test would require setting up a test server
-    // For now, it's a placeholder showing the structure
-
-    // In a real implementation, we would:
-    // 1. Set up a test database with known data
-    // 2. Start the API server on a test port
-    // 3. Make HTTP requests to verify responses
-    // 4. Check pagination, error handling, etc.
-
     println!("API integration test placeholder");
 }

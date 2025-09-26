@@ -2,6 +2,7 @@ use crate::crypto::{canonical_json, sha3_256, verify, ActivePQC, PQCAlgorithm, P
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 // Helper module to (de)serialize u128 as string for canonical on-wire format.
 mod as_str_u128 {

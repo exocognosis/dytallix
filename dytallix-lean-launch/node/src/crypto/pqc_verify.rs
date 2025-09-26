@@ -9,6 +9,7 @@
 //! and provides structured error handling for unsupported algorithms or malformed inputs.
 
 use thiserror::Error;
+use std::str::FromStr;
 
 #[cfg(feature = "pqc-real")]
 use pqcrypto_dilithium::dilithium5;
@@ -20,8 +21,9 @@ use pqcrypto_sphincsplus::sphincssha2128ssimple;
 use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SignedMessage};
 
 /// PQC algorithm identifiers
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum PQCAlgorithm {
+    #[default]
     Dilithium5,
     Falcon1024,
     SphincsPlus,
@@ -36,9 +38,12 @@ impl PQCAlgorithm {
             PQCAlgorithm::SphincsPlus => "sphincs_sha2_128s_simple",
         }
     }
+}
 
-    /// Parse algorithm from string
-    pub fn from_str(s: &str) -> Result<Self, PQCVerifyError> {
+impl FromStr for PQCAlgorithm {
+    type Err = PQCVerifyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "dilithium5" => Ok(PQCAlgorithm::Dilithium5),
             "falcon1024" => Ok(PQCAlgorithm::Falcon1024),
@@ -48,11 +53,6 @@ impl PQCAlgorithm {
             "mock-blake3" => Ok(PQCAlgorithm::Dilithium5),
             _ => Err(PQCVerifyError::UnsupportedAlgorithm(s.to_string())),
         }
-    }
-
-    /// Get default algorithm (Dilithium5)
-    pub fn default() -> Self {
-        PQCAlgorithm::Dilithium5
     }
 }
 

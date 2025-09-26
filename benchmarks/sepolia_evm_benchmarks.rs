@@ -280,8 +280,6 @@ impl SepoliaEvmBenchmark {
         println!("⏱️ Running block confirmation time analysis...");
 
         for contract_addr in &self.config.contract_addresses.clone() {
-            let tx_start = Instant::now();
-
             // Submit transaction
             let metrics = self
                 .benchmark_contract_call(
@@ -523,22 +521,20 @@ impl SepoliaEvmBenchmark {
         let method_hash = format!("{:x}", md5::compute(method_signature));
         let method_id = &method_hash[0..8];
 
-        let mut encoded = format!("0x{}", method_id);
+        let mut encoded = format!("0x{method_id}");
 
         // Simplified parameter encoding
         for param in params {
-            if param.starts_with("0x") {
-                encoded.push_str(&param[2..]);
-            } else {
+            if let Some(stripped) = param.strip_prefix("0x") {
+                encoded.push_str(stripped);
+            } else if let Ok(num) = param.parse::<u64>() {
                 // Convert numeric parameters to hex
-                if let Ok(num) = param.parse::<u64>() {
-                    encoded.push_str(&format!("{:064x}", num));
-                } else {
-                    // String parameters - simplified encoding
-                    let bytes = param.as_bytes();
-                    for byte in bytes {
-                        encoded.push_str(&format!("{:02x}", byte));
-                    }
+                encoded.push_str(&format!("{num:064x}"));
+            } else {
+                // String parameters - simplified encoding
+                let bytes = param.as_bytes();
+                for byte in bytes {
+                    encoded.push_str(&format!("{byte:02x}"));
                 }
             }
         }
@@ -684,6 +680,13 @@ impl Default for EvmBenchmarkConfig {
     }
 }
 
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut bench = SepoliaEvmBenchmark::new(EvmBenchmarkConfig::default());
+    let _ = bench.run_comprehensive_benchmark().await;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -734,11 +737,4 @@ mod tests {
         assert_eq!(results.successful_operations, 1);
         assert!(results.total_gas_cost_eth > 0.0);
     }
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut bench = SepoliaEvmBenchmark::new(EvmBenchmarkConfig::default());
-    let _ = bench.run_comprehensive_benchmark().await;
-    Ok(())
 }
