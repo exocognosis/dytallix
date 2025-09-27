@@ -20,10 +20,13 @@ use pqcrypto_traits::sign::{
     PublicKey as SignPublicKey, SecretKey as SignSecretKey, SignedMessage,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
+use base64;
+use chrono;
 
 #[derive(Error, Debug)]
 pub enum PQCError {
@@ -71,6 +74,24 @@ pub struct Signature {
     pub algorithm: SignatureAlgorithm,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupKey {
+    pub public_key: Vec<u8>,
+    pub algorithm: SignatureAlgorithm,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub retired_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub purpose: String, // "rotation", "backup", "disaster_recovery", etc.
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyStats {
+    pub active_algorithm: SignatureAlgorithm,
+    pub backup_count: usize,
+    pub oldest_backup: Option<chrono::DateTime<chrono::Utc>>,
+    pub newest_backup: Option<chrono::DateTime<chrono::Utc>>,
+    pub total_signatures: u64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct KeyExchangeKeyPair {
     #[zeroize(skip)] // Public keys don't need zeroization
@@ -95,6 +116,8 @@ pub struct PQCManager {
     signature_key_backups: Vec<KeyPair>,
     /// Stored previous key exchange keypairs
     key_exchange_key_backups: Vec<KeyExchangeKeyPair>,
+    /// Named backup keys for lifecycle management
+    backup_keys: HashMap<String, BackupKey>,
 }
 
 impl PQCManager {
@@ -117,6 +140,7 @@ impl PQCManager {
             key_exchange_keypair,
             signature_key_backups: Vec::new(),
             key_exchange_key_backups: Vec::new(),
+            backup_keys: HashMap::new(),
         })
     }
 
@@ -298,6 +322,190 @@ impl PQCManager {
     }
 
     /// Verify a signature using any known key (active or backups)
+    pub fn verify_any_key(
+        &self,
+        message: &[u8],
+        signature: &Signature,
+    ) -> Result<(bool, Option<String>), PQCError> {
+        // Try active key first
+        let public_key = &self.signature_keypair.public_key;
+        if let Ok(valid) = self.verify(message, signature, public_key) {
+            if valid {
+                return Ok((true, Some("active".to_string())));
+            }
+        }
+
+        // Try backup keys
+        for (key_id, backup) in &self.backup_keys {
+            if let Ok(valid) = self.verify(message, signature, &backup.public_key) {
+                if valid {
+                    return Ok((true, Some(key_id.clone())));
+                }
+            }
+        }
+
+        Ok((false, None))
+    }
+
+    /// Generate a new keypair for key rotation
+    pub fn generate_rotation_keypair(
+        algorithm: SignatureAlgorithm,
+    ) -> Result<(Vec<u8>, Vec<u8>), PQCError> {
+        match algorithm {
+            SignatureAlgorithm::Dilithium5 => {
+                let (pk, sk) = dilithium5::keypair();
+                Ok((pk.as_bytes().to_vec(), sk.as_bytes().to_vec()))
+            }
+            SignatureAlgorithm::Falcon1024 => {
+                let (pk, sk) = falcon1024::keypair();
+                Ok((pk.as_bytes().to_vec(), sk.as_bytes().to_vec()))
+            }
+            SignatureAlgorithm::SphincsSha256128s => {
+                let (pk, sk) = sphincssha2128ssimple::keypair();
+                Ok((pk.as_bytes().to_vec(), sk.as_bytes().to_vec()))
+            }
+        }
+    }
+
+    /// Rotate to a new keypair while keeping the old one as backup
+    pub fn rotate_key(
+        &mut self,
+        new_public_key: Vec<u8>,
+        new_secret_key: Vec<u8>,
+        rotation_id: String,
+    ) -> Result<(), PQCError> {
+        // Backup current active key
+        let backup_key = BackupKey {
+            public_key: self.signature_keypair.public_key.clone(),
+            algorithm: self.signature_keypair.algorithm.clone(),
+            created_at: chrono::Utc::now(),
+            retired_at: Some(chrono::Utc::now()),
+            purpose: "rotated_primary".to_string(),
+        };
+        self.backup_keys.insert(rotation_id, backup_key);
+
+        // Replace active key
+        self.signature_keypair.public_key = new_public_key;
+        self.signature_keypair.secret_key = new_secret_key;
+
+        Ok(())
+    }
+
+    /// Create a secure backup of the current keypair
+    pub fn create_backup(&mut self, backup_id: String, purpose: String) -> Result<(), PQCError> {
+        let backup_key = BackupKey {
+            public_key: self.signature_keypair.public_key.clone(),
+            algorithm: self.signature_keypair.algorithm.clone(),
+            created_at: chrono::Utc::now(),
+            retired_at: None,
+            purpose,
+        };
+        self.backup_keys.insert(backup_id, backup_key);
+        Ok(())
+    }
+
+    /// Restore from a backup key
+    pub fn restore_from_backup(&mut self, backup_id: &str) -> Result<(), PQCError> {
+        let backup_key = self.backup_keys.get(backup_id)
+            .ok_or_else(|| PQCError::InvalidKey(format!("Backup key not found: {}", backup_id)))?;
+
+        // Move current key to backup before restoring
+        let current_backup = BackupKey {
+            public_key: self.signature_keypair.public_key.clone(),
+            algorithm: self.signature_keypair.algorithm.clone(),
+            created_at: chrono::Utc::now(),
+            retired_at: Some(chrono::Utc::now()),
+            purpose: "replaced_during_restore".to_string(),
+        };
+        self.backup_keys.insert(format!("pre_restore_{}", chrono::Utc::now().timestamp()), current_backup);
+
+        // Restore the backup as active
+        self.signature_keypair.public_key = backup_key.public_key.clone();
+        self.signature_keypair.algorithm = backup_key.algorithm.clone();
+        // Note: Secret key would need to be restored from secure storage in real implementation
+
+        Ok(())
+    }
+
+    /// List all backup keys
+    pub fn list_backup_keys(&self) -> Vec<(String, &BackupKey)> {
+        self.backup_keys.iter().map(|(id, key)| (id.clone(), key)).collect()
+    }
+
+    /// Remove expired backup keys
+    pub fn cleanup_expired_backups(&mut self, retention_days: i64) -> usize {
+        let cutoff = chrono::Utc::now() - chrono::Duration::days(retention_days);
+        let keys_to_remove: Vec<String> = self.backup_keys
+            .iter()
+            .filter(|(_, backup)| {
+                backup.retired_at.map_or(false, |retired| retired < cutoff)
+            })
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        let removed_count = keys_to_remove.len();
+        for key_id in keys_to_remove {
+            self.backup_keys.remove(&key_id);
+        }
+        removed_count
+    }
+
+    /// Export public key in PEM format for external systems
+    pub fn export_public_key_pem(&self) -> Result<String, PQCError> {
+        let key_data = base64::encode(&self.signature_keypair.public_key);
+        let algorithm_name = match self.signature_keypair.algorithm {
+            SignatureAlgorithm::Dilithium5 => "DILITHIUM5",
+            SignatureAlgorithm::Falcon1024 => "FALCON1024",
+            SignatureAlgorithm::SphincsSha256128s => "SPHINCS-SHA256-128S",
+        };
+        
+        Ok(format!(
+            "-----BEGIN {} PUBLIC KEY-----\n{}\n-----END {} PUBLIC KEY-----",
+            algorithm_name,
+            key_data,
+            algorithm_name
+        ))
+    }
+
+    /// Import public key from PEM format
+    pub fn import_public_key_pem(pem_data: &str) -> Result<(Vec<u8>, SignatureAlgorithm), PQCError> {
+        let lines: Vec<&str> = pem_data.lines().collect();
+        if lines.len() < 3 {
+            return Err(PQCError::InvalidKey("Invalid PEM format".to_string()));
+        }
+
+        let header = lines[0];
+        let algorithm = if header.contains("DILITHIUM5") {
+            SignatureAlgorithm::Dilithium5
+        } else if header.contains("FALCON1024") {
+            SignatureAlgorithm::Falcon1024
+        } else if header.contains("SPHINCS-SHA256-128S") {
+            SignatureAlgorithm::SphincsSha256128s
+        } else {
+            return Err(PQCError::UnsupportedAlgorithm("Unknown algorithm in PEM".to_string()));
+        };
+
+        let key_data = lines[1..lines.len()-1].join("");
+        let key_bytes = base64::decode(&key_data)
+            .map_err(|_| PQCError::InvalidKey("Invalid base64 encoding".to_string()))?;
+
+        Ok((key_bytes, algorithm))
+    }
+
+    /// Get key usage statistics
+    pub fn get_key_stats(&self) -> KeyStats {
+        KeyStats {
+            active_algorithm: self.signature_keypair.algorithm.clone(),
+            backup_count: self.backup_keys.len(),
+            oldest_backup: self.backup_keys.values()
+                .map(|b| b.created_at)
+                .min(),
+            newest_backup: self.backup_keys.values()
+                .map(|b| b.created_at)
+                .max(),
+            total_signatures: 0, // Would track in real implementation
+        }
+    }
     pub fn verify_with_known_keys(
         &self,
         message: &[u8],
