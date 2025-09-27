@@ -52,6 +52,28 @@ pub struct ContractState {
     pub value: Vec<u8>,
 }
 
+/// Gas and storage limits for WASM execution
+#[derive(Debug, Clone)]
+pub struct WasmLimits {
+    pub max_gas_per_tx: u64,
+    pub max_memory_pages: u32, // 64KB per page
+    pub max_storage_per_contract: u64, // bytes
+    pub max_call_depth: u32,
+    pub max_contract_size: u64, // bytes
+}
+
+impl Default for WasmLimits {
+    fn default() -> Self {
+        Self {
+            max_gas_per_tx: 10_000_000,    // 10M gas
+            max_memory_pages: 256,          // 16MB max memory
+            max_storage_per_contract: 1024 * 1024, // 1MB storage per contract
+            max_call_depth: 64,             // Max call stack depth
+            max_contract_size: 512 * 1024,  // 512KB max contract size
+        }
+    }
+}
+
 /// Minimal WASM runtime for contract deployment and execution
 #[derive(Debug)]
 pub struct WasmRuntime {
@@ -59,6 +81,7 @@ pub struct WasmRuntime {
     deployed_contracts: Arc<Mutex<HashMap<Address, ContractDeployment>>>,
     contract_state: Arc<Mutex<ContractStateMap>>,
     execution_history: Arc<Mutex<Vec<ContractExecution>>>,
+    limits: WasmLimits,
 }
 
 impl Default for WasmRuntime {
@@ -69,6 +92,10 @@ impl Default for WasmRuntime {
 
 impl WasmRuntime {
     pub fn new() -> Self {
+        Self::with_limits(WasmLimits::default())
+    }
+
+    pub fn with_limits(limits: WasmLimits) -> Self {
         // Updated HostEnv construction requires PQCManager from core
         let pqc = dytallix_node::crypto::PQCManager::new().expect("PQCManager");
         let host_env = HostEnv::with_pqc(Arc::new(pqc));
@@ -79,6 +106,7 @@ impl WasmRuntime {
             deployed_contracts: Arc::new(Mutex::new(HashMap::new())),
             contract_state: Arc::new(Mutex::new(HashMap::new())),
             execution_history: Arc::new(Mutex::new(Vec::new())),
+            limits,
         }
     }
 
@@ -90,6 +118,18 @@ impl WasmRuntime {
         gas_limit: u64,
         initial_state: Option<&[u8]>,
     ) -> Result<ContractDeployment> {
+        // Enforce contract size limits
+        if wasm_bytes.len() as u64 > self.limits.max_contract_size {
+            return Err(anyhow!("Contract size {} exceeds limit {}", 
+                wasm_bytes.len(), self.limits.max_contract_size));
+        }
+
+        // Enforce gas limits
+        if gas_limit > self.limits.max_gas_per_tx {
+            return Err(anyhow!("Gas limit {} exceeds maximum {}", 
+                gas_limit, self.limits.max_gas_per_tx));
+        }
+
         let mut gas_meter = GasMeter::new(gas_limit);
 
         // Charge gas for deployment
@@ -110,6 +150,13 @@ impl WasmRuntime {
         // Generate contract address from code hash and deployer
         let address = self.generate_contract_address(&code_hash, from);
 
+        // Check if contract already exists (prevent deployment collision)
+        let contracts = self.deployed_contracts.lock().unwrap();
+        if contracts.contains_key(&address) {
+            return Err(anyhow!("Contract already deployed at address: {}", address));
+        }
+        drop(contracts);
+
         // Generate transaction hash
         let tx_hash = self.generate_tx_hash(&address, "deploy");
 
@@ -126,8 +173,12 @@ impl WasmRuntime {
         let mut contracts = self.deployed_contracts.lock().unwrap();
         contracts.insert(address.clone(), deployment.clone());
 
-        // Initialize contract state if provided
+        // Initialize contract state if provided (with storage limits)
         if let Some(state_data) = initial_state {
+            if state_data.len() as u64 > self.limits.max_storage_per_contract {
+                return Err(anyhow!("Initial state size {} exceeds storage limit {}", 
+                    state_data.len(), self.limits.max_storage_per_contract));
+            }
             let mut state = self.contract_state.lock().unwrap();
             state.insert((address, "init".to_string()), state_data.to_vec());
         }
@@ -196,9 +247,24 @@ impl WasmRuntime {
     }
 
     /// Set contract state (internal method for contract execution)
-    fn set_contract_state(&self, contract_address: &Address, key: &str, value: Vec<u8>) {
+    fn set_contract_state(&self, contract_address: &Address, key: &str, value: Vec<u8>) -> Result<()> {
+        // Check storage limits per contract
+        let state_guard = self.contract_state.lock().unwrap();
+        let current_size: u64 = state_guard
+            .iter()
+            .filter(|((addr, _), _)| addr == contract_address)
+            .map(|(_, v)| v.len() as u64)
+            .sum();
+        drop(state_guard);
+
+        if current_size + value.len() as u64 > self.limits.max_storage_per_contract {
+            return Err(anyhow!("Storage limit exceeded for contract {}: current {} + new {} > limit {}", 
+                contract_address, current_size, value.len(), self.limits.max_storage_per_contract));
+        }
+
         let mut state = self.contract_state.lock().unwrap();
         state.insert((contract_address.clone(), key.to_string()), value);
+        Ok(())
     }
 
     /// Execute increment method on counter contract
@@ -211,12 +277,12 @@ impl WasmRuntime {
 
         let new_value = current + 1; // increment by 1 per call
 
-        // Store new value
+        // Store new value (with storage limit checks)
         self.set_contract_state(
             contract_address,
             "counter",
             new_value.to_le_bytes().to_vec(),
-        );
+        )?;
 
         // Return the new value
         Ok(new_value.to_le_bytes().to_vec())
@@ -284,6 +350,21 @@ impl WasmRuntime {
             None => history.clone(),
         }
     }
+
+    /// Get current runtime limits
+    pub fn get_limits(&self) -> &WasmLimits {
+        &self.limits
+    }
+
+    /// Check storage usage for a contract
+    pub fn get_contract_storage_usage(&self, contract_address: &Address) -> u64 {
+        let state = self.contract_state.lock().unwrap();
+        state
+            .iter()
+            .filter(|((addr, _), _)| addr == contract_address)
+            .map(|(_, v)| v.len() as u64)
+            .sum()
+    }
 }
 
 #[cfg(test)]
@@ -306,5 +387,84 @@ mod tests {
         assert_ne!(addr1, addr2);
         assert_ne!(addr1, addr3);
         assert_ne!(addr2, addr3);
+    }
+
+    #[test]
+    fn test_gas_limit_enforcement() {
+        let limits = WasmLimits {
+            max_gas_per_tx: 1000,
+            ..Default::default()
+        };
+        let runtime = WasmRuntime::with_limits(limits);
+        
+        // Valid WASM bytecode (minimal)
+        let wasm_bytes = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]; // WASM magic + version
+        
+        let result = runtime.deploy_contract(&wasm_bytes, "deployer", 2000, None);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Gas limit"));
+    }
+
+    #[test]
+    fn test_contract_size_limit() {
+        let limits = WasmLimits {
+            max_contract_size: 100,
+            ..Default::default()
+        };
+        let runtime = WasmRuntime::with_limits(limits);
+        
+        // Large contract (exceeds limit)
+        let large_wasm = vec![0u8; 200];
+        
+        let result = runtime.deploy_contract(&large_wasm, "deployer", 1000000, None);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Contract size"));
+    }
+
+    #[test]
+    fn test_storage_limit_enforcement() {
+        let limits = WasmLimits {
+            max_storage_per_contract: 100,
+            ..Default::default()
+        };
+        let runtime = WasmRuntime::with_limits(limits);
+        
+        // Try to set storage that exceeds limit
+        let result = runtime.set_contract_state("test_addr", "key", vec![0u8; 150]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Storage limit exceeded"));
+    }
+
+    #[test]
+    fn test_limits_getter() {
+        let custom_limits = WasmLimits {
+            max_gas_per_tx: 5000000,
+            max_memory_pages: 128,
+            max_storage_per_contract: 2048,
+            max_call_depth: 32,
+            max_contract_size: 256 * 1024,
+        };
+        let runtime = WasmRuntime::with_limits(custom_limits.clone());
+        
+        let limits = runtime.get_limits();
+        assert_eq!(limits.max_gas_per_tx, 5000000);
+        assert_eq!(limits.max_memory_pages, 128);
+        assert_eq!(limits.max_storage_per_contract, 2048);
+    }
+
+    #[test] 
+    fn test_storage_usage_tracking() {
+        let runtime = WasmRuntime::new();
+        let addr = "test_contract";
+        
+        // Initially no storage
+        assert_eq!(runtime.get_contract_storage_usage(addr), 0);
+        
+        // Add some storage
+        runtime.set_contract_state(addr, "key1", vec![1, 2, 3]).unwrap();
+        runtime.set_contract_state(addr, "key2", vec![4, 5]).unwrap();
+        
+        // Should track total usage
+        assert_eq!(runtime.get_contract_storage_usage(addr), 5); // 3 + 2 bytes
     }
 }
