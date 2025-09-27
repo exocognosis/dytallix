@@ -71,7 +71,7 @@ pub struct Vote {
     pub proposal_id: u64,
     pub voter: String,
     pub option: VoteOption,
-    pub weight: u128 // DGT balance at time of vote
+    pub weight: u128, // DGT balance at time of vote
 }
 
 /// Deposit on a proposal (for tracking individual deposits)
