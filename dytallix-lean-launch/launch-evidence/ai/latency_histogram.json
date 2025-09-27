@@ -1,39 +1,32 @@
 {
-  "histogram_data": {
-    "bucket_le_10_0": 11,
-    "bucket_le_25_0": 11,
-    "bucket_le_50_0": 11,
-    "bucket_le_100_0": 11,
-    "bucket_le_250_0": 11,
-    "bucket_le_500_0": 11,
-    "bucket_le_1000_0": 11,
-    "bucket_le_1500_0": 11,
-    "bucket_le_2000_0": 11,
-    "bucket_le_3000_0": 11,
-    "bucket_le_5000_0": 11,
-    "bucket_le_inf": 11,
-    "total_count": 11,
-    "total_sum_ms": 1.1340279999103586
+  "timestamp": "2025-09-27T14:12:20Z",
+  "test_parameters": {
+    "num_requests": 50,
+    "endpoint": "http://localhost:7000/api/ai/risk",
+    "ai_service_url": "http://localhost:7000"
   },
   "statistics": {
-    "median_ms": 0.10,
-    "p95_ms": 0.13,
-    "p99_ms": 0.15,
-    "average_ms": 0.103,
-    "min_ms": 0.08,
-    "max_ms": 0.15
+    "total_requests": 50,
+    "average_ms": 368,
+    "min_ms": 63,
+    "max_ms": 749,
+    "p50_ms": 393,
+    "p95_ms": 720
   },
-  "performance_summary": {
-    "meets_requirement": true,
-    "requirement_median_ms": 1000,
-    "actual_median_ms": 0.10,
-    "performance_ratio": 10000,
-    "note": "AI service latency is 10,000x faster than requirement (0.1ms vs 1000ms)"
+  "raw_latencies_ms": [63,70,86,92,104,119,126,149,158,171,172,185,190,194,195,196,201,219,240,270,282,291,313,326,380,393,415,419,419,426,428,453,455,456,468,499,500,502,547,571,598,599,648,654,661,661,670,720,727,749],
+  "histogram_buckets": {
+    "0-100ms": 4,
+    "101-250ms": 15,
+    "251-500ms": 18,
+    "501-1000ms": 13,
+    "1000ms+": 0
   },
-  "metadata": {
-    "generated_at": "2025-01-20T19:24:30Z",
-    "service_version": "risk-v1",
-    "sample_size": 11,
-    "measurement_duration_seconds": 60
+  "success_criteria": {
+    "target_avg_latency_ms": 1000,
+    "actual_avg_latency_ms": 368,
+    "avg_latency_met": true,
+    "target_p95_latency_ms": 2000,
+    "actual_p95_latency_ms": 720,
+    "p95_latency_met": true
   }
 }
