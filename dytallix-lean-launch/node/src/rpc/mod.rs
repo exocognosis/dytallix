@@ -1791,9 +1791,9 @@ pub async fn get_transaction(
 pub async fn get_pending_transactions(
     Extension(ctx): Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let mempool = ctx.mempool.lock().unwrap(); 
+    let mempool = ctx.mempool.lock().unwrap();
     let pending_txs = mempool.take_snapshot(1000); // Get up to 1000 pending transactions
-    
+
     let tx_list: Vec<serde_json::Value> = pending_txs
         .iter()
         .map(|tx| {

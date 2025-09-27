@@ -43,7 +43,7 @@ const COOLDOWN_MIN = parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10)
 const ENABLE_SEC_HEADERS = process.env.ENABLE_SEC_HEADERS === '1'
 const ENABLE_CSP = process.env.ENABLE_CSP === '1' || ENABLE_SEC_HEADERS
 const BECH32_PREFIX = process.env.CHAIN_PREFIX || process.env.BECH32_PREFIX || 'dytallix'
-const AI_ORACLE_URL = (process.env.AI_ORACLE_URL || 'http://localhost:8080/api/ai/risk').replace(/\/$/, '')
+const AI_ORACLE_URL = (process.env.AI_ORACLE_URL || 'http://localhost:7000/api/ai/risk').replace(/\/$/, '')
 const AI_ORACLE_TIMEOUT_MS = Math.max(250, parseInt(process.env.AI_ORACLE_TIMEOUT_MS || '1000', 10))
 
 // Initialize contract scanner

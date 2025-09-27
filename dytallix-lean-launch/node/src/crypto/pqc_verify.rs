@@ -8,8 +8,8 @@
 //! The module supports feature flags to enable/disable specific algorithms
 //! and provides structured error handling for unsupported algorithms or malformed inputs.
 
-use thiserror::Error;
 use std::str::FromStr;
+use thiserror::Error;
 
 #[cfg(feature = "pqc-real")]
 use pqcrypto_dilithium::dilithium5;

@@ -332,10 +332,17 @@ async fn main() -> anyhow::Result<()> {
                 eprintln!("Loading emission config from: {}", config_path);
                 match std::fs::read_to_string(&config_path) {
                     Ok(config_json) => {
-                        match serde_json::from_str::<dytallix_lean_node::runtime::emission::EmissionConfig>(&config_json) {
+                        match serde_json::from_str::<
+                            dytallix_lean_node::runtime::emission::EmissionConfig,
+                        >(&config_json)
+                        {
                             Ok(config) => {
                                 eprintln!("✅ Loaded emission config: {:?}", config.schedule);
-                                EmissionEngine::new_with_config(storage.clone(), state.clone(), config)
+                                EmissionEngine::new_with_config(
+                                    storage.clone(),
+                                    state.clone(),
+                                    config,
+                                )
                             }
                             Err(e) => {
                                 eprintln!("❌ Failed to parse emission config: {}", e);
@@ -344,7 +351,10 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                     Err(e) => {
-                        eprintln!("❌ Failed to read emission config file {}: {}", config_path, e);
+                        eprintln!(
+                            "❌ Failed to read emission config file {}: {}",
+                            config_path, e
+                        );
                         EmissionEngine::new(storage.clone(), state.clone())
                     }
                 }
