@@ -1230,7 +1230,7 @@ pub async fn stats_with_emission(
             "total_emitted": event.total_emitted.to_string(),
             "circulating_supply": event.circulating_supply.to_string(),
         })),
-        "staking": {"total_stake": total_stake.to_string(), "reward_index": reward_index.to_string(), "pending_emission": pending_emission to_string()},
+        "staking": {"total_stake": total_stake.to_string(), "reward_index": reward_index.to_string(), "pending_emission": pending_emission.to_string()},
     })))
 }
 

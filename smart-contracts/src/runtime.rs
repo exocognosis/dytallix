@@ -691,7 +691,7 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "storage_set",
-                |caller: Caller<HostCallContext>,
+                |mut caller: Caller<HostCallContext>,
                  key_ptr: i32,
                  key_len: i32,
                  value_ptr: i32,
@@ -773,7 +773,7 @@ impl ContractRuntime {
             .func_wrap(
                 "env",
                 "emit_event",
-                |caller: Caller<HostCallContext>,
+                |mut caller: Caller<HostCallContext>,
                  topic_ptr: i32,
                  topic_len: i32,
                  data_ptr: i32,

@@ -66,6 +66,24 @@ User onboarding evidence including documentation and interface screenshots. Show
   - Lines 2-3: exec receipts for increment calls
   - Final line: query response with count matching number of increments (>=2)
 
+## Critical gap closure (MVP readiness)
+
+The following reproducible scripts produce audit-ready artifacts to close remaining gaps:
+
+- PQC live inclusion:
+  - Script: `scripts/evidence/pqc_tx_demo.sh`
+  - Artifacts: `launch-evidence/pqc/live_tx.json`, `launch-evidence/pqc/live_receipt.json`, `launch-evidence/pqc/pqc_tx_demo.log`
+
+- WASM contract demo:
+  - Script: `scripts/evidence/wasm_demo.sh`
+  - Artifacts: `launch-evidence/wasm/deploy_tx.json`, `launch-evidence/wasm/exec_txs.json`, `launch-evidence/wasm/final_state.json`, `launch-evidence/wasm/wasm_demo.log`
+
+- Observability proof:
+  - Script: `scripts/evidence/observability_capture.sh`
+  - Artifacts: `launch-evidence/observability/prom_targets.json`, `grafana_dashboard.json`, `targets.png`, `validators.png`, `alert_test.log`
+
+See `launch-evidence/SUMMARY.md` for a quick index of generated files.
+
 ## Usage
 
 Run `scripts/init-launch-evidence.sh` to initialize or refresh this evidence pack structure. The script is idempotent and will not overwrite existing evidence files.

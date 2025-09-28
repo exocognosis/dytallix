@@ -8,6 +8,8 @@ import inquirer from 'inquirer'
 import { decryptSecretKey } from '../keystore.js'
 import { amountToMicro } from '../lib/amount.js'
 import { loadKeystoreRecord } from '../lib/keystore-loader.js'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
 
 export const transferCommand = new Command('transfer')
   .description('Send tokens to another address')
@@ -18,6 +20,7 @@ export const transferCommand = new Command('transfer')
   .option('--memo <memo>', 'Transaction memo', '')
   .option('--keystore <nameOrPath>', 'Keystore name (from keys list) or file path')
   .option('--passphrase <pass>', 'Keystore passphrase (non-interactive; or set DYTX_PASSPHRASE)')
+  .option('--passphrase-file <file>', 'Read keystore passphrase from file (first line used)')
   .action(async (options, command) => {
     try {
       const globalOpts = command.parent.opts()
@@ -64,9 +67,14 @@ export const transferCommand = new Command('transfer')
       const { record: rec } = loadKeystoreRecord(options.from, options.keystore)
       const passFromEnv = process.env.DYTX_PASSPHRASE
       const passFromFlag = options.passphrase as string | undefined
-      const pass = passFromFlag || passFromEnv || (await inquirer.prompt<{ passphrase: string }>([
+      const passFromFile = options.passphraseFile ? readFileSync(resolve(options.passphraseFile), 'utf8').split(/\r?\n/)[0] : undefined
+      const passCandidate = passFromFlag || passFromFile || passFromEnv
+      const pass = passCandidate || (await inquirer.prompt<{ passphrase: string }>([
         { type: 'password', name: 'passphrase', message: 'Enter keystore passphrase:', mask: '*' }
       ])).passphrase
+      if (!pass || pass.length < 8) {
+        throw new Error('Passphrase must be at least 8 characters')
+      }
       const sk = decryptSecretKey(rec, pass)
       const pk = Buffer.from(rec.pubkey_b64, 'base64')
       const signed = signTx(tx, sk, new Uint8Array(pk))

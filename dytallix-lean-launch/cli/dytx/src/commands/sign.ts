@@ -9,6 +9,7 @@ import { buildSendTx, signTx, txHashHex } from '../lib/tx.js'
 import { amountToMicro } from '../lib/amount.js'
 import { decryptSecretKey } from '../keystore.js'
 import { loadKeystoreRecord } from '../lib/keystore-loader.js'
+import { resolve } from 'path'
 
 function validateAddress(addr: string): void {
   if (typeof addr !== 'string' || !addr.startsWith('dyt') || addr.length < 12) {
@@ -42,6 +43,7 @@ export const signCommand = new Command('sign')
   .requiredOption('--payload <file>', 'JSON file containing transaction payload (transfer descriptor)')
   .option('--keystore <fileOrName>', 'Keystore file path or saved keystore name')
   .option('--passphrase <pass>', 'Keystore passphrase (or set DYTX_PASSPHRASE)')
+  .option('--passphrase-file <file>', 'Read keystore passphrase from file (first line used)')
   .option('--out <file>', 'Output file for signed transaction JSON')
   .action(async (options, command) => {
     try {
@@ -61,9 +63,11 @@ export const signCommand = new Command('sign')
       const denom = denomInput === 'udrt' ? 'DRT' : 'DGT'
       const feeMicro = normalizeFee(payload.fee)
 
-      console.log(chalk.blue('✍️  Signing transaction...'))
-      console.log(chalk.gray(`Signer: ${options.address}`))
-      console.log(chalk.gray(`Payload file: ${options.payload}`))
+      if (globalOpts.output !== 'json') {
+        console.log(chalk.blue('✍️  Signing transaction...'))
+        console.log(chalk.gray(`Signer: ${options.address}`))
+        console.log(chalk.gray(`Payload file: ${options.payload}`))
+      }
 
       const client = new DytClient(globalOpts.rpc)
       const acct = await client.getAccount(options.address)
@@ -84,9 +88,14 @@ export const signCommand = new Command('sign')
       const { record } = loadKeystoreRecord(options.address, options.keystore)
       const passFromEnv = process.env.DYTX_PASSPHRASE
       const passFromFlag = options.passphrase as string | undefined
-      const pass = passFromFlag || passFromEnv || (await inquirer.prompt<{ passphrase: string }>([
+      const passFromFile = options.passphraseFile ? readFileSync(resolve(options.passphraseFile), 'utf8').split(/\r?\n/)[0] : undefined
+      const passCandidate = passFromFlag || passFromFile || passFromEnv
+      const pass = passCandidate || (await inquirer.prompt<{ passphrase: string }>([
         { type: 'password', name: 'passphrase', message: 'Enter keystore passphrase:', mask: '*' }
       ])).passphrase
+      if (!pass || pass.length < 8) {
+        throw new Error('Passphrase must be at least 8 characters')
+      }
       const sk = decryptSecretKey(record, pass)
       const pk = Buffer.from(record.pubkey_b64, 'base64')
       const signed = signTx(tx, sk, new Uint8Array(pk))
