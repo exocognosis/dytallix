@@ -368,4 +368,84 @@ impl EmissionEngine {
             pools,
         }
     }
+
+    /// Process emission for a single block (for testing)
+    pub fn process_block_emission(&mut self, height: u64, _state: &mut crate::state::State) -> Result<EmissionEvent, String> {
+        // Calculate emission for this block
+        let total_emission = self.calculate_per_block_emission(height);
+        let pool_distributions = self.calculate_pool_distributions(total_emission);
+
+        // Update pool amounts
+        for (pool, amount) in &pool_distributions {
+            let current = self.pool_amount(pool);
+            self.set_pool_amount(pool, current.saturating_add(*amount));
+        }
+
+        // Update circulating supply
+        self.circulating_supply = self.circulating_supply.saturating_add(total_emission);
+        self.set_circulating_supply(self.circulating_supply);
+
+        // Create and store emission event
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        let event = EmissionEvent {
+            height,
+            timestamp,
+            total_emitted: total_emission,
+            pools: pool_distributions,
+            reward_index_after: Some((self.circulating_supply * 1_000_000) / 1_000_000), // Simple reward index
+            circulating_supply: self.circulating_supply,
+        };
+
+        self.store_event(&event);
+        self.set_last_height(height);
+
+        Ok(event)
+    }
+
+    /// Update emission configuration (governance function)
+    pub fn update_config(&mut self, config: EmissionConfig) -> Result<(), String> {
+        self.config = config;
+        Ok(())
+    }
+
+    /// Get supply information
+    pub fn get_supply_info(&self) -> SupplyInfo {
+        SupplyInfo {
+            initial_supply: self.config.initial_supply,
+            circulating_supply: self.circulating_supply,
+            total_supply: self.config.initial_supply + self.circulating_supply,
+            last_updated_height: self.last_accounted_height(),
+        }
+    }
+
+    /// Get recent emission events
+    pub fn get_emission_events(&self, limit: usize) -> Vec<EmissionEvent> {
+        let last_height = self.last_accounted_height();
+        let start_height = if last_height > limit as u64 {
+            last_height - limit as u64 + 1
+        } else {
+            1
+        };
+
+        let mut events = Vec::new();
+        for height in start_height..=last_height {
+            if let Some(event) = self.get_event(height) {
+                events.push(event);
+            }
+        }
+        events
+    }
+}
+
+/// Supply information structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SupplyInfo {
+    pub initial_supply: u128,
+    pub circulating_supply: u128,
+    pub total_supply: u128,
+    pub last_updated_height: u64,
 }
