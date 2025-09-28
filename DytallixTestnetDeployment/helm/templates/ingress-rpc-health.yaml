@@ -1,0 +1,29 @@
+{{- if and .Values.global.ingress.enabled .Values.rpc.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dytallix-rpc-health
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.global.ingress.clusterIssuer | quote }}
+    kubernetes.io/ingress.class: {{ .Values.global.ingress.className | quote }}
+    # Only this health ingress rewrites /health -> /stats for 200 OK
+    nginx.ingress.kubernetes.io/rewrite-target: /stats
+spec:
+  ingressClassName: {{ .Values.global.ingress.className | quote }}
+  tls:
+    - hosts:
+        - {{ .Values.rpc.ingress.host | quote }}
+      secretName: {{ .Values.rpc.ingress.tlsSecret | quote }}
+  rules:
+    - host: {{ .Values.rpc.ingress.host | quote }}
+      http:
+        paths:
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.rpc.service.name | quote }}
+                port:
+                  number: {{ .Values.rpc.service.port }}
+{{- end }}
+

@@ -1,0 +1,93 @@
+{
+  "chain_id": "dytallix-gov-e2e",
+  "governance": {
+    "deposit_period": 5,
+    "voting_period": 10,
+    "min_deposit_udgt": "1000000000",
+    "quorum_bps": "3333",
+    "threshold_bps": "5000",
+    "veto_threshold_bps": "3333"
+  },
+  "emission": {
+    "initial_annual_inflation_rate_bps": 500,
+    "proposal_target_annual_inflation_rate_bps": 1000
+  },
+  "accounts": [
+    {
+      "name": "validator1",
+      "address": "dyt1valoper000000000001",
+      "roles": ["validator"],
+      "balances": {
+        "udgt": "2000000000",
+        "udrt": "100000000"
+      }
+    },
+    {
+      "name": "validator2",
+      "address": "dyt1valoper000000000002",
+      "roles": ["validator"],
+      "balances": {
+        "udgt": "2000000000",
+        "udrt": "100000000"
+      }
+    },
+    {
+      "name": "validator3",
+      "address": "dyt1valoper000000000003",
+      "roles": ["validator"],
+      "balances": {
+        "udgt": "2000000000",
+        "udrt": "100000000"
+      }
+    },
+    {
+      "name": "user1",
+      "address": "dyt1userstake0000000001",
+      "roles": ["delegator"],
+      "balances": {
+        "udgt": "500000000",
+        "udrt": "0"
+      }
+    }
+  ],
+  "staking": {
+    "delegations": [
+      {
+        "delegator": "dyt1valoper000000000001",
+        "validator": "dyt1valoper000000000001",
+        "amount_udgt": "600000000000"
+      },
+      {
+        "delegator": "dyt1valoper000000000002",
+        "validator": "dyt1valoper000000000002",
+        "amount_udgt": "400000000000"
+      },
+      {
+        "delegator": "dyt1valoper000000000003",
+        "validator": "dyt1valoper000000000003",
+        "amount_udgt": "300000000000"
+      }
+    ],
+    "user_delegation": {
+      "delegator": "dyt1userstake0000000001",
+      "validator": "dyt1valoper000000000001",
+      "amount_udgt": "150000000000"
+    }
+  },
+  "governance_proposal": {
+    "title": "Increase Annual Emission To 10%",
+    "description": "Raise emission rate from 5% to 10% to accelerate staking rewards for active validators.",
+    "parameter_key": "emission.annual_inflation_rate",
+    "target_rate_bps": 1000,
+    "depositors": ["dyt1valoper000000000001"],
+    "voters": [
+      {"address": "dyt1valoper000000000001", "option": "yes"},
+      {"address": "dyt1valoper000000000002", "option": "yes"},
+      {"address": "dyt1valoper000000000003", "option": "yes"}
+    ]
+  },
+  "simulation": {
+    "blocks_to_run": 50
+  },
+  "staking_reward_rate_bps": 500
+}

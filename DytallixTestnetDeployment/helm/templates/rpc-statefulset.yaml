@@ -1,0 +1,84 @@
+{{- if .Values.rpc.persistence.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: dytallix-rpc
+  labels:
+    app.kubernetes.io/name: dytallix-lean-launch
+    app.kubernetes.io/component: rpc
+spec:
+  serviceName: dytallix-rpc-headless
+  replicas: {{ ternary (int .Values.autoscaling.minReplicas | default 1) (int 1) (not .Values.rpc.autoscaling.enabled) }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dytallix-lean-launch
+      app.kubernetes.io/component: rpc
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dytallix-lean-launch
+        app.kubernetes.io/component: rpc
+    spec:
+      {{- with .Values.rpc.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.rpc.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.rpc.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: rpc
+          image: "{{ .Values.rpc.image.repository }}:{{ .Values.rpc.image.tag }}"
+          imagePullPolicy: {{ .Values.rpc.image.pullPolicy }}
+          env:
+            - name: DYT_ENABLE_GOVERNANCE
+              value: {{ .Values.features.governance.enabled | quote }}
+            - name: DYT_ENABLE_STAKING
+              value: {{ .Values.features.staking.enabled | quote }}
+          {{- if .Values.rpc.envFromSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.rpc.envFromSecret }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.rpc.service.port }}
+          resources:
+            {{- toYaml .Values.rpc.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/dytallix
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.rpc.persistence.size }}
+        {{- if .Values.rpc.persistence.storageClass }}
+        storageClassName: {{ .Values.rpc.persistence.storageClass | quote }}
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dytallix-rpc-headless
+  labels:
+    app.kubernetes.io/name: dytallix-lean-launch
+    app.kubernetes.io/component: rpc
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: dytallix-lean-launch
+    app.kubernetes.io/component: rpc
+  ports:
+    - name: http
+      port: {{ .Values.rpc.service.port }}
+      targetPort: {{ .Values.rpc.service.port }}
+{{- end }}

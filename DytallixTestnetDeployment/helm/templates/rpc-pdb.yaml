@@ -1,0 +1,13 @@
+{{- if .Values.rpc.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dytallix-rpc
+spec:
+  minAvailable: {{ .Values.rpc.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dytallix-lean-launch
+      app.kubernetes.io/component: rpc
+{{- end }}
+

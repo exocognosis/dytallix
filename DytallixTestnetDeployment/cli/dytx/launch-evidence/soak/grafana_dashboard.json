@@ -1,0 +1,106 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Dytallix Soak Test Dashboard",
+    "tags": ["dytallix", "soak-test", "validators"],
+    "timezone": "UTC",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Block Height Progression",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "dytallix_block_height",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "xAxis": {"mode": "time"},
+        "yAxes": [{"label": "Block Height"}]
+      },
+      {
+        "id": 2,
+        "title": "Missed Blocks",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "dytallix_missed_blocks_total",
+            "legendFormat": "{{validator}}"
+          }
+        ],
+        "xAxis": {"mode": "time"},
+        "yAxes": [{"label": "Missed Blocks"}]
+      },
+      {
+        "id": 3,
+        "title": "Validator Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dytallix_validator_up",
+            "legendFormat": "{{validator}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Transaction Throughput",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(dytallix_transactions_total[5m])",
+            "legendFormat": "TPS"
+          }
+        ],
+        "xAxis": {"mode": "time"},
+        "yAxes": [{"label": "TPS"}]
+      },
+      {
+        "id": 5,
+        "title": "Memory Usage",
+        "type": "graph", 
+        "targets": [
+          {
+            "expr": "dytallix_memory_usage_bytes",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "xAxis": {"mode": "time"},
+        "yAxes": [{"label": "Bytes"}]
+      },
+      {
+        "id": 6,
+        "title": "Peer Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "dytallix_peer_count",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "xAxis": {"mode": "time"},
+        "yAxes": [{"label": "Peers"}]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  },
+  "meta": {
+    "type": "db",
+    "canSave": true,
+    "canEdit": true,
+    "canAdmin": true,
+    "canStar": true,
+    "slug": "dytallix-soak-test",
+    "url": "/d/dytallix-soak-test/dytallix-soak-test-dashboard",
+    "expires": "0001-01-01T00:00:00Z",
+    "created": "2025-09-28T17:13:39Z",
+    "updated": "2025-09-28T17:13:39Z",
+    "updatedBy": "soak-test-script",
+    "createdBy": "soak-test-script",
+    "version": 1
+  }
+}

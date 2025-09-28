@@ -1,0 +1,17 @@
+# Governance parameter configuration for Dytallix Lean Launch
+# Source of truth for on-chain governance defaults. Adjust with care.
+
+# Minimum fraction of total voting power that must participate for a proposal to be valid.
+quorum = "0.33"
+
+# Minimum fraction of YES votes (of total votes cast, excluding abstain) required for proposal to pass.
+threshold = "0.50"
+
+# Fraction of NO_WITH_VETO votes (of total votes cast) that causes automatic rejection and potential penalty.
+veto = "0.334"
+
+# Minimum initial deposit required to move a proposal from pending to voting period.
+deposit_min = "1000udgt"
+
+# Length of the voting period in blocks.
+voting_period = "100"

@@ -1,0 +1,24 @@
+FROM rust:1.83-bullseye AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    clang llvm-dev libclang-dev pkg-config cmake build-essential \
+    zlib1g-dev liblz4-dev libsnappy-dev libzstd-dev bzip2 \
+ && rm -rf /var/lib/apt/lists/*
+RUN LIBCLANG_LIBDIR=$(llvm-config --libdir) && \
+    echo "Using libclang at $LIBCLANG_LIBDIR" && \
+    ln -sf $LIBCLANG_LIBDIR/libclang.so /usr/lib/libclang.so || true
+ENV LIBCLANG_PATH=/usr/lib
+WORKDIR /workspace
+COPY dytallix-lean-launch ./dytallix-lean-launch
+COPY blockchain-core ./blockchain-core
+COPY pqc-crypto ./pqc-crypto
+COPY smart-contracts ./smart-contracts
+RUN cd dytallix-lean-launch && cargo build --locked --release -p dytallix-lean-node --no-default-features --features "oracle,metrics,pqc-real"
+
+FROM debian:bullseye-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl jq && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /workspace/dytallix-lean-launch/target/release/dytallix-lean-node /usr/local/bin/dytallix-lean-node
+COPY dytallix-lean-launch/genesis.json /var/lib/dytallix/genesis.json
+ENV HOME=/var/lib/dytallix
+WORKDIR /var/lib/dytallix
+EXPOSE 3030 9464
+ENTRYPOINT ["dytallix-lean-node"]

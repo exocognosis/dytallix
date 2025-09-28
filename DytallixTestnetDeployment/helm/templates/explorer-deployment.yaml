@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dytallix-explorer
+  labels:
+    app.kubernetes.io/name: dytallix-lean-launch
+    app.kubernetes.io/component: explorer
+spec:
+  replicas: {{ ternary .Values.explorer.autoscaling.minReplicas .Values.explorer.replicas (not .Values.explorer.autoscaling.enabled) | default 2 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dytallix-lean-launch
+      app.kubernetes.io/component: explorer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dytallix-lean-launch
+        app.kubernetes.io/component: explorer
+    spec:
+      {{- with .Values.explorer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.explorer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.explorer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: explorer
+          image: "{{ .Values.explorer.image.repository }}:{{ .Values.explorer.image.tag }}"
+          imagePullPolicy: {{ .Values.explorer.image.pullPolicy }}
+          {{- if .Values.explorer.envFromSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.explorer.envFromSecret }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.explorer.service.port }}
+          resources:
+            {{- toYaml .Values.explorer.resources | nindent 12 }}
+
