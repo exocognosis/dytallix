@@ -3,9 +3,11 @@ Deterministic execution module for dytallix consensus.
 
 Implements upfront fee charging, full-revert semantics, and deterministic gas accounting
 to ensure all nodes reach identical post-state and receipts.
+Includes fee burning mechanism for dual-token economics.
 */
 
 use crate::gas::{intrinsic_gas, Gas, GasError, GasMeter, GasSchedule, TxKind};
+use crate::runtime::fee_burn::FeeBurnEngine;
 use crate::state::State;
 use crate::storage::receipts::{TxReceipt, TxStatus, RECEIPT_FORMAT_VERSION};
 use crate::storage::tx::Transaction;
@@ -114,13 +116,14 @@ impl ExecutionContext {
     }
 }
 
-/// Execute a single transaction with deterministic gas accounting
+/// Execute a single transaction with deterministic gas accounting and fee burning
 pub fn execute_transaction(
     tx: &Transaction,
     state: &mut State,
     block_height: u64,
     tx_index: u32,
     gas_schedule: &GasSchedule,
+    fee_burn_engine: Option<&mut FeeBurnEngine>,
 ) -> ExecutionResult {
     // Step 1: Validate basic transaction fields
     if let Err(error) = validate_transaction(tx, state) {
@@ -275,7 +278,18 @@ pub fn execute_transaction(
         };
     }
 
-    // Step 8: Success - commit state changes and create success receipt
+    // Step 8: Success - Process fee burning if enabled
+    if let Some(engine) = fee_burn_engine {
+        let _ = engine.process_fee_burn(
+            tx.hash.clone(),
+            block_height,
+            upfront_fee,
+            state,
+        );
+        // Note: Fee burning errors are non-fatal and don't affect transaction success
+    }
+
+    // Step 9: Commit state changes and create success receipt
     let state_changes = ctx.state_changes.clone();
     ExecutionResult {
         success: true,
@@ -460,7 +474,7 @@ mod tests {
         )
         .with_gas(25_000, 1);
 
-        let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+        let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
 
         assert!(result.success);
         assert_eq!(result.receipt.status, TxStatus::Success);
@@ -488,7 +502,7 @@ mod tests {
         )
         .with_gas(25_000, 1_000); // High gas price
 
-        let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+        let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
 
         assert!(!result.success);
         assert_eq!(result.receipt.status, TxStatus::Failed);

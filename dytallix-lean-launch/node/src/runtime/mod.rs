@@ -1,5 +1,6 @@
 pub mod bridge;
 pub mod emission;
+pub mod fee_burn;
 pub mod governance;
 #[cfg(feature = "oracle")]
 pub mod oracle;

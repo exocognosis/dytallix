@@ -1,84 +1,344 @@
 {
   "dashboard": {
     "id": null,
-    "title": "Dytallix Network Monitoring",
-    "tags": ["dytallix", "blockchain", "monitoring"],
+    "title": "Dytallix Blockchain Overview",
+    "tags": ["dytallix", "blockchain", "validator", "consensus"],
+    "style": "dark",
     "timezone": "UTC",
+    "refresh": "30s",
+    "time": {
+      "from": "now-4h",
+      "to": "now"
+    },
     "panels": [
       {
         "id": 1,
-        "title": "Block Height",
+        "title": "Block Production Rate",
         "type": "stat",
         "targets": [
           {
-            "expr": "dyt_block_height",
-            "legendFormat": "Current Height"
+            "expr": "rate(dyt_blocks_produced_total[5m])",
+            "legendFormat": "Blocks/sec"
           }
-        ]
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "blocks/sec",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.1},
+                {"color": "green", "value": 0.15}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
       },
       {
         "id": 2,
-        "title": "Transaction Rate",
-        "type": "graph",
+        "title": "Transaction Throughput",
+        "type": "timeseries",
         "targets": [
           {
-            "expr": "rate(dyt_transactions_total[5m])",
+            "expr": "rate(dyt_transactions_processed_total[1m])",
             "legendFormat": "TPS"
           }
-        ]
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "tps",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 18, "x": 6, "y": 0}
       },
       {
         "id": 3,
-        "title": "Mempool Size",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "dyt_mempool_size",
-            "legendFormat": "Pending Transactions"
-          }
-        ]
-      },
-      {
-        "id": 4,
-        "title": "Node Health",
+        "title": "Node Health Status",
         "type": "stat",
         "targets": [
           {
-            "expr": "up{job=\"dytallix-node\"}",
-            "legendFormat": "Node Status"
+            "expr": "up{job=\"dytallix-validator\"}",
+            "legendFormat": "{{instance}}"
           }
-        ]
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"options": {"0": {"text": "DOWN", "color": "red"}}},
+              {"options": {"1": {"text": "UP", "color": "green"}}}
+            ]
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Mempool Size",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dyt_mempool_size_bytes",
+            "legendFormat": "Mempool Size"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 20
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 9, "x": 6, "y": 8}
       },
       {
         "id": 5,
-        "title": "AI Risk Scoring Latency",
-        "type": "graph",
+        "title": "API Latency (P95)",
+        "type": "timeseries",
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, rate(dyt_ai_request_duration_seconds_bucket[5m]))",
+            "expr": "histogram_quantile(0.95, rate(dyt_rpc_duration_seconds_bucket[5m]))",
             "legendFormat": "P95 Latency"
           }
-        ]
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1.0}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 9, "x": 15, "y": 8}
       },
       {
         "id": 6,
-        "title": "Staking Rewards Distribution",
-        "type": "graph",
+        "title": "Consensus Height",
+        "type": "stat",
         "targets": [
           {
-            "expr": "increase(dyt_rewards_distributed_total[1h])",
-            "legendFormat": "Rewards/Hour"
+            "expr": "dyt_consensus_height",
+            "legendFormat": "Block Height"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none",
+            "decimals": 0
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 12}
+      },
+      {
+        "id": 7,
+        "title": "Validator Performance",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "dyt_validator_missed_blocks_total",
+            "legendFormat": "{{validator}}",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Value"},
+              "properties": [
+                {"id": "displayName", "value": "Missed Blocks"},
+                {"id": "custom.width", "value": 120}
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 6, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Network Resources",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 24},
+        "collapsed": false,
+        "panels": [
+          {
+            "id": 9,
+            "title": "CPU Usage",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+                "legendFormat": "CPU %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 70},
+                    {"color": "red", "value": 85}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 25}
+          },
+          {
+            "id": 10,
+            "title": "Memory Usage",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+                "legendFormat": "Memory %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 80},
+                    {"color": "red", "value": 90}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 25}
+          },
+          {
+            "id": 11,
+            "title": "Disk Usage",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+                "legendFormat": "Disk %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 85},
+                    {"color": "red", "value": 95}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 25}
+          },
+          {
+            "id": 12,
+            "title": "Network I/O",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])",
+                "legendFormat": "RX {{device}}"
+              },
+              {
+                "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\"}[5m])",
+                "legendFormat": "TX {{device}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "Bps",
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 25}
           }
         ]
       }
     ],
-    "time": {
-      "from": "now-1h",
-      "to": "now"
+    "templating": {
+      "list": [
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(up{job=\"dytallix-validator\"}, instance)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": ".*"
+        }
+      ]
     },
-    "refresh": "10s"
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "prometheus",
+          "expr": "dyt_deployment_timestamp",
+          "titleFormat": "Deployment",
+          "textFormat": "Version {{version}} deployed"
+        },
+        {
+          "name": "Alerts",
+          "datasource": "prometheus", 
+          "expr": "ALERTS{alertstate=\"firing\"}",
+          "titleFormat": "{{alertname}}",
+          "textFormat": "{{summary}}"
+        }
+      ]
+    },
+    "links": [
+      {
+        "title": "Dytallix Documentation",
+        "url": "https://docs.dytallix.io",
+        "type": "link"
+      },
+      {
+        "title": "Alert Manager",
+        "url": "/alertmanager",
+        "type": "link"
+      }
+    ]
   },
-  "overwrite": true,
-  "message": "Dytallix network monitoring dashboard - automated deployment",
-  "exported_at": "2025-09-26T00:17:14Z"
+  "meta": {
+    "type": "db",
+    "canSave": true,
+    "canEdit": true,
+    "canAdmin": true,
+    "canStar": true,
+    "slug": "dytallix-blockchain-overview",
+    "expires": "0001-01-01T00:00:00Z",
+    "created": "2024-09-28T20:30:00Z",
+    "updated": "2024-09-28T20:30:00Z",
+    "updatedBy": "admin",
+    "createdBy": "admin",
+    "version": 1
+  }
 }
