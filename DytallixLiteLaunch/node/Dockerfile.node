@@ -1,0 +1,40 @@
+# Lightweight Node.js runtime for auxiliary node services
+FROM node:18-alpine
+
+# Install dependencies for node operations
+RUN apk add --no-cache \
+    curl \
+    bash \
+    jq \
+    ca-certificates
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY . .
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S dytallix -u 1001
+
+# Set ownership
+RUN chown -R dytallix:nodejs /app
+
+USER dytallix
+
+# Expose port
+EXPOSE 3030
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3030/health || exit 1
+
+# Start the service
+CMD ["npm", "start"]
