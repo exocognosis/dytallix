@@ -1,0 +1,44 @@
+{
+  "name": "dytallix-server",
+  "version": "0.1.0",
+  "description": "Dytallix AI Oracle and Metrics Server for Testnet",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build": "echo 'No build step required for Node.js'",
+    "test": "node --test test/*.test.js",
+    "lint": "eslint src/ --fix",
+    "health": "curl -f http://localhost:8080/health || exit 1"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.0",
+    "prom-client": "^15.0.0",
+    "node-cron": "^3.0.2",
+    "axios": "^1.5.0",
+    "express-rate-limit": "^6.10.0",
+    "compression": "^1.7.4",
+    "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "dytallix",
+    "blockchain",
+    "ai-oracle",
+    "metrics",
+    "testnet"
+  ],
+  "author": "Dytallix Team",
+  "license": "Apache-2.0"
+}

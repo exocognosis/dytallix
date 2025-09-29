@@ -1,0 +1,78 @@
+version: '3.8'
+
+x-node-env: &node-env
+  DYTALLIX_CHAIN_ID: dytallix-testnet-1
+  DYTALLIX_DATA_DIR: /var/lib/dytallix/data
+  DYTALLIX_ENABLE_GOVERNANCE: "true"
+  DYTALLIX_ENABLE_STAKING: "true"
+  DYTALLIX_BLOCK_INTERVAL_MS: "6000"
+  DYTALLIX_EMPTY_BLOCKS: "true"
+  DYTALLIX_METRICS: "1"
+  DYTALLIX_METRICS_ADDR: 0.0.0.0:9464
+  DYTALLIX_GOV_MIN_DEPOSIT: "10000000"
+  DYTALLIX_GOV_DEPOSIT_PERIOD: "172800"
+  DYTALLIX_GOV_VOTING_PERIOD: "604800"
+  DYTALLIX_GOV_QUORUM_BPS: "3333"
+  DYTALLIX_GOV_THRESHOLD_BPS: "5000"
+  DYTALLIX_GOV_VETO_BPS: "3333"
+  DYTALLIX_STAKING_REWARD_RATE_BPS: "500"
+  DYTALLIX_LOG_LEVEL: info
+
+x-node-service: &node-service
+  build:
+    context: ..
+    dockerfile: node/Dockerfile
+  restart: unless-stopped
+  environment:
+    <<: *node-env
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  healthcheck:
+    test: ["CMD", "curl", "-sf", "http://localhost:26657/status"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+
+services:
+  # Primary validator and RPC node
+  node:
+    <<: *node-service
+    container_name: dytallix-node
+    volumes:
+      - node-data:/var/lib/dytallix
+      - ./genesis.json:/etc/dytallix/genesis.json:ro
+      - ./config:/etc/dytallix/config:ro
+    ports:
+      - "26657:26657"  # RPC
+      - "26656:26656"  # P2P
+      - "26658:26658"  # WebSocket
+      - "1317:1317"    # REST API
+      - "9090:9090"    # gRPC
+      - "9464:9464"    # Prometheus metrics
+    environment:
+      <<: *node-env
+      DYTALLIX_NODE_ROLE: validator
+      DYTALLIX_VALIDATOR_NAME: dytallix-testnet-validator
+      DYTALLIX_RPC_LADDR: tcp://0.0.0.0:26657
+      DYTALLIX_P2P_LADDR: tcp://0.0.0.0:26656
+      DYTALLIX_REST_LADDR: tcp://0.0.0.0:1317
+      DYTALLIX_GRPC_LADDR: 0.0.0.0:9090
+      DYTALLIX_WS_LADDR: tcp://0.0.0.0:26658
+    command: >
+      sh -c "
+        dytallix-node init dytallix-testnet-validator --chain-id dytallix-testnet-1 --home /var/lib/dytallix &&
+        cp /etc/dytallix/genesis.json /var/lib/dytallix/config/genesis.json &&
+        dytallix-node start --home /var/lib/dytallix
+      "
+
+volumes:
+  node-data:
+    driver: local
+
+networks:
+  default:
+    name: dytallix-lite-network
+    driver: bridge

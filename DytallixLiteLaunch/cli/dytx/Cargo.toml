@@ -1,0 +1,27 @@
+[package]
+name = "dytx"
+version = "0.1.0"
+edition = "2021"
+description = "Dytallix transaction CLI tool for testnet operations"
+
+[[bin]]
+name = "dytx"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+anyhow = "1.0"
+hex = "0.4"
+base64 = "0.21"
+ed25519-dalek = "2.0"
+rand = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

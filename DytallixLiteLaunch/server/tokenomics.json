@@ -1,0 +1,184 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2024-09-29T14:00:00Z",
+  "chain_id": "dytallix-testnet-1",
+  "tokens": {
+    "DGT": {
+      "symbol": "DGT",
+      "name": "Dytallix Governance Token",
+      "denom": "udgt",
+      "decimals": 6,
+      "type": "governance",
+      "total_supply": "1000000000000000",
+      "circulating_supply": "600000000000000",
+      "allocation": {
+        "treasury": {
+          "amount": "400000000000000",
+          "percentage": 40,
+          "vesting": null
+        },
+        "validators": {
+          "amount": "300000000000000", 
+          "percentage": 30,
+          "vesting": {
+            "cliff_months": 6,
+            "duration_months": 30
+          }
+        },
+        "dev_team": {
+          "amount": "150000000000000",
+          "percentage": 15,
+          "vesting": {
+            "cliff_months": 12,
+            "duration_months": 48
+          }
+        },
+        "staking_rewards": {
+          "amount": "100000000000000",
+          "percentage": 10,
+          "vesting": {
+            "cliff_months": 0,
+            "duration_months": 48
+          }
+        },
+        "ecosystem": {
+          "amount": "50000000000000",
+          "percentage": 5,
+          "vesting": {
+            "cliff_months": 0,
+            "duration_months": 60
+          }
+        }
+      }
+    },
+    "DRT": {
+      "symbol": "DRT",
+      "name": "Dytallix Reward Token",
+      "denom": "udrt",
+      "decimals": 6,
+      "type": "rewards",
+      "initial_supply": "0",
+      "max_supply": null,
+      "inflation_rate": 0.05,
+      "emission_schedule": {
+        "block_rewards": {
+          "percentage": 60,
+          "amount_per_block": "100000"
+        },
+        "staking_rewards": {
+          "percentage": 25,
+          "amount_per_block": "41666"
+        },
+        "ai_module_incentives": {
+          "percentage": 10,
+          "amount_per_block": "16666"
+        },
+        "bridge_operations": {
+          "percentage": 5,
+          "amount_per_block": "8334"
+        }
+      },
+      "burn_mechanisms": {
+        "transaction_fees": {
+          "enabled": true,
+          "burn_rate": 0.5
+        },
+        "governance_penalties": {
+          "enabled": true,
+          "burn_rate": 1.0
+        }
+      }
+    }
+  },
+  "staking": {
+    "bond_denom": "udgt",
+    "unbonding_period": "1814400s",
+    "max_validators": 100,
+    "min_self_delegation": "1000000",
+    "reward_rate": {
+      "base_rate": 0.05,
+      "max_rate": 0.20,
+      "commission_rate": 0.10
+    }
+  },
+  "governance": {
+    "voting_period": "604800s",
+    "deposit_period": "172800s", 
+    "min_deposit": [
+      {
+        "denom": "udgt",
+        "amount": "10000000"
+      }
+    ],
+    "quorum": "0.334",
+    "threshold": "0.500",
+    "veto_threshold": "0.334"
+  },
+  "emissions": {
+    "enabled": true,
+    "target_block_time": "6s",
+    "blocks_per_year": 5256000,
+    "drt_per_year": "52560000000000",
+    "distribution": {
+      "validators": 0.60,
+      "delegators": 0.25,
+      "ai_services": 0.10,
+      "bridge_ops": 0.05
+    }
+  },
+  "faucet": {
+    "enabled": true,
+    "tokens": {
+      "DGT": {
+        "amount_per_request": "1000000",
+        "cooldown_seconds": 3600,
+        "max_per_day": "10000000"
+      },
+      "DRT": {
+        "amount_per_request": "500000",
+        "cooldown_seconds": 3600,
+        "max_per_day": "5000000"
+      }
+    },
+    "rate_limits": {
+      "per_ip": {
+        "requests_per_hour": 10,
+        "requests_per_day": 50
+      },
+      "per_address": {
+        "requests_per_hour": 5,
+        "requests_per_day": 10
+      }
+    }
+  },
+  "ai_oracle": {
+    "enabled": true,
+    "reward_token": "DRT",
+    "base_reward": "10000",
+    "quality_multiplier": {
+      "min": 0.5,
+      "max": 2.0
+    },
+    "supported_models": [
+      "gpt-4",
+      "claude-3",
+      "llama-2"
+    ]
+  },
+  "bridge": {
+    "enabled": true,
+    "supported_chains": [
+      "ethereum",
+      "polygon",
+      "bsc"
+    ],
+    "fees": {
+      "base_fee": "1000",
+      "percentage_fee": 0.001
+    },
+    "limits": {
+      "min_transfer": "1000000",
+      "max_transfer": "100000000000000"
+    }
+  }
+}

@@ -1,0 +1,274 @@
+{
+  "chain_id": "dytallix-testnet-1",
+  "genesis_time": "2024-09-29T14:00:00.000000000Z",
+  "initial_height": "1",
+  "governance": {
+    "deposit_period": "172800",
+    "voting_period": "604800", 
+    "min_deposit_udgt": "10000000",
+    "quorum_bps": "3333",
+    "threshold_bps": "5000",
+    "veto_threshold_bps": "3333"
+  },
+  "emission": {
+    "initial_annual_inflation_rate_bps": "500",
+    "proposal_target_annual_inflation_rate_bps": "1000"
+  },
+  "tokens": {
+    "DGT": {
+      "denom": "udgt",
+      "decimals": 6,
+      "symbol": "DGT",
+      "name": "Dytallix Governance Token",
+      "total_supply": "1000000000000000",
+      "role": "governance"
+    },
+    "DRT": {
+      "denom": "udrt", 
+      "decimals": 6,
+      "symbol": "DRT",
+      "name": "Dytallix Reward Token",
+      "initial_supply": "0",
+      "role": "rewards",
+      "inflationary": true
+    }
+  },
+  "accounts": [
+    {
+      "name": "treasury",
+      "address": "dytallix1treasury1234567890123456789012345678",
+      "roles": ["treasury"],
+      "balances": {
+        "udgt": "400000000000000",
+        "udrt": "0"
+      }
+    },
+    {
+      "name": "validator1",
+      "address": "dytallix1valoper000000000001234567890123456789",
+      "roles": ["validator"],
+      "balances": {
+        "udgt": "100000000000000",
+        "udrt": "0"
+      }
+    },
+    {
+      "name": "validator2", 
+      "address": "dytallix1valoper000000000002234567890123456789",
+      "roles": ["validator"],
+      "balances": {
+        "udgt": "100000000000000",
+        "udrt": "0"
+      }
+    },
+    {
+      "name": "validator3",
+      "address": "dytallix1valoper000000000003234567890123456789", 
+      "roles": ["validator"],
+      "balances": {
+        "udgt": "100000000000000",
+        "udrt": "0"
+      }
+    },
+    {
+      "name": "faucet",
+      "address": "dytallix1faucet1234567890123456789012345678901",
+      "roles": ["faucet"],
+      "balances": {
+        "udgt": "50000000000000",
+        "udrt": "50000000000000"
+      }
+    },
+    {
+      "name": "dev_team",
+      "address": "dytallix1devteam123456789012345678901234567890",
+      "roles": ["dev"],
+      "balances": {
+        "udgt": "150000000000000", 
+        "udrt": "0"
+      },
+      "vesting": {
+        "cliff_duration": "31536000",
+        "vesting_duration": "126144000"
+      }
+    },
+    {
+      "name": "staking_rewards",
+      "address": "dytallix1rewards1234567890123456789012345678901",
+      "roles": ["staking"],
+      "balances": {
+        "udgt": "250000000000000",
+        "udrt": "0" 
+      },
+      "vesting": {
+        "cliff_duration": "0",
+        "vesting_duration": "126144000"
+      }
+    },
+    {
+      "name": "ecosystem",
+      "address": "dytallix1ecosystem123456789012345678901234567890",
+      "roles": ["ecosystem"],
+      "balances": {
+        "udgt": "100000000000000",
+        "udrt": "0"
+      },
+      "vesting": {
+        "cliff_duration": "0", 
+        "vesting_duration": "157680000"
+      }
+    }
+  ],
+  "validators": [
+    {
+      "address": "dytallix1valoper000000000001234567890123456789",
+      "pubkey": {
+        "type": "tendermint/PubKeyEd25519",
+        "value": "validator1_pubkey_placeholder"
+      },
+      "power": "100000000",
+      "name": "validator1"
+    },
+    {
+      "address": "dytallix1valoper000000000002234567890123456789", 
+      "pubkey": {
+        "type": "tendermint/PubKeyEd25519",
+        "value": "validator2_pubkey_placeholder"
+      },
+      "power": "100000000",
+      "name": "validator2"
+    },
+    {
+      "address": "dytallix1valoper000000000003234567890123456789",
+      "pubkey": {
+        "type": "tendermint/PubKeyEd25519", 
+        "value": "validator3_pubkey_placeholder"
+      },
+      "power": "100000000",
+      "name": "validator3"
+    }
+  ],
+  "consensus_params": {
+    "block": {
+      "max_bytes": "22020096",
+      "max_gas": "1000000000",
+      "time_iota_ms": "1000"
+    },
+    "evidence": {
+      "max_age_num_blocks": "100000",
+      "max_age_duration": "172800000000000",
+      "max_bytes": "1048576"
+    },
+    "validator": {
+      "pub_key_types": ["ed25519"]
+    }
+  },
+  "app_hash": "",
+  "app_state": {
+    "bank": {
+      "params": {
+        "send_enabled": [
+          {
+            "denom": "udgt",
+            "enabled": true
+          },
+          {
+            "denom": "udrt", 
+            "enabled": true
+          }
+        ],
+        "default_send_enabled": true
+      },
+      "balances": [],
+      "supply": [
+        {
+          "denom": "udgt",
+          "amount": "1000000000000000"
+        },
+        {
+          "denom": "udrt",
+          "amount": "0"
+        }
+      ],
+      "denom_metadata": [
+        {
+          "description": "Dytallix Governance Token",
+          "denom_units": [
+            {
+              "denom": "udgt",
+              "exponent": 0,
+              "aliases": ["microdgt"]
+            },
+            {
+              "denom": "DGT", 
+              "exponent": 6,
+              "aliases": ["dgt"]
+            }
+          ],
+          "base": "udgt",
+          "display": "DGT",
+          "name": "Dytallix Governance Token",
+          "symbol": "DGT"
+        },
+        {
+          "description": "Dytallix Reward Token",
+          "denom_units": [
+            {
+              "denom": "udrt",
+              "exponent": 0,
+              "aliases": ["microdrt"]
+            },
+            {
+              "denom": "DRT",
+              "exponent": 6,
+              "aliases": ["drt"]
+            }
+          ],
+          "base": "udrt",
+          "display": "DRT", 
+          "name": "Dytallix Reward Token",
+          "symbol": "DRT"
+        }
+      ]
+    },
+    "staking": {
+      "params": {
+        "unbonding_time": "1814400s",
+        "max_validators": 100,
+        "max_entries": 7,
+        "historical_entries": 10000,
+        "bond_denom": "udgt"
+      },
+      "last_total_power": "0",
+      "last_validator_powers": [],
+      "validators": [],
+      "delegations": [],
+      "unbonding_delegations": [],
+      "redelegations": [],
+      "exported": false
+    },
+    "gov": {
+      "starting_proposal_id": "1",
+      "deposits": [],
+      "votes": [],
+      "proposals": [],
+      "deposit_params": {
+        "min_deposit": [
+          {
+            "denom": "udgt",
+            "amount": "10000000"
+          }
+        ],
+        "max_deposit_period": "172800s"
+      },
+      "voting_params": {
+        "voting_period": "604800s"
+      },
+      "tally_params": {
+        "quorum": "0.334000000000000000",
+        "threshold": "0.500000000000000000", 
+        "veto_threshold": "0.334000000000000000"
+      }
+    }
+  }
+}
