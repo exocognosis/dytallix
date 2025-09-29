@@ -1,0 +1,28 @@
+# Dytallix Lean API (server/index.js) container for lite stack
+FROM node:20-alpine
+
+# Install minimal tools
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy package manifests from lean launch (includes server deps)
+COPY dytallix-lean-launch/package*.json ./
+
+# Install all deps (server uses some dev deps like ws)
+RUN npm ci && npm cache clean --force
+
+# Copy required source for the API server
+COPY dytallix-lean-launch/server ./server
+COPY dytallix-lean-launch/backend ./backend
+COPY dytallix-lean-launch/src ./src
+
+# Ensure logs dir exists
+RUN mkdir -p server/logs
+
+ENV NODE_ENV=production
+EXPOSE 8787
+
+HEALTHCHECK --interval=15s --timeout=5s --retries=20 CMD curl -sf http://localhost:8787/api/status || exit 1
+
+CMD ["node", "server/index.js"]

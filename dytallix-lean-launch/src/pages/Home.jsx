@@ -31,7 +31,7 @@ const Home = () => {
               Quantum-Secure. AI-Enhanced. Future-Ready.
             </h1>
             <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 0', textAlign: 'center' }}>
-              Dytallix is an L1 blockchain platform and post-quantum cryptocurrency, built from the ground up
+              Dytallix is an open source L1 blockchain platform and post-quantum cryptocurrency, built from the ground up
             </p>
             <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 36px', textAlign: 'center' }}>
               to resist quantum attacks and support secure, intelligent applications.
@@ -135,7 +135,7 @@ const Home = () => {
                   {[
                     'Zero-knowledge privacy',
                     'Multi-signature protection',
-                    'Post-quantum secutity',
+                    'Post-quantum security',
                     'Advanced threat monitoring',
                   ].map((t, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
