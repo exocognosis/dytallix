@@ -20,8 +20,8 @@ x-node-env: &node-env
 
 x-node-service: &node-service
   build:
-    context: ..
-    dockerfile: node/Dockerfile
+    context: ../..
+    dockerfile: DytallixLiteLaunch/node/Dockerfile
   restart: unless-stopped
   environment:
     <<: *node-env
@@ -31,7 +31,7 @@ x-node-service: &node-service
       max-size: "10m"
       max-file: "3"
   healthcheck:
-    test: ["CMD", "curl", "-sf", "http://localhost:26657/status"]
+    test: ["CMD", "curl", "-sf", "http://localhost:3030/health"]
     interval: 30s
     timeout: 10s
     retries: 5
@@ -46,27 +46,12 @@ services:
       - ./genesis.json:/etc/dytallix/genesis.json:ro
       - ./config:/etc/dytallix/config:ro
     ports:
-      - "26657:26657"  # RPC
-      - "26656:26656"  # P2P
-      - "26658:26658"  # WebSocket
-      - "1317:1317"    # REST API
-      - "9090:9090"    # gRPC
-      - "9464:9464"    # Prometheus metrics
+      - "3030:3030"  # Node HTTP API
     environment:
       <<: *node-env
       DYTALLIX_NODE_ROLE: validator
       DYTALLIX_VALIDATOR_NAME: dytallix-testnet-validator
-      DYTALLIX_RPC_LADDR: tcp://0.0.0.0:26657
-      DYTALLIX_P2P_LADDR: tcp://0.0.0.0:26656
-      DYTALLIX_REST_LADDR: tcp://0.0.0.0:1317
-      DYTALLIX_GRPC_LADDR: 0.0.0.0:9090
-      DYTALLIX_WS_LADDR: tcp://0.0.0.0:26658
-    command: >
-      sh -c "
-        dytallix-node init dytallix-testnet-validator --chain-id dytallix-testnet-1 --home /var/lib/dytallix &&
-        cp /etc/dytallix/genesis.json /var/lib/dytallix/config/genesis.json &&
-        dytallix-node start --home /var/lib/dytallix
-      "
+    command: ["dytallix"]
 
 volumes:
   node-data:
