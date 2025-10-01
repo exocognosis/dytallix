@@ -1,6 +1,7 @@
 use crate::rpc::errors::ApiError;
 use crate::runtime::bridge;
 use crate::runtime::emission::EmissionEngine;
+use crate::runtime::fee_burn::FeeBurnEngine;
 use crate::runtime::governance::{GovernanceModule, ProposalType};
 #[cfg(feature = "oracle")]
 use crate::runtime::oracle::current_timestamp;
@@ -67,6 +68,7 @@ pub struct RpcContext {
     pub emission: Arc<Mutex<EmissionEngine>>,
     pub governance: Arc<Mutex<GovernanceModule>>,
     pub staking: Arc<Mutex<StakingModule>>,
+    pub fee_burn: Arc<Mutex<FeeBurnEngine>>,
     pub metrics: Arc<crate::metrics::Metrics>,
     pub features: FeatureFlags,
     /// Minimal in-memory WASM contract state for JSON-RPC facade (legacy)

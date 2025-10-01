@@ -1,4 +1,5 @@
 use dytallix_lean_node::rpc::{FeatureFlags, RpcContext};
+use dytallix_lean_node::runtime::fee_burn::FeeBurnEngine;
 use dytallix_lean_node::runtime::governance::GovernanceModule;
 use dytallix_lean_node::runtime::staking::StakingModule;
 use dytallix_lean_node::state::State;
@@ -55,6 +56,7 @@ async fn governance_rpc_happy_path_test() {
         governance: governance.clone(),
         staking: staking.clone(),
         metrics: Arc::new(dytallix_lean_node::metrics::Metrics::new().unwrap()),
+        fee_burn: Arc::new(Mutex::new(FeeBurnEngine::new())),
         features: FeatureFlags {
             governance: true,
             staking: true,

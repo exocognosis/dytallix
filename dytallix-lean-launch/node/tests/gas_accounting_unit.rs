@@ -31,7 +31,7 @@ fn test_upfront_fee_deduction_success() {
         .with_gas(25_000, 1_000)
         .with_signature("sig");
 
-    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
 
     assert!(result.success);
     assert_eq!(result.receipt.status, TxStatus::Success);
@@ -57,7 +57,7 @@ fn test_upfront_fee_deduction_failure_insufficient() {
         .with_gas(25_000, 1_000)
         .with_signature("sig");
 
-    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
 
     assert!(!result.success);
     assert_eq!(result.receipt.status, TxStatus::Failed);
@@ -90,7 +90,7 @@ fn test_oom_full_revert() {
     let initial_alice_balance = state.balance_of("alice", "udgt");
     let initial_bob_balance = state.balance_of("bob", "udgt");
 
-    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
 
     // Transaction should fail due to out of gas
     assert!(!result.success);
@@ -119,7 +119,7 @@ fn test_receipt_fields() {
         .with_gas(30_000, 500)
         .with_signature("signature_data");
 
-    let result = execute_transaction(&tx, &mut state, 150, 3, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 150, 3, &gas_schedule, None);
 
     // Check all receipt fields are properly set
     let receipt = &result.receipt;
@@ -158,7 +158,7 @@ fn test_legacy_transaction_compatibility() {
     let tx = Transaction::new("legacy_hash", "alice", "bob", 1_000, 5_000, 0, None)
         .with_signature("sig");
 
-    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
 
     assert!(result.success);
     assert_eq!(result.receipt.gas_limit, 5_000); // fee used as gas_limit
@@ -194,7 +194,7 @@ fn test_invalid_nonce_handling() {
         .with_gas(25_000, 1_000)
         .with_signature("sig");
 
-    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
 
     assert!(!result.success);
     assert_eq!(result.receipt.status, TxStatus::Failed);

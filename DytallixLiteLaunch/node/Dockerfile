@@ -22,9 +22,9 @@ WORKDIR /workspace
 # (workspace members include interoperability, cli, explorer, etc.)
 COPY . .
 
-# Build the Dytallix node binary from blockchain-core crate
+# Build the Dytallix blockchain node binary from blockchain-core crate
 WORKDIR /workspace
-RUN LIBCLANG_PATH=$(llvm-config --libdir) cargo build --release --bin dytallix || (echo "Rust build failed. Ensure workspace crates exist." && exit 1)
+RUN LIBCLANG_PATH=$(llvm-config --libdir) cargo build --release -p dytallix-node --bin dytallix-node || (echo "Rust build failed. Ensure workspace crates exist." && exit 1)
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1001 dytallix
 
 # Copy binary from builder
-COPY --from=builder /workspace/target/release/dytallix /usr/local/bin/dytallix
+COPY --from=builder /workspace/target/release/dytallix-node /usr/local/bin/dytallix-node
 
 # Copy configuration from the DytallixLiteLaunch package (kept for compatibility)
 COPY DytallixLiteLaunch/node/genesis.json /etc/dytallix/genesis.json
@@ -62,5 +62,5 @@ EXPOSE 3030
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3030/health || exit 1
 
-# Default command simply runs the node (no Tendermint-style args)
-CMD ["dytallix"]
+# Default command runs the blockchain node
+CMD ["dytallix-node"]

@@ -6,6 +6,7 @@ use dytallix_lean_node::mempool::Mempool;
 use dytallix_lean_node::metrics::Metrics;
 use dytallix_lean_node::rpc::RpcContext;
 use dytallix_lean_node::runtime::emission::EmissionEngine;
+use dytallix_lean_node::runtime::fee_burn::FeeBurnEngine;
 use dytallix_lean_node::runtime::governance::GovernanceModule;
 use dytallix_lean_node::runtime::staking::StakingModule;
 use dytallix_lean_node::state::State;
@@ -52,6 +53,7 @@ async fn test_balance_endpoint() {
         governance,
         staking,
         metrics,
+        fee_burn: Arc::new(Mutex::new(FeeBurnEngine::new())),
         features: dytallix_lean_node::rpc::FeatureFlags {
             governance: true,
             staking: true,

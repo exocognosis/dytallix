@@ -46,8 +46,8 @@ fn test_block_replay_determinism() {
     let mut results2 = Vec::new();
 
     for (i, tx) in txs.iter().enumerate() {
-        let result1 = execute_transaction(tx, &mut state1, 100, i as u32, &gas_schedule);
-        let result2 = execute_transaction(tx, &mut state2, 100, i as u32, &gas_schedule);
+        let result1 = execute_transaction(tx, &mut state1, 100, i as u32, &gas_schedule, None);
+        let result2 = execute_transaction(tx, &mut state2, 100, i as u32, &gas_schedule, None);
 
         results1.push(result1);
         results2.push(result2);
@@ -123,7 +123,7 @@ fn test_multiple_txs_mixed_success_failure() {
     let mut results = Vec::new();
 
     for (i, tx) in transactions.iter().enumerate() {
-        let result = execute_transaction(tx, &mut state, 100, i as u32, &gas_schedule);
+        let result = execute_transaction(tx, &mut state, 100, i as u32, &gas_schedule, None);
         results.push(result);
     }
 
@@ -189,8 +189,8 @@ fn test_deterministic_gas_consumption() {
         .with_signature("sig");
 
         // Execute multiple times
-        let result1 = execute_transaction(&tx, &mut state1, 100, 0, &gas_schedule);
-        let result2 = execute_transaction(&tx, &mut state2, 100, 0, &gas_schedule);
+        let result1 = execute_transaction(&tx, &mut state1, 100, 0, &gas_schedule, None);
+        let result2 = execute_transaction(&tx, &mut state2, 100, 0, &gas_schedule, None);
 
         // Results must be identical
         assert_eq!(result1.success, result2.success);
@@ -225,7 +225,7 @@ fn test_execution_order_determinism() {
 
     let mut results1 = Vec::new();
     for (i, tx) in transactions.iter().enumerate() {
-        let result = execute_transaction(tx, &mut state1, 100, i as u32, &gas_schedule);
+        let result = execute_transaction(tx, &mut state1, 100, i as u32, &gas_schedule, None);
         results1.push(result);
     }
 
@@ -237,7 +237,7 @@ fn test_execution_order_determinism() {
 
     let mut results2 = Vec::new();
     for (i, tx) in transactions.iter().enumerate() {
-        let result = execute_transaction(tx, &mut state2, 100, i as u32, &gas_schedule);
+        let result = execute_transaction(tx, &mut state2, 100, i as u32, &gas_schedule, None);
         results2.push(result);
     }
 
@@ -276,7 +276,7 @@ fn test_state_isolation_between_transactions() {
         .with_signature("sig");
 
     let initial_balance = state.balance_of("alice", "udgt");
-    let result_fail = execute_transaction(&tx_fail, &mut state, 100, 0, &gas_schedule);
+    let result_fail = execute_transaction(&tx_fail, &mut state, 100, 0, &gas_schedule, None);
     assert!(!result_fail.success);
 
     // Bob should not have received any money due to revert
@@ -291,7 +291,7 @@ fn test_state_isolation_between_transactions() {
         .with_gas(25_000, 1)
         .with_signature("sig");
 
-    let result_success = execute_transaction(&tx_success, &mut state, 100, 1, &gas_schedule);
+    let result_success = execute_transaction(&tx_success, &mut state, 100, 1, &gas_schedule, None);
     assert!(result_success.success);
 
     // Now bob should have received the money

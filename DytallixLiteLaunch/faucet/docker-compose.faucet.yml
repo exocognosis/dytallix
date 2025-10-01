@@ -13,8 +13,8 @@ services:
       - FAUCET_HOST=0.0.0.0
       - FAUCET_PORT=8787
       - CHAIN_ID=dytallix-testnet-1
-      - NODE_RPC_URL=http://node:26657
-      - NODE_REST_URL=http://node:1317
+      - NODE_RPC_URL=http://dytallix-node:3030
+      - NODE_REST_URL=http://dytallix-node:3030
       - FAUCET_DGT_AMOUNT=1000000
       - FAUCET_DRT_AMOUNT=500000
       - RATE_LIMIT_PER_IP=10
@@ -26,8 +26,6 @@ services:
     networks:
       - dytallix-lite-network
     restart: unless-stopped
-    depends_on:
-      - node
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8787/health"]
       interval: 30s

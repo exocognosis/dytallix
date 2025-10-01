@@ -17,6 +17,8 @@ x-node-env: &node-env
   DYTALLIX_GOV_VETO_BPS: "3333"
   DYTALLIX_STAKING_REWARD_RATE_BPS: "500"
   DYTALLIX_LOG_LEVEL: info
+  # Enable API runtime event mocks so the dashboard shows live blocks via websocket
+  RUNTIME_MOCKS: "1"
 
 x-node-service: &node-service
   build:
@@ -47,11 +49,11 @@ services:
       - ./config:/etc/dytallix/config:ro
     ports:
       - "3030:3030"  # Node HTTP API
+      - "9464:9464"  # Prometheus metrics (if enabled)
     environment:
       <<: *node-env
       DYTALLIX_NODE_ROLE: validator
       DYTALLIX_VALIDATOR_NAME: dytallix-testnet-validator
-    command: ["dytallix"]
 
 volumes:
   node-data:

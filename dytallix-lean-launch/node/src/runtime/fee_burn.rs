@@ -79,7 +79,7 @@ impl FeeBurnEngine {
         tx_hash: String,
         block_height: u64,
         fee_paid: u128,
-        state: &mut State,
+        _state: &mut State,
     ) -> Result<Option<FeeBurnEvent>, String> {
         // Check if burning is enabled
         if !self.config.enabled {

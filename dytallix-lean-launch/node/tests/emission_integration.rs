@@ -4,8 +4,9 @@ use axum::{
 };
 use dytallix_lean_node::{
     mempool::Mempool, rpc, runtime::emission::EmissionEngine,
-    runtime::governance::GovernanceModule, runtime::staking::StakingModule, state::State,
-    storage::blocks::TpsWindow, storage::state::Storage, ws::server::WsHub,
+    runtime::fee_burn::FeeBurnEngine, runtime::governance::GovernanceModule,
+    runtime::staking::StakingModule, state::State, storage::blocks::TpsWindow,
+    storage::state::Storage, ws::server::WsHub,
 };
 use serde_json::json;
 use std::sync::{Arc, Mutex};
@@ -40,6 +41,7 @@ fn app() -> (Router, dytallix_lean_node::rpc::RpcContext) {
         governance,
         staking,
         metrics,
+        fee_burn: Arc::new(Mutex::new(FeeBurnEngine::new())),
         features: dytallix_lean_node::rpc::FeatureFlags {
             governance: true,
             staking: true,

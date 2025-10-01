@@ -31,7 +31,7 @@ fn test_receipt_json_serialization() {
         .with_gas(30_000, 1_200)
         .with_signature("signature_data");
 
-    let result = execute_transaction(&tx, &mut state, 150, 2, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 150, 2, &gas_schedule, None);
     let receipt = result.receipt;
 
     // Serialize to JSON
@@ -114,7 +114,7 @@ fn test_gas_fields_in_failed_transaction() {
         .with_gas(100, 2_000)
         .with_signature("sig");
 
-    let result = execute_transaction(&tx, &mut state, 200, 1, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 200, 1, &gas_schedule, None);
     let receipt = result.receipt;
 
     assert!(!result.success);
@@ -154,7 +154,7 @@ fn test_legacy_transaction_json_compatibility() {
         Some("sig".to_string()),
     );
 
-    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
     let receipt = result.receipt;
 
     // Should be treated as gas_limit=fee, gas_price=1
@@ -179,7 +179,7 @@ fn test_fee_charged_calculation() {
         .with_gas(25_000, 1_500)
         .with_signature("sig");
 
-    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
     let receipt = result.receipt;
 
     // Calculate expected fee
@@ -196,7 +196,7 @@ fn test_fee_charged_calculation() {
         .with_gas(50_000, 2_000)
         .with_signature("sig");
 
-    let result_fail = execute_transaction(&tx_fail, &mut state, 100, 1, &gas_schedule);
+    let result_fail = execute_transaction(&tx_fail, &mut state, 100, 1, &gas_schedule, None);
     let receipt_fail = result_fail.receipt;
 
     assert!(!result_fail.success);
@@ -220,7 +220,7 @@ fn test_receipt_version_consistency() {
     ];
 
     for (i, tx) in transactions.iter().enumerate() {
-        let result = execute_transaction(tx, &mut state, 100, i as u32, &gas_schedule);
+        let result = execute_transaction(tx, &mut state, 100, i as u32, &gas_schedule, None);
         let receipt = result.receipt;
 
         // All receipts must have the same version
@@ -243,7 +243,7 @@ fn test_json_schema_validation() {
         .with_gas(25_000, 1_000)
         .with_signature("sig");
 
-    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule);
+    let result = execute_transaction(&tx, &mut state, 100, 0, &gas_schedule, None);
     let receipt = result.receipt;
 
     let json_value = serde_json::to_value(&receipt).unwrap();

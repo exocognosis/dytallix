@@ -6,6 +6,7 @@ use base64::Engine;
 use dytallix_lean_node::mempool::Mempool;
 use dytallix_lean_node::rpc::RpcContext;
 use dytallix_lean_node::runtime::bridge::ensure_bridge_validators;
+use dytallix_lean_node::runtime::fee_burn::FeeBurnEngine;
 use dytallix_lean_node::state::State;
 use dytallix_lean_node::storage::blocks::TpsWindow;
 use dytallix_lean_node::storage::bridge::BridgeValidator;
@@ -68,6 +69,7 @@ fn build_ctx(num_validators: usize) -> (RpcContext, Vec<Keypair>) {
         governance,
         staking,
         metrics,
+        fee_burn: Arc::new(Mutex::new(FeeBurnEngine::new())),
         features: dytallix_lean_node::rpc::FeatureFlags {
             governance: true,
             staking: true,

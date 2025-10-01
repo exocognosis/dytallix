@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
+const NODE_API = import.meta.env.VITE_NODE_API_URL || 'http://localhost:3030';
+const SERVER_API = import.meta.env.VITE_SERVER_URL || 'http://localhost:8080';
+
 const Dashboard = () => {
   const [metrics, setMetrics] = useState({
     network: {
       status: 'Online',
       blockHeight: 0,
-      validators: 3,
+      validators: 1,
       blockTime: '6s'
     },
     tokens: {
@@ -28,33 +31,65 @@ const Dashboard = () => {
   const [recentBlocks, setRecentBlocks] = useState([]);
 
   useEffect(() => {
+    let ws;
+
     const fetchMetrics = async () => {
       try {
-        // Simulate API calls
-        const networkResponse = await fetch('http://localhost:26657/status').catch(() => null);
-        const metricsResponse = await fetch('http://localhost:8080/metrics/json').catch(() => null);
-        
-        // Update with real data if available, otherwise use mock data
-        if (networkResponse && networkResponse.ok) {
-          const networkData = await networkResponse.json();
-          setMetrics(prev => ({
+        const [statusRes, statsRes, metricsRes] = await Promise.all([
+          // /status is optional on the Rust node; ignore failures
+          fetch(`${NODE_API}/status`).catch(() => null),
+          fetch(`${NODE_API}/stats`).catch(() => null),
+          fetch(`${SERVER_API}/metrics/json`).catch(() => null),
+        ]);
+
+        if (statsRes && statsRes.ok) {
+          const stats = await statsRes.json();
+          // Stats endpoint returns { success, data }
+          const s = stats.data || stats; // tolerate either shape
+          setMetrics((prev) => ({
             ...prev,
             network: {
               ...prev.network,
-              blockHeight: parseInt(networkData.result?.sync_info?.latest_block_height || 12345)
-            }
+              blockHeight: s.height ?? prev.network.blockHeight,
+              validators: s.active_validators ?? prev.network.validators,
+            },
+          }));
+        } else if (statusRes && statusRes.ok) {
+          const status = await statusRes.json();
+          setMetrics((prev) => ({
+            ...prev,
+            network: {
+              ...prev.network,
+              blockHeight: status.latest_height ?? status.height ?? prev.network.blockHeight,
+            },
           }));
         }
 
-        if (metricsResponse && metricsResponse.ok) {
-          const metricsData = await metricsResponse.json();
-          setMetrics(prev => ({
+        if (metricsRes && metricsRes.ok) {
+          const m = await metricsRes.json();
+          setMetrics((prev) => ({
             ...prev,
             oracle: {
-              totalRequests: metricsData.oracle?.total_requests || 0,
-              averageResponseTime: metricsData.oracle?.average_response_time_ms || 0,
-              successRate: metricsData.oracle?.total_errors === 0 ? '100%' : '99%'
-            }
+              totalRequests: m.oracle?.total_requests || 0,
+              averageResponseTime: m.oracle?.average_response_time_ms || 0,
+              successRate: m.oracle?.total_errors === 0 ? '100%' : '99%',
+            },
+            tokens: m.tokens
+              ? {
+                  DGT: {
+                    totalSupply: m.tokens.DGT?.totalSupply || prev.tokens.DGT.totalSupply,
+                    circulatingSupply:
+                      m.tokens.DGT?.circulatingSupply || prev.tokens.DGT.circulatingSupply,
+                  },
+                  DRT: {
+                    totalSupply: prev.tokens.DRT.totalSupply,
+                    inflationRate:
+                      m.tokens.DRT?.inflationRate !== undefined
+                        ? `${m.tokens.DRT.inflationRate * 100}%`
+                        : prev.tokens.DRT.inflationRate,
+                  },
+                }
+              : prev.tokens,
           }));
         }
       } catch (error) {
@@ -62,34 +97,74 @@ const Dashboard = () => {
       }
     };
 
-    // Generate mock recent blocks
-    const generateMockBlocks = () => {
-      const blocks = [];
-      const now = Date.now();
-      
-      for (let i = 0; i < 10; i++) {
-        blocks.push({
-          height: 12345 - i,
-          hash: `0x${Math.random().toString(16).substr(2, 16)}`,
-          timestamp: new Date(now - i * 6000).toISOString(),
-          txCount: Math.floor(Math.random() * 20),
-          proposer: `validator${(i % 3) + 1}`
-        });
+    const fetchRecentBlocks = async () => {
+      try {
+        const res = await fetch(`${NODE_API}/blocks?limit=10`).catch(() => null);
+        if (res && res.ok) {
+          const body = await res.json();
+          // Node returns { success, data: [{ number, hash, timestamp, tx_count }] }
+          const rows = body.data || body.blocks || [];
+          const blocks = rows.map((b) => ({
+            height: b.number ?? b.height,
+            hash: b.hash,
+            timestamp: (b.timestamp && Number(b.timestamp)) || Date.now(),
+            txCount: b.tx_count ?? (Array.isArray(b.txs) ? b.txs.length : 0),
+            proposer: 'validator1',
+          }));
+          setRecentBlocks(blocks);
+        }
+      } catch (_) {
+        // ignore
       }
-      
-      setRecentBlocks(blocks);
+    };
+
+    const connectWs = () => {
+      try {
+        ws = new WebSocket(NODE_API.replace('http', 'ws') + '/ws');
+        ws.onmessage = (evt) => {
+          try {
+            const msg = JSON.parse(evt.data);
+            // Shape: { message_type: 'new_block', data: { number, hash, timestamp, transactions: [] } }
+            const type = msg.message_type || msg.type;
+            if (type === 'new_block') {
+              const d = msg.data || msg;
+              setMetrics((prev) => ({
+                ...prev,
+                network: {
+                  ...prev.network,
+                  blockHeight: d.number ?? d.height ?? prev.network.blockHeight + 1,
+                },
+              }));
+              setRecentBlocks((prev) => [
+                {
+                  height: d.number ?? d.height,
+                  hash: d.hash,
+                  timestamp: (d.timestamp && Number(d.timestamp)) || Date.now(),
+                  txCount: Array.isArray(d.transactions) ? d.transactions.length : 0,
+                  proposer: 'validator1',
+                },
+                ...prev.slice(0, 9),
+              ]);
+            }
+          } catch (_) {}
+        };
+        ws.onerror = () => {};
+      } catch (_) {}
     };
 
     fetchMetrics();
-    generateMockBlocks();
-    
-    // Update every 30 seconds
+    fetchRecentBlocks();
+    connectWs();
+
     const interval = setInterval(() => {
       fetchMetrics();
-      generateMockBlocks();
-    }, 30000);
+      fetchRecentBlocks();
+    }, Number(import.meta.env.VITE_METRICS_REFRESH_INTERVAL) || 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (ws) ws.close();
+    };
   }, []);
 
   return (

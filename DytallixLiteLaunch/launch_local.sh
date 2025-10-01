@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch DytallixLiteLaunch locally (node + faucet)
+# Launch DytallixLiteLaunch locally (node only, Rust API)
 set -euo pipefail
 
 # Colors
@@ -52,49 +52,44 @@ create_env_if_missing "$FAUCET_DIR"
 
 # Start blockchain node
 if [[ -f "$NODE_DIR/docker-compose.yml" ]]; then
-  info "Starting Dytallix node..."
-  (cd "$NODE_DIR" && "${COMPOSE_CMD[@]}" up -d)
+  info "Starting Dytallix node (Rust API on :3030)..."
+  (cd "$NODE_DIR" && "${COMPOSE_CMD[@]}" up -d --build)
 else
   error "Node compose file not found at $NODE_DIR/docker-compose.yml"
   exit 1
 fi
 
-# Wait for node RPC to come up
-info "Waiting for node RPC (http://localhost:26657/status)..."
+# Wait for node API to come up
+API_URL="http://localhost:3030/health"
+info "Waiting for node API ($API_URL)..."
 READY=0
 for i in {1..30}; do
-  if curl -sf "http://localhost:26657/status" >/dev/null 2>&1; then
+  if curl -sf "$API_URL" >/dev/null 2>&1; then
     READY=1
     break
   fi
   sleep 2
-  [[ $i -eq 10 ]] && warn "Still waiting for node..."
+  [[ $i -eq 10 ]] && warn "Still waiting for node API..."
 done
 if [[ $READY -eq 1 ]]; then
-  success "Node is responding"
+  success "Node API is responding"
 else
-  warn "Node is not responding yet; continuing"
+  warn "Node API is not responding yet; continuing"
 fi
 
-# Start faucet if available
+# Faucet currently expects Tendermint ports (26657/1317); skip for Rust API mode
 if [[ -f "$FAUCET_DIR/docker-compose.faucet.yml" ]]; then
-  info "Starting faucet..."
-  (cd "$FAUCET_DIR" && "${COMPOSE_CMD[@]}" -f docker-compose.faucet.yml up -d)
-else
-  warn "Faucet compose not found; skipping"
+  warn "Skipping faucet start: requires Tendermint RPC/REST (26657/1317) not provided by Rust API node"
 fi
 
 cat <<EOF
-${GREEN}DytallixLiteLaunch is starting${NC}
+${GREEN}DytallixLiteLaunch (Rust API mode) is starting${NC}
 
 Endpoints:
-  - Node RPC:           http://localhost:26657
-  - REST API (node):    http://localhost:1317
-  - gRPC (node):        localhost:9090
-  - Prometheus metrics: http://localhost:9464
-  - Faucet:             http://localhost:8787 (if enabled)
+  - Node HTTP API:      http://localhost:3030
+  - Health:             http://localhost:3030/health
 
 Useful:
   - View node logs: (cd "$NODE_DIR" && ${COMPOSE_CMD[*]} logs -f)
-  - Stop services:  (cd "$NODE_DIR" && ${COMPOSE_CMD[*]} down) && (cd "$FAUCET_DIR" && ${COMPOSE_CMD[*]} -f docker-compose.faucet.yml down)
+  - Stop services:  (cd "$NODE_DIR" && ${COMPOSE_CMD[*]} down)
 EOF

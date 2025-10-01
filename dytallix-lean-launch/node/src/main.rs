@@ -20,6 +20,7 @@ use dytallix_lean_node::mempool::Mempool;
 use dytallix_lean_node::metrics::{parse_metrics_config, MetricsServer};
 use dytallix_lean_node::rpc::{self, RpcContext};
 use dytallix_lean_node::runtime::bridge; // import bridge module for validator init
+use dytallix_lean_node::runtime::fee_burn::FeeBurnEngine;
 use dytallix_lean_node::runtime::emission::EmissionEngine;
 use dytallix_lean_node::runtime::governance::GovernanceConfig;
 use dytallix_lean_node::runtime::governance::GovernanceModule;
@@ -252,6 +253,7 @@ async fn main() -> anyhow::Result<()> {
     println!("GovernanceConfig:min_deposit={} deposit_period={} voting_period={} quorum_bps={} threshold_bps={} veto_bps={} ", gov_cfg.min_deposit, gov_cfg.deposit_period, gov_cfg.voting_period, gov_cfg.quorum, gov_cfg.threshold, gov_cfg.veto_threshold);
 
     let mempool = Arc::new(Mutex::new(Mempool::new()));
+    let fee_burn_engine = Arc::new(Mutex::new(FeeBurnEngine::new()));
     let ws_hub = WsHub::new();
     let tps_window = Arc::new(Mutex::new(TpsWindow::new(60)));
 
@@ -370,6 +372,7 @@ async fn main() -> anyhow::Result<()> {
         ))),
         staking: staking_module.clone(),
         metrics: metrics.clone(),
+        fee_burn: fee_burn_engine.clone(),
         features: dytallix_lean_node::rpc::FeatureFlags {
             governance: enable_governance,
             staking: enable_staking,
@@ -439,6 +442,7 @@ async fn main() -> anyhow::Result<()> {
             let mut applied: Vec<dytallix_lean_node::storage::tx::Transaction> = vec![];
             {
                 let mut st = producer_ctx.state.lock().unwrap();
+                let mut fee_burn = producer_ctx.fee_burn.lock().unwrap();
                 for (tx_index, tx) in snapshot.iter().enumerate() {
                     let tx_start_time = SystemTime::now();
 
@@ -449,6 +453,7 @@ async fn main() -> anyhow::Result<()> {
                         next_height,
                         tx_index as u32,
                         &gas_schedule,
+                        Some(&mut *fee_burn),
                     );
 
                     total_gas_used += result.gas_used;

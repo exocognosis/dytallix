@@ -62,7 +62,8 @@ up: build
 	@echo "Waiting for services to initialize..."
 	sleep 10
 	cd server && npm start &
-	cd frontend && npm start &
+	# Serve the built frontend to ensure consistent styling
+	cd frontend && npm run preview -- --host --port 3001 &
 	cd explorer && npm start &
 	@echo "Testnet is running!"
 	@echo "Frontend: http://localhost:3001"
