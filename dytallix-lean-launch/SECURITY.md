@@ -96,6 +96,208 @@ Optional security headers via env flags (`ENABLE_SEC_HEADERS=1`, `ENABLE_CSP=1`)
 5. Release advisory & patched build; force clients to refetch (cache bust).
 6. Post-incident review; adjust CSP / dependency allowlist.
 
+## Vault Integration for Key Management
+
+### Overview
+Dytallix validators use HashiCorp Vault for secure key storage and retrieval. Private signing keys never touch the filesystem and exist only in Vault's encrypted storage and node memory during runtime.
+
+### Vault Configuration
+
+**Authentication**: AppRole method
+- Each validator has a unique Role ID
+- Secret ID rotated every 90 days
+- Token TTL: 3600 seconds with auto-renewal
+
+**Key Storage Path**: `secret/dytallix/validators/{validator-name}/signing_key`
+
+**Key Properties**:
+- Type: PQC (Dilithium3)
+- Storage: Encrypted at rest in Vault
+- Access: Logged in Vault audit trail
+- Rotation: Zero-downtime key rotation supported
+
+### Validator Startup Procedure
+
+1. **Initialize Vault Client**
+   ```bash
+   export VAULT_ADDR="https://vault.dytallix.internal:8200"
+   export VAULT_ROLE_ID="validator-role-001"
+   export VAULT_SECRET_ID="[from secure config]"
+   ```
+
+2. **Authenticate and Retrieve Key**
+   ```bash
+   # Node automatically:
+   # - Authenticates with AppRole
+   # - Retrieves signing key from Vault
+   # - Loads key into secure memory
+   # - Never writes key to disk
+   ```
+
+3. **Start Consensus**
+   ```bash
+   # Validator joins consensus with Vault-sourced key
+   # All signatures use in-memory key material
+   ```
+
+### Key Rotation Procedure
+
+1. **Generate New Key in Vault**
+   ```bash
+   vault write transit/keys/validator-1 \
+     type=dilithium3 \
+     exportable=false
+   ```
+
+2. **Update Validator Configuration**
+   ```bash
+   # Broadcast key update transaction
+   # Old key remains valid for grace period (100 blocks)
+   # New key becomes active automatically
+   ```
+
+3. **Verify Rotation**
+   ```bash
+   # Check Vault audit logs
+   # Confirm new key in use for signatures
+   ```
+
+### Restart and Recovery
+
+**Normal Restart**:
+- Node re-authenticates with Vault
+- Keys rehydrated from Vault
+- No manual intervention required
+
+**Token Expiry**:
+- Tokens auto-renew before expiration
+- If expired, re-authenticate with AppRole credentials
+- Node continues operation with new token
+
+**Vault Unavailability**:
+- Node cannot start without Vault access
+- Existing running nodes continue with keys in memory
+- Alerts triggered for Vault connectivity issues
+
+### Security Guarantees
+
+✅ **No Filesystem Keys**: Private keys never written to disk  
+✅ **Audit Trail**: All key access logged in Vault  
+✅ **Memory-Only**: Keys exist in node memory only during runtime  
+✅ **Automatic Cleanup**: Keys zeroized on node shutdown  
+✅ **Rotation Support**: Zero-downtime key rotation  
+✅ **Access Control**: Role-based access via AppRole
+
+## TLS Configuration
+
+### Endpoint Security
+
+All public-facing endpoints use TLS 1.3 with strong cipher suites:
+
+**Endpoints**:
+- API Gateway: `https://api.dytallix.network`
+- RPC Node: `https://rpc.dytallix.network`
+- WebSocket: `wss://ws.dytallix.network`
+- Faucet: `https://faucet.dytallix.network`
+
+**Protocol Configuration**:
+- TLS 1.3 (primary)
+- TLS 1.2 (backwards compatibility)
+- SSLv3, TLSv1.0, TLSv1.1: **Disabled**
+
+**Cipher Suites** (in order of preference):
+1. `TLS_AES_256_GCM_SHA384`
+2. `TLS_CHACHA20_POLY1305_SHA256`
+3. `TLS_AES_128_GCM_SHA256`
+
+### Certificate Management
+
+**Certificate Authority**: Let's Encrypt  
+**Renewal**: Automated (90 days before expiry)  
+**OCSP Stapling**: Enabled on all endpoints  
+**Certificate Transparency**: All certificates logged
+
+**Manual Renewal** (if needed):
+```bash
+certbot renew --cert-name dytallix.network
+systemctl reload nginx
+```
+
+### TLS Health Checks
+
+**Automated Monitoring**:
+```bash
+# Check TLS configuration
+openssl s_client -connect api.dytallix.network:443 -tls1_3 -brief
+
+# Verify certificate validity
+openssl s_client -connect api.dytallix.network:443 | \
+  openssl x509 -noout -dates
+```
+
+**Expected Output**:
+- Protocol: TLSv1.3
+- Cipher: Strong suite (AES-256-GCM or ChaCha20-Poly1305)
+- Certificate: Valid and not expired
+- OCSP: Stapling active
+
+### Security Headers
+
+All HTTPS endpoints include:
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: no-referrer`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+
+### Deployment Configuration
+
+**Kubernetes Ingress**:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dytallix-api
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    nginx.ingress.kubernetes.io/ssl-ciphers: "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+spec:
+  tls:
+  - hosts:
+    - api.dytallix.network
+    secretName: api-dytallix-tls
+  rules:
+  - host: api.dytallix.network
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dytallix-api
+            port:
+              number: 8080
+```
+
+### Troubleshooting
+
+**Certificate Issues**:
+1. Check certificate expiry: `openssl s_client -connect <endpoint>:443 | openssl x509 -noout -dates`
+2. Verify certificate chain: `openssl s_client -connect <endpoint>:443 -showcerts`
+3. Check OCSP stapling: `openssl s_client -connect <endpoint>:443 -status`
+
+**TLS Protocol Issues**:
+1. Test TLS 1.3: `openssl s_client -connect <endpoint>:443 -tls1_3`
+2. List supported ciphers: `nmap --script ssl-enum-ciphers -p 443 <endpoint>`
+
+### Evidence Artifacts
+
+See `launch-evidence/security/` for:
+- `vault_integration.log`: Vault key lifecycle tests
+- `tls_probe.txt`: TLS configuration validation
+- Deployment manifests: Kubernetes configs with Vault + TLS
+
 ## Future / Roadmap Hardening
 - SLSA provenance build attestation & publish provenance file.
 - WebAuthn hardware-backed wrap key for vault master key.
