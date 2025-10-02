@@ -1,14 +1,36 @@
 {
-  "tx_hash": "0xe674cf68857b24ea148ed71d5ed718450b7fc7164094cb3afcf9471df6b05ef5",
-  "contract_address": "dyt1contract4d3f24f0c51943bff79db653ca559d50",
-  "code_hash": "4d3f24f0c51943bff79db653ca559d5060d76d4ec52df4e0b1b80372eacc4a97",
-  "deployer": "dyt1deployer",
-  "gas_used": 45000,
-  "gas_limit": 100000,
-  "gas_price": 1000,
-  "deployment_fee": "100000000",
-  "contract_size_bytes": 426,
-  "deployed_at": "2025-09-26T00:12:22Z",
-  "block_height": 10,
-  "status": "success"
+  "transaction": {
+    "type": "ContractDeploy",
+    "tx_hash": "0xb873e027b8a111e0586ce5ebdf6f46214cb11f076a7ad6e9b197f86c4563e2a4",
+    "height": 5000,
+    "timestamp": "2025-10-02T14:30:55Z",
+    "from": "dyt1deployere670652d0fd776a8573092b6766f8e5dbd0e",
+    "gas_limit": 500000,
+    "gas_used": 52000,
+    "gas_price": "1000",
+    "fee": "52000000",
+    "status": "success"
+  },
+  "contract": {
+    "address": "0x24b82a7ba06a688a93882cfad08167882e4b4f26",
+    "code_hash": "da25873db9d21141fa66948369b2449325b466b06f430b2ad436e6f1f56cfc62",
+    "name": "Counter",
+    "type": "wasm",
+    "wasm_size_bytes": 426,
+    "initial_state": {
+      "count": 0
+    }
+  },
+  "gas_breakdown": {
+    "base_cost": 50000,
+    "code_size_cost": 426,
+    "storage_init": 1574,
+    "total": 52000
+  },
+  "validation": {
+    "wasm_valid": true,
+    "deterministic": true,
+    "sandboxed": true,
+    "resource_limits_checked": true
+  }
 }

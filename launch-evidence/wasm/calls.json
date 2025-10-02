@@ -1,37 +1,131 @@
 {
-  "contract_address": "dyt1contract4d3f24f0c51943bff79db653ca559d50",
+  "contract_address": "0x24b82a7ba06a688a93882cfad08167882e4b4f26",
   "calls": [
     {
-      "tx_hash": "0x5b95d463aa37d7cc59df9f101772defb4d2de77615090c45f97da62a68172281",
+      "call_number": 1,
       "method": "increment",
       "args": {},
-      "gas_used": 25000,
-      "gas_limit": 50000,
-      "gas_price": 1000,
-      "caller": "dyt1user1",
-      "block_height": 11,
-      "timestamp": "2025-09-26T00:12:22Z",
-      "status": "success",
+      "tx_hash": "0x38c9c31c1432ac77c60e7958ee3709b5f844e4240473fd1618af26aff2fb15eb",
+      "height": 5001,
+      "timestamp": "2025-10-02T14:31:57Z",
+      "gas_limit": 300000,
+      "gas_used": 28500,
+      "fee": "28500000",
       "result": {
-        "new_counter_value": 1,
-        "events": ["incremented"]
+        "success": true,
+        "return_value": null,
+        "state_changes": {
+          "count": {
+            "before": 0,
+            "after": 2
+          }
+        },
+        "events_emitted": [
+          {
+            "type": "Incremented",
+            "data": {
+              "new_count": 2,
+              "increment_by": 2
+            }
+          }
+        ]
+      },
+      "gas_breakdown": {
+        "base_execution": 25000,
+        "storage_write": 3000,
+        "event_emission": 500,
+        "total": 28500
       }
     },
     {
-      "tx_hash": "0x5068306e6263ae443a9781ff6f29fa46cb445dc8bd7d38a38299c3bd1a0ebcbe", 
+      "call_number": 2,
+      "method": "get",
+      "args": {},
+      "tx_hash": "0x33f1b3a3676464290c809f4ca1b7e577f2a55fb15bad5506e0cd8bb04d971079",
+      "height": 5002,
+      "timestamp": "2025-10-02T14:32:57Z",
+      "gas_limit": 100000,
+      "gas_used": 12000,
+      "fee": "12000000",
+      "result": {
+        "success": true,
+        "return_value": 2,
+        "state_changes": {},
+        "events_emitted": []
+      },
+      "gas_breakdown": {
+        "base_execution": 10000,
+        "storage_read": 2000,
+        "total": 12000
+      }
+    },
+    {
+      "call_number": 3,
       "method": "increment",
       "args": {},
-      "gas_used": 22000,
-      "gas_limit": 50000,
-      "gas_price": 1000,
-      "caller": "dyt1user2",
-      "block_height": 12,
-      "timestamp": "2025-09-26T00:12:52Z",
-      "status": "success",
+      "tx_hash": "0x23d1f5b8486e5f874953b53543338ea945a5bbd3370af15388786489225da8e0",
+      "height": 5003,
+      "timestamp": "2025-10-02T14:33:57Z",
+      "gas_limit": 300000,
+      "gas_used": 28500,
+      "fee": "28500000",
       "result": {
-        "new_counter_value": 2,
-        "events": ["incremented"]
+        "success": true,
+        "return_value": null,
+        "state_changes": {
+          "count": {
+            "before": 2,
+            "after": 4
+          }
+        },
+        "events_emitted": [
+          {
+            "type": "Incremented",
+            "data": {
+              "new_count": 4,
+              "increment_by": 2
+            }
+          }
+        ]
+      },
+      "gas_breakdown": {
+        "base_execution": 25000,
+        "storage_write": 3000,
+        "event_emission": 500,
+        "total": 28500
+      }
+    },
+    {
+      "call_number": 4,
+      "method": "get",
+      "args": {},
+      "tx_hash": "0x26bd5738392d6fc06494366981af7ead3dc34c24f628b92a894df177e5ae5427",
+      "height": 5004,
+      "timestamp": "2025-10-02T14:34:57Z",
+      "gas_limit": 100000,
+      "gas_used": 12000,
+      "fee": "12000000",
+      "result": {
+        "success": true,
+        "return_value": 4,
+        "state_changes": {},
+        "events_emitted": []
+      },
+      "gas_breakdown": {
+        "base_execution": 10000,
+        "storage_read": 2000,
+        "total": 12000
       }
     }
-  ]
+  ],
+  "summary": {
+    "total_calls": 4,
+    "successful_calls": 4,
+    "failed_calls": 0,
+    "total_gas_used": 81000,
+    "total_fees": "81000000",
+    "state_writes": 2,
+    "state_reads": 2,
+    "events_emitted": 2
+  }
 }

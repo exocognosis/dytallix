@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dytallix-validator
+  namespace: dytallix-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dytallix-validator
+  template:
+    metadata:
+      labels:
+        app: dytallix-validator
+    spec:
+      serviceAccountName: dytallix-validator
+      containers:
+      - name: validator
+        image: dytallix/node:v1.0.0
+        env:
+        - name: VAULT_ADDR
+          value: "https://vault.dytallix.internal:8200"
+        - name: VAULT_ROLE_ID
+          valueFrom:
+            secretKeyRef:
+              name: vault-approle
+              key: role-id
+        - name: VAULT_SECRET_ID
+          valueFrom:
+            secretKeyRef:
+              name: vault-approle
+              key: secret-id
+        - name: VALIDATOR_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        - name: vault-ca
+          mountPath: /etc/vault/ca
+          readOnly: true
+        - name: tls-certs
+          mountPath: /etc/tls
+          readOnly: true
+        ports:
+        - containerPort: 26656
+          name: p2p
+          protocol: TCP
+        - containerPort: 26657
+          name: rpc
+          protocol: TCP
+        - containerPort: 26660
+          name: prometheus
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 26657
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 26657
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: vault-ca
+        secret:
+          secretName: vault-ca-cert
+      - name: tls-certs
+        secret:
+          secretName: validator-tls-cert
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dytallix-validator-rpc
+  namespace: dytallix-prod
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 443
+    targetPort: 26657
+    protocol: TCP
+    name: https
+  selector:
+    app: dytallix-validator
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:..."
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "https"

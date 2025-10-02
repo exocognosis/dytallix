@@ -1,12 +1,60 @@
 {
-  "contract_address": "dyt1contract4d3f24f0c51943bff79db653ca559d50",
-  "counter": 2,
-  "state_size_bytes": 8,
-  "last_updated_height": 12,
-  "last_updated_timestamp": "2025-09-26T00:12:52Z",
-  "total_interactions": 2,
-  "state_root": "0x758f38cfbb78cfbf2dc86c62de04269b6fdbe23d41c315a5e74c6f7f9b5f3d31",
-  "storage": {
-    "counter": "0x0000000000000002"
-  }
+  "contract": {
+    "address": "0x24b82a7ba06a688a93882cfad08167882e4b4f26",
+    "code_hash": "da25873db9d21141fa66948369b2449325b466b06f430b2ad436e6f1f56cfc62",
+    "deployed_at_height": 5000,
+    "deployed_at_time": "2025-10-02T14:30:55Z",
+    "deployer": "dyt1deployere670652d0fd776a8573092b6766f8e5dbd0e"
+  },
+  "state": {
+    "count": 4,
+    "last_updated_height": 5004,
+    "last_updated_time": "2025-10-02T14:34:57Z"
+  },
+  "statistics": {
+    "total_calls": 4,
+    "increment_calls": 2,
+    "get_calls": 2,
+    "total_gas_consumed": 133000,
+    "total_fees_paid": "133000000",
+    "events_emitted": 2,
+    "state_changes": 2
+  },
+  "verification": {
+    "state_persisted": true,
+    "deterministic_execution": true,
+    "gas_accounting_accurate": true,
+    "event_log_complete": true,
+    "query_results_correct": true
+  },
+  "execution_history": [
+    {
+      "height": 5001,
+      "method": "increment",
+      "state_before": 0,
+      "state_after": 2,
+      "gas_used": 28500
+    },
+    {
+      "height": 5002,
+      "method": "get",
+      "state_before": 2,
+      "state_after": 2,
+      "gas_used": 12000
+    },
+    {
+      "height": 5003,
+      "method": "increment",
+      "state_before": 2,
+      "state_after": 4,
+      "gas_used": 28500
+    },
+    {
+      "height": 5004,
+      "method": "get",
+      "state_before": 4,
+      "state_after": 4,
+      "gas_used": 12000
+    }
+  ]
 }

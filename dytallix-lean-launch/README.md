@@ -204,6 +204,84 @@ MIT (see `LICENSE`).
 
 ---
 
+## Running the Governance Demo
+
+Dytallix provides an end-to-end governance demonstration that showcases the complete proposal lifecycle from submission to execution.
+
+### Overview
+
+The governance demo demonstrates:
+1. **Proposal Submission**: Create a parameter change proposal (gas_limit)
+2. **Deposit Period**: Meet minimum deposit requirements
+3. **Voting Period**: Validators cast votes with their voting power
+4. **Proposal Execution**: Automatically execute approved proposals
+5. **State Verification**: Confirm parameter changes are applied
+
+### Running the Demo
+
+```bash
+# From the repository root
+./scripts/demo/governance_demo.sh
+```
+
+### Demo Flow
+
+The script simulates a complete governance cycle:
+
+**Step 1: Submit Proposal**
+- Creates proposal to change gas_limit from 21,000 to 50,000
+- Initial deposit of 1,000 DGT from proposer
+- Proposal enters deposit period (height 1000-1100)
+
+**Step 2: Meet Deposit**
+- Minimum deposit threshold met
+- Proposal transitions to voting period (height 1100-1200)
+
+**Step 3: Validator Voting**
+- Validator 1: YES vote with 3,000 DGT voting power
+- Validator 2: YES vote with 2,500 DGT voting power
+- Validator 3: YES vote with 2,000 DGT voting power
+- Total: 7,500 DGT YES (75% turnout, 100% approval)
+
+**Step 4: Tally & Execute**
+- Quorum met: 75% > 33.4% required ✅
+- Threshold met: 100% YES > 50% required ✅
+- Proposal executes at height 1200
+- Parameter change applied: gas_limit = 50,000
+
+**Step 5: State Verification**
+- New parameter value confirmed in chain state
+- Historical change record maintained
+- Deposits refunded to proposer
+
+### Evidence Artifacts
+
+The demo generates comprehensive evidence files in `launch-evidence/governance/`:
+
+- **`proposal.json`**: Full proposal details including parameter change specification
+- **`votes.json`**: Complete voting record with tally results
+- **`exec.log`**: Detailed execution log with validation steps and state changes
+- **`final_state.json`**: Updated chain parameters with verification data
+
+### Use Cases
+
+This demo validates:
+- ✅ On-chain governance parameter changes
+- ✅ Voting power calculation and quorum logic
+- ✅ Proposal execution with state persistence
+- ✅ Deposit refund mechanism
+- ✅ Event emission for governance actions
+
+### CI/CD Integration
+
+The governance demo is integrated into the launch evidence pack. Run the evidence orchestrator to include governance validation:
+
+```bash
+make evidence-all
+```
+
+---
+
 ## Faucet (Prod)
 
 The production Dytallix testnet faucet provides dual-token dispensing capabilities with robust server-side rate limiting and PQC wallet integration.

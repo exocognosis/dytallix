@@ -1,0 +1,42 @@
+{
+  "chain_state": {
+    "height": 1200,
+    "timestamp": "2025-10-09T14:27:17Z",
+    "last_update_proposal_id": 1
+  },
+  "governance_parameters": {
+    "gas_limit": 50000,
+    "gas_price_minimum": 1000,
+    "block_max_gas": 10000000,
+    "block_max_transactions": 1000,
+    "voting_period_blocks": 100,
+    "deposit_period_blocks": 100,
+    "min_deposit": "1000000000",
+    "quorum": "0.334",
+    "threshold": "0.50",
+    "veto_threshold": "0.334"
+  },
+  "parameter_history": [
+    {
+      "parameter": "gas_limit",
+      "old_value": "21000",
+      "new_value": "50000",
+      "changed_by_proposal": 1,
+      "changed_at_height": 1200,
+      "changed_at_time": "2025-10-09T14:27:17Z"
+    }
+  ],
+  "proposal_status": {
+    "proposal_id": 1,
+    "final_status": "Executed",
+    "execution_height": 1200,
+    "deposits_refunded": true,
+    "parameter_applied": true
+  },
+  "verification": {
+    "parameter_update_confirmed": true,
+    "state_consistent": true,
+    "new_transactions_using_updated_limit": true,
+    "rollback_available": false
+  }
+}

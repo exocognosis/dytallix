@@ -1,21 +1,21 @@
 {
-  "id": 1,
-  "title": "Increase Gas Limit Parameter",
-  "description": "Proposal to increase the gas_limit parameter from 21000 to 250000 to support more complex transactions",
-  "type": "param_change",
+  "proposal_id": 1,
+  "title": "Increase Gas Limit for Complex Transactions",
+  "description": "Proposal to increase the gas_limit parameter from 21,000 to 50,000 to support more complex smart contract interactions and improve user experience",
+  "type": "ParameterChange",
   "parameter": {
     "key": "gas_limit",
     "current_value": "21000",
-    "proposed_value": "250000"
+    "proposed_value": "50000"
   },
-  "proposer": "dyt1validator1",
-  "status": "voting",
-  "submitted_at": "2025-09-26T00:11:14Z",
-  "voting_start_time": "2025-09-26T00:11:14Z",
-  "voting_end_time": "2025-10-03T00:11:14Z",
-  "min_deposit": "1000000000",
-  "total_deposit": "2000000000",
-  "voting_power_threshold": "0.50",
-  "quorum": "0.33",
-  "veto_threshold": "0.334"
+  "proposer": "dyt1validator1abc",
+  "proposer_deposit": "1000000000",
+  "status": "VotingPeriod",
+  "submit_height": 1000,
+  "submit_time": "2025-10-02T14:27:14Z",
+  "deposit_end_height": 1100,
+  "voting_start_height": 1100,
+  "voting_end_height": 1200,
+  "min_deposit_required": "1000000000",
+  "total_deposit": "1000000000"
 }

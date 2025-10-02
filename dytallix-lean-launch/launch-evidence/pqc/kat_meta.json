@@ -1,0 +1,46 @@
+{
+  "generated_at": "2025-10-02T14:42:44Z",
+  "generator": "generate_pqc_evidence.sh",
+  "vectors": {
+    "dilithium3": {
+      "count": 3,
+      "path": "src/crypto/pqc/vectors/dilithium/",
+      "files": [
+        "kat_vector_02.json",        "kat_vector_01.json",        "kat_vector_03.json"
+      ]
+    },
+    "falcon512": {
+      "count": 0,
+      "path": "src/crypto/pqc/vectors/falcon/"
+    },
+    "sphincs128s": {
+      "count": 0,
+      "path": "src/crypto/pqc/vectors/sphincs/"
+    }
+  },
+  "algorithms": [
+    {
+      "name": "Dilithium3",
+      "type": "lattice-based",
+      "nist_level": 3,
+      "status": "standardized"
+    },
+    {
+      "name": "Falcon-512",
+      "type": "lattice-based",
+      "nist_level": 1,
+      "status": "standardized"
+    },
+    {
+      "name": "SPHINCS+-128s",
+      "type": "hash-based",
+      "nist_level": 1,
+      "status": "standardized"
+    }
+  ],
+  "coverage": {
+    "edge_cases": ["empty_message", "large_message", "standard_message"],
+    "security_level": "NIST Level 3 (Dilithium3)",
+    "test_framework": "vitest"
+  }
+}
