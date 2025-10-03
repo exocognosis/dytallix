@@ -1,0 +1,261 @@
+name: PQC WASM Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'DytallixLiteLaunch/packages/pqc/**'
+      - 'DytallixLiteLaunch/crates/pqc-wasm/**'
+      - '.github/workflows/pqc_wasm.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'DytallixLiteLaunch/packages/pqc/**'
+      - 'DytallixLiteLaunch/crates/pqc-wasm/**'
+
+jobs:
+  build-wasm:
+    name: Build WASM Module
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+      
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            DytallixLiteLaunch/crates/pqc-wasm/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --version 0.12.1
+      
+      - name: Build WASM
+        working-directory: DytallixLiteLaunch/crates/pqc-wasm
+        run: bash build.sh
+      
+      - name: Generate WASM manifest
+        working-directory: DytallixLiteLaunch/crates/pqc-wasm
+        run: |
+          # Generate SHA256 hashes
+          sha256sum pkg/pqc_wasm_bg.wasm > pkg/wasm.sha256
+          sha256sum pkg-web/pqc_wasm_bg.wasm >> pkg/wasm.sha256
+          
+          # Create manifest JSON
+          cat > pkg/manifest.json <<EOF
+          {
+            "version": "0.1.0",
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit": "${{ github.sha }}",
+            "node": {
+              "wasm_size": $(stat -f%z pkg/pqc_wasm_bg.wasm 2>/dev/null || stat -c%s pkg/pqc_wasm_bg.wasm),
+              "wasm_sha256": "$(sha256sum pkg/pqc_wasm_bg.wasm | awk '{print $1}')"
+            },
+            "web": {
+              "wasm_size": $(stat -f%z pkg-web/pqc_wasm_bg.wasm 2>/dev/null || stat -c%s pkg-web/pqc_wasm_bg.wasm),
+              "wasm_sha256": "$(sha256sum pkg-web/pqc_wasm_bg.wasm | awk '{print $1}')"
+            }
+          }
+          EOF
+      
+      - name: Check WASM size budget
+        working-directory: DytallixLiteLaunch/crates/pqc-wasm
+        run: |
+          SIZE=$(stat -f%z pkg/pqc_wasm_bg.wasm 2>/dev/null || stat -c%s pkg/pqc_wasm_bg.wasm)
+          SIZE_KB=$((SIZE / 1024))
+          MAX_SIZE_KB=512
+          
+          echo "WASM size: ${SIZE_KB}KB (budget: ${MAX_SIZE_KB}KB)"
+          
+          if [ $SIZE_KB -gt $MAX_SIZE_KB ]; then
+            echo "❌ WASM size exceeds budget!"
+            exit 1
+          fi
+          
+          echo "✓ WASM size within budget"
+      
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: pqc-wasm
+          path: |
+            DytallixLiteLaunch/crates/pqc-wasm/pkg/
+            DytallixLiteLaunch/crates/pqc-wasm/pkg-web/
+          retention-days: 30
+
+  build-typescript:
+    name: Build TypeScript Package
+    needs: build-wasm
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: DytallixLiteLaunch/packages/pqc/package-lock.json
+      
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pqc-wasm
+          path: DytallixLiteLaunch/crates/pqc-wasm/
+      
+      - name: Install dependencies
+        working-directory: DytallixLiteLaunch/packages/pqc
+        run: npm ci
+      
+      - name: Build TypeScript
+        working-directory: DytallixLiteLaunch/packages/pqc
+        run: npm run build
+      
+      - name: Check TypeScript types
+        working-directory: DytallixLiteLaunch/packages/pqc
+        run: npx tsc --noEmit
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: pqc-dist
+          path: DytallixLiteLaunch/packages/pqc/dist/
+          retention-days: 30
+
+  test:
+    name: Run Tests
+    needs: build-typescript
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pqc-wasm
+          path: DytallixLiteLaunch/crates/pqc-wasm/
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pqc-dist
+          path: DytallixLiteLaunch/packages/pqc/dist/
+      
+      - name: Install dependencies
+        working-directory: DytallixLiteLaunch/packages/pqc
+        run: npm ci
+      
+      - name: Run Node.js tests
+        working-directory: DytallixLiteLaunch/packages/pqc
+        run: npm test
+      
+      - name: Run Vitest
+        working-directory: DytallixLiteLaunch/packages/pqc
+        run: npm run test:vitest
+      
+      - name: Upload coverage
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: coverage
+          path: DytallixLiteLaunch/packages/pqc/coverage/
+          retention-days: 7
+
+  evidence:
+    name: Generate Evidence
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pqc-wasm
+          path: DytallixLiteLaunch/crates/pqc-wasm/
+      
+      - name: Generate evidence
+        run: |
+          mkdir -p launch-evidence/pqc-sdk
+          
+          # Copy WASM manifest
+          cp DytallixLiteLaunch/crates/pqc-wasm/pkg/manifest.json \
+             launch-evidence/pqc-sdk/wasm_manifest.json
+          
+          # Copy SHA256
+          cp DytallixLiteLaunch/crates/pqc-wasm/pkg/wasm.sha256 \
+             launch-evidence/pqc-sdk/wasm_sha256.txt
+          
+          # KAT metadata
+          echo "KAT Tests: $(grep -c 'count' DytallixLiteLaunch/packages/pqc/test/vectors/dilithium3.kat.min.json || echo 0) vectors" \
+            > launch-evidence/pqc-sdk/kat_meta.json
+      
+      - name: Upload evidence
+        uses: actions/upload-artifact@v3
+        with:
+          name: pqc-evidence
+          path: launch-evidence/pqc-sdk/
+          retention-days: 90
+
+  publish-dry-run:
+    name: Publish Dry Run
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pqc-wasm
+          path: DytallixLiteLaunch/crates/pqc-wasm/
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pqc-dist
+          path: DytallixLiteLaunch/packages/pqc/dist/
+      
+      - name: Install dependencies
+        working-directory: DytallixLiteLaunch/packages/pqc
+        run: npm ci
+      
+      - name: Pack package
+        working-directory: DytallixLiteLaunch/packages/pqc
+        run: npm pack --dry-run
+      
+      - name: Check package contents
+        working-directory: DytallixLiteLaunch/packages/pqc
+        run: |
+          npm pack
+          tar -tzf dyt-pqc-*.tgz

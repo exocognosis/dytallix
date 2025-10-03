@@ -5,15 +5,45 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./provider": {
+      "types": "./dist/provider.d.ts",
+      "import": "./dist/provider.js",
+      "default": "./dist/provider.js"
+    },
+    "./address": {
+      "types": "./dist/address.d.ts",
+      "import": "./dist/address.js",
+      "default": "./dist/address.js"
+    },
+    "./detect": {
+      "types": "./dist/detect.d.ts",
+      "import": "./dist/detect.js",
+      "default": "./dist/detect.js"
+    }
+  },
+  "files": [
+    "dist",
+    "wasm",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "node --test test/*.test.js",
+    "test:vitest": "vitest run",
     "kat:import": "node scripts/kat_import_from_rsp.js",
     "kat:pin": "node -e \"const fs=require('node:fs');const c=fs.readFileSync('test/vectors/dilithium3.kat.min.json');const h=require('node:crypto').createHash('sha256').update(c).digest('hex');fs.writeFileSync('test/vectors/dilithium3.kat.min.sha256', h+'\n');console.log('Pinned',h)\"",
     "prepublishOnly": "npm run build"
   },
-  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "@types/node": "^24.6.2",
+    "typescript": "^5.4.0",
+    "vitest": "^1.0.0"
   }
 }
