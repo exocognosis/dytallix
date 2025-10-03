@@ -8,7 +8,7 @@ pub enum PQCAlgorithm {
     SphincsPlus,
 }
 
-use pqcrypto_dilithium::dilithium5;
+use pqcrypto_dilithium::{dilithium3, dilithium5};
 use pqcrypto_falcon::falcon1024;
 // Correct SPHINCS+ import: crate provides sphincssha2128ssimple (not sphincssha256128ssimple)
 use pqcrypto_kyber::kyber1024;
@@ -41,6 +41,7 @@ pub enum PQCError {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SignatureAlgorithm {
+    Dilithium3,
     Dilithium5,
     Falcon1024,
     SphincsSha256128s,
@@ -54,12 +55,8 @@ pub enum KeyExchangeAlgorithm {
 #[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct KeyPair {
     pub public_key: Vec<u8>,
-    /// SECURITY WARNING: Secret key is stored in plain memory without zeroization.
-    /// VULNERABILITY: CV-001 - Secret keys remain in memory after use.
-    /// ATTACK VECTOR: Memory dump attacks can recover secret keys.
-    /// MITIGATION REQUIRED: Implement zeroize::Zeroize trait for secure cleanup.
+    /// Secret key material (zeroized on drop)
     #[serde(skip)]
-    #[zeroize(skip)] // Public keys don't need zeroization
     pub secret_key: Vec<u8>,
     #[zeroize(skip)] // Algorithm enum doesn't need zeroization
     pub algorithm: SignatureAlgorithm,
@@ -100,7 +97,7 @@ pub struct PQCManager {
 impl PQCManager {
     pub fn new() -> Result<Self, PQCError> {
         Self::new_with_algorithms(
-            SignatureAlgorithm::Dilithium5,
+            SignatureAlgorithm::Dilithium3,
             KeyExchangeAlgorithm::Kyber1024,
         )
     }
@@ -188,6 +185,12 @@ impl PQCManager {
     /// - Fault injection attacks during signature generation
     pub fn sign(&self, message: &[u8]) -> Result<Signature, PQCError> {
         match self.signature_keypair.algorithm {
+            SignatureAlgorithm::Dilithium3 => {
+                let sk = dilithium3::SecretKey::from_bytes(&self.signature_keypair.secret_key)
+                    .map_err(|_| PQCError::InvalidKey("Invalid Dilithium3 secret key".to_string()))?;
+                let signed_message = dilithium3::sign(message, &sk);
+                Ok(Signature { data: signed_message.as_bytes().to_vec(), algorithm: SignatureAlgorithm::Dilithium3 })
+            }
             SignatureAlgorithm::Dilithium5 => {
                 let sk = dilithium5::SecretKey::from_bytes(&self.signature_keypair.secret_key)
                     .map_err(|_| {
@@ -250,6 +253,16 @@ impl PQCManager {
         public_key: &[u8],
     ) -> Result<bool, PQCError> {
         match signature.algorithm {
+            SignatureAlgorithm::Dilithium3 => {
+                let pk = dilithium3::PublicKey::from_bytes(public_key)
+                    .map_err(|_| PQCError::InvalidKey("Invalid Dilithium3 public key".to_string()))?;
+                let signed_message = dilithium3::SignedMessage::from_bytes(&signature.data)
+                    .map_err(|_| PQCError::InvalidSignature("Invalid Dilithium3 signature".to_string()))?;
+                match dilithium3::open(&signed_message, &pk) {
+                    Ok(verified_message) => Ok(verified_message == message),
+                    Err(_) => Ok(false),
+                }
+            }
             SignatureAlgorithm::Dilithium5 => {
                 let pk = dilithium5::PublicKey::from_bytes(public_key).map_err(|_| {
                     PQCError::InvalidKey("Invalid Dilithium5 public key".to_string())
@@ -498,6 +511,14 @@ impl PQCManager {
     /// Generate keypair for the specified algorithm
     pub fn generate_keypair(&self, algorithm: &SignatureAlgorithm) -> Result<KeyPair, PQCError> {
         match algorithm {
+            SignatureAlgorithm::Dilithium3 => {
+                let (pk, sk) = dilithium3::keypair();
+                Ok(KeyPair {
+                    public_key: pqcrypto_traits::sign::PublicKey::as_bytes(&pk).to_vec(),
+                    secret_key: pqcrypto_traits::sign::SecretKey::as_bytes(&sk).to_vec(),
+                    algorithm: algorithm.clone(),
+                })
+            }
             SignatureAlgorithm::Dilithium5 => {
                 let (pk, sk) = dilithium5::keypair();
                 Ok(KeyPair {
@@ -533,6 +554,13 @@ impl PQCManager {
         algorithm: &SignatureAlgorithm,
     ) -> Result<Vec<u8>, PQCError> {
         match algorithm {
+            SignatureAlgorithm::Dilithium3 => {
+                let sk = dilithium3::SecretKey::from_bytes(secret_key).map_err(|_| {
+                    PQCError::InvalidKey("Invalid Dilithium3 secret key".to_string())
+                })?;
+                let signature = dilithium3::sign(message, &sk);
+                Ok(signature.as_bytes().to_vec())
+            }
             SignatureAlgorithm::Dilithium5 => {
                 let sk = dilithium5::SecretKey::from_bytes(secret_key).map_err(|_| {
                     PQCError::InvalidKey("Invalid Dilithium5 secret key".to_string())
@@ -565,6 +593,18 @@ impl PQCManager {
         algorithm: &SignatureAlgorithm,
     ) -> Result<bool, PQCError> {
         match algorithm {
+            SignatureAlgorithm::Dilithium3 => {
+                let pk = dilithium3::PublicKey::from_bytes(public_key).map_err(|_| {
+                    PQCError::InvalidKey("Invalid Dilithium3 public key".to_string())
+                })?;
+                let sig = dilithium3::SignedMessage::from_bytes(signature).map_err(|_| {
+                    PQCError::InvalidSignature("Invalid Dilithium3 signature".to_string())
+                })?;
+                match dilithium3::open(&sig, &pk) {
+                    Ok(verified_message) => Ok(verified_message == message),
+                    Err(_) => Ok(false),
+                }
+            }
             SignatureAlgorithm::Dilithium5 => {
                 let pk = dilithium5::PublicKey::from_bytes(public_key).map_err(|_| {
                     PQCError::InvalidKey("Invalid Dilithium5 public key".to_string())
@@ -608,6 +648,14 @@ impl PQCManager {
 // Helper functions for key generation
 fn generate_signature_keypair(algorithm: &SignatureAlgorithm) -> Result<KeyPair, PQCError> {
     match algorithm {
+        SignatureAlgorithm::Dilithium3 => {
+            let (pk, sk) = dilithium3::keypair();
+            Ok(KeyPair {
+                public_key: pqcrypto_traits::sign::PublicKey::as_bytes(&pk).to_vec(),
+                secret_key: pqcrypto_traits::sign::SecretKey::as_bytes(&sk).to_vec(),
+                algorithm: algorithm.clone(),
+            })
+        }
         SignatureAlgorithm::Dilithium5 => {
             let (pk, sk) = dilithium5::keypair();
             Ok(KeyPair {
@@ -669,8 +717,9 @@ pub struct AlgorithmMigration {
 impl CryptoAgilityManager {
     pub fn new() -> Self {
         Self {
-            preferred_algorithm: SignatureAlgorithm::Dilithium5,
+            preferred_algorithm: SignatureAlgorithm::Dilithium3,
             supported_algorithms: vec![
+                SignatureAlgorithm::Dilithium3,
                 SignatureAlgorithm::Dilithium5,
                 SignatureAlgorithm::Falcon1024,
                 SignatureAlgorithm::SphincsSha256128s,
@@ -818,5 +867,34 @@ mod tests {
         manager2.validate_keys().expect("validate keys");
 
         std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn test_nist_dilithium3_meta_hash_matches() {
+        // Verify that the vendored PQClean metadata for Dilithium3 matches expected NIST KAT hash
+        // This does not require embedding KAT vectors but ensures upstream KATs are intact.
+        use std::path::PathBuf;
+        let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let meta = base.join("../DytallixLiteLaunch/vendor/pqcrypto-dilithium/pqclean/crypto_sign/dilithium3/META.yml");
+        if !meta.exists() {
+            eprintln!("META.yml not found for Dilithium3 at {} ; skipping meta hash check", meta.display());
+            return; // Skip in environments without vendor folder
+        }
+        let contents = std::fs::read_to_string(meta).expect("read META.yml");
+        let mut found: Option<String> = None;
+        for line in contents.lines() {
+            let t = line.trim();
+            if t.starts_with("nistkat-sha256:") {
+                let val = t.splitn(2, ':').nth(1).unwrap_or("").trim();
+                found = Some(val.to_lowercase());
+                break;
+            }
+        }
+        let hash = found.expect("nistkat-sha256 not found in META.yml");
+        assert_eq!(
+            hash,
+            "4ae9921a12524a31599550f2b4e57b6db1b133987c348f07e12d20fc4aa426d5"
+                .to_string()
+        );
     }
 }

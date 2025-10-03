@@ -1,0 +1,26 @@
+name: wasm-pqc-wasm
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+      - name: Build pqc-wasm (web)
+        working-directory: DytallixLiteLaunch/crates/pqc-wasm
+        run: wasm-pack build --release --target web
+      - name: Test pqc-wasm in headless Chrome
+        working-directory: DytallixLiteLaunch/crates/pqc-wasm
+        run: wasm-pack test --headless --chrome

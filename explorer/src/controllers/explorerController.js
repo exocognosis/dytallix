@@ -35,7 +35,8 @@ class ExplorerController {
           transaction: '/api/transactions/:hash',
           address: '/api/addresses/:address',
           validators: '/api/validators',
-          search: '/api/search/:query'
+          search: '/api/search/:query',
+          verifyTx: '/api/verify-tx'
         }
       });
     } catch (error) {
@@ -47,7 +48,11 @@ class ExplorerController {
   async getNetworkStatus(req, res) {
     try {
       const status = await blockchainService.getNetworkStatus();
-      res.json(status);
+      const pqc = {
+        enabled: process.env.PQC_ENABLED === 'true',
+        algorithm: (process.env.PQC_ALGORITHM || 'dilithium3').toLowerCase()
+      };
+      res.json({ ...status, pqc });
     } catch (error) {
       logger.error('Error getting network status', { error: error.message });
       res.status(500).json({ error: 'Failed to get network status' });

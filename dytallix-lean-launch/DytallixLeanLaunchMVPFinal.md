@@ -191,3 +191,40 @@ This cohesive baseline enables rapid iteration, community feedback, and performa
 ---
 
 *Document Version: 1.0 (MVP Structured Format)*
+
+---
+
+## Next Steps & Timeline
+- T+0 to T+2 weeks
+  - Lock PQC E2E path (wallet → node → explorer) with Dilithium3 sign/verify.
+  - Stand up 3-node testnet with Prometheus/Grafana; publish faucet and explorer.
+  - Ship CLI + wallet parity for transfers, staking, governance basics.
+- T+2 to T+4 weeks
+  - Deploy first WASM example contracts and demo state/gas tracking in explorer.
+  - Enable AI risk scoring path and surface in UI; tune alerts and SLOs.
+  - Harden CI (KATs, wasm32 build/test, bundle size budget, no-secrets scan).
+- T+4+ weeks
+  - Optional bridge demo; iterate on performance, indexing, and developer UX.
+
+## Risks & Mitigations
+- PQC WASM compatibility
+  - Mitigation: wasm32-unknown-unknown target with getrandom(js) path; KATs across Rust/Node/Browser.
+- Secrets handling
+  - Mitigation: Vault-backed key ops for validators; zeroize secrets in Rust/JS; CI grep to block logs.
+- Performance and bundle size
+  - Mitigation: Budget checks in CI; gzip/brotli; off-main-thread WASM in wallet.
+- Consensus and validation safety
+  - Mitigation: Fail-closed signature checks; fuzz tests; structured logging and alerts.
+- External dependencies (AI, bridges)
+  - Mitigation: Feature flags; degrade gracefully; mock paths in CI.
+
+## Appendix: PQC E2E Readiness
+- Completed
+  - Workspace wired for Dilithium3 defaults across SDK, node, and WASM.
+  - Wallet loads pqc-wasm and uses real keygen/sign/verify when available.
+  - Node API enforces Dilithium3 signatures; policies default to Dilithium3.
+- Pending
+  - Replace simulation fallbacks in wallet where feasible; ensure zeroize.
+  - Add NIST Dilithium3 KATs in CI for Rust, Node, and Browser.
+  - Explorer badge: “Verified PQC signature ✓” using verify endpoint.
+  - CI: no-secret logs check, wasm-pack tests, bundle size guard, docs.

@@ -513,29 +513,31 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     req.fee.unwrap_or(MIN_FEE),
                     effective_nonce,
                 );
-                // Signature verification skipped if mocks enabled OR signature absent (dev only)
-                if let Some(sig) = req.signature {
-                    if !runtime_mocks() {
-                        let sig_bytes = match hex::decode(sig.data) {
-                            Ok(b) => b,
-                            Err(_) => {
-                                return Ok::<_, warp::Rejection>(
-                                    warp::reply::with_status(
-                                        warp::reply::json(&ApiResponse::<()> {
-                                            success: false,
-                                            data: None,
-                                            error: Some("signature_invalid".into()),
-                                        }),
-                                        warp::http::StatusCode::BAD_REQUEST,
-                                    )
-                                    .into_response(),
+                // Enforce signature presence and validity unless runtime mocks are enabled
+                if runtime_mocks() {
+                    // Skip verification in mock mode
+                } else {
+                    let sig = match req.signature {
+                        Some(s) => s,
+                        None => {
+                            return Ok::<_, warp::Rejection>(
+                                warp::reply::with_status(
+                                    warp::reply::json(&ApiResponse::<()> {
+                                        success: false,
+                                        data: None,
+                                        error: Some("signature_required".into()),
+                                    }),
+                                    warp::http::StatusCode::BAD_REQUEST,
                                 )
-                            }
-                        };
-                        let pk_bytes = match hex::decode(sig.public_key) {
-                            Ok(b) => b,
-                            Err(_) => {
-                                return Ok(warp::reply::with_status(
+                                .into_response(),
+                            )
+                        }
+                    };
+                    let sig_bytes = match hex::decode(sig.data) {
+                        Ok(b) => b,
+                        Err(_) => {
+                            return Ok::<_, warp::Rejection>(
+                                warp::reply::with_status(
                                     warp::reply::json(&ApiResponse::<()> {
                                         success: false,
                                         data: None,
@@ -543,33 +545,47 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                                     }),
                                     warp::http::StatusCode::BAD_REQUEST,
                                 )
-                                .into_response())
-                            }
-                        };
-                        let pqc = PQCManager::new().map_err(|_| ()).unwrap();
-                        let sig_wrapper = crate::crypto::PQCSignature {
-                            signature: sig_bytes.clone(),
-                            algorithm: sig.algorithm.clone(),
-                            nonce: 0,
-                            timestamp: 0,
-                        };
-                        match pqc.verify_signature(
-                            tx.signing_message().as_slice(),
-                            &sig_wrapper,
-                            &pk_bytes,
-                        ) {
-                            Ok(valid) if valid => {}
-                            _ => {
-                                return Ok(warp::reply::with_status(
-                                    warp::reply::json(&ApiResponse::<()> {
-                                        success: false,
-                                        data: None,
-                                        error: Some("signature_invalid".into()),
-                                    }),
-                                    warp::http::StatusCode::BAD_REQUEST,
-                                )
-                                .into_response());
-                            }
+                                .into_response(),
+                            )
+                        }
+                    };
+                    let pk_bytes = match hex::decode(sig.public_key) {
+                        Ok(b) => b,
+                        Err(_) => {
+                            return Ok(warp::reply::with_status(
+                                warp::reply::json(&ApiResponse::<()> {
+                                    success: false,
+                                    data: None,
+                                    error: Some("signature_invalid".into()),
+                                }),
+                                warp::http::StatusCode::BAD_REQUEST,
+                            )
+                            .into_response())
+                        }
+                    };
+                    let pqc = PQCManager::new().map_err(|_| ()).unwrap();
+                    let sig_wrapper = crate::crypto::PQCSignature {
+                        signature: sig_bytes.clone(),
+                        algorithm: sig.algorithm.clone(),
+                        nonce: 0,
+                        timestamp: 0,
+                    };
+                    match pqc.verify_signature(
+                        tx.signing_message().as_slice(),
+                        &sig_wrapper,
+                        &pk_bytes,
+                    ) {
+                        Ok(valid) if valid => {}
+                        _ => {
+                            return Ok(warp::reply::with_status(
+                                warp::reply::json(&ApiResponse::<()> {
+                                    success: false,
+                                    data: None,
+                                    error: Some("signature_invalid".into()),
+                                }),
+                                warp::http::StatusCode::BAD_REQUEST,
+                            )
+                            .into_response());
                         }
                     }
                 }

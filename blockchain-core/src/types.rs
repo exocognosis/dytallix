@@ -913,7 +913,7 @@ impl TransferTransaction {
             signature: PQCTransactionSignature {
                 signature: Signature {
                     data: Vec::new(),
-                    algorithm: SignatureAlgorithm::Dilithium5,
+                    algorithm: SignatureAlgorithm::Dilithium3,
                 },
                 public_key: Vec::new(),
             },
@@ -1073,7 +1073,7 @@ impl Transaction {
         let signature = crate::types::PQCTransactionSignature {
             signature: dytallix_pqc::Signature {
                 data: sig.signature,
-                algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium3,
             },
             public_key: pqc.get_dilithium_public_key().to_vec(),
         };

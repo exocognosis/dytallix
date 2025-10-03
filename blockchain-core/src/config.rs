@@ -59,7 +59,7 @@ impl Default for NodeConfig {
             min_tls_version: "1.2".to_string(),
             audit_logging: true,
             pqc_keys_path: "./pqc_keys.json".to_string(),
-            pqc_algorithm: "Dilithium5".to_string(),
+            pqc_algorithm: "Dilithium3".to_string(),
             signature_policy: SignaturePolicy::default(),
         }
     }

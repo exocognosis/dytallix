@@ -113,6 +113,20 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// PQC config and loader
+const PQC_ENABLED = process.env.PQC_ENABLED === 'true';
+const PQC_ALGO = (process.env.PQC_ALGORITHM || 'dilithium3').toLowerCase();
+async function loadPqc() {
+  try {
+    // Prefer local workspace build
+    const mod = await import(path.join(__dirname, '../../DytallixLiteLaunch/packages/pqc/dist/index.js'));
+    return mod;
+  } catch (_) {
+    // Fallback to package if installed
+    return await import('@dyt/pqc');
+  }
+}
+
 // Request logging and metrics middleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -183,6 +197,25 @@ app.get('/api/staking/delegations/:address', explorerController.getStakingDelega
 app.get('/api/staking/rewards/:address', explorerController.getStakingRewards);
 app.post('/api/staking/delegate', explorerController.delegateStake);
 app.post('/api/staking/claim-rewards', explorerController.claimStakingRewards);
+
+// PQC verification route (used by UI badge)
+app.post('/api/verify-tx', async (req, res) => {
+  try {
+    if (!PQC_ENABLED) return res.status(400).json({ ok: false, error: 'PQC not enabled', reason: 'PQC_DISABLED' });
+    if (PQC_ALGO !== 'dilithium3') return res.status(400).json({ ok: false, error: 'Unsupported PQC_ALGORITHM', reason: 'UNSUPPORTED_ALGO' });
+    const { signer, signature, body } = req.body || {};
+    if (!signer || !signature || !body) return res.status(400).json({ ok: false, error: 'Missing signer/signature/body', reason: 'MISSING_FIELDS' });
+    if (signer.algo !== 'pqc/dilithium3') return res.status(400).json({ ok: false, error: 'Invalid algo', reason: 'INVALID_ALGO' });
+    const { canonicalBytes, verify } = await loadPqc();
+    const bytes = canonicalBytes(body);
+    const ok = await verify(bytes, signature, signer.publicKey);
+    if (!ok) return res.status(400).json({ ok: false, error: 'Invalid signature', reason: 'INVALID_SIGNATURE' });
+    res.json({ ok: true });
+  } catch (e) {
+    logger.warn('PQC verify failed', { error: e.message });
+    res.status(500).json({ ok: false, error: 'Verification failed', reason: 'SERVER_ERROR' });
+  }
+});
 
 // Serve explorer UI
 app.get('/', (req, res) => {

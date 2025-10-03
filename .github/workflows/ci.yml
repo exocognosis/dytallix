@@ -286,3 +286,77 @@ jobs:
         run: |
           echo '--- ERRORS SUMMARY (if present) ---'
           if [ -f ERRORS_SUMMARY.md ]; then cat ERRORS_SUMMARY.md; else echo 'No ERRORS_SUMMARY.md generated'; fi
+  kat-check:
+    name: Dilithium3 KAT Fixture Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify KAT meta hash (vendor)
+        run: |
+          set -e
+          FILE="DytallixLiteLaunch/vendor/pqcrypto-dilithium/pqclean/crypto_sign/dilithium3/META.yml"
+          if [ -f "$FILE" ]; then
+            HASH=$(awk '/nistkat-sha256:/ {print tolower($2)}' "$FILE")
+            echo "META.yml nistkat-sha256: $HASH"
+            if [ "$HASH" != "4ae9921a12524a31599550f2b4e57b6db1b133987c348f07e12d20fc4aa426d5" ]; then
+              echo "KAT meta hash drift detected"; exit 1; fi
+          else
+            echo "META.yml not found; skipping vendor KAT meta check"
+          fi
+      - name: Verify curated fixture checksum
+        run: |
+          set -e
+          FIX="DytallixLiteLaunch/packages/pqc/test/vectors/dilithium3.kat.min.json"
+          if [ -f "$FIX" ]; then
+            SUM=$(sha256sum "$FIX" | awk '{print $1}')
+            echo "Fixture sha256: $SUM"
+            # Pin after population to detect drift
+            PIN_FILE="DytallixLiteLaunch/packages/pqc/test/vectors/dilithium3.kat.min.sha256"
+            if [ -f "$PIN_FILE" ]; then
+              PIN=$(cat "$PIN_FILE" | tr 'A-Z' 'a-z' | tr -d '\n\r ')
+              echo "Pinned sha256: $PIN"
+              if [ "$SUM" != "$PIN" ]; then echo "Fixture drift"; exit 1; fi
+            else
+              echo "No pin file found; skipping strict check (will be enforced once pinned)."
+            fi
+          else
+            echo "Fixture missing (expected minimal)."
+          fi
+      - name: Run Node KAT tests
+        run: |
+          cd DytallixLiteLaunch/packages/pqc
+          npm ci --silent || true
+          npm run build
+          node --test test/dilithium3.vectors.test.js
+      - name: Upload KAT fixtures
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kat-fixtures
+          path: |
+            DytallixLiteLaunch/packages/pqc/test/vectors/dilithium3.kat.min.json
+            DytallixLiteLaunch/packages/pqc/test/vectors/dilithium3.kat.min.sha256
+          if-no-files-found: warn
+  kat-drift:
+    name: KAT Drift Guard
+    runs-on: ubuntu-latest
+    needs: [kat-check]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure curated KAT file present and non-empty
+        run: |
+          FIX="DytallixLiteLaunch/packages/pqc/test/vectors/dilithium3.kat.min.json"
+          [ -s "$FIX" ] || { echo "Missing curated KAT fixture"; exit 1; }
+      - name: Prevent accidental edits to KAT fixtures without pin update
+        run: |
+          set -e
+          FIX="DytallixLiteLaunch/packages/pqc/test/vectors/dilithium3.kat.min.json"
+          PIN="DytallixLiteLaunch/packages/pqc/test/vectors/dilithium3.kat.min.sha256"
+          if [ -f "$PIN" ]; then
+            SUM=$(sha256sum "$FIX" | awk '{print $1}')
+            PINNED=$(tr -d '\n\r ' < "$PIN" | tr 'A-Z' 'a-z')
+            echo "Fixture: $SUM\nPinned:   $PINNED"
+            if [ "$SUM" != "$PINNED" ]; then echo "KAT fixture changed without pin update"; exit 1; fi
+          else
+            echo "No pin file; allow until populated"
+          fi

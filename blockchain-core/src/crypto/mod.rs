@@ -67,10 +67,11 @@ impl PQCManager {
         public_key: &[u8],
     ) -> Result<bool, Box<dyn std::error::Error>> {
         let algorithm = match signature.algorithm.as_str() {
+            "Dilithium3" | "CRYSTALS-Dilithium3" => SignatureAlgorithm::Dilithium3,
             "Dilithium5" | "CRYSTALS-Dilithium5" => SignatureAlgorithm::Dilithium5,
             "Falcon1024" => SignatureAlgorithm::Falcon1024,
             "SphincsSha256128s" | "SPHINCS+" => SignatureAlgorithm::SphincsSha256128s,
-            _ => SignatureAlgorithm::Dilithium5,
+            _ => SignatureAlgorithm::Dilithium3,
         };
 
         let sig = Signature {

@@ -62,10 +62,8 @@ pub struct SignaturePolicy {
 impl Default for SignaturePolicy {
     fn default() -> Self {
         let mut allowed = HashSet::new();
-        // Default to all supported PQC algorithms
-        allowed.insert(SignatureAlgorithm::Dilithium5);
-        allowed.insert(SignatureAlgorithm::Falcon1024);
-        allowed.insert(SignatureAlgorithm::SphincsSha256128s);
+        // Default to Dilithium3 only for network-wide canonicality
+        allowed.insert(SignatureAlgorithm::Dilithium3);
 
         Self {
             allowed_algorithms: allowed,
@@ -87,13 +85,18 @@ impl SignaturePolicy {
 
     /// Create a policy that allows all PQC algorithms
     pub fn allow_all_pqc() -> Self {
-        Default::default()
+        let mut allowed = HashSet::new();
+        allowed.insert(SignatureAlgorithm::Dilithium3);
+        allowed.insert(SignatureAlgorithm::Dilithium5);
+        allowed.insert(SignatureAlgorithm::Falcon1024);
+        allowed.insert(SignatureAlgorithm::SphincsSha256128s);
+        Self::new(allowed)
     }
 
-    /// Create a strict policy that only allows Dilithium5
+    /// Create a strict policy that only allows Dilithium3
     pub fn dilithium_only() -> Self {
         let mut allowed = HashSet::new();
-        allowed.insert(SignatureAlgorithm::Dilithium5);
+        allowed.insert(SignatureAlgorithm::Dilithium3);
         Self::new(allowed)
     }
 
@@ -127,7 +130,9 @@ impl SignaturePolicy {
 
         // Try to parse the algorithm name to known PQC algorithms
         let algorithm = match algorithm_name.to_lowercase().as_str() {
-            "dilithium5" | "dilithium" => SignatureAlgorithm::Dilithium5,
+            "dilithium3" => SignatureAlgorithm::Dilithium3,
+            "dilithium5" => SignatureAlgorithm::Dilithium5,
+            "dilithium" => SignatureAlgorithm::Dilithium3, // default mapping
             "falcon1024" | "falcon" => SignatureAlgorithm::Falcon1024,
             "sphincs+" | "sphincssha256128s" | "sphincs" => SignatureAlgorithm::SphincsSha256128s,
             _ => return Err(PolicyError::UnknownAlgorithm(algorithm_name.to_string())),
@@ -205,6 +210,9 @@ mod tests {
         let policy = SignaturePolicy::default();
 
         assert!(policy
+            .validate_algorithm(&SignatureAlgorithm::Dilithium3)
+            .is_ok());
+        assert!(policy
             .validate_algorithm(&SignatureAlgorithm::Dilithium5)
             .is_ok());
         assert!(policy
@@ -220,8 +228,11 @@ mod tests {
         let policy = SignaturePolicy::dilithium_only();
 
         assert!(policy
-            .validate_algorithm(&SignatureAlgorithm::Dilithium5)
+            .validate_algorithm(&SignatureAlgorithm::Dilithium3)
             .is_ok());
+        assert!(policy
+            .validate_algorithm(&SignatureAlgorithm::Dilithium5)
+            .is_err());
         assert!(policy
             .validate_algorithm(&SignatureAlgorithm::Falcon1024)
             .is_err());
@@ -235,6 +246,7 @@ mod tests {
         assert!(SignaturePolicy::is_legacy_algorithm("ecdsa"));
         assert!(SignaturePolicy::is_legacy_algorithm("RSA"));
         assert!(SignaturePolicy::is_legacy_algorithm("ed25519"));
+        assert!(!SignaturePolicy::is_legacy_algorithm("dilithium3"));
         assert!(!SignaturePolicy::is_legacy_algorithm("dilithium5"));
         assert!(!SignaturePolicy::is_legacy_algorithm("falcon1024"));
     }
@@ -259,6 +271,10 @@ mod tests {
         let policy = SignaturePolicy::default();
 
         assert_eq!(
+            policy.validate_algorithm_name("dilithium3").unwrap(),
+            SignatureAlgorithm::Dilithium3
+        );
+        assert_eq!(
             policy.validate_algorithm_name("dilithium5").unwrap(),
             SignatureAlgorithm::Dilithium5
         );
@@ -277,14 +293,17 @@ mod tests {
         let mut manager = PolicyManager::default();
 
         assert!(manager
-            .validate_transaction_algorithm(&SignatureAlgorithm::Dilithium5)
+            .validate_transaction_algorithm(&SignatureAlgorithm::Dilithium3)
             .is_ok());
 
         // Update to dilithium-only policy
         manager.update_policy(SignaturePolicy::dilithium_only());
         assert!(manager
-            .validate_transaction_algorithm(&SignatureAlgorithm::Dilithium5)
+            .validate_transaction_algorithm(&SignatureAlgorithm::Dilithium3)
             .is_ok());
+        assert!(manager
+            .validate_transaction_algorithm(&SignatureAlgorithm::Dilithium5)
+            .is_err());
         assert!(manager
             .validate_transaction_algorithm(&SignatureAlgorithm::Falcon1024)
             .is_err());

@@ -22,7 +22,10 @@
     "axios": "^1.5.0",
     "express-rate-limit": "^6.10.0",
     "compression": "^1.7.4",
-    "winston": "^3.10.0"
+    "winston": "^3.10.0",
+    "sql.js": "^1.11.0",
+    "ws": "^8.18.0",
+    "@dyt/pqc": "file:../packages/pqc"
   },
   "devDependencies": {
     "eslint": "^8.50.0",

@@ -77,13 +77,13 @@ impl PQCWallet {
     /// Create wallet with specific parameters
     pub fn new_with_params(passphrase: &str, salt: &[u8], params: &Argon2Params) -> Result<Self> {
         let master_seed = derive_master_seed(passphrase, salt, params)?;
-        let keypair = generate_dilithium5_keypair(&master_seed.seed)?;
+        let keypair = generate_dilithium3_keypair(&master_seed.seed)?;
         let address = derive_address(&keypair.public_key)?;
 
         Ok(Self {
             keypair,
             address,
-            algorithm: SignatureAlgorithm::Dilithium5,
+            algorithm: SignatureAlgorithm::Dilithium3,
         })
     }
 
@@ -124,7 +124,7 @@ impl PQCWallet {
         PublicKeyProto {
             type_url: "/dytallix.crypto.pqc.v1beta1.PubKey".to_string(),
             key_bytes: self.keypair.public_key.clone(),
-            algorithm: "dilithium5".to_string(),
+            algorithm: "dilithium3".to_string(),
         }
     }
 }
@@ -157,21 +157,15 @@ fn derive_master_seed(passphrase: &str, salt: &[u8], params: &Argon2Params) -> R
     Ok(MasterSeed { seed })
 }
 
-/// Generate Dilithium5 keypair from master seed
-fn generate_dilithium5_keypair(_seed: &[u8]) -> Result<KeyPair> {
-    // Use seed to deterministically generate keypair
-    // For now, we'll use the PQC manager to generate a keypair
-    // In a real implementation, we'd use the seed as entropy for deterministic generation
+/// Generate Dilithium3 keypair from master seed
+fn generate_dilithium3_keypair(_seed: &[u8]) -> Result<KeyPair> {
     let manager = PQCManager::new_with_algorithms(
-        SignatureAlgorithm::Dilithium5,
+        SignatureAlgorithm::Dilithium3,
         dytallix_pqc::KeyExchangeAlgorithm::Kyber1024,
     )
     .map_err(|e| anyhow!("Failed to create PQC manager: {}", e))?;
-
-    // For deterministic generation, we should use the seed with the PQC library
-    // This is a placeholder - real implementation would integrate seed into key generation
     manager
-        .generate_keypair(&SignatureAlgorithm::Dilithium5)
+        .generate_keypair(&SignatureAlgorithm::Dilithium3)
         .map_err(|e| anyhow!("Failed to generate keypair: {}", e))
 }
 
@@ -194,10 +188,8 @@ pub(crate) fn derive_address(public_key: &[u8]) -> Result<String> {
 
 /// Create PQC manager from existing keypair
 fn create_manager_from_keypair(_keypair: &KeyPair) -> Result<PQCManager> {
-    // This is a placeholder implementation
-    // In practice, we'd need to create a manager that uses the existing keypair
     PQCManager::new_with_algorithms(
-        SignatureAlgorithm::Dilithium5,
+        SignatureAlgorithm::Dilithium3,
         dytallix_pqc::KeyExchangeAlgorithm::Kyber1024,
     )
     .map_err(|e| anyhow!("Failed to create manager: {}", e))

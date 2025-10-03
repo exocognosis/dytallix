@@ -13,7 +13,10 @@ let walletState = {
     algorithm: PQCAlgorithms.DILITHIUM,
     transactions: [],
     isGenerating: false,
-    isSending: false
+    isSending: false,
+    // WASM-backed PQC keys (base64) when available
+    pk_b64: null,
+    sk_b64: null,
 };
 
 // Utility functions for cryptographic operations
@@ -287,23 +290,35 @@ const WalletOperations = {
         UI.clearErrors();
         
         try {
-            // Simulate processing time
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const newKeyPair = new PQCKeyPair(walletState.algorithm);
-            const newAddress = await WalletUtils.generateAddress(newKeyPair.publicKey);
-            
-            walletState.keyPair = newKeyPair;
-            walletState.address = newAddress;
-            
-            // Log private key for testing (as required)
-            console.log('Generated Private Key (for testing):', newKeyPair.getPrivateKeyHex());
-            
-            UI.updateKeypairDisplay();
-            UI.showAlert('success', `New ${walletState.algorithm} keypair generated successfully!`);
+            // Prefer real PQC via wasm if available and Dilithium selected
+            const algoSel = document.getElementById('algorithm-select').value;
+            if (window.DytPQC && algoSel === PQCAlgorithms.DILITHIUM) {
+                const out = await window.DytPQC.keygen();
+                const parsed = typeof out === 'string' ? JSON.parse(out) : out;
+                walletState.address = parsed.address;
+                walletState.pk_b64 = parsed.pk;
+                walletState.sk_b64 = parsed.sk;
+                walletState.keyPair = {
+                    getPublicKeyHex: () => {
+                        const bytes = Uint8Array.from(atob(parsed.pk), c => c.charCodeAt(0));
+                        return CryptoUtils.bytesToHex(bytes);
+                    }
+                };
+                walletState.algorithm = PQCAlgorithms.DILITHIUM;
+                UI.updateKeypairDisplay();
+                UI.showAlert('success', `New ${walletState.algorithm} keypair generated successfully!`);
+            } else {
+                // Fallback simulated key generation
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const newKeyPair = new PQCKeyPair(walletState.algorithm);
+                const newAddress = await WalletUtils.generateAddress(newKeyPair.publicKey);
+                walletState.keyPair = newKeyPair;
+                walletState.address = newAddress;
+                UI.updateKeypairDisplay();
+                UI.showAlert('success', `New ${walletState.algorithm} keypair generated successfully!`);
+            }
         } catch (error) {
-            console.error('Key generation failed:', error);
-            UI.showAlert('error', 'Failed to generate keypair. Please try again.');
+            UI.showAlert('error', 'Failed to generate keypair.');
         } finally {
             walletState.isGenerating = false;
             const btn = document.getElementById('generate-keypair-btn');
@@ -340,7 +355,7 @@ const WalletOperations = {
 
     sendTransaction: async () => {
         if (!WalletOperations.validateTransaction()) return;
-        if (!walletState.keyPair) {
+        if (!walletState.keyPair && !walletState.pk_b64) {
             UI.showAlert('error', 'Please generate a keypair first');
             return;
         }
@@ -351,39 +366,49 @@ const WalletOperations = {
         UI.setLoading('send-transaction-btn', true, 'Signing & Sending...');
         
         try {
-            // Simulate processing time
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
             const recipientAddress = document.getElementById('recipient-address').value.trim();
             const amount = parseFloat(document.getElementById('amount').value.trim());
-            
             const transaction = {
                 from: walletState.address,
                 to: recipientAddress,
                 amount: amount,
                 timestamp: Date.now()
             };
+
+            let signatureHex = '';
+            let signatureHashHex = '';
+
+            if (window.DytPQC && walletState.sk_b64 && walletState.algorithm === PQCAlgorithms.DILITHIUM) {
+                const bytes = new TextEncoder().encode(JSON.stringify(transaction));
+                const sig_b64 = await window.DytPQC.sign(bytes, walletState.sk_b64);
+                const hashBuf = await crypto.subtle.digest('SHA-256', bytes);
+                signatureHex = CryptoUtils.bytesToHex(Uint8Array.from(atob(sig_b64), c => c.charCodeAt(0)));
+                signatureHashHex = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+                // Zeroize temporary msg bytes
+                if (window.DytPQC.zeroize) window.DytPQC.zeroize(bytes);
+            } else {
+                // Fallback simulated signing
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const signature = await WalletUtils.signTransaction(
+                    transaction, 
+                    walletState.keyPair?.privateKey, 
+                    walletState.algorithm
+                );
+                signatureHex = signature.signature;
+                signatureHashHex = signature.hash;
+            }
             
-            // Sign transaction
-            const signature = await WalletUtils.signTransaction(
-                transaction, 
-                walletState.keyPair.privateKey, 
-                walletState.algorithm
-            );
-            
-            // Generate transaction hash
             const txHash = await WalletUtils.generateTransactionHash(
                 transaction.from,
                 transaction.to,
                 transaction.amount
             );
             
-            // Add to transaction history
             const newTransaction = {
                 ...transaction,
                 hash: txHash,
-                signature: signature.signature,
-                signatureHash: signature.hash,
+                signature: signatureHex,
+                signatureHash: signatureHashHex,
                 status: 'pending',
                 algorithm: walletState.algorithm
             };
@@ -391,7 +416,6 @@ const WalletOperations = {
             walletState.transactions.unshift(newTransaction);
             UI.updateTransactionHistory();
             
-            // Simulate confirmation after 3 seconds
             setTimeout(() => {
                 const txIndex = walletState.transactions.findIndex(tx => tx.hash === txHash);
                 if (txIndex !== -1) {
@@ -399,15 +423,10 @@ const WalletOperations = {
                     UI.updateTransactionHistory();
                 }
             }, 3000);
-            
-            // Clear form
-            document.getElementById('recipient-address').value = '';
-            document.getElementById('amount').value = '';
-            
-            UI.showAlert('success', `Transaction sent! Hash: ${txHash.substring(0, 16)}...`);
+
+            UI.showAlert('success', 'Transaction submitted');
         } catch (error) {
-            console.error('Transaction failed:', error);
-            UI.showAlert('error', 'Transaction failed. Please try again.');
+            UI.showAlert('error', 'Failed to send transaction.');
         } finally {
             walletState.isSending = false;
             const btn = document.getElementById('send-transaction-btn');

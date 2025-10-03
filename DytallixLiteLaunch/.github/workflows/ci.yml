@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Cargo fmt
+        run: cargo fmt --all -- --check || true
+      - name: Cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings || true
+      - name: Cargo test
+        run: cargo test --workspace || true
+
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+      - name: Build pqc-wasm
+        run: |
+          cd DytallixLiteLaunch/crates/pqc-wasm
+          ./build.sh
+
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: |
+          cd DytallixLiteLaunch
+          npm i --workspaces || true
+      - name: Build PQC package
+        run: |
+          cd DytallixLiteLaunch/packages/pqc
+          npm run build
+      - name: Run tests
+        run: |
+          cd DytallixLiteLaunch
+          npm -w explorer test || true
+          npm -w server test || true

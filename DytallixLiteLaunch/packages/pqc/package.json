@@ -1,0 +1,19 @@
+{
+  "name": "@dyt/pqc",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.js",
+    "kat:import": "node scripts/kat_import_from_rsp.js",
+    "kat:pin": "node -e \"const fs=require('node:fs');const c=fs.readFileSync('test/vectors/dilithium3.kat.min.json');const h=require('node:crypto').createHash('sha256').update(c).digest('hex');fs.writeFileSync('test/vectors/dilithium3.kat.min.sha256', h+'\n');console.log('Pinned',h)\"",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

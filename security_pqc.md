@@ -48,40 +48,40 @@ This document presents a comprehensive security review of the post-quantum crypt
 
 **Recommendation:** Implement `zeroize::Zeroize` trait for all secret key structures and ensure secure memory cleanup.
 
-### 🔴 CV-002: Timestamp-based Replay Attack Vulnerability
-**Component:** BridgePQCManager (bridge.rs:183-197)
-**Severity:** HIGH
-**CVSS Score:** 8.1
+## Zeroization Guarantees (Rust/JS)
 
-**Description:** Bridge signatures use weak timestamp validation allowing replay attacks within large time windows.
+- Rust crates (`pqc-crypto`, `pqc-wasm`):
+  - Secret key buffers use `Zeroize`/`ZeroizeOnDrop` where applicable.
+  - In WASM bindings, transient `sk` buffers are explicitly zeroized after `sign`.
+- Wallet/JS:
+  - Secret material is kept in ephemeral variables and nulled immediately after use.
+  - No secrets stored in localStorage/sessionStorage.
 
-**Location:** `pqc-crypto/src/bridge.rs`
-- Lines 194: Timestamp generation without validation
-- Lines 220-242: Multi-signature verification lacks timestamp checking
+## Runtime Flags
 
-**Impact:**
-- Bridge transactions can be replayed
-- Cross-chain operations vulnerable to double-spending
-- No proper nonce or sequence validation
+- PQC_ENABLED: when `true`, explorer server and backend verification endpoints are active and enforce PQC checks.
+- PQC_ALGORITHM: must be `dilithium3` for web/Node PQC package; server throws if another value is set.
 
-**Recommendation:** Implement nonce-based replay protection and strict timestamp validation windows.
+## KAT Policy and CI
 
-### 🔴 CV-003: Algorithm Downgrade Attack Vector
-**Component:** BridgePQCManager (bridge.rs:212-214)
-**Severity:** HIGH
-**CVSS Score:** 7.5
+- Vendor META check: Dilithium3 `nistkat-sha256` pinned to `4ae9921a12524a31599550f2b4e57b6db1b133987c348f07e12d20fc4aa426d5`.
+- Curated KAT fixture: `packages/pqc/test/vectors/dilithium3.kat.min.json` consumed by Node/Browser tests via `verifySm` and detached `verify`.
+- CI uploads KAT fixtures and enforces drift via a pinned `*.sha256` once populated.
 
-**Description:** Signature verification accepts any algorithm without validation hierarchy, allowing attackers to force weaker algorithms.
+## Node Fail-Closed
 
-**Location:** `pqc-crypto/src/bridge.rs`
-- Lines 212-214: Algorithm matching without security level validation
+- Mempool admission rejects transactions with:
+  - Missing PQC signature or public key
+  - Invalid base64 encodings
+  - Signature verification failures
+- Tests: `node/src/mempool/pqc_tests.rs` cover valid/invalid/missing signatures and rejection paths.
 
-**Impact:**
-- Attackers can force use of compromised algorithms
-- No algorithm security level enforcement
-- Crypto-agility framework bypassed
+## Explorer UX on Verification Failure
 
-**Recommendation:** Implement algorithm security hierarchy and mandatory upgrade policies.
+- Transactions show a PQC badge:
+  - Green “PQC ✓” when verification succeeds
+  - Red “PQC ×” with tooltip reason on failure (e.g., `INVALID_SIGNATURE`, `PQC_DISABLED`, `UNSUPPORTED_ALGO`)
+- Optional: a modal with detailed error codes and remediation can be added.
 
 ## Algorithm Implementation Analysis
 
@@ -403,3 +403,35 @@ The Dytallix PQC implementation demonstrates a solid foundation with proper algo
 **Next Review:** 30 days after critical fixes implementation
 **Reviewed By:** PQC Security Team
 **Classification:** CONFIDENTIAL - SECURITY REVIEW
+
+# Dytallix PQC Security Notes
+
+This document summarizes PQC-related security controls, flags, and behaviors across wallet → node → explorer.
+
+## Algorithms
+- Default: Dilithium3 (signatures)
+- Key Exchange: Kyber1024
+
+## Zeroization
+- Rust: Secret key buffers and structs are annotated with `Zeroize` / `ZeroizeOnDrop`.
+  - `pqc-crypto::KeyPair.secret_key` zeroized on drop.
+  - `pqc-wasm::sign` zeroizes temporary secret key buffers after use.
+- JS: Wallet includes helper to zero out typed arrays after signing when possible.
+
+## Dev Flags
+- `PQC_ENABLED`: enables PQC verification in explorer/server.
+- `PQC_ALGORITHM`: must be `dilithium3`; other values reject.
+
+## Explorer UX
+- Transactions include a PQC badge when PQC is enabled and a signature is present.
+- Badge states:
+  - `PQC ✓`: Signature verified.
+  - `PQC ×`: Verification failed. Tooltip shows reason: `PQC disabled`, `Unsupported algorithm`, `Missing fields`, `Invalid algorithm`, `Invalid signature`, or `Verification error`.
+
+## CI KAT
+- Validates Dilithium3 vendor META.yml `nistkat-sha256`.
+- Curated KAT fixture hook exists; job will fail on drift once pinned.
+
+## Node Fail-Closed
+- Mempool and RPC paths reject transactions with missing/invalid signatures by default when PQC is required.
+- Tests ensure invalid/missing signatures are rejected.

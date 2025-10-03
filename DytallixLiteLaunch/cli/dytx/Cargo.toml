@@ -19,6 +19,12 @@ hex = "0.4"
 base64 = "0.21"
 ed25519-dalek = "2.0"
 rand = "0.8"
+# PQC
+pqcrypto-dilithium = "0.9"
+pqcrypto-traits = "0.3"
+sha2 = "0.10"
+bech32 = "0.9"
+zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [profile.release]
 opt-level = 3

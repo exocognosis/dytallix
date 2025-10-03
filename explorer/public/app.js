@@ -3,6 +3,7 @@ class DytallixExplorer {
         this.apiBase = window.location.origin;
         this.currentTab = 'blocks';
         this.autoRefreshInterval = null;
+        this.pqc = { enabled: false };
         this.init();
     }
 
@@ -73,14 +74,15 @@ class DytallixExplorer {
             const response = await fetch(`${this.apiBase}/api/status`);
             const status = await response.json();
 
-            document.getElementById('latestBlock').textContent = `Block: ${status.latestHeight}`;
-            document.getElementById('statsLatestBlock').textContent = status.latestHeight;
-            document.getElementById('statsChainId').textContent = status.chainId;
+            this.pqc = status.pqc || { enabled: false };
+            document.getElementById('latestBlock').textContent = `Block: ${status.latestHeight || status.status?.resultSyncInfo?.latest_block_height || '-'}`;
+            document.getElementById('statsLatestBlock').textContent = status.latestHeight || status.status?.resultSyncInfo?.latest_block_height || '-';
+            document.getElementById('statsChainId').textContent = status.chainId || status.status?.node_info?.network || '-';
             
-            // Load validators count
             const validatorsResponse = await fetch(`${this.apiBase}/api/validators`);
             const validatorsData = await validatorsResponse.json();
-            document.getElementById('statsValidators').textContent = validatorsData.total;
+            const total = (validatorsData.bonded?.validators?.length || 0) + (validatorsData.unbonding?.validators?.length || 0) + (validatorsData.unbonded?.validators?.length || 0);
+            document.getElementById('statsValidators').textContent = total;
             
         } catch (error) {
             console.error('Failed to load network status:', error);
@@ -150,12 +152,33 @@ class DytallixExplorer {
             const tbody = document.getElementById('transactionsTableBody');
             tbody.innerHTML = '';
 
-            data.transactions.forEach(tx => {
+            // Helper to verify PQC via backend
+            const verifyPqc = async (tx) => {
+                try {
+                    if (!this.pqc.enabled || !tx || !tx.signature || !tx.publicKey || !tx.body) return null;
+                    const resp = await fetch(`${this.apiBase}/api/verify-tx`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ signer: { publicKey: tx.publicKey, algo: 'pqc/dilithium3' }, signature: tx.signature, body: tx.body })
+                    });
+                    if (!resp.ok) return { ok: false };
+                    return await resp.json();
+                } catch (e) {
+                    return { ok: false };
+                }
+            };
+
+            for (const tx of data.transactions) {
                 const row = document.createElement('tr');
                 row.classList.add('hover:bg-gray-50', 'cursor-pointer');
                 row.addEventListener('click', () => this.showTransactionDetails(tx));
                 
                 const riskBadge = this.createRiskBadge(tx.ai_risk_score);
+                let pqcBadge = '';
+                if (this.pqc.enabled && tx.signature) {
+                    // Optimistically show pending, then update
+                    pqcBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800" title="Verifying PQC signature...">PQC …</span>';
+                }
                 
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
@@ -173,6 +196,7 @@ class DytallixExplorer {
                         }">
                             ${tx.success ? 'Success' : 'Failed'}
                         </span>
+                        <span class="pqc-badge-slot">${pqcBadge}</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         ${riskBadge}
@@ -183,7 +207,22 @@ class DytallixExplorer {
                 `;
                 
                 tbody.appendChild(row);
-            });
+
+                // After append, perform async verification and update badge
+                if (this.pqc.enabled && tx.signature) {
+                    verifyPqc(tx).then((res) => {
+                        const slot = row.querySelector('.pqc-badge-slot');
+                        if (!slot) return;
+                        if (res && res.ok) {
+                            slot.innerHTML = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800" title="PQC signature verified">PQC ✓</span>';
+                        } else {
+                            const reason = res?.reason || 'UNKNOWN';
+                            const title = reason === 'PQC_DISABLED' ? 'PQC disabled' : reason === 'UNSUPPORTED_ALGO' ? 'Unsupported algorithm' : reason === 'MISSING_FIELDS' ? 'Missing fields' : reason === 'INVALID_ALGO' ? 'Invalid algorithm' : reason === 'INVALID_SIGNATURE' ? 'Invalid signature' : 'Verification error';
+                            slot.innerHTML = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800" title="${title}">PQC ×</span>`;
+                        }
+                    });
+                }
+            }
         } catch (error) {
             console.error('Failed to load transactions:', error);
             this.showError('transactionsTableBody', 'Failed to load transactions');

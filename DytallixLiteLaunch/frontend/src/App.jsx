@@ -6,6 +6,7 @@ import Faucet from './pages/Faucet';
 import Explorer from './pages/Explorer';
 import Dashboard from './pages/Dashboard';
 import Governance from './pages/Governance';
+import About from './pages/About';
 
 const Navigation = () => {
   const location = useLocation();
@@ -17,6 +18,7 @@ const Navigation = () => {
     { path: '/faucet', label: 'Faucet', icon: '🚰' },
     { path: '/explorer', label: 'Explorer', icon: '🔍' },
     { path: '/governance', label: 'Governance', icon: '🗳️' },
+    { path: '/about', label: 'About', icon: 'ℹ️' },
   ];
 
   return (
@@ -69,6 +71,7 @@ const Footer = () => {
               <li><Link to="/faucet" className="hover:text-white">Get Testnet Tokens</Link></li>
               <li><Link to="/explorer" className="hover:text-white">Block Explorer</Link></li>
               <li><Link to="/governance" className="hover:text-white">Governance</Link></li>
+              <li><Link to="/about" className="hover:text-white">About</Link></li>
             </ul>
           </div>
           
@@ -105,6 +108,7 @@ function App() {
             <Route path="/faucet" element={<Faucet />} />
             <Route path="/explorer" element={<Explorer />} />
             <Route path="/governance" element={<Governance />} />
+            <Route path="/about" element={<About />} />
             <Route path="*" element={
               <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">

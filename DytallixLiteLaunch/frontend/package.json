@@ -27,7 +27,12 @@
     "react-hook-form": "^7.46.0",
     "zod": "^3.22.0",
     "@hookform/resolvers": "^3.3.0",
-    "framer-motion": "^10.16.0"
+    "framer-motion": "^10.16.0",
+    "@cosmjs/stargate": "^0.32.4",
+    "@cosmjs/proto-signing": "^0.32.4",
+    "@cosmjs/crypto": "^0.32.4",
+    "bip39": "^3.1.0",
+    "@dyt/pqc": "file:../packages/pqc"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

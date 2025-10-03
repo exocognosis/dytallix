@@ -11,10 +11,14 @@ members = [
     "sdk",
     "explorer/indexer",
     "explorer/api",
-    "benchmarks"
+    "benchmarks",
+    "DytallixLiteLaunch/crates/pqc-wasm"
 ]
 
 resolver = "2"
+
+[workspace.package]
+# Prevent child packages from assuming workspace outside this tree
 
 [package]
 name = "dytallix"
@@ -74,3 +78,8 @@ time = "0.3"
 [profile.release]
 opt-level = 3
 lto = true
+
+[patch.crates-io]
+pqcrypto-dilithium = { path = "DytallixLiteLaunch/vendor/pqcrypto-dilithium" }
+pqcrypto-traits = { path = "DytallixLiteLaunch/vendor/pqcrypto-traits" }
+pqcrypto-internals = { path = "DytallixLiteLaunch/vendor/pqcrypto-internals" }
