@@ -84,6 +84,18 @@ This checklist ensures a successful deployment of the Dytallix testnet environme
 - [ ] Balance query: `dytx balance --address <test-address>`
 - [ ] PQC keygen: `dytx pqc-keygen`
 
+### PQC SDK (@dyt/pqc)
+- [ ] Package built: `cd packages/pqc && npm run build`
+- [ ] WASM module available: Check `crates/pqc-wasm/pkg/`
+- [ ] Provider tests pass: `cd packages/pqc && npm test`
+- [ ] KAT vectors load: Check `test/vectors/dilithium3.kat.min.json`
+- [ ] Backend selection works:
+  - [ ] `DYT_PQC_BACKEND=wasm` - Forces WASM backend
+  - [ ] `DYT_PQC_BACKEND=native` - Tries native, falls back to WASM
+- [ ] Address derivation matches node implementation
+- [ ] Sign/verify roundtrip works in Node.js
+- [ ] Sign/verify roundtrip works in browser (if applicable)
+
 ### Advanced Features
 - [ ] Governance demo: `./scripts/governance-demo.sh`
 - [ ] Emissions calculation: `./scripts/emissions_cron.sh`

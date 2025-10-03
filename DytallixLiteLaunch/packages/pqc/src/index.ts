@@ -1,3 +1,88 @@
+/**
+ * @dyt/pqc - Post-Quantum Cryptography SDK
+ * 
+ * Provider-based abstraction for PQC operations with pluggable backends:
+ * - WASM (default): WebAssembly backend using wasm-pack
+ * - Native (optional): Node-API native addon
+ * 
+ * Usage:
+ *   import { createProvider } from '@dyt/pqc';
+ *   const provider = await createProvider();
+ *   const keypair = await provider.keygen();
+ */
+
+// Re-export provider types
+export type {
+  Provider,
+  Keypair,
+  SignResult,
+  VerifyResult,
+  Address,
+  Algo,
+  ProviderFactory,
+  CreateProviderOptions,
+} from './provider.js';
+
+// Re-export providers
+export { ProviderWasm } from './providers/wasm/index.js';
+export { ProviderNative } from './providers/native/index.js';
+
+// Re-export utilities
+export { deriveAddress, isValidAddress } from './address.js';
+export {
+  isNodeEnvironment,
+  isBrowserEnvironment,
+  selectBackend,
+} from './detect.js';
+
+import type { Provider, CreateProviderOptions } from './provider.js';
+import { ProviderWasm } from './providers/wasm/index.js';
+import { ProviderNative } from './providers/native/index.js';
+import { selectBackend } from './detect.js';
+
+/**
+ * Create a provider instance with automatic backend selection
+ * 
+ * @param options - Configuration options
+ * @returns Provider instance
+ * 
+ * @example
+ * ```typescript
+ * // Auto-select backend
+ * const provider = await createProvider();
+ * 
+ * // Force WASM backend
+ * const wasmProvider = await createProvider({ backend: 'wasm' });
+ * 
+ * // Request native backend (falls back to WASM if unavailable)
+ * const nativeProvider = await createProvider({ backend: 'native' });
+ * ```
+ */
+export async function createProvider(options?: CreateProviderOptions): Promise<Provider> {
+  const backend = await selectBackend(options?.backend);
+  
+  if (backend === 'native') {
+    const provider = new ProviderNative({
+      hrp: options?.hrp,
+      algo: options?.algo,
+    });
+    await provider.init();
+    return provider;
+  }
+  
+  // Default to WASM
+  const provider = new ProviderWasm({
+    hrp: options?.hrp,
+    algo: options?.algo,
+  });
+  await provider.init();
+  return provider;
+}
+
+// =============================================================================
+// Legacy API (backward compatibility)
+// =============================================================================
+
 const isNode = typeof process !== 'undefined' && process.versions?.node;
 
 let wasm: any;
