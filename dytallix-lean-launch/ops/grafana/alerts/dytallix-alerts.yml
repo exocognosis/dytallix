@@ -1,0 +1,107 @@
+groups:
+  - name: dytallix.blockchain.alerts
+    interval: 30s
+    rules:
+      # Node height stall alert
+      - alert: NodeHeightStall
+        expr: increase(dyt_block_height[60s]) == 0
+        for: 60s
+        labels:
+          severity: critical
+          service: node
+          component: consensus
+        annotations:
+          summary: "Block production has stalled"
+          description: "No new blocks produced in the last 60 seconds. Block height: {{ $value }}"
+          runbook_url: "https://docs.dytallix.com/runbooks/node-height-stall"
+
+      # API high latency alert
+      - alert: APIHighLatency
+        expr: histogram_quantile(0.95, rate(dyt_api_latency_seconds_bucket[2m])) > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          service: api
+          component: server
+        annotations:
+          summary: "API p95 latency exceeds 800ms"
+          description: "API p95 latency is {{ $value | humanizeDuration }} (threshold: 800ms)"
+          runbook_url: "https://docs.dytallix.com/runbooks/api-high-latency"
+
+      # AI latency degraded alert
+      - alert: AILatencyDegraded
+        expr: histogram_quantile(0.95, rate(dyt_oracle_latency_seconds_bucket[2m])) > 1.0
+        for: 2m
+        labels:
+          severity: warning
+          service: ai-oracle
+          component: ml-service
+        annotations:
+          summary: "AI Oracle p95 latency exceeds 1000ms"
+          description: "AI Oracle p95 latency is {{ $value | humanizeDuration }} (threshold: 1000ms)"
+          runbook_url: "https://docs.dytallix.com/runbooks/ai-latency-degraded"
+
+      # Validator down alert
+      - alert: ValidatorDown
+        expr: up{job="dytallix-node"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: node
+          component: validator
+        annotations:
+          summary: "Validator {{ $labels.instance }} is down"
+          description: "Validator {{ $labels.instance }} has been down for more than 1 minute"
+          runbook_url: "https://docs.dytallix.com/runbooks/validator-down"
+
+      # API server down alert
+      - alert: APIServerDown
+        expr: up{job="dytallix-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+          component: server
+        annotations:
+          summary: "API server {{ $labels.instance }} is down"
+          description: "API server {{ $labels.instance }} has been down for more than 1 minute"
+          runbook_url: "https://docs.dytallix.com/runbooks/api-server-down"
+
+      # AI Oracle down alert
+      - alert: AIOracleDown
+        expr: up{job="dytallix-ai"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: ai-oracle
+          component: ml-service
+        annotations:
+          summary: "AI Oracle {{ $labels.instance }} is down"
+          description: "AI Oracle {{ $labels.instance }} has been down for more than 2 minutes"
+          runbook_url: "https://docs.dytallix.com/runbooks/ai-oracle-down"
+
+      # High mempool size alert
+      - alert: HighMempoolSize
+        expr: dyt_mempool_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: node
+          component: mempool
+        annotations:
+          summary: "Mempool size is high"
+          description: "Mempool size is {{ $value }} transactions (threshold: 1000)"
+          runbook_url: "https://docs.dytallix.com/runbooks/high-mempool-size"
+
+      # Transaction rate spike alert
+      - alert: TransactionRateSpike
+        expr: rate(dyt_transactions_total[1m]) > 100
+        for: 2m
+        labels:
+          severity: info
+          service: node
+          component: transaction-processing
+        annotations:
+          summary: "Transaction rate is unusually high"
+          description: "Transaction rate is {{ $value | humanize }} TPS (threshold: 100)"
+          runbook_url: "https://docs.dytallix.com/runbooks/tx-rate-spike"

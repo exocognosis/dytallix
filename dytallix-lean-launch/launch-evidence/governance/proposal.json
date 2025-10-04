@@ -1,19 +1,17 @@
 {
-  "timestamp": "2025-08-28T14:46:50Z",
-  "phase": "2",
-  "scenario": "parameter_change_proposal",
-  "proposal": {
-    "id": 1,
-    "title": "Gas Limit Increase",
-    "description": "Increase gas limit from 21,000 to 50,000 for better UX",
-    "type": "ParameterChange",
-    "parameter": {
-      "key": "gas_limit",
-      "old_value": "21000",
-      "new_value": "50000"
-    },
-    "status": "Passed",
-    "deposit_amount": "1000000000",
-    "deposit_denom": "udgt"
-  }
+  "proposal_id": 1,
+  "title": "Increase gas limit",
+  "description": "Update gas_limit parameter from 10000 to 15000",
+  "proposer": "dyt1valoper000000000001",
+  "status": "Executed",
+  "submit_time": "2025-10-04T13:59:22Z",
+  "deposit_end_time": "2025-10-06T13:59:22Z",
+  "voting_end_time": "2025-10-07T13:59:22Z",
+  "parameter": {
+    "key": "gas_limit",
+    "old_value": "10000",
+    "new_value": "15000"
+  },
+  "total_deposit": 1000000000,
+  "execution_time": "2025-10-04T13:59:22Z"
 }

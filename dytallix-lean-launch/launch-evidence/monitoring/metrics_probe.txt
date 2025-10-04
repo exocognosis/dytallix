@@ -1,0 +1,18 @@
+=== Dytallix Observability Probe ===
+Timestamp: 2025-10-04T14:00:34Z
+
+
+=== Service Metrics Checks ===
+
+Checking Node metrics at http://localhost:3030/metrics...
+  [FAIL] Node metrics endpoint unreachable
+  Error: FAILED
+Checking API metrics at http://localhost:8787/metrics...
+  [FAIL] API metrics endpoint unreachable
+  Error: FAILED
+Checking AI Oracle metrics at http://localhost:9091/metrics...
+  [FAIL] AI Oracle metrics endpoint unreachable
+  Error: FAILED
+
+=== Probe Complete ===
+Results saved to: /home/runner/work/dytallix/dytallix/dytallix-lean-launch/launch-evidence/monitoring/metrics_probe.txt

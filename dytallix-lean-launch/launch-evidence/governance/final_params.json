@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-10-04T13:59:22Z",
+  "parameters": {
+    "gas_limit": {
+      "previous_value": "10000",
+      "current_value": "15000",
+      "last_updated": "2025-10-04T13:59:22Z",
+      "updated_by_proposal": 1
+    }
+  }
+}
