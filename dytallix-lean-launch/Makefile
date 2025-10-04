@@ -1,5 +1,11 @@
 # ...existing code...
 
+e2e-user:
+	@bash scripts/e2e_user_flow.sh
+
+e2e-user-with-logs:
+	@TRACE=1 bash scripts/e2e_user_flow.sh
+
 lint-one:
 	@bash scripts/lint_one_crate.sh "$(PKG)"
 
