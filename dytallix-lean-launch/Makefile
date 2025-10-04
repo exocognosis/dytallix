@@ -37,6 +37,16 @@ evidence-ci:
 	@bash scripts/ci/local_ci_all.sh
 	@echo "✓ CI evidence complete"
 
+evidence-e2e-pqc:
+	@echo "Running E2E PQC user journey test..."
+	@bash scripts/e2e/user_journey.sh
+	@echo "✓ E2E PQC evidence complete"
+
+test-e2e-pqc:
+	@echo "Running E2E PQC user journey unit tests..."
+	@bash scripts/e2e/test_user_journey.sh
+	@echo "✓ E2E PQC tests passed"
+
 evidence-all: evidence-observability evidence-security evidence-governance evidence-ai evidence-ci
 	@echo ""
 	@echo "==================================="
