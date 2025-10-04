@@ -1,0 +1,29 @@
+=== Dytallix Security Headers Check ===
+Timestamp: 2025-10-04T14:00:45Z
+
+Configuration:
+  API Base URL: http://localhost:8787
+  Endpoints to check: /api/status /api/faucet /metrics
+
+=== Endpoint Checks ===
+
+=== Checking /api/status ===
+  [SKIP] Endpoint not reachable: http://localhost:8787/api/status
+
+=== Checking /api/faucet ===
+  [SKIP] Endpoint not reachable: http://localhost:8787/api/faucet
+
+=== Checking /metrics ===
+  [SKIP] Endpoint not reachable: http://localhost:8787/metrics
+
+=== Summary ===
+
+⚠ Some security headers are missing
+
+To enable security headers, set environment variables:
+  export ENABLE_SEC_HEADERS=1
+  export ENABLE_CSP=1
+
+Then restart the server.
+
+Results saved to: /home/runner/work/dytallix/dytallix/dytallix-lean-launch/launch-evidence/security/csp_headers_check.txt
