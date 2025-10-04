@@ -1,0 +1,58 @@
+# Prometheus configuration for Dytallix blockchain monitoring
+# Scrapes metrics from node, API server, and AI oracle
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'dytallix-lean-launch'
+    environment: 'testnet'
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - 'alertmanager:9093'
+
+# Load alert rules
+rule_files:
+  - '/etc/prometheus/alerts/*.yml'
+
+scrape_configs:
+  # Dytallix node metrics
+  - job_name: 'dytallix-node'
+    static_configs:
+      - targets: ['localhost:3030']
+        labels:
+          service: 'node'
+          role: 'validator'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # API server metrics
+  - job_name: 'dytallix-api'
+    static_configs:
+      - targets: ['localhost:3001']
+        labels:
+          service: 'api'
+          role: 'server'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # AI oracle metrics
+  - job_name: 'dytallix-ai'
+    static_configs:
+      - targets: ['localhost:9091']
+        labels:
+          service: 'ai-oracle'
+          role: 'ml-service'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
