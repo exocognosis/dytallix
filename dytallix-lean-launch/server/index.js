@@ -138,6 +138,10 @@ if (ENABLE_SEC_HEADERS) {
     res.setHeader('X-Frame-Options', 'DENY')
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
     res.setHeader('Cross-Origin-Resource-Policy', 'same-site')
+    // HSTS header for HTTPS (31536000 seconds = 1 year)
+    if (req.protocol === 'https' || req.get('x-forwarded-proto') === 'https') {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+    }
     if (ENABLE_CSP) {
       const connectSrc = collectConnectSrc()
       // No inline/eval scripts; no remote scripts/styles; images/fonts inherit default-src self.

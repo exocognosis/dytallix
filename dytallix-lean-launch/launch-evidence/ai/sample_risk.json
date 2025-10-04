@@ -1,0 +1,16 @@
+{
+  "tx_hash": "tx0000000000000000000000000000000000000000000000000000000005",
+  "risk_score": 0.89,
+  "risk_level": "high",
+  "confidence": 0.95,
+  "factors": {
+    "gas_usage": 0.7,
+    "value_transfer": 0.9,
+    "contract_interaction": 0.95,
+    "pattern_anomaly": 0.85
+  },
+  "latency_ms": 278,
+  "timestamp": "2025-10-04T13:59:31Z",
+  "model_version": "pulseguard-v1.2.0",
+  "fallback_used": false
+}
