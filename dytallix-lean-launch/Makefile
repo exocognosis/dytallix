@@ -47,6 +47,11 @@ test-e2e-pqc:
 	@bash scripts/e2e/test_user_journey.sh
 	@echo "✓ E2E PQC tests passed"
 
+verify-e2e-pqc:
+	@echo "Running E2E PQC integration verification..."
+	@bash scripts/e2e/verify_integration.sh
+	@echo "✓ E2E PQC integration verified"
+
 evidence-all: evidence-observability evidence-security evidence-governance evidence-ai evidence-ci
 	@echo ""
 	@echo "==================================="

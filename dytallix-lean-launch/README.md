@@ -521,6 +521,30 @@ For migration details, see `FAUCET_CONSOLIDATION_MIGRATION.md`.
 
 The [launch-evidence](launch-evidence) directory provides a centralized audit-friendly "proof binder" that aggregates launch evidence artifacts across all critical system components. This evidence pack contains placeholder files organized by domain (governance, staking, contracts, AI risk, monitoring, PQC, rollback, onboarding, wallet, security) that can be populated with actual audit artifacts as they are generated during the launch process.
 
+### E2E PQC User Journey Test
+
+A comprehensive end-to-end test for PQC-compliant token transfers is available:
+
+```bash
+# Run the full E2E test (creates timestamped evidence directory)
+make evidence-e2e-pqc
+
+# Run unit tests only
+make test-e2e-pqc
+
+# Run integration verification
+make verify-e2e-pqc
+```
+
+The test generates tamper-evident artifacts under `launch-evidence/e2e-user-journey/<timestamp>/` including:
+- Wallet creation (Dilithium3 PQC)
+- Dual token transfers (DGT + DRT)
+- Transaction receipts and confirmations
+- AI risk analysis (if PulseGuard available)
+- Complete audit logs and summary
+
+See [scripts/e2e/USER_JOURNEY_README.md](scripts/e2e/USER_JOURNEY_README.md) for detailed documentation.
+
 To regenerate or initialize the evidence pack structure, run:
 ```bash
 scripts/init-launch-evidence.sh
