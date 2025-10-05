@@ -1,5 +1,62 @@
 {
-  "dilithium.wasm": { "sha256": "fee133d67f90501e05d3328a96a5af5baaba7f906471b6e68b09415ec996ddda", "size": 51288 },
-  "falcon.wasm": { "sha256": "ef4838db28e7fdd59f5694660542f2068b24c759bd2c044f30fa4d54521cea33", "size": 115973 },
-  "sphincs.wasm": { "sha256": "42801c880ba3725fe764bbc7bea1036dd58466c0e22c55640ca8651d38814547", "size": 29863 }
+  "version": "1.0.0",
+  "updated": "2025-01-XX",
+  "default_algorithm": "dilithium3",
+  "algorithms": {
+    "dilithium3": {
+      "name": "CRYSTALS-Dilithium3",
+      "nist_level": 3,
+      "enabled": true,
+      "wasm_module": "dilithium.wasm",
+      "sha256": "fee133d67f90501e05d3328a96a5af5baaba7f906471b6e68b09415ec996ddda",
+      "size_bytes": 51288,
+      "public_key_bytes": 1952,
+      "secret_key_bytes": 4016,
+      "signature_bytes": 3309,
+      "description": "Primary PQC signature scheme (NIST Level 3, equivalent to AES-192)"
+    },
+    "dilithium5": {
+      "name": "CRYSTALS-Dilithium5",
+      "nist_level": 5,
+      "enabled": false,
+      "env_flag": "VITE_PQC_DILITHIUM5_ENABLED",
+      "wasm_module": "dilithium5.wasm",
+      "sha256": "",
+      "size_bytes": 0,
+      "public_key_bytes": 2592,
+      "secret_key_bytes": 4880,
+      "signature_bytes": 4627,
+      "description": "High-security variant (NIST Level 5, equivalent to AES-256)"
+    },
+    "falcon512": {
+      "name": "FALCON-512",
+      "nist_level": 1,
+      "enabled": false,
+      "env_flag": "VITE_PQC_FALCON512_ENABLED",
+      "wasm_module": "falcon.wasm",
+      "sha256": "ef4838db28e7fdd59f5694660542f2068b24c759bd2c044f30fa4d54521cea33",
+      "size_bytes": 115973,
+      "public_key_bytes": 897,
+      "secret_key_bytes": 1281,
+      "signature_bytes": 666,
+      "description": "Compact signature scheme (experimental, NIST Level 1)"
+    }
+  },
+  "verification": {
+    "integrity_check": true,
+    "require_sha256_match": true,
+    "fallback_on_mismatch": false
+  },
+  "legacy": {
+    "dilithium.wasm": { "sha256": "fee133d67f90501e05d3328a96a5af5baaba7f906471b6e68b09415ec996ddda", "size": 51288 },
+    "falcon.wasm": { "sha256": "ef4838db28e7fdd59f5694660542f2068b24c759bd2c044f30fa4d54521cea33", "size": 115973 },
+    "sphincs.wasm": { "sha256": "42801c880ba3725fe764bbc7bea1036dd58466c0e22c55640ca8651d38814547", "size": 29863 }
+  },
+  "notes": [
+    "dilithium3 is the default and recommended algorithm for all transactions",
+    "dilithium5 provides higher security at the cost of larger signatures",
+    "falcon512 is experimental and feature-gated",
+    "SHA256 hashes must be updated after each WASM build",
+    "Set env flags to enable optional algorithms at runtime"
+  ]
 }

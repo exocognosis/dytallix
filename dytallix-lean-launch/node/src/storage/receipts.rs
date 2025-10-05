@@ -59,6 +59,13 @@ pub struct TxReceipt {
     pub gas_price: u64,  // Gas price from the transaction (in datt)
     pub gas_refund: u64, // Gas refund (always 0 for now, stub for future)
     pub success: bool,   // Whether the transaction succeeded
+    // PQC signature algorithm (with default for backward compatibility)
+    #[serde(default = "default_receipt_algorithm")]
+    pub algorithm: String,
+}
+
+fn default_receipt_algorithm() -> String {
+    "dilithium3".to_string()
 }
 
 impl TxReceipt {
@@ -80,6 +87,7 @@ impl TxReceipt {
             gas_price: 0,  // Will be set from SignedTx when available
             gas_refund: 0, // Always 0 for now
             success: false,
+            algorithm: tx.algorithm.clone(),
         }
     }
 
@@ -109,6 +117,7 @@ impl TxReceipt {
             gas_price,
             gas_refund: 0, // Always 0 for now
             success: true,
+            algorithm: tx.algorithm.clone(),
         }
     }
 
@@ -139,6 +148,7 @@ impl TxReceipt {
             gas_price,
             gas_refund: 0, // Always 0 for now
             success: false,
+            algorithm: tx.algorithm.clone(),
         }
     }
 

@@ -4,7 +4,7 @@ import { tmpdir } from 'os'
 import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 
-export const DILITHIUM_ALGO = 'dilithium5'
+export const DILITHIUM_ALGO = 'dilithium3'
 
 type Keypair = { sk: Uint8Array; pk: Uint8Array }
 

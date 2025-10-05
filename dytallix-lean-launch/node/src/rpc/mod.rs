@@ -321,7 +321,7 @@ pub async fn submit(
     legacy_tx.amount = total_amount;
     legacy_tx.to = first_to;
     legacy_tx.denom = first_denom;
-    legacy_tx = legacy_tx.with_messages(tx_messages);
+    legacy_tx = legacy_tx.with_messages(tx_messages).with_algorithm(&signed_tx.algorithm);
 
     // Additional validation using legacy system
     {
