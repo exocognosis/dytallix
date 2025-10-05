@@ -129,3 +129,9 @@ reports/*.tmp
 # Allow checked-in CLI support libraries
 !cli/dytx/src/lib/
 !cli/dytx/src/lib/*.ts
+
+# Prelaunch validation evidence (generated artifacts)
+launch-evidence/prelaunch-final/*
+!launch-evidence/prelaunch-final/.gitkeep
+!launch-evidence/prelaunch-final/README.md
+readiness_out/prelaunch_validation_report.md

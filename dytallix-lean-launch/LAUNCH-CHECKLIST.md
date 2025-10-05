@@ -136,6 +136,11 @@ Mark each item with [x] when complete. All MUST be satisfied for a Go decision.
   - **Evidence**: `launch-evidence/ai/{latency_samples.json,sample_risk.json}`
   - **Report**: `readiness_out/report_ai_oracle.md`
   - **Script**: `scripts/evidence/ai_risk_probe.sh`
+- [x] **Final Prelaunch Validation**: Comprehensive end-to-end validation of all MVP modules
+  - **Evidence**: `launch-evidence/prelaunch-final/{SUMMARY.md,ports.env,json/,governance/,wasm/,ai/}`
+  - **Report**: `readiness_out/prelaunch_validation_report.md`
+  - **Script**: `scripts/prelaunch_validation.sh`
+  - **Docs**: `scripts/README_PRELAUNCH_VALIDATION.md`
 
 Go Decision (all boxes checked): __YES__ / __NO__
 
