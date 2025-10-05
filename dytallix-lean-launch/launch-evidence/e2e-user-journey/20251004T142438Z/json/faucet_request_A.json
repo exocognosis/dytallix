@@ -1,0 +1,11 @@
+{
+  "address": "[REDACTED]",
+  "denoms": [
+    "udgt",
+    "udrt"
+  ],
+  "amounts": [
+    1000000000,
+    1000000000
+  ]
+}

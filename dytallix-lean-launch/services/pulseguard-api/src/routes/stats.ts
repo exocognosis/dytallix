@@ -46,7 +46,7 @@ router.get('/', asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/AddressProfile'
  */
 router.get('/address/:address', asyncHandler(async (req, res) => {
-  const address = req.params.address;
+  const address = (req.params.address ?? '').toString();
   const profile = await statsService.getAddressProfile(address);
   res.json(profile);
 }));

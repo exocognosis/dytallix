@@ -20,12 +20,12 @@ export interface Finding {
 export interface FindingFilters {
   limit: number;
   offset: number;
-  severity?: string;
-  status?: string;
-  address?: string;
-  since?: string;
-  scoreMin?: number;
-  scoreMax?: number;
+  severity?: string | undefined;
+  status?: string | undefined;
+  address?: string | undefined;
+  since?: string | undefined;
+  scoreMin?: number | undefined;
+  scoreMax?: number | undefined;
 }
 
 export interface FindingListResult {

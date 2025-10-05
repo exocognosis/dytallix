@@ -1,0 +1,17 @@
+{
+  "address": "dytallixbf87f7068c90b041b60af9c5f5c53202aa482e8f",
+  "balances": [
+    {
+      "symbol": "DGT",
+      "amount": "1000000000",
+      "denom": "udgt"
+    },
+    {
+      "symbol": "DRT",
+      "amount": "1000000000",
+      "denom": "udrt"
+    }
+  ],
+  "source": "demo",
+  "timestamp": "2025-10-04T14:49:10.305Z"
+}

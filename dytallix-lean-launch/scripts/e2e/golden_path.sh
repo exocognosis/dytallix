@@ -6,9 +6,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 EVID_DIR="$ROOT_DIR/launch-evidence/e2e"
-CLI_DIR="$ROOT_DIR/dytallix-lean-launch/cli/dytx"
-APP_DIR="$ROOT_DIR/dytallix-lean-launch"
-NODE_DIR="$ROOT_DIR/dytallix-lean-launch/node"
+CLI_DIR="$ROOT_DIR/cli/dytx"
+APP_DIR="$ROOT_DIR"
+NODE_DIR="$ROOT_DIR/node"
 
 mkdir -p "$EVID_DIR"
 
@@ -17,13 +17,13 @@ API_BASE="http://localhost:8787"
 FRONT_BASE="http://localhost:5173"
 
 echo "[1/12] Build + start Rust node (3030)" | tee "$EVID_DIR/run.log"
-(
-  cd "$NODE_DIR"
-  cargo build -q
-  RUST_LOG=info target/debug/dytallix-lean-node >"$EVID_DIR/node.log" 2>&1 &
-  NODE_PID=$!
-  echo $NODE_PID >"$EVID_DIR/node.pid"
-)
+cd "$ROOT_DIR"
+cargo build -p dytallix-lean-node -q 2>&1 | tail -5 || true
+export DYT_RPC_PORT=3030
+export DYT_CHAIN_ID="dyt-local-1"
+RUST_LOG=info "$ROOT_DIR/../target/debug/dytallix-lean-node" >"$EVID_DIR/node.log" 2>&1 &
+NODE_PID=$!
+echo $NODE_PID >"$EVID_DIR/node.pid"
 
 # Wait for node
 for i in {1..60}; do
@@ -61,18 +61,19 @@ export DYTX_PASSPHRASE="$PASSPHRASE"
 echo "[4/12] Create keystores (sender/recipient)" | tee -a "$EVID_DIR/run.log"
 SENDER_JSON="$EVID_DIR/sender_keystore.json"
 RECIP_JSON="$EVID_DIR/recipient_keystore.json"
-(
-  cd "$CLI_DIR"
-  # sender
-  OUT=$(node dist/index.js keys add --name sender --algo dilithium --passphrase "$PASSPHRASE")
-  SENDER_ADDR=$(printf '%s' "$OUT" | sed -n 's/^Address: \(.*\)$/\1/p' | tail -n1)
-  # copy keystore to evidence
-  cp "$HOME/.dytx/keystore/sender.json" "$SENDER_JSON" 2>/dev/null || true
-  # recipient
-  OUT2=$(node dist/index.js keys add --name recipient --algo dilithium --passphrase "$PASSPHRASE")
-  RECIP_ADDR=$(printf '%s' "$OUT2" | sed -n 's/^Address: \(.*\)$/\1/p' | tail -n1)
-  cp "$HOME/.dytx/keystore/recipient.json" "$RECIP_JSON" 2>/dev/null || true
-)
+
+cd "$CLI_DIR"
+# sender
+OUT=$(node dist/index.js keys add --name sender --algo dilithium --passphrase "$PASSPHRASE" 2>&1 || true)
+SENDER_ADDR=$(printf '%s' "$OUT" | sed -n 's/^Address: \(.*\)$/\1/p' | tail -n1)
+# copy keystore to evidence
+cp "$HOME/.dytx/keystore/sender.json" "$SENDER_JSON" 2>/dev/null || true
+# recipient
+OUT2=$(node dist/index.js keys add --name recipient --algo dilithium --passphrase "$PASSPHRASE" 2>&1 || true)
+RECIP_ADDR=$(printf '%s' "$OUT2" | sed -n 's/^Address: \(.*\)$/\1/p' | tail -n1)
+cp "$HOME/.dytx/keystore/recipient.json" "$RECIP_JSON" 2>/dev/null || true
+cd "$ROOT_DIR"
+
 echo "$SENDER_ADDR" > "$EVID_DIR/sender.address"
 echo "$RECIP_ADDR" > "$EVID_DIR/recipient.address"
 

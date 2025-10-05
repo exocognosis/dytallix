@@ -52,7 +52,7 @@ router.get('/config', asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/ContractFindings'
  */
 router.get('/findings', asyncHandler(async (req, res) => {
-  const startAfter = req.query.start_after ? parseInt(req.query.start_after as string) : undefined;
+  const startAfter: number | undefined = req.query.start_after !== undefined ? parseInt(req.query.start_after as string, 10) : undefined;
   const limit = parseInt(req.query.limit as string) || 50;
 
   const findings = await contractService.getFindings({ startAfter, limit });

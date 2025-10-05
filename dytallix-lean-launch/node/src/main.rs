@@ -81,6 +81,14 @@ async fn main() -> anyhow::Result<()> {
         if st.balance_of("dyt1senderdev000000", "udgt") == 0 {
             st.credit("dyt1senderdev000000", "udgt", 1_000_000);
         }
+        // Prefund test account for E2E testing (always ensure funded)
+        let test_addr = "dytallix163c72b98928b743df68324e4569e84d817a9a78b";
+        let target_balance: u128 = 10_000_000_000;
+        let current_balance = st.balance_of(test_addr, "udgt");
+        if current_balance < target_balance {
+            st.credit(test_addr, "udgt", target_balance - current_balance);
+            eprintln!("Prefunded test account {} with {} udgt", test_addr, target_balance);
+        }
     }
 
     // Prefund governance validator accounts (E2E) if governance enabled
@@ -707,7 +715,11 @@ async fn main() -> anyhow::Result<()> {
         std::mem::forget(alerts_task);
     }
 
-    let addr: SocketAddr = "0.0.0.0:3030".parse().unwrap();
+    let rpc_port: u16 = std::env::var("DYT_RPC_PORT")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(3030);
+    let addr: SocketAddr = format!("0.0.0.0:{}", rpc_port).parse().unwrap();
     println!("Node listening on {addr}");
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;

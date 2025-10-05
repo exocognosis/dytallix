@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "error": "INVALID_ADDRESS",
+  "message": "Please enter a valid Dytallix bech32 address",
+  "requestId": "faucet-1759587879377-2onhe0"
+}

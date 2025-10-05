@@ -194,6 +194,10 @@ impl Mempool {
     }
 
     pub fn with_config(config: MempoolConfig) -> Self {
+        // Use a policy that allows all PQC algorithms for testing/development
+        use dytallix_node::policy::signature_policy::SignaturePolicy;
+        let policy_manager = PolicyManager::new(SignaturePolicy::allow_all_pqc());
+        
         Self {
             config,
             ordered_txs: BTreeSet::new(),
@@ -203,7 +207,7 @@ impl Mempool {
             deferred_by_sender: HashMap::new(),
             tx_hashes: HashSet::new(),
             total_bytes: 0,
-            policy_manager: PolicyManager::default(),
+            policy_manager,
             eligible_by_sender: HashMap::new(),
             reserved_by_sender: HashMap::new(),
         }
@@ -742,6 +746,13 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
         .decode(public_key)
         .map_err(|e| format!("invalid public key encoding: {e}"))?;
 
+    tracing::info!(
+        "PQC verification: pk_len={}, sig_len={}, from={:?}",
+        pk_bytes.len(),
+        sig_bytes.len(),
+        tx.from
+    );
+
     // 2. Create canonical transaction for signing
     let canonical_tx = tx.canonical_fields();
 
@@ -749,8 +760,12 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
     let tx_bytes = canonical_json(&canonical_tx)
         .map_err(|e| format!("failed to serialize transaction: {e}"))?;
 
+    tracing::debug!("Canonical JSON: {}", String::from_utf8_lossy(&tx_bytes));
+
     // 4. Hash with SHA3-256
     let tx_hash = sha3_256(&tx_bytes);
+
+    tracing::info!("Transaction hash: {}", hex::encode(&tx_hash));
 
     // 5. Verify signature using new multi-algorithm verification
     // For mempool transactions, we use the default algorithm (Dilithium5)
@@ -762,7 +777,7 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
         PQCAlgorithm::default(),
     ) {
         Ok(()) => {
-            tracing::debug!("Transaction signature verification successful");
+            tracing::info!("✅ Transaction signature verification successful");
             Ok(())
         }
         Err(PQCVerifyError::UnsupportedAlgorithm(alg)) => {
@@ -778,7 +793,7 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
             Err(format!("invalid signature: {details}"))
         }
         Err(PQCVerifyError::VerificationFailed { algorithm }) => {
-            tracing::warn!("Signature verification failed for algorithm: {}", algorithm);
+            tracing::warn!("❌ Signature verification failed for algorithm: {}", algorithm);
             Err("signature verification failed".to_string())
         }
         Err(PQCVerifyError::FeatureNotCompiled { feature }) => {

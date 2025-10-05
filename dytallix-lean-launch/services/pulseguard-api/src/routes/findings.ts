@@ -85,12 +85,12 @@ router.get('/', validatePagination, asyncHandler(async (req, res) => {
   const filters = {
     limit: parseInt(req.query.limit as string) || 50,
     offset: parseInt(req.query.offset as string) || 0,
-    severity: req.query.severity as string,
-    status: req.query.status as string,
-    address: req.query.address as string,
-    since: req.query.since as string,
-    scoreMin: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
-    scoreMax: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
+    severity: (req.query.severity as string | undefined) ?? undefined,
+    status: (req.query.status as string | undefined) ?? undefined,
+    address: (req.query.address as string | undefined) ?? undefined,
+    since: (req.query.since as string | undefined) ?? undefined,
+    scoreMin: req.query.score_min !== undefined ? parseFloat(req.query.score_min as string) : undefined,
+    scoreMax: req.query.score_max !== undefined ? parseFloat(req.query.score_max as string) : undefined,
   };
 
   const result = await findingsService.listFindings(filters);
@@ -130,8 +130,9 @@ router.get('/', validatePagination, asyncHandler(async (req, res) => {
  *         description: Finding not found
  */
 router.get('/:id', asyncHandler(async (req, res) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) {
+  const idRaw = (req.params.id ?? '').toString();
+  const id = Number.parseInt(idRaw, 10);
+  if (!Number.isFinite(id)) {
     return res.status(400).json({ error: 'Invalid finding ID' });
   }
 
@@ -140,7 +141,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Finding not found' });
   }
 
-  res.json(finding);
+  return res.json(finding);
 }));
 
 /**
@@ -182,16 +183,16 @@ router.get('/:id', asyncHandler(async (req, res) => {
  *                   type: integer
  */
 router.get('/address/:address', validatePagination, asyncHandler(async (req, res) => {
-  const address = req.params.address;
+  const address = req.params.address as string;
   const filters = {
     limit: parseInt(req.query.limit as string) || 50,
     offset: parseInt(req.query.offset as string) || 0,
-    address,
+    address: address ?? undefined,
   };
 
   const result = await findingsService.listFindings(filters);
   
-  res.json({
+  return res.json({
     findings: result.findings,
     total_count: result.totalCount,
     pagination: {

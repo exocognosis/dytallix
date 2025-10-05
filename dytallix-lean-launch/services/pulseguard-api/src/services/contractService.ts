@@ -27,7 +27,7 @@ export interface ContractFindingsResult {
 }
 
 export interface ContractQueryOptions {
-  startAfter?: number;
+  startAfter?: number | undefined;
   limit: number;
 }
 

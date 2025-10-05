@@ -556,6 +556,7 @@ impl BridgePQCManager {
     /// Get security level of PQC algorithm (NIST security levels)
     fn get_algorithm_security_level(&self, algorithm: &SignatureAlgorithm) -> u8 {
         match algorithm {
+            SignatureAlgorithm::Dilithium3 => 3, // Medium-high security (192-bit)
             SignatureAlgorithm::Dilithium5 => 5, // Highest security (256-bit)
             SignatureAlgorithm::Falcon1024 => 5, // Highest security (256-bit)
             SignatureAlgorithm::SphincsSha256128s => 1, // Conservative but lower performance

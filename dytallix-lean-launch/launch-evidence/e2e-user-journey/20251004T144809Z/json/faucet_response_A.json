@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "dispensed": [
+    {
+      "symbol": "DGT",
+      "amount": "1000000000",
+      "txHash": "0xmock0000000000d03fd0d3522a48"
+    },
+    {
+      "symbol": "DRT",
+      "amount": "1000000000",
+      "txHash": "0xmock00000000000ad2df62a6fc0a"
+    }
+  ],
+  "message": "Successfully dispensed DGT + DRT tokens",
+  "requestId": "faucet-1759589290133-en8rqr"
+}

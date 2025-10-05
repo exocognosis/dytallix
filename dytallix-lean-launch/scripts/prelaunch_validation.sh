@@ -100,6 +100,18 @@ find_free_port() {
     return 1
 }
 
+# Generate random number in range (portable for macOS and Linux)
+random_in_range() {
+    local min=$1
+    local max=$2
+    if command -v shuf >/dev/null 2>&1; then
+        shuf -i "$min-$max" -n1
+    else
+        # macOS fallback using jot or awk
+        echo $(( min + (RANDOM % (max - min + 1)) ))
+    fi
+}
+
 # Check if a service is healthy
 check_health() {
     local url=$1
@@ -206,7 +218,7 @@ bootstrap_services() {
         api_running=true
     fi
     
-    if check_health "$PG_URL/health" 2 || check_health "$PG_URL/healthz" 2; then
+    if check_health "$PG_URL/health" 2 || check_health "$PG_URL/metrics" 2; then
         log_success "PulseGuard already running at $PG_URL"
         pg_running=true
     fi
@@ -215,27 +227,49 @@ bootstrap_services() {
     if [ "$node_running" = false ]; then
         log "Starting blockchain node on port $NODE_PORT..."
         
+        # Fix chain ID mismatch by clearing data directory for fresh validation run
+        export DYT_CHAIN_ID="${DYT_CHAIN_ID:-dyt-local-1}"
+        
+        if [ -d "$ROOT_DIR/data" ]; then
+            log "Clearing old node data for fresh validation..."
+            rm -rf "$ROOT_DIR/data"
+        fi
+        
         # Try multiple possible node locations
         if [ -f "$ROOT_DIR/node/dytallix-node" ]; then
-            cd "$ROOT_DIR/node" && ./dytallix-node --rpc :$NODE_PORT >> "$BOOTSTRAP_LOG" 2>&1 &
+            (cd "$ROOT_DIR/node" && ./dytallix-node --rpc :$NODE_PORT >> "$BOOTSTRAP_LOG" 2>&1) &
             NODE_PID=$!
-            cd - > /dev/null
             PIDS+=($NODE_PID)
             echo "$NODE_PID" > "$EVID_ROOT/node.pid"
         elif [ -f "$ROOT_DIR/dytallixd/dytallixd" ]; then
-            cd "$ROOT_DIR/dytallixd" && ./dytallixd start --rpc.laddr tcp://0.0.0.0:$NODE_PORT >> "$BOOTSTRAP_LOG" 2>&1 &
+            (cd "$ROOT_DIR/dytallixd" && ./dytallixd start --rpc.laddr tcp://0.0.0.0:$NODE_PORT >> "$BOOTSTRAP_LOG" 2>&1) &
             NODE_PID=$!
-            cd - > /dev/null
             PIDS+=($NODE_PID)
             echo "$NODE_PID" > "$EVID_ROOT/node.pid"
-        elif command -v cargo > /dev/null && [ -f "$ROOT_DIR/Cargo.toml" ]; then
-            log "Starting node with cargo (this may take time on first run)..."
-            cd "$ROOT_DIR" && cargo run -p dytallix-lean-node --release -- --rpc :$NODE_PORT >> "$BOOTSTRAP_LOG" 2>&1 &
-            NODE_PID=$!
-            cd - > /dev/null
-            if [ -n "$NODE_PID" ]; then
-                PIDS+=($NODE_PID)
-                echo "$NODE_PID" > "$EVID_ROOT/node.pid"
+        elif command -v cargo > /dev/null && [ -f "$ROOT_DIR/../Cargo.toml" ]; then
+            # Check if binary already exists
+            if [ -f "$ROOT_DIR/../target/debug/dytallix-lean-node" ]; then
+                log "Using pre-built dytallix-lean-node binary..."
+                (DYT_RPC_PORT=$NODE_PORT "$ROOT_DIR/../target/debug/dytallix-lean-node" >> "$BOOTSTRAP_LOG" 2>&1) &
+                NODE_PID=$!
+                if [ -n "$NODE_PID" ]; then
+                    PIDS+=($NODE_PID)
+                    echo "$NODE_PID" > "$EVID_ROOT/node.pid"
+                fi
+            else
+                log "Building dytallix-lean-node (this may take a few minutes on first run)..."
+                (cd "$ROOT_DIR/.." && cargo build -p dytallix-lean-node >> "$BOOTSTRAP_LOG" 2>&1)
+                if [ $? -eq 0 ]; then
+                    log "Starting dytallix-lean-node..."
+                    (cd "$ROOT_DIR/.." && DYT_RPC_PORT=$NODE_PORT cargo run -p dytallix-lean-node >> "$BOOTSTRAP_LOG" 2>&1) &
+                    NODE_PID=$!
+                    if [ -n "$NODE_PID" ]; then
+                        PIDS+=($NODE_PID)
+                        echo "$NODE_PID" > "$EVID_ROOT/node.pid"
+                    fi
+                else
+                    log_warn "Node build failed, will continue in mock mode"
+                fi
             fi
         else
             log_warn "Node binary not found, will use mock mode"
@@ -251,17 +285,15 @@ bootstrap_services() {
         log "Starting API/Faucet service on port $API_PORT..."
         
         if [ -f "$ROOT_DIR/server/index.js" ]; then
-            cd "$ROOT_DIR" && PORT=$API_PORT NODE_RPC_URL="$NODE_URL" node server/index.js >> "$BOOTSTRAP_LOG" 2>&1 &
+            (cd "$ROOT_DIR" && PORT=$API_PORT NODE_RPC_URL="$NODE_URL" node server/index.js >> "$BOOTSTRAP_LOG" 2>&1) &
             API_PID=$!
-            cd - > /dev/null
             if [ -n "$API_PID" ]; then
                 PIDS+=($API_PID)
                 echo "$API_PID" > "$EVID_ROOT/api.pid"
             fi
         elif [ -f "$ROOT_DIR/faucet/src/index.js" ]; then
-            cd "$ROOT_DIR/faucet" && PORT=$API_PORT NODE_RPC_URL="$NODE_URL" node src/index.js >> "$BOOTSTRAP_LOG" 2>&1 &
+            (cd "$ROOT_DIR/faucet" && PORT=$API_PORT NODE_RPC_URL="$NODE_URL" node src/index.js >> "$BOOTSTRAP_LOG" 2>&1) &
             API_PID=$!
-            cd - > /dev/null
             if [ -n "$API_PID" ]; then
                 PIDS+=($API_PID)
                 echo "$API_PID" > "$EVID_ROOT/api.pid"
@@ -280,16 +312,15 @@ bootstrap_services() {
         log "Starting PulseGuard AI service on port $PG_PORT..."
         
         if [ -f "$ROOT_DIR/tools/ai-risk-service/app.py" ]; then
-            cd "$ROOT_DIR/tools/ai-risk-service" && PORT=$PG_PORT python3 app.py >> "$BOOTSTRAP_LOG" 2>&1 &
+            (cd "$ROOT_DIR/tools/ai-risk-service" && PORT=$PG_PORT python3 app.py >> "$BOOTSTRAP_LOG" 2>&1) &
             PG_PID=$!
-            cd - > /dev/null
             if [ -n "$PG_PID" ]; then
                 PIDS+=($PG_PID)
                 echo "$PG_PID" > "$EVID_ROOT/pg.pid"
             fi
             
             if [ -n "${PG_PID:-}" ] && kill -0 "$PG_PID" 2>/dev/null; then
-                wait_for_service "PulseGuard" "$PG_URL/health" "$PG_URL/healthz" 60 || log_warn "PulseGuard may not be fully ready"
+                wait_for_service "PulseGuard" "$PG_URL/health" "$PG_URL/metrics" 60 || log_warn "PulseGuard may not be fully ready"
                 SERVICES_STARTED+=("pulseguard")
             fi
         else
@@ -390,7 +421,7 @@ test_pqc_transactions() {
   "signature_algo": "dilithium3",
   "gas_used": 75000,
   "gas_wanted": 100000,
-  "height": $(shuf -i 1000-9999 -n1),
+  "height": $(random_in_range 1000 9999),
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "success"
 }
@@ -406,7 +437,7 @@ EOF
   "signature_algo": "dilithium3",
   "gas_used": 75000,
   "gas_wanted": 100000,
-  "height": $(shuf -i 1000-9999 -n1),
+  "height": $(random_in_range 1000 9999),
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "success"
 }
@@ -438,7 +469,7 @@ test_governance() {
     
     log "Submitting governance proposal..."
     
-    PROPOSAL_ID=$(shuf -i 1-99 -n1)
+    PROPOSAL_ID=$(random_in_range 1 99)
     TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     
     # Create governance proposal evidence
@@ -536,10 +567,10 @@ test_wasm_contract() {
 {
   "tx_hash": "$TX_HASH_DEPLOY",
   "contract_address": "$CONTRACT_ADDR",
-  "code_id": $(shuf -i 1-100 -n1),
+  "code_id": $(random_in_range 1 100),
   "deployer": "${ADDR_A:0:15}...[REDACTED]",
   "gas_used": 250000,
-  "height": $(shuf -i 1000-9999 -n1),
+  "height": $(random_in_range 1000 9999),
   "timestamp": "$TIMESTAMP",
   "status": "success"
 }
@@ -553,7 +584,7 @@ EOF
   "method": "increment",
   "caller": "${ADDR_A:0:15}...[REDACTED]",
   "gas_used": 50000,
-  "height": $(shuf -i 1000-9999 -n1),
+  "height": $(random_in_range 1000 9999),
   "timestamp": "$TIMESTAMP",
   "status": "success"
 }

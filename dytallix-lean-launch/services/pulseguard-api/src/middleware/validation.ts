@@ -17,10 +17,16 @@ const findingFiltersSchema = joi.object({
   score_max: joi.number().min(0).max(1).optional(),
 }).and('score_min', 'score_max');
 
+const firstErrorMessage = (err: joi.ValidationError | undefined): string => {
+  if (!err) return 'validation failed';
+  const det = Array.isArray(err.details) && err.details.length > 0 ? err.details[0] : undefined;
+  return det?.message ?? err.message ?? 'validation failed';
+};
+
 export const validatePagination = (req: Request, res: Response, next: NextFunction): void => {
   const { error } = paginationSchema.validate(req.query);
   if (error) {
-    throw createError(`Validation error: ${error.details[0].message}`, 400);
+    throw createError(`Validation error: ${firstErrorMessage(error)}`, 400);
   }
   next();
 };
@@ -28,7 +34,7 @@ export const validatePagination = (req: Request, res: Response, next: NextFuncti
 export const validateFindingFilters = (req: Request, res: Response, next: NextFunction): void => {
   const { error } = findingFiltersSchema.validate(req.query);
   if (error) {
-    throw createError(`Validation error: ${error.details[0].message}`, 400);
+    throw createError(`Validation error: ${firstErrorMessage(error)}`, 400);
   }
   next();
 };

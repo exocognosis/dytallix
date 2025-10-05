@@ -170,12 +170,22 @@ impl SignedTx {
         }
         let bytes = canonical_json(&self.tx)?;
         let hash = sha3_256(&bytes);
+        
+        eprintln!("[DEBUG verify] Canonical JSON: {}", String::from_utf8_lossy(&bytes));
+        eprintln!("[DEBUG verify] Hash: {}", hex::encode(&hash));
+        eprintln!("[DEBUG verify] Signature (base64 len): {}", self.signature.len());
+        eprintln!("[DEBUG verify] Public key (base64 len): {}", self.public_key.len());
+        
         let sig = B64
             .decode(&self.signature)
             .map_err(|e| anyhow!("invalid signature encoding: {}", e))?;
         let pk = B64
             .decode(&self.public_key)
             .map_err(|e| anyhow!("invalid public key encoding: {}", e))?;
+
+        eprintln!("[DEBUG verify] Signature (decoded len): {}", sig.len());
+        eprintln!("[DEBUG verify] Public key (decoded len): {}", pk.len());
+        eprintln!("[DEBUG verify] Algorithm: {:?}", algorithm);
 
         // Use the new multi-algorithm verification
         verify(&pk, &hash, &sig, algorithm)

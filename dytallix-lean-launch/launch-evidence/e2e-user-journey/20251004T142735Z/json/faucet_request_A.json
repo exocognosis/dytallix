@@ -1,0 +1,11 @@
+{
+  "address": "dytallix8ac4861584a85a6b85910869f8d3db162a729895",
+  "denoms": [
+    "udgt",
+    "udrt"
+  ],
+  "amounts": [
+    1000000000,
+    1000000000
+  ]
+}

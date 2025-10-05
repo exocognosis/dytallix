@@ -90,6 +90,11 @@ async def _async_sleep_ms(ms: int):
     import asyncio
     await asyncio.sleep(max(0.0, ms/1000.0))
 
+@app.get('/health')
+async def health():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "ai-risk-service", "version": "0.1.0"}
+
 @app.get('/ops/set_delay')
 async def set_delay(ms: int = 0):
     global _delay_ms

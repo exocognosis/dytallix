@@ -3,24 +3,33 @@ import { RateLimiterMemory } from 'rate-limiter-flexible';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
-const rateLimiter = new RateLimiterMemory({
-  keyGenerator: (req: Request) => req.ip,
+// Helper to derive a stable client key
+const clientKey = (req: Request): string => {
+  const xfwd = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();
+  const ra = (req.socket?.remoteAddress || req.ip || 'unknown').toString();
+  return xfwd || ra || 'unknown';
+};
+
+// In-memory rate limiter instance
+const ipLimiter = new RateLimiterMemory({
   points: config.rateLimit.maxRequests,
-  duration: config.rateLimit.windowMs / 1000, // seconds
+  duration: Math.max(1, Math.floor(config.rateLimit.windowMs / 1000)), // seconds
 });
 
+// Express middleware
 export const rateLimiter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await rateLimiter.consume(req.ip);
+    await ipLimiter.consume(clientKey(req));
     next();
   } catch (rejRes: any) {
-    const remainingPoints = rejRes?.remainingPoints || 0;
-    const msBeforeNext = rejRes?.msBeforeNext || 0;
+    const remainingPoints = rejRes?.remainingPoints ?? 0;
+    const msBeforeNext = rejRes?.msBeforeNext ?? 0;
 
     res.set({
-      'X-RateLimit-Limit': config.rateLimit.maxRequests.toString(),
-      'X-RateLimit-Remaining': remainingPoints.toString(),
+      'X-RateLimit-Limit': String(config.rateLimit.maxRequests),
+      'X-RateLimit-Remaining': String(remainingPoints),
       'X-RateLimit-Reset': new Date(Date.now() + msBeforeNext).toISOString(),
+      'Retry-After': String(Math.ceil(msBeforeNext / 1000)),
     });
 
     logger.warn('Rate limit exceeded', {

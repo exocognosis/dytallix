@@ -226,6 +226,7 @@ impl PQCPerformanceBenchmark {
     ) -> Result<u64, Box<dyn std::error::Error>> {
         // Gas cost estimation based on algorithm complexity and signature size
         let base_verification_cost = match algorithm {
+            SignatureAlgorithm::Dilithium3 => 1000, // Lower cost than Dilithium5
             SignatureAlgorithm::Dilithium5 => 1500, // Moderate cost
             SignatureAlgorithm::Falcon1024 => 1200, // Lower cost, more efficient
             SignatureAlgorithm::SphincsSha256128s => 2500, // Higher cost due to complexity

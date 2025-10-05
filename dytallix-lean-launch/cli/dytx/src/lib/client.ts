@@ -71,6 +71,7 @@ export class DytClient {
   }
 
   async submitSignedTx(signed: any) {
+    console.error('[DEBUG] Submitting signed tx:', JSON.stringify(signed, null, 2))
     return this.post('/submit', { signed_tx: signed })
   }
 

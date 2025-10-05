@@ -70,7 +70,13 @@ export function signTx(tx: Tx, secretKey: Uint8Array, publicKey: Uint8Array) {
     msgs: tx.msgs,
     nonce: tx.nonce
   })
-  const signature = signDilithium(secretKey, signBytes)
+  
+  // Hash the canonical bytes before signing (dilithium5 will sign the 32-byte hash)
+  const txHashBytes = createHash('sha3-256').update(Buffer.from(signBytes)).digest()
+  
+  // Sign the hash, not the canonical bytes
+  const signature = signDilithium(secretKey, txHashBytes)
+  
   return {
     tx: {
       chain_id: tx.chain_id,

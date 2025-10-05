@@ -172,17 +172,14 @@ fn verify_dilithium5(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCVer
     match dilithium5::open(&signed_msg, &pk) {
         Ok(opened_msg) => {
             if opened_msg == msg {
-                tracing::debug!("Dilithium5 signature verification successful");
                 Ok(())
             } else {
-                tracing::warn!("Dilithium5 signature verification failed: message mismatch");
                 Err(PQCVerifyError::VerificationFailed {
                     algorithm: "dilithium5".to_string(),
                 })
             }
         }
         Err(_) => {
-            tracing::warn!("Dilithium5 signature verification failed: invalid signature");
             Err(PQCVerifyError::VerificationFailed {
                 algorithm: "dilithium5".to_string(),
             })
