@@ -1,0 +1,13 @@
+{
+  "tx_hash": "0xd3d64adc364f0e1bc291f046da1c9b4bba651ac5a2772977709fa3df45cd546e",
+  "from": "dyt1mockwalleta...[REDACTED]",
+  "to": "dyt1mockwalletb...[REDACTED]",
+  "amount": "250000000",
+  "denom": "udrt",
+  "signature_algo": "dilithium3",
+  "gas_used": 75000,
+  "gas_wanted": 100000,
+  "height": 2782,
+  "timestamp": "2025-10-05T14:09:54Z",
+  "status": "success"
+}

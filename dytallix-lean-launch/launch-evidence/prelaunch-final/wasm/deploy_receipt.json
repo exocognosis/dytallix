@@ -1,0 +1,10 @@
+{
+  "tx_hash": "0x87eaccdf3f740e2818f17ede0d04d0302827a862aeb583c883f78ac2d18a7a83",
+  "contract_address": "dyt1contract239ddf61bab39be5144e3ef96a2b5d38",
+  "code_id": 55,
+  "deployer": "dyt1mockwalleta...[REDACTED]",
+  "gas_used": 250000,
+  "height": 4519,
+  "timestamp": "2025-10-05T14:09:56Z",
+  "status": "success"
+}

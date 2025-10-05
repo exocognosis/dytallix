@@ -1,0 +1,10 @@
+{
+  "tx_hash": "0x75fb60f5ccf37adf6c1a4454cccfc4ddc2f45208ee8fc9b75344f99e12d3dfa7",
+  "contract_address": "dyt1contract239ddf61bab39be5144e3ef96a2b5d38",
+  "method": "increment",
+  "caller": "dyt1mockwalleta...[REDACTED]",
+  "gas_used": 50000,
+  "height": 8952,
+  "timestamp": "2025-10-05T14:09:56Z",
+  "status": "success"
+}

@@ -1,0 +1,8 @@
+{
+  "tx_hash": "0x6ce414b8a564b37d22f68fac04c75019df29c4c88ca51e94d05bd4df7adeaca8",
+  "risk_score": 0.15,
+  "latency_ms": 8,
+  "model_version": "risk-v1",
+  "timestamp": "2025-10-05T14:09:56Z",
+  "status": "success"
+}
