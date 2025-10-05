@@ -84,11 +84,27 @@ async fn main() -> anyhow::Result<()> {
         // Prefund test account for E2E testing (always ensure funded)
         let test_addr = "dytallix163c72b98928b743df68324e4569e84d817a9a78b";
         let target_balance: u128 = 10_000_000_000;
-        let current_balance = st.balance_of(test_addr, "udgt");
-        if current_balance < target_balance {
-            st.credit(test_addr, "udgt", target_balance - current_balance);
+        
+        // Prefund DGT (governance token)
+        let current_dgt = st.balance_of(test_addr, "udgt");
+        if current_dgt < target_balance {
+            st.credit(test_addr, "udgt", target_balance - current_dgt);
             eprintln!("Prefunded test account {} with {} udgt", test_addr, target_balance);
         }
+        
+        // Prefund DRT (reward token)
+        let current_drt = st.balance_of(test_addr, "udrt");
+        if current_drt < target_balance {
+            st.credit(test_addr, "udrt", target_balance - current_drt);
+            eprintln!("Prefunded test account {} with {} udrt", test_addr, target_balance);
+        }
+        
+        // Also prefund the testkey account for easier testing
+        let testkey_addr = "dytallix125074e67f966c5c9a0538381c2398a8966cda568";
+        let testkey_balance: u128 = 1_000_000_000; // 1000 tokens each
+        st.credit(testkey_addr, "udgt", testkey_balance);
+        st.credit(testkey_addr, "udrt", testkey_balance);
+        eprintln!("Prefunded testkey account {} with {} udgt and udrt", testkey_addr, testkey_balance);
     }
 
     // Prefund governance validator accounts (E2E) if governance enabled

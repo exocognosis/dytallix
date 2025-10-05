@@ -286,18 +286,42 @@ pub async fn submit(
         signed_tx.tx.memo.clone(),
     );
 
+    // Convert messages to storage format
+    use crate::storage::tx::TxMessage;
+    let mut tx_messages = Vec::new();
+    
     // Sum send amounts so legacy accounting reserves the correct value
     let mut total_amount: u128 = 0;
     let mut first_to = legacy_tx.to.clone();
+    let mut first_denom = "udgt".to_string(); // Default for backward compatibility
     for msg in &signed_tx.tx.msgs {
-        let Msg::Send { to, amount, .. } = msg;
+        let Msg::Send { to, amount, denom, from: msg_from, .. } = msg;
         total_amount = total_amount.saturating_add(*amount);
+        
+        // Convert DGT/DRT to micro denominations for storage
+        let micro_denom = match denom.to_ascii_uppercase().as_str() {
+            "DGT" => "udgt".to_string(),
+            "DRT" => "udrt".to_string(),
+            _ => denom.clone(), // Pass through other denoms
+        };
+        
+        // Store message in new format
+        tx_messages.push(TxMessage::Send {
+            from: msg_from.clone(),
+            to: to.clone(),
+            denom: micro_denom.clone(),
+            amount: *amount,
+        });
+        
         if first_to == from {
             first_to = to.clone();
+            first_denom = micro_denom;
         }
     }
     legacy_tx.amount = total_amount;
     legacy_tx.to = first_to;
+    legacy_tx.denom = first_denom;
+    legacy_tx = legacy_tx.with_messages(tx_messages);
 
     // Additional validation using legacy system
     {

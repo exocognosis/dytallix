@@ -23,6 +23,32 @@ pub struct Transaction {
     pub chain_id: String,
     #[serde(default)]
     pub memo: String,
+    // Multi-denomination support (defaults to "udgt" for backward compatibility)
+    #[serde(default = "default_denom")]
+    pub denom: String,
+    // Store original messages for multi-message transaction support
+    // This allows execution engine to process all messages, not just the first one
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub messages: Option<Vec<TxMessage>>,
+}
+
+/// Serializable message format for storage
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum TxMessage {
+    Send {
+        from: String,
+        to: String,
+        denom: String,
+        amount: u128,
+    },
+    // Future message types can be added here:
+    // Delegate { validator: String, amount: u128 },
+    // Vote { proposal_id: u64, option: VoteOption },
+}
+
+fn default_denom() -> String {
+    "udgt".to_string()
 }
 
 impl Transaction {
@@ -47,6 +73,8 @@ impl Transaction {
             public_key: None,
             chain_id: String::new(),
             memo: String::new(),
+            denom: "udgt".to_string(),
+            messages: None,
         }
     }
 
@@ -85,6 +113,16 @@ impl Transaction {
         self.public_key = Some(public_key.into());
         self.chain_id = chain_id.into();
         self.memo = memo.into();
+        self
+    }
+
+    pub fn with_denom(mut self, denom: impl Into<String>) -> Self {
+        self.denom = denom.into();
+        self
+    }
+
+    pub fn with_messages(mut self, messages: Vec<TxMessage>) -> Self {
+        self.messages = Some(messages);
         self
     }
 

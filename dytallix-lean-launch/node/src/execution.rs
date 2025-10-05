@@ -125,6 +125,198 @@ pub fn execute_transaction(
     gas_schedule: &GasSchedule,
     fee_burn_engine: Option<&mut FeeBurnEngine>,
 ) -> ExecutionResult {
+    // If transaction has multiple messages, process them all
+    if let Some(messages) = &tx.messages {
+        return execute_multi_message_transaction(
+            tx,
+            messages,
+            state,
+            block_height,
+            tx_index,
+            gas_schedule,
+            fee_burn_engine,
+        );
+    }
+
+    // Otherwise, fall back to single-message execution (legacy path)
+    execute_single_message_transaction(tx, state, block_height, tx_index, gas_schedule, fee_burn_engine)
+}
+
+/// Execute a transaction with multiple messages
+fn execute_multi_message_transaction(
+    tx: &Transaction,
+    messages: &[crate::storage::tx::TxMessage],
+    state: &mut State,
+    block_height: u64,
+    tx_index: u32,
+    gas_schedule: &GasSchedule,
+    fee_burn_engine: Option<&mut FeeBurnEngine>,
+) -> ExecutionResult {
+    // Step 1: Validate basic transaction fields
+    if let Err(error) = validate_transaction(tx, state) {
+        return ExecutionResult {
+            receipt: create_failed_receipt(tx, 0, 0, 0, error.to_string(), block_height, tx_index),
+            state_changes: Vec::new(),
+            gas_used: 0,
+            success: false,
+        };
+    }
+
+    // Step 2: Determine gas parameters
+    let (gas_limit, gas_price) = if tx.gas_limit > 0 && tx.gas_price > 0 {
+        (tx.gas_limit, tx.gas_price)
+    } else {
+        (tx.fee as u64, 1u64)
+    };
+
+    // Step 3: Create execution context
+    let mut ctx = ExecutionContext::new(gas_limit, gas_price);
+
+    // Step 4: Calculate and deduct upfront fee
+    let upfront_fee = match ctx.calculate_upfront_fee() {
+        Ok(fee) => fee,
+        Err(error) => {
+            return ExecutionResult {
+                receipt: create_failed_receipt(tx, 0, gas_limit, gas_price, error.to_string(), block_height, tx_index),
+                state_changes: Vec::new(),
+                gas_used: 0,
+                success: false,
+            };
+        }
+    };
+
+    let sender_balance = state.balance_of(&tx.from, "udgt");
+    if sender_balance < upfront_fee {
+        let err_msg = format!("InsufficientFunds: required {upfront_fee}, available {sender_balance}");
+        return ExecutionResult {
+            receipt: create_failed_receipt(tx, 0, gas_limit, gas_price, err_msg, block_height, tx_index),
+            state_changes: Vec::new(),
+            gas_used: 0,
+            success: false,
+        };
+    }
+
+    // Step 5: Deduct upfront fee and consume nonce
+    let new_sender_balance = sender_balance - upfront_fee;
+    state.set_balance(&tx.from, "udgt", new_sender_balance);
+    state.increment_nonce(&tx.from);
+
+    // Step 6: Consume minimal overhead gas
+    if let Err(_) = ctx.consume_gas(1, "tx_overhead") {
+        return ExecutionResult {
+            receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, "OutOfGas".to_string(), block_height, tx_index),
+            state_changes: Vec::new(),
+            gas_used: ctx.gas_used(),
+            success: false,
+        };
+    }
+
+    // Step 7: Calculate intrinsic gas
+    let tx_size = estimate_transaction_size(tx);
+    let intrinsic_gas = match intrinsic_gas(&TxKind::Transfer, tx_size, messages.len(), gas_schedule) {
+        Ok(gas) => gas,
+        Err(error) => {
+            return ExecutionResult {
+                receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, error.to_string(), block_height, tx_index),
+                state_changes: Vec::new(),
+                gas_used: ctx.gas_used(),
+                success: false,
+            };
+        }
+    };
+
+    if let Err(_) = ctx.consume_gas(intrinsic_gas, "intrinsic") {
+        ctx.revert_state_changes(state);
+        return ExecutionResult {
+            receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, "OutOfGas".to_string(), block_height, tx_index),
+            state_changes: Vec::new(),
+            gas_used: ctx.gas_used(),
+            success: false,
+        };
+    }
+
+    // Step 8: Execute each message
+    for (idx, msg) in messages.iter().enumerate() {
+        if let Err(_) = execute_message(msg, state, &mut ctx) {
+            // Out of gas during execution - revert state but keep fee
+            ctx.revert_state_changes(state);
+            return ExecutionResult {
+                receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, format!("OutOfGas at message {}", idx), block_height, tx_index),
+                state_changes: Vec::new(),
+                gas_used: ctx.gas_used(),
+                success: false,
+            };
+        }
+    }
+
+    // Step 9: Process fee burning if enabled
+    if let Some(engine) = fee_burn_engine {
+        let _ = engine.process_fee_burn(tx.hash.clone(), block_height, upfront_fee, state);
+    }
+
+    // Step 10: Commit state changes and create success receipt
+    let state_changes = ctx.state_changes.clone();
+    ExecutionResult {
+        success: true,
+        state_changes,
+        gas_used: ctx.gas_used(),
+        receipt: create_success_receipt(tx, ctx.gas_used(), gas_limit, gas_price, block_height, tx_index),
+    }
+}
+
+/// Execute a single message (Send transfer)
+fn execute_message(
+    msg: &crate::storage::tx::TxMessage,
+    state: &mut State,
+    ctx: &mut ExecutionContext,
+) -> Result<(), GasError> {
+    use crate::storage::tx::TxMessage;
+    
+    match msg {
+        TxMessage::Send { from, to, denom, amount } => {
+            // Charge gas for KV operations
+            ctx.consume_gas(40, "kv_read_from")?;
+            ctx.consume_gas(40, "kv_read_to")?;
+            ctx.consume_gas(120, "kv_write_from")?;
+            ctx.consume_gas(120, "kv_write_to")?;
+
+            // Record the transfer state changes
+            let sender_old_balance = state.balance_of(from, denom);
+            let recipient_old_balance = state.balance_of(to, denom);
+
+            // Check sufficient funds
+            if sender_old_balance < *amount {
+                // Note: This shouldn't happen as validation should catch it, but being defensive
+                return Err(GasError::OutOfGas {
+                    required: *amount as u64,
+                    available: sender_old_balance as u64,
+                });
+            }
+
+            let sender_new_balance = sender_old_balance - amount;
+            let recipient_new_balance = recipient_old_balance + amount;
+
+            ctx.record_state_change(from.clone(), denom.clone(), sender_old_balance, sender_new_balance);
+            ctx.record_state_change(to.clone(), denom.clone(), recipient_old_balance, recipient_new_balance);
+
+            // Apply the transfer
+            state.set_balance(from, denom, sender_new_balance);
+            state.set_balance(to, denom, recipient_new_balance);
+
+            Ok(())
+        }
+    }
+}
+
+/// Execute a single-message transaction (legacy path for backward compatibility)
+fn execute_single_message_transaction(
+    tx: &Transaction,
+    state: &mut State,
+    block_height: u64,
+    tx_index: u32,
+    gas_schedule: &GasSchedule,
+    fee_burn_engine: Option<&mut FeeBurnEngine>,
+) -> ExecutionResult {
     // Step 1: Validate basic transaction fields
     if let Err(error) = validate_transaction(tx, state) {
         return ExecutionResult {
@@ -330,9 +522,12 @@ fn execute_transfer(
     ctx.consume_gas(120, "kv_write_from")?; // Write sender balance
     ctx.consume_gas(120, "kv_write_to")?; // Write recipient balance
 
+    // Use the denom from the transaction (defaults to "udgt" for backward compatibility)
+    let denom = &tx.denom;
+
     // Record the transfer state changes
-    let sender_old_balance = state.balance_of(&tx.from, "udgt");
-    let recipient_old_balance = state.balance_of(&tx.to, "udgt");
+    let sender_old_balance = state.balance_of(&tx.from, denom);
+    let recipient_old_balance = state.balance_of(&tx.to, denom);
 
     // NOTE: We assume sufficient funds after upfront fee; future work can add explicit checks
     let sender_new_balance = sender_old_balance - tx.amount;
@@ -340,20 +535,20 @@ fn execute_transfer(
 
     ctx.record_state_change(
         tx.from.clone(),
-        "udgt".to_string(),
+        denom.to_string(),
         sender_old_balance,
         sender_new_balance,
     );
     ctx.record_state_change(
         tx.to.clone(),
-        "udgt".to_string(),
+        denom.to_string(),
         recipient_old_balance,
         recipient_new_balance,
     );
 
     // Apply the transfer
-    state.set_balance(&tx.from, "udgt", sender_new_balance);
-    state.set_balance(&tx.to, "udgt", recipient_new_balance);
+    state.set_balance(&tx.from, denom, sender_new_balance);
+    state.set_balance(&tx.to, denom, recipient_new_balance);
 
     Ok(())
 }
