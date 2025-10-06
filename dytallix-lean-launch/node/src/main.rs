@@ -617,6 +617,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/metrics", get(rpc::metrics_export))
         .route("/stats", get(rpc::stats))
         .route("/status", get(rpc::status))
+        .route("/api/pqc/status", get(rpc::pqc_status))
         .route("/peers", get(rpc::peers))
         .route("/bridge/ingest", post(rpc::bridge_ingest))
         .route("/bridge/halt", post(rpc::bridge_halt))

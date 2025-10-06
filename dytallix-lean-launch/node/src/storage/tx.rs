@@ -30,6 +30,9 @@ pub struct Transaction {
     // This allows execution engine to process all messages, not just the first one
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub messages: Option<Vec<TxMessage>>,
+    // PQC signature algorithm (with default for backward compatibility)
+    #[serde(default = "default_algorithm")]
+    pub algorithm: String,
 }
 
 /// Serializable message format for storage
@@ -49,6 +52,10 @@ pub enum TxMessage {
 
 fn default_denom() -> String {
     "udgt".to_string()
+}
+
+fn default_algorithm() -> String {
+    "dilithium3".to_string()
 }
 
 impl Transaction {
@@ -75,6 +82,7 @@ impl Transaction {
             memo: String::new(),
             denom: "udgt".to_string(),
             messages: None,
+            algorithm: "dilithium3".to_string(),
         }
     }
 
@@ -126,6 +134,11 @@ impl Transaction {
         self
     }
 
+    pub fn with_algorithm(mut self, algorithm: impl Into<String>) -> Self {
+        self.algorithm = algorithm.into();
+        self
+    }
+
     /// Get canonical transaction fields for signature verification
     pub fn canonical_fields(&self) -> CanonicalTransaction {
         CanonicalTransaction {
@@ -140,13 +153,18 @@ impl Transaction {
     }
 
     /// Extract the signature algorithm from the transaction
-    /// For now, we assume all transactions use Dilithium5 as the default
-    /// In a full implementation, this would be stored in the transaction metadata
+    /// Returns the algorithm field if present, defaults to dilithium3
     pub fn signature_algorithm(&self) -> Option<SignatureAlgorithm> {
-        if self.signature.is_some() {
-            Some(SignatureAlgorithm::Dilithium5)
-        } else {
-            None
+        if self.signature.is_none() {
+            return None;
+        }
+        
+        // Parse the algorithm string to the enum
+        match self.algorithm.as_str() {
+            "dilithium3" => Some(SignatureAlgorithm::Dilithium3),
+            "dilithium5" => Some(SignatureAlgorithm::Dilithium5),
+            "falcon1024" => Some(SignatureAlgorithm::Falcon1024),
+            _ => Some(SignatureAlgorithm::Dilithium3), // Default fallback
         }
     }
 }

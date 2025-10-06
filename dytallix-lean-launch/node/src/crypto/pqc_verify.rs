@@ -12,7 +12,7 @@ use std::str::FromStr;
 use thiserror::Error;
 
 #[cfg(feature = "pqc-real")]
-use pqcrypto_dilithium::dilithium5;
+use pqcrypto_dilithium::{dilithium3, dilithium5};
 #[cfg(all(feature = "pqc-real", feature = "falcon"))]
 use pqcrypto_falcon::falcon1024;
 #[cfg(all(feature = "pqc-real", feature = "sphincs"))]
@@ -23,6 +23,7 @@ use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SignedMessage};
 /// PQC algorithm identifiers
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum PQCAlgorithm {
+    Dilithium3,
     #[default]
     Dilithium5,
     Falcon1024,
@@ -33,6 +34,7 @@ impl PQCAlgorithm {
     /// Get algorithm identifier string
     pub fn as_str(&self) -> &'static str {
         match self {
+            PQCAlgorithm::Dilithium3 => "dilithium3",
             PQCAlgorithm::Dilithium5 => "dilithium5",
             PQCAlgorithm::Falcon1024 => "falcon1024",
             PQCAlgorithm::SphincsPlus => "sphincs_sha2_128s_simple",
@@ -45,12 +47,15 @@ impl FromStr for PQCAlgorithm {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            "dilithium3" => Ok(PQCAlgorithm::Dilithium3),
             "dilithium5" => Ok(PQCAlgorithm::Dilithium5),
             "falcon1024" => Ok(PQCAlgorithm::Falcon1024),
             "sphincs_sha2_128s_simple" => Ok(PQCAlgorithm::SphincsPlus),
             #[cfg(not(feature = "pqc-real"))]
-            // In non-prod/mock builds, accept legacy mock identifier and map to Dilithium5 path
-            "mock-blake3" => Ok(PQCAlgorithm::Dilithium5),
+            // In non-prod/mock builds, accept legacy mock identifier and map to default
+            "mock-blake3" => Ok(PQCAlgorithm::default()),
+            // Legacy: accept "dilithium" and map to dilithium5 for backward compatibility
+            "dilithium" => Ok(PQCAlgorithm::Dilithium5),
             _ => Err(PQCVerifyError::UnsupportedAlgorithm(s.to_string())),
         }
     }
@@ -120,6 +125,7 @@ pub fn verify(
     #[cfg(feature = "pqc-real")]
     {
         match alg {
+            PQCAlgorithm::Dilithium3 => verify_dilithium3(pubkey, msg, sig),
             PQCAlgorithm::Dilithium5 => verify_dilithium5(pubkey, msg, sig),
             PQCAlgorithm::Falcon1024 => {
                 #[cfg(feature = "falcon")]
@@ -145,6 +151,44 @@ pub fn verify(
                     })
                 }
             }
+        }
+    }
+}
+
+#[cfg(feature = "pqc-real")]
+fn verify_dilithium3(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCVerifyError> {
+    let pk = dilithium3::PublicKey::from_bytes(pubkey).map_err(|_| {
+        PQCVerifyError::InvalidPublicKey {
+            algorithm: "dilithium3".to_string(),
+            details: format!(
+                "Expected {} bytes, got {}",
+                dilithium3::public_key_bytes(),
+                pubkey.len()
+            ),
+        }
+    })?;
+
+    let signed_msg = dilithium3::SignedMessage::from_bytes(sig).map_err(|_| {
+        PQCVerifyError::InvalidSignature {
+            algorithm: "dilithium3".to_string(),
+            details: "Invalid signed message format".to_string(),
+        }
+    })?;
+
+    match dilithium3::open(&signed_msg, &pk) {
+        Ok(opened_msg) => {
+            if opened_msg == msg {
+                Ok(())
+            } else {
+                Err(PQCVerifyError::VerificationFailed {
+                    algorithm: "dilithium3".to_string(),
+                })
+            }
+        }
+        Err(_) => {
+            Err(PQCVerifyError::VerificationFailed {
+                algorithm: "dilithium3".to_string(),
+            })
         }
     }
 }
@@ -269,7 +313,7 @@ fn verify_sphincs_plus(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCV
     }
 }
 
-/// Compatibility function that uses the default algorithm (Dilithium5)
+/// Compatibility function that uses the default algorithm (Dilithium3)
 /// This maintains backward compatibility with existing ActivePQC::verify calls
 pub fn verify_default(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> bool {
     match verify(pubkey, msg, sig, PQCAlgorithm::default()) {
@@ -288,6 +332,10 @@ mod tests {
     #[test]
     fn test_algorithm_parsing() {
         assert_eq!(
+            PQCAlgorithm::from_str("dilithium3").unwrap(),
+            PQCAlgorithm::Dilithium3
+        );
+        assert_eq!(
             PQCAlgorithm::from_str("dilithium5").unwrap(),
             PQCAlgorithm::Dilithium5
         );
@@ -304,6 +352,7 @@ mod tests {
 
     #[test]
     fn test_algorithm_strings() {
+        assert_eq!(PQCAlgorithm::Dilithium3.as_str(), "dilithium3");
         assert_eq!(PQCAlgorithm::Dilithium5.as_str(), "dilithium5");
         assert_eq!(PQCAlgorithm::Falcon1024.as_str(), "falcon1024");
         assert_eq!(
@@ -317,12 +366,12 @@ mod tests {
         #[cfg(not(feature = "pqc-real"))]
         {
             // Mock should succeed with non-empty inputs
-            assert!(verify(&[1], &[2], &[3], PQCAlgorithm::Dilithium5).is_ok());
+            assert!(verify(&[1], &[2], &[3], PQCAlgorithm::Dilithium3).is_ok());
 
             // Mock should fail with empty inputs
-            assert!(verify(&[], &[2], &[3], PQCAlgorithm::Dilithium5).is_err());
-            assert!(verify(&[1], &[], &[3], PQCAlgorithm::Dilithium5).is_err());
-            assert!(verify(&[1], &[2], &[], PQCAlgorithm::Dilithium5).is_err());
+            assert!(verify(&[], &[2], &[3], PQCAlgorithm::Dilithium3).is_err());
+            assert!(verify(&[1], &[], &[3], PQCAlgorithm::Dilithium3).is_err());
+            assert!(verify(&[1], &[2], &[], PQCAlgorithm::Dilithium3).is_err());
         }
     }
 

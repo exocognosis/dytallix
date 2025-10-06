@@ -1,0 +1,53 @@
+{
+  "description": "Known Answer Tests for Dilithium3 signature verification",
+  "algorithm": "dilithium3",
+  "version": "1.0",
+  "vectors": [
+    {
+      "name": "basic_sign_verify",
+      "description": "Basic keypair generation, signing, and verification",
+      "comment": "These are placeholder test vectors. In production, generate real vectors using pqcrypto-dilithium crate test infrastructure.",
+      "public_key_hex": "PLACEHOLDER_1952_BYTE_PUBLIC_KEY",
+      "secret_key_hex": "PLACEHOLDER_4016_BYTE_SECRET_KEY",
+      "message_hex": "48656c6c6f2c20506f73742d5175616e74756d20576f726c6421",
+      "message_text": "Hello, Post-Quantum World!",
+      "signature_hex": "PLACEHOLDER_3309_BYTE_SIGNATURE",
+      "expected_result": "valid"
+    },
+    {
+      "name": "empty_message",
+      "description": "Signing an empty message should work",
+      "public_key_hex": "PLACEHOLDER_PUBLIC_KEY",
+      "message_hex": "",
+      "signature_hex": "PLACEHOLDER_SIGNATURE",
+      "expected_result": "valid"
+    },
+    {
+      "name": "tampered_signature",
+      "description": "Modified signature should fail verification",
+      "public_key_hex": "PLACEHOLDER_PUBLIC_KEY",
+      "message_hex": "48656c6c6f",
+      "signature_hex": "TAMPERED_SIGNATURE_BYTES",
+      "expected_result": "invalid"
+    },
+    {
+      "name": "wrong_public_key",
+      "description": "Using different public key should fail",
+      "public_key_hex": "DIFFERENT_PUBLIC_KEY",
+      "message_hex": "48656c6c6f",
+      "signature_hex": "PLACEHOLDER_SIGNATURE",
+      "expected_result": "invalid"
+    }
+  ],
+  "test_instructions": {
+    "rust": "Run `cargo test pqc_kat -- --nocapture` in node directory",
+    "typescript": "Run `npm run test:kat` in SDK directory",
+    "browser": "Run headless browser test in CI with WASM module"
+  },
+  "notes": [
+    "Real test vectors must be generated using the actual pqcrypto-dilithium crate",
+    "To generate vectors: use the test_vector_generation example in pqc-crypto/examples/",
+    "Vectors should be cross-verified between Rust, TypeScript, and Browser contexts",
+    "CI must fail if any vector verification fails in any context"
+  ]
+}

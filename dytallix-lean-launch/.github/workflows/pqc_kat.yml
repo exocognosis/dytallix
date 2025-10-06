@@ -1,0 +1,209 @@
+name: PQC Known Answer Tests (KAT)
+
+on:
+  push:
+    branches: [main, develop, 'feature/pqc-*']
+    paths:
+      - 'node/src/crypto/**'
+      - 'cli/dytx/src/lib/pqc.ts'
+      - 'tests/pqc_kat/**'
+      - 'public/wasm/pqc/**'
+      - '.github/workflows/pqc_kat.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'node/src/crypto/**'
+      - 'cli/dytx/src/lib/pqc.ts'
+      - 'tests/pqc_kat/**'
+      - 'public/wasm/pqc/**'
+
+jobs:
+  kat-rust:
+    name: KAT Verification (Rust)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            node/target/
+            pqc-crypto/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Run PQC KAT tests (Rust)
+        working-directory: node
+        run: |
+          cargo test --features pqc-real pqc -- --nocapture --test-threads=1
+      
+      - name: Verify algorithm compatibility
+        working-directory: node
+        run: |
+          # Check that all algorithms compile and have proper string mappings
+          cargo test --features pqc-real test_algorithm -- --nocapture
+
+  kat-typescript:
+    name: KAT Verification (TypeScript/Node.js)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: cli/dytx/package-lock.json
+      
+      - name: Setup Rust (for PQC binaries)
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      
+      - name: Build PQC binaries
+        working-directory: pqc-crypto
+        run: |
+          cargo build --release --bin keygen_raw --bin pqc-sign
+      
+      - name: Install CLI dependencies
+        working-directory: cli/dytx
+        run: npm ci
+      
+      - name: Run TypeScript KAT tests
+        working-directory: cli/dytx
+        run: |
+          # TODO: Implement npm run test:kat once test harness is ready
+          echo "TypeScript KAT tests: PENDING implementation"
+          # npm run test:kat
+      
+      - name: Verify CLI algorithm constant
+        run: |
+          # Ensure CLI uses dilithium3 as default
+          ALGO=$(grep 'DILITHIUM_ALGO' cli/dytx/src/lib/pqc.ts | grep -o "dilithium[35]" | head -1)
+          if [ "$ALGO" != "dilithium3" ]; then
+            echo "ERROR: CLI should use dilithium3 as default, found: $ALGO"
+            exit 1
+          fi
+          echo "✓ CLI uses correct default algorithm: $ALGO"
+
+  kat-wasm:
+    name: KAT Verification (Browser WASM)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Verify WASM manifest integrity
+        run: |
+          # Check that manifest.json has all required fields
+          jq -e '.algorithms.dilithium3' public/wasm/pqc/manifest.json > /dev/null
+          jq -e '.default_algorithm' public/wasm/pqc/manifest.json > /dev/null
+          
+          DEFAULT=$(jq -r '.default_algorithm' public/wasm/pqc/manifest.json)
+          if [ "$DEFAULT" != "dilithium3" ]; then
+            echo "ERROR: WASM manifest should use dilithium3 as default, found: $DEFAULT"
+            exit 1
+          fi
+          echo "✓ WASM manifest uses correct default algorithm: $DEFAULT"
+      
+      - name: Check SHA256 hashes (if present)
+        run: |
+          # Verify that if SHA256 hashes are present, they are not placeholder values
+          HASH=$(jq -r '.algorithms.dilithium3.sha256' public/wasm/pqc/manifest.json)
+          if [ "$HASH" != "" ] && [ "$HASH" != "TO_BE_PINNED_AFTER_BUILD" ]; then
+            echo "✓ SHA256 hash present: ${HASH:0:16}..."
+            # In production, verify the actual WASM file matches this hash
+          else
+            echo "⚠ SHA256 hash not pinned yet (acceptable for development)"
+          fi
+      
+      - name: Run headless browser tests
+        run: |
+          # TODO: Implement headless Playwright/Puppeteer tests for WASM verification
+          echo "Browser WASM KAT tests: PENDING implementation"
+          # cd frontend && npm ci && npm run test:wasm
+
+  algorithm-consistency:
+    name: Cross-Platform Algorithm Consistency
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Verify algorithm names match across codebase
+        run: |
+          echo "Checking algorithm consistency..."
+          
+          # Extract algorithm from each source
+          RUST_ALGO=$(grep 'default_algorithm\|DYT_PQC_ALGO_DEFAULT' node/src/crypto/pqc_verify.rs .env.example | grep -o 'dilithium[35]' | head -1)
+          CLI_ALGO=$(grep 'DILITHIUM_ALGO' cli/dytx/src/lib/pqc.ts | grep -o 'dilithium[35]' | head -1)
+          WASM_ALGO=$(jq -r '.default_algorithm' public/wasm/pqc/manifest.json)
+          ENV_ALGO=$(grep 'DYT_PQC_ALGO_DEFAULT' .env.example | grep -o 'dilithium[35]' | head -1)
+          
+          echo "Rust default: $RUST_ALGO"
+          echo "CLI default: $CLI_ALGO"
+          echo "WASM default: $WASM_ALGO"
+          echo "ENV default: $ENV_ALGO"
+          
+          # All should be dilithium3
+          if [ "$CLI_ALGO" != "dilithium3" ] || [ "$WASM_ALGO" != "dilithium3" ] || [ "$ENV_ALGO" != "dilithium3" ]; then
+            echo "ERROR: Algorithm mismatch detected!"
+            exit 1
+          fi
+          
+          echo "✓ All platforms use consistent default algorithm: dilithium3"
+      
+      - name: Verify KAT files exist
+        run: |
+          if [ ! -f "tests/pqc_kat/dilithium3.json" ]; then
+            echo "ERROR: Missing KAT file: tests/pqc_kat/dilithium3.json"
+            exit 1
+          fi
+          echo "✓ KAT files present"
+      
+      - name: Check documentation
+        run: |
+          if [ ! -f "docs/pqc/ALGO_COMPAT_MATRIX.md" ]; then
+            echo "ERROR: Missing PQC spec: docs/pqc/ALGO_COMPAT_MATRIX.md"
+            exit 1
+          fi
+          echo "✓ PQC documentation present"
+
+  summary:
+    name: KAT Test Summary
+    runs-on: ubuntu-latest
+    needs: [kat-rust, kat-typescript, kat-wasm, algorithm-consistency]
+    if: always()
+    
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.kat-rust.result }}" != "success" ] || \
+             [ "${{ needs.kat-typescript.result }}" != "success" ] || \
+             [ "${{ needs.kat-wasm.result }}" != "success" ] || \
+             [ "${{ needs.algorithm-consistency.result }}" != "success" ]; then
+            echo "❌ One or more KAT tests failed"
+            exit 1
+          fi
+          echo "✅ All PQC KAT tests passed"

@@ -767,14 +767,28 @@ fn verify_pqc_signature(tx: &Transaction, signature: &str, public_key: &str) -> 
 
     tracing::info!("Transaction hash: {}", hex::encode(&tx_hash));
 
-    // 5. Verify signature using new multi-algorithm verification
-    // For mempool transactions, we use the default algorithm (Dilithium5)
-    // as the Transaction struct doesn't include algorithm field
+    // 5. Parse algorithm from transaction (with default fallback)
+    let algorithm = PQCAlgorithm::from_str(&tx.algorithm).unwrap_or_else(|_| {
+        tracing::warn!(
+            "Unknown algorithm '{}', defaulting to {}",
+            tx.algorithm,
+            PQCAlgorithm::default().as_str()
+        );
+        PQCAlgorithm::default()
+    });
+
+    tracing::info!(
+        "Verifying signature with algorithm: {} (from tx field: {})",
+        algorithm.as_str(),
+        tx.algorithm
+    );
+
+    // 6. Verify signature using multi-algorithm verification
     match crate::crypto::pqc_verify::verify(
         &pk_bytes,
         &tx_hash,
         &sig_bytes,
-        PQCAlgorithm::default(),
+        algorithm,
     ) {
         Ok(()) => {
             tracing::info!("✅ Transaction signature verification successful");

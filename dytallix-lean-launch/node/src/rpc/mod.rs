@@ -321,7 +321,7 @@ pub async fn submit(
     legacy_tx.amount = total_amount;
     legacy_tx.to = first_to;
     legacy_tx.denom = first_denom;
-    legacy_tx = legacy_tx.with_messages(tx_messages);
+    legacy_tx = legacy_tx.with_messages(tx_messages).with_algorithm(&signed_tx.algorithm);
 
     // Additional validation using legacy system
     {
@@ -523,8 +523,7 @@ pub async fn get_transaction_receipt(
     ctx: axum::Extension<RpcContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     if let Some(r) = ctx.storage.get_receipt(&hash) {
-        let mut v = serde_json::to_value(&r).unwrap();
-        v["pqc_algorithm"] = serde_json::json!("Dilithium5");
+        let v = serde_json::to_value(&r).unwrap();
         return Ok(Json(v));
     }
     Err(ApiError::NotFound)
@@ -671,6 +670,44 @@ pub async fn status(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value>
         "mempool_size": mempool_size,
         "chain_id": chain_id,
         "timestamp": now
+    }))
+}
+
+/// GET /api/pqc/status - PQC configuration and status
+pub async fn pqc_status() -> Json<serde_json::Value> {
+    let default_algo = std::env::var("DYT_PQC_ALGO_DEFAULT").unwrap_or_else(|_| "dilithium3".to_string());
+    let allowlist = std::env::var("DYT_PQC_ALGO_ALLOWLIST")
+        .unwrap_or_else(|_| "dilithium3,dilithium5".to_string());
+    
+    let allowed_algorithms: Vec<&str> = allowlist.split(',').map(|s| s.trim()).collect();
+    
+    Json(json!({
+        "pqc_enabled": true,
+        "algo_default": default_algo,
+        "allowlist": allowed_algorithms,
+        "supported_algorithms": {
+            "dilithium3": {
+                "name": "CRYSTALS-Dilithium3",
+                "nist_level": 3,
+                "status": "primary",
+                "public_key_bytes": 1952,
+                "signature_bytes": 3309
+            },
+            "dilithium5": {
+                "name": "CRYSTALS-Dilithium5",
+                "nist_level": 5,
+                "status": "supported",
+                "public_key_bytes": 2592,
+                "signature_bytes": 4627
+            },
+            "falcon512": {
+                "name": "FALCON-512",
+                "nist_level": 1,
+                "status": "experimental",
+                "public_key_bytes": 897,
+                "signature_bytes": 666
+            }
+        }
     }))
 }
 
