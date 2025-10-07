@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { fetchHero, fetchDashboard, requestFaucet } from "./lib/api";
+import { createWallet, exportKeystoreFile } from "./lib/wallet";
 
 // Simple hash router
 const useHashRoute = () => {
@@ -81,16 +83,35 @@ const Badge = ({ children }) => (
   <span className="inline-flex items-center justify-center rounded-xl border border-white/10 px-3 py-1 text-xs text-neutral-300">{children}</span>
 );
 
-const Kpis = () => (
-  <div className="grid grid-cols-2 gap-6">
-    {[{k:'Nodes',v:'128'},{k:'Finality',v:'~2.1s'},{k:'TPS (peak)',v:'3,200'},{k:'Uptime',v:'99.98%'}].map(x=> (
-      <div key={x.k} className="rounded-2xl bg-white/5 p-4 border border-white/10">
-        <div className="text-2xl font-bold">{x.v}</div>
-        <div className="text-xs text-neutral-400 mt-1">{x.k}</div>
-      </div>
-    ))}
-  </div>
-);
+const Kpis = () => {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    fetchHero().then(setData).catch(console.error);
+    const id = setInterval(() => fetchHero().then(setData).catch(console.error), 15000);
+    return () => clearInterval(id);
+  }, []);
+
+  const items = data ? [
+    { k: "Nodes", v: data.nodes },
+    { k: "Active Validators", v: data.activeValidators },
+    { k: "Block Height", v: data.blockHeight },
+    { k: "Finality", v: `~${data.finality}s` },
+    { k: "TPS (peak)", v: data.tpsPeak },
+    { k: "Uptime", v: `${data.uptime}%` },
+  ] : [];
+
+  return (
+    <div className="grid grid-cols-3 gap-6">
+      {items.map(x => (
+        <div key={x.k} className="rounded-2xl bg-white/5 p-4 border border-white/10">
+          <div className="text-2xl font-bold">{x.v ?? "…"}</div>
+          <div className="text-xs text-neutral-400 mt-1">{x.k}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const Problem = () => (
   <section className="mt-24">
@@ -233,10 +254,23 @@ const Home = () => (
 const WalletPage = () => {
   const [created, setCreated] = useState(false);
   const [addr, setAddr] = useState("");
-  const create = () => {
-    // Placeholder wallet generation (UI only). Hook into real SDK later.
-    const fake = 'pqc1' + Math.random().toString(36).slice(2,12) + '...' + Math.random().toString(36).slice(2,6);
-    setAddr(fake); setCreated(true);
+  const [wallet, setWallet] = useState(null);
+  const create = async () => {
+    // Generate wallet using SDK
+    const w = await createWallet({ alg: 'ML-DSA', hybrid: false });
+    setWallet(w);
+    setAddr(w.address);
+    setCreated(true);
+  };
+  const exportKeystore = async () => {
+    if (!wallet) return;
+    const { blob, fileName } = await exportKeystoreFile(wallet.privKey, { label: 'dytallix-keystore' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
   };
   return (
     <Page>
@@ -257,7 +291,7 @@ const WalletPage = () => {
             <div className="text-sm text-neutral-400">Address</div>
             <div className="mt-1 text-lg font-mono">{addr}</div>
             <div className="mt-6 grid grid-cols-2 gap-2">
-              <button className="px-4 py-2 rounded-xl border border-white/20">Export Keystore</button>
+              <button onClick={exportKeystore} className="px-4 py-2 rounded-xl border border-white/20">Export Keystore</button>
               <button className="px-4 py-2 rounded-xl border border-white/20">Add Guardian</button>
             </div>
           </>
@@ -269,7 +303,15 @@ const WalletPage = () => {
 
 const FaucetPage = () => {
   const [req, setReq] = useState(null);
-  const submit = (e) => { e.preventDefault(); setReq({ token: e.target.token.value, addr: e.target.addr.value, status: 'Requested' }); };
+  const submit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await requestFaucet({ address: e.target.addr.value, token: e.target.token.value });
+      setReq({ ...res, status: 'Requested' });
+    } catch (error) {
+      setReq({ status: 'Error', error: error.message });
+    }
+  };
   return (
     <Page>
       <h1 className="text-3xl md:text-4xl font-extrabold">Testnet Faucet</h1>
@@ -283,7 +325,7 @@ const FaucetPage = () => {
           <option value="DRT">DRT</option>
         </select>
         <button type="submit" className="mt-6 px-5 py-3 rounded-2xl bg-white text-black font-semibold">Request</button>
-        {req && <div className="mt-4 text-sm text-neutral-400">{req.status} — {req.token} → {req.addr}</div>}
+        {req && <div className="mt-4 text-sm text-neutral-400">{req.status} — {req.token} → {req.addr || req.address}{req.txHash ? ` (tx: ${req.txHash})` : ''}{req.error ? ` Error: ${req.error}` : ''}</div>}
       </form>
     </Page>
   );
@@ -328,7 +370,22 @@ const DocCard = ({ title, items }) => (
 );
 
 const DashboardPage = () => {
-  const metrics = [
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    fetchDashboard().then(setData).catch(console.error);
+    const id = setInterval(() => fetchDashboard().then(setData).catch(console.error), 15000);
+    return () => clearInterval(id);
+  }, []);
+
+  const metrics = data ? [
+    { name: 'ML‑KEM handshakes/min', value: data.mlKemHandshakes || 0 },
+    { name: 'ML‑DSA verifications/s', value: data.mlDsaVerifications || 0 },
+    { name: 'Block time (ms)', value: data.blockTime || 0 },
+    { name: 'Fork rate', value: data.forkRate || 0 },
+    { name: 'Finality (s)', value: data.finality || 0 },
+    { name: 'Peers/validator (p95)', value: data.peersP95 || 0 },
+  ] : [
     { name: 'ML‑KEM handshakes/min', value: 1842 },
     { name: 'ML‑DSA verifications/s', value: 9670 },
     { name: 'Block time (ms)', value: 2100 },
