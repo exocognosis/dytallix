@@ -15,8 +15,9 @@ export const transferCommand = new Command('transfer')
   .description('Send tokens to another address')
   .option('--from <address>', 'Sender address')
   .option('--to <address>', 'Recipient address')
-  .option('--amount <amount>', 'Amount to send')
-  .option('--denom <denom>', 'Token denomination (udgt|udrt)', 'udgt')
+  .option('--amount <amount>', 'Amount to send in whole tokens (e.g., 1.5 for 1.5 DGT)')
+  .option('--denom <denom>', 'Token denomination: dgt or drt (default: dgt)', 'dgt')
+  .option('--micro', 'Interpret amount as micro units (1 DGT = 1,000,000 udgt) instead of whole tokens')
   .option('--memo <memo>', 'Transaction memo', '')
   .option('--keystore <nameOrPath>', 'Keystore name (from keys list) or file path')
   .option('--passphrase <pass>', 'Keystore passphrase (non-interactive; or set DYTX_PASSPHRASE)')
@@ -38,18 +39,34 @@ export const transferCommand = new Command('transfer')
       if (!validAddr(options.from)) throw new Error('Invalid sender address format')
       if (!validAddr(options.to)) throw new Error('Invalid recipient address format')
 
-      // Validate amount
-      const amountMicro = amountToMicro(String(options.amount))
-
-      // Validate denomination
-      if (!['udgt', 'udrt'].includes(options.denom)) {
-        throw new Error('Denomination must be udgt or udrt')
+      // Normalize denomination: accept both 'dgt' and 'udgt', 'drt' and 'udrt'
+      // Auto-detect micro mode if user specifies 'udgt' or 'udrt'
+      const isMicroDenom = options.denom.toLowerCase().startsWith('u')
+      const normalizedDenom = options.denom.toLowerCase().replace(/^u/, '')
+      if (!['dgt', 'drt'].includes(normalizedDenom)) {
+        throw new Error('Denomination must be dgt or drt (or udgt/udrt)')
       }
+
+      // Convert amount to micro units
+      // If --micro flag is set OR user specified udgt/udrt, use amount as-is (already in micro units)
+      // Otherwise, convert whole tokens to micro units
+      const inMicroMode = options.micro || isMicroDenom
+      const amountMicro = inMicroMode 
+        ? String(options.amount) 
+        : amountToMicro(String(options.amount))
+
+      // Display formatted amount for user confirmation
+      const displayAmount = inMicroMode 
+        ? `${options.amount} u${normalizedDenom.toUpperCase()}` 
+        : `${options.amount} ${normalizedDenom.toUpperCase()}`
 
       console.log(chalk.blue('💸 Preparing transfer...'))
       console.log(chalk.gray(`From: ${options.from}`))
       console.log(chalk.gray(`To: ${options.to}`))
-      console.log(chalk.gray(`Amount: ${options.amount} ${options.denom.toUpperCase()}`))
+      console.log(chalk.gray(`Amount: ${displayAmount}`))
+      if (!inMicroMode) {
+        console.log(chalk.gray(`  → ${amountMicro} u${normalizedDenom} (micro units)`))
+      }
       
       if (options.memo) {
         console.log(chalk.gray(`Memo: ${options.memo}`))
@@ -60,7 +77,7 @@ export const transferCommand = new Command('transfer')
       const acct = await client.getAccount(options.from)
       const nonce = Number(acct.nonce || 0)
       const chainId = globalOpts.chainId || (await client.getStats()).chain_id
-      const denom = options.denom.toUpperCase() === 'UDRT' ? 'DRT' : 'DGT'
+      const denom = normalizedDenom.toUpperCase() === 'DRT' ? 'DRT' : 'DGT'
       const tx = buildSendTx(chainId, nonce, options.from, options.to, denom, amountMicro, options.memo)
 
       // Load keystore (by name or by matching address) and decrypt
@@ -87,7 +104,7 @@ export const transferCommand = new Command('transfer')
         console.log(chalk.green('✅ Transfer submitted!'))
         console.log(chalk.bold('Transaction Hash:'), hash)
         console.log(chalk.bold('Status:'), res.status)
-        console.log(chalk.cyan('Transfer:'), `${options.amount} ${options.denom.toUpperCase()} from ${options.from} to ${options.to}`)
+        console.log(chalk.cyan('Transfer:'), displayAmount + ` from ${options.from} to ${options.to}`)
       }
 
     } catch (error) {

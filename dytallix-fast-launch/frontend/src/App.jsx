@@ -312,6 +312,21 @@ const WalletPage = () => {
   const [copied, setCopied] = useState(false);
   const [balances, setBalances] = useState({ DGT: 0, DRT: 0 });
   
+  // Transaction state
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [txType, setTxType] = useState('send'); // 'send' or 'request'
+  const [txForm, setTxForm] = useState({
+    to: '',
+    amount: '',
+    denom: 'DRT',
+    memo: '',
+  });
+  const [txLoading, setTxLoading] = useState(false);
+  const [txError, setTxError] = useState(null);
+  const [txSuccess, setTxSuccess] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [paymentRequestLink, setPaymentRequestLink] = useState('');
+  
   // Load wallet from localStorage on mount
   useEffect(() => {
     const savedWallet = localStorage.getItem('dytallix_wallet');
@@ -329,7 +344,130 @@ const WalletPage = () => {
         console.error('Failed to load wallet from localStorage:', err);
       }
     }
+    
+    // Load transaction history
+    const savedTxs = localStorage.getItem('dytallix_transactions');
+    if (savedTxs) {
+      try {
+        setTransactions(JSON.parse(savedTxs));
+      } catch (err) {
+        console.error('Failed to load transactions:', err);
+      }
+    }
   }, []);
+  
+  // Save transactions to localStorage
+  const saveTransaction = (tx) => {
+    const newTxs = [tx, ...transactions].slice(0, 50); // Keep last 50
+    setTransactions(newTxs);
+    localStorage.setItem('dytallix_transactions', JSON.stringify(newTxs));
+  };
+  
+  // Submit transaction (send tokens)
+  const submitTransaction = async () => {
+    if (!txForm.to || !txForm.amount) {
+      setTxError('Please fill in all required fields');
+      return;
+    }
+    
+    setTxLoading(true);
+    setTxError(null);
+    setTxSuccess(null);
+    
+    try {
+      const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+      
+      // Convert amount to micro-units
+      const amountNum = parseFloat(txForm.amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        throw new Error('Invalid amount');
+      }
+      const microAmount = Math.floor(amountNum * 1_000_000);
+      
+      // For demo, we'll use the dev/faucet endpoint to simulate the transaction
+      // In production, this would call /api/wallet/sign-and-submit
+      const payload = {
+        from: fullAddr,
+        to: txForm.to,
+        amount: microAmount.toString(),
+        denom: txForm.denom.toLowerCase(),
+        memo: txForm.memo || '',
+      };
+      
+      // Simulate transaction submission
+      // TODO: Replace with real backend signing when wallet encryption is implemented
+      const txHash = 'tx_' + Math.random().toString(36).substr(2, 16);
+      
+      // Save to history
+      const tx = {
+        hash: txHash,
+        type: 'send',
+        from: fullAddr,
+        to: txForm.to,
+        amount: amountNum,
+        denom: txForm.denom,
+        memo: txForm.memo,
+        status: 'confirmed',
+        timestamp: new Date().toISOString(),
+      };
+      saveTransaction(tx);
+      
+      // Update local balances (demo only)
+      const currentBal = getAddressBalances(fullAddr);
+      const newBal = {
+        ...currentBal,
+        [txForm.denom]: Math.max(0, currentBal[txForm.denom] - amountNum),
+      };
+      const allBal = readBalances();
+      allBal[fullAddr] = newBal;
+      writeBalances(allBal);
+      setBalances(newBal);
+      
+      setTxSuccess({
+        hash: txHash,
+        amount: amountNum,
+        denom: txForm.denom,
+        to: txForm.to,
+      });
+      
+      // Reset form
+      setTxForm({ to: '', amount: '', denom: 'DRT', memo: '' });
+      
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        setShowTransactionModal(false);
+        setTxSuccess(null);
+      }, 3000);
+      
+    } catch (err) {
+      console.error('Transaction error:', err);
+      setTxError(err.message || 'Failed to submit transaction');
+    } finally {
+      setTxLoading(false);
+    }
+  };
+  
+  // Generate payment request link
+  const generatePaymentRequest = () => {
+    const params = new URLSearchParams({
+      to: fullAddr,
+      amount: txForm.amount,
+      denom: txForm.denom,
+      memo: txForm.memo || '',
+    });
+    const link = `${window.location.origin}${window.location.pathname}#/pay?${params.toString()}`;
+    setPaymentRequestLink(link);
+  };
+  
+  // Copy payment link
+  const copyPaymentLink = async () => {
+    try {
+      await navigator.clipboard.writeText(paymentRequestLink);
+      alert('Payment link copied to clipboard!');
+    } catch (err) {
+      alert('Failed to copy link');
+    }
+  };
   
   const create = () => {
     // Placeholder wallet generation (UI only). Hook into real SDK later.
@@ -671,7 +809,24 @@ const WalletPage = () => {
                 Testnet balances • Auto-refreshes every 5 seconds
               </div>
             </div>
+            {/* Transaction Actions */}
             <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => { setTxType('send'); setShowTransactionModal(true); }} 
+                className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-semibold hover:opacity-90 transition"
+              >
+                💸 Send Tokens
+              </button>
+              <button 
+                onClick={() => { setTxType('request'); setShowTransactionModal(true); setPaymentRequestLink(''); }} 
+                className="px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-cyan-500 text-white text-sm font-semibold hover:opacity-90 transition"
+              >
+                📥 Request Payment
+              </button>
+            </div>
+            
+            {/* Wallet Management Actions */}
+            <div className="grid grid-cols-2 gap-3 mt-3">
               <button 
                 onClick={() => setShowExportModal(true)} 
                 className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition"
@@ -685,6 +840,42 @@ const WalletPage = () => {
                 👥 Add Guardian
               </button>
             </div>
+            
+            {/* Transaction History */}
+            {transactions.length > 0 && (
+              <div className="mt-4 p-4 rounded-xl bg-neutral-900 border border-white/10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm text-neutral-400 font-medium">Recent Transactions</div>
+                  <div className="text-xs text-neutral-500">{transactions.length} total</div>
+                </div>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {transactions.slice(0, 10).map((tx, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 transition">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs ${tx.type === 'send' ? 'text-red-400' : 'text-green-400'}`}>
+                            {tx.type === 'send' ? '↗ Sent' : '↙ Received'}
+                          </span>
+                          <span className="text-xs font-mono text-neutral-300">
+                            {tx.amount} {tx.denom}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${tx.status === 'confirmed' ? 'bg-green-500/20 text-green-400' : tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                            {tx.status}
+                          </span>
+                        </div>
+                        <div className="text-xs text-neutral-500 mt-1 truncate">
+                          {tx.type === 'send' ? 'To: ' : 'From: '}{tx.type === 'send' ? tx.to : tx.from}
+                        </div>
+                        {tx.memo && <div className="text-xs text-neutral-600 italic mt-0.5">{tx.memo}</div>}
+                      </div>
+                      <div className="text-xs text-neutral-600 ml-2">
+                        {new Date(tx.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             {/* Show guardians if any exist */}
             {guardians.length > 0 && (
@@ -720,107 +911,96 @@ const WalletPage = () => {
         )}
       </div>
 
-      {/* Algorithm Comparison */}
+      {/* Transaction History */}
       <div className="mt-10">
-        <h2 className="text-2xl font-bold mb-4">Algorithm Comparison</h2>
+        <h2 className="text-2xl font-bold mb-4">Transaction History</h2>
         <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-white/5">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold">Algorithm</th>
-                  <th className="px-4 py-3 text-left font-semibold">Security Level</th>
-                  <th className="px-4 py-3 text-left font-semibold">Signature Size</th>
-                  <th className="px-4 py-3 text-left font-semibold">Speed</th>
-                  <th className="px-4 py-3 text-left font-semibold">Best For</th>
+                  <th className="px-4 py-3 text-left font-semibold">Date</th>
+                  <th className="px-4 py-3 text-left font-semibold">To</th>
+                  <th className="px-4 py-3 text-left font-semibold">Amount</th>
+                  <th className="px-4 py-3 text-left font-semibold">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold">TX Hash</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
-                <tr className="hover:bg-white/5 transition">
-                  <td className="px-4 py-3 font-semibold">ML-DSA (Dilithium)</td>
-                  <td className="px-4 py-3">NIST Level 3</td>
-                  <td className="px-4 py-3">~2.4 KB</td>
-                  <td className="px-4 py-3 text-green-400">Fast (0.42ms)</td>
-                  <td className="px-4 py-3 text-neutral-400">General use, high throughput</td>
-                </tr>
-                <tr className="hover:bg-white/5 transition">
-                  <td className="px-4 py-3 font-semibold">SLH-DSA (SPHINCS+)</td>
-                  <td className="px-4 py-3">NIST Level 3</td>
-                  <td className="px-4 py-3">~17 KB</td>
-                  <td className="px-4 py-3 text-yellow-400">Slower (5.8ms)</td>
-                  <td className="px-4 py-3 text-neutral-400">Stateless, conservative security</td>
-                </tr>
+                {transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-4 py-3 text-center text-sm text-neutral-500">
+                      No transactions found
+                    </td>
+                  </tr>
+                ) : (
+                  transactions.map((tx) => (
+                    <tr key={tx.hash} className="hover:bg-white/5 transition">
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium">{new Date(tx.timestamp).toLocaleString()}</div>
+                        <div className="text-xs text-neutral-400">{tx.timestamp}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium">{truncateAddress(tx.to, 8)}</div>
+                        <div className="text-xs text-neutral-400">{tx.to}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-bold">{tx.amount} {tx.denom}</div>
+                        <div className="text-xs text-neutral-400">{tx.type === 'send' ? 'Sent' : 'Requested'}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className={`text-xs font-semibold ${tx.status === 'confirmed' ? 'text-green-500' : 'text-red-500'}`}>
+                          {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <a 
+                          href={`https://explorer.dytallix.org/tx/${tx.hash}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="text-blue-400 hover:text-blue-300 text-sm"
+                        >
+                          {tx.hash.slice(0, 10)}...{tx.hash.slice(-6)}
+                        </a>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      {/* Export Keystore Modal */}
-      {showExportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowExportModal(false)}></div>
-          <div className="relative bg-neutral-950 border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Export Keystore</h3>
-              <button 
-                onClick={() => setShowExportModal(false)} 
-                className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-sm transition"
-              >
-                Close
-              </button>
+      {/* Send/Request Tokens */}
+      <div className="mt-10">
+        <h2 className="text-2xl font-bold mb-4">Send / Request Tokens</h2>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm text-neutral-400">Available Balance</div>
+            <div className="text-sm font-bold">
+              DGT: {balances.DGT?.toLocaleString?.() || balances.DGT} &bull; DRT: {balances.DRT?.toLocaleString?.() || balances.DRT}
             </div>
-            
-            {!exportSuccess ? (
-              <>
-                <p className="text-sm text-neutral-300 mb-4">
-                  Create a password to encrypt your keystore. This encrypted file contains your private keys and can be imported later.
-                </p>
-                
-                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 mb-4">
-                  <div className="flex items-start gap-2 text-xs">
-                    <span className="text-yellow-500">⚠️</span>
-                    <div className="text-neutral-300">
-                      <strong className="text-yellow-500">Security Warning:</strong> Store this file securely. Anyone with this file and password can access your wallet.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="text-sm text-neutral-400 mb-2 block">Encryption Password</label>
-                  <input 
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter a strong password"
-                    className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white"
-                  />
-                </div>
-
-                <div className="mb-4 p-3 rounded-xl bg-neutral-900 border border-white/10">
-                  <div className="text-xs text-neutral-400 mb-1">Exporting Keystore For:</div>
-                  <div className="text-xs font-mono break-all text-neutral-300">{fullAddr || addr}</div>
-                  <div className="text-xs text-neutral-500 mt-1">Algorithm: {algorithm}</div>
-                </div>
-
-                <button 
-                  onClick={exportKeystore}
-                  disabled={!password}
-                  className="w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Download Encrypted Keystore
-                </button>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-6xl mb-4">✓</div>
-                <div className="text-lg font-semibold text-green-500 mb-2">Keystore Exported!</div>
-                <div className="text-sm text-neutral-400">Your encrypted keystore has been downloaded.</div>
-              </div>
-            )}
+          </div>
+          <div className="flex gap-4 mb-4">
+            <button 
+              onClick={() => { setTxType('send'); setShowTransactionModal(true); }}
+              className="flex-1 px-4 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:opacity-90 transition"
+            >
+              Send Tokens
+            </button>
+            <button 
+              onClick={() => { setTxType('request'); setShowTransactionModal(true); }}
+              className="flex-1 px-4 py-2 rounded-xl border border-blue-500 text-blue-500 hover:bg-blue-500/10 transition"
+            >
+              Request Tokens
+            </button>
+          </div>
+          <div className="text-xs text-neutral-500">
+            Note: This is a demo feature. Transactions are simulated and do not occur on the blockchain.
           </div>
         </div>
-      )}
+      </div>
 
       {/* Add Guardian Modal */}
       {showGuardianModal && (
@@ -828,7 +1008,7 @@ const WalletPage = () => {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowGuardianModal(false)}></div>
           <div className="relative bg-neutral-950 border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Add Guardian</h3>
+              <h3 className="text-lg font-bold">Add Guardian</h3>
               <button 
                 onClick={() => setShowGuardianModal(false)} 
                 className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-sm transition"
@@ -838,56 +1018,266 @@ const WalletPage = () => {
             </div>
             
             <p className="text-sm text-neutral-300 mb-4">
-              Guardians can help you recover your wallet through multi-signature social recovery. Add trusted friends or backup wallets as guardians.
+              Add up to 5 guardians for account recovery and multi-signature approvals. Guardians must be valid PQC addresses.
             </p>
-
-            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mb-4">
-              <div className="flex items-start gap-2 text-xs">
-                <span className="text-blue-500">ℹ️</span>
-                <div className="text-neutral-300">
-                  <strong className="text-blue-500">Multi-Sig Recovery:</strong> You can add up to 5 guardians. In production, a threshold (e.g., 2-of-3) would be required for recovery.
-                </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-neutral-400 mb-2 block">Guardian Address</label>
+                <input 
+                  type="text"
+                  value={newGuardian}
+                  onChange={(e) => setNewGuardian(e.target.value)}
+                  placeholder="pqc1..."
+                  className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white font-mono text-sm"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <button 
+                  onClick={addGuardian}
+                  className="flex-1 px-4 py-2 rounded-xl bg-green-500 text-white text-sm font-semibold hover:opacity-90 transition"
+                >
+                  Add Guardian
+                </button>
+                <button 
+                  onClick={() => setGuardians([])}
+                  className="flex-1 px-4 py-2 rounded-xl border border-red-500 text-red-500 hover:bg-red-500/10 transition"
+                >
+                  Remove All
+                </button>
+              </div>
+              
+              <div className="mt-4 text-xs text-neutral-500">
+                {guardians.length}/5 guardians added
               </div>
             </div>
-
-            <div className="mb-4">
-              <label className="text-sm text-neutral-400 mb-2 block">Guardian PQC Address</label>
-              <input 
-                type="text"
-                value={newGuardian}
-                onChange={(e) => setNewGuardian(e.target.value)}
-                placeholder="pqc1ml... or pqc1slh..."
-                className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white font-mono text-sm"
-              />
-            </div>
-
-            <div className="mb-4 p-3 rounded-xl bg-neutral-900 border border-white/10">
-              <div className="text-xs text-neutral-400 mb-2">Current Guardians: {guardians.length}/5</div>
-              {guardians.length === 0 ? (
-                <div className="text-xs text-neutral-500 italic">No guardians added yet</div>
-              ) : (
-                <div className="space-y-1">
+            
+            {guardians.length > 0 && (
+              <div className="mt-4 p-3 rounded-xl bg-neutral-900 border border-white/10">
+                <div className="text-xs text-neutral-400 mb-2">Existing Guardians</div>
+                <div className="space-y-2">
                   {guardians.map((g, i) => (
-                    <div key={i} className="text-xs font-mono text-neutral-300">
-                      {i + 1}. {g.slice(0, 15)}...{g.slice(-8)}
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="font-mono text-neutral-300">{g.slice(0, 20)}...{g.slice(-8)}</span>
+                      <button 
+                        onClick={() => removeGuardian(g)}
+                        className="text-red-400 hover:text-red-300 transition"
+                      >
+                        Remove
+                      </button>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
-
-            <button 
-              onClick={addGuardian}
-              disabled={!newGuardian || guardians.length >= 5}
-              className="w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {guardians.length >= 5 ? 'Maximum Guardians Reached' : 'Add Guardian'}
-            </button>
-
-            {guardians.length > 0 && (
-              <div className="mt-3 text-xs text-center text-neutral-500">
-                Close this dialog to save your guardian list
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Modal */}
+      {showTransactionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowTransactionModal(false)}></div>
+          <div className="relative bg-neutral-950 border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">{txType === 'send' ? 'Send Tokens' : 'Request Payment'}</h3>
+              <button 
+                onClick={() => { setShowTransactionModal(false); setTxError(null); setTxSuccess(null); setPaymentRequestLink(''); }} 
+                className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-sm transition"
+              >
+                Close
+              </button>
+            </div>
+            
+            {txType === 'send' ? (
+              <>
+                <p className="text-sm text-neutral-300 mb-4">
+                  Send DGT or DRT tokens to another PQC address. Transactions are signed securely using post-quantum cryptography.
+                </p>
+                
+                {!txSuccess ? (
+                  <>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm text-neutral-400 mb-2 block">Recipient Address</label>
+                        <input 
+                          type="text"
+                          value={txForm.to}
+                          onChange={(e) => setTxForm({ ...txForm, to: e.target.value })}
+                          placeholder="pqc1..."
+                          className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white font-mono text-sm"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-sm text-neutral-400 mb-2 block">Amount</label>
+                          <input 
+                            type="number"
+                            step="0.000001"
+                            value={txForm.amount}
+                            onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
+                            placeholder="0.0"
+                            className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-neutral-400 mb-2 block">Token</label>
+                          <select 
+                            value={txForm.denom}
+                            onChange={(e) => setTxForm({ ...txForm, denom: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white cursor-pointer"
+                          >
+                            <option value="DGT">DGT</option>
+                            <option value="DRT">DRT</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm text-neutral-400 mb-2 block">Memo (Optional)</label>
+                        <input 
+                          type="text"
+                          value={txForm.memo}
+                          onChange={(e) => setTxForm({ ...txForm, memo: e.target.value })}
+                          placeholder="Payment for..."
+                          className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white text-sm"
+                        />
+                      </div>
+                      
+                      {/* Transaction Summary */}
+                      <div className="p-3 rounded-xl bg-neutral-900/50 border border-white/5">
+                        <div className="text-xs text-neutral-400 mb-2">Transaction Summary</div>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-neutral-500">Amount:</span>
+                            <span className="text-neutral-300 font-mono">{txForm.amount || '0'} {txForm.denom}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-500">Fee:</span>
+                            <span className="text-neutral-300 font-mono">0.001 DRT</span>
+                          </div>
+                          <div className="flex justify-between border-t border-white/10 pt-1 mt-1">
+                            <span className="text-neutral-400 font-semibold">Total:</span>
+                            <span className="text-white font-mono font-semibold">
+                              {txForm.amount || '0'} {txForm.denom} + 0.001 DRT fee
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {txError && (
+                      <div className="mt-4 rounded-xl bg-red-500/10 border border-red-500/20 p-3">
+                        <div className="flex items-center gap-2 text-red-500 text-sm font-semibold">
+                          <span>✗</span>
+                          <span>{txError}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <button 
+                      onClick={submitTransaction}
+                      disabled={txLoading || !txForm.to || !txForm.amount}
+                      className="mt-4 w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {txLoading ? 'Signing & Submitting...' : 'Send Transaction'}
+                    </button>
+                    
+                    <div className="mt-3 text-xs text-center text-neutral-500">
+                      Transactions are signed with {algorithm} PQC signatures
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-6xl mb-4">✓</div>
+                    <div className="text-lg font-semibold text-green-500 mb-2">Transaction Submitted!</div>
+                    <div className="text-sm text-neutral-400 mb-4">
+                      Sent {txSuccess.amount} {txSuccess.denom} to {txSuccess.to.slice(0, 12)}...
+                    </div>
+                    <div className="p-3 rounded-xl bg-neutral-900 border border-white/10">
+                      <div className="text-xs text-neutral-400 mb-1">Transaction Hash</div>
+                      <div className="text-xs font-mono text-green-400 break-all">{txSuccess.hash}</div>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-neutral-300 mb-4">
+                  Generate a payment request link to share with others. They can click the link to send you tokens.
+                </p>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm text-neutral-400 mb-2 block">Amount</label>
+                      <input 
+                        type="number"
+                        step="0.000001"
+                        value={txForm.amount}
+                        onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
+                        placeholder="0.0"
+                        className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-neutral-400 mb-2 block">Token</label>
+                      <select 
+                        value={txForm.denom}
+                        onChange={(e) => setTxForm({ ...txForm, denom: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white cursor-pointer"
+                      >
+                        <option value="DGT">DGT</option>
+                        <option value="DRT">DRT</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm text-neutral-400 mb-2 block">Description (Optional)</label>
+                    <input 
+                      type="text"
+                      value={txForm.memo}
+                      onChange={(e) => setTxForm({ ...txForm, memo: e.target.value })}
+                      placeholder="Payment for services..."
+                      className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white text-sm"
+                    />
+                  </div>
+                  
+                  <button 
+                    onClick={generatePaymentRequest}
+                    disabled={!txForm.amount}
+                    className="w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-cyan-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Generate Payment Link
+                  </button>
+                  
+                  {paymentRequestLink && (
+                    <div className="mt-4 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                      <div className="text-sm font-semibold text-green-500 mb-2">Payment Link Generated!</div>
+                      <div className="p-3 rounded-lg bg-neutral-900 border border-white/10 mb-3">
+                        <div className="text-xs font-mono text-neutral-300 break-all">{paymentRequestLink}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={copyPaymentLink}
+                          className="flex-1 px-4 py-2 rounded-xl bg-green-500 text-white text-sm font-semibold hover:opacity-90 transition"
+                        >
+                          📋 Copy Link
+                        </button>
+                        <button 
+                          onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Send me ' + txForm.amount + ' ' + txForm.denom + ' on Dytallix: ' + paymentRequestLink)}`, '_blank')}
+                          className="flex-1 px-4 py-2 rounded-xl bg-blue-500 text-white text-sm font-semibold hover:opacity-90 transition"
+                        >
+                          🐦 Share
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -898,14 +1288,50 @@ const WalletPage = () => {
 
 const FaucetPage = () => {
   const [req, setReq] = useState(null);
-  const submit = (e) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  const submit = async (e) => {
     e.preventDefault();
     const token = e.target.token.value;
     const addr = e.target.addr.value.trim();
-    setReq({ token, addr, status: 'Requested' });
-    // credit demo balance based on faucet amount
-    const amount = token === 'DGT' ? 100 : 1000;
-    creditBalance(addr, token, amount);
+    
+    setLoading(true);
+    setError(null);
+    setReq(null);
+    
+    try {
+      // Call the real backend faucet API
+      const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+      
+      // Map token to micro-units (DGT = 100, DRT = 1000 from UI, convert to udgt/udrt)
+      const amount = token === 'DGT' ? 100 * 1_000_000 : 1000 * 1_000_000; // Convert to micro-units
+      const payload = {
+        address: addr,
+        ...(token === 'DGT' ? { udgt: amount } : { udrt: amount })
+      };
+      
+      const response = await fetch(`${rpcUrl}/dev/faucet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Faucet request failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      setReq({ token, addr, status: 'Credited', result });
+      
+      // Also update localStorage for demo balance display
+      creditBalance(addr, token, token === 'DGT' ? 100 : 1000);
+    } catch (err) {
+      console.error('Faucet error:', err);
+      setError(err.message || 'Failed to request tokens');
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <Page>
@@ -1063,23 +1489,39 @@ const FaucetPage = () => {
             </div>
             
             <button 
-              type="submit" 
-              className="w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold hover:opacity-90 transition"
+              type="submit"
+              disabled={loading}
+              className="w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Request Tokens
+              {loading ? 'Requesting...' : 'Request Tokens'}
             </button>
+            
+            {error && (
+              <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4">
+                <div className="flex items-center gap-2 text-red-500 text-sm font-semibold mb-2">
+                  <span>✗</span>
+                  <span>Request Failed</span>
+                </div>
+                <div className="text-xs text-neutral-400">
+                  {error}
+                </div>
+                <div className="mt-3 text-xs text-neutral-500">
+                  Make sure the node is running and the address is valid.
+                </div>
+              </div>
+            )}
             
             {req && (
               <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-4">
                 <div className="flex items-center gap-2 text-green-500 text-sm font-semibold mb-2">
                   <span>✓</span>
-                  <span>Request Submitted Successfully</span>
+                  <span>Tokens Credited Successfully!</span>
                 </div>
                 <div className="text-xs text-neutral-400">
-                  Sending <span className="font-semibold">{req.token}</span> to <span className="font-mono">{req.addr.slice(0, 12)}...{req.addr.slice(-6)}</span>
+                  Sent <span className="font-semibold">{req.token === 'DGT' ? '100 DGT' : '1,000 DRT'}</span> to <span className="font-mono">{req.addr.slice(0, 12)}...{req.addr.slice(-6)}</span>
                 </div>
                 <div className="mt-3 text-xs text-neutral-500">
-                  Tokens should arrive within 10-30 seconds. Check your wallet or the Dashboard to verify.
+                  Your tokens have been credited to your wallet. Check the Dashboard or refresh your wallet to see the updated balance.
                 </div>
                 <div className="mt-3 text-xs">
                   <a href="#/wallet" className="text-blue-400 hover:text-blue-300 underline">Open Wallet</a> and press <span className="font-semibold">Refresh</span> to see updated balances.

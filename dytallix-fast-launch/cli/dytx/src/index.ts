@@ -26,7 +26,7 @@ program
 
 // Global options
 program
-  .option('--rpc <url>', 'RPC endpoint URL', process.env.DYTALLIX_RPC_URL || 'https://rpc-testnet.dytallix.com')
+  .option('--rpc <url>', 'RPC endpoint URL', process.env.DYTALLIX_RPC_URL || 'http://localhost:3030')
   .option('--chain-id <id>', 'Chain ID (fetched from node if not specified)', process.env.DYTALLIX_CHAIN_ID)
   .option('--output <format>', 'Output format (json|text)', 'text')
 
