@@ -16,6 +16,7 @@ const useHashRoute = () => {
   return { route, navigate };
 };
 
+
 // Hook to fetch live blockchain data
 const useBlockchainStats = () => {
   const [stats, setStats] = useState(null);
@@ -36,6 +37,27 @@ const useBlockchainStats = () => {
   }, []);
   return stats;
 };
+
+// ---- Demo balances store (localStorage) ----
+const BAL_KEY = 'dyt_balances';
+const readBalances = () => {
+  try { return JSON.parse(localStorage.getItem(BAL_KEY) || '{}'); } catch { return {}; }
+};
+const writeBalances = (b) => localStorage.setItem(BAL_KEY, JSON.stringify(b));
+const creditBalance = (addr, token, amount) => {
+  const a = (addr || '').trim();
+  if (!a) return;
+  const b = readBalances();
+  if (!b[a]) b[a] = { DGT: 0, DRT: 0 };
+  b[a][token] = (b[a][token] || 0) + amount;
+  writeBalances(b);
+};
+const getAddressBalances = (addr) => {
+  const a = (addr || '').trim();
+  const b = readBalances();
+  return b[a] || { DGT: 0, DRT: 0 };
+};
+// -------------------------------------------
 
 const Page = ({ children }) => (
   <div className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
@@ -288,6 +310,26 @@ const WalletPage = () => {
   const [guardians, setGuardians] = useState([]);
   const [newGuardian, setNewGuardian] = useState("");
   const [copied, setCopied] = useState(false);
+  const [balances, setBalances] = useState({ DGT: 0, DRT: 0 });
+  
+  // Load wallet from localStorage on mount
+  useEffect(() => {
+    const savedWallet = localStorage.getItem('dytallix_wallet');
+    if (savedWallet) {
+      try {
+        const wallet = JSON.parse(savedWallet);
+        setFullAddr(wallet.fullAddr);
+        setAddr(wallet.addr);
+        setAlgorithm(wallet.algorithm);
+        setGuardians(wallet.guardians || []);
+        setCreated(true);
+        // Load balances
+        setBalances(getAddressBalances(wallet.fullAddr));
+      } catch (err) {
+        console.error('Failed to load wallet from localStorage:', err);
+      }
+    }
+  }, []);
   
   const create = () => {
     // Placeholder wallet generation (UI only). Hook into real SDK later.
@@ -296,10 +338,60 @@ const WalletPage = () => {
     const random2 = Math.random().toString(36).slice(2,6);
     const full = prefix + random1 + random2; // Full address
     const truncated = prefix + random1 + '...' + random2; // Truncated for display
+    
+    const walletData = {
+      fullAddr: full,
+      addr: truncated,
+      algorithm: algorithm,
+      guardians: [],
+      createdAt: new Date().toISOString()
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('dytallix_wallet', JSON.stringify(walletData));
+    
     setFullAddr(full);
     setAddr(truncated);
     setCreated(true);
   };
+
+  const refreshBalances = () => {
+    if (!fullAddr) return;
+    const newBalances = getAddressBalances(fullAddr);
+    setBalances(newBalances);
+  };
+
+  // Auto-refresh balances when fullAddr changes or component mounts
+  useEffect(() => {
+    if (fullAddr) {
+      const newBalances = getAddressBalances(fullAddr);
+      setBalances(newBalances);
+      
+      // Set up auto-refresh every 5 seconds
+      const interval = setInterval(() => {
+        const updatedBalances = getAddressBalances(fullAddr);
+        setBalances(updatedBalances);
+      }, 5000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [fullAddr]);
+  
+  // Save guardians to localStorage when they change
+  useEffect(() => {
+    if (created && fullAddr) {
+      const savedWallet = localStorage.getItem('dytallix_wallet');
+      if (savedWallet) {
+        try {
+          const wallet = JSON.parse(savedWallet);
+          wallet.guardians = guardians;
+          localStorage.setItem('dytallix_wallet', JSON.stringify(wallet));
+        } catch (err) {
+          console.error('Failed to save guardians:', err);
+        }
+      }
+    }
+  }, [guardians, created, fullAddr]);
 
   const handleCopyAddress = async () => {
     const success = await copyToClipboard(fullAddr);
@@ -377,6 +469,18 @@ const WalletPage = () => {
 
   const removeGuardian = (guardian) => {
     setGuardians(guardians.filter(g => g !== guardian));
+  };
+  
+  const deleteWallet = () => {
+    if (confirm('Are you sure you want to delete this wallet? This action cannot be undone. Make sure you have exported your keystore first!')) {
+      localStorage.removeItem('dytallix_wallet');
+      setCreated(false);
+      setAddr("");
+      setFullAddr("");
+      setAlgorithm('ML-DSA');
+      setGuardians([]);
+      setBalances({ DGT: 0, DRT: 0 });
+    }
   };
   return (
     <Page>
@@ -538,6 +642,24 @@ const WalletPage = () => {
                 </div>
               )}
             </div>
+            {/* Balances (demo) */}
+            <div className="mb-4 p-3 rounded-xl bg-neutral-900 border border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm text-neutral-400">Balances (demo)</div>
+                <button onClick={refreshBalances} className="text-xs px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition">Refresh</button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg bg-white/5 p-3 border border-white/10">
+                  <div className="text-xs text-neutral-400">DGT</div>
+                  <div className="text-lg font-bold">{balances.DGT?.toLocaleString?.() || balances.DGT}</div>
+                </div>
+                <div className="rounded-lg bg-white/5 p-3 border border-white/10">
+                  <div className="text-xs text-neutral-400">DRT</div>
+                  <div className="text-lg font-bold">{balances.DRT?.toLocaleString?.() || balances.DRT}</div>
+                </div>
+              </div>
+              <div className="text-xs text-neutral-500 mt-2">Testnet demo: balances are simulated locally after Faucet requests.</div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => setShowExportModal(true)} 
@@ -572,10 +694,16 @@ const WalletPage = () => {
                 </div>
               </div>
             )}
-            <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
               <a href="#/faucet" className="block w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-center font-semibold hover:opacity-90 transition">
                 Get Test Tokens from Faucet →
               </a>
+              <button 
+                onClick={deleteWallet}
+                className="w-full px-4 py-2 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-semibold transition"
+              >
+                🗑️ Delete Wallet
+              </button>
             </div>
           </>
         )}
@@ -759,7 +887,15 @@ const WalletPage = () => {
 
 const FaucetPage = () => {
   const [req, setReq] = useState(null);
-  const submit = (e) => { e.preventDefault(); setReq({ token: e.target.token.value, addr: e.target.addr.value, status: 'Requested' }); };
+  const submit = (e) => {
+    e.preventDefault();
+    const token = e.target.token.value;
+    const addr = e.target.addr.value.trim();
+    setReq({ token, addr, status: 'Requested' });
+    // credit demo balance based on faucet amount
+    const amount = token === 'DGT' ? 100 : 1000;
+    creditBalance(addr, token, amount);
+  };
   return (
     <Page>
       <h1 className="text-3xl md:text-4xl font-extrabold">Testnet Faucet</h1>
@@ -934,6 +1070,9 @@ const FaucetPage = () => {
                 <div className="mt-3 text-xs text-neutral-500">
                   Tokens should arrive within 10-30 seconds. Check your wallet or the Dashboard to verify.
                 </div>
+                <div className="mt-3 text-xs">
+                  <a href="#/wallet" className="text-blue-400 hover:text-blue-300 underline">Open Wallet</a> and press <span className="font-semibold">Refresh</span> to see updated balances.
+                </div>
               </div>
             )}
           </form>
@@ -1022,6 +1161,37 @@ const DocCard = ({ title, items, color }) => (
   </div>
 );
 
+const BalanceLookup = () => {
+  const [addr, setAddr] = useState('');
+  const [bal, setBal] = useState(null);
+  const handle = (e) => { e.preventDefault(); setBal(getAddressBalances(addr.trim())); };
+  return (
+    <form onSubmit={handle} className="space-y-2">
+      <div className="text-sm text-neutral-300 font-medium">Check Address Balances (demo)</div>
+      <input
+        value={addr}
+        onChange={(e) => setAddr(e.target.value)}
+        placeholder="pqc1..."
+        className="w-full rounded-xl bg-neutral-900 border border-white/10 px-3 py-2 outline-none focus:border-white/30 font-mono text-sm"
+      />
+      <button className="px-3 py-2 rounded-xl bg-white text-black text-sm font-semibold">Lookup</button>
+      {bal && (
+        <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-lg bg-white/5 p-3 border border-white/10">
+            <div className="text-xs text-neutral-400">DGT</div>
+            <div className="text-lg font-bold">{bal.DGT?.toLocaleString?.() || bal.DGT}</div>
+          </div>
+          <div className="rounded-lg bg-white/5 p-3 border border-white/10">
+            <div className="text-xs text-neutral-400">DRT</div>
+            <div className="text-lg font-bold">{bal.DRT?.toLocaleString?.() || bal.DRT}</div>
+          </div>
+        </div>
+      )}
+      <div className="text-xs text-neutral-500">This is a testnet demo. Balances reflect local Faucet credits.</div>
+    </form>
+  );
+};
+
 const DashboardPage = () => {
   const stats = useBlockchainStats();
   const [nodeStats, setNodeStats] = useState({});
@@ -1059,7 +1229,10 @@ const DashboardPage = () => {
     <Page>
       <h1 className="text-3xl md:text-4xl font-extrabold">Network Dashboard</h1>
       <p className="mt-3 text-neutral-300 max-w-prose">Live telemetry for PQC algorithms, nodes, and chain health. Real-time metrics updated every 3-5 seconds.</p>
-      
+      {/* Quick Balance Lookup (demo) */}
+      <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 max-w-xl">
+        <BalanceLookup />
+      </div>
       {/* Main Stats Grid */}
       <div className="mt-8 grid md:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
