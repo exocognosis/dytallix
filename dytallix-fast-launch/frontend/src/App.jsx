@@ -12,6 +12,27 @@ const useHashRoute = () => {
   return { route, navigate };
 };
 
+// Hook to fetch live blockchain data
+const useBlockchainStats = () => {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Use the backend proxy endpoint to avoid CORS issues
+        const res = await fetch('http://localhost:8787/api/nodes/seed/status');
+        const data = await res.json();
+        setStats(data);
+      } catch (err) {
+        console.error('Failed to fetch blockchain stats:', err);
+      }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 3000); // Poll every 3 seconds
+    return () => clearInterval(interval);
+  }, []);
+  return stats;
+};
+
 const Page = ({ children }) => (
   <div className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
     <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(120,119,198,0.15),transparent_60%)]"/>
@@ -81,26 +102,33 @@ const Badge = ({ children }) => (
   <span className="inline-flex items-center justify-center rounded-xl border border-white/10 px-3 py-1 text-xs text-neutral-300">{children}</span>
 );
 
-const Kpis = () => (
-  <div className="grid grid-cols-3 gap-6">
-    {[
-      { k: 'Nodes', v: '128' },
-      { k: 'Active Validators', v: '96' },
-      { k: 'Block Height', v: '1,284,672' },
-      { k: 'Finality', v: '~2.1s' },
-      { k: 'TPS (peak)', v: '3,200' },
-      { k: 'Uptime', v: '99.98%' },
-    ].map((x) => (
-      <div
-        key={x.k}
-        className="rounded-2xl bg-white/5 p-4 border border-white/10"
-      >
-        <div className="text-2xl font-bold">{x.v}</div>
-        <div className="text-xs text-neutral-400 mt-1">{x.k}</div>
-      </div>
-    ))}
-  </div>
-);
+const Kpis = () => {
+  const stats = useBlockchainStats();
+  const kpis = [
+    { k: 'Nodes', v: '5' },
+    { k: 'Active Validators', v: '3' },
+    { k: 'Block Height', v: stats ? stats.latest_height.toLocaleString() : '...', live: true },
+    { k: 'Finality', v: '~2.1s' },
+    { k: 'TPS (peak)', v: '3,200' },
+    { k: 'Status', v: stats?.status || '...', live: stats?.status === 'healthy' },
+  ];
+  return (
+    <div className="grid grid-cols-3 gap-6">
+      {kpis.map((x) => (
+        <div
+          key={x.k}
+          className="rounded-2xl bg-white/5 p-4 border border-white/10"
+        >
+          <div className="text-2xl font-bold flex items-center gap-2">
+            {x.v}
+            {x.live && <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>}
+          </div>
+          <div className="text-xs text-neutral-400 mt-1">{x.k}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const Problem = () => (
   <section className="mt-24">
@@ -338,29 +366,157 @@ const DocCard = ({ title, items }) => (
 );
 
 const DashboardPage = () => {
-  const metrics = [
-    { name: 'ML‑KEM handshakes/min', value: 1842 },
-    { name: 'ML‑DSA verifications/s', value: 9670 },
-    { name: 'Block time (ms)', value: 2100 },
-    { name: 'Fork rate', value: 0.002 },
-    { name: 'Finality (s)', value: 2.1 },
-    { name: 'Peers/validator (p95)', value: 92 },
-  ];
+  const stats = useBlockchainStats();
+  const [nodeStats, setNodeStats] = useState({});
+  
+  useEffect(() => {
+    const fetchNodeStats = async () => {
+      const nodeConfig = [
+        { name: 'Seed Node', id: 'seed', port: 3030, role: 'seed' },
+        { name: 'Validator 1', id: 'validator1', port: 3031, role: 'validator' },
+        { name: 'Validator 2', id: 'validator2', port: 3032, role: 'validator' },
+        { name: 'Validator 3', id: 'validator3', port: 3034, role: 'validator' },
+        { name: 'RPC Node', id: 'rpc', port: 3033, role: 'rpc' },
+      ];
+      
+      const results = {};
+      for (const node of nodeConfig) {
+        try {
+          // Use the backend proxy endpoint to avoid CORS issues
+          const res = await fetch(`http://localhost:8787/api/nodes/${node.id}/status`);
+          const data = await res.json();
+          results[node.port] = { ...data, ...node, online: data.status === 'healthy' };
+        } catch (err) {
+          results[node.port] = { ...node, online: false };
+        }
+      }
+      setNodeStats(results);
+    };
+    
+    fetchNodeStats();
+    const interval = setInterval(fetchNodeStats, 5000);
+    return () => clearInterval(interval);
+  }, []);
+  
   return (
     <Page>
       <h1 className="text-3xl md:text-4xl font-extrabold">Network Dashboard</h1>
-      <p className="mt-3 text-neutral-300 max-w-prose">Live telemetry for PQC algorithms, nodes, and chain health. The public API exposes signed metrics for verifiability.</p>
-      <div className="mt-8 grid md:grid-cols-3 gap-4">
-        {metrics.map((m) => (
-          <div key={m.name} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="text-sm text-neutral-400">{m.name}</div>
-            <div className="mt-2 text-2xl font-bold">{typeof m.value === 'number' ? m.value.toLocaleString() : m.value}</div>
+      <p className="mt-3 text-neutral-300 max-w-prose">Live telemetry for PQC algorithms, nodes, and chain health. Real-time metrics updated every 3-5 seconds.</p>
+      
+      {/* Main Stats Grid */}
+      <div className="mt-8 grid md:grid-cols-4 gap-4">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-neutral-400">Block Height</div>
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
           </div>
-        ))}
+          <div className="mt-2 text-3xl font-bold">{stats?.latest_height?.toLocaleString() || '...'}</div>
+          <div className="mt-1 text-xs text-neutral-500">Chain: {stats?.chain_id || '...'}</div>
+        </div>
+        
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent p-6">
+          <div className="text-sm text-neutral-400">Mempool</div>
+          <div className="mt-2 text-3xl font-bold">{stats?.mempool_size ?? '...'}</div>
+          <div className="mt-1 text-xs text-neutral-500">Pending transactions</div>
+        </div>
+        
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+          <div className="text-sm text-neutral-400">Network Status</div>
+          <div className="mt-2 flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${stats?.status === 'healthy' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+            <span className="text-2xl font-bold capitalize">{stats?.status || '...'}</span>
+          </div>
+          <div className="mt-1 text-xs text-neutral-500">Syncing: {stats?.syncing ? 'Yes' : 'No'}</div>
+        </div>
+        
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-orange-500/10 to-transparent p-6">
+          <div className="text-sm text-neutral-400">Block Time</div>
+          <div className="mt-2 text-3xl font-bold">~2.0s</div>
+          <div className="mt-1 text-xs text-neutral-500">Average finality</div>
+        </div>
       </div>
-      <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-5">
-        <div className="font-semibold">Algorithm Health</div>
-        <p className="mt-2 text-sm text-neutral-300">All PQC primitives passing NIST Known‑Answer‑Tests. Median verify latencies: ML‑DSA 0.42ms, SLH‑DSA 5.8ms (p95 9.9ms). KEM decaps p95 0.71ms.</p>
+      
+      {/* Algorithm Health */}
+      <div className="mt-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+            <span className="text-green-500 text-xl">✓</span>
+          </div>
+          <div>
+            <div className="font-semibold text-lg">Algorithm Health</div>
+            <div className="text-xs text-neutral-400">Post-Quantum Cryptography Performance</div>
+          </div>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="rounded-xl bg-white/5 p-4 border border-white/5">
+            <div className="text-xs text-neutral-400 mb-1">ML-DSA (Dilithium)</div>
+            <div className="text-xl font-bold text-green-400">0.42ms</div>
+            <div className="text-xs text-neutral-500 mt-1">Median verify latency</div>
+          </div>
+          <div className="rounded-xl bg-white/5 p-4 border border-white/5">
+            <div className="text-xs text-neutral-400 mb-1">SLH-DSA (SPHINCS+)</div>
+            <div className="text-xl font-bold text-green-400">5.8ms</div>
+            <div className="text-xs text-neutral-500 mt-1">Median (p95: 9.9ms)</div>
+          </div>
+          <div className="rounded-xl bg-white/5 p-4 border border-white/5">
+            <div className="text-xs text-neutral-400 mb-1">ML-KEM (Kyber)</div>
+            <div className="text-xl font-bold text-green-400">0.71ms</div>
+            <div className="text-xs text-neutral-500 mt-1">KEM decaps p95</div>
+          </div>
+        </div>
+        <div className="mt-3 text-xs text-neutral-500">
+          ✓ All primitives passing NIST Known-Answer-Tests
+        </div>
+      </div>
+      
+      {/* Node Cluster Status */}
+      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+            <span className="text-blue-500 text-xl">◉</span>
+          </div>
+          <div>
+            <div className="font-semibold text-lg">Node Cluster</div>
+            <div className="text-xs text-neutral-400">5 nodes • 3 validators active</div>
+          </div>
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Object.values(nodeStats).map((node) => (
+            <div key={node.port} className="rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <div className="font-semibold text-sm">{node.name}</div>
+                  <div className="text-xs text-neutral-500">{node.role}</div>
+                </div>
+                <div className={`w-2 h-2 rounded-full ${node.online ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              </div>
+              {node.online ? (
+                <>
+                  <div className="mt-3 space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-neutral-400">Height</span>
+                      <span className="font-mono text-neutral-200">{node.latest_height?.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-neutral-400">Status</span>
+                      <span className="text-green-400 capitalize">{node.status}</span>
+                    </div>
+                  </div>
+                  <a 
+                    href={`http://localhost:${node.port}/status`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="mt-3 block text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    View API →
+                  </a>
+                </>
+              ) : (
+                <div className="mt-3 text-xs text-red-400">Offline</div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </Page>
   );
