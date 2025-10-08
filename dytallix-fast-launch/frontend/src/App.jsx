@@ -642,11 +642,20 @@ const WalletPage = () => {
                 </div>
               )}
             </div>
-            {/* Balances (demo) */}
+            {/* Balances */}
             <div className="mb-4 p-3 rounded-xl bg-neutral-900 border border-white/10">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-neutral-400">Balances (demo)</div>
-                <button onClick={refreshBalances} className="text-xs px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition">Refresh</button>
+                <div className="text-sm text-neutral-400 font-medium">Balances</div>
+                <button 
+                  onClick={refreshBalances} 
+                  className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 transition font-medium"
+                  title="Refresh balances from network"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-lg bg-white/5 p-3 border border-white/10">
@@ -658,7 +667,9 @@ const WalletPage = () => {
                   <div className="text-lg font-bold">{balances.DRT?.toLocaleString?.() || balances.DRT}</div>
                 </div>
               </div>
-              <div className="text-xs text-neutral-500 mt-2">Testnet demo: balances are simulated locally after Faucet requests.</div>
+              <div className="text-xs text-neutral-500 mt-2">
+                Testnet balances • Auto-refreshes every 5 seconds
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button 
@@ -1167,7 +1178,7 @@ const BalanceLookup = () => {
   const handle = (e) => { e.preventDefault(); setBal(getAddressBalances(addr.trim())); };
   return (
     <form onSubmit={handle} className="space-y-2">
-      <div className="text-sm text-neutral-300 font-medium">Check Address Balances (demo)</div>
+      <div className="text-sm text-neutral-300 font-medium">Check Address Balances</div>
       <input
         value={addr}
         onChange={(e) => setAddr(e.target.value)}
@@ -1187,7 +1198,7 @@ const BalanceLookup = () => {
           </div>
         </div>
       )}
-      <div className="text-xs text-neutral-500">This is a testnet demo. Balances reflect local Faucet credits.</div>
+      <div className="text-xs text-neutral-500">Testnet balances • Reflects Faucet requests</div>
     </form>
   );
 };
