@@ -276,12 +276,85 @@ const WalletPage = () => {
   const [created, setCreated] = useState(false);
   const [addr, setAddr] = useState("");
   const [algorithm, setAlgorithm] = useState('ML-DSA'); // Default to ML-DSA
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showGuardianModal, setShowGuardianModal] = useState(false);
+  const [password, setPassword] = useState("");
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [guardians, setGuardians] = useState([]);
+  const [newGuardian, setNewGuardian] = useState("");
   
   const create = () => {
     // Placeholder wallet generation (UI only). Hook into real SDK later.
     const prefix = algorithm === 'ML-DSA' ? 'pqc1ml' : 'pqc1slh';
     const fake = prefix + Math.random().toString(36).slice(2,10) + '...' + Math.random().toString(36).slice(2,6);
     setAddr(fake); setCreated(true);
+  };
+
+  const exportKeystore = () => {
+    if (!password) {
+      alert('Please enter a password to encrypt your keystore');
+      return;
+    }
+    
+    // Generate mock encrypted keystore
+    const keystore = {
+      version: 1,
+      algorithm: algorithm,
+      address: addr,
+      crypto: {
+        cipher: 'aes-256-gcm',
+        ciphertext: btoa(Math.random().toString(36) + Math.random().toString(36)),
+        salt: btoa(Math.random().toString(36).slice(2)),
+        kdf: 'scrypt',
+        kdfparams: {
+          n: 262144,
+          r: 8,
+          p: 1,
+          dklen: 32
+        }
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    // Download as JSON file
+    const blob = new Blob([JSON.stringify(keystore, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dytallix-keystore-${addr.slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setExportSuccess(true);
+    setTimeout(() => {
+      setShowExportModal(false);
+      setExportSuccess(false);
+      setPassword("");
+    }, 2000);
+  };
+
+  const addGuardian = () => {
+    if (!newGuardian || !newGuardian.startsWith('pqc1')) {
+      alert('Please enter a valid PQC address (starts with pqc1)');
+      return;
+    }
+    if (newGuardian === addr) {
+      alert('Cannot add yourself as a guardian');
+      return;
+    }
+    if (guardians.includes(newGuardian)) {
+      alert('This guardian has already been added');
+      return;
+    }
+    
+    setGuardians([...guardians, newGuardian]);
+    setNewGuardian("");
+  };
+
+  const removeGuardian = (guardian) => {
+    setGuardians(guardians.filter(g => g !== guardian));
   };
   return (
     <Page>
@@ -419,13 +492,39 @@ const WalletPage = () => {
               <div className="text-xs text-neutral-500 mt-2">Algorithm: {algorithm} {algorithm === 'ML-DSA' ? '(Dilithium)' : '(SPHINCS+)'}</div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <button className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition">
+              <button 
+                onClick={() => setShowExportModal(true)} 
+                className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition"
+              >
                 📥 Export Keystore
               </button>
-              <button className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition">
+              <button 
+                onClick={() => setShowGuardianModal(true)} 
+                className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition"
+              >
                 👥 Add Guardian
               </button>
             </div>
+            
+            {/* Show guardians if any exist */}
+            {guardians.length > 0 && (
+              <div className="mt-4 p-3 rounded-xl bg-neutral-900 border border-white/10">
+                <div className="text-xs text-neutral-400 mb-2">Guardians ({guardians.length}/5)</div>
+                <div className="space-y-2">
+                  {guardians.map((g, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="font-mono text-neutral-300">{g.slice(0, 20)}...{g.slice(-8)}</span>
+                      <button 
+                        onClick={() => removeGuardian(g)}
+                        className="text-red-400 hover:text-red-300 transition"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="mt-4 pt-4 border-t border-white/10">
               <a href="#/faucet" className="block w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-center font-semibold hover:opacity-90 transition">
                 Get Test Tokens from Faucet →
@@ -470,6 +569,143 @@ const WalletPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Export Keystore Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowExportModal(false)}></div>
+          <div className="relative bg-neutral-950 border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Export Keystore</h3>
+              <button 
+                onClick={() => setShowExportModal(false)} 
+                className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-sm transition"
+              >
+                Close
+              </button>
+            </div>
+            
+            {!exportSuccess ? (
+              <>
+                <p className="text-sm text-neutral-300 mb-4">
+                  Create a password to encrypt your keystore. This encrypted file contains your private keys and can be imported later.
+                </p>
+                
+                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 mb-4">
+                  <div className="flex items-start gap-2 text-xs">
+                    <span className="text-yellow-500">⚠️</span>
+                    <div className="text-neutral-300">
+                      <strong className="text-yellow-500">Security Warning:</strong> Store this file securely. Anyone with this file and password can access your wallet.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm text-neutral-400 mb-2 block">Encryption Password</label>
+                  <input 
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter a strong password"
+                    className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white"
+                  />
+                </div>
+
+                <div className="mb-4 p-3 rounded-xl bg-neutral-900 border border-white/10">
+                  <div className="text-xs text-neutral-400 mb-1">Exporting Keystore For:</div>
+                  <div className="text-xs font-mono break-all text-neutral-300">{addr}</div>
+                  <div className="text-xs text-neutral-500 mt-1">Algorithm: {algorithm}</div>
+                </div>
+
+                <button 
+                  onClick={exportKeystore}
+                  disabled={!password}
+                  className="w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Download Encrypted Keystore
+                </button>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">✓</div>
+                <div className="text-lg font-semibold text-green-500 mb-2">Keystore Exported!</div>
+                <div className="text-sm text-neutral-400">Your encrypted keystore has been downloaded.</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Add Guardian Modal */}
+      {showGuardianModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowGuardianModal(false)}></div>
+          <div className="relative bg-neutral-950 border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Add Guardian</h3>
+              <button 
+                onClick={() => setShowGuardianModal(false)} 
+                className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-sm transition"
+              >
+                Close
+              </button>
+            </div>
+            
+            <p className="text-sm text-neutral-300 mb-4">
+              Guardians can help you recover your wallet through multi-signature social recovery. Add trusted friends or backup wallets as guardians.
+            </p>
+
+            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mb-4">
+              <div className="flex items-start gap-2 text-xs">
+                <span className="text-blue-500">ℹ️</span>
+                <div className="text-neutral-300">
+                  <strong className="text-blue-500">Multi-Sig Recovery:</strong> You can add up to 5 guardians. In production, a threshold (e.g., 2-of-3) would be required for recovery.
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-sm text-neutral-400 mb-2 block">Guardian PQC Address</label>
+              <input 
+                type="text"
+                value={newGuardian}
+                onChange={(e) => setNewGuardian(e.target.value)}
+                placeholder="pqc1ml... or pqc1slh..."
+                className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white font-mono text-sm"
+              />
+            </div>
+
+            <div className="mb-4 p-3 rounded-xl bg-neutral-900 border border-white/10">
+              <div className="text-xs text-neutral-400 mb-2">Current Guardians: {guardians.length}/5</div>
+              {guardians.length === 0 ? (
+                <div className="text-xs text-neutral-500 italic">No guardians added yet</div>
+              ) : (
+                <div className="space-y-1">
+                  {guardians.map((g, i) => (
+                    <div key={i} className="text-xs font-mono text-neutral-300">
+                      {i + 1}. {g.slice(0, 15)}...{g.slice(-8)}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={addGuardian}
+              disabled={!newGuardian || guardians.length >= 5}
+              className="w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {guardians.length >= 5 ? 'Maximum Guardians Reached' : 'Add Guardian'}
+            </button>
+
+            {guardians.length > 0 && (
+              <div className="mt-3 text-xs text-center text-neutral-500">
+                Close this dialog to save your guardian list
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </Page>
   );
 };
