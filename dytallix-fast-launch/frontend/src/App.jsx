@@ -701,12 +701,14 @@ const WalletPage = () => {
         </div>
       </div>
 
-      {/* Wallet Generator */}
-      <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 max-w-xl">
-        <div className="mb-4">
-          <div className="font-semibold text-lg">Create Your Wallet</div>
-          <div className="text-xs text-neutral-400 mt-1">Generated client-side • Never leaves your device</div>
-        </div>
+      {/* Wallet Generator and Transaction Actions Grid */}
+      <div className="mt-8 grid lg:grid-cols-2 gap-6">
+        {/* Wallet Generator */}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+          <div className="mb-4">
+            <div className="font-semibold text-lg">Create Your Wallet</div>
+            <div className="text-xs text-neutral-400 mt-1">Generated client-side • Never leaves your device</div>
+          </div>
         {!created ? (
           <>
             <label className="text-sm text-neutral-300 font-medium">Signature Algorithm</label>
@@ -911,6 +913,47 @@ const WalletPage = () => {
         )}
       </div>
 
+      {/* Send/Request Tokens Card */}
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <div className="mb-4">
+          <div className="font-semibold text-lg">Send / Request Tokens</div>
+          <div className="text-xs text-neutral-400 mt-1">Transaction management powered by PQC signatures</div>
+        </div>
+        <div className="flex items-center justify-between mb-4 p-3 rounded-xl bg-neutral-900/50">
+          <div className="text-sm text-neutral-400">Available Balance</div>
+          <div className="text-sm font-bold">
+            DGT: {balances.DGT?.toLocaleString?.() || balances.DGT} • DRT: {balances.DRT?.toLocaleString?.() || balances.DRT}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button 
+            onClick={() => { setTxType('send'); setShowTransactionModal(true); }}
+            disabled={!created}
+            className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            💸 Send Tokens
+          </button>
+          <button 
+            onClick={() => { setTxType('request'); setShowTransactionModal(true); }}
+            disabled={!created}
+            className="px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-cyan-500 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            📥 Request Payment
+          </button>
+        </div>
+        {!created && (
+          <div className="mt-4 text-xs text-neutral-500 text-center">
+            Create a wallet first to send or request tokens
+          </div>
+        )}
+        {created && (
+          <div className="mt-4 text-xs text-neutral-500">
+            Transactions are signed with {algorithm} PQC signatures and submitted to the network
+          </div>
+        )}
+      </div>
+    </div>
+
       {/* Transaction History */}
       <div className="mt-10">
         <h2 className="text-2xl font-bold mb-4">Transaction History</h2>
@@ -968,36 +1011,6 @@ const WalletPage = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Send/Request Tokens */}
-      <div className="mt-10">
-        <h2 className="text-2xl font-bold mb-4">Send / Request Tokens</h2>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-neutral-400">Available Balance</div>
-            <div className="text-sm font-bold">
-              DGT: {balances.DGT?.toLocaleString?.() || balances.DGT} &bull; DRT: {balances.DRT?.toLocaleString?.() || balances.DRT}
-            </div>
-          </div>
-          <div className="flex gap-4 mb-4">
-            <button 
-              onClick={() => { setTxType('send'); setShowTransactionModal(true); }}
-              className="flex-1 px-4 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:opacity-90 transition"
-            >
-              Send Tokens
-            </button>
-            <button 
-              onClick={() => { setTxType('request'); setShowTransactionModal(true); }}
-              className="flex-1 px-4 py-2 rounded-xl border border-blue-500 text-blue-500 hover:bg-blue-500/10 transition"
-            >
-              Request Tokens
-            </button>
-          </div>
-          <div className="text-xs text-neutral-500">
-            Note: This is a demo feature. Transactions are simulated and do not occur on the blockchain.
           </div>
         </div>
       </div>
