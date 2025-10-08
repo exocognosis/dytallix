@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { exportKeystore as exportKeystoreAPI, serializeKeystore } from './wallet/keystore/index.js';
 import { createWalletAdapter } from './wallet/pqc.js';
+import { copyToClipboard } from './utils/clipboard.js';
+import { truncateAddress } from './utils/format.js';
 
 // Simple hash router
 const useHashRoute = () => {
@@ -277,6 +279,7 @@ const Home = () => (
 const WalletPage = () => {
   const [created, setCreated] = useState(false);
   const [addr, setAddr] = useState("");
+  const [fullAddr, setFullAddr] = useState(""); // Store full address separately
   const [algorithm, setAlgorithm] = useState('ML-DSA'); // Default to ML-DSA
   const [showExportModal, setShowExportModal] = useState(false);
   const [showGuardianModal, setShowGuardianModal] = useState(false);
@@ -284,12 +287,28 @@ const WalletPage = () => {
   const [exportSuccess, setExportSuccess] = useState(false);
   const [guardians, setGuardians] = useState([]);
   const [newGuardian, setNewGuardian] = useState("");
+  const [copied, setCopied] = useState(false);
   
   const create = () => {
     // Placeholder wallet generation (UI only). Hook into real SDK later.
     const prefix = algorithm === 'ML-DSA' ? 'pqc1ml' : 'pqc1slh';
-    const fake = prefix + Math.random().toString(36).slice(2,10) + '...' + Math.random().toString(36).slice(2,6);
-    setAddr(fake); setCreated(true);
+    const random1 = Math.random().toString(36).slice(2,10);
+    const random2 = Math.random().toString(36).slice(2,6);
+    const full = prefix + random1 + random2; // Full address
+    const truncated = prefix + random1 + '...' + random2; // Truncated for display
+    setFullAddr(full);
+    setAddr(truncated);
+    setCreated(true);
+  };
+
+  const handleCopyAddress = async () => {
+    const success = await copyToClipboard(fullAddr);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } else {
+      alert('Failed to copy address to clipboard');
+    }
   };
 
   const exportKeystore = async () => {
@@ -304,8 +323,8 @@ const WalletPage = () => {
     }
     
     try {
-      // Create wallet adapter from current state
-      const wallet = createWalletAdapter({ addr, algorithm });
+      // Create wallet adapter from current state (use fullAddr for export)
+      const wallet = createWalletAdapter({ addr: fullAddr, algorithm });
       
       // Export keystore with real encryption
       const keystore = await exportKeystoreAPI(wallet, { password });
@@ -319,7 +338,7 @@ const WalletPage = () => {
       const a = document.createElement('a');
       a.href = url;
       // Use first 8 chars of address for filename
-      const addrPrefix = addr.replace(/^pqc1(ml|slh)/, '').slice(0, 8);
+      const addrPrefix = fullAddr.replace(/^pqc1(ml|slh)/, '').slice(0, 8);
       a.download = `pqc-wallet-${addrPrefix}.json`;
       document.body.appendChild(a);
       a.click();
@@ -491,8 +510,33 @@ const WalletPage = () => {
             </div>
             <div className="text-sm text-neutral-400 mb-2">Your Address</div>
             <div className="p-3 rounded-xl bg-neutral-900 border border-white/10 mb-4">
-              <div className="text-lg font-mono break-all">{addr}</div>
-              <div className="text-xs text-neutral-500 mt-2">Algorithm: {algorithm} {algorithm === 'ML-DSA' ? '(Dilithium)' : '(SPHINCS+)'}</div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <div className="text-lg font-mono break-all">{addr}</div>
+                  <div className="text-xs text-neutral-500 mt-2">Algorithm: {algorithm} {algorithm === 'ML-DSA' ? '(Dilithium)' : '(SPHINCS+)'}</div>
+                </div>
+                <button
+                  onClick={handleCopyAddress}
+                  aria-label={copied ? "Copied!" : "Copy full address"}
+                  className="flex-shrink-0 p-2 rounded-lg hover:bg-white/10 transition-colors group relative"
+                  title={copied ? "Copied!" : "Copy full address"}
+                >
+                  {copied ? (
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-neutral-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {copied && (
+                <div className="mt-2 text-xs text-green-500 animate-pulse">
+                  ✓ Full address copied to clipboard!
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button 
@@ -616,7 +660,7 @@ const WalletPage = () => {
 
                 <div className="mb-4 p-3 rounded-xl bg-neutral-900 border border-white/10">
                   <div className="text-xs text-neutral-400 mb-1">Exporting Keystore For:</div>
-                  <div className="text-xs font-mono break-all text-neutral-300">{addr}</div>
+                  <div className="text-xs font-mono break-all text-neutral-300">{fullAddr || addr}</div>
                   <div className="text-xs text-neutral-500 mt-1">Algorithm: {algorithm}</div>
                 </div>
 
