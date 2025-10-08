@@ -1,0 +1,373 @@
+//! Post-Quantum Cryptographic signature verification module
+//!
+//! This module provides unified signature verification for multiple PQC algorithms:
+//! - Dilithium5 (default)
+//! - Falcon1024 (feature-gated)
+//! - SPHINCS+ SHA2-128s-simple (feature-gated)
+//!
+//! The module supports feature flags to enable/disable specific algorithms
+//! and provides structured error handling for unsupported algorithms or malformed inputs.
+
+use std::str::FromStr;
+use thiserror::Error;
+
+#[cfg(feature = "pqc-real")]
+use pqcrypto_dilithium::dilithium5;
+#[cfg(all(feature = "pqc-real", feature = "falcon"))]
+use pqcrypto_falcon::falcon1024;
+#[cfg(all(feature = "pqc-real", feature = "sphincs"))]
+use pqcrypto_sphincsplus::sphincssha2128ssimple;
+#[cfg(feature = "pqc-real")]
+use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SignedMessage};
+
+/// PQC algorithm identifiers
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum PQCAlgorithm {
+    #[default]
+    Dilithium5,
+    Falcon1024,
+    SphincsPlus,
+}
+
+impl PQCAlgorithm {
+    /// Get algorithm identifier string
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PQCAlgorithm::Dilithium5 => "dilithium5",
+            PQCAlgorithm::Falcon1024 => "falcon1024",
+            PQCAlgorithm::SphincsPlus => "sphincs_sha2_128s_simple",
+        }
+    }
+}
+
+impl FromStr for PQCAlgorithm {
+    type Err = PQCVerifyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "dilithium5" => Ok(PQCAlgorithm::Dilithium5),
+            "falcon1024" => Ok(PQCAlgorithm::Falcon1024),
+            "sphincs_sha2_128s_simple" => Ok(PQCAlgorithm::SphincsPlus),
+            #[cfg(not(feature = "pqc-real"))]
+            // In non-prod/mock builds, accept legacy mock identifier and map to Dilithium5 path
+            "mock-blake3" => Ok(PQCAlgorithm::Dilithium5),
+            _ => Err(PQCVerifyError::UnsupportedAlgorithm(s.to_string())),
+        }
+    }
+}
+
+/// Structured errors for PQC verification
+#[derive(Error, Debug)]
+pub enum PQCVerifyError {
+    #[error("Unsupported algorithm: {0}")]
+    UnsupportedAlgorithm(String),
+
+    #[error("Invalid public key format for {algorithm}: {details}")]
+    InvalidPublicKey { algorithm: String, details: String },
+
+    #[error("Invalid signature format for {algorithm}: {details}")]
+    InvalidSignature { algorithm: String, details: String },
+
+    #[error("Signature verification failed for {algorithm}")]
+    VerificationFailed { algorithm: String },
+
+    #[error("PQC feature not compiled: {feature}")]
+    FeatureNotCompiled { feature: String },
+}
+
+/// Main verification function supporting multiple PQC algorithms
+///
+/// # Arguments
+/// * `pubkey` - The public key bytes
+/// * `msg` - The message that was signed
+/// * `sig` - The signature bytes
+/// * `alg` - The algorithm to use for verification
+///
+/// # Returns
+/// * `Ok(())` if verification succeeds
+/// * `Err(PQCVerifyError)` with structured error information
+///
+/// # Example
+/// ```rust,ignore
+/// use dytallix_fast_node::crypto::pqc_verify::{verify, PQCAlgorithm};
+///
+/// let result = verify(
+///     &public_key_bytes,
+///     &message_bytes,
+///     &signature_bytes,
+///     PQCAlgorithm::Dilithium5,
+/// );
+/// ```
+pub fn verify(
+    pubkey: &[u8],
+    msg: &[u8],
+    sig: &[u8],
+    alg: PQCAlgorithm,
+) -> Result<(), PQCVerifyError> {
+    #[cfg(not(feature = "pqc-real"))]
+    {
+        // Mock verification for testing - always returns true for non-empty inputs
+        if pubkey.is_empty() || msg.is_empty() || sig.is_empty() {
+            return Err(PQCVerifyError::InvalidSignature {
+                algorithm: alg.as_str().to_string(),
+                details: "Empty input".to_string(),
+            });
+        }
+        tracing::warn!("Using mock PQC verification - not secure for production");
+        return Ok(());
+    }
+
+    #[cfg(feature = "pqc-real")]
+    {
+        match alg {
+            PQCAlgorithm::Dilithium5 => verify_dilithium5(pubkey, msg, sig),
+            PQCAlgorithm::Falcon1024 => {
+                #[cfg(feature = "falcon")]
+                {
+                    verify_falcon1024(pubkey, msg, sig)
+                }
+                #[cfg(not(feature = "falcon"))]
+                {
+                    Err(PQCVerifyError::FeatureNotCompiled {
+                        feature: "falcon".to_string(),
+                    })
+                }
+            }
+            PQCAlgorithm::SphincsPlus => {
+                #[cfg(feature = "sphincs")]
+                {
+                    verify_sphincs_plus(pubkey, msg, sig)
+                }
+                #[cfg(not(feature = "sphincs"))]
+                {
+                    Err(PQCVerifyError::FeatureNotCompiled {
+                        feature: "sphincs".to_string(),
+                    })
+                }
+            }
+        }
+    }
+}
+
+#[cfg(feature = "pqc-real")]
+fn verify_dilithium5(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCVerifyError> {
+    let pk = dilithium5::PublicKey::from_bytes(pubkey).map_err(|_| {
+        PQCVerifyError::InvalidPublicKey {
+            algorithm: "dilithium5".to_string(),
+            details: format!(
+                "Expected {} bytes, got {}",
+                dilithium5::public_key_bytes(),
+                pubkey.len()
+            ),
+        }
+    })?;
+
+    let signed_msg = dilithium5::SignedMessage::from_bytes(sig).map_err(|_| {
+        PQCVerifyError::InvalidSignature {
+            algorithm: "dilithium5".to_string(),
+            details: "Invalid signed message format".to_string(),
+        }
+    })?;
+
+    match dilithium5::open(&signed_msg, &pk) {
+        Ok(opened_msg) => {
+            if opened_msg == msg {
+                Ok(())
+            } else {
+                Err(PQCVerifyError::VerificationFailed {
+                    algorithm: "dilithium5".to_string(),
+                })
+            }
+        }
+        Err(_) => {
+            Err(PQCVerifyError::VerificationFailed {
+                algorithm: "dilithium5".to_string(),
+            })
+        }
+    }
+}
+
+#[cfg(all(feature = "pqc-real", feature = "falcon"))]
+fn verify_falcon1024(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCVerifyError> {
+    let pk = falcon1024::PublicKey::from_bytes(pubkey).map_err(|_| {
+        PQCVerifyError::InvalidPublicKey {
+            algorithm: "falcon1024".to_string(),
+            details: format!(
+                "Expected {} bytes, got {}",
+                falcon1024::public_key_bytes(),
+                pubkey.len()
+            ),
+        }
+    })?;
+
+    let signed_msg = falcon1024::SignedMessage::from_bytes(sig).map_err(|_| {
+        PQCVerifyError::InvalidSignature {
+            algorithm: "falcon1024".to_string(),
+            details: "Invalid signed message format".to_string(),
+        }
+    })?;
+
+    match falcon1024::open(&signed_msg, &pk) {
+        Ok(opened_msg) => {
+            if opened_msg == msg {
+                tracing::debug!("Falcon1024 signature verification successful");
+                Ok(())
+            } else {
+                tracing::warn!("Falcon1024 signature verification failed: message mismatch");
+                Err(PQCVerifyError::VerificationFailed {
+                    algorithm: "falcon1024".to_string(),
+                })
+            }
+        }
+        Err(_) => {
+            tracing::warn!("Falcon1024 signature verification failed: invalid signature");
+            Err(PQCVerifyError::VerificationFailed {
+                algorithm: "falcon1024".to_string(),
+            })
+        }
+    }
+}
+
+#[cfg(all(feature = "pqc-real", feature = "sphincs"))]
+fn verify_sphincs_plus(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCVerifyError> {
+    let pk = sphincssha2128ssimple::PublicKey::from_bytes(pubkey).map_err(|_| {
+        PQCVerifyError::InvalidPublicKey {
+            algorithm: "sphincs_sha2_128s_simple".to_string(),
+            details: format!(
+                "Expected {} bytes, got {}",
+                sphincssha2128ssimple::public_key_bytes(),
+                pubkey.len()
+            ),
+        }
+    })?;
+
+    let signed_msg = sphincssha2128ssimple::SignedMessage::from_bytes(sig).map_err(|_| {
+        PQCVerifyError::InvalidSignature {
+            algorithm: "sphincs_sha2_128s_simple".to_string(),
+            details: "Invalid signed message format".to_string(),
+        }
+    })?;
+
+    match sphincssha2128ssimple::open(&signed_msg, &pk) {
+        Ok(opened_msg) => {
+            if opened_msg == msg {
+                tracing::debug!("SPHINCS+ signature verification successful");
+                Ok(())
+            } else {
+                tracing::warn!("SPHINCS+ signature verification failed: message mismatch");
+                Err(PQCVerifyError::VerificationFailed {
+                    algorithm: "sphincs_sha2_128s_simple".to_string(),
+                })
+            }
+        }
+        Err(_) => {
+            tracing::warn!("SPHINCS+ signature verification failed: invalid signature");
+            Err(PQCVerifyError::VerificationFailed {
+                algorithm: "sphincs_sha2_128s_simple".to_string(),
+            })
+        }
+    }
+}
+
+/// Compatibility function that uses the default algorithm (Dilithium5)
+/// This maintains backward compatibility with existing ActivePQC::verify calls
+pub fn verify_default(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> bool {
+    match verify(pubkey, msg, sig, PQCAlgorithm::default()) {
+        Ok(()) => true,
+        Err(e) => {
+            tracing::error!("PQC verification failed: {}", e);
+            false
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_algorithm_parsing() {
+        assert_eq!(
+            PQCAlgorithm::from_str("dilithium5").unwrap(),
+            PQCAlgorithm::Dilithium5
+        );
+        assert_eq!(
+            PQCAlgorithm::from_str("falcon1024").unwrap(),
+            PQCAlgorithm::Falcon1024
+        );
+        assert_eq!(
+            PQCAlgorithm::from_str("sphincs_sha2_128s_simple").unwrap(),
+            PQCAlgorithm::SphincsPlus
+        );
+        assert!(PQCAlgorithm::from_str("unknown").is_err());
+    }
+
+    #[test]
+    fn test_algorithm_strings() {
+        assert_eq!(PQCAlgorithm::Dilithium5.as_str(), "dilithium5");
+        assert_eq!(PQCAlgorithm::Falcon1024.as_str(), "falcon1024");
+        assert_eq!(
+            PQCAlgorithm::SphincsPlus.as_str(),
+            "sphincs_sha2_128s_simple"
+        );
+    }
+
+    #[test]
+    fn test_mock_verification() {
+        #[cfg(not(feature = "pqc-real"))]
+        {
+            // Mock should succeed with non-empty inputs
+            assert!(verify(&[1], &[2], &[3], PQCAlgorithm::Dilithium5).is_ok());
+
+            // Mock should fail with empty inputs
+            assert!(verify(&[], &[2], &[3], PQCAlgorithm::Dilithium5).is_err());
+            assert!(verify(&[1], &[], &[3], PQCAlgorithm::Dilithium5).is_err());
+            assert!(verify(&[1], &[2], &[], PQCAlgorithm::Dilithium5).is_err());
+        }
+    }
+
+    #[test]
+    fn test_default_verify_compatibility() {
+        // Test the compatibility function with mock data
+        assert!(!verify_default(&[], &[], &[])); // Should fail for empty inputs
+
+        #[cfg(not(feature = "pqc-real"))]
+        assert!(verify_default(&[1], &[2], &[3])); // Mock should succeed
+    }
+
+    #[cfg(not(feature = "falcon"))]
+    #[test]
+    fn test_feature_not_compiled_falcon() {
+        let result = verify(
+            b"pubkey",
+            b"message",
+            b"signature",
+            PQCAlgorithm::Falcon1024,
+        );
+
+        match result {
+            Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
+                assert_eq!(feature, "falcon");
+            }
+            _ => panic!("Expected FeatureNotCompiled error"),
+        }
+    }
+
+    #[cfg(not(feature = "sphincs"))]
+    #[test]
+    fn test_feature_not_compiled_sphincs() {
+        let result = verify(
+            b"pubkey",
+            b"message",
+            b"signature",
+            PQCAlgorithm::SphincsPlus,
+        );
+
+        match result {
+            Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
+                assert_eq!(feature, "sphincs");
+            }
+            _ => panic!("Expected FeatureNotCompiled error"),
+        }
+    }
+}

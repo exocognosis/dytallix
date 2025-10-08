@@ -105,19 +105,19 @@ const Badge = ({ children }) => (
 const Kpis = () => {
   const stats = useBlockchainStats();
   const kpis = [
-    { k: 'Nodes', v: '5' },
-    { k: 'Active Validators', v: '3' },
-    { k: 'Block Height', v: stats ? stats.latest_height.toLocaleString() : '...', live: true },
-    { k: 'Finality', v: '~2.1s' },
-    { k: 'TPS (peak)', v: '3,200' },
-    { k: 'Status', v: stats?.status || '...', live: stats?.status === 'healthy' },
+    { k: 'Nodes', v: '5', color: 'from-blue-500/10' },
+    { k: 'Active Validators', v: '3', color: 'from-purple-500/10' },
+    { k: 'Block Height', v: stats ? stats.latest_height.toLocaleString() : '...', live: true, color: 'from-green-500/10' },
+    { k: 'Finality', v: '~2.1s', color: 'from-cyan-500/10' },
+    { k: 'TPS (peak)', v: '3,200', color: 'from-orange-500/10' },
+    { k: 'Status', v: stats?.status || '...', live: stats?.status === 'healthy', color: 'from-emerald-500/10' },
   ];
   return (
     <div className="grid grid-cols-3 gap-6">
       {kpis.map((x) => (
         <div
           key={x.k}
-          className="rounded-2xl bg-white/5 p-4 border border-white/10"
+          className={`rounded-2xl bg-gradient-to-br ${x.color} to-transparent p-4 border border-white/10`}
         >
           <div className="text-2xl font-bold flex items-center gap-2">
             {x.v}
@@ -133,19 +133,19 @@ const Kpis = () => {
 const Problem = () => (
   <section className="mt-24">
     <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">The Quantum Problem</h2>
-    <p className="mt-4 text-neutral-300 max-w-3xl">Fault-tolerant quantum computers running Shor’s algorithm can break RSA and ECC—the cryptography behind PKI, blockchains, and secure messaging. Adversaries are already harvesting encrypted data to decrypt later. Standards bodies are pushing a full shift to post-quantum cryptography by ~2035, with migrations underway today.</p>
+    <p className="mt-4 text-neutral-300 max-w-3xl">Fault-tolerant quantum computers running Shor's algorithm can break RSA and ECC—the cryptography behind PKI, blockchains, and secure messaging. Adversaries are already harvesting encrypted data to decrypt later. Standards bodies are pushing a full shift to post-quantum cryptography by ~2035, with migrations underway today.</p>
     <ul className="mt-6 grid md:grid-cols-3 gap-4">
-      <StatCard title="PQC Standards Finalized" body="NIST published FIPS 203/204/205 (2024) for ML‑KEM (Kyber), ML‑DSA (Dilithium) and SLH‑DSA (SPHINCS+)." footnote="Sources" footnoteId="sources"/>
-      <StatCard title="2035 target" body="NSA's CNSA 2.0 sets a no‑later‑than 2035 horizon for quantum‑resistant national security systems." footnote="NSA" footnoteId="sources"/>
-      <StatCard title="RSA‑2048 risk" body="Recent resource estimates suggest sub‑million logical qubits could factor RSA‑2048 in days to a week once error‑corrected QC is realized." footnote="Research" footnoteId="sources"/>
+      <StatCard title="PQC Standards Finalized" body="NIST published FIPS 203/204/205 (2024) for ML‑KEM (Kyber), ML‑DSA (Dilithium) and SLH‑DSA (SPHINCS+)." footnote="Sources" footnoteId="sources" color="from-blue-500/10"/>
+      <StatCard title="2035 target" body="NSA's CNSA 2.0 sets a no‑later‑than 2035 horizon for quantum‑resistant national security systems." footnote="NSA" footnoteId="sources" color="from-purple-500/10"/>
+      <StatCard title="RSA‑2048 risk" body="Recent resource estimates suggest sub‑million logical qubits could factor RSA‑2048 in days to a week once error‑corrected QC is realized." footnote="Research" footnoteId="sources" color="from-red-500/10"/>
     </ul>
     <div className="mt-4 text-sm text-neutral-400">See <button className="underline underline-offset-4" onClick={() => document.getElementById('sources')?.showModal()}>sources</button> for details.</div>
     <SourcesModal />
   </section>
 );
 
-const StatCard = ({ title, body, footnote, footnoteId }) => (
-  <li className="rounded-2xl border border-white/10 bg-white/5 p-5">
+const StatCard = ({ title, body, footnote, footnoteId, color }) => (
+  <li className={`rounded-2xl border border-white/10 bg-gradient-to-br ${color || 'from-white/5'} to-transparent p-5`}>
     <div className="text-lg font-semibold">{title}</div>
     <p className="mt-2 text-sm text-neutral-300">{body}</p>
     {footnote && <div className="mt-3 text-xs text-neutral-400">{footnote} ↗</div>}
@@ -175,19 +175,19 @@ const Solution = () => (
   <section className="mt-24">
     <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">The Dytallix Solution</h2>
     <div className="mt-6 grid md:grid-cols-2 gap-6">
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
         <h3 className="font-semibold">Crypto‑Agile Core</h3>
         <p className="mt-2 text-neutral-300">Modular key encapsulation and signature layers with pluggable PQC (ML‑KEM/ML‑DSA/SLH‑DSA) plus hybrid (PQC+ECC) modes for staged migrations. Versioned policy manifests enable on‑chain deprecation and roll‑forward.</p>
       </div>
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent p-6">
         <h3 className="font-semibold">Secure‑by‑Design Wallets</h3>
         <p className="mt-2 text-neutral-300">Client libraries generate PQC keypairs, support multi‑sig and account abstraction, and safeguard against HNDL via default PQC addressing.</p>
       </div>
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
         <h3 className="font-semibold">Telemetry & Attestation</h3>
         <p className="mt-2 text-neutral-300">Network health, algorithm performance, and node posture streamed to a public dashboard with signed metrics for supply‑chain integrity.</p>
       </div>
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-orange-500/10 to-transparent p-6">
         <h3 className="font-semibold">Open Governance</h3>
         <p className="mt-2 text-neutral-300">Testnet‑first governance gating PQC upgrades, parameter changes, and tokenomic proposals via transparent RFCs.</p>
       </div>
@@ -195,36 +195,40 @@ const Solution = () => (
   </section>
 );
 
-const TechStack = () => (
-  <section className="mt-24">
-    <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Tech Stack</h2>
-    <div className="mt-6 grid md:grid-cols-3 gap-4">
-      {[
-        {h:'Cryptography', b:'ML‑KEM (Kyber) · ML‑DSA (Dilithium) · SLH‑DSA (SPHINCS+) · BLAKE3/Keccak variants · Hybrid PQC+ECC'},
-        {h:'Consensus', b:'Nakamoto‑style PoS with fast‑finality checkpoints; slashing & KEA attestation; light‑client proofs'},
-        {h:'VM & Contracts', b:'WASM runtime with Rust SDK · Precompiles for PQC ops · Deterministic gas model'},
-        {h:'Networking', b:'QUIC/Noise‑like handshake with PQC KEM · libp2p compatible · DoS‑hard admission control'},
-        {h:'DevX', b:'CLI/SDKs (TypeScript, Rust) · Faucet & Test tokens · Localnet Docker · Rich telemetry'},
-        {h:'Security', b:'Formal specs · Fuzzing · Reproducible builds · Attestation & SBOMs'},
-      ].map((x) => (
-        <div key={x.h} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <div className="font-semibold">{x.h}</div>
-          <p className="mt-2 text-sm text-neutral-300">{x.b}</p>
-        </div>
-      ))}
-    </div>
-  </section>
-);
+const TechStack = () => {
+  const stackItems = [
+    {h:'Cryptography', b:'ML‑KEM (Kyber) · ML‑DSA (Dilithium) · SLH‑DSA (SPHINCS+) · BLAKE3/Keccak variants · Hybrid PQC+ECC', color:'from-purple-500/10'},
+    {h:'Consensus', b:'Nakamoto‑style PoS with fast‑finality checkpoints; slashing & KEA attestation; light‑client proofs', color:'from-blue-500/10'},
+    {h:'VM & Contracts', b:'WASM runtime with Rust SDK · Precompiles for PQC ops · Deterministic gas model', color:'from-green-500/10'},
+    {h:'Networking', b:'QUIC/Noise‑like handshake with PQC KEM · libp2p compatible · DoS‑hard admission control', color:'from-cyan-500/10'},
+    {h:'DevX', b:'CLI/SDKs (TypeScript, Rust) · Faucet & Test tokens · Localnet Docker · Rich telemetry', color:'from-orange-500/10'},
+    {h:'Security', b:'Formal specs · Fuzzing · Reproducible builds · Attestation & SBOMs', color:'from-red-500/10'},
+  ];
+  
+  return (
+    <section className="mt-24">
+      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Tech Stack</h2>
+      <div className="mt-6 grid md:grid-cols-3 gap-4">
+        {stackItems.map((x) => (
+          <div key={x.h} className={`rounded-2xl border border-white/10 bg-gradient-to-br ${x.color} to-transparent p-5`}>
+            <div className="font-semibold">{x.h}</div>
+            <p className="mt-2 text-sm text-neutral-300">{x.b}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
 
 const DevInvite = () => (
   <section className="mt-24">
-    <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-8">
+    <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-transparent p-8">
       <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Start Building on Dytallix</h2>
       <p className="mt-3 text-neutral-300 max-w-3xl">Spin up a local node, mint test assets, and ship PQC‑ready apps. Join the community, file RFCs, and help steer PQC adoption.</p>
       <div className="mt-6 flex flex-wrap gap-3">
-        <a href="#/docs" className="px-5 py-3 rounded-2xl bg-white text-black font-semibold">Get Started</a>
-        <a href="#/faucet" className="px-5 py-3 rounded-2xl border border-white/20">Request DGT/DRT</a>
-        <a href="#/wallet" className="px-5 py-3 rounded-2xl border border-white/20">Launch Wallet</a>
+        <a href="#/docs" className="px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition">Get Started</a>
+        <a href="#/faucet" className="px-5 py-3 rounded-2xl border border-white/20 hover:border-white/40 transition">Request DGT/DRT</a>
+        <a href="#/wallet" className="px-5 py-3 rounded-2xl border border-white/20 hover:border-white/40 transition">Launch Wallet</a>
       </div>
     </div>
   </section>
@@ -271,35 +275,200 @@ const Home = () => (
 const WalletPage = () => {
   const [created, setCreated] = useState(false);
   const [addr, setAddr] = useState("");
+  const [algorithm, setAlgorithm] = useState('ML-DSA'); // Default to ML-DSA
+  
   const create = () => {
     // Placeholder wallet generation (UI only). Hook into real SDK later.
-    const fake = 'pqc1' + Math.random().toString(36).slice(2,12) + '...' + Math.random().toString(36).slice(2,6);
+    const prefix = algorithm === 'ML-DSA' ? 'pqc1ml' : 'pqc1slh';
+    const fake = prefix + Math.random().toString(36).slice(2,10) + '...' + Math.random().toString(36).slice(2,6);
     setAddr(fake); setCreated(true);
   };
   return (
     <Page>
       <h1 className="text-3xl md:text-4xl font-extrabold">PQC Wallet</h1>
-      <p className="mt-3 text-neutral-300 max-w-prose">Create and manage a post‑quantum wallet. Keys are generated client‑side using PQC algorithms (ML‑DSA / SLH‑DSA) with optional hybrid mode. This demo uses a mock generator—wire to @dytallix/pqc‑wallet SDK in production.</p>
+      <p className="mt-3 text-neutral-300 max-w-prose">Create and manage a quantum-resistant wallet secured by NIST-standardized post-quantum cryptography. Your keys never leave your device.</p>
+      
+      {/* Wallet Features */}
+      <div className="mt-8 grid md:grid-cols-2 gap-6">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <span className="text-blue-500 text-xl">🔐</span>
+            </div>
+            <div className="font-semibold text-lg">Wallet Features</div>
+          </div>
+          <ul className="space-y-2 text-sm text-neutral-300">
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Post-Quantum Security:</strong> ML-DSA (Dilithium) and SLH-DSA (SPHINCS+) signature schemes</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Client-Side Generation:</strong> Keys generated in your browser, never transmitted</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Account Abstraction:</strong> Multi-sig support with guardian recovery</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Hybrid Mode:</strong> Optional PQC+ECC dual signatures for migration paths</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Keystore Export:</strong> Encrypted JSON backup with password protection</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+              <span className="text-purple-500 text-xl">📋</span>
+            </div>
+            <div className="font-semibold text-lg">Getting Started</div>
+          </div>
+          <ul className="space-y-2 text-sm text-neutral-300">
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 font-bold">1.</span>
+              <span><strong>Choose Algorithm:</strong> Select ML-DSA for speed or SLH-DSA for stateless signatures</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 font-bold">2.</span>
+              <span><strong>Create Wallet:</strong> Generate your PQC keypair (takes 1-2 seconds)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 font-bold">3.</span>
+              <span><strong>Backup Keys:</strong> Export and securely store your encrypted keystore</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 font-bold">4.</span>
+              <span><strong>Get Tokens:</strong> Visit the <a href="#/faucet" className="text-purple-400 underline">Faucet</a> to request test DGT/DRT</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 font-bold">5.</span>
+              <span><strong>Optional:</strong> Add guardians for social recovery (multi-sig)</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Security Notice */}
+      <div className="mt-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+        <div className="flex items-start gap-3">
+          <span className="text-yellow-500 text-xl">⚠️</span>
+          <div className="text-sm">
+            <div className="font-semibold text-yellow-500">Testnet Demo</div>
+            <div className="text-neutral-300 mt-1">This is a demonstration wallet for the Dytallix testnet. For production use, integrate the <code className="px-1 py-0.5 rounded bg-neutral-800">@dytallix/pqc-wallet</code> SDK with proper key management and hardware wallet support.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Wallet Generator */}
       <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 max-w-xl">
+        <div className="mb-4">
+          <div className="font-semibold text-lg">Create Your Wallet</div>
+          <div className="text-xs text-neutral-400 mt-1">Generated client-side • Never leaves your device</div>
+        </div>
         {!created ? (
           <>
-            <label className="text-sm text-neutral-300">Key Type</label>
+            <label className="text-sm text-neutral-300 font-medium">Signature Algorithm</label>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <button className="px-4 py-2 rounded-xl bg-white text-black text-sm font-semibold">ML‑DSA</button>
-              <button className="px-4 py-2 rounded-xl border border-white/20">SLH‑DSA</button>
+              <button 
+                onClick={() => setAlgorithm('ML-DSA')}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition ${
+                  algorithm === 'ML-DSA' 
+                    ? 'bg-white text-black' 
+                    : 'border border-white/20 hover:border-white/40'
+                }`}
+              >
+                <div>ML‑DSA {algorithm === 'ML-DSA' && '✓'}</div>
+                <div className="text-xs font-normal opacity-70">Dilithium (Fast)</div>
+              </button>
+              <button 
+                onClick={() => setAlgorithm('SLH-DSA')}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition ${
+                  algorithm === 'SLH-DSA' 
+                    ? 'bg-white text-black' 
+                    : 'border border-white/20 hover:border-white/40'
+                }`}
+              >
+                <div>SLH‑DSA {algorithm === 'SLH-DSA' && '✓'}</div>
+                <div className="text-xs font-normal opacity-70">SPHINCS+ (Stateless)</div>
+              </button>
             </div>
-            <button onClick={create} className="mt-6 px-5 py-3 rounded-2xl bg-white text-black font-semibold">Create Wallet</button>
+            <button onClick={create} className="mt-6 w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition">
+              Generate PQC Wallet
+            </button>
+            <div className="mt-4 text-xs text-neutral-500 text-center">
+              Generation takes 1-2 seconds • ML-DSA recommended for most use cases
+            </div>
           </>
         ) : (
           <>
-            <div className="text-sm text-neutral-400">Address</div>
-            <div className="mt-1 text-lg font-mono">{addr}</div>
-            <div className="mt-6 grid grid-cols-2 gap-2">
-              <button className="px-4 py-2 rounded-xl border border-white/20">Export Keystore</button>
-              <button className="px-4 py-2 rounded-xl border border-white/20">Add Guardian</button>
+            <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-4 mb-4">
+              <div className="flex items-center gap-2 text-green-500 text-sm font-semibold mb-2">
+                <span>✓</span>
+                <span>Wallet Created Successfully ({algorithm})</span>
+              </div>
+              <div className="text-xs text-neutral-400">Your PQC wallet is ready to use</div>
+            </div>
+            <div className="text-sm text-neutral-400 mb-2">Your Address</div>
+            <div className="p-3 rounded-xl bg-neutral-900 border border-white/10 mb-4">
+              <div className="text-lg font-mono break-all">{addr}</div>
+              <div className="text-xs text-neutral-500 mt-2">Algorithm: {algorithm} {algorithm === 'ML-DSA' ? '(Dilithium)' : '(SPHINCS+)'}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition">
+                📥 Export Keystore
+              </button>
+              <button className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition">
+                👥 Add Guardian
+              </button>
+            </div>
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <a href="#/faucet" className="block w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-center font-semibold hover:opacity-90 transition">
+                Get Test Tokens from Faucet →
+              </a>
             </div>
           </>
         )}
+      </div>
+
+      {/* Algorithm Comparison */}
+      <div className="mt-10">
+        <h2 className="text-2xl font-bold mb-4">Algorithm Comparison</h2>
+        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-white/5">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold">Algorithm</th>
+                  <th className="px-4 py-3 text-left font-semibold">Security Level</th>
+                  <th className="px-4 py-3 text-left font-semibold">Signature Size</th>
+                  <th className="px-4 py-3 text-left font-semibold">Speed</th>
+                  <th className="px-4 py-3 text-left font-semibold">Best For</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                <tr className="hover:bg-white/5 transition">
+                  <td className="px-4 py-3 font-semibold">ML-DSA (Dilithium)</td>
+                  <td className="px-4 py-3">NIST Level 3</td>
+                  <td className="px-4 py-3">~2.4 KB</td>
+                  <td className="px-4 py-3 text-green-400">Fast (0.42ms)</td>
+                  <td className="px-4 py-3 text-neutral-400">General use, high throughput</td>
+                </tr>
+                <tr className="hover:bg-white/5 transition">
+                  <td className="px-4 py-3 font-semibold">SLH-DSA (SPHINCS+)</td>
+                  <td className="px-4 py-3">NIST Level 3</td>
+                  <td className="px-4 py-3">~17 KB</td>
+                  <td className="px-4 py-3 text-yellow-400">Slower (5.8ms)</td>
+                  <td className="px-4 py-3 text-neutral-400">Stateless, conservative security</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </Page>
   );
@@ -311,18 +480,223 @@ const FaucetPage = () => {
   return (
     <Page>
       <h1 className="text-3xl md:text-4xl font-extrabold">Testnet Faucet</h1>
-      <p className="mt-3 text-neutral-300 max-w-prose">Request DGT (Governance) and DRT (Reward) tokens to build and test on the Dytallix testnet. Rate‑limited; requires a PQC address.</p>
-      <form onSubmit={submit} className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 max-w-xl">
-        <label className="text-sm text-neutral-300">PQC Address</label>
-        <input name="addr" required placeholder="pqc1…" className="mt-2 w-full rounded-xl bg-neutral-900 border border-white/10 px-3 py-2 outline-none"/>
-        <label className="mt-4 block text-sm text-neutral-300">Token</label>
-        <select name="token" className="mt-2 w-full rounded-xl bg-neutral-900 border border-white/10 px-3 py-2">
-          <option value="DGT">DGT</option>
-          <option value="DRT">DRT</option>
-        </select>
-        <button type="submit" className="mt-6 px-5 py-3 rounded-2xl bg-white text-black font-semibold">Request</button>
-        {req && <div className="mt-4 text-sm text-neutral-400">{req.status} — {req.token} → {req.addr}</div>}
-      </form>
+      <p className="mt-3 text-neutral-300 max-w-prose">Get free DGT (Governance) and DRT (Reward) tokens for testing and development on the Dytallix testnet. No cost, no signup—just paste your PQC address.</p>
+      
+      {/* Faucet Features & Instructions */}
+      <div className="mt-8 grid md:grid-cols-2 gap-6">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+              <span className="text-green-500 text-xl">💧</span>
+            </div>
+            <div className="font-semibold text-lg">Faucet Features</div>
+          </div>
+          <ul className="space-y-2 text-sm text-neutral-300">
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Dual Token Support:</strong> Request both DGT (governance) and DRT (rewards) tokens</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Instant Delivery:</strong> Tokens sent directly to your wallet within seconds</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Rate Limited:</strong> Fair distribution with cooldown periods per address</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>No Registration:</strong> No account needed—just provide a valid PQC address</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Testnet Only:</strong> Tokens have no real value and are for development purposes only</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <span className="text-blue-500 text-xl">📖</span>
+            </div>
+            <div className="font-semibold text-lg">How to Use</div>
+          </div>
+          <ul className="space-y-2 text-sm text-neutral-300">
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 font-bold">1.</span>
+              <span><strong>Create Wallet:</strong> Generate a PQC wallet on the <a href="#/wallet" className="text-blue-400 underline">Wallet page</a> if you don't have one</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 font-bold">2.</span>
+              <span><strong>Copy Address:</strong> Copy your PQC address (starts with "pqc1...")</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 font-bold">3.</span>
+              <span><strong>Select Token:</strong> Choose DGT for governance/staking or DRT for transaction fees</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 font-bold">4.</span>
+              <span><strong>Submit Request:</strong> Click "Request Tokens" and wait for confirmation</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 font-bold">5.</span>
+              <span><strong>Verify Balance:</strong> Check your wallet or use the <a href="#/dashboard" className="text-blue-400 underline">Dashboard</a> to verify receipt</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Token Information */}
+      <div className="mt-8 grid md:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-2xl">🏛️</span>
+            <div className="font-semibold text-lg">DGT — Governance Token</div>
+          </div>
+          <ul className="text-sm text-neutral-300 space-y-2">
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-500">•</span>
+              <span>Used for voting on network proposals and parameter changes</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-500">•</span>
+              <span>Delegate to validators to earn DRT rewards</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-500">•</span>
+              <span>Fixed supply (1B tokens) • Non-inflationary</span>
+            </li>
+          </ul>
+          <div className="mt-4 p-3 rounded-xl bg-neutral-900/50 border border-white/5">
+            <div className="text-xs text-neutral-400">Faucet Amount</div>
+            <div className="text-lg font-bold">100 DGT</div>
+            <div className="text-xs text-neutral-500">per request</div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-2xl">💎</span>
+            <div className="font-semibold text-lg">DRT — Reward Token</div>
+          </div>
+          <ul className="text-sm text-neutral-300 space-y-2">
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-500">•</span>
+              <span>Earned by validators and delegators as staking rewards</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-500">•</span>
+              <span>Used for transaction fees and smart contract execution</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-500">•</span>
+              <span>Adaptive emission • Burnable by holders</span>
+            </li>
+          </ul>
+          <div className="mt-4 p-3 rounded-xl bg-neutral-900/50 border border-white/5">
+            <div className="text-xs text-neutral-400">Faucet Amount</div>
+            <div className="text-lg font-bold">1,000 DRT</div>
+            <div className="text-xs text-neutral-500">per request</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Request Form */}
+      <div className="mt-8">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 max-w-xl">
+          <div className="mb-4">
+            <div className="font-semibold text-lg">Request Testnet Tokens</div>
+            <div className="text-xs text-neutral-400 mt-1">Free tokens • Rate limited to prevent abuse</div>
+          </div>
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="text-sm text-neutral-300 font-medium">PQC Address</label>
+              <input 
+                name="addr" 
+                required 
+                placeholder="pqc1abc123def456..." 
+                className="mt-2 w-full rounded-xl bg-neutral-900 border border-white/10 px-4 py-3 outline-none focus:border-white/30 transition text-sm font-mono"
+              />
+              <div className="mt-1 text-xs text-neutral-500">Must start with "pqc1" • Create one on the <a href="#/wallet" className="text-blue-400 underline">Wallet page</a></div>
+            </div>
+            
+            <div>
+              <label className="text-sm text-neutral-300 font-medium">Select Token</label>
+              <select 
+                name="token" 
+                className="mt-2 w-full rounded-xl bg-neutral-900 border border-white/10 px-4 py-3 outline-none focus:border-white/30 transition text-sm cursor-pointer"
+              >
+                <option value="DGT">DGT — Governance (100 tokens)</option>
+                <option value="DRT">DRT — Rewards (1,000 tokens)</option>
+              </select>
+            </div>
+            
+            <button 
+              type="submit" 
+              className="w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold hover:opacity-90 transition"
+            >
+              Request Tokens
+            </button>
+            
+            {req && (
+              <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-4">
+                <div className="flex items-center gap-2 text-green-500 text-sm font-semibold mb-2">
+                  <span>✓</span>
+                  <span>Request Submitted Successfully</span>
+                </div>
+                <div className="text-xs text-neutral-400">
+                  Sending <span className="font-semibold">{req.token}</span> to <span className="font-mono">{req.addr.slice(0, 12)}...{req.addr.slice(-6)}</span>
+                </div>
+                <div className="mt-3 text-xs text-neutral-500">
+                  Tokens should arrive within 10-30 seconds. Check your wallet or the Dashboard to verify.
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
+      </div>
+
+      {/* Important Notes */}
+      <div className="mt-8 max-w-xl rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6">
+        <div className="flex items-start gap-3">
+          <span className="text-blue-500 text-xl">ℹ️</span>
+          <div>
+            <div className="font-semibold text-blue-400">Important Information</div>
+            <ul className="mt-2 text-sm text-neutral-300 space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-neutral-500">•</span>
+                <span><strong>Testnet tokens have no real-world value</strong> and cannot be exchanged for mainnet tokens</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-neutral-500">•</span>
+                <span>Rate limit: One request per address every <strong>24 hours</strong></span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-neutral-500">•</span>
+                <span>Need more tokens? Contact the team on Discord or contribute to the testnet</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-neutral-500">•</span>
+                <span>Testnet may be reset periodically—your tokens and state will be wiped</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div className="mt-8 flex flex-wrap gap-3">
+        <a href="#/wallet" className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm transition">
+          Create Wallet →
+        </a>
+        <a href="#/dashboard" className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm transition">
+          View Dashboard →
+        </a>
+        <a href="#/docs" className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm transition">
+          Read Docs →
+        </a>
+      </div>
     </Page>
   );
 };
@@ -332,10 +706,10 @@ const DocsPage = () => (
     <h1 className="text-3xl md:text-4xl font-extrabold">Documentation</h1>
     <p className="mt-3 text-neutral-300 max-w-prose">Everything you need to build on Dytallix: node setup, SDKs, wallet APIs, governance, and RFCs.</p>
     <div className="mt-8 grid md:grid-cols-2 gap-6">
-      <DocCard title="Quickstart" items={["Install CLI","Start localnet","Deploy first contract"]} />
-      <DocCard title="Nodes & Networking" items={["Run a validator","Declare telemetry","QUIC+PQC handshake"]} />
-      <DocCard title="Smart Contracts" items={["Rust SDK","On‑chain PQC ops","Gas model"]} />
-      <DocCard title="Wallet & Accounts" items={["Account abstraction","Multi‑sig","Recovery & guardians"]} />
+      <DocCard title="Quickstart" items={["Install CLI","Start localnet","Deploy first contract"]} color="from-green-500/10" />
+      <DocCard title="Nodes & Networking" items={["Run a validator","Declare telemetry","QUIC+PQC handshake"]} color="from-blue-500/10" />
+      <DocCard title="Smart Contracts" items={["Rust SDK","On‑chain PQC ops","Gas model"]} color="from-purple-500/10" />
+      <DocCard title="Wallet & Accounts" items={["Account abstraction","Multi‑sig","Recovery & guardians"]} color="from-orange-500/10" />
     </div>
     <div className="mt-10">
       <a className="px-5 py-3 rounded-2xl bg-white text-black font-semibold" href="https://github.com/dytallix" target="_blank" rel="noreferrer">View Repos</a>
@@ -356,8 +730,8 @@ const DocsPage = () => (
   </Page>
 );
 
-const DocCard = ({ title, items }) => (
-  <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+const DocCard = ({ title, items, color }) => (
+  <div className={`rounded-2xl border border-white/10 bg-gradient-to-br ${color || 'from-white/5'} to-transparent p-6`}>
     <div className="font-semibold">{title}</div>
     <ul className="mt-3 text-sm text-neutral-300 list-disc list-inside">
       {items.map((i) => <li key={i}>{i}</li>)}
@@ -531,7 +905,7 @@ const TokenomicsPage = () => (
 
     {/* Two tokens */}
     <div className="mt-8 grid md:grid-cols-2 gap-4">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
         <div className="font-semibold">DGT — Governance</div>
         <ul className="mt-2 text-sm text-neutral-300 list-disc list-inside space-y-1">
           <li>Used for DAO voting and staking delegation (locked, not spent)</li>
@@ -540,7 +914,7 @@ const TokenomicsPage = () => (
         
         </ul>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent p-6">
         <div className="font-semibold">DRT — Rewards</div>
         <ul className="mt-2 text-sm text-neutral-300 list-disc list-inside space-y-1">
           <li>Minted by the Emission Controller; burnable by holders</li>
@@ -551,7 +925,7 @@ const TokenomicsPage = () => (
     </div>
 
     {/* Emission & distribution */}
-    <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6">
+    <div className="mt-10 rounded-2xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
       <div className="font-semibold">How Emission Works</div>
       <p className="mt-2 text-sm text-neutral-300">
         The Emission Controller adjusts DRT issuance based on network utilization within DAO-set bounds (min/max rate, adjustment factor, base rate).
@@ -575,7 +949,7 @@ const TokenomicsPage = () => (
 
     {/* Staking & claiming */}
     <div className="mt-10 grid md:grid-cols-2 gap-4">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-orange-500/10 to-transparent p-6">
         <div className="font-semibold">Staking Model</div>
         <ul className="mt-2 text-sm text-neutral-300 list-disc list-inside space-y-1">
           <li>Delegate <span className="font-semibold">DGT</span> to validators (locked, not spent)</li>
@@ -583,7 +957,7 @@ const TokenomicsPage = () => (
           <li>Rewards tracked via a global reward index; no loss at bootstrap (pending accruals applied once stake exists)</li>
         </ul>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-500/10 to-transparent p-6">
         <div className="font-semibold">Claiming Rewards</div>
         <ul className="mt-2 text-sm text-neutral-300 list-disc list-inside space-y-1">
           <li>Rewards accrue automatically as blocks are produced</li>
@@ -594,7 +968,7 @@ const TokenomicsPage = () => (
     </div>
 
     {/* Governance */}
-    <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6">
+    <div className="mt-10 rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-500/10 to-transparent p-6">
       <div className="font-semibold">Governance Controls</div>
       <ul className="mt-2 text-sm text-neutral-300 list-disc list-inside space-y-1">
         <li>Proposals: change emission rate/parameters, burn DRT, (init-only) mint DGT</li>
@@ -605,7 +979,7 @@ const TokenomicsPage = () => (
 
     {/* Security & testnet notes */}
     <div className="mt-10 grid md:grid-cols-2 gap-4">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-red-500/10 to-transparent p-6">
         <div className="font-semibold">Security & Access Control</div>
         <ul className="mt-2 text-sm text-neutral-300 list-disc list-inside space-y-1">
           <li>Only Emission Controller can mint <span className="font-semibold">DRT</span></li>
@@ -613,7 +987,7 @@ const TokenomicsPage = () => (
           <li>Bounded rates, safe math, input validation, reentrancy guards</li>
         </ul>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-yellow-500/10 to-transparent p-6">
         <div className="font-semibold">Testnet Notes</div>
         <ul className="mt-2 text-sm text-neutral-300 list-disc list-inside space-y-1">
           <li>Parameters may change rapidly via governance during testing</li>

@@ -1,0 +1,9 @@
+{
+  "type": "delegate",
+  "body": {
+    "delegator": "dytallix1delegator123456789012345678901234567890",
+    "validator": "dytallixvaloper1validator123456789012345678901234567890",
+    "amount": "10000000",
+    "denom": "udgt"
+  }
+}
