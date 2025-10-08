@@ -80,7 +80,11 @@ Thumbs.db
 # Blockchain data
 blockchain-data/
 validator-keys/
-keystore/
+# Ignore keystore data files but not source code
+keystore/*.json
+keystore/*.key
+# Allow keystore source code directories
+!**/src/wallet/keystore/
 
 # AI model files (too large for git)
 *.h5
