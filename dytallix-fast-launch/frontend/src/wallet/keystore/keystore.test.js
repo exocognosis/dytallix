@@ -10,7 +10,6 @@ import {
   DEFAULT_KDF_PARAMS
 } from '../wallet/keystore/index.js';
 import { createMockWallet } from '../wallet/pqc.js';
-import { randomBytes, arrayToBase64 } from '../wallet/keystore/utils.js';
 
 describe('Keystore Export/Import', () => {
   let mockWallet;

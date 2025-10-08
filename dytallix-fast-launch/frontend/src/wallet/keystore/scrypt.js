@@ -1,7 +1,6 @@
 // Scrypt KDF wrapper for browser using scrypt-js
 
 import scrypt from 'scrypt-js';
-import { arrayToBase64, base64ToArray } from './utils.js';
 
 /**
  * Derive a key from password using scrypt

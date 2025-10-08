@@ -40,7 +40,7 @@ export async function importKeystore(json, password) {
     let privateKey;
     try {
       privateKey = await decryptAESGCM(ciphertextBytes, authTagBytes, derivedKey, ivBytes);
-    } catch (err) {
+    } catch {
       // Decryption failed - likely wrong password
       throw new DecryptionAuthError('Decryption failed. Check your password and try again.');
     }

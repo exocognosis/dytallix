@@ -146,7 +146,7 @@ const Problem = () => (
   </section>
 );
 
-const StatCard = ({ title, body, footnote, footnoteId, color }) => (
+const StatCard = ({ title, body, footnote, color }) => (
   <li className={`rounded-2xl border border-white/10 bg-gradient-to-br ${color || 'from-white/5'} to-transparent p-5`}>
     <div className="text-lg font-semibold">{title}</div>
     <p className="mt-2 text-sm text-neutral-300">{body}</p>
@@ -999,7 +999,7 @@ const DashboardPage = () => {
           const res = await fetch(`http://localhost:8787/api/nodes/${node.id}/status`);
           const data = await res.json();
           results[node.port] = { ...data, ...node, online: data.status === 'healthy' };
-        } catch (err) {
+        } catch {
           results[node.port] = { ...node, online: false };
         }
       }

@@ -1,7 +1,6 @@
 // AES-256-GCM encryption and decryption using WebCrypto API
 
 import { CryptoUnavailableError } from './types.js';
-import { arrayToBase64, base64ToArray } from './utils.js';
 
 /**
  * Check if WebCrypto is available
@@ -100,7 +99,7 @@ export async function decryptAESGCM(ciphertext, authTag, key, iv) {
     );
     
     return new Uint8Array(decrypted);
-  } catch (err) {
+  } catch {
     // WebCrypto throws if authentication fails
     throw new Error('Decryption failed: authentication error');
   }
