@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { exportKeystore as exportKeystoreAPI, serializeKeystore } from './wallet/keystore/index.js';
+import { createWalletAdapter } from './wallet/pqc.js';
 
 // Simple hash router
 const useHashRoute = () => {
@@ -144,7 +146,7 @@ const Problem = () => (
   </section>
 );
 
-const StatCard = ({ title, body, footnote, footnoteId, color }) => (
+const StatCard = ({ title, body, footnote, color }) => (
   <li className={`rounded-2xl border border-white/10 bg-gradient-to-br ${color || 'from-white/5'} to-transparent p-5`}>
     <div className="text-lg font-semibold">{title}</div>
     <p className="mt-2 text-sm text-neutral-300">{body}</p>
@@ -290,49 +292,50 @@ const WalletPage = () => {
     setAddr(fake); setCreated(true);
   };
 
-  const exportKeystore = () => {
+  const exportKeystore = async () => {
     if (!password) {
       alert('Please enter a password to encrypt your keystore');
       return;
     }
     
-    // Generate mock encrypted keystore
-    const keystore = {
-      version: 1,
-      algorithm: algorithm,
-      address: addr,
-      crypto: {
-        cipher: 'aes-256-gcm',
-        ciphertext: btoa(Math.random().toString(36) + Math.random().toString(36)),
-        salt: btoa(Math.random().toString(36).slice(2)),
-        kdf: 'scrypt',
-        kdfparams: {
-          n: 262144,
-          r: 8,
-          p: 1,
-          dklen: 32
-        }
-      },
-      timestamp: new Date().toISOString()
-    };
+    if (password.length < 8) {
+      alert('Password must be at least 8 characters long');
+      return;
+    }
+    
+    try {
+      // Create wallet adapter from current state
+      const wallet = createWalletAdapter({ addr, algorithm });
+      
+      // Export keystore with real encryption
+      const keystore = await exportKeystoreAPI(wallet, { password });
+      
+      // Serialize to JSON
+      const json = await serializeKeystore(keystore);
+      
+      // Download as JSON file
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Use first 8 chars of address for filename
+      const addrPrefix = addr.replace(/^pqc1(ml|slh)/, '').slice(0, 8);
+      a.download = `pqc-wallet-${addrPrefix}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-    // Download as JSON file
-    const blob = new Blob([JSON.stringify(keystore, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dytallix-keystore-${addr.slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    setExportSuccess(true);
-    setTimeout(() => {
-      setShowExportModal(false);
-      setExportSuccess(false);
-      setPassword("");
-    }, 2000);
+      setExportSuccess(true);
+      setTimeout(() => {
+        setShowExportModal(false);
+        setExportSuccess(false);
+        setPassword("");
+      }, 2000);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Failed to export keystore: ' + err.message);
+    }
   };
 
   const addGuardian = () => {
@@ -996,7 +999,7 @@ const DashboardPage = () => {
           const res = await fetch(`http://localhost:8787/api/nodes/${node.id}/status`);
           const data = await res.json();
           results[node.port] = { ...data, ...node, online: data.status === 'healthy' };
-        } catch (err) {
+        } catch {
           results[node.port] = { ...node, online: false };
         }
       }
