@@ -46,9 +46,14 @@ impl Msg {
                 if to.is_empty() {
                     return Err(anyhow!("to address cannot be empty"));
                 }
-                let up = denom.to_ascii_uppercase();
-                if up != "DGT" && up != "DRT" {
-                    return Err(anyhow!("unsupported denom: {}; valid: DGT, DRT", denom));
+                // Accept both uppercase (DGT, DRT) and lowercase micro-denoms (udgt, udrt)
+                let normalized = denom.to_ascii_lowercase();
+                if normalized != "dgt" && normalized != "drt" 
+                    && normalized != "udgt" && normalized != "udrt" {
+                    return Err(anyhow!(
+                        "unsupported denom: {}; valid: DGT, DRT, udgt, udrt", 
+                        denom
+                    ));
                 }
             }
         }

@@ -11,9 +11,14 @@ mod dilithium;
 #[cfg(feature = "pqc-real")]
 pub use dilithium::Dilithium as ActivePQC;
 
-#[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
+#[cfg(feature = "pqc-fips204")]
+mod dilithium_fips204;
+#[cfg(feature = "pqc-fips204")]
+pub use dilithium_fips204::Dilithium as ActivePQC;
+
+#[cfg(all(feature = "pqc-mock", not(any(feature = "pqc-real", feature = "pqc-fips204"))))]
 mod mock;
-#[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
+#[cfg(all(feature = "pqc-mock", not(any(feature = "pqc-real", feature = "pqc-fips204"))))]
 pub use mock::MockPQC as ActivePQC;
 
 // New multi-algorithm PQC verification module

@@ -37,6 +37,7 @@ impl Msg {
                 denom,
                 amount,
             } => {
+                eprintln!("[DEBUG msg validate] amount={}, denom='{}', from='{}', to='{}'", amount, denom, from, to);
                 if *amount == 0 {
                     return Err(anyhow!("amount cannot be zero"));
                 }
@@ -46,10 +47,14 @@ impl Msg {
                 if to.is_empty() {
                     return Err(anyhow!("to address cannot be empty"));
                 }
+                // Accept both micro-denominations (udgt, udrt) and whole tokens (DGT, DRT)
                 let up = denom.to_ascii_uppercase();
-                if up != "DGT" && up != "DRT" {
-                    return Err(anyhow!("unsupported denom: {}; valid: DGT, DRT", denom));
+                eprintln!("[DEBUG msg validate] denom uppercase: '{}', checking if DGT, DRT, UDGT, or UDRT", up);
+                if up != "DGT" && up != "DRT" && up != "UDGT" && up != "UDRT" {
+                    eprintln!("[DEBUG msg validate] ❌ DENOM VALIDATION FAILED: got '{}', expected DGT, DRT, udgt, or udrt", denom);
+                    return Err(anyhow!("unsupported denom: {}; valid: DGT, DRT, udgt, udrt", denom));
                 }
+                eprintln!("[DEBUG msg validate] ✅ Message validation passed");
             }
         }
         Ok(())
@@ -104,6 +109,11 @@ impl Tx {
     }
 
     pub fn validate(&self, expected_chain_id: &str) -> Result<()> {
+        eprintln!("[DEBUG validate] Comparing chain IDs:");
+        eprintln!("[DEBUG validate]   Expected: '{}' (len: {})", expected_chain_id, expected_chain_id.len());
+        eprintln!("[DEBUG validate]   Got:      '{}' (len: {})", self.chain_id, self.chain_id.len());
+        eprintln!("[DEBUG validate]   Match: {}", self.chain_id == expected_chain_id);
+        
         if self.chain_id != expected_chain_id {
             return Err(anyhow!(
                 "invalid chain_id: expected {}, got {}",
@@ -188,10 +198,16 @@ impl SignedTx {
         eprintln!("[DEBUG verify] Algorithm: {:?}", algorithm);
 
         // Use the new multi-algorithm verification
-        verify(&pk, &hash, &sig, algorithm)
-            .map_err(|e| anyhow!("signature verification failed: {}", e))?;
-
-        Ok(())
+        match verify(&pk, &hash, &sig, algorithm) {
+            Ok(()) => {
+                eprintln!("[DEBUG verify] ✅ SIGNATURE VERIFICATION PASSED!");
+                Ok(())
+            }
+            Err(e) => {
+                eprintln!("[DEBUG verify] ❌ SIGNATURE VERIFICATION FAILED: {}", e);
+                Err(anyhow!("signature verification failed: {}", e))
+            }
+        }
     }
 
     pub fn tx_hash(&self) -> Result<String> {

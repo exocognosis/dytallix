@@ -1,0 +1,21 @@
+{
+  "name": "pqc-wasm",
+  "type": "module",
+  "description": "CRYSTALS-Dilithium3 WASM bindings for Dytallix",
+  "version": "0.1.0",
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dytallix/dytallix"
+  },
+  "files": [
+    "pqc_wasm_bg.wasm",
+    "pqc_wasm.js",
+    "pqc_wasm.d.ts"
+  ],
+  "main": "pqc_wasm.js",
+  "types": "pqc_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WASM PQC Test</title>
+</head>
+<body>
+    <h1>Testing WASM PQC Module</h1>
+    <div id="output"></div>
+    
+    <script type="module">
+        const output = document.getElementById('output');
+        
+        function log(msg) {
+            output.innerHTML += msg + '<br>';
+            console.log(msg);
+        }
+        
+        async function test() {
+            try {
+                log('Loading WASM module...');
+                
+                // Fetch and load the WASM module
+                const wasmUrl = '/wasm/pqc_wasm_bg.wasm';
+                const jsUrl = '/wasm/pqc_wasm.js';
+                
+                log('Fetching JS glue...');
+                const jsResponse = await fetch(jsUrl);
+                const jsText = await jsResponse.text();
+                
+                log('Creating module blob...');
+                const modifiedJs = jsText.replace(
+                    "new URL('pqc_wasm_bg.wasm', import.meta.url)",
+                    `'${wasmUrl}'`
+                );
+                
+                const blob = new Blob([modifiedJs], { type: 'application/javascript' });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                log('Importing module...');
+                const module = await import(blobUrl);
+                
+                log('Initializing WASM...');
+                await module.default(wasmUrl);
+                
+                log('✅ WASM initialized!');
+                log('Version: ' + module.version());
+                log('Dilithium available: ' + module.dilithium_available());
+                
+                log('Generating keypair...');
+                const kpJson = module.keygen();
+                const kp = JSON.parse(kpJson);
+                
+                log('✅ Keypair generated!');
+                log('Address: ' + kp.address);
+                log('Algorithm: ' + kp.algo);
+                
+                log('Testing sign/verify...');
+                const msg = new TextEncoder().encode('Hello PQC!');
+                const sig = module.sign(msg, kp.sk);
+                const verified = module.verify(msg, sig, kp.pk);
+                
+                log('✅ Signature verified: ' + verified);
+                
+                URL.revokeObjectURL(blobUrl);
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        test();
+    </script>
+</body>
+</html>

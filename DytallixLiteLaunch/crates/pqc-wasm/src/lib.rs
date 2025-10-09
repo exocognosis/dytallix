@@ -3,8 +3,8 @@ use serde::{Serialize, Deserialize};
 use sha2::{Digest, Sha256};
 use bech32::{ToBase32, Variant, encode as bech32_encode};
 
-use pqcrypto_dilithium::dilithium3;
-use pqcrypto_traits::sign::{DetachedSignature, PublicKey, SecretKey};
+use fips204::ml_dsa_65; // ML-DSA-65 is equivalent to Dilithium3
+use fips204::traits::{SerDes, Signer, Verifier};
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine as _;
 use zeroize::Zeroize;
@@ -24,13 +24,7 @@ fn bech32_from_pk(pk: &[u8], hrp: &str) -> String {
 }
 
 #[wasm_bindgen]
-pub fn version() -> String { "pqc-wasm 0.1.0".to_string() }
-
-/*
-  TODO (WASM PQC): Replace the non-wasm-only PQC with a WASM-compatible Dilithium implementation.
-  Options: pure-Rust Dilithium that compiles to wasm32-unknown-unknown, or JS/WASM binding.
-  Keep feature flags and cfg guards so native builds continue to use pqcrypto-dilithium.
-*/
+pub fn version() -> String { "pqc-wasm 0.1.0 (FIPS 204 ML-DSA-65)".to_string() }
 
 #[wasm_bindgen]
 pub fn dilithium_available() -> bool {
@@ -39,12 +33,15 @@ pub fn dilithium_available() -> bool {
 
 #[wasm_bindgen]
 pub fn keygen() -> JsValue {
-    let (pk, sk) = dilithium3::keypair();
-    let addr = bech32_from_pk(pk.as_bytes(), "dyt");
+    let (pk, sk) = ml_dsa_65::try_keygen().expect("keygen failed");
+    let pk_bytes = pk.clone().into_bytes();
+    let sk_bytes = sk.into_bytes();
+    let addr = bech32_from_pk(&pk_bytes, "dyt");
+    
     let out = KeypairOut {
-        algo: "pqc/dilithium3".into(),
-        pk: b64(pk.as_bytes()),
-        sk: b64(sk.as_bytes()),
+        algo: "fips204/ml-dsa-65".into(),
+        pk: b64(&pk_bytes),
+        sk: b64(&sk_bytes),
         address: addr,
     };
     JsValue::from_str(&serde_json::to_string(&out).unwrap())
@@ -53,18 +50,49 @@ pub fn keygen() -> JsValue {
 #[wasm_bindgen(js_name = "sign")]
 pub fn sign(message: &[u8], sk_b64: &str) -> String {
     let mut sk_bytes = b64d(sk_b64);
-    let sk = dilithium3::SecretKey::from_bytes(&sk_bytes).expect("sk");
-    let sig: DetachedSignature = dilithium3::detached_sign(message, &sk);
+    
+    // ML-DSA-65 (Dilithium3) secret key size is 4032 bytes
+    if sk_bytes.len() != 4032 {
+        sk_bytes.zeroize();
+        panic!("Invalid secret key length: {} (expected 4032)", sk_bytes.len());
+    }
+    
+    let sk_array: [u8; 4032] = sk_bytes[..4032].try_into().expect("sk size");
+    let sk = ml_dsa_65::PrivateKey::try_from_bytes(sk_array)
+        .expect("invalid secret key");
+    
+    let sig_bytes = sk.try_sign(message, &[]).expect("signing failed");
+    
     // Zeroize temporary secret buffer ASAP
     sk_bytes.zeroize();
-    b64(sig.as_bytes())
+    b64(&sig_bytes)
 }
 
 #[wasm_bindgen]
 pub fn verify(message: &[u8], sig_b64: &str, pk_b64: &str) -> bool {
-    let pk = match dilithium3::PublicKey::from_bytes(&b64d(pk_b64)) { Ok(v)=>v, Err(_)=> return false };
-    let sig = match dilithium3::DetachedSignature::from_bytes(&b64d(sig_b64)) { Ok(v)=>v, Err(_)=> return false };
-    dilithium3::verify_detached_signature(&sig, message, &pk).is_ok()
+    let pk_bytes = b64d(pk_b64);
+    let sig_bytes = b64d(sig_b64);
+    
+    // ML-DSA-65 public key is 1952 bytes, signature is 3309 bytes
+    if pk_bytes.len() != 1952 || sig_bytes.len() != 3309 {
+        return false;
+    }
+    
+    let pk_array: [u8; 1952] = match pk_bytes.try_into() {
+        Ok(arr) => arr,
+        Err(_) => return false,
+    };
+    let sig_array: [u8; 3309] = match sig_bytes.try_into() {
+        Ok(arr) => arr,
+        Err(_) => return false,
+    };
+    
+    let pk = match ml_dsa_65::PublicKey::try_from_bytes(pk_array) {
+        Ok(key) => key,
+        Err(_) => return false,
+    };
+    
+    pk.verify(message, &sig_array, &[])
 }
 
 #[wasm_bindgen]
@@ -78,14 +106,6 @@ pub fn dilithium_sign(message: &[u8], sk_b64: &str) -> String {
     sign(message, sk_b64)
 }
 
-#[wasm_bindgen]
-pub fn verify_sm(signed_message_b64: &str, pk_b64: &str) -> bool {
-    let pk = match dilithium3::PublicKey::from_bytes(&b64d(pk_b64)) { Ok(v)=>v, Err(_)=> return false };
-    let sm_bytes = b64d(signed_message_b64);
-    let sm = match dilithium3::SignedMessage::from_bytes(&sm_bytes) { Ok(v)=>v, Err(_)=> return false };
-    dilithium3::open(&sm, &pk).map(|_| ()).is_ok()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,10 +115,10 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn roundtrip() {
-        let (pk, sk) = dilithium3::keypair();
+        let (pk, sk) = ml_dsa_65::try_keygen().expect("keygen");
         let msg = b"hello pqc";
-        let sig = dilithium3::detached_sign(msg, &sk);
-        assert!(dilithium3::verify_detached_signature(&sig, msg, &pk).is_ok());
+        let sig = sk.try_sign(msg, &[]).expect("sign");
+        assert!(pk.verify(msg, &sig, &[]).is_ok());
     }
 
     #[wasm_bindgen_test]

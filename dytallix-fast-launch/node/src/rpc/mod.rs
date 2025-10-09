@@ -123,33 +123,47 @@ fn validate_signed_tx(
     // Add transaction fee (always in udgt for now)
     let fee_denom = "udgt".to_string();
     required_per_denom.insert(fee_denom.clone(), signed_tx.tx.fee);
+    eprintln!("[DEBUG balance calc] Fee: {} {}", signed_tx.tx.fee, fee_denom);
 
     // Add amounts from messages
     for msg in &signed_tx.tx.msgs {
         match msg {
             Msg::Send { denom, amount, .. } => {
-                // Convert DGT/DRT to micro denominations
-                let micro_denom = match denom.to_ascii_uppercase().as_str() {
-                    "DGT" => "udgt",
-                    "DRT" => "udrt",
-                    _ => denom.as_str(), // Pass through other denoms
+                // Normalize denomination to lowercase micro-denom
+                let normalized_denom = denom.to_ascii_lowercase();
+                
+                // If uppercase macro-denom (DGT/DRT) is used, convert to micro-denom
+                // Otherwise assume it's already a micro-denom (udgt/udrt)
+                let (micro_denom, micro_amount) = match normalized_denom.as_str() {
+                    "dgt" => ("udgt", amount.saturating_mul(1_000_000)),
+                    "drt" => ("udrt", amount.saturating_mul(1_000_000)),
+                    "udgt" | "udrt" => (normalized_denom.as_str(), *amount),
+                    _ => (normalized_denom.as_str(), *amount), // Pass through unknown denoms as-is
                 };
 
+                eprintln!("[DEBUG balance calc] Message: {} {} → {} {}", amount, denom, micro_amount, micro_denom);
                 let current = required_per_denom.get(micro_denom).copied().unwrap_or(0);
-                required_per_denom.insert(micro_denom.to_string(), current.saturating_add(*amount));
+                let new_total = current.saturating_add(micro_amount);
+                eprintln!("[DEBUG balance calc] Running total for {}: {} + {} = {}", micro_denom, current, micro_amount, new_total);
+                required_per_denom.insert(micro_denom.to_string(), new_total);
             }
         }
     }
+    
+    eprintln!("[DEBUG balance calc] Final required amounts: {:?}", required_per_denom);
 
     // Check balance for each required denomination
     for (denom, required_amount) in required_per_denom {
         let available = account_state.balance_of(&denom);
+        eprintln!("[DEBUG balance check] Checking {} balance: required={}, available={}", denom, required_amount, available);
         if available < required_amount {
+            eprintln!("[DEBUG balance check] ❌ INSUFFICIENT FUNDS: need {} but only have {}", required_amount, available);
             return Err(ValidationError::InsufficientFunds {
                 required: required_amount,
                 available,
             });
         }
+        eprintln!("[DEBUG balance check] ✅ Sufficient {} balance", denom);
     }
 
     Ok(())
@@ -323,62 +337,30 @@ pub async fn submit(
     legacy_tx.denom = first_denom;
     legacy_tx = legacy_tx.with_messages(tx_messages);
 
-    // Additional validation using legacy system
-    {
-        let state = ctx.state.lock().unwrap();
-        if let Err(e) = basic_validate(&state, &legacy_tx) {
-            if e.starts_with("InvalidNonce") {
-                append_submit_log(&base_log(
-                    false,
-                    json!({
-                        "error": "INVALID_NONCE", "expected": current_nonce, "got": signed_tx.tx.nonce, "tx_hash": tx_hash
-                    }),
-                ));
-                return Err(ApiError::InvalidNonce {
-                    expected: current_nonce,
-                    got: signed_tx.tx.nonce,
-                });
-            }
-            if e.contains("InsufficientBalance") {
-                append_submit_log(&base_log(
-                    false,
-                    json!({
-                        "error": "INSUFFICIENT_FUNDS", "tx_hash": tx_hash
-                    }),
-                ));
-                return Err(ApiError::InsufficientFunds);
-            }
-            append_submit_log(&base_log(
-                false,
-                json!({
-                    "error": "INTERNAL_ERROR", "message": e, "tx_hash": tx_hash
-                }),
-            ));
-            return Err(ApiError::Internal);
-        }
+    // Set gas parameters before mempool validation
+    let min_gas_price = ctx.mempool.lock().unwrap().config().min_gas_price;
+    legacy_tx.gas_price = min_gas_price;
+    if legacy_tx.gas_limit == 0 {
+        // Default legacy gas limit: ENV override -> governance parameter
+        let fallback_gas_limit = std::env::var("DYTALLIX_DEFAULT_GAS_LIMIT")
+            .ok()
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or_else(|| {
+                // Read from governance config as the canonical default
+                let gov = ctx.governance.lock().unwrap();
+                gov.get_config().gas_limit
+            });
+        legacy_tx.gas_limit = fallback_gas_limit;
     }
 
-    // Add to mempool
+    // Add to mempool (mempool will perform full validation including gas cost)
     let state_snapshot = {
         // Clone so we can drop the lock before touching the mempool
         ctx.state.lock().unwrap().clone()
     };
     {
         let mut mempool = ctx.mempool.lock().unwrap();
-        let min_gas_price = mempool.config().min_gas_price;
-        legacy_tx.gas_price = min_gas_price;
-        if legacy_tx.gas_limit == 0 {
-            // Default legacy gas limit: ENV override -> governance parameter
-            let fallback_gas_limit = std::env::var("DYTALLIX_DEFAULT_GAS_LIMIT")
-                .ok()
-                .and_then(|s| s.parse::<u64>().ok())
-                .unwrap_or_else(|| {
-                    // Read from governance config as the canonical default
-                    let gov = ctx.governance.lock().unwrap();
-                    gov.get_config().gas_limit
-                });
-            legacy_tx.gas_limit = fallback_gas_limit;
-        }
+        // Gas parameters already set above
         // Use add_transaction directly to capture detailed rejection reasons
         if let Err(reason) = mempool.add_transaction_trusted(&state_snapshot, legacy_tx.clone()) {
             let (api_err, code) = match reason {

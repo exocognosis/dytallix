@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { exportKeystore as exportKeystoreAPI, serializeKeystore } from './wallet/keystore/index.js';
 import { createWalletAdapter } from './wallet/pqc.js';
+import * as PQCWallet from './wallet/pqc-wallet.js';
 import { copyToClipboard } from './utils/clipboard.js';
 import { truncateAddress } from './utils/format.js';
 
@@ -413,6 +414,14 @@ const WalletPage = () => {
     try {
       const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
       
+      // Get current wallet's keys
+      const currentWallet = wallets.find(w => w.id === activeWalletId);
+      if (!currentWallet || !currentWallet.secretKey) {
+        throw new Error('Wallet keys not found. Please recreate your wallet.');
+      }
+      
+      console.log('🔐 Signing transaction with PQC keys...');
+      
       // Convert amount to micro-units
       const amountNum = parseFloat(txForm.amount);
       if (isNaN(amountNum) || amountNum <= 0) {
@@ -420,19 +429,56 @@ const WalletPage = () => {
       }
       const microAmount = Math.floor(amountNum * 1_000_000);
       
-      // For demo, we'll use the dev/faucet endpoint to simulate the transaction
-      // In production, this would call /api/wallet/sign-and-submit
-      const payload = {
-        from: fullAddr,
-        to: txForm.to,
-        amount: microAmount.toString(),
-        denom: txForm.denom.toLowerCase(),
+      // Get current nonce for the sender
+      const accountResponse = await fetch(`${rpcUrl}/account/${fullAddr}`);
+      if (!accountResponse.ok) {
+        throw new Error('Failed to fetch account nonce');
+      }
+      const accountData = await accountResponse.json();
+      const nonce = accountData.nonce || 0;
+      
+      // Create the transaction object
+      const txObj = {
+        chain_id: "dyt-local-1",
+        fee: "1000", // 1000 micro-units fee (must be string)
+        nonce: nonce,
         memo: txForm.memo || '',
+        msgs: [
+          {
+            type: 'send',  // Required for Rust enum deserialization
+            from: fullAddr,
+            to: txForm.to,
+            amount: String(microAmount),  // Must be string
+            denom: txForm.denom  // Backend expects DGT or DRT (not udgt/udrt)
+          }
+        ]
       };
       
-      // Simulate transaction submission
-      // TODO: Replace with real backend signing when wallet encryption is implemented
-      const txHash = 'tx_' + Math.random().toString(36).substr(2, 16);
+      // Sign transaction with real PQC signature
+      const signedTx = await PQCWallet.signTransaction(
+        txObj,
+        currentWallet.secretKey,
+        currentWallet.publicKey
+      );
+      
+      console.log('✅ Transaction signed successfully');
+      
+      // Submit transaction to backend
+      const submitResponse = await fetch(`${rpcUrl}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signed_tx: signedTx })
+      });
+      
+      if (!submitResponse.ok) {
+        const errorText = await submitResponse.text();
+        throw new Error(`Transaction failed: ${submitResponse.status} ${errorText}`);
+      }
+      
+      const result = await submitResponse.json();
+      const txHash = result.tx_hash || result.hash || ('tx_' + Math.random().toString(36).substr(2, 16));
+      
+      console.log('✅ Transaction submitted:', txHash);
       
       // Save to history
       const tx = {
@@ -443,12 +489,12 @@ const WalletPage = () => {
         amount: amountNum,
         denom: txForm.denom,
         memo: txForm.memo,
-        status: 'confirmed',
+        status: 'pending',
         timestamp: new Date().toISOString(),
       };
       saveTransaction(tx);
       
-      // Update local balances (demo only)
+      // Update local balances (will be corrected by next balance refresh)
       const currentBal = getAddressBalances(fullAddr);
       const newBal = {
         ...currentBal,
@@ -505,34 +551,48 @@ const WalletPage = () => {
     }
   };
   
-  const create = () => {
-    // Placeholder wallet generation (UI only). Hook into real SDK later.
-    const prefix = algorithm === 'ML-DSA' ? 'pqc1ml' : 'pqc1slh';
-    const random1 = Math.random().toString(36).slice(2,10);
-    const random2 = Math.random().toString(36).slice(2,6);
-    const full = prefix + random1 + random2; // Full address
-    const truncated = prefix + random1 + '...' + random2; // Truncated for display
-    
-    const walletId = `wallet-${Date.now()}-${Math.random().toString(36).slice(2,9)}`;
-    const walletData = {
-      id: walletId,
-      fullAddr: full,
-      addr: truncated,
-      algorithm: algorithm,
-      guardians: [],
-      createdAt: new Date().toISOString(),
-      name: `Wallet ${wallets.length + 1} (${algorithm})`,
-    };
-    
-    // Add to wallets array
-    const newWallets = [...wallets, walletData];
-    setWallets(newWallets);
-    localStorage.setItem('dytallix_wallets', JSON.stringify(newWallets));
-    
-    // Set as active wallet
-    loadWallet(walletData);
-    setActiveWalletId(walletId);
-    localStorage.setItem('dytallix_active_wallet_id', walletId);
+  const create = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Generate real PQC keypair using WASM module
+      console.log('🔐 Generating PQC keypair...');
+      const keypair = await PQCWallet.generateKeypair();
+      console.log('✅ PQC keypair generated:', {
+        address: keypair.address,
+        algorithm: keypair.algorithm
+      });
+      
+      const walletId = `wallet-${Date.now()}-${Math.random().toString(36).slice(2,9)}`;
+      const walletData = {
+        id: walletId,
+        fullAddr: keypair.address,
+        addr: truncateAddress(keypair.address),
+        algorithm: algorithm,
+        publicKey: keypair.publicKey,  // Store base64-encoded public key
+        secretKey: keypair.secretKey,  // Store base64-encoded secret key (encrypted in production!)
+        guardians: [],
+        createdAt: new Date().toISOString(),
+        name: `Wallet ${wallets.length + 1} (${algorithm})`,
+      };
+      
+      // Add to wallets array
+      const newWallets = [...wallets, walletData];
+      setWallets(newWallets);
+      localStorage.setItem('dytallix_wallets', JSON.stringify(newWallets));
+      
+      // Set as active wallet
+      loadWallet(walletData);
+      setActiveWalletId(walletId);
+      localStorage.setItem('dytallix_active_wallet_id', walletId);
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('❌ Failed to create wallet:', err);
+      setError('Failed to create wallet: ' + err.message);
+      setLoading(false);
+    }
   };
 
   const refreshBalances = () => {

@@ -123,23 +123,35 @@ fn validate_signed_tx(
     // Add transaction fee (always in udgt for now)
     let fee_denom = "udgt".to_string();
     required_per_denom.insert(fee_denom.clone(), signed_tx.tx.fee);
+    eprintln!("[DEBUG balance] Fee: {} {}", signed_tx.tx.fee, fee_denom);
 
     // Add amounts from messages
     for msg in &signed_tx.tx.msgs {
         match msg {
             Msg::Send { denom, amount, .. } => {
-                // Convert DGT/DRT to micro denominations
-                let micro_denom = match denom.to_ascii_uppercase().as_str() {
-                    "DGT" => "udgt",
-                    "DRT" => "udrt",
-                    _ => denom.as_str(), // Pass through other denoms
+                // Convert DGT/DRT to micro denominations (udgt/udrt)
+                // If already in micro-denom, use as-is
+                let (micro_denom, micro_amount) = match denom.to_ascii_lowercase().as_str() {
+                    "dgt" => ("udgt", amount.saturating_mul(1_000_000)),
+                    "drt" => ("udrt", amount.saturating_mul(1_000_000)),
+                    "udgt" => ("udgt", *amount),
+                    "udrt" => ("udrt", *amount),
+                    _ => (denom.as_str(), *amount),
                 };
 
+                eprintln!("[DEBUG balance] msg denom={}, amount={} -> micro_denom={}, micro_amount={}", 
+                    denom, amount, micro_denom, micro_amount);
+
                 let current = required_per_denom.get(micro_denom).copied().unwrap_or(0);
-                required_per_denom.insert(micro_denom.to_string(), current.saturating_add(*amount));
+                let new_total = current.saturating_add(micro_amount);
+                eprintln!("[DEBUG balance] Running total for {}: {} + {} = {}", 
+                    micro_denom, current, micro_amount, new_total);
+                required_per_denom.insert(micro_denom.to_string(), new_total);
             }
         }
     }
+
+    eprintln!("[DEBUG balance] Final required amounts: {:?}", required_per_denom);
 
     // Check balance for each required denomination
     for (denom, required_amount) in required_per_denom {

@@ -18,7 +18,12 @@ use pqcrypto_falcon::falcon1024;
 #[cfg(all(feature = "pqc-real", feature = "sphincs"))]
 use pqcrypto_sphincsplus::sphincssha2128ssimple;
 #[cfg(feature = "pqc-real")]
-use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SignedMessage};
+use pqcrypto_traits::sign::{DetachedSignature as _, PublicKey as SignPublicKey, SignedMessage};
+
+#[cfg(feature = "pqc-fips204")]
+use fips204::ml_dsa_65;
+#[cfg(feature = "pqc-fips204")]
+use fips204::traits::{SerDes, Verifier};
 
 /// PQC algorithm identifiers
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -104,7 +109,7 @@ pub fn verify(
     sig: &[u8],
     alg: PQCAlgorithm,
 ) -> Result<(), PQCVerifyError> {
-    #[cfg(not(feature = "pqc-real"))]
+    #[cfg(not(any(feature = "pqc-real", feature = "pqc-fips204")))]
     {
         // Mock verification for testing - always returns true for non-empty inputs
         if pubkey.is_empty() || msg.is_empty() || sig.is_empty() {
@@ -117,7 +122,15 @@ pub fn verify(
         return Ok(());
     }
 
-    #[cfg(feature = "pqc-real")]
+    #[cfg(feature = "pqc-fips204")]
+    {
+        return match alg {
+            PQCAlgorithm::Dilithium5 => verify_dilithium5_fips204(pubkey, msg, sig),
+            _ => Err(PQCVerifyError::UnsupportedAlgorithm(alg.as_str().to_string())),
+        };
+    }
+
+    #[cfg(all(feature = "pqc-real", not(feature = "pqc-fips204")))]
     {
         match alg {
             PQCAlgorithm::Dilithium5 => verify_dilithium5(pubkey, msg, sig),
@@ -162,10 +175,21 @@ fn verify_dilithium5(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCVer
         }
     })?;
 
+    // Try detached signature first (standard format for FIPS 204 / ML-DSA)
+    if let Ok(detached_sig) = dilithium5::DetachedSignature::from_bytes(sig) {
+        return match dilithium5::verify_detached_signature(&detached_sig, msg, &pk) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(PQCVerifyError::VerificationFailed {
+                algorithm: "dilithium5".to_string(),
+            }),
+        };
+    }
+
+    // Fallback: try SignedMessage format (legacy compatibility)
     let signed_msg = dilithium5::SignedMessage::from_bytes(sig).map_err(|_| {
         PQCVerifyError::InvalidSignature {
             algorithm: "dilithium5".to_string(),
-            details: "Invalid signed message format".to_string(),
+            details: "Invalid signature format (neither detached nor signed message)".to_string(),
         }
     })?;
 
@@ -369,5 +393,46 @@ mod tests {
             }
             _ => panic!("Expected FeatureNotCompiled error"),
         }
+    }
+}
+
+#[cfg(feature = "pqc-fips204")]
+fn verify_dilithium5_fips204(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCVerifyError> {
+    // FIPS 204 ML-DSA-65 (Dilithium5)
+    let pk_array: [u8; ml_dsa_65::PK_LEN] = pubkey.try_into().map_err(|_| {
+        PQCVerifyError::InvalidPublicKey {
+            algorithm: "dilithium5".to_string(),
+            details: format!(
+                "Expected {} bytes, got {}",
+                ml_dsa_65::PK_LEN,
+                pubkey.len()
+            ),
+        }
+    })?;
+
+    let pk_obj = ml_dsa_65::PublicKey::try_from_bytes(pk_array).map_err(|_| {
+        PQCVerifyError::InvalidPublicKey {
+            algorithm: "dilithium5".to_string(),
+            details: "Invalid public key format".to_string(),
+        }
+    })?;
+
+    let sig_array: [u8; ml_dsa_65::SIG_LEN] = sig.try_into().map_err(|_| {
+        PQCVerifyError::InvalidSignature {
+            algorithm: "dilithium5".to_string(),
+            details: format!(
+                "Expected {} bytes, got {}",
+                ml_dsa_65::SIG_LEN,
+                sig.len()
+            ),
+        }
+    })?;
+
+    if pk_obj.verify(msg, &sig_array, &[]) {
+        Ok(())
+    } else {
+        Err(PQCVerifyError::VerificationFailed {
+            algorithm: "dilithium5".to_string(),
+        })
     }
 }
