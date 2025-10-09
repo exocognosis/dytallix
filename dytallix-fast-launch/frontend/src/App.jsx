@@ -315,6 +315,8 @@ const WalletPage = () => {
   const [newGuardian, setNewGuardian] = useState("");
   const [copied, setCopied] = useState(false);
   const [balances, setBalances] = useState({ DGT: 0, DRT: 0 });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   
   // Transaction state
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -887,8 +889,17 @@ const WalletPage = () => {
                 <div className="text-xs font-normal opacity-70">SPHINCS+ (Stateless)</div>
               </button>
             </div>
-            <button onClick={create} className="mt-6 w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition">
-              Generate PQC Wallet
+            {error && (
+              <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+                {error}
+              </div>
+            )}
+            <button 
+              onClick={create} 
+              disabled={loading}
+              className="mt-6 w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Generating...' : 'Generate PQC Wallet'}
             </button>
             <div className="mt-4 text-xs text-neutral-500 text-center">
               Generation takes 1-2 seconds • ML-DSA recommended for most use cases
