@@ -450,8 +450,8 @@ const WalletPage = () => {
             type: 'send',  // Required for Rust enum deserialization
             from: fullAddr,
             to: txForm.to,
-            amount: String(microAmount),  // Must be string
-            denom: txForm.denom  // Backend expects DGT or DRT (not udgt/udrt)
+            amount: String(microAmount),  // Amount in micro-units (string)
+            denom: txForm.denom.toLowerCase() === 'dgt' ? 'udgt' : 'udrt'  // Backend expects udgt/udrt micro-denominations
           }
         ]
       };
@@ -1046,6 +1046,18 @@ const WalletPage = () => {
               </div>
             )}
             <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+              <button
+                onClick={() => {
+                  setCreated(false);
+                  setAddr("");
+                  setFullAddr("");
+                  setAlgorithm('ML-DSA');
+                  setError(null);
+                }}
+                className="w-full px-5 py-3 rounded-2xl border-2 border-white/20 hover:border-white/40 hover:bg-white/5 text-white text-center font-semibold transition"
+              >
+                ➕ Create New Wallet
+              </button>
               <a href="#/faucet" className="block w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-center font-semibold hover:opacity-90 transition">
                 Get Test Tokens from Faucet →
               </a>
