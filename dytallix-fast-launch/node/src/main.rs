@@ -11,6 +11,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::time::interval;
+use tower_http::cors::{CorsLayer, Any};
 
 // Replace crate:: module imports with library crate path so binary can access lib modules
 use dytallix_fast_node::alerts::{load_alerts_config, AlertsEngine, NodeMetricsGatherer};
@@ -702,6 +703,15 @@ async fn main() -> anyhow::Result<()> {
         );
 
     app = app.layer(Extension(ctx));
+    
+    // Add CORS middleware to allow frontend requests
+    app = app.layer(
+        CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods(Any)
+            .allow_headers(Any)
+    );
+    
     if ws_enabled {
         app = app.route("/ws", get(ws_handler).layer(Extension(ws_hub)));
     }

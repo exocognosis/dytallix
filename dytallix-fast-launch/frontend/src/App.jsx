@@ -1482,7 +1482,16 @@ const FaucetPage = () => {
       creditBalance(addr, token, token === 'DGT' ? 100 : 1000);
     } catch (err) {
       console.error('Faucet error:', err);
-      setError(err.message || 'Failed to request tokens');
+      // Provide more detailed error messages
+      let errorMsg = 'Failed to request tokens';
+      if (err.message.includes('fetch')) {
+        errorMsg = 'Cannot connect to backend node. Make sure the node is running on port 3030.';
+      } else if (err.message.includes('Failed to fetch')) {
+        errorMsg = 'Network error: Cannot reach the faucet endpoint. Check if the node is running.';
+      } else {
+        errorMsg = err.message;
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
