@@ -299,6 +299,9 @@ const Home = () => (
 );
 
 const WalletPage = () => {
+  // Multi-wallet support
+  const [wallets, setWallets] = useState([]);
+  const [activeWalletId, setActiveWalletId] = useState(null);
   const [created, setCreated] = useState(false);
   const [addr, setAddr] = useState("");
   const [fullAddr, setFullAddr] = useState(""); // Store full address separately
@@ -327,25 +330,38 @@ const WalletPage = () => {
   const [transactions, setTransactions] = useState([]);
   const [paymentRequestLink, setPaymentRequestLink] = useState('');
   
-  // Load wallet from localStorage on mount
+  // Load wallets from localStorage on mount
   useEffect(() => {
-    const savedWallet = localStorage.getItem('dytallix_wallet');
-    if (savedWallet) {
+    const savedWallets = localStorage.getItem('dytallix_wallets');
+    const savedActiveId = localStorage.getItem('dytallix_active_wallet_id');
+    
+    if (savedWallets) {
       try {
-        const wallet = JSON.parse(savedWallet);
-        setFullAddr(wallet.fullAddr);
-        setAddr(wallet.addr);
-        setAlgorithm(wallet.algorithm);
-        setGuardians(wallet.guardians || []);
-        setCreated(true);
-        // Load balances
-        setBalances(getAddressBalances(wallet.fullAddr));
+        const walletsData = JSON.parse(savedWallets);
+        setWallets(walletsData);
+        
+        // Load active wallet
+        if (savedActiveId && walletsData.length > 0) {
+          const activeWallet = walletsData.find(w => w.id === savedActiveId);
+          if (activeWallet) {
+            loadWallet(activeWallet);
+            setActiveWalletId(savedActiveId);
+          } else {
+            // Load first wallet if active not found
+            loadWallet(walletsData[0]);
+            setActiveWalletId(walletsData[0].id);
+          }
+        } else if (walletsData.length > 0) {
+          // Load first wallet by default
+          loadWallet(walletsData[0]);
+          setActiveWalletId(walletsData[0].id);
+        }
       } catch (err) {
-        console.error('Failed to load wallet from localStorage:', err);
+        console.error('Failed to load wallets from localStorage:', err);
       }
     }
     
-    // Load transaction history
+    // Load transaction history for all wallets
     const savedTxs = localStorage.getItem('dytallix_transactions');
     if (savedTxs) {
       try {
@@ -355,6 +371,26 @@ const WalletPage = () => {
       }
     }
   }, []);
+  
+  // Helper function to load a wallet
+  const loadWallet = (wallet) => {
+    setFullAddr(wallet.fullAddr);
+    setAddr(wallet.addr);
+    setAlgorithm(wallet.algorithm);
+    setGuardians(wallet.guardians || []);
+    setCreated(true);
+    setBalances(getAddressBalances(wallet.fullAddr));
+  };
+  
+  // Switch to a different wallet
+  const switchWallet = (walletId) => {
+    const wallet = wallets.find(w => w.id === walletId);
+    if (wallet) {
+      loadWallet(wallet);
+      setActiveWalletId(walletId);
+      localStorage.setItem('dytallix_active_wallet_id', walletId);
+    }
+  };
   
   // Save transactions to localStorage
   const saveTransaction = (tx) => {
@@ -477,20 +513,26 @@ const WalletPage = () => {
     const full = prefix + random1 + random2; // Full address
     const truncated = prefix + random1 + '...' + random2; // Truncated for display
     
+    const walletId = `wallet-${Date.now()}-${Math.random().toString(36).slice(2,9)}`;
     const walletData = {
+      id: walletId,
       fullAddr: full,
       addr: truncated,
       algorithm: algorithm,
       guardians: [],
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      name: `Wallet ${wallets.length + 1} (${algorithm})`,
     };
     
-    // Save to localStorage
-    localStorage.setItem('dytallix_wallet', JSON.stringify(walletData));
+    // Add to wallets array
+    const newWallets = [...wallets, walletData];
+    setWallets(newWallets);
+    localStorage.setItem('dytallix_wallets', JSON.stringify(newWallets));
     
-    setFullAddr(full);
-    setAddr(truncated);
-    setCreated(true);
+    // Set as active wallet
+    loadWallet(walletData);
+    setActiveWalletId(walletId);
+    localStorage.setItem('dytallix_active_wallet_id', walletId);
   };
 
   const refreshBalances = () => {
@@ -611,19 +653,68 @@ const WalletPage = () => {
   
   const deleteWallet = () => {
     if (confirm('Are you sure you want to delete this wallet? This action cannot be undone. Make sure you have exported your keystore first!')) {
-      localStorage.removeItem('dytallix_wallet');
-      setCreated(false);
-      setAddr("");
-      setFullAddr("");
-      setAlgorithm('ML-DSA');
-      setGuardians([]);
-      setBalances({ DGT: 0, DRT: 0 });
+      // Remove current wallet from the list
+      const newWallets = wallets.filter(w => w.id !== activeWalletId);
+      setWallets(newWallets);
+      localStorage.setItem('dytallix_wallets', JSON.stringify(newWallets));
+      
+      // Load another wallet if available, otherwise reset
+      if (newWallets.length > 0) {
+        loadWallet(newWallets[0]);
+        setActiveWalletId(newWallets[0].id);
+        localStorage.setItem('dytallix_active_wallet_id', newWallets[0].id);
+      } else {
+        // No wallets left
+        setCreated(false);
+        setAddr("");
+        setFullAddr("");
+        setAlgorithm('ML-DSA');
+        setGuardians([]);
+        setBalances({ DGT: 0, DRT: 0 });
+        setActiveWalletId(null);
+        localStorage.removeItem('dytallix_active_wallet_id');
+      }
     }
   };
   return (
     <Page>
       <h1 className="text-3xl md:text-4xl font-extrabold">PQC Wallet</h1>
       <p className="mt-3 text-neutral-300 max-w-prose">Create and manage a quantum-resistant wallet secured by NIST-standardized post-quantum cryptography. Your keys never leave your device.</p>
+      
+      {/* Wallet Switcher */}
+      {wallets.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-neutral-400 font-medium">Active Wallet:</div>
+              <select
+                value={activeWalletId || ''}
+                onChange={(e) => switchWallet(e.target.value)}
+                className="px-4 py-2 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white text-sm cursor-pointer font-semibold"
+              >
+                {wallets.map((wallet) => (
+                  <option key={wallet.id} value={wallet.id}>
+                    {wallet.name} - {wallet.addr}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-neutral-500">
+              <span>{wallets.length} wallet{wallets.length !== 1 ? 's' : ''} total</span>
+              <span>•</span>
+              <button 
+                onClick={() => {
+                  setCreated(false);
+                  setAlgorithm('ML-DSA');
+                }}
+                className="text-blue-400 hover:text-blue-300 underline"
+              >
+                + Create New Wallet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Wallet Features */}
       <div className="mt-8 grid md:grid-cols-2 gap-6">
@@ -702,9 +793,9 @@ const WalletPage = () => {
       </div>
 
       {/* Wallet Generator and Transaction Actions Grid */}
-      <div className="mt-8 grid lg:grid-cols-2 gap-6">
+      <div className="mt-8 grid lg:grid-cols-2 gap-6 lg:items-start">
         {/* Wallet Generator */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 h-full flex flex-col">
           <div className="mb-4">
             <div className="font-semibold text-lg">Create Your Wallet</div>
             <div className="text-xs text-neutral-400 mt-1">Generated client-side • Never leaves your device</div>
@@ -914,106 +1005,109 @@ const WalletPage = () => {
       </div>
 
       {/* Send/Request Tokens Card */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-        <div className="mb-4">
-          <div className="font-semibold text-lg">Send / Request Tokens</div>
-          <div className="text-xs text-neutral-400 mt-1">Transaction management powered by PQC signatures</div>
-        </div>
-        <div className="flex items-center justify-between mb-4 p-3 rounded-xl bg-neutral-900/50">
-          <div className="text-sm text-neutral-400">Available Balance</div>
-          <div className="text-sm font-bold">
-            DGT: {balances.DGT?.toLocaleString?.() || balances.DGT} • DRT: {balances.DRT?.toLocaleString?.() || balances.DRT}
+      <div className="flex flex-col h-full gap-6">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 flex-1 flex flex-col">
+          <div className="mb-3">
+            <div className="font-semibold">Send / Request Tokens</div>
+            <div className="text-xs text-neutral-400 mt-1">PQC-secured transactions</div>
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button 
-            onClick={() => { setTxType('send'); setShowTransactionModal(true); }}
-            disabled={!created}
-            className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            💸 Send Tokens
-          </button>
-          <button 
-            onClick={() => { setTxType('request'); setShowTransactionModal(true); }}
-            disabled={!created}
-            className="px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-cyan-500 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            📥 Request Payment
-          </button>
-        </div>
-        {!created && (
-          <div className="mt-4 text-xs text-neutral-500 text-center">
-            Create a wallet first to send or request tokens
+          <div className="flex items-center justify-between mb-3 p-2.5 rounded-xl bg-neutral-900/50">
+            <div className="text-xs text-neutral-400">Balance</div>
+            <div className="text-xs font-bold">
+              DGT: {balances.DGT?.toLocaleString?.() || balances.DGT} • DRT: {balances.DRT?.toLocaleString?.() || balances.DRT}
+            </div>
           </div>
-        )}
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              onClick={() => { setTxType('send'); setShowTransactionModal(true); }}
+              disabled={!created}
+              className="px-3 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              💸 Send
+            </button>
+            <button 
+              onClick={() => { setTxType('request'); setShowTransactionModal(true); }}
+              disabled={!created}
+              className="px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-cyan-500 text-white text-xs font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              📥 Request
+            </button>
+          </div>
+          {!created && (
+            <div className="mt-3 text-xs text-neutral-500 text-center">
+              Create a wallet first
+            </div>
+          )}
+          {created && (
+            <div className="mt-3 flex-1 flex flex-col justify-between min-h-0">
+              <div className="text-xs text-neutral-500 mb-3">
+                Signed with {algorithm} PQC
+              </div>
+              <ul className="space-y-2 text-xs text-neutral-400">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 mt-0.5">•</span>
+                  <span><strong className="text-neutral-300">Instant Transfers:</strong> Send DGT/DRT to any PQC address with sub-second confirmation</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 mt-0.5">•</span>
+                  <span><strong className="text-neutral-300">Fractional Amounts:</strong> Support for micro-transactions down to 6 decimal places</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-400 mt-0.5">•</span>
+                  <span><strong className="text-neutral-300">Payment Requests:</strong> Generate shareable links for requesting tokens from others</span>
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Transaction History - Compact Version */}
         {created && (
-          <div className="mt-4 text-xs text-neutral-500">
-            Transactions are signed with {algorithm} PQC signatures and submitted to the network
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 flex-1 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold">Recent Transactions</div>
+              <div className="text-xs text-neutral-500">{transactions.length}</div>
+            </div>
+            {transactions.length > 0 ? (
+              <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
+                {transactions.slice(0, 10).map((tx, i) => (
+                  <div key={i} className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs ${tx.type === 'send' ? 'text-red-400' : 'text-green-400'}`}>
+                          {tx.type === 'send' ? '↗' : '↙'}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-neutral-300">
+                          {tx.amount} {tx.denom}
+                        </span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${tx.status === 'confirmed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                          {tx.status}
+                        </span>
+                      </div>
+                      <div className="text-xs text-neutral-600">
+                        {new Date(tx.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                    <div className="text-xs text-neutral-500 truncate">
+                      {tx.type === 'send' ? 'To: ' : 'From: '}{tx.type === 'send' ? tx.to : tx.from}
+                    </div>
+                    {tx.memo && <div className="text-xs text-neutral-600 italic mt-0.5 truncate">{tx.memo}</div>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-center text-neutral-500 min-h-0">
+                <div>
+                  <div className="text-3xl mb-2">📝</div>
+                  <div className="text-sm">No transactions yet</div>
+                  <div className="text-xs mt-1">Send or receive tokens to see your transaction history</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
     </div>
-
-      {/* Transaction History */}
-      <div className="mt-10">
-        <h2 className="text-2xl font-bold mb-4">Transaction History</h2>
-        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold">Date</th>
-                  <th className="px-4 py-3 text-left font-semibold">To</th>
-                  <th className="px-4 py-3 text-left font-semibold">Amount</th>
-                  <th className="px-4 py-3 text-left font-semibold">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold">TX Hash</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {transactions.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="px-4 py-3 text-center text-sm text-neutral-500">
-                      No transactions found
-                    </td>
-                  </tr>
-                ) : (
-                  transactions.map((tx) => (
-                    <tr key={tx.hash} className="hover:bg-white/5 transition">
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-medium">{new Date(tx.timestamp).toLocaleString()}</div>
-                        <div className="text-xs text-neutral-400">{tx.timestamp}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-medium">{truncateAddress(tx.to, 8)}</div>
-                        <div className="text-xs text-neutral-400">{tx.to}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-bold">{tx.amount} {tx.denom}</div>
-                        <div className="text-xs text-neutral-400">{tx.type === 'send' ? 'Sent' : 'Requested'}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className={`text-xs font-semibold ${tx.status === 'confirmed' ? 'text-green-500' : 'text-red-500'}`}>
-                          {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <a 
-                          href={`https://explorer.dytallix.org/tx/${tx.hash}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="text-blue-400 hover:text-blue-300 text-sm"
-                        >
-                          {tx.hash.slice(0, 10)}...{tx.hash.slice(-6)}
-                        </a>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
 
       {/* Add Guardian Modal */}
       {showGuardianModal && (
@@ -1112,6 +1206,30 @@ const WalletPage = () => {
                 {!txSuccess ? (
                   <>
                     <div className="space-y-4">
+                      {/* Wallet Selector */}
+                      {wallets.length > 1 && (
+                        <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                          <label className="text-sm text-neutral-400 mb-2 block">Send From Wallet</label>
+                          <select
+                            value={activeWalletId || ''}
+                            onChange={(e) => switchWallet(e.target.value)}
+                            className="w-full px-4 py-2 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white text-sm cursor-pointer font-mono"
+                          >
+                            {wallets.map((wallet) => (
+                              <option key={wallet.id} value={wallet.id}>
+                                {wallet.name} - {wallet.addr}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="mt-2 flex items-center justify-between text-xs">
+                            <span className="text-neutral-400">Balance:</span>
+                            <span className="font-mono text-neutral-300">
+                              DGT: {balances.DGT} • DRT: {balances.DRT}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div>
                         <label className="text-sm text-neutral-400 mb-2 block">Recipient Address</label>
                         <input 
@@ -1303,11 +1421,49 @@ const FaucetPage = () => {
   const [req, setReq] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [wallets, setWallets] = useState([]);
+  const [selectedWalletId, setSelectedWalletId] = useState('');
+  const [manualAddress, setManualAddress] = useState('');
+  
+  // Load wallets from localStorage on mount
+  useEffect(() => {
+    const savedWallets = localStorage.getItem('dytallix_wallets');
+    if (savedWallets) {
+      try {
+        const walletsData = JSON.parse(savedWallets);
+        setWallets(walletsData);
+        // Pre-select the first wallet if available
+        if (walletsData.length > 0) {
+          setSelectedWalletId(walletsData[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load wallets:', err);
+      }
+    }
+  }, []);
+  
+  // Get address from selected wallet or manual input
+  const getTargetAddress = () => {
+    if (wallets.length === 1) {
+      // Single wallet: always use it
+      return wallets[0].fullAddr;
+    }
+    if (selectedWalletId && selectedWalletId !== 'manual') {
+      const wallet = wallets.find(w => w.id === selectedWalletId);
+      return wallet ? wallet.fullAddr : manualAddress;
+    }
+    return manualAddress;
+  };
   
   const submit = async (e) => {
     e.preventDefault();
     const token = e.target.token.value;
-    const addr = e.target.addr.value.trim();
+    const addr = getTargetAddress().trim();
+    
+    if (!addr) {
+      setError('Please enter a valid PQC address or select a wallet');
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -1471,24 +1627,76 @@ const FaucetPage = () => {
         </div>
       </div>
 
-      {/* Request Form */}
-      <div className="mt-8">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 max-w-xl">
+      {/* Request Form and Important Information - Two Column Layout */}
+      <div className="mt-8 grid lg:grid-cols-2 gap-6 lg:items-start">
+        {/* Request Form */}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
           <div className="mb-4">
             <div className="font-semibold text-lg">Request Testnet Tokens</div>
             <div className="text-xs text-neutral-400 mt-1">Free tokens • Rate limited to prevent abuse</div>
           </div>
           <form onSubmit={submit} className="space-y-4">
-            <div>
-              <label className="text-sm text-neutral-300 font-medium">PQC Address</label>
-              <input 
-                name="addr" 
-                required 
-                placeholder="pqc1abc123def456..." 
-                className="mt-2 w-full rounded-xl bg-neutral-900 border border-white/10 px-4 py-3 outline-none focus:border-white/30 transition text-sm font-mono"
-              />
-              <div className="mt-1 text-xs text-neutral-500">Must start with "pqc1" • Create one on the <a href="#/wallet" className="text-blue-400 underline">Wallet page</a></div>
-            </div>
+            {/* Wallet Selector (show if 2+ wallets exist) */}
+            {wallets.length >= 2 && (
+              <div>
+                <label className="text-sm text-neutral-300 font-medium">Select Wallet</label>
+                <select 
+                  value={selectedWalletId}
+                  onChange={(e) => setSelectedWalletId(e.target.value)}
+                  className="mt-2 w-full rounded-xl bg-neutral-900 border border-white/10 px-4 py-3 outline-none focus:border-white/30 transition text-sm cursor-pointer"
+                >
+                  {wallets.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name || `Wallet ${w.id.slice(0, 6)}`} — {w.addr}
+                    </option>
+                  ))}
+                  <option value="manual">Enter address manually</option>
+                </select>
+                <div className="mt-1 text-xs text-neutral-500">
+                  Choose a wallet to request tokens for, or enter a custom address
+                </div>
+              </div>
+            )}
+            
+            {/* Address Input (show if no wallets or "manual" selected) */}
+            {(wallets.length === 0 || (wallets.length >= 2 && selectedWalletId === 'manual')) && (
+              <div>
+                <label className="text-sm text-neutral-300 font-medium">PQC Address</label>
+                <input 
+                  value={manualAddress}
+                  onChange={(e) => setManualAddress(e.target.value)}
+                  required 
+                  placeholder="pqc1abc123def456..." 
+                  className="mt-2 w-full rounded-xl bg-neutral-900 border border-white/10 px-4 py-3 outline-none focus:border-white/30 transition text-sm font-mono"
+                />
+                <div className="mt-1 text-xs text-neutral-500">Must start with "pqc1" • Create one on the <a href="#/wallet" className="text-blue-400 underline">Wallet page</a></div>
+              </div>
+            )}
+            
+            {/* Show selected wallet address (if wallet is selected and 2+ wallets) */}
+            {wallets.length >= 2 && selectedWalletId && selectedWalletId !== 'manual' && (
+              <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
+                <div className="text-xs text-neutral-400 mb-1">Tokens will be sent to:</div>
+                <div className="font-mono text-sm text-blue-400">{getTargetAddress()}</div>
+              </div>
+            )}
+            
+            {/* Auto-fill for single wallet (show address with auto-fill notice) */}
+            {wallets.length === 1 && (
+              <div>
+                <label className="text-sm text-neutral-300 font-medium">PQC Address</label>
+                <div className="mt-2 rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
+                  <div className="text-xs text-blue-400 mb-1 flex items-center gap-2">
+                    <span>✓</span>
+                    <span>Auto-filled from your wallet</span>
+                  </div>
+                  <div className="font-mono text-sm text-neutral-200">{wallets[0].fullAddr}</div>
+                </div>
+                <div className="mt-1 text-xs text-neutral-500">
+                  Tokens will be sent to your wallet. Need a different address? <a href="#/wallet" className="text-blue-400 underline">Create another wallet</a>
+                </div>
+              </div>
+            )}
             
             <div>
               <label className="text-sm text-neutral-300 font-medium">Select Token</label>
@@ -1543,32 +1751,32 @@ const FaucetPage = () => {
             )}
           </form>
         </div>
-      </div>
 
-      {/* Important Notes */}
-      <div className="mt-8 max-w-xl rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6">
-        <div className="flex items-start gap-3">
-          <span className="text-blue-500 text-xl">ℹ️</span>
-          <div>
-            <div className="font-semibold text-blue-400">Important Information</div>
-            <ul className="mt-2 text-sm text-neutral-300 space-y-2">
-              <li className="flex items-start gap-2">
-                <span className="text-neutral-500">•</span>
-                <span><strong>Testnet tokens have no real-world value</strong> and cannot be exchanged for mainnet tokens</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-neutral-500">•</span>
-                <span>Rate limit: One request per address every <strong>24 hours</strong></span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-neutral-500">•</span>
-                <span>Need more tokens? Contact the team on Discord or contribute to the testnet</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-neutral-500">•</span>
-                <span>Testnet may be reset periodically—your tokens and state will be wiped</span>
-              </li>
-            </ul>
+        {/* Important Notes */}
+        <div className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-6">
+          <div className="flex items-start gap-3">
+            <span className="text-blue-500 text-xl">ℹ️</span>
+            <div>
+              <div className="font-semibold text-blue-400">Important Information</div>
+              <ul className="mt-2 text-sm text-neutral-300 space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="text-neutral-500">•</span>
+                  <span><strong>Testnet tokens have no real-world value</strong> and cannot be exchanged for mainnet tokens</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-neutral-500">•</span>
+                  <span>Rate limit: One request per address every <strong>24 hours</strong></span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-neutral-500">•</span>
+                  <span>Need more tokens? Contact the team on Discord or contribute to the testnet</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-neutral-500">•</span>
+                  <span>Testnet may be reset periodically—your tokens and state will be wiped</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
