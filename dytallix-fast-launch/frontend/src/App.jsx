@@ -902,24 +902,9 @@ const WalletPage = () => {
                 Testnet balances • Auto-refreshes every 5 seconds
               </div>
             </div>
-            {/* Transaction Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => { setTxType('send'); setShowTransactionModal(true); }} 
-                className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-semibold hover:opacity-90 transition"
-              >
-                💸 Send Tokens
-              </button>
-              <button 
-                onClick={() => { setTxType('request'); setShowTransactionModal(true); setPaymentRequestLink(''); }} 
-                className="px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-cyan-500 text-white text-sm font-semibold hover:opacity-90 transition"
-              >
-                📥 Request Payment
-              </button>
-            </div>
             
             {/* Wallet Management Actions */}
-            <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => setShowExportModal(true)} 
                 className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition"
