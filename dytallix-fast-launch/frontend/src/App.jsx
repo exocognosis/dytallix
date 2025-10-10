@@ -7,9 +7,15 @@ import { truncateAddress } from './utils/format.js';
 
 // Simple hash router
 const useHashRoute = () => {
-  const [route, setRoute] = useState(window.location.hash.replace('#','') || '/');
+  const [route, setRoute] = useState(() => {
+    const hash = window.location.hash.replace('#','') || '/';
+    return hash.split('?')[0]; // Extract path without query params
+  });
   useEffect(() => {
-    const onHash = () => setRoute(window.location.hash.replace('#','') || '/');
+    const onHash = () => {
+      const hash = window.location.hash.replace('#','') || '/';
+      setRoute(hash.split('?')[0]); // Extract path without query params
+    };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
@@ -74,6 +80,7 @@ const Nav = () => {
     { href: '/', label: 'Home' },
     { href: '/wallet', label: 'PQC Wallet' },
     { href: '/faucet', label: 'Faucet' },
+    { href: '/explorer', label: 'Explorer' },
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/tokenomics', label: 'Tokenomics' },
     { href: '/docs', label: 'Docs' },
@@ -2496,12 +2503,932 @@ const TokenomicsPage = () => (
   </Page>
 );
 
+// ================== EXPLORER PAGE ==================
+
+// Helper functions for Explorer
+const detectQueryType = (q) => {
+  const trimmed = (q || '').trim();
+  if (!trimmed) return 'unknown';
+  
+  // Address: starts with dyt (Bech32-like)
+  if (/^dyt1[a-z0-9]{38,}$/i.test(trimmed)) return 'address';
+  
+  // Transaction ID: 64 hex chars
+  if (/^0x[0-9a-fA-F]{64}$/.test(trimmed) || /^[0-9a-fA-F]{64}$/.test(trimmed)) return 'tx';
+  
+  // Block height: numeric
+  if (/^\d+$/.test(trimmed)) {
+    const num = parseInt(trimmed, 10);
+    if (num >= 0 && num < 1000000000) return 'blockHeight';
+  }
+  
+  // Block hash: 64 hex chars (same as tx but context differs)
+  if (/^0x[0-9a-fA-F]{64}$/.test(trimmed) || /^[0-9a-fA-F]{64}$/.test(trimmed)) return 'blockHash';
+  
+  return 'unknown';
+};
+
+const useDebouncedValue = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  
+  return debouncedValue;
+};
+
+const useQueryParam = (key) => {
+  const getParam = () => {
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    return params.get(key) || '';
+  };
+  
+  const [value, setValue] = useState(getParam());
+  
+  useEffect(() => {
+    const onHash = () => setValue(getParam());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  const setParam = (newValue) => {
+    const [path] = window.location.hash.split('?');
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    if (newValue) {
+      params.set(key, newValue);
+    } else {
+      params.delete(key);
+    }
+    const newHash = params.toString() ? `${path}?${params.toString()}` : path;
+    window.location.hash = newHash;
+  };
+  
+  return [value, setParam];
+};
+
+const fmtAmount = (amount, decimals = 6) => {
+  const num = typeof amount === 'number' ? amount : parseFloat(amount);
+  if (isNaN(num)) return '0';
+  return num.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals
+  });
+};
+
+const shorten = (str, start = 10, end = 6) => {
+  if (!str || str.length <= start + end) return str || '';
+  return `${str.slice(0, start)}...${str.slice(-end)}`;
+};
+
+const timeAgo = (timestamp) => {
+  if (!timestamp) return '';
+  const now = Date.now();
+  const ts = new Date(timestamp).getTime();
+  const diff = Math.floor((now - ts) / 1000);
+  
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+};
+
+// Simple QR code generator (inline, no external deps)
+const drawQrToCanvas = (canvas, text) => {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const size = 200;
+  canvas.width = size;
+  canvas.height = size;
+  
+  // Simple pattern based on text hash
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#000000';
+  
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+    hash = hash & hash;
+  }
+  
+  const modules = 21;
+  const moduleSize = size / modules;
+  
+  for (let y = 0; y < modules; y++) {
+    for (let x = 0; x < modules; x++) {
+      const index = y * modules + x;
+      const bit = (Math.abs(hash) >> (index % 32)) & 1;
+      if (bit) {
+        ctx.fillRect(x * moduleSize, y * moduleSize, moduleSize, moduleSize);
+      }
+    }
+  }
+};
+
+// Simple identicon generator
+const drawIdenticon = (canvas, address) => {
+  if (!canvas || !address) return;
+  const ctx = canvas.getContext('2d');
+  const size = 64;
+  canvas.width = size;
+  canvas.height = size;
+  
+  let hash = 0;
+  for (let i = 0; i < address.length; i++) {
+    hash = ((hash << 5) - hash) + address.charCodeAt(i);
+    hash = hash & hash;
+  }
+  
+  const hue = Math.abs(hash) % 360;
+  ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+  ctx.fillRect(0, 0, size, size);
+  
+  ctx.fillStyle = `hsl(${(hue + 180) % 360}, 70%, 70%)`;
+  const gridSize = 5;
+  const cellSize = size / gridSize;
+  
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < Math.ceil(gridSize / 2); x++) {
+      const index = y * gridSize + x;
+      const bit = (Math.abs(hash) >> (index % 32)) & 1;
+      if (bit) {
+        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        // Mirror
+        ctx.fillRect((gridSize - 1 - x) * cellSize, y * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+};
+
+// Mock data generator
+const generateMockData = (type, id) => {
+  const mockAddress = (addr) => ({
+    address: addr,
+    balance: {
+      DGT: Math.floor(Math.random() * 10000),
+      DRT: Math.floor(Math.random() * 50000)
+    },
+    nonce: Math.floor(Math.random() * 100),
+    transactions: Array(10).fill(0).map(() => ({
+      hash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
+      from: addr,
+      to: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
+      amount: Math.floor(Math.random() * 1000),
+      denom: Math.random() > 0.5 ? 'DGT' : 'DRT',
+      status: Math.random() > 0.1 ? 'confirmed' : 'pending',
+      timestamp: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(),
+      fee: 0.001,
+      block: Math.floor(Math.random() * 100000)
+    }))
+  });
+  
+  const mockTx = (hash) => ({
+    hash: hash,
+    from: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
+    to: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
+    amount: Math.floor(Math.random() * 1000),
+    denom: Math.random() > 0.5 ? 'DGT' : 'DRT',
+    status: Math.random() > 0.1 ? 'confirmed' : 'pending',
+    confirmations: Math.floor(Math.random() * 50),
+    timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+    fee: 0.001,
+    nonce: Math.floor(Math.random() * 100),
+    block: Math.floor(Math.random() * 100000),
+    memo: Math.random() > 0.7 ? 'Test transaction' : '',
+    raw: { version: 1, type: 'send' }
+  });
+  
+  const mockBlock = (height) => ({
+    height: typeof height === 'number' ? height : parseInt(height) || 0,
+    hash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
+    timestamp: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+    producer: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
+    txCount: Math.floor(Math.random() * 50),
+    parentHash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
+    gasUsed: Math.floor(Math.random() * 1000000),
+    transactions: Array(Math.floor(Math.random() * 10)).fill(0).map(() => ({
+      hash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
+      from: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
+      to: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
+      amount: Math.floor(Math.random() * 100),
+      denom: 'DRT'
+    }))
+  });
+  
+  switch (type) {
+    case 'address': return mockAddress(id);
+    case 'tx': return mockTx(id);
+    case 'blockHeight':
+    case 'blockHash': return mockBlock(id);
+    default: return null;
+  }
+};
+
+// Skeleton loaders
+const SkeletonLine = ({ width = '100%' }) => (
+  <div className="h-4 bg-white/5 rounded animate-pulse" style={{ width }} />
+);
+
+const SkeletonCard = () => (
+  <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6 space-y-3">
+    <SkeletonLine width="40%" />
+    <SkeletonLine width="60%" />
+    <SkeletonLine width="80%" />
+  </div>
+);
+
+const ExplorerPage = () => {
+  const [q, setQ] = useQueryParam('q');
+  const [activeTab, setActiveTab] = useQueryParam('view');
+  const [inputValue, setInputValue] = useState(q);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [data, setData] = useState(null);
+  const [showQr, setShowQr] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showRawJson, setShowRawJson] = useState(false);
+  
+  const debouncedQ = useDebouncedValue(q, 300);
+  const detected = useMemo(() => detectQueryType(debouncedQ), [debouncedQ]);
+  
+  const rpcUrl = import.meta.env.VITE_DYT_NODE || import.meta.env.VITE_RPC_HTTP_URL;
+  const mockMode = !rpcUrl;
+  
+  // Keyboard shortcut: / to focus search
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        document.getElementById('explorer-search')?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+  
+  // Fetch data when query changes
+  useEffect(() => {
+    if (!debouncedQ) {
+      setData(null);
+      setError(null);
+      return;
+    }
+    
+    const controller = new AbortController();
+    
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        if (mockMode) {
+          // Mock mode
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const mockData = generateMockData(detected, debouncedQ);
+          setData(mockData);
+          
+          // Auto-select tab based on detection
+          if (!activeTab || activeTab === 'all') {
+            if (detected === 'address') setActiveTab('address');
+            else if (detected === 'tx') setActiveTab('tx');
+            else if (detected === 'blockHeight' || detected === 'blockHash') setActiveTab('block');
+          }
+        } else {
+          // Real API calls
+          let endpoint = '';
+          if (detected === 'address') {
+            endpoint = `${rpcUrl}/v1/accounts/${encodeURIComponent(debouncedQ)}`;
+          } else if (detected === 'tx') {
+            endpoint = `${rpcUrl}/v1/tx/${encodeURIComponent(debouncedQ)}`;
+          } else if (detected === 'blockHeight' || detected === 'blockHash') {
+            endpoint = `${rpcUrl}/v1/blocks/${encodeURIComponent(debouncedQ)}`;
+          }
+          
+          if (endpoint) {
+            const response = await fetch(endpoint, {
+              signal: controller.signal,
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Not found (${response.status})`);
+            }
+            
+            const result = await response.json();
+            setData(result);
+            
+            // Auto-select tab
+            if (!activeTab || activeTab === 'all') {
+              if (detected === 'address') setActiveTab('address');
+              else if (detected === 'tx') setActiveTab('tx');
+              else if (detected === 'blockHeight' || detected === 'blockHash') setActiveTab('block');
+            }
+          } else {
+            setData(null);
+          }
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          setError(err.message);
+          setData(null);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+    
+    return () => controller.abort();
+  }, [debouncedQ, detected, mockMode, rpcUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Sync input with query param
+  useEffect(() => {
+    setInputValue(q);
+  }, [q]);
+  
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setQ(inputValue);
+    setCurrentPage(1);
+  };
+  
+  const handleCopy = async (text) => {
+    const success = await copyToClipboard(text);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  };
+  
+  const renderAddressView = () => {
+    if (!data) return null;
+    
+    return (
+      <div className="space-y-6">
+        {/* Address Overview */}
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+          <div className="flex items-start gap-4">
+            <canvas
+              ref={(el) => el && drawIdenticon(el, data.address)}
+              className="rounded-xl"
+              width="64"
+              height="64"
+            />
+            <div className="flex-1">
+              <div className="text-xs text-neutral-400 mb-1">Address</div>
+              <div className="flex items-center gap-2 mb-3">
+                <code className="text-sm font-mono">{shorten(data.address, 16, 8)}</code>
+                <button
+                  onClick={() => handleCopy(data.address)}
+                  className="px-2 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 transition"
+                >
+                  {copied ? '✓' : '📋'}
+                </button>
+                <button
+                  onClick={() => setShowQr(!showQr)}
+                  className="px-2 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 transition"
+                >
+                  QR
+                </button>
+              </div>
+              
+              {showQr && (
+                <div className="mb-4">
+                  <canvas
+                    ref={(el) => el && drawQrToCanvas(el, data.address)}
+                    className="border border-white/10 rounded-xl"
+                  />
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent p-4 border border-white/10">
+                  <div className="text-xs text-neutral-400">DGT Balance</div>
+                  <div className="text-2xl font-bold mt-1">{fmtAmount(data.balance?.DGT || 0)}</div>
+                </div>
+                <div className="rounded-xl bg-gradient-to-br from-purple-500/10 to-transparent p-4 border border-white/10">
+                  <div className="text-xs text-neutral-400">DRT Balance</div>
+                  <div className="text-2xl font-bold mt-1">{fmtAmount(data.balance?.DRT || 0)}</div>
+                </div>
+              </div>
+              
+              {data.nonce !== undefined && (
+                <div className="mt-3 text-sm text-neutral-400">
+                  Nonce: <span className="text-neutral-200">{data.nonce}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Recent Transactions */}
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+          <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+          
+          {!data.transactions || data.transactions.length === 0 ? (
+            <div className="text-center text-neutral-400 py-8">No transactions found</div>
+          ) : (
+            <div className="space-y-2">
+              {data.transactions.slice(0, currentPage * 10).map((tx) => (
+                <div
+                  key={tx.hash}
+                  className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
+                  onClick={() => {
+                    setQ(tx.hash);
+                    setActiveTab('tx');
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <code className="text-xs font-mono text-neutral-300">{shorten(tx.hash, 12, 8)}</code>
+                    <span className={`px-2 py-1 text-xs rounded-lg ${
+                      tx.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
+                      tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
+                      'bg-red-500/20 text-red-300'
+                    }`}>
+                      {tx.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div>
+                      <span className={tx.from === data.address ? 'text-red-400' : 'text-green-400'}>
+                        {tx.from === data.address ? '↑ OUT' : '↓ IN'}
+                      </span>
+                      <span className="ml-2 text-neutral-300">
+                        {fmtAmount(tx.amount)} {tx.denom}
+                      </span>
+                    </div>
+                    <div className="text-xs text-neutral-400">{timeAgo(tx.timestamp)}</div>
+                  </div>
+                </div>
+              ))}
+              
+              {data.transactions.length > currentPage * 10 && (
+                <button
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="w-full mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
+                >
+                  Load More
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  const renderTxView = () => {
+    if (!data) return null;
+    
+    return (
+      <div className="space-y-6">
+        {/* Status Header */}
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Transaction Status</h3>
+              <div className="text-xs text-neutral-400 mt-1">
+                {data.confirmations ? `${data.confirmations} confirmations` : 'Pending'}
+              </div>
+            </div>
+            <span className={`px-3 py-1.5 text-sm rounded-xl ${
+              data.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
+              data.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
+              'bg-red-500/20 text-red-300'
+            }`}>
+              {data.status || 'Unknown'}
+            </span>
+          </div>
+          
+          {/* Progress bar for confirmations */}
+          {data.status === 'confirmed' && data.confirmations && (
+            <div className="mt-4">
+              <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-green-500 transition-all"
+                  style={{ width: `${Math.min(100, (data.confirmations / 6) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Transaction Details */}
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+          <h3 className="text-lg font-semibold mb-4">Details</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <div className="text-xs text-neutral-400 mb-1">Transaction ID</div>
+              <div className="flex items-center gap-2">
+                <code className="text-sm font-mono">{shorten(data.hash, 20, 10)}</code>
+                <button
+                  onClick={() => handleCopy(data.hash)}
+                  className="px-2 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 transition"
+                >
+                  {copied ? '✓' : '📋'}
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-neutral-400 mb-1">From</div>
+                <button
+                  onClick={() => {
+                    setQ(data.from);
+                    setActiveTab('address');
+                  }}
+                  className="text-sm font-mono text-blue-400 hover:text-blue-300 transition"
+                >
+                  {shorten(data.from, 12, 8)}
+                </button>
+              </div>
+              
+              <div>
+                <div className="text-xs text-neutral-400 mb-1">To</div>
+                <button
+                  onClick={() => {
+                    setQ(data.to);
+                    setActiveTab('address');
+                  }}
+                  className="text-sm font-mono text-blue-400 hover:text-blue-300 transition"
+                >
+                  {shorten(data.to, 12, 8)}
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-neutral-400 mb-1">Amount</div>
+                <div className="text-sm">
+                  {fmtAmount(data.amount)} <span className="text-neutral-400">{data.denom}</span>
+                </div>
+              </div>
+              
+              <div>
+                <div className="text-xs text-neutral-400 mb-1">Fee</div>
+                <div className="text-sm">{fmtAmount(data.fee || 0)} DGT</div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-neutral-400 mb-1">Nonce</div>
+                <div className="text-sm">{data.nonce}</div>
+              </div>
+              
+              <div>
+                <div className="text-xs text-neutral-400 mb-1">Block</div>
+                {data.block ? (
+                  <button
+                    onClick={() => {
+                      setQ(data.block.toString());
+                      setActiveTab('block');
+                    }}
+                    className="text-sm text-blue-400 hover:text-blue-300 transition"
+                  >
+                    #{data.block}
+                  </button>
+                ) : (
+                  <div className="text-sm text-neutral-400">Pending</div>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <div className="text-xs text-neutral-400 mb-1">Timestamp</div>
+              <div className="text-sm">
+                {new Date(data.timestamp).toLocaleString()}
+                <span className="ml-2 text-neutral-400">({timeAgo(data.timestamp)})</span>
+              </div>
+            </div>
+            
+            {data.memo && (
+              <div>
+                <div className="text-xs text-neutral-400 mb-1">Memo</div>
+                <div className="text-sm">{data.memo}</div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Raw JSON */}
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Raw Data</h3>
+            <button
+              onClick={() => setShowRawJson(!showRawJson)}
+              className="px-3 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10 transition"
+            >
+              {showRawJson ? 'Hide' : 'Show'} JSON
+            </button>
+          </div>
+          
+          {showRawJson && (
+            <pre className="text-xs font-mono bg-black/30 p-4 rounded-xl overflow-x-auto">
+              {JSON.stringify(data, null, 2)}
+            </pre>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  const renderBlockView = () => {
+    if (!data) return null;
+    
+    return (
+      <div className="space-y-6">
+        {/* Block Header */}
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+          <h3 className="text-lg font-semibold mb-4">Block #{data.height}</h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <div className="text-xs text-neutral-400 mb-1">Hash</div>
+              <div className="flex items-center gap-2">
+                <code className="text-sm font-mono">{shorten(data.hash, 12, 8)}</code>
+                <button
+                  onClick={() => handleCopy(data.hash)}
+                  className="px-2 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 transition"
+                >
+                  {copied ? '✓' : '📋'}
+                </button>
+              </div>
+            </div>
+            
+            <div>
+              <div className="text-xs text-neutral-400 mb-1">Timestamp</div>
+              <div className="text-sm">
+                {new Date(data.timestamp).toLocaleString()}
+              </div>
+              <div className="text-xs text-neutral-400">{timeAgo(data.timestamp)}</div>
+            </div>
+            
+            <div>
+              <div className="text-xs text-neutral-400 mb-1">Transactions</div>
+              <div className="text-sm">{data.txCount || 0}</div>
+            </div>
+            
+            <div>
+              <div className="text-xs text-neutral-400 mb-1">Producer</div>
+              <button
+                onClick={() => {
+                  setQ(data.producer);
+                  setActiveTab('address');
+                }}
+                className="text-sm font-mono text-blue-400 hover:text-blue-300 transition"
+              >
+                {shorten(data.producer, 12, 8)}
+              </button>
+            </div>
+            
+            <div>
+              <div className="text-xs text-neutral-400 mb-1">Parent Hash</div>
+              <button
+                onClick={() => {
+                  setQ(data.parentHash);
+                  setActiveTab('block');
+                }}
+                className="text-sm font-mono text-blue-400 hover:text-blue-300 transition"
+              >
+                {shorten(data.parentHash, 12, 8)}
+              </button>
+            </div>
+            
+            {data.gasUsed !== undefined && (
+              <div>
+                <div className="text-xs text-neutral-400 mb-1">Gas Used</div>
+                <div className="text-sm">{fmtAmount(data.gasUsed, 0)}</div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-2 mt-4">
+            {data.height > 0 && (
+              <button
+                onClick={() => {
+                  setQ((data.height - 1).toString());
+                  setActiveTab('block');
+                }}
+                className="px-3 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10 transition"
+              >
+                ← Previous Block
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setQ((data.height + 1).toString());
+                setActiveTab('block');
+              }}
+              className="px-3 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10 transition"
+            >
+              Next Block →
+            </button>
+          </div>
+        </div>
+        
+        {/* Transactions List */}
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+          <h3 className="text-lg font-semibold mb-4">Transactions</h3>
+          
+          {!data.transactions || data.transactions.length === 0 ? (
+            <div className="text-center text-neutral-400 py-8">No transactions in this block</div>
+          ) : (
+            <div className="space-y-2">
+              {data.transactions.map((tx) => (
+                <div
+                  key={tx.hash}
+                  className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
+                  onClick={() => {
+                    setQ(tx.hash);
+                    setActiveTab('tx');
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <code className="text-xs font-mono text-neutral-300">{shorten(tx.hash, 12, 8)}</code>
+                      <div className="text-sm mt-1">
+                        <span className="text-neutral-400">From</span>{' '}
+                        <span className="font-mono text-xs">{shorten(tx.from, 8, 6)}</span>{' '}
+                        <span className="text-neutral-400">to</span>{' '}
+                        <span className="font-mono text-xs">{shorten(tx.to, 8, 6)}</span>
+                      </div>
+                    </div>
+                    <div className="text-sm">
+                      {fmtAmount(tx.amount)} <span className="text-neutral-400">{tx.denom}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  const renderSearchAllView = () => {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">🔍</div>
+          <h3 className="text-xl font-semibold mb-2">Try searching for something</h3>
+          <p className="text-neutral-400 mb-6">
+            Enter an address, transaction ID, block height, or block hash
+          </p>
+          <div className="text-sm text-neutral-500 space-y-1">
+            <div>• Address: <code className="text-neutral-300">dyt1...</code></div>
+            <div>• Transaction: <code className="text-neutral-300">0x...</code> (64 hex chars)</div>
+            <div>• Block Height: <code className="text-neutral-300">12345</code></div>
+            <div>• Block Hash: <code className="text-neutral-300">0x...</code> (64 hex chars)</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  return (
+    <Page>
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Explorer</h1>
+          <p className="mt-2 text-neutral-400">Search addresses, transactions, and blocks</p>
+          {mockMode && (
+            <div className="mt-2 px-3 py-1.5 inline-block text-xs bg-yellow-500/20 text-yellow-300 rounded-lg">
+              ⚠️ Mock Mode (No RPC configured)
+            </div>
+          )}
+        </div>
+        
+        {/* Search Card */}
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+          <form onSubmit={handleSearch} className="space-y-3">
+            <div className="relative">
+              <input
+                id="explorer-search"
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Search by address, tx id, block height or hash..."
+                className="w-full rounded-xl bg-neutral-900 border border-white/10 px-4 py-3 pr-12 outline-none focus:border-white/30 transition"
+                autoComplete="off"
+              />
+              <div className="absolute right-3 top-3 text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded">
+                /
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                {detected !== 'unknown' && (
+                  <span className="px-2 py-1 text-xs rounded-lg bg-white/5 text-neutral-300">
+                    Detected: <span className="font-semibold">{detected}</span>
+                  </span>
+                )}
+              </div>
+              
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-white text-black text-sm font-semibold hover:opacity-90 transition"
+                disabled={loading}
+              >
+                {loading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        {/* Results Area */}
+        {loading && (
+          <div className="space-y-4">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        )}
+        
+        {error && !loading && (
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6">
+            <div className="text-center">
+              <div className="text-4xl mb-2">❌</div>
+              <h3 className="text-lg font-semibold mb-2">Not Found</h3>
+              <p className="text-neutral-400 mb-4">{error}</p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  setQ('');
+                  setInputValue('');
+                }}
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
+              >
+                Clear Search
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {!loading && !error && data && (
+          <div>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6 border-b border-white/10 pb-2 overflow-x-auto">
+              {['address', 'tx', 'block', 'all'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 text-sm font-medium rounded-t-xl transition whitespace-nowrap ${
+                    activeTab === tab
+                      ? 'bg-white/10 text-white'
+                      : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {tab === 'address' && 'Address'}
+                  {tab === 'tx' && 'Transaction'}
+                  {tab === 'block' && 'Block'}
+                  {tab === 'all' && 'Search All'}
+                </button>
+              ))}
+            </div>
+            
+            {/* Tab Content */}
+            <div>
+              {activeTab === 'address' && renderAddressView()}
+              {activeTab === 'tx' && renderTxView()}
+              {activeTab === 'block' && renderBlockView()}
+              {activeTab === 'all' && renderSearchAllView()}
+            </div>
+          </div>
+        )}
+        
+        {!loading && !error && !data && !q && renderSearchAllView()}
+        
+        {/* Help Footer */}
+        <div className="text-center text-xs text-neutral-500 pt-6 border-t border-white/10">
+          Powered by Dytallix{mockMode ? ' • Mock Mode' : ' • Testnet'}
+        </div>
+      </div>
+    </Page>
+  );
+};
+
+// ================== END EXPLORER PAGE ==================
+
 export default function App() {
   const { route } = useHashRoute();
   const Component = useMemo(() => {
     switch(route){
       case '/wallet': return WalletPage;
       case '/faucet': return FaucetPage;
+      case '/explorer': return ExplorerPage;
       case '/docs': return DocsPage;
       case '/dashboard': return DashboardPage;
       case '/tokenomics': return TokenomicsPage;
