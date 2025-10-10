@@ -501,42 +501,58 @@ const WalletPage = () => {
       }
       
       // Fetch real blockchain balance and account data
-      console.log('📊 Step 1: Fetching real-time balance from blockchain...');
-      console.log('📊 RPC URL:', rpcUrl);
-      console.log('📊 Wallet Address:', fullAddr);
-      
       const accountResponse = await fetch(`${rpcUrl}/account/${fullAddr}`);
-      console.log('📊 Account response status:', accountResponse.status);
       
       if (!accountResponse.ok) {
         const errorText = await accountResponse.text();
-        console.error('❌ Failed to fetch account:', errorText);
         throw new Error(`Failed to fetch account data from blockchain: ${errorText}`);
       }
       
       const accountData = await accountResponse.json();
-      console.log('📊 Raw account data:', JSON.stringify(accountData, null, 2));
-      
       const nonce = accountData.nonce || 0;
-      console.log('📊 Account nonce:', nonce);
       
       // Get actual on-chain balances in micro-units
       const actualBalances = {
         DGT: (accountData.balances?.udgt || 0) / 1_000_000,
         DRT: (accountData.balances?.udrt || 0) / 1_000_000,
       };
+
       
-      console.log('💰 Step 2: Balance comparison:');
-      console.log('   - Actual blockchain balances:', actualBalances);
-      console.log('   - UI displayed balances:', balances);
-      console.log('   - Transaction details:', {
-        amount: amountNum,
-        denom: denomInfo.display,
-        fee: NETWORK_FEE,
-        totalRequired: denomInfo.display === 'DGT' ? amountNum + NETWORK_FEE : amountNum
-      });
+      // CRITICAL: Network fees are ALWAYS paid in DGT (udgt), regardless of what token you're sending!
+      const feeBalanceDGT = actualBalances.DGT ?? 0;
+      const assetBalance = actualBalances[denomInfo.display] ?? 0;
       
-      // CRITICAL CHECK: Stop if blockchain balance is zero for both assets
+      // Check 1: Must have DGT for network fee (ALWAYS REQUIRED FOR ALL TRANSACTIONS)
+      if (feeBalanceDGT < NETWORK_FEE) {
+        throw new Error(
+          `⚠️ INSUFFICIENT DGT FOR NETWORK FEE\n\n` +
+          `All transactions require ${NETWORK_FEE.toFixed(3)} DGT for the network fee, regardless of which token you're sending.\n\n` +
+          `Your DGT balance: ${feeBalanceDGT.toFixed(6)} DGT\n` +
+          `Required for fee: ${NETWORK_FEE.toFixed(3)} DGT\n` +
+          `Shortfall: ${(NETWORK_FEE - feeBalanceDGT).toFixed(6)} DGT\n` +
+          `${feeBalanceDGT === 0 ? '\n🚨 You have ZERO DGT! ' : ''}` +
+          `\nACTION REQUIRED:\n` +
+          `1. Go to the Faucet page\n` +
+          `2. Request DGT tokens (for network fees)\n` +
+          `3. Wait 5-10 seconds for confirmation\n` +
+          `4. Refresh your balance and try again\n\n` +
+          `Note: Your displayed balance may be outdated (UI: ${balances.DGT} DGT, Blockchain: ${feeBalanceDGT.toFixed(6)} DGT)`
+        );
+      }
+      
+      // Check 2: Must have enough of the token being sent
+      const requiredAmount = denomInfo.display === 'DGT' ? (amountNum + NETWORK_FEE) : amountNum;
+      if (assetBalance < requiredAmount) {
+        throw new Error(
+          `Insufficient ${denomInfo.display} balance. ` +
+          `You need ${requiredAmount.toFixed(3)} ${denomInfo.display} ` +
+          `(${amountNum} ${denomInfo.display === 'DGT' ? `+ ${NETWORK_FEE.toFixed(3)} fee` : ''})` +
+          `, but blockchain shows you only have ${assetBalance.toFixed(3)} ${denomInfo.display}. ` +
+          `\nYour displayed balance (${balances[denomInfo.display]}) may be outdated. Visit the faucet to top up.`
+        );
+      }
+      
+      // Check 3: Warn if both balances are zero
       if (actualBalances.DGT === 0 && actualBalances.DRT === 0) {
         throw new Error(
           `⚠️ Your blockchain balance is ZERO for both DGT and DRT!\n\n` +
@@ -544,39 +560,10 @@ const WalletPage = () => {
           `Real blockchain: DGT 0, DRT 0\n\n` +
           `ACTION REQUIRED:\n` +
           `1. Go to the Faucet page\n` +
-          `2. Request test tokens\n` +
+          `2. Request test tokens (DGT for fees + DRT for sending)\n` +
           `3. Wait 5-10 seconds for confirmation\n` +
           `4. Refresh your balance and try again`
         );
-      }
-      
-      // Validate sufficient balance using ACTUAL blockchain balance
-      const assetBalance = actualBalances[denomInfo.display] ?? 0;
-      if (denomInfo.display === 'DGT') {
-        const required = amountNum + NETWORK_FEE;
-        if (assetBalance < required) {
-          throw new Error(
-            `Insufficient balance: You need ${required.toFixed(3)} DGT ` +
-            `(${amountNum} + ${NETWORK_FEE} fee), but blockchain shows you only have ${assetBalance.toFixed(3)} DGT. ` +
-            `Your displayed balance (${balances.DGT}) may be outdated. Please refresh and try again, or use the faucet to get more tokens.`
-          );
-        }
-      } else {
-        if (assetBalance < amountNum) {
-          throw new Error(
-            `Insufficient balance: You need ${amountNum} ${denomInfo.display}, ` +
-            `but blockchain shows you only have ${assetBalance.toFixed(3)} ${denomInfo.display}. ` +
-            `Your displayed balance (${balances[denomInfo.display]}) may be outdated. Please refresh and try again, or use the faucet to get more tokens.`
-          );
-        }
-        const feeBalance = actualBalances[denomInfo.feeAsset] ?? 0;
-        if (feeBalance < NETWORK_FEE) {
-          throw new Error(
-            `Insufficient ${denomInfo.feeAsset} balance for the network fee. ` +
-            `You need ${NETWORK_FEE.toFixed(3)} ${denomInfo.feeAsset}, but blockchain shows you only have ${feeBalance.toFixed(3)} ${denomInfo.feeAsset}. ` +
-            `Your displayed balance (${balances.DGT}) may be outdated. Visit the faucet to top up.`
-          );
-        }
       }
       
       // Update UI with actual balance
@@ -587,33 +574,26 @@ const WalletPage = () => {
       const feeMicro = String(Math.floor(NETWORK_FEE * 1_000_000));
       const txObj = {
         chain_id: "dyt-local-1",
-        fee: feeMicro, // micro-units fee (string)
+        fee: feeMicro,
         nonce: nonce,
         memo: txForm.memo || '',
         msgs: [
           {
-            type: 'send',  // Required for Rust enum deserialization
+            type: 'send',
             from: fullAddr,
             to: txForm.to,
-            amount: String(microAmount),  // Amount in micro-units (string)
-            denom: denomInfo.micro  // Backend expects udgt/udrt micro-denominations
+            amount: String(microAmount),
+            denom: denomInfo.micro
           }
         ]
       };
       
-      console.log('📝 Step 3: Transaction object created:');
-      console.log(JSON.stringify(txObj, null, 2));
-      
       // Sign transaction with real PQC signature
-      console.log('🔐 Step 4: Signing transaction...');
       const signedTx = await PQCWallet.signTransaction(
         txObj,
         currentWallet.secretKey,
         currentWallet.publicKey
       );
-      
-      console.log('✅ Transaction signed successfully');
-      console.log('📤 Step 5: Submitting to backend...');
       
       // Submit transaction to backend
       const submitResponse = await fetch(`${rpcUrl}/submit`, {
@@ -622,37 +602,18 @@ const WalletPage = () => {
         body: JSON.stringify({ signed_tx: signedTx })
       });
       
-      console.log('📥 Submit response status:', submitResponse.status);
-      
       if (!submitResponse.ok) {
         const errorText = await submitResponse.text();
-        console.error('❌ Submit failed with response:', errorText);
         let errorMsg = `Transaction failed: ${submitResponse.status}`;
         
         // Parse error message for better UX
         try {
           const errorJson = JSON.parse(errorText);
           if (errorJson.error) {
-            errorMsg = errorJson.error;
-            
-            // Special handling for insufficient funds
-            if (errorMsg.includes('INSUFFICIENT_FUNDS') || errorMsg.includes('insufficient funds')) {
-              const match = errorMsg.match(/required[:\s]+(\d+)/);
-              const required = match ? (parseInt(match[1], 10) / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 6 }) : txForm.amount;
-              const assetBal = (balances[denomInfo.display] ?? 0).toLocaleString(undefined, { maximumFractionDigits: 6 });
-              const feeBal = (balances[denomInfo.feeAsset] ?? 0).toLocaleString(undefined, { maximumFractionDigits: 6 });
-              errorMsg = `Insufficient funds: Required ≈ ${required} ${denomInfo.display}. Your balances → ${denomInfo.display}: ${assetBal}, DGT (fees): ${feeBal}. Please use the faucet before retrying.`;
-            }
+            errorMsg = errorJson.message || errorJson.error;
           }
         } catch (e) {
-          // If not JSON, use text as-is
-          if (errorText.includes('INSUFFICIENT_FUNDS') || errorText.includes('insufficient funds')) {
-            const assetBal = (balances[denomInfo.display] ?? 0).toLocaleString(undefined, { maximumFractionDigits: 6 });
-            const feeBal = (balances[denomInfo.feeAsset] ?? 0).toLocaleString(undefined, { maximumFractionDigits: 6 });
-            errorMsg = `Insufficient funds: ${denomInfo.display} balance ${assetBal}, DGT (fees) balance ${feeBal}. Top up via the faucet and try again.`;
-          } else {
-            errorMsg += `: ${errorText}`;
-          }
+          errorMsg += `: ${errorText}`;
         }
         
         throw new Error(errorMsg);
@@ -660,8 +621,6 @@ const WalletPage = () => {
       
       const result = await submitResponse.json();
       const txHash = result.tx_hash || result.hash || ('tx_' + Math.random().toString(36).substr(2, 16));
-      
-      console.log('✅ Transaction submitted:', txHash);
       
       // Save to history
       const tx = {
@@ -827,29 +786,23 @@ const WalletPage = () => {
       setBalanceSource('local');
     }
   };
-
+  
   // Fetch real blockchain balances
   const fetchBlockchainBalance = async (address) => {
     try {
       const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
       const response = await fetch(`${rpcUrl}/account/${address}`);
       
-      if (!response.ok) {
-        console.warn('Failed to fetch blockchain balance:', response.status);
-        return null;
-      }
+      if (!response.ok) return null;
       
       const accountData = await response.json();
       
       // Convert micro-units to regular units
-      const balances = {
+      return {
         DGT: accountData.balances?.udgt ? accountData.balances.udgt / 1_000_000 : 0,
         DRT: accountData.balances?.udrt ? accountData.balances.udrt / 1_000_000 : 0,
       };
-      
-      return balances;
     } catch (err) {
-      console.error('Error fetching blockchain balance:', err);
       return null;
     }
   };
@@ -1299,6 +1252,20 @@ const WalletPage = () => {
                   <div>
                     <strong>Warning:</strong> Showing cached balance. Cannot reach blockchain node.
                     These balances may not be accurate for transactions.
+                  </div>
+                </div>
+              )}
+              
+              {/* Warning: Insufficient DGT for fees */}
+              {balanceSource === 'blockchain' && balances.DRT > 0 && balances.DGT < 0.001 && (
+                <div className="mb-3 p-2 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs flex items-start gap-2">
+                  <span className="text-orange-400">⚠️</span>
+                  <div>
+                    <strong>Cannot send transactions:</strong> You need at least 0.001 DGT for network fees. 
+                    All transactions require DGT for fees, even when sending DRT. 
+                    <a href="#/faucet" className="underline hover:text-orange-300 ml-1">
+                      Request DGT from faucet →
+                    </a>
                   </div>
                 </div>
               )}
@@ -2153,7 +2120,7 @@ const FaucetPage = () => {
         </div>
 
         {/* Important Notes */}
-        <div className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-6">
+        <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-blue-500/20 to-transparent p-6">
           <div className="flex items-start gap-3">
             <span className="text-blue-500 text-xl">ℹ️</span>
             <div>
