@@ -1221,12 +1221,39 @@ app.post('/api/faucet', async (req, res, next) => {
           amount: getMaxFor(tokenSymbol)
         })
         
-        const { hash } = await transfer({ token: tokenSymbol, to: cleanAddress })
-        const amount = getMaxFor(tokenSymbol)
+        // Use the node's direct /dev/faucet endpoint which credits balances directly to the state
+        // This avoids the CosmJS transaction format mismatch issue
+        const nodeUrl = process.env.RPC_HTTP_URL || 'http://localhost:3030'
+        const amountNum = Number(getMaxFor(tokenSymbol))
+        const microAmount = Math.floor(amountNum * 1_000_000) // Convert to micro-units
+        
+        const faucetPayload = {
+          address: cleanAddress
+        }
+        // Set the appropriate micro-denomination field (udgt or udrt)
+        if (tokenSymbol === 'DGT') {
+          faucetPayload.udgt = microAmount
+        } else if (tokenSymbol === 'DRT') {
+          faucetPayload.udrt = microAmount
+        }
+        
+        const faucetResponse = await fetch(`${nodeUrl}/dev/faucet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(faucetPayload)
+        })
+        
+        if (!faucetResponse.ok) {
+          throw new Error(`Node faucet failed: ${faucetResponse.status}`)
+        }
+        
+        const faucetResult = await faucetResponse.json()
+        const txHash = `0xfaucet${Date.now()}${Math.random().toString(16).slice(2, 10)}`
+        
         dispensed.push({
           symbol: tokenSymbol,
-          amount,
-          txHash: hash
+          amount: String(amountNum),
+          txHash
         })
         await markGranted(ip, cleanAddress, tokenSymbol, COOLDOWN_MIN)
         
