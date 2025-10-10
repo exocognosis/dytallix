@@ -501,13 +501,24 @@ const WalletPage = () => {
       }
       
       // Fetch real blockchain balance and account data
-      console.log('📊 Fetching real-time balance from blockchain...');
+      console.log('📊 Step 1: Fetching real-time balance from blockchain...');
+      console.log('📊 RPC URL:', rpcUrl);
+      console.log('📊 Wallet Address:', fullAddr);
+      
       const accountResponse = await fetch(`${rpcUrl}/account/${fullAddr}`);
+      console.log('📊 Account response status:', accountResponse.status);
+      
       if (!accountResponse.ok) {
-        throw new Error('Failed to fetch account data from blockchain');
+        const errorText = await accountResponse.text();
+        console.error('❌ Failed to fetch account:', errorText);
+        throw new Error(`Failed to fetch account data from blockchain: ${errorText}`);
       }
+      
       const accountData = await accountResponse.json();
+      console.log('📊 Raw account data:', JSON.stringify(accountData, null, 2));
+      
       const nonce = accountData.nonce || 0;
+      console.log('📊 Account nonce:', nonce);
       
       // Get actual on-chain balances in micro-units
       const actualBalances = {
@@ -515,8 +526,15 @@ const WalletPage = () => {
         DRT: (accountData.balances?.udrt || 0) / 1_000_000,
       };
       
-      console.log('💰 Actual blockchain balances:', actualBalances);
-      console.log('💰 UI displayed balances:', balances);
+      console.log('💰 Step 2: Balance comparison:');
+      console.log('   - Actual blockchain balances:', actualBalances);
+      console.log('   - UI displayed balances:', balances);
+      console.log('   - Transaction details:', {
+        amount: amountNum,
+        denom: denomInfo.display,
+        fee: NETWORK_FEE,
+        totalRequired: denomInfo.display === 'DGT' ? amountNum + NETWORK_FEE : amountNum
+      });
       
       // Validate sufficient balance using ACTUAL blockchain balance
       const assetBalance = actualBalances[denomInfo.display] ?? 0;
@@ -569,7 +587,11 @@ const WalletPage = () => {
         ]
       };
       
+      console.log('📝 Step 3: Transaction object created:');
+      console.log(JSON.stringify(txObj, null, 2));
+      
       // Sign transaction with real PQC signature
+      console.log('🔐 Step 4: Signing transaction...');
       const signedTx = await PQCWallet.signTransaction(
         txObj,
         currentWallet.secretKey,
@@ -577,6 +599,7 @@ const WalletPage = () => {
       );
       
       console.log('✅ Transaction signed successfully');
+      console.log('📤 Step 5: Submitting to backend...');
       
       // Submit transaction to backend
       const submitResponse = await fetch(`${rpcUrl}/submit`, {
@@ -585,8 +608,11 @@ const WalletPage = () => {
         body: JSON.stringify({ signed_tx: signedTx })
       });
       
+      console.log('📥 Submit response status:', submitResponse.status);
+      
       if (!submitResponse.ok) {
         const errorText = await submitResponse.text();
+        console.error('❌ Submit failed with response:', errorText);
         let errorMsg = `Transaction failed: ${submitResponse.status}`;
         
         // Parse error message for better UX
