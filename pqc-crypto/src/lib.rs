@@ -805,6 +805,9 @@ pub mod bridge;
 // Performance benchmarking module
 pub mod performance;
 
+// Quantum-resistant permissionless asset module
+pub mod asset;
+
 pub use bridge::{
     AddressFormat, BridgePQCManager, BridgeSignature, ChainConfig, CrossChainPayload,
     HashAlgorithm, MultiSigValidationResult, SignatureFormat,
@@ -813,6 +816,10 @@ pub use bridge::{
 pub use performance::{
     run_pqc_performance_benchmarks, GasCostEstimation, PQCBenchmarkResults,
     PQCPerformanceBenchmark, PerformanceAnalysis,
+};
+
+pub use asset::{
+    AssetBalance, AssetId, AssetMetadata, AssetTransfer, QuantumAsset, QuantumAssetManager,
 };
 
 #[cfg(test)]
