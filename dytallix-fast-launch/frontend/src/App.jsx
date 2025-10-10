@@ -2554,7 +2554,7 @@ const useQueryParam = (key) => {
     const onHash = () => setValue(getParam());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, [key]);
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   
   const setParam = (newValue) => {
     const [path] = window.location.hash.split('?');
@@ -2674,7 +2674,7 @@ const generateMockData = (type, id) => {
       DRT: Math.floor(Math.random() * 50000)
     },
     nonce: Math.floor(Math.random() * 100),
-    transactions: Array(10).fill(0).map((_, i) => ({
+    transactions: Array(10).fill(0).map(() => ({
       hash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
       from: addr,
       to: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
@@ -2846,7 +2846,7 @@ const ExplorerPage = () => {
     fetchData();
     
     return () => controller.abort();
-  }, [debouncedQ, detected, mockMode, rpcUrl]);
+  }, [debouncedQ, detected, mockMode, rpcUrl]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Sync input with query param
   useEffect(() => {
