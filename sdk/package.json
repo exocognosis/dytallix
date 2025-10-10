@@ -1,0 +1,92 @@
+{
+  "name": "@dytallix/sdk",
+  "version": "0.1.0",
+  "description": "JavaScript/TypeScript SDK for the Dytallix blockchain with PQC wallet support",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src test examples --ext .ts,.tsx",
+    "lint:fix": "eslint src test examples --ext .ts,.tsx --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run verify",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "release": "semantic-release"
+  },
+  "keywords": [
+    "dytallix",
+    "blockchain",
+    "cryptocurrency",
+    "post-quantum",
+    "pqc",
+    "ml-dsa",
+    "slh-dsa",
+    "wallet",
+    "sdk"
+  ],
+  "author": "Dytallix Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HisMadRealm/dytallix.git",
+    "directory": "sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/HisMadRealm/dytallix/issues"
+  },
+  "homepage": "https://github.com/HisMadRealm/dytallix/tree/main/sdk#readme",
+  "funding": {
+    "type": "TODO",
+    "url": "TODO"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^0.5.3",
+    "@noble/hashes": "^1.4.0",
+    "base-x": "^4.0.0",
+    "undici": "^6.6.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^12.0.0",
+    "@types/node": "^20.11.19",
+    "@typescript-eslint/eslint-plugin": "^7.0.1",
+    "@typescript-eslint/parser": "^7.0.1",
+    "@vitest/coverage-v8": "^1.2.2",
+    "eslint": "^8.56.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-unicorn": "^51.0.1",
+    "prettier": "^3.2.5",
+    "semantic-release": "^23.0.2",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2",
+    "whatwg-fetch": "^3.6.20"
+  }
+}
