@@ -500,42 +500,56 @@ const WalletPage = () => {
         throw new Error('Amount is too small for network precision (min 0.000001)');
       }
       
-      // Validate sufficient balance for asset and fee
-      const assetBalance = balances[denomInfo.display] ?? 0;
+      // Fetch real blockchain balance and account data
+      console.log('📊 Fetching real-time balance from blockchain...');
+      const accountResponse = await fetch(`${rpcUrl}/account/${fullAddr}`);
+      if (!accountResponse.ok) {
+        throw new Error('Failed to fetch account data from blockchain');
+      }
+      const accountData = await accountResponse.json();
+      const nonce = accountData.nonce || 0;
+      
+      // Get actual on-chain balances in micro-units
+      const actualBalances = {
+        DGT: (accountData.balances?.udgt || 0) / 1_000_000,
+        DRT: (accountData.balances?.udrt || 0) / 1_000_000,
+      };
+      
+      console.log('💰 Actual blockchain balances:', actualBalances);
+      console.log('💰 UI displayed balances:', balances);
+      
+      // Validate sufficient balance using ACTUAL blockchain balance
+      const assetBalance = actualBalances[denomInfo.display] ?? 0;
       if (denomInfo.display === 'DGT') {
         const required = amountNum + NETWORK_FEE;
         if (assetBalance < required) {
           throw new Error(
             `Insufficient balance: You need ${required.toFixed(3)} DGT ` +
-            `(${amountNum} + ${NETWORK_FEE} fee), but you only have ${assetBalance} DGT. ` +
-            `Please use the faucet to get test tokens first.`
+            `(${amountNum} + ${NETWORK_FEE} fee), but blockchain shows you only have ${assetBalance.toFixed(3)} DGT. ` +
+            `Your displayed balance (${balances.DGT}) may be outdated. Please refresh and try again, or use the faucet to get more tokens.`
           );
         }
       } else {
         if (assetBalance < amountNum) {
           throw new Error(
             `Insufficient balance: You need ${amountNum} ${denomInfo.display}, ` +
-            `but you only have ${assetBalance} ${denomInfo.display}. ` +
-            `Please use the faucet to get test tokens first.`
+            `but blockchain shows you only have ${assetBalance.toFixed(3)} ${denomInfo.display}. ` +
+            `Your displayed balance (${balances[denomInfo.display]}) may be outdated. Please refresh and try again, or use the faucet to get more tokens.`
           );
         }
-        const feeBalance = balances[denomInfo.feeAsset] ?? 0;
+        const feeBalance = actualBalances[denomInfo.feeAsset] ?? 0;
         if (feeBalance < NETWORK_FEE) {
           throw new Error(
             `Insufficient ${denomInfo.feeAsset} balance for the network fee. ` +
-            `You need ${NETWORK_FEE.toFixed(3)} ${denomInfo.feeAsset}, but only have ${feeBalance} ${denomInfo.feeAsset}. ` +
-            `Visit the faucet to top up your fee balance.`
+            `You need ${NETWORK_FEE.toFixed(3)} ${denomInfo.feeAsset}, but blockchain shows you only have ${feeBalance.toFixed(3)} ${denomInfo.feeAsset}. ` +
+            `Your displayed balance (${balances.DGT}) may be outdated. Visit the faucet to top up.`
           );
         }
       }
       
-      // Get current nonce for the sender
-      const accountResponse = await fetch(`${rpcUrl}/account/${fullAddr}`);
-      if (!accountResponse.ok) {
-        throw new Error('Failed to fetch account nonce');
-      }
-      const accountData = await accountResponse.json();
-      const nonce = accountData.nonce || 0;
+      // Update UI with actual balance
+      setBalances(actualBalances);
+      setBalanceSource('blockchain');
       
       // Create the transaction object
       const feeMicro = String(Math.floor(NETWORK_FEE * 1_000_000));
