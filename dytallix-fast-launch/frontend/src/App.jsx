@@ -536,6 +536,20 @@ const WalletPage = () => {
         totalRequired: denomInfo.display === 'DGT' ? amountNum + NETWORK_FEE : amountNum
       });
       
+      // CRITICAL CHECK: Stop if blockchain balance is zero for both assets
+      if (actualBalances.DGT === 0 && actualBalances.DRT === 0) {
+        throw new Error(
+          `⚠️ Your blockchain balance is ZERO for both DGT and DRT!\n\n` +
+          `Your UI showed: DGT ${balances.DGT}, DRT ${balances.DRT} (STALE CACHE)\n` +
+          `Real blockchain: DGT 0, DRT 0\n\n` +
+          `ACTION REQUIRED:\n` +
+          `1. Go to the Faucet page\n` +
+          `2. Request test tokens\n` +
+          `3. Wait 5-10 seconds for confirmation\n` +
+          `4. Refresh your balance and try again`
+        );
+      }
+      
       // Validate sufficient balance using ACTUAL blockchain balance
       const assetBalance = actualBalances[denomInfo.display] ?? 0;
       if (denomInfo.display === 'DGT') {
