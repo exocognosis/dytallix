@@ -30,8 +30,9 @@ const useBlockchainStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Use the backend proxy endpoint to avoid CORS issues
-        const res = await fetch('http://localhost:8787/api/nodes/seed/status');
+        // Fetch directly from the node
+        const rpcUrl = import.meta.env.VITE_DYT_NODE || import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+        const res = await fetch(`${rpcUrl}/status`);
         const data = await res.json();
         setStats(data);
       } catch (err) {
@@ -2246,6 +2247,8 @@ const DashboardPage = () => {
   
   useEffect(() => {
     const fetchNodeStats = async () => {
+      const rpcUrl = import.meta.env.VITE_DYT_NODE || import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+      
       const nodeConfig = [
         { name: 'Seed Node', id: 'seed', port: 3030, role: 'seed' },
         { name: 'Validator 1', id: 'validator1', port: 3031, role: 'validator' },
@@ -2257,10 +2260,15 @@ const DashboardPage = () => {
       const results = {};
       for (const node of nodeConfig) {
         try {
-          // Use the backend proxy endpoint to avoid CORS issues
-          const res = await fetch(`http://localhost:8787/api/nodes/${node.id}/status`);
-          const data = await res.json();
-          results[node.port] = { ...data, ...node, online: data.status === 'healthy' };
+          // Only fetch from the actual running node (3030), mark others as offline
+          if (node.port === 3030) {
+            const res = await fetch(`${rpcUrl}/status`);
+            const data = await res.json();
+            results[node.port] = { ...data, ...node, online: data.status === 'healthy' };
+          } else {
+            // Other nodes are not running in this single-node setup
+            results[node.port] = { ...node, online: false };
+          }
         } catch {
           results[node.port] = { ...node, online: false };
         }

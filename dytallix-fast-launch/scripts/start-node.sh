@@ -28,10 +28,10 @@ echo "  Port: 3030"
 echo ""
 
 # Run the node
-if [ -f "./target/release/dytallix-fast-node" ]; then
+if [ -f "../target/release/dytallix-fast-node" ]; then
   echo "Running release build..."
-  ./target/release/dytallix-fast-node
+  ../target/release/dytallix-fast-node
 else
   echo "Running with cargo (may be slower)..."
-  cargo run --release
+  cargo run --release --bin dytallix-fast-node
 fi
