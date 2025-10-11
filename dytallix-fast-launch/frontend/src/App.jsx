@@ -1840,6 +1840,143 @@ const WalletPage = () => {
         </div>
       </div>
     )}
+
+    {/* Export Keystore Modal */}
+    {showExportModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-gradient-to-br from-neutral-900 to-neutral-950 p-6 shadow-2xl">
+          <button
+            className="absolute right-4 top-4 text-neutral-500 hover:text-white transition"
+            onClick={() => {
+              setShowExportModal(false);
+              setPassword("");
+              setExportSuccess(false);
+            }}
+            type="button"
+          >
+            ×
+          </button>
+          <div className="text-lg font-semibold text-white">Export Encrypted Keystore</div>
+          <div className="mt-1 text-xs text-neutral-400">
+            Download your wallet as an encrypted JSON file
+          </div>
+
+          {exportSuccess ? (
+            <div className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+              <div className="font-semibold text-green-300">✓ Keystore exported successfully</div>
+              <div className="mt-1 text-neutral-300">Check your downloads folder</div>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wide">
+                  Encryption Password
+                </label>
+                <input
+                  type="password"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-white/40"
+                  placeholder="Enter a strong password (min 8 characters)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={8}
+                />
+                <div className="mt-2 text-xs text-neutral-500">
+                  This password encrypts your private key. Keep it safe!
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  className="flex-1 rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-neutral-300 hover:border-white/40 hover:text-white transition"
+                  onClick={() => {
+                    setShowExportModal(false);
+                    setPassword("");
+                  }}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="flex-1 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-3 text-sm font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
+                  onClick={exportKeystore}
+                  disabled={!password || password.length < 8}
+                  type="button"
+                >
+                  Export
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* Add Guardian Modal */}
+    {showGuardianModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-gradient-to-br from-neutral-900 to-neutral-950 p-6 shadow-2xl">
+          <button
+            className="absolute right-4 top-4 text-neutral-500 hover:text-white transition"
+            onClick={() => {
+              setShowGuardianModal(false);
+              setNewGuardian("");
+            }}
+            type="button"
+          >
+            ×
+          </button>
+          <div className="text-lg font-semibold text-white">Add Guardian</div>
+          <div className="mt-1 text-xs text-neutral-400">
+            Add a trusted guardian to help recover your wallet (max 5)
+          </div>
+
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wide">
+                Guardian PQC Address
+              </label>
+              <input
+                type="text"
+                className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-neutral-100 font-mono outline-none focus:border-white/40"
+                placeholder="pqc1ml... or pqc1slh..."
+                value={newGuardian}
+                onChange={(e) => setNewGuardian(e.target.value)}
+              />
+              <div className="mt-2 text-xs text-neutral-500">
+                Guardians can help recover your wallet if you lose access
+              </div>
+            </div>
+
+            {guardians.length >= 5 && (
+              <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400">
+                Maximum of 5 guardians reached
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                className="flex-1 rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-neutral-300 hover:border-white/40 hover:text-white transition"
+                onClick={() => {
+                  setShowGuardianModal(false);
+                  setNewGuardian("");
+                }}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="flex-1 rounded-2xl bg-gradient-to-r from-green-500 to-cyan-500 px-4 py-3 text-sm font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
+                onClick={addGuardian}
+                disabled={!newGuardian || !newGuardian.startsWith('pqc1') || guardians.length >= 5}
+                type="button"
+              >
+                Add Guardian
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 };
