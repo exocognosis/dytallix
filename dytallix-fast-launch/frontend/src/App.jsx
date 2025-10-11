@@ -2693,8 +2693,8 @@ const ExplorerPage = () => {
   const [copied, setCopied] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showRawJson, setShowRawJson] = useState(false);
-  const [recentActivity, setRecentActivity] = useState(null);
-  const [activityLoading, setActivityLoading] = useState(false);
+  const [recentActivity, setRecentActivity] = useState({ blocks: [], transactions: [] });
+  const [activityLoading, setActivityLoading] = useState(true);
   
   const debouncedQ = useDebouncedValue(q, 300);
   const detected = useMemo(() => detectQueryType(debouncedQ), [debouncedQ]);
@@ -2718,15 +2718,22 @@ const ExplorerPage = () => {
   
   // Fetch recent activity when no search is active
   useEffect(() => {
-    if (debouncedQ) return; // Skip if searching
+    if (debouncedQ) {
+      // Keep existing data when searching, don't reset
+      return;
+    }
     
     const controller = new AbortController();
     
     const fetchRecentActivity = async () => {
-      setActivityLoading(true);
+      // Only show loading on initial load
+      if (recentActivity.blocks.length === 0) {
+        setActivityLoading(true);
+      }
+      
       try {
-        // Fetch recent blocks
-        const blocksResp = await fetch(`${rpcUrl}/blocks?limit=20`, { signal: controller.signal });
+        // Fetch recent blocks - get more for scrolling
+        const blocksResp = await fetch(`${rpcUrl}/blocks?limit=100`, { signal: controller.signal });
         if (!blocksResp.ok) throw new Error('Failed to fetch blocks');
         
         const blocksData = await blocksResp.json();
@@ -2777,6 +2784,7 @@ const ExplorerPage = () => {
           if (recentTxs.length >= 50) break;
         }
         
+        // Update state with new data
         setRecentActivity({
           blocks: recentBlocks,
           transactions: recentTxs
@@ -2790,6 +2798,7 @@ const ExplorerPage = () => {
       }
     };
     
+    // Fetch immediately on mount
     fetchRecentActivity();
     
     // Refresh every 5 seconds
@@ -2799,7 +2808,7 @@ const ExplorerPage = () => {
       controller.abort();
       clearInterval(interval);
     };
-  }, [debouncedQ, rpcUrl]);
+  }, [debouncedQ, rpcUrl]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Fetch data when query changes
   useEffect(() => {
@@ -2985,6 +2994,25 @@ const ExplorerPage = () => {
     setCurrentPage(1);
   };
   
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    // If input is cleared, clear the query to show recent activity again
+    if (value.trim() === '') {
+      setQ('');
+      setData(null);
+      setError(null);
+    }
+  };
+  
+  const handleClearSearch = () => {
+    setInputValue('');
+    setQ('');
+    setData(null);
+    setError(null);
+    setCurrentPage(1);
+  };
+  
   const handleCopy = async (text) => {
     const success = await copyToClipboard(text);
     if (success) {
@@ -2999,27 +3027,27 @@ const ExplorerPage = () => {
     return (
       <div className="space-y-6">
         {/* Address Overview */}
-        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent p-6">
           <div className="flex items-start gap-4">
             <canvas
               ref={(el) => el && drawIdenticon(el, data.address)}
-              className="rounded-xl"
+              className="rounded-xl border-2 border-purple-500/30"
               width="64"
               height="64"
             />
             <div className="flex-1">
-              <div className="text-xs text-neutral-400 mb-1">Address</div>
+              <div className="text-xs text-purple-400 font-medium mb-1">Address</div>
               <div className="flex items-center gap-2 mb-3">
-                <code className="text-sm font-mono">{shorten(data.address, 16, 8)}</code>
+                <code className="text-sm font-mono text-purple-300">{shorten(data.address, 16, 8)}</code>
                 <button
                   onClick={() => handleCopy(data.address)}
-                  className="px-2 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 transition"
+                  className="px-2 py-1 text-xs rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 transition"
                 >
                   {copied ? '✓' : '📋'}
                 </button>
                 <button
                   onClick={() => setShowQr(!showQr)}
-                  className="px-2 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 transition"
+                  className="px-2 py-1 text-xs rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 transition"
                 >
                   QR
                 </button>
@@ -3029,25 +3057,25 @@ const ExplorerPage = () => {
                 <div className="mb-4">
                   <canvas
                     ref={(el) => el && drawQrToCanvas(el, data.address)}
-                    className="border border-white/10 rounded-xl"
+                    className="border-2 border-purple-500/30 rounded-xl"
                   />
                 </div>
               )}
               
               <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent p-4 border border-white/10">
-                  <div className="text-xs text-neutral-400">DGT Balance</div>
-                  <div className="text-2xl font-bold mt-1">{fmtAmount(data.balance?.DGT || 0)}</div>
+                <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent p-4 border border-blue-500/20">
+                  <div className="text-xs text-blue-400 font-medium">DGT Balance</div>
+                  <div className="text-2xl font-bold mt-1 text-blue-300">{fmtAmount(data.balance?.DGT || 0)}</div>
                 </div>
-                <div className="rounded-xl bg-gradient-to-br from-purple-500/10 to-transparent p-4 border border-white/10">
-                  <div className="text-xs text-neutral-400">DRT Balance</div>
-                  <div className="text-2xl font-bold mt-1">{fmtAmount(data.balance?.DRT || 0)}</div>
+                <div className="rounded-xl bg-gradient-to-br from-green-500/10 to-transparent p-4 border border-green-500/20">
+                  <div className="text-xs text-green-400 font-medium">DRT Balance</div>
+                  <div className="text-2xl font-bold mt-1 text-green-300">{fmtAmount(data.balance?.DRT || 0)}</div>
                 </div>
               </div>
               
               {data.nonce !== undefined && (
                 <div className="mt-3 text-sm text-neutral-400">
-                  Nonce: <span className="text-neutral-200">{data.nonce}</span>
+                  Nonce: <span className="text-orange-400 font-semibold">{data.nonce}</span>
                 </div>
               )}
             </div>
@@ -3055,11 +3083,17 @@ const ExplorerPage = () => {
         </div>
         
         {/* Recent Transactions */}
-        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
-          <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+              <span className="text-green-500 text-xl">⚡</span>
+            </div>
+            <h3 className="text-lg font-semibold">Transaction History</h3>
+          </div>
           
           {!data.transactions || data.transactions.length === 0 ? (
             <div className="text-center py-8">
+              <div className="text-4xl mb-3">📭</div>
               <div className="text-neutral-400 mb-2">No transactions found</div>
               <div className="text-xs text-neutral-500">
                 This address has not sent or received any transactions yet
@@ -3070,14 +3104,14 @@ const ExplorerPage = () => {
               {data.transactions.slice(0, currentPage * 10).map((tx) => (
                 <div
                   key={tx.hash}
-                  className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
+                  className="rounded-xl bg-white/5 hover:bg-gradient-to-br hover:from-green-500/10 hover:to-transparent border border-white/5 hover:border-green-500/20 p-4 transition cursor-pointer"
                   onClick={() => {
                     setQ(tx.hash);
                     setActiveTab('tx');
                   }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <code className="text-xs font-mono text-neutral-300">{shorten(tx.hash, 12, 8)}</code>
+                    <code className="text-xs font-mono text-green-400">{shorten(tx.hash, 12, 8)}</code>
                     <span className={`px-2 py-1 text-xs rounded-lg ${
                       tx.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
                       tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
@@ -3088,14 +3122,21 @@ const ExplorerPage = () => {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <div>
-                      <span className={tx.from === data.address ? 'text-red-400' : 'text-green-400'}>
+                      <span className={tx.from === data.address ? 'text-red-400 font-semibold' : 'text-green-400 font-semibold'}>
                         {tx.from === data.address ? '↑ OUT' : '↓ IN'}
                       </span>
-                      <span className="ml-2 text-neutral-300">
-                        {fmtAmount(tx.amount)} {tx.denom}
+                      <span className="ml-2 text-white font-semibold">
+                        {fmtAmount(tx.amount)}
+                      </span>
+                      <span className="ml-1 text-neutral-400">
+                        {tx.denom}
                       </span>
                     </div>
                     <div className="text-xs text-neutral-400">{timeAgo(tx.timestamp)}</div>
+                  </div>
+                  <div className="mt-2 text-xs">
+                    <span className="text-neutral-500">Block</span>{' '}
+                    <span className="text-blue-400 font-mono">#{tx.block?.toLocaleString()}</span>
                   </div>
                 </div>
               ))}
@@ -3121,18 +3162,21 @@ const ExplorerPage = () => {
     return (
       <div className="space-y-6">
         {/* Status Header */}
-        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+              <span className="text-green-500 text-xl">⚡</span>
+            </div>
+            <div className="flex-1">
               <h3 className="text-lg font-semibold">Transaction Status</h3>
               <div className="text-xs text-neutral-400 mt-1">
                 {data.confirmations ? `${data.confirmations} confirmations` : 'Pending'}
               </div>
             </div>
-            <span className={`px-3 py-1.5 text-sm rounded-xl ${
-              data.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
-              data.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-              'bg-red-500/20 text-red-300'
+            <span className={`px-3 py-1.5 text-sm rounded-xl font-semibold ${
+              data.status === 'confirmed' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
+              data.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
+              'bg-red-500/20 text-red-300 border border-red-500/30'
             }`}>
               {data.status || 'Unknown'}
             </span>
@@ -3152,17 +3196,22 @@ const ExplorerPage = () => {
         </div>
         
         {/* Transaction Details */}
-        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
-          <h3 className="text-lg font-semibold mb-4">Details</h3>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <span className="text-blue-500 text-xl">📋</span>
+            </div>
+            <h3 className="text-lg font-semibold">Transaction Details</h3>
+          </div>
           
           <div className="space-y-4">
             <div>
-              <div className="text-xs text-neutral-400 mb-1">Transaction ID</div>
+              <div className="text-xs text-green-400 font-medium mb-1">Transaction ID</div>
               <div className="flex items-center gap-2">
-                <code className="text-sm font-mono">{shorten(data.hash, 20, 10)}</code>
+                <code className="text-sm font-mono text-green-300">{shorten(data.hash, 20, 10)}</code>
                 <button
                   onClick={() => handleCopy(data.hash)}
-                  className="px-2 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 transition"
+                  className="px-2 py-1 text-xs rounded-lg bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 transition"
                 >
                   {copied ? '✓' : '📋'}
                 </button>
@@ -3171,26 +3220,26 @@ const ExplorerPage = () => {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-xs text-neutral-400 mb-1">From</div>
+                <div className="text-xs text-blue-400 font-medium mb-1">From</div>
                 <button
                   onClick={() => {
                     setQ(data.from);
                     setActiveTab('address');
                   }}
-                  className="text-sm font-mono text-blue-400 hover:text-blue-300 transition"
+                  className="text-sm font-mono text-blue-300 hover:text-blue-200 transition"
                 >
                   {shorten(data.from, 12, 8)}
                 </button>
               </div>
               
               <div>
-                <div className="text-xs text-neutral-400 mb-1">To</div>
+                <div className="text-xs text-purple-400 font-medium mb-1">To</div>
                 <button
                   onClick={() => {
                     setQ(data.to);
                     setActiveTab('address');
                   }}
-                  className="text-sm font-mono text-blue-400 hover:text-blue-300 transition"
+                  className="text-sm font-mono text-purple-300 hover:text-purple-200 transition"
                 >
                   {shorten(data.to, 12, 8)}
                 </button>
@@ -3199,35 +3248,35 @@ const ExplorerPage = () => {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-xs text-neutral-400 mb-1">Amount</div>
+                <div className="text-xs text-green-400 font-medium mb-1">Amount</div>
                 <div className="text-sm">
-                  {fmtAmount(data.amount)} <span className="text-neutral-400">{data.denom}</span>
+                  <span className="text-green-300 font-semibold">{fmtAmount(data.amount)}</span> <span className="text-neutral-400">{data.denom}</span>
                 </div>
               </div>
               
               <div>
-                <div className="text-xs text-neutral-400 mb-1">Fee</div>
-                <div className="text-sm">{fmtAmount(data.fee || 0)} DGT</div>
+                <div className="text-xs text-orange-400 font-medium mb-1">Fee</div>
+                <div className="text-sm text-orange-300">{fmtAmount(data.fee || 0)} DGT</div>
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-xs text-neutral-400 mb-1">Nonce</div>
-                <div className="text-sm">{data.nonce}</div>
+                <div className="text-xs text-yellow-400 font-medium mb-1">Nonce</div>
+                <div className="text-sm text-yellow-300">{data.nonce}</div>
               </div>
               
               <div>
-                <div className="text-xs text-neutral-400 mb-1">Block</div>
+                <div className="text-xs text-blue-400 font-medium mb-1">Block</div>
                 {data.block ? (
                   <button
                     onClick={() => {
                       setQ(data.block.toString());
                       setActiveTab('block');
                     }}
-                    className="text-sm text-blue-400 hover:text-blue-300 transition"
+                    className="text-sm text-blue-300 hover:text-blue-200 transition font-semibold"
                   >
-                    #{data.block}
+                    #{data.block.toLocaleString()}
                   </button>
                 ) : (
                   <div className="text-sm text-neutral-400">Pending</div>
@@ -3236,9 +3285,9 @@ const ExplorerPage = () => {
             </div>
             
             <div>
-              <div className="text-xs text-neutral-400 mb-1">Timestamp</div>
+              <div className="text-xs text-neutral-400 font-medium mb-1">Timestamp</div>
               <div className="text-sm">
-                {new Date(data.timestamp * 1000).toLocaleString()}
+                <span className="text-neutral-200">{new Date(data.timestamp * 1000).toLocaleString()}</span>
                 <span className="ml-2 text-neutral-400">({timeAgo(data.timestamp)})</span>
               </div>
             </div>
@@ -3253,19 +3302,24 @@ const ExplorerPage = () => {
         </div>
         
         {/* Raw JSON */}
-        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Raw Data</h3>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                <span className="text-purple-500 text-xl">{ }</span>
+              </div>
+              <h3 className="text-lg font-semibold">Raw Data</h3>
+            </div>
             <button
               onClick={() => setShowRawJson(!showRawJson)}
-              className="px-3 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10 transition"
+              className="px-3 py-1.5 text-sm rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 transition"
             >
               {showRawJson ? 'Hide' : 'Show'} JSON
             </button>
           </div>
           
           {showRawJson && (
-            <pre className="text-xs font-mono bg-black/30 p-4 rounded-xl overflow-x-auto">
+            <pre className="text-xs font-mono bg-black/30 p-4 rounded-xl overflow-x-auto border border-purple-500/20">
               {JSON.stringify(data, null, 2)}
             </pre>
           )}
@@ -3280,17 +3334,22 @@ const ExplorerPage = () => {
     return (
       <div className="space-y-6">
         {/* Block Header */}
-        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
-          <h3 className="text-lg font-semibold mb-4">Block #{data.height}</h3>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <span className="text-blue-500 text-xl">◼</span>
+            </div>
+            <h3 className="text-lg font-semibold">Block <span className="text-blue-400">#{data.height}</span></h3>
+          </div>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <div className="text-xs text-neutral-400 mb-1">Hash</div>
+              <div className="text-xs text-blue-400 font-medium mb-1">Hash</div>
               <div className="flex items-center gap-2">
-                <code className="text-sm font-mono">{shorten(data.hash, 12, 8)}</code>
+                <code className="text-sm font-mono text-blue-300">{shorten(data.hash, 12, 8)}</code>
                 <button
                   onClick={() => handleCopy(data.hash)}
-                  className="px-2 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 transition"
+                  className="px-2 py-1 text-xs rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition"
                 >
                   {copied ? '✓' : '📋'}
                 </button>
@@ -3298,39 +3357,39 @@ const ExplorerPage = () => {
             </div>
             
             <div>
-              <div className="text-xs text-neutral-400 mb-1">Timestamp</div>
-              <div className="text-sm">
+              <div className="text-xs text-purple-400 font-medium mb-1">Timestamp</div>
+              <div className="text-sm text-purple-300">
                 {new Date(data.timestamp * 1000).toLocaleString()}
               </div>
               <div className="text-xs text-neutral-400">{timeAgo(data.timestamp)}</div>
             </div>
             
             <div>
-              <div className="text-xs text-neutral-400 mb-1">Transactions</div>
-              <div className="text-sm">{data.txCount || 0}</div>
+              <div className="text-xs text-green-400 font-medium mb-1">Transactions</div>
+              <div className="text-sm text-green-300 font-semibold">{data.txCount || 0}</div>
             </div>
             
             <div>
-              <div className="text-xs text-neutral-400 mb-1">Producer</div>
+              <div className="text-xs text-orange-400 font-medium mb-1">Producer</div>
               <button
                 onClick={() => {
                   setQ(data.producer);
                   setActiveTab('address');
                 }}
-                className="text-sm font-mono text-blue-400 hover:text-blue-300 transition"
+                className="text-sm font-mono text-orange-400 hover:text-orange-300 transition"
               >
                 {shorten(data.producer, 12, 8)}
               </button>
             </div>
             
             <div>
-              <div className="text-xs text-neutral-400 mb-1">Parent Hash</div>
+              <div className="text-xs text-cyan-400 font-medium mb-1">Parent Hash</div>
               <button
                 onClick={() => {
                   setQ(data.parentHash);
                   setActiveTab('block');
                 }}
-                className="text-sm font-mono text-blue-400 hover:text-blue-300 transition"
+                className="text-sm font-mono text-cyan-400 hover:text-cyan-300 transition"
               >
                 {shorten(data.parentHash, 12, 8)}
               </button>
@@ -3338,8 +3397,8 @@ const ExplorerPage = () => {
             
             {data.gasUsed !== undefined && (
               <div>
-                <div className="text-xs text-neutral-400 mb-1">Gas Used</div>
-                <div className="text-sm">{fmtAmount(data.gasUsed, 0)}</div>
+                <div className="text-xs text-yellow-400 font-medium mb-1">Gas Used</div>
+                <div className="text-sm text-yellow-300">{fmtAmount(data.gasUsed, 0)}</div>
               </div>
             )}
           </div>
@@ -3351,7 +3410,7 @@ const ExplorerPage = () => {
                   setQ((data.height - 1).toString());
                   setActiveTab('block');
                 }}
-                className="px-3 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10 transition"
+                className="px-3 py-1.5 text-sm rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition"
               >
                 ← Previous Block
               </button>
@@ -3361,7 +3420,7 @@ const ExplorerPage = () => {
                 setQ((data.height + 1).toString());
                 setActiveTab('block');
               }}
-              className="px-3 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10 transition"
+              className="px-3 py-1.5 text-sm rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition"
             >
               Next Block →
             </button>
@@ -3369,17 +3428,25 @@ const ExplorerPage = () => {
         </div>
         
         {/* Transactions List */}
-        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
-          <h3 className="text-lg font-semibold mb-4">Transactions</h3>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+              <span className="text-green-500 text-xl">⚡</span>
+            </div>
+            <h3 className="text-lg font-semibold">Transactions</h3>
+          </div>
           
           {!data.transactions || data.transactions.length === 0 ? (
-            <div className="text-center text-neutral-400 py-8">No transactions in this block</div>
+            <div className="text-center py-8">
+              <div className="text-4xl mb-3">📭</div>
+              <div className="text-neutral-400">No transactions in this block</div>
+            </div>
           ) : (
             <div className="space-y-2">
               {data.transactions.map((tx) => (
                 <div
                   key={tx.hash}
-                  className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
+                  className="rounded-xl bg-white/5 hover:bg-gradient-to-br hover:from-green-500/10 hover:to-transparent border border-white/5 hover:border-green-500/20 p-4 transition cursor-pointer"
                   onClick={() => {
                     setQ(tx.hash);
                     setActiveTab('tx');
@@ -3387,16 +3454,17 @@ const ExplorerPage = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <code className="text-xs font-mono text-neutral-300">{shorten(tx.hash, 12, 8)}</code>
+                      <code className="text-xs font-mono text-green-400">{shorten(tx.hash, 12, 8)}</code>
                       <div className="text-sm mt-1">
                         <span className="text-neutral-400">From</span>{' '}
-                        <span className="font-mono text-xs">{shorten(tx.from, 8, 6)}</span>{' '}
-                        <span className="text-neutral-400">to</span>{' '}
-                        <span className="font-mono text-xs">{shorten(tx.to, 8, 6)}</span>
+                        <span className="font-mono text-xs text-blue-400">{shorten(tx.from, 8, 6)}</span>{' '}
+                        <span className="text-neutral-400">→</span>{' '}
+                        <span className="font-mono text-xs text-purple-400">{shorten(tx.to, 8, 6)}</span>
                       </div>
                     </div>
                     <div className="text-sm">
-                      {fmtAmount(tx.amount)} <span className="text-neutral-400">{tx.denom}</span>
+                      <span className="text-green-300 font-semibold">{fmtAmount(tx.amount)}</span>{' '}
+                      <span className="text-neutral-400">{tx.denom}</span>
                     </div>
                   </div>
                 </div>
@@ -3409,15 +3477,25 @@ const ExplorerPage = () => {
   };
   
   const renderSearchAllView = () => {
-    // If we have recent activity and no search, show it
-    if (recentActivity && !q) {
+    // Show recent activity when not searching
+    if (!q) {
       return (
-        <div className="space-y-6">
+        <div className="grid lg:grid-cols-2 gap-6">
           {/* Recent Blocks */}
-          <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
-            <h3 className="text-lg font-semibold mb-4">Recent Blocks</h3>
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                <span className="text-blue-500 text-xl">◼</span>
+              </div>
+              <div className="flex-1 flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Recent Blocks</h3>
+                {recentActivity.blocks.length > 0 && (
+                  <span className="text-xs text-neutral-500">{recentActivity.blocks.length} loaded</span>
+                )}
+              </div>
+            </div>
             
-            {activityLoading && !recentActivity.blocks.length ? (
+            {activityLoading && recentActivity.blocks.length === 0 ? (
               <div className="space-y-2">
                 <SkeletonCard />
                 <SkeletonCard />
@@ -3425,11 +3503,11 @@ const ExplorerPage = () => {
             ) : recentActivity.blocks.length === 0 ? (
               <div className="text-center py-8 text-neutral-400">No blocks found</div>
             ) : (
-              <div className="space-y-2">
-                {recentActivity.blocks.slice(0, 10).map((block) => (
+              <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                {recentActivity.blocks.slice(0, currentPage * 20).map((block) => (
                   <div
                     key={block.height}
-                    className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
+                    className="rounded-xl bg-white/5 hover:bg-gradient-to-br hover:from-blue-500/10 hover:to-transparent border border-white/5 hover:border-blue-500/20 p-4 transition cursor-pointer"
                     onClick={() => {
                       setQ(block.height.toString());
                       setActiveTab('block');
@@ -3437,89 +3515,114 @@ const ExplorerPage = () => {
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm font-semibold mb-1">Block #{block.height}</div>
+                        <div className="text-sm font-semibold mb-1 text-blue-400">Block #{block.height.toLocaleString()}</div>
                         <code className="text-xs font-mono text-neutral-400">{shorten(block.hash, 12, 8)}</code>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm text-neutral-300">{block.txCount} txs</div>
+                        <div className="text-sm text-purple-400">{block.txCount} txs</div>
                         <div className="text-xs text-neutral-500">{timeAgo(block.timestamp)}</div>
                       </div>
                     </div>
                   </div>
                 ))}
+                
+                {recentActivity.blocks.length > currentPage * 20 && (
+                  <button
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className="w-full mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
+                  >
+                    Load More Blocks
+                  </button>
+                )}
               </div>
             )}
           </div>
           
-          {/* Recent Transactions - only show if there are transactions */}
-          {recentActivity.transactions.length > 0 && (
-            <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
-              <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
-              
-              {activityLoading ? (
-                <div className="space-y-2">
-                  <SkeletonCard />
-                  <SkeletonCard />
+          {/* Recent Transactions */}
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                <span className="text-green-500 text-xl">⚡</span>
+              </div>
+              <div className="flex-1 flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Recent Transactions</h3>
+                {recentActivity.transactions.length > 0 && (
+                  <span className="text-xs text-neutral-500">{recentActivity.transactions.length} total</span>
+                )}
+              </div>
+            </div>
+            
+            {activityLoading && recentActivity.transactions.length === 0 ? (
+              <div className="space-y-2">
+                <SkeletonCard />
+                <SkeletonCard />
+              </div>
+            ) : recentActivity.transactions.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">📭</div>
+                <div className="text-neutral-400">No transactions yet</div>
+                <div className="text-xs text-neutral-500 mt-2">
+                  Transactions will appear here as they are created
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {recentActivity.transactions.slice(0, currentPage * 20).map((tx) => (
-                    <div
-                      key={tx.hash}
-                      className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
-                      onClick={() => {
-                        setQ(tx.hash);
-                        setActiveTab('tx');
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <code className="text-xs font-mono text-neutral-300">{shorten(tx.hash, 12, 8)}</code>
-                        <span className={`px-2 py-1 text-xs rounded-lg ${
-                          tx.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
-                          tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                          'bg-red-500/20 text-red-300'
-                        }`}>
-                          {tx.status}
-                        </span>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                {recentActivity.transactions.slice(0, currentPage * 20).map((tx) => (
+                  <div
+                    key={tx.hash}
+                    className="rounded-xl bg-white/5 hover:bg-gradient-to-br hover:from-green-500/10 hover:to-transparent border border-white/5 hover:border-green-500/20 p-4 transition cursor-pointer"
+                    onClick={() => {
+                      setQ(tx.hash);
+                      setActiveTab('tx');
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <code className="text-xs font-mono text-green-400">{shorten(tx.hash, 12, 8)}</code>
+                      <span className={`px-2 py-1 text-xs rounded-lg ${
+                        tx.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
+                        tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
+                        'bg-red-500/20 text-red-300'
+                      }`}>
+                        {tx.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <span className="text-neutral-400">From</span>{' '}
+                        <span className="font-mono text-xs text-blue-400">{shorten(tx.from, 8, 6)}</span>{' '}
+                        <span className="text-neutral-400">→</span>{' '}
+                        <span className="font-mono text-xs text-purple-400">{shorten(tx.to, 8, 6)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <div>
-                          <span className="text-neutral-400">From</span>{' '}
-                          <span className="font-mono text-xs text-neutral-200">{shorten(tx.from, 8, 6)}</span>{' '}
-                          <span className="text-neutral-400">to</span>{' '}
-                          <span className="font-mono text-xs text-neutral-200">{shorten(tx.to, 8, 6)}</span>
-                        </div>
-                        <div>
-                          <span className="text-neutral-200">{fmtAmount(tx.amount)}</span>{' '}
-                          <span className="text-neutral-400">{tx.denom}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mt-2 text-xs text-neutral-500">
-                        <span>Block #{tx.block}</span>
-                        <span>{timeAgo(tx.timestamp)}</span>
+                      <div>
+                        <span className="text-green-300 font-semibold">{fmtAmount(tx.amount)}</span>{' '}
+                        <span className="text-neutral-400">{tx.denom}</span>
                       </div>
                     </div>
-                  ))}
-                  
-                  {recentActivity.transactions.length > currentPage * 20 && (
-                    <button
-                      onClick={() => setCurrentPage(p => p + 1)}
-                      className="w-full mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
-                    >
-                      Load More
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                    <div className="flex items-center justify-between mt-2 text-xs">
+                      <span className="text-blue-400">Block #{tx.block.toLocaleString()}</span>
+                      <span className="text-neutral-500">{timeAgo(tx.timestamp)}</span>
+                    </div>
+                  </div>
+                ))}
+                
+                {recentActivity.transactions.length > currentPage * 20 && (
+                  <button
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className="w-full mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
+                  >
+                    Load More
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       );
     }
     
     // Default search prompt
     return (
-      <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🔍</div>
           <h3 className="text-xl font-semibold mb-2">Try searching for something</h3>
@@ -3527,10 +3630,10 @@ const ExplorerPage = () => {
             Enter an address, transaction ID, block height, or block hash
           </p>
           <div className="text-sm text-neutral-500 space-y-1">
-            <div>• Address: <code className="text-neutral-300">dyt1...</code></div>
-            <div>• Transaction: <code className="text-neutral-300">0x...</code> (64 hex chars)</div>
-            <div>• Block Height: <code className="text-neutral-300">12345</code></div>
-            <div>• Block Hash: <code className="text-neutral-300">0x...</code> (64 hex chars)</div>
+            <div>• Address: <code className="text-blue-400">dyt1...</code></div>
+            <div>• Transaction: <code className="text-green-400">0x...</code> (64 hex chars)</div>
+            <div>• Block Height: <code className="text-purple-400">12345</code></div>
+            <div>• Block Hash: <code className="text-cyan-400">0x...</code> (64 hex chars)</div>
           </div>
         </div>
       </div>
@@ -3547,18 +3650,28 @@ const ExplorerPage = () => {
         </div>
         
         {/* Search Card */}
-        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
           <form onSubmit={handleSearch} className="space-y-3">
             <div className="relative">
               <input
                 id="explorer-search"
                 type="text"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={handleInputChange}
                 placeholder="Search by address, tx id, block height or hash..."
-                className="w-full rounded-xl bg-neutral-900 border border-white/10 px-4 py-3 pr-12 outline-none focus:border-white/30 transition"
+                className="w-full rounded-xl bg-neutral-900 border border-white/10 px-4 py-3 pr-24 outline-none focus:border-white/30 transition"
                 autoComplete="off"
               />
+              {inputValue && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-12 top-3 text-neutral-400 hover:text-white transition px-2"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
               <div className="absolute right-3 top-3 text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded">
                 /
               </div>
