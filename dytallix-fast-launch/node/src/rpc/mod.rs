@@ -123,7 +123,6 @@ fn validate_signed_tx(
     // Add transaction fee (always in udgt for now)
     let fee_denom = "udgt".to_string();
     required_per_denom.insert(fee_denom.clone(), signed_tx.tx.fee);
-    eprintln!("[DEBUG balance calc] Fee: {} {}", signed_tx.tx.fee, fee_denom);
 
     // Add amounts from messages
     for msg in &signed_tx.tx.msgs {
@@ -141,29 +140,24 @@ fn validate_signed_tx(
                     _ => (normalized_denom.as_str(), *amount), // Pass through unknown denoms as-is
                 };
 
-                eprintln!("[DEBUG balance calc] Message: {} {} → {} {}", amount, denom, micro_amount, micro_denom);
                 let current = required_per_denom.get(micro_denom).copied().unwrap_or(0);
                 let new_total = current.saturating_add(micro_amount);
-                eprintln!("[DEBUG balance calc] Running total for {}: {} + {} = {}", micro_denom, current, micro_amount, new_total);
                 required_per_denom.insert(micro_denom.to_string(), new_total);
             }
         }
     }
-    
-    eprintln!("[DEBUG balance calc] Final required amounts: {:?}", required_per_denom);
 
     // Check balance for each required denomination
     for (denom, required_amount) in required_per_denom {
         let available = account_state.balance_of(&denom);
-        eprintln!("[DEBUG balance check] Checking {} balance: required={}, available={}", denom, required_amount, available);
         if available < required_amount {
-            eprintln!("[DEBUG balance check] ❌ INSUFFICIENT FUNDS: need {} but only have {}", required_amount, available);
+            eprintln!("WARN  [Validator] Insufficient {} balance for tx: required={}, available={}", 
+                denom, required_amount, available);
             return Err(ValidationError::InsufficientFunds {
                 required: required_amount,
                 available,
             });
         }
-        eprintln!("[DEBUG balance check] ✅ Sufficient {} balance", denom);
     }
 
     Ok(())

@@ -343,19 +343,11 @@ impl Mempool {
         let reserved = self.reserved_total_for_sender(&tx.from);
         let post_reserve_total = reserved + total_needed;
 
-        eprintln!("[DEBUG mempool] Mempool balance check for {}:", tx.from);
-        eprintln!("[DEBUG mempool]   tx.amount = {}, tx.fee = {}, tx.gas_limit = {}, tx.gas_price = {}", 
-            tx.amount, tx.fee, tx.gas_limit, tx.gas_price);
-        eprintln!("[DEBUG mempool]   total_needed = {}, reserved = {}, post_reserve_total = {}", 
-            total_needed, reserved, post_reserve_total);
-        eprintln!("[DEBUG mempool]   balance = {}", balance);
-
         if balance < post_reserve_total {
-            eprintln!("[DEBUG mempool] ❌ INSUFFICIENT FUNDS: {} < {}", balance, post_reserve_total);
+            eprintln!("WARN  [Mempool] Rejecting tx from {} (insufficient balance: {} < {})", 
+                &tx.from[..12], balance, post_reserve_total);
             return Err(RejectionReason::InsufficientFunds);
         }
-        
-        eprintln!("[DEBUG mempool] ✅ Mempool balance check passed");
 
         // Gas validation
         if tx.gas_limit > 0 || tx.gas_price > 0 {

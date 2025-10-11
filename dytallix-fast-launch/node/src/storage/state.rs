@@ -18,31 +18,31 @@ impl Storage {
         Ok(Self { db })
     }
     pub fn put_block(&self, block: &Block, receipts: &[TxReceipt]) -> anyhow::Result<()> {
-        eprintln!("[DEBUG put_block] Storing block {} with {} txs", block.header.height, block.txs.len());
+        eprintln!("INFO  [Storage] Committing block #{} with {} transaction(s) (hash: {})", 
+            block.header.height, block.txs.len(), &block.hash[..16]);
         if !block.txs.is_empty() {
-            eprintln!("[DEBUG put_block] First tx: hash={}, from={}, to={}, amount={}", 
-                block.txs[0].hash, block.txs[0].from, block.txs[0].to, block.txs[0].amount);
+            eprintln!("INFO  [Storage] Block includes tx {} (from: {}, amount: {})", 
+                &block.txs[0].hash[..16], &block.txs[0].from[..12], block.txs[0].amount);
         }
         
         // Use serde_json instead of bincode for blocks because TxMessage enum uses #[serde(tag = "type")]
         // which is not supported by bincode's deserialize_any
         let serialized = serde_json::to_vec(block)?;
-        eprintln!("[DEBUG put_block] Serialized block {} to {} bytes (JSON)", block.header.height, serialized.len());
+        eprintln!("INFO  [Storage] Block #{} serialized ({} bytes)", block.header.height, serialized.len());
         
         // Try deserializing immediately to verify
         match serde_json::from_slice::<Block>(&serialized) {
             Ok(deserialized) => {
-                eprintln!("[DEBUG put_block] Immediate deserialize check: {} txs ✅", deserialized.txs.len());
                 if deserialized.txs.len() != block.txs.len() {
-                    eprintln!("[DEBUG put_block] ⚠️ TX COUNT MISMATCH! Original: {}, Deserialized: {}", 
+                    eprintln!("WARN  [Storage] Transaction count mismatch detected: expected {}, got {}", 
                         block.txs.len(), deserialized.txs.len());
                 }
             }
             Err(e) => {
-                eprintln!("[DEBUG put_block] ⚠️ WARNING: Failed to deserialize immediately after serialization!");
-                eprintln!("[DEBUG put_block] Error details: {:?}", e);
-                eprintln!("[DEBUG put_block] Original block had {} txs, serialized to {} bytes", 
-                    block.txs.len(), serialized.len());
+                eprintln!("ERROR [Storage] Block serialization verification failed");
+                eprintln!("ERROR [Storage] Serialization error: {:?}", e);
+                eprintln!("ERROR [Storage] Block #{} with {} transactions ({} bytes)", 
+                    block.header.height, block.txs.len(), serialized.len());
             }
         }
         
@@ -92,16 +92,15 @@ impl Storage {
         self.get_block_by_hash(String::from_utf8_lossy(&hash).to_string())
     }
     pub fn get_block_by_hash(&self, hash: String) -> Option<Block> {
-        eprintln!("[DEBUG get_block_by_hash] Looking for block with hash: {}", hash);
         let raw_data = self.db
             .get(format!("blk_hash:{hash}"))
             .ok()
             .flatten();
         
         if let Some(ref data) = raw_data {
-            eprintln!("[DEBUG get_block_by_hash] Found raw data: {} bytes", data.len());
+            eprintln!("DEBUG [Storage] Loading block {} ({} bytes)", &hash[..16], data.len());
         } else {
-            eprintln!("[DEBUG get_block_by_hash] ⚠️ No data found in DB for hash: {}", hash);
+            eprintln!("WARN  [Storage] Block not found: {}", &hash[..16]);
             return None;
         }
         
@@ -109,20 +108,18 @@ impl Storage {
             // Try JSON first (new format), fallback to bincode for old blocks
             match serde_json::from_slice::<Block>(&b) {
                 Ok(block) => {
-                    eprintln!("[DEBUG get_block_by_hash] Successfully deserialized block (JSON)");
                     Some(block)
                 }
                 Err(json_err) => {
-                    eprintln!("[DEBUG get_block_by_hash] JSON deserialization failed, trying bincode...");
+                    eprintln!("DEBUG [Storage] Attempting legacy deserialization...");
                     match bincode::deserialize::<Block>(&b) {
                         Ok(block) => {
-                            eprintln!("[DEBUG get_block_by_hash] Successfully deserialized block (bincode)");
                             Some(block)
                         }
                         Err(bincode_err) => {
-                            eprintln!("[DEBUG get_block_by_hash] ⚠️ Both JSON and bincode deserialization failed!");
-                            eprintln!("[DEBUG get_block_by_hash] JSON error: {}", json_err);
-                            eprintln!("[DEBUG get_block_by_hash] Bincode error: {}", bincode_err);
+                            eprintln!("ERROR [Storage] Block deserialization failed");
+                            eprintln!("ERROR [Storage] JSON error: {}", json_err);
+                            eprintln!("ERROR [Storage] Bincode error: {}", bincode_err);
                             None
                         }
                     }
@@ -131,10 +128,10 @@ impl Storage {
         });
         
         if let Some(ref b) = block {
-            eprintln!("[DEBUG get_block_by_hash] Retrieved block {} with {} txs", b.header.height, b.txs.len());
+            eprintln!("INFO  [Storage] Loaded block #{} with {} transaction(s)", b.header.height, b.txs.len());
             if !b.txs.is_empty() {
-                eprintln!("[DEBUG get_block_by_hash] First tx: hash={}, from={}, to={}, amount={}", 
-                    b.txs[0].hash, b.txs[0].from, b.txs[0].to, b.txs[0].amount);
+                eprintln!("DEBUG [Storage] First tx: {} (from: {}, amount: {})", 
+                    &b.txs[0].hash[..16], &b.txs[0].from[..12], b.txs[0].amount);
             }
         }
         
