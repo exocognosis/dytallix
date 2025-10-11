@@ -683,9 +683,16 @@ const WalletPage = () => {
       }
       
       const result = await submitResponse.json();
+      console.log('✅ Transaction submitted to blockchain:', result);
       const txHash = result.tx_hash || result.hash || ('tx_' + Math.random().toString(36).substr(2, 16));
       
-      // Save to history
+      // Only save to history if transaction was accepted by blockchain
+      // Check if result indicates success
+      if (result.error || !result.tx_hash) {
+        throw new Error(result.message || result.error || 'Transaction was rejected by the blockchain');
+      }
+      
+      // Save to history with pending status (will be confirmed when included in block)
       const tx = {
         hash: txHash,
         type: 'send',
@@ -694,10 +701,12 @@ const WalletPage = () => {
         amount: amountNum,
         denom: denomInfo.display,
         memo: txForm.memo,
-        status: 'pending',
+        status: 'pending', // Will be updated to 'confirmed' when we see it in a block
         timestamp: new Date().toISOString(),
       };
       saveTransaction(tx);
+      
+      console.log('💾 Transaction saved to local history:', tx);
       
       // Update local balances (will be corrected by next balance refresh)
       const currentBal = getAddressBalances(fullAddr);
@@ -1368,13 +1377,19 @@ const WalletPage = () => {
             {/* Wallet Management Actions */}
             <div className="grid grid-cols-2 gap-3">
               <button 
-                onClick={() => setShowExportModal(true)} 
+                onClick={() => {
+                  console.log('Export button clicked');
+                  setShowExportModal(true);
+                }} 
                 className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition"
               >
                 📥 Export Keystore
               </button>
               <button 
-                onClick={() => setShowGuardianModal(true)} 
+                onClick={() => {
+                  console.log('Guardian button clicked');
+                  setShowGuardianModal(true);
+                }} 
                 className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 text-sm font-semibold transition"
               >
                 👥 Add Guardian
@@ -1844,6 +1859,7 @@ const WalletPage = () => {
     {/* Export Keystore Modal */}
     {showExportModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        {console.log('Rendering Export Modal')}
         <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-gradient-to-br from-neutral-900 to-neutral-950 p-6 shadow-2xl">
           <button
             className="absolute right-4 top-4 text-neutral-500 hover:text-white transition"
@@ -1914,6 +1930,7 @@ const WalletPage = () => {
     {/* Add Guardian Modal */}
     {showGuardianModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        {console.log('Rendering Guardian Modal')}
         <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-gradient-to-br from-neutral-900 to-neutral-950 p-6 shadow-2xl">
           <button
             className="absolute right-4 top-4 text-neutral-500 hover:text-white transition"
@@ -2967,6 +2984,33 @@ const fmtAmount = (amount, decimals = 6) => {
   });
 };
 
+// Format amount with micro-unit symbol (μ) for small amounts
+const fmtAmountWithDenom = (amount, denom) => {
+  const num = typeof amount === 'number' ? amount : parseFloat(amount);
+  if (isNaN(num)) return { amount: '0', displayDenom: denom };
+  
+  // If amount is less than 0.001, show in micro-units (μDRT/μDGT)
+  if (num < 0.001 && num > 0) {
+    const microAmount = num * 1_000_000;
+    return {
+      amount: microAmount.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+      }),
+      displayDenom: `μ${denom}`
+    };
+  }
+  
+  // Otherwise show in main units
+  return {
+    amount: num.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 6
+    }),
+    displayDenom: denom
+  };
+};
+
 const shorten = (str, start = 10, end = 6) => {
   if (!str || str.length <= start + end) return str || '';
   return `${str.slice(0, start)}...${str.slice(-end)}`;
@@ -3302,7 +3346,9 @@ const ExplorerPage = () => {
                             from: tx.from,
                             to: tx.to,
                             amount: tx.amount / 1_000_000, // Convert from micro-units
-                            denom: (tx.denom || 'udrt').replace('u', '').toUpperCase(), // Convert udrt -> DRT
+                            denom: (tx.denom || 'udrt').startsWith('u') 
+                              ? (tx.denom || 'udrt').substring(1).toUpperCase() 
+                              : (tx.denom || 'DRT').toUpperCase(), // Convert udrt -> DRT, udgt -> DGT
                             status: tx.status || 'confirmed',
                             timestamp: fullBlock.timestamp || new Date(Date.now() - (3000 - block.height) * 2000).toISOString(),
                             fee: tx.fee || 0,
@@ -3512,12 +3558,19 @@ const ExplorerPage = () => {
                       <span className={tx.from === data.address ? 'text-red-400 font-semibold' : 'text-green-400 font-semibold'}>
                         {tx.from === data.address ? '↑ OUT' : '↓ IN'}
                       </span>
-                      <span className="ml-2 text-white font-semibold">
-                        {fmtAmount(tx.amount)}
-                      </span>
-                      <span className="ml-1 text-neutral-400">
-                        {tx.denom}
-                      </span>
+                      {(() => {
+                        const { amount, displayDenom } = fmtAmountWithDenom(tx.amount, tx.denom);
+                        return (
+                          <>
+                            <span className="ml-2 text-white font-semibold">
+                              {amount}
+                            </span>
+                            <span className="ml-1 text-neutral-400">
+                              {displayDenom}
+                            </span>
+                          </>
+                        );
+                      })()}
                     </div>
                     <div className="text-xs text-neutral-400">{timeAgo(tx.timestamp)}</div>
                   </div>
@@ -3637,13 +3690,31 @@ const ExplorerPage = () => {
               <div>
                 <div className="text-xs text-green-400 font-medium mb-1">Amount</div>
                 <div className="text-sm">
-                  <span className="text-green-300 font-semibold">{fmtAmount(data.amount)}</span> <span className="text-neutral-400">{data.denom}</span>
+                  {(() => {
+                    const { amount, displayDenom } = fmtAmountWithDenom(data.amount, data.denom);
+                    return (
+                      <>
+                        <span className="text-green-300 font-semibold">{amount}</span>{' '}
+                        <span className="text-neutral-400">{displayDenom}</span>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
               
               <div>
                 <div className="text-xs text-orange-400 font-medium mb-1">Fee</div>
-                <div className="text-sm text-orange-300">{fmtAmount(data.fee || 0)} DGT</div>
+                <div className="text-sm">
+                  {(() => {
+                    const { amount, displayDenom } = fmtAmountWithDenom(data.fee || 0, 'DGT');
+                    return (
+                      <>
+                        <span className="text-orange-300">{amount}</span>{' '}
+                        <span className="text-neutral-400">{displayDenom}</span>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
             
@@ -3850,8 +3921,15 @@ const ExplorerPage = () => {
                       </div>
                     </div>
                     <div className="text-sm">
-                      <span className="text-green-300 font-semibold">{fmtAmount(tx.amount)}</span>{' '}
-                      <span className="text-neutral-400">{tx.denom}</span>
+                      {(() => {
+                        const { amount, displayDenom } = fmtAmountWithDenom(tx.amount, tx.denom);
+                        return (
+                          <>
+                            <span className="text-green-300 font-semibold">{amount}</span>{' '}
+                            <span className="text-neutral-400">{displayDenom}</span>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -3981,8 +4059,15 @@ const ExplorerPage = () => {
                         <span className="font-mono text-xs text-purple-400">{shorten(tx.to, 8, 6)}</span>
                       </div>
                       <div>
-                        <span className="text-green-300 font-semibold">{fmtAmount(tx.amount)}</span>{' '}
-                        <span className="text-neutral-400">{tx.denom}</span>
+                        {(() => {
+                          const { amount, displayDenom } = fmtAmountWithDenom(tx.amount, tx.denom);
+                          return (
+                            <>
+                              <span className="text-green-300 font-semibold">{amount}</span>{' '}
+                              <span className="text-neutral-400">{displayDenom}</span>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-2 text-xs">

@@ -455,7 +455,13 @@ pub async fn list_blocks(
     let mut h = q.offset.unwrap_or(height);
     while h > 0 && blocks.len() < limit as usize {
         if let Some(b) = ctx.storage.get_block_by_height(h) {
-            blocks.push(json!({"height": b.header.height, "hash": b.hash, "txs": b.txs.iter().map(|t| &t.hash).collect::<Vec<_>>() }));
+            // Return full transaction objects, not just hashes, so Explorer can display them
+            blocks.push(json!({
+                "height": b.header.height, 
+                "hash": b.hash, 
+                "timestamp": b.header.timestamp,
+                "txs": b.txs  // Full transaction objects with all fields
+            }));
         }
         if h == 0 {
             break;
