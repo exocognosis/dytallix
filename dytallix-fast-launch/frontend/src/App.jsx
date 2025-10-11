@@ -3372,6 +3372,25 @@ const ExplorerPage = () => {
               setData(addressData);
             } else if (detected === 'tx') {
               // Transform transaction receipt response
+              let timestamp = null;
+              
+              // Try to get timestamp from the transaction or its block
+              if (result.timestamp) {
+                timestamp = result.timestamp;
+              } else if (result.block_height || result.block) {
+                // Fetch the block to get the timestamp
+                try {
+                  const blockHeight = result.block_height || result.block;
+                  const blockResp = await fetch(`${rpcUrl}/block/${blockHeight}`, { signal: controller.signal });
+                  if (blockResp.ok) {
+                    const blockData = await blockResp.json();
+                    timestamp = blockData.timestamp;
+                  }
+                } catch (e) {
+                  console.warn('[Explorer] Could not fetch block timestamp:', e);
+                }
+              }
+              
               const txData = {
                 hash: result.tx_hash || result.hash,
                 from: result.from,
@@ -3380,9 +3399,9 @@ const ExplorerPage = () => {
                 denom: 'DRT', // Default to DRT for now
                 fee: parseInt(result.fee || '0') / 1000000,
                 nonce: result.nonce,
-                block: result.block_height, // Map block_height to block
+                block: result.block_height || result.block, // Map block_height to block
                 status: result.success ? 'confirmed' : 'failed',
-                timestamp: new Date().toISOString(), // Use current time as fallback
+                timestamp: timestamp || Math.floor(Date.now() / 1000), // Unix timestamp in seconds
                 gas_used: result.gas_used,
                 gas_limit: result.gas_limit,
                 memo: result.memo || ''
