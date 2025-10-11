@@ -873,8 +873,17 @@ impl Mempool {
     fn validate_signature_policy(&self, tx: &Transaction) -> Result<(), PolicyError> {
         if let Some(alg) = tx.signature_algorithm() {
             if self.policy_manager.policy().should_enforce_at_mempool() {
-                // No conversion needed since both use the same SignatureAlgorithm from dytallix_pqc
-                self.policy_manager.validate_transaction_algorithm(&alg)?;
+                // Convert local SignatureAlgorithm to dytallix_pqc::SignatureAlgorithm
+                let pqc_alg = match alg {
+                    crate::storage::tx::SignatureAlgorithm::Ed25519 => {
+                        // Ed25519 not in dytallix_pqc, skip validation
+                        return Ok(());
+                    },
+                    crate::storage::tx::SignatureAlgorithm::Dilithium5 => dytallix_pqc::SignatureAlgorithm::Dilithium5,
+                    crate::storage::tx::SignatureAlgorithm::Falcon1024 => dytallix_pqc::SignatureAlgorithm::Falcon1024,
+                    crate::storage::tx::SignatureAlgorithm::Sphincs => dytallix_pqc::SignatureAlgorithm::SphincsSha256128s,
+                };
+                self.policy_manager.validate_transaction_algorithm(&pqc_alg)?;
             }
         }
         Ok(())

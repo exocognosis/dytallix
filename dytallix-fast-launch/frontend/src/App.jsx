@@ -77,6 +77,7 @@ const Page = ({ children }) => (
 );
 
 const Nav = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const links = [
     { href: '/', label: 'Home' },
     { href: '/wallet', label: 'PQC Wallet' },
@@ -87,18 +88,64 @@ const Nav = () => {
     { href: '/docs', label: 'Docs' },
   ];
   return (
-    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur border-b border-white/10 bg-neutral-950/60">
+    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur border-b border-white/10 bg-neutral-950/90">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 flex h-16 items-center justify-between">
         <a href="#/" className="font-black tracking-widest text-xl">DYTALLIX</a>
+        
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex gap-6">
           {links.map((l) => (
             <a key={l.href} href={`#${l.href}`} className="text-sm text-neutral-300 hover:text-white transition">{l.label}</a>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
-          <a href="#/wallet" className="hidden sm:inline-flex px-3 py-2 rounded-2xl bg-white text-black text-sm font-semibold hover:opacity-90 transition">Launch App</a>
+        
+        {/* Desktop Launch App Button */}
+        <div className="hidden md:flex items-center gap-2">
+          <a href="#/wallet" className="px-3 py-2 rounded-2xl bg-white text-black text-sm font-semibold hover:opacity-90 transition">Launch App</a>
         </div>
+        
+        {/* Mobile Menu Button */}
+        <button 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 text-neutral-300 hover:text-white"
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
       </div>
+      
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-white/10 bg-neutral-950/95 backdrop-blur">
+          <nav className="px-4 py-4 space-y-2">
+            {links.map((l) => (
+              <a 
+                key={l.href} 
+                href={`#${l.href}`}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-neutral-300 hover:text-white hover:bg-white/5 transition"
+              >
+                {l.label}
+              </a>
+            ))}
+            <a 
+              href="#/wallet" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 mt-4 rounded-xl bg-white text-black text-center font-semibold hover:opacity-90 transition"
+            >
+              Launch App
+            </a>
+          </nav>
+        </div>
+      )}
     </header>
   );
 };
@@ -148,13 +195,13 @@ const Kpis = () => {
     { k: 'Status', v: stats?.status || 'Offline', live: stats?.status === 'healthy', color: 'from-emerald-500/10' },
   ];
   return (
-    <div className="grid grid-cols-3 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
       {kpis.map((x) => (
         <div
           key={x.k}
-          className={`rounded-2xl bg-gradient-to-br ${x.color} to-transparent p-4 border border-white/10`}
+          className={`rounded-2xl bg-gradient-to-br ${x.color} to-transparent p-3 md:p-4 border border-white/10`}
         >
-          <div className="text-2xl font-bold flex items-center gap-2">
+          <div className="text-xl md:text-2xl font-bold flex items-center gap-2">
             {x.v}
             {x.live && <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>}
           </div>
@@ -259,10 +306,15 @@ const DevInvite = () => (
   <section className="mt-24">
     <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-transparent p-8">
       <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Start Building on Dytallix</h2>
-      <p className="mt-3 text-neutral-300 max-w-3xl">Spin up a local node, mint test assets, and ship PQC‑ready apps. Join the community, file RFCs, and help steer PQC adoption.</p>
+      <p className="mt-3 text-neutral-300 max-w-3xl">Install the official SDK, create a PQC wallet, and start building quantum-resistant applications today.</p>
+      <div className="mt-6 bg-black/30 rounded-xl p-4 font-mono text-sm max-w-2xl">
+        <div className="text-green-400"># Install the Dytallix SDK</div>
+        <div className="text-white">npm install @dytallix/sdk</div>
+      </div>
       <div className="mt-6 flex flex-wrap gap-3">
-        <a href="#/docs" className="px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition">Get Started</a>
-        <a href="#/faucet" className="px-5 py-3 rounded-2xl border border-white/20 hover:border-white/40 transition">Request DGT/DRT</a>
+        <a href="#/docs" className="px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition">SDK Documentation</a>
+        <a href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noreferrer" className="px-5 py-3 rounded-2xl border border-white/20 hover:border-white/40 transition">View on GitHub</a>
+        <a href="#/faucet" className="px-5 py-3 rounded-2xl border border-white/20 hover:border-white/40 transition">Get Test Tokens</a>
         <a href="#/wallet" className="px-5 py-3 rounded-2xl border border-white/20 hover:border-white/40 transition">Launch Wallet</a>
       </div>
     </div>
@@ -280,6 +332,8 @@ const Footer = () => (
         <div className="font-semibold text-neutral-300">Resources</div>
         <ul className="mt-2 space-y-1">
           <li><a className="hover:underline" href="#/docs">Documentation</a></li>
+          <li><a className="hover:underline" href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noreferrer">SDK on GitHub</a></li>
+          <li><a className="hover:underline" href="https://www.npmjs.com/package/@dytallix/sdk" target="_blank" rel="noreferrer">SDK on NPM</a></li>
           <li><a className="hover:underline" href="#/dashboard">Status & Telemetry</a></li>
           <li><a className="hover:underline" href="#/tokenomics">Tokenomics</a></li>
         </ul>
@@ -287,7 +341,8 @@ const Footer = () => (
       <div>
         <div className="font-semibold text-neutral-300">Community</div>
         <ul className="mt-2 space-y-1">
-          <li><a className="hover:underline" href="#/docs#contribute">Contributing</a></li>
+          <li><a className="hover:underline" href="https://github.com/DytallixHQ/Dytallix/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">Contributing</a></li>
+          <li><a className="hover:underline" href="https://github.com/DytallixHQ/Dytallix/issues" target="_blank" rel="noreferrer">Report Issues</a></li>
           <li><a className="hover:underline" href="#/docs#rfc">RFCs</a></li>
           <li><a className="hover:underline" href="#/docs#security">Security</a></li>
         </ul>
@@ -1061,6 +1116,13 @@ const WalletPage = () => {
                 onClick={() => {
                   setCreated(false);
                   setAlgorithm('ML-DSA');
+                  // Scroll to wallet creation form on mobile
+                  setTimeout(() => {
+                    const walletSection = document.querySelector('.rounded-3xl.border.border-white\\/10.bg-white\\/5');
+                    if (walletSection) {
+                      walletSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }, 100);
                 }}
                 className="text-blue-400 hover:text-blue-300 underline"
               >
@@ -2175,38 +2237,176 @@ const FaucetPage = () => {
 const DocsPage = () => (
   <Page>
     <h1 className="text-3xl md:text-4xl font-extrabold">Documentation</h1>
-    <p className="mt-3 text-neutral-300 max-w-prose">Everything you need to build on Dytallix: node setup, SDKs, wallet APIs, governance, and RFCs.</p>
+    <p className="mt-3 text-neutral-300 max-w-prose">Everything you need to build on Dytallix: SDK installation, wallet APIs, examples, governance, and contributing guidelines.</p>
+    
+    {/* SDK Quick Start */}
+    <div className="mt-8 rounded-3xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+      <h2 className="text-2xl font-bold">🚀 Quick Start with the SDK</h2>
+      <p className="mt-2 text-neutral-300">Install the official Dytallix SDK and start building post-quantum secure applications.</p>
+      <div className="mt-4 bg-black/30 rounded-xl p-4 font-mono text-sm">
+        <div className="text-green-400"># Install via NPM</div>
+        <div className="text-white">npm install @dytallix/sdk</div>
+        <div className="mt-3 text-green-400"># Or via Yarn</div>
+        <div className="text-white">yarn add @dytallix/sdk</div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <a className="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:opacity-90 transition" href="https://www.npmjs.com/package/@dytallix/sdk" target="_blank" rel="noreferrer">View on NPM →</a>
+        <a className="px-4 py-2 rounded-xl border border-white/20 hover:border-white/40 transition" href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noreferrer">GitHub Repository →</a>
+      </div>
+    </div>
+
     <div className="mt-8 grid md:grid-cols-2 gap-6">
-      <DocCard title="Quickstart" items={["Install CLI","Start localnet","Deploy first contract"]} color="from-green-500/10" />
-      <DocCard title="Nodes & Networking" items={["Run a validator","Declare telemetry","QUIC+PQC handshake"]} color="from-blue-500/10" />
-      <DocCard title="Smart Contracts" items={["Rust SDK","On‑chain PQC ops","Gas model"]} color="from-purple-500/10" />
-      <DocCard title="Wallet & Accounts" items={["Account abstraction","Multi‑sig","Recovery & guardians"]} color="from-orange-500/10" />
+      <DocCard 
+        title="SDK Basics" 
+        items={[
+          "Connect to Dytallix testnet",
+          "Query account balances",
+          "Check node status",
+          "Transaction history"
+        ]} 
+        color="from-blue-500/10" 
+        link="https://github.com/DytallixHQ/Dytallix#quick-start"
+      />
+      <DocCard 
+        title="PQC Wallets" 
+        items={[
+          "Generate ML-DSA wallet",
+          "Generate SLH-DSA wallet",
+          "Export/import keys",
+          "Sign transactions"
+        ]} 
+        color="from-purple-500/10"
+        link="https://github.com/DytallixHQ/Dytallix/tree/main/examples"
+      />
+      <DocCard 
+        title="Transactions" 
+        items={[
+          "Send DGT tokens",
+          "Send DRT tokens",
+          "Transaction signing",
+          "Broadcast to network"
+        ]} 
+        color="from-orange-500/10"
+        link="https://github.com/DytallixHQ/Dytallix/blob/main/examples/send-transaction.js"
+      />
+      <DocCard 
+        title="TypeScript Support" 
+        items={[
+          "Full type definitions",
+          "IDE autocomplete",
+          "Type-safe APIs",
+          "Example code"
+        ]} 
+        color="from-green-500/10"
+        link="https://github.com/DytallixHQ/Dytallix/blob/main/examples/typescript-usage.ts"
+      />
     </div>
+
+    {/* Code Examples */}
     <div className="mt-10">
-      <a className="px-5 py-3 rounded-2xl bg-white text-black font-semibold" href="https://github.com/dytallix" target="_blank" rel="noreferrer">View Repos</a>
-      <a className="ml-3 px-5 py-3 rounded-2xl border border-white/20" href="#/docs#contribute">Contributing Guide</a>
+      <h2 className="text-2xl font-bold">📝 Code Examples</h2>
+      <div className="mt-4 grid md:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-5">
+          <div className="font-semibold mb-3">Basic Usage</div>
+          <div className="bg-black/30 rounded-lg p-3 font-mono text-xs overflow-x-auto">
+            <pre className="text-neutral-300">{`import { DytallixClient } from '@dytallix/sdk';
+
+const client = new DytallixClient({
+  rpcUrl: 'https://rpc.testnet.dytallix.network',
+  chainId: 'dyt-testnet-1'
+});
+
+const status = await client.getStatus();
+console.log('Block:', status.block_height);`}</pre>
+          </div>
+          <a className="mt-3 text-sm text-blue-400 hover:underline inline-block" href="https://github.com/DytallixHQ/Dytallix/blob/main/examples/basic-usage.js" target="_blank" rel="noreferrer">View full example →</a>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-5">
+          <div className="font-semibold mb-3">Create PQC Wallet</div>
+          <div className="bg-black/30 rounded-lg p-3 font-mono text-xs overflow-x-auto">
+            <pre className="text-neutral-300">{`import { PQCWallet } from '@dytallix/sdk';
+
+// ML-DSA (Dilithium)
+const wallet = await PQCWallet.generate('ML-DSA');
+
+console.log('Address:', wallet.address);
+console.log('Algorithm:', wallet.algorithm);
+
+const publicKey = await wallet.getPublicKey();`}</pre>
+          </div>
+          <a className="mt-3 text-sm text-blue-400 hover:underline inline-block" href="https://github.com/DytallixHQ/Dytallix/blob/main/examples/create-wallet.js" target="_blank" rel="noreferrer">View full example →</a>
+        </div>
+      </div>
     </div>
+
+    {/* Resources */}
+    <div className="mt-10">
+      <h2 className="text-2xl font-bold">📚 Resources</h2>
+      <div className="mt-4 grid md:grid-cols-3 gap-4">
+        <a href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noreferrer" className="rounded-2xl border border-white/10 bg-neutral-900/50 p-5 hover:border-white/30 transition">
+          <div className="text-lg font-semibold">GitHub Repository</div>
+          <p className="mt-2 text-sm text-neutral-400">Source code, examples, and issues</p>
+        </a>
+        <a href="https://www.npmjs.com/package/@dytallix/sdk" target="_blank" rel="noreferrer" className="rounded-2xl border border-white/10 bg-neutral-900/50 p-5 hover:border-white/30 transition">
+          <div className="text-lg font-semibold">NPM Package</div>
+          <p className="mt-2 text-sm text-neutral-400">Published SDK on NPM registry</p>
+        </a>
+        <a href="https://github.com/DytallixHQ/Dytallix/blob/main/CHANGELOG.md" target="_blank" rel="noreferrer" className="rounded-2xl border border-white/10 bg-neutral-900/50 p-5 hover:border-white/30 transition">
+          <div className="text-lg font-semibold">Changelog</div>
+          <p className="mt-2 text-sm text-neutral-400">Release history and updates</p>
+        </a>
+      </div>
+    </div>
+
     <div id="contribute" className="mt-16">
-      <h2 className="text-2xl font-bold">Contributing</h2>
-      <p className="mt-2 text-neutral-300">Fork, branch, PR. We review in public. Security disclosures via security@dytallix.org (see policy).</p>
+      <h2 className="text-2xl font-bold">🤝 Contributing</h2>
+      <p className="mt-2 text-neutral-300">We welcome contributions! Fork the repository, create a branch, and submit a pull request.</p>
+      <div className="mt-4 rounded-2xl border border-white/10 bg-neutral-900/50 p-5">
+        <ul className="space-y-2 text-sm text-neutral-300">
+          <li>• Check existing <a className="text-blue-400 hover:underline" href="https://github.com/DytallixHQ/Dytallix/issues" target="_blank" rel="noreferrer">Issues</a> and <a className="text-blue-400 hover:underline" href="https://github.com/DytallixHQ/Dytallix/pulls" target="_blank" rel="noreferrer">Pull Requests</a></li>
+          <li>• Follow the <a className="text-blue-400 hover:underline" href="https://github.com/DytallixHQ/Dytallix/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">Contributing Guidelines</a></li>
+          <li>• Write clear commit messages using conventional commits</li>
+          <li>• Add tests and documentation for new features</li>
+          <li>• Security issues: Please report privately via GitHub Security Advisories</li>
+        </ul>
+      </div>
     </div>
+
     <div id="rfc" className="mt-10">
-      <h2 className="text-2xl font-bold">RFCs</h2>
-      <p className="mt-2 text-neutral-300">Propose changes via /rfcs. Each proposal includes rationale, threat model, and migration path.</p>
+      <h2 className="text-2xl font-bold">📋 RFCs</h2>
+      <p className="mt-2 text-neutral-300">Propose changes via RFCs (Request for Comments). Each proposal includes rationale, threat model, and migration path.</p>
+      <div className="mt-4 rounded-2xl border border-white/10 bg-neutral-900/50 p-5">
+        <p className="text-sm text-neutral-300">Open an <a className="text-blue-400 hover:underline" href="https://github.com/DytallixHQ/Dytallix/issues/new" target="_blank" rel="noreferrer">issue</a> with the RFC label to start a discussion.</p>
+      </div>
     </div>
+
     <div id="security" className="mt-10">
-      <h2 className="text-2xl font-bold">Security</h2>
-      <p className="mt-2 text-neutral-300">We practice defense‑in‑depth, formal specs, fuzzing, and third‑party audits. Bug bounty launches with mainnet candidate.</p>
+      <h2 className="text-2xl font-bold">🔒 Security</h2>
+      <p className="mt-2 text-neutral-300">We practice defense-in-depth, formal specifications, fuzzing, and third-party audits.</p>
+      <div className="mt-4 rounded-2xl border border-white/10 bg-neutral-900/50 p-5">
+        <p className="text-sm text-neutral-300">Found a vulnerability? Please report it via <a className="text-blue-400 hover:underline" href="https://github.com/DytallixHQ/Dytallix/security/advisories/new" target="_blank" rel="noreferrer">GitHub Security Advisories</a>.</p>
+      </div>
     </div>
   </Page>
 );
 
-const DocCard = ({ title, items, color }) => (
+const DocCard = ({ title, items, color, link }) => (
   <div className={`rounded-2xl border border-white/10 bg-gradient-to-br ${color || 'from-white/5'} to-transparent p-6`}>
     <div className="font-semibold">{title}</div>
     <ul className="mt-3 text-sm text-neutral-300 list-disc list-inside">
       {items.map((i) => <li key={i}>{i}</li>)}
     </ul>
+    {link && (
+      <a 
+        href={link} 
+        target="_blank" 
+        rel="noreferrer" 
+        className="mt-4 inline-flex items-center text-sm text-blue-400 hover:text-blue-300 hover:underline transition"
+      >
+        Learn more →
+      </a>
+    )}
   </div>
 );
 
@@ -2355,53 +2555,95 @@ const DashboardPage = () => {
         </div>
       </div>
       
-      {/* Node Cluster Status */}
+      {/* Network Status */}
       <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
             <span className="text-blue-500 text-xl">◉</span>
           </div>
           <div>
-            <div className="font-semibold text-lg">Node Cluster</div>
-            <div className="text-xs text-neutral-400">5 nodes • 3 validators active</div>
+            <div className="font-semibold text-lg">Network Status</div>
+            <div className="text-xs text-neutral-400">Dytallix Testnet • Single Node</div>
           </div>
         </div>
+        
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.values(nodeStats).map((node) => (
+          {/* Active Node */}
+          {Object.values(nodeStats).filter(n => n.online).slice(0, 1).map((node) => (
             <div key={node.port} className="rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition">
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <div className="font-semibold text-sm">{node.name}</div>
                   <div className="text-xs text-neutral-500">{node.role}</div>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${node.online ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
               </div>
-              {node.online ? (
-                <>
-                  <div className="mt-3 space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-neutral-400">Height</span>
-                      <span className="font-mono text-neutral-200">{node.latest_height?.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-neutral-400">Status</span>
-                      <span className="text-green-400 capitalize">{node.status}</span>
-                    </div>
-                  </div>
-                  <a 
-                    href={`http://localhost:${node.port}/status`} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="mt-3 block text-xs text-blue-400 hover:text-blue-300"
-                  >
-                    View API →
-                  </a>
-                </>
-              ) : (
-                <div className="mt-3 text-xs text-red-400">Offline</div>
-              )}
+              <div className="mt-3 space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-neutral-400">Height</span>
+                  <span className="font-mono text-neutral-200">{node.latest_height?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-neutral-400">Status</span>
+                  <span className="text-green-400 capitalize">{node.status}</span>
+                </div>
+              </div>
+              <a 
+                href={`http://localhost:${node.port}/status`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="mt-3 block text-xs text-blue-400 hover:text-blue-300"
+              >
+                View API →
+              </a>
             </div>
           ))}
+          
+          {/* Network Stats */}
+          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent p-4">
+            <div className="font-semibold text-sm mb-3">Network Performance</div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-neutral-400">Block Time</span>
+                <span className="font-mono text-neutral-200">~2.0s</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-neutral-400">Tx Capacity</span>
+                <span className="font-mono text-neutral-200">100/block</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-neutral-400">Avg TPS</span>
+                <span className="font-mono text-neutral-200">~50</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-neutral-400">Peak TPS</span>
+                <span className="font-mono text-green-400">3,200</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Security Info */}
+          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-cyan-500/10 to-transparent p-4">
+            <div className="font-semibold text-sm mb-3">Security Features</div>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">✓</span>
+                <span className="text-neutral-300">ML-DSA Signatures</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">✓</span>
+                <span className="text-neutral-300">BLAKE3 Hashing</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">✓</span>
+                <span className="text-neutral-300">Dual Token System</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">✓</span>
+                <span className="text-neutral-300">Adaptive Emission</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </Page>

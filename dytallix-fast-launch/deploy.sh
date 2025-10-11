@@ -57,12 +57,19 @@ trap cleanup EXIT INT TERM
 # ============================================================================
 log "🔍 Pre-flight checks..."
 
-# Check required commands
-for cmd in node npm cargo jq curl; do
+# Check required commands (cargo only needed if binary doesn't exist)
+for cmd in node npm jq curl; do
   if ! command -v $cmd >/dev/null 2>&1; then
     error "$cmd is not installed"
   fi
 done
+
+# Check cargo only if we need to build
+if [ ! -f "$ROOT_DIR/target/release/dytallix-fast-node" ] && [ ! -f "$ROOT_DIR/target/debug/dytallix-fast-node" ]; then
+  if ! command -v cargo >/dev/null 2>&1; then
+    error "cargo is not installed and node binary not found"
+  fi
+fi
 
 # Check if ports are available
 for port in $NODE_PORT $API_PORT $FRONTEND_PORT; do
@@ -76,10 +83,16 @@ done
 # ============================================================================
 log "📦 Installing dependencies..."
 
-# Root dependencies (frontend)
+# Root dependencies
 if [ ! -d "$ROOT_DIR/node_modules" ]; then
+  log "Installing root dependencies..."
+  cd "$ROOT_DIR" && npm install >"$LOG_DIR/npm-root.log" 2>&1 || error "Root npm install failed"
+fi
+
+# Frontend dependencies
+if [ -d "$ROOT_DIR/frontend" ] && [ ! -d "$ROOT_DIR/frontend/node_modules" ]; then
   log "Installing frontend dependencies..."
-  cd "$ROOT_DIR" && npm install >"$LOG_DIR/npm-frontend.log" 2>&1 || error "Frontend npm install failed"
+  cd "$ROOT_DIR/frontend" && npm install >"$LOG_DIR/npm-frontend.log" 2>&1 || error "Frontend npm install failed"
 fi
 
 # Server dependencies
@@ -93,9 +106,9 @@ fi
 # ============================================================================
 log "🔧 Building blockchain node..."
 
-if [ -d "$ROOT_DIR/node" ] && [ -f "$ROOT_DIR/node/Cargo.toml" ]; then
-  cd "$ROOT_DIR/node"
-  if [ ! -f "target/release/dytallix-lean-node" ] && [ ! -f "target/debug/dytallix-lean-node" ]; then
+if [ -d "$ROOT_DIR/node" ] && [ -f "$ROOT_DIR/Cargo.toml" ]; then
+  cd "$ROOT_DIR"
+  if [ ! -f "$ROOT_DIR/target/release/dytallix-fast-node" ] && [ ! -f "$ROOT_DIR/target/debug/dytallix-fast-node" ]; then
     log "Building node (this may take a few minutes)..."
     cargo build --release >"$LOG_DIR/node-build.log" 2>&1 || {
       warn "Release build failed, trying debug build..."
@@ -111,28 +124,27 @@ fi
 # ============================================================================
 log "🚀 Starting blockchain node on port $NODE_PORT..."
 
-cd "$ROOT_DIR/node" || error "Node directory not found"
-
 export DYT_CHAIN_ID="${DYT_CHAIN_ID:-dyt-local-1}"
 export DYT_DATA_DIR="${DYT_DATA_DIR:-$ROOT_DIR/data}"
 export DYT_GENESIS_FILE="${DYT_GENESIS_FILE:-$ROOT_DIR/genesis.json}"
 export DYT_BLOCK_INTERVAL_MS="${DYT_BLOCK_INTERVAL_MS:-2000}"
+export DYT_RPC_PORT="${NODE_PORT}"
 
 mkdir -p "$DYT_DATA_DIR"
 
-# Start node
-if [ -f "target/release/dytallix-lean-node" ]; then
-  NODE_BIN="target/release/dytallix-lean-node"
-elif [ -f "target/debug/dytallix-lean-node" ]; then
-  NODE_BIN="target/debug/dytallix-lean-node"
+# Start node - binary is in root target directory
+if [ -f "$ROOT_DIR/target/release/dytallix-fast-node" ]; then
+  NODE_BIN="$ROOT_DIR/target/release/dytallix-fast-node"
+elif [ -f "$ROOT_DIR/target/debug/dytallix-fast-node" ]; then
+  NODE_BIN="$ROOT_DIR/target/debug/dytallix-fast-node"
 else
   error "Node binary not found"
 fi
 
-RUST_LOG=info ./"$NODE_BIN" --rpc ":$NODE_PORT" >"$LOG_DIR/node.log" 2>&1 &
+RUST_LOG=info "$NODE_BIN" >"$LOG_DIR/node.log" 2>&1 &
 echo $! > "$PID_DIR/node.pid"
 
-wait_for_service "Node" "$RPC_URL/health" 60
+wait_for_service "Node" "$RPC_URL/status" 60
 
 # ============================================================================
 # 5. START API/FAUCET SERVER
