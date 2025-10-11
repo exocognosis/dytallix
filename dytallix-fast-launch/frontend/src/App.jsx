@@ -2588,9 +2588,11 @@ const shorten = (str, start = 10, end = 6) => {
 const timeAgo = (timestamp) => {
   if (!timestamp) return '';
   const now = Date.now();
-  const ts = new Date(timestamp).getTime();
+  // Backend returns Unix timestamp in seconds, JS Date expects milliseconds
+  const ts = typeof timestamp === 'number' ? timestamp * 1000 : new Date(timestamp).getTime();
   const diff = Math.floor((now - ts) / 1000);
   
+  if (diff < 0) return 'just now'; // Handle future timestamps
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
@@ -3236,7 +3238,7 @@ const ExplorerPage = () => {
             <div>
               <div className="text-xs text-neutral-400 mb-1">Timestamp</div>
               <div className="text-sm">
-                {new Date(data.timestamp).toLocaleString()}
+                {new Date(data.timestamp * 1000).toLocaleString()}
                 <span className="ml-2 text-neutral-400">({timeAgo(data.timestamp)})</span>
               </div>
             </div>
@@ -3298,7 +3300,7 @@ const ExplorerPage = () => {
             <div>
               <div className="text-xs text-neutral-400 mb-1">Timestamp</div>
               <div className="text-sm">
-                {new Date(data.timestamp).toLocaleString()}
+                {new Date(data.timestamp * 1000).toLocaleString()}
               </div>
               <div className="text-xs text-neutral-400">{timeAgo(data.timestamp)}</div>
             </div>
@@ -3449,68 +3451,68 @@ const ExplorerPage = () => {
             )}
           </div>
           
-          {/* Recent Transactions */}
-          <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
-            <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
-            
-            {activityLoading && !recentActivity.transactions.length ? (
-              <div className="space-y-2">
-                <SkeletonCard />
-                <SkeletonCard />
-              </div>
-            ) : recentActivity.transactions.length === 0 ? (
-              <div className="text-center py-8 text-neutral-400">No transactions found</div>
-            ) : (
-              <div className="space-y-2">
-                {recentActivity.transactions.slice(0, currentPage * 20).map((tx) => (
-                  <div
-                    key={tx.hash}
-                    className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
-                    onClick={() => {
-                      setQ(tx.hash);
-                      setActiveTab('tx');
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <code className="text-xs font-mono text-neutral-300">{shorten(tx.hash, 12, 8)}</code>
-                      <span className={`px-2 py-1 text-xs rounded-lg ${
-                        tx.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
-                        tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                        'bg-red-500/20 text-red-300'
-                      }`}>
-                        {tx.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <div>
-                        <span className="text-neutral-400">From</span>{' '}
-                        <span className="font-mono text-xs text-neutral-200">{shorten(tx.from, 8, 6)}</span>{' '}
-                        <span className="text-neutral-400">to</span>{' '}
-                        <span className="font-mono text-xs text-neutral-200">{shorten(tx.to, 8, 6)}</span>
+          {/* Recent Transactions - only show if there are transactions */}
+          {recentActivity.transactions.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+              <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+              
+              {activityLoading ? (
+                <div className="space-y-2">
+                  <SkeletonCard />
+                  <SkeletonCard />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {recentActivity.transactions.slice(0, currentPage * 20).map((tx) => (
+                    <div
+                      key={tx.hash}
+                      className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
+                      onClick={() => {
+                        setQ(tx.hash);
+                        setActiveTab('tx');
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <code className="text-xs font-mono text-neutral-300">{shorten(tx.hash, 12, 8)}</code>
+                        <span className={`px-2 py-1 text-xs rounded-lg ${
+                          tx.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
+                          tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
+                          'bg-red-500/20 text-red-300'
+                        }`}>
+                          {tx.status}
+                        </span>
                       </div>
-                      <div>
-                        <span className="text-neutral-200">{fmtAmount(tx.amount)}</span>{' '}
-                        <span className="text-neutral-400">{tx.denom}</span>
+                      <div className="flex items-center justify-between text-sm">
+                        <div>
+                          <span className="text-neutral-400">From</span>{' '}
+                          <span className="font-mono text-xs text-neutral-200">{shorten(tx.from, 8, 6)}</span>{' '}
+                          <span className="text-neutral-400">to</span>{' '}
+                          <span className="font-mono text-xs text-neutral-200">{shorten(tx.to, 8, 6)}</span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-200">{fmtAmount(tx.amount)}</span>{' '}
+                          <span className="text-neutral-400">{tx.denom}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-2 text-xs text-neutral-500">
+                        <span>Block #{tx.block}</span>
+                        <span>{timeAgo(tx.timestamp)}</span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between mt-2 text-xs text-neutral-500">
-                      <span>Block #{tx.block}</span>
-                      <span>{timeAgo(tx.timestamp)}</span>
-                    </div>
-                  </div>
-                ))}
-                
-                {recentActivity.transactions.length > currentPage * 20 && (
-                  <button
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    className="w-full mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
-                  >
-                    Load More
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                  ))}
+                  
+                  {recentActivity.transactions.length > currentPage * 20 && (
+                    <button
+                      onClick={() => setCurrentPage(p => p + 1)}
+                      className="w-full mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
+                    >
+                      Load More
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       );
     }
