@@ -656,6 +656,47 @@ pub async fn status(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value>
     }))
 }
 
+/// GET /genesis - Return genesis configuration
+pub async fn get_genesis() -> Result<Json<serde_json::Value>, ApiError> {
+    // Read genesis.json file
+    let genesis_content = std::fs::read_to_string("genesis.json")
+        .map_err(|_| ApiError::Internal)?;
+    
+    let mut genesis: serde_json::Value = serde_json::from_str(&genesis_content)
+        .map_err(|_| ApiError::Internal)?;
+    
+    // Compute genesis hash
+    let genesis_bytes = serde_json::to_vec(&genesis).unwrap_or_default();
+    let hash = blake3::hash(&genesis_bytes);
+    
+    // Add computed hash to metadata
+    if let Some(metadata) = genesis.get_mut("metadata") {
+        if let Some(obj) = metadata.as_object_mut() {
+            obj.insert("genesis_hash".to_string(), json!(format!("0x{}", hash.to_hex())));
+        }
+    }
+    
+    Ok(Json(genesis))
+}
+
+/// GET /genesis/hash - Return just the genesis hash
+pub async fn get_genesis_hash() -> Result<Json<serde_json::Value>, ApiError> {
+    let genesis_content = std::fs::read_to_string("genesis.json")
+        .map_err(|_| ApiError::Internal)?;
+    
+    let genesis: serde_json::Value = serde_json::from_str(&genesis_content)
+        .map_err(|_| ApiError::Internal)?;
+    
+    let genesis_bytes = serde_json::to_vec(&genesis).unwrap_or_default();
+    let hash = blake3::hash(&genesis_bytes);
+    
+    Ok(Json(json!({
+        "genesis_hash": format!("0x{}", hash.to_hex()),
+        "chain_id": genesis.get("chain_id").and_then(|v| v.as_str()).unwrap_or("unknown"),
+        "genesis_time": genesis.get("genesis_time").and_then(|v| v.as_str()).unwrap_or("unknown")
+    })))
+}
+
 pub async fn peers() -> Json<serde_json::Value> {
     Json(json!([]))
 }

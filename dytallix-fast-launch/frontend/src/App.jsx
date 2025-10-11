@@ -2510,8 +2510,8 @@ const detectQueryType = (q) => {
   const trimmed = (q || '').trim();
   if (!trimmed) return 'unknown';
   
-  // Address: starts with dyt (Bech32-like)
-  if (/^dyt1[a-z0-9]{38,}$/i.test(trimmed)) return 'address';
+  // Address: starts with dyt, dytallix, or pqc (Bech32-like)
+  if (/^(dyt1|dytallix1?|pqc1)[a-z0-9]{20,}$/i.test(trimmed)) return 'address';
   
   // Transaction ID: 64 hex chars
   if (/^0x[0-9a-fA-F]{64}$/.test(trimmed) || /^[0-9a-fA-F]{64}$/.test(trimmed)) return 'tx';
@@ -2665,69 +2665,7 @@ const drawIdenticon = (canvas, address) => {
   }
 };
 
-// Mock data generator
-const generateMockData = (type, id) => {
-  const mockAddress = (addr) => ({
-    address: addr,
-    balance: {
-      DGT: Math.floor(Math.random() * 10000),
-      DRT: Math.floor(Math.random() * 50000)
-    },
-    nonce: Math.floor(Math.random() * 100),
-    transactions: Array(10).fill(0).map(() => ({
-      hash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
-      from: addr,
-      to: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
-      amount: Math.floor(Math.random() * 1000),
-      denom: Math.random() > 0.5 ? 'DGT' : 'DRT',
-      status: Math.random() > 0.1 ? 'confirmed' : 'pending',
-      timestamp: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(),
-      fee: 0.001,
-      block: Math.floor(Math.random() * 100000)
-    }))
-  });
-  
-  const mockTx = (hash) => ({
-    hash: hash,
-    from: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
-    to: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
-    amount: Math.floor(Math.random() * 1000),
-    denom: Math.random() > 0.5 ? 'DGT' : 'DRT',
-    status: Math.random() > 0.1 ? 'confirmed' : 'pending',
-    confirmations: Math.floor(Math.random() * 50),
-    timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-    fee: 0.001,
-    nonce: Math.floor(Math.random() * 100),
-    block: Math.floor(Math.random() * 100000),
-    memo: Math.random() > 0.7 ? 'Test transaction' : '',
-    raw: { version: 1, type: 'send' }
-  });
-  
-  const mockBlock = (height) => ({
-    height: typeof height === 'number' ? height : parseInt(height) || 0,
-    hash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
-    timestamp: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-    producer: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
-    txCount: Math.floor(Math.random() * 50),
-    parentHash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
-    gasUsed: Math.floor(Math.random() * 1000000),
-    transactions: Array(Math.floor(Math.random() * 10)).fill(0).map(() => ({
-      hash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
-      from: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
-      to: `dyt1${Math.random().toString(36).slice(2).padEnd(39, 'x')}`,
-      amount: Math.floor(Math.random() * 100),
-      denom: 'DRT'
-    }))
-  });
-  
-  switch (type) {
-    case 'address': return mockAddress(id);
-    case 'tx': return mockTx(id);
-    case 'blockHeight':
-    case 'blockHash': return mockBlock(id);
-    default: return null;
-  }
-};
+
 
 // Skeleton loaders
 const SkeletonLine = ({ width = '100%' }) => (
@@ -2753,12 +2691,16 @@ const ExplorerPage = () => {
   const [copied, setCopied] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showRawJson, setShowRawJson] = useState(false);
+  const [recentActivity, setRecentActivity] = useState(null);
+  const [activityLoading, setActivityLoading] = useState(false);
   
   const debouncedQ = useDebouncedValue(q, 300);
   const detected = useMemo(() => detectQueryType(debouncedQ), [debouncedQ]);
   
   const rpcUrl = import.meta.env.VITE_DYT_NODE || import.meta.env.VITE_RPC_HTTP_URL;
-  const mockMode = !rpcUrl;
+  
+  // Debug logging
+  console.log('[Explorer] RPC URL:', rpcUrl);
   
   // Keyboard shortcut: / to focus search
   useEffect(() => {
@@ -2771,6 +2713,91 @@ const ExplorerPage = () => {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+  
+  // Fetch recent activity when no search is active
+  useEffect(() => {
+    if (debouncedQ) return; // Skip if searching
+    
+    const controller = new AbortController();
+    
+    const fetchRecentActivity = async () => {
+      setActivityLoading(true);
+      try {
+        // Fetch recent blocks
+        const blocksResp = await fetch(`${rpcUrl}/blocks?limit=20`, { signal: controller.signal });
+        if (!blocksResp.ok) throw new Error('Failed to fetch blocks');
+        
+        const blocksData = await blocksResp.json();
+        const blocks = blocksData.blocks || [];
+        
+        // For each block with transactions, fetch the full block details
+        const recentTxs = [];
+        const recentBlocks = [];
+        
+        for (const block of blocks) {
+          try {
+            const blockResp = await fetch(`${rpcUrl}/block/${block.height}`, { signal: controller.signal });
+            if (blockResp.ok) {
+              const blockData = await blockResp.json();
+              
+              recentBlocks.push({
+                height: blockData.height,
+                hash: blockData.hash,
+                timestamp: blockData.timestamp,
+                txCount: blockData.txs?.length || 0,
+                producer: blockData.producer || 'dyt1validator'
+              });
+              
+              // Fetch transaction details for each tx in the block
+              if (blockData.txs && blockData.txs.length > 0) {
+                for (const tx of blockData.txs) {
+                  if (recentTxs.length >= 50) break; // Limit to 50 recent txs
+                  
+                  recentTxs.push({
+                    hash: tx.hash,
+                    from: tx.from,
+                    to: tx.to,
+                    amount: tx.amount,
+                    denom: tx.denom || 'DRT',
+                    status: tx.status || 'confirmed',
+                    timestamp: blockData.timestamp,
+                    block: blockData.height,
+                    fee: tx.fee || 0
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            // Skip failed block fetches
+            console.warn(`Failed to fetch block ${block.height}:`, e);
+          }
+          
+          if (recentTxs.length >= 50) break;
+        }
+        
+        setRecentActivity({
+          blocks: recentBlocks,
+          transactions: recentTxs
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Failed to fetch recent activity:', err);
+        }
+      } finally {
+        setActivityLoading(false);
+      }
+    };
+    
+    fetchRecentActivity();
+    
+    // Refresh every 5 seconds
+    const interval = setInterval(fetchRecentActivity, 5000);
+    
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, [debouncedQ, rpcUrl]);
   
   // Fetch data when query changes
   useEffect(() => {
@@ -2787,41 +2814,139 @@ const ExplorerPage = () => {
       setError(null);
       
       try {
-        if (mockMode) {
-          // Mock mode
-          await new Promise(resolve => setTimeout(resolve, 300));
-          const mockData = generateMockData(detected, debouncedQ);
-          setData(mockData);
+        // Real API calls
+        let endpoint = '';
+        if (detected === 'address') {
+          endpoint = `${rpcUrl}/balance/${encodeURIComponent(debouncedQ)}`;
+        } else if (detected === 'tx') {
+          endpoint = `${rpcUrl}/tx/${encodeURIComponent(debouncedQ)}`;
+        } else if (detected === 'blockHeight' || detected === 'blockHash') {
+          endpoint = `${rpcUrl}/block/${encodeURIComponent(debouncedQ)}`;
+        }
+        
+        if (endpoint) {
+          const response = await fetch(endpoint, {
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' }
+          });
           
-          // Auto-select tab based on detection
-          if (!activeTab || activeTab === 'all') {
-            if (detected === 'address') setActiveTab('address');
-            else if (detected === 'tx') setActiveTab('tx');
-            else if (detected === 'blockHeight' || detected === 'blockHash') setActiveTab('block');
+          if (!response.ok) {
+            throw new Error(`Not found (${response.status})`);
           }
-        } else {
-          // Real API calls
-          let endpoint = '';
+          
+          const result = await response.json();
+          
+          // Transform API response to match expected format
           if (detected === 'address') {
-            endpoint = `${rpcUrl}/v1/accounts/${encodeURIComponent(debouncedQ)}`;
-          } else if (detected === 'tx') {
-            endpoint = `${rpcUrl}/v1/tx/${encodeURIComponent(debouncedQ)}`;
-          } else if (detected === 'blockHeight' || detected === 'blockHash') {
-            endpoint = `${rpcUrl}/v1/blocks/${encodeURIComponent(debouncedQ)}`;
-          }
-          
-          if (endpoint) {
-            const response = await fetch(endpoint, {
-              signal: controller.signal,
-              headers: { 'Content-Type': 'application/json' }
-            });
-            
-            if (!response.ok) {
-              throw new Error(`Not found (${response.status})`);
+              // Transform balance API response - NO MOCK DATA
+              const addressData = {
+                address: result.address,
+                balance: {
+                  DGT: parseInt(result.balances?.udgt?.balance || '0') / 1000000,
+                  DRT: parseInt(result.balances?.udrt?.balance || '0') / 1000000
+                },
+                nonce: result.nonce || 0,
+                transactions: [] // Real transaction history - will be populated when available
+              };
+              
+              // Optionally fetch recent blocks to find transactions involving this address
+              try {
+                console.log('[Explorer] Fetching transaction history for address:', result.address);
+                const blocksResp = await fetch(`${rpcUrl}/blocks?limit=100`, { signal: controller.signal });
+                if (blocksResp.ok) {
+                  const blocksData = await blocksResp.json();
+                  console.log('[Explorer] Fetched blocks:', blocksData.blocks?.length || 0);
+                  const addressTxs = [];
+                  
+                  // Scan blocks for transactions involving this address
+                  for (const block of blocksData.blocks || []) {
+                    console.log(`[Explorer] Scanning block ${block.height}, txs field:`, block.txs);
+                    
+                    // Skip blocks with no transactions
+                    if (!block.txs || block.txs.length === 0) {
+                      continue;
+                    }
+                    
+                    console.log(`[Explorer] Block ${block.height} has ${block.txs.length} txs`);
+                    
+                    // Fetch the full block to get transaction details
+                    try {
+                      const fullBlockResp = await fetch(`${rpcUrl}/block/${block.height}`, { signal: controller.signal });
+                      if (!fullBlockResp.ok) {
+                        console.warn(`[Explorer] Failed to fetch block ${block.height}: ${fullBlockResp.status}`);
+                        continue;
+                      }
+                      
+                      const fullBlock = await fullBlockResp.json();
+                      console.log(`[Explorer] Full block ${block.height} data:`, fullBlock);
+                      
+                      // Check if fullBlock has txs array
+                      if (!fullBlock.txs || !Array.isArray(fullBlock.txs)) {
+                        console.warn(`[Explorer] Block ${block.height} has no txs array in full data`);
+                        continue;
+                      }
+                      
+                      console.log(`[Explorer] Block ${block.height} full txs:`, fullBlock.txs);
+                      
+                      // Check each transaction in the block
+                      for (const tx of fullBlock.txs) {
+                        console.log('[Explorer] Checking tx:', {
+                          hash: tx.hash,
+                          from: tx.from,
+                          to: tx.to,
+                          targetAddress: result.address
+                        });
+                        
+                        if (tx.from === result.address || tx.to === result.address) {
+                          console.log('[Explorer] ✅ Found matching tx!', tx.hash);
+                          addressTxs.push({
+                            hash: tx.hash,
+                            from: tx.from,
+                            to: tx.to,
+                            amount: tx.amount / 1_000_000, // Convert from micro-units
+                            denom: (tx.denom || 'udrt').replace('u', '').toUpperCase(), // Convert udrt -> DRT
+                            status: tx.status || 'confirmed',
+                            timestamp: fullBlock.timestamp || new Date(Date.now() - (3000 - block.height) * 2000).toISOString(),
+                            fee: tx.fee || 0,
+                            block: block.height
+                          });
+                        }
+                      }
+                    } catch (e) {
+                      console.error(`[Explorer] Error fetching block ${block.height}:`, e);
+                    }
+                  }
+                  
+                  console.log('[Explorer] Found', addressTxs.length, 'transactions for address');
+                  addressData.transactions = addressTxs;
+                }
+              } catch (e) {
+                // If block scanning fails, just show empty transactions
+                console.error('[Explorer] Failed to fetch transaction history:', e);
+              }
+              
+              setData(addressData);
+            } else if (detected === 'tx') {
+              // Transform transaction receipt response
+              const txData = {
+                hash: result.tx_hash || result.hash,
+                from: result.from,
+                to: result.to,
+                amount: parseInt(result.amount || '0') / 1000000, // Convert from micro-units
+                denom: 'DRT', // Default to DRT for now
+                fee: parseInt(result.fee || '0') / 1000000,
+                nonce: result.nonce,
+                block: result.block_height, // Map block_height to block
+                status: result.success ? 'confirmed' : 'failed',
+                timestamp: new Date().toISOString(), // Use current time as fallback
+                gas_used: result.gas_used,
+                gas_limit: result.gas_limit,
+                memo: result.memo || ''
+              };
+              setData(txData);
+            } else {
+              setData(result);
             }
-            
-            const result = await response.json();
-            setData(result);
             
             // Auto-select tab
             if (!activeTab || activeTab === 'all') {
@@ -2832,7 +2957,6 @@ const ExplorerPage = () => {
           } else {
             setData(null);
           }
-        }
       } catch (err) {
         if (err.name !== 'AbortError') {
           setError(err.message);
@@ -2846,7 +2970,7 @@ const ExplorerPage = () => {
     fetchData();
     
     return () => controller.abort();
-  }, [debouncedQ, detected, mockMode, rpcUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debouncedQ, detected, rpcUrl]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Sync input with query param
   useEffect(() => {
@@ -2933,7 +3057,12 @@ const ExplorerPage = () => {
           <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
           
           {!data.transactions || data.transactions.length === 0 ? (
-            <div className="text-center text-neutral-400 py-8">No transactions found</div>
+            <div className="text-center py-8">
+              <div className="text-neutral-400 mb-2">No transactions found</div>
+              <div className="text-xs text-neutral-500">
+                This address has not sent or received any transactions yet
+              </div>
+            </div>
           ) : (
             <div className="space-y-2">
               {data.transactions.slice(0, currentPage * 10).map((tx) => (
@@ -3278,6 +3407,115 @@ const ExplorerPage = () => {
   };
   
   const renderSearchAllView = () => {
+    // If we have recent activity and no search, show it
+    if (recentActivity && !q) {
+      return (
+        <div className="space-y-6">
+          {/* Recent Blocks */}
+          <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+            <h3 className="text-lg font-semibold mb-4">Recent Blocks</h3>
+            
+            {activityLoading && !recentActivity.blocks.length ? (
+              <div className="space-y-2">
+                <SkeletonCard />
+                <SkeletonCard />
+              </div>
+            ) : recentActivity.blocks.length === 0 ? (
+              <div className="text-center py-8 text-neutral-400">No blocks found</div>
+            ) : (
+              <div className="space-y-2">
+                {recentActivity.blocks.slice(0, 10).map((block) => (
+                  <div
+                    key={block.height}
+                    className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
+                    onClick={() => {
+                      setQ(block.height.toString());
+                      setActiveTab('block');
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-semibold mb-1">Block #{block.height}</div>
+                        <code className="text-xs font-mono text-neutral-400">{shorten(block.hash, 12, 8)}</code>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-neutral-300">{block.txCount} txs</div>
+                        <div className="text-xs text-neutral-500">{timeAgo(block.timestamp)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Recent Transactions */}
+          <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
+            <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+            
+            {activityLoading && !recentActivity.transactions.length ? (
+              <div className="space-y-2">
+                <SkeletonCard />
+                <SkeletonCard />
+              </div>
+            ) : recentActivity.transactions.length === 0 ? (
+              <div className="text-center py-8 text-neutral-400">No transactions found</div>
+            ) : (
+              <div className="space-y-2">
+                {recentActivity.transactions.slice(0, currentPage * 20).map((tx) => (
+                  <div
+                    key={tx.hash}
+                    className="rounded-xl bg-white/5 hover:bg-white/10 p-4 transition cursor-pointer"
+                    onClick={() => {
+                      setQ(tx.hash);
+                      setActiveTab('tx');
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <code className="text-xs font-mono text-neutral-300">{shorten(tx.hash, 12, 8)}</code>
+                      <span className={`px-2 py-1 text-xs rounded-lg ${
+                        tx.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
+                        tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
+                        'bg-red-500/20 text-red-300'
+                      }`}>
+                        {tx.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <span className="text-neutral-400">From</span>{' '}
+                        <span className="font-mono text-xs text-neutral-200">{shorten(tx.from, 8, 6)}</span>{' '}
+                        <span className="text-neutral-400">to</span>{' '}
+                        <span className="font-mono text-xs text-neutral-200">{shorten(tx.to, 8, 6)}</span>
+                      </div>
+                      <div>
+                        <span className="text-neutral-200">{fmtAmount(tx.amount)}</span>{' '}
+                        <span className="text-neutral-400">{tx.denom}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 text-xs text-neutral-500">
+                      <span>Block #{tx.block}</span>
+                      <span>{timeAgo(tx.timestamp)}</span>
+                    </div>
+                  </div>
+                ))}
+                
+                {recentActivity.transactions.length > currentPage * 20 && (
+                  <button
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className="w-full mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
+                  >
+                    Load More
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    // Default search prompt
     return (
       <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6">
         <div className="text-center py-12">
@@ -3304,11 +3542,6 @@ const ExplorerPage = () => {
         <div>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Explorer</h1>
           <p className="mt-2 text-neutral-400">Search addresses, transactions, and blocks</p>
-          {mockMode && (
-            <div className="mt-2 px-3 py-1.5 inline-block text-xs bg-yellow-500/20 text-yellow-300 rounded-lg">
-              ⚠️ Mock Mode (No RPC configured)
-            </div>
-          )}
         </div>
         
         {/* Search Card */}
@@ -3413,7 +3646,7 @@ const ExplorerPage = () => {
         
         {/* Help Footer */}
         <div className="text-center text-xs text-neutral-500 pt-6 border-t border-white/10">
-          Powered by Dytallix{mockMode ? ' • Mock Mode' : ' • Testnet'}
+          Powered by Dytallix • Testnet
         </div>
       </div>
     </Page>

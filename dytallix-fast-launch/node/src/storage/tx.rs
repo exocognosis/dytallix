@@ -2,12 +2,34 @@ use serde::{Deserialize, Serialize};
 // Use canonical SignatureAlgorithm from dytallix_pqc crate
 pub use dytallix_pqc::SignatureAlgorithm;
 
+// Helper module for u128 serialization with serde_json
+mod u128_serde {
+    use serde::{Deserialize, Deserializer, Serializer};
+    
+    pub fn serialize<S>(value: &u128, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&value.to_string())
+    }
+    
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<u128, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
     pub hash: String,
     pub from: String,
     pub to: String,
+    #[serde(with = "u128_serde")]
     pub amount: u128,
+    #[serde(with = "u128_serde")]
     pub fee: u128,
     pub nonce: u64,
     pub signature: Option<String>,
@@ -40,6 +62,7 @@ pub enum TxMessage {
         from: String,
         to: String,
         denom: String,
+        #[serde(with = "u128_serde")]
         amount: u128,
     },
     // Future message types can be added here:

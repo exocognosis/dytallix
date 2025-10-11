@@ -609,6 +609,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/tx/:hash", get(rpc::get_tx))
         .route("/transactions/:hash", get(rpc::get_tx)) // Standard endpoint path
         .route("/transactions/pending", get(rpc::get_pending_transactions)) // Pending transactions list
+        .route("/genesis", get(rpc::get_genesis)) // Genesis configuration
+        .route("/genesis/hash", get(rpc::get_genesis_hash)) // Genesis hash
         // Minimal JSON-RPC endpoint used by the dashboard server for WASM demos
         .route("/rpc", post(rpc::json_rpc))
         // AI risk utility routes

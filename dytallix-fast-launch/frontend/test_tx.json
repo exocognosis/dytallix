@@ -1,0 +1,21 @@
+{
+  "signed_tx": {
+    "tx": {
+      "chain_id": "dyt-local-1",
+      "fee": "1000",
+      "nonce": 0,
+      "memo": "test",
+      "msgs": [
+        {
+          "type": "send",
+          "from": "dyt1ff5kw5s0n0fjzg99xjt56wtem7wexwjw3v8pnd",
+          "to": "dyt1ff5kw5s0n0fjzg99xjt56wtem7wexwjw3v8pnd",
+          "amount": "1000000",
+          "denom": "udrt"
+        }
+      ]
+    },
+    "signature": "dummy",
+    "public_key": "dummy"
+  }
+}

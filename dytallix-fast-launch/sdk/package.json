@@ -1,0 +1,65 @@
+{
+  "name": "@dytallix/sdk",
+  "version": "0.1.0",
+  "description": "Official JavaScript/TypeScript SDK for Dytallix blockchain",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "lint": "eslint src/**/*.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "dytallix",
+    "blockchain",
+    "post-quantum",
+    "pqc",
+    "ml-dsa",
+    "slh-dsa",
+    "dilithium",
+    "sphincs",
+    "cryptocurrency",
+    "quantum-resistant"
+  ],
+  "author": "Dytallix Network",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HisMadRealm/dytallix.git",
+    "directory": "dytallix-fast-launch/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/HisMadRealm/dytallix/issues"
+  },
+  "homepage": "https://dytallix.network",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "base64-js": "^1.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.55.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "@dytallix/pqc-wasm": "^0.1.0"
+  }
+}
