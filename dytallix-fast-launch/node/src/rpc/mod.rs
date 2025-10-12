@@ -449,7 +449,7 @@ pub async fn list_blocks(
     Query(q): Query<BlocksQuery>,
     ctx: axum::Extension<RpcContext>,
 ) -> Json<serde_json::Value> {
-    let limit = q.limit.unwrap_or(10).min(100);
+    let limit = q.limit.unwrap_or(10).min(1000); // Increased from 100 to 1000 for better transaction history
     let height = ctx.storage.height();
     let mut blocks = vec![];
     let mut h = q.offset.unwrap_or(height);

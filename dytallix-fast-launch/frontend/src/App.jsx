@@ -3163,57 +3163,80 @@ const ExplorerPage = () => {
       }
       
       try {
-        // Fetch recent blocks - get more for scrolling
-        const blocksResp = await fetch(`${rpcUrl}/blocks?limit=100`, { signal: controller.signal });
-        if (!blocksResp.ok) throw new Error('Failed to fetch blocks');
+        // Fetch recent blocks in multiple batches since API limits to 100 per request
+        // Fetch 5 batches of 100 blocks = 500 blocks total (~16 mins of history at 2s/block)
+        const allBlocks = [];
+        const batchSize = 100;
+        const numBatches = 5;
         
-        const blocksData = await blocksResp.json();
-        const blocks = blocksData.blocks || [];
+        // Get current height first
+        const statusResp = await fetch(`${rpcUrl}/status`, { signal: controller.signal });
+        const statusData = await statusResp.json();
+        const currentHeight = statusData.latest_height;
         
-        // For each block with transactions, fetch the full block details
+        // Fetch multiple batches of blocks going backwards from current height
+        for (let i = 0; i < numBatches; i++) {
+          const offset = currentHeight - (i * batchSize);
+          if (offset <= 0) break;
+          
+          const blocksResp = await fetch(`${rpcUrl}/blocks?offset=${offset}&limit=${batchSize}`, { 
+            signal: controller.signal 
+          });
+          
+          if (blocksResp.ok) {
+            const blocksData = await blocksResp.json();
+            allBlocks.push(...(blocksData.blocks || []));
+          }
+        }
+        
+        console.log('[Explorer] Fetched blocks:', {
+          totalBlocks: allBlocks.length,
+          heightRange: allBlocks.length > 0 ? 
+            `${allBlocks[allBlocks.length - 1]?.height} - ${allBlocks[0]?.height}` : 
+            'none'
+        });
+        
+        // Process blocks and extract transactions directly (no need to refetch)
         const recentTxs = [];
         const recentBlocks = [];
         
-        for (const block of blocks) {
-          try {
-            const blockResp = await fetch(`${rpcUrl}/block/${block.height}`, { signal: controller.signal });
-            if (blockResp.ok) {
-              const blockData = await blockResp.json();
+        for (const block of allBlocks) {
+          // Add block to recent blocks list
+          recentBlocks.push({
+            height: block.height,
+            hash: block.hash,
+            timestamp: block.timestamp,
+            txCount: block.txs?.length || 0,
+            producer: block.producer || 'dyt1validator'
+          });
+          
+          // Extract transactions directly from the block (already included in /blocks response)
+          if (block.txs && block.txs.length > 0) {
+            for (const tx of block.txs) {
+              if (recentTxs.length >= 100) break; // Limit to 100 recent txs
               
-              recentBlocks.push({
-                height: blockData.height,
-                hash: blockData.hash,
-                timestamp: blockData.timestamp,
-                txCount: blockData.txs?.length || 0,
-                producer: blockData.producer || 'dyt1validator'
+              recentTxs.push({
+                hash: tx.hash,
+                from: tx.from,
+                to: tx.to,
+                amount: tx.amount,
+                denom: tx.denom || 'udrt',
+                status: tx.status || 'confirmed',
+                timestamp: block.timestamp,
+                block: block.height,
+                fee: tx.fee || 0
               });
-              
-              // Fetch transaction details for each tx in the block
-              if (blockData.txs && blockData.txs.length > 0) {
-                for (const tx of blockData.txs) {
-                  if (recentTxs.length >= 50) break; // Limit to 50 recent txs
-                  
-                  recentTxs.push({
-                    hash: tx.hash,
-                    from: tx.from,
-                    to: tx.to,
-                    amount: tx.amount,
-                    denom: tx.denom || 'DRT',
-                    status: tx.status || 'confirmed',
-                    timestamp: blockData.timestamp,
-                    block: blockData.height,
-                    fee: tx.fee || 0
-                  });
-                }
-              }
             }
-          } catch (e) {
-            // Skip failed block fetches
-            console.warn(`Failed to fetch block ${block.height}:`, e);
           }
           
-          if (recentTxs.length >= 50) break;
+          if (recentTxs.length >= 100) break;
         }
+        
+        console.log('[Explorer] Processed activity:', { 
+          totalBlocks: recentBlocks.length, 
+          blocksWithTxs: recentBlocks.filter(b => b.txCount > 0).length,
+          totalTxs: recentTxs.length 
+        });
         
         // Update state with new data
         setRecentActivity({
