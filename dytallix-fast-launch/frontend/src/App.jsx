@@ -216,13 +216,15 @@ const Problem = () => (
   <section className="mt-24">
     <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">The Quantum Problem</h2>
     <p className="mt-4 text-neutral-300 max-w-3xl">Fault-tolerant quantum computers running Shor's algorithm can break RSA and ECC—the cryptography behind PKI, blockchains, and secure messaging. Adversaries are already harvesting encrypted data to decrypt later. Standards bodies are pushing a full shift to post-quantum cryptography by ~2035, with migrations underway today.</p>
-    <ul className="mt-6 grid md:grid-cols-3 gap-4">
-      <StatCard title="PQC Standards Finalized" body="NIST published FIPS 203/204/205 (2024) for ML‑KEM (Kyber), ML‑DSA (Dilithium) and SLH‑DSA (SPHINCS+)." footnote="Sources" footnoteId="sources" color="from-blue-500/10"/>
-      <StatCard title="2035 target" body="NSA's CNSA 2.0 sets a no‑later‑than 2035 horizon for quantum‑resistant national security systems." footnote="NSA" footnoteId="sources" color="from-purple-500/10"/>
-      <StatCard title="RSA‑2048 risk" body="Recent resource estimates suggest sub‑million logical qubits could factor RSA‑2048 in days to a week once error‑corrected QC is realized." footnote="Research" footnoteId="sources" color="from-red-500/10"/>
+    <ul className="mt-6 grid md:grid-cols-4 gap-4">
+      <StatCard title="Financial system readiness" body="BIS Paper 158 outlines quantum‑readiness for the financial system and urges migration to PQC for signatures, TLS, and critical infrastructure." footnote="BIS 158" footnoteId="sources" color="from-blue-500/10"/>
+      <StatCard title="Quantum risk & adoption" body="Industry and policy guidance (KPMG, surveys, and arXiv benchmarks) describe the threat model (HNDL, X+Y>Z) and practical steps to start PQC adoption now." footnote="KPMG & surveys" footnoteId="sources" color="from-purple-500/10"/>
+      <StatCard title="Economic & policy impact" body="Central‑bank and national bulletins (e.g., Bank of Finland) discuss systemic risks, timelines, and policy drivers shaping a Y2Q transition." footnote="BoF bulletin" footnoteId="sources" color="from-red-500/10"/>
+      <StatCard title="Standards status" body="NIST finalized ML‑KEM/ML‑DSA/SLH‑DSA (FIPS 203/204/205) and NSA CNSA 2.0 sets a no‑later‑than 2035 horizon for national security systems." footnote="Standards" color="from-emerald-500/10"/>
     </ul>
-    <div className="mt-4 text-sm text-neutral-400">See <button className="underline underline-offset-4" onClick={() => document.getElementById('sources')?.showModal()}>sources</button> for details.</div>
+    <div className="mt-4 text-sm text-neutral-400">See <button className="underline underline-offset-4" onClick={() => document.getElementById('sources')?.showModal()}>sources</button> or <button className="underline underline-offset-4" onClick={() => document.getElementById('standards')?.showModal()}>standards</button> for details.</div>
     <SourcesModal />
+    <StandardsModal />
   </section>
 );
 
@@ -242,12 +244,29 @@ const SourcesModal = () => (
         <form method="dialog"><button className="px-3 py-1 rounded-xl bg-white text-black text-sm">Close</button></form>
       </div>
       <ul className="mt-4 space-y-2 text-sm text-neutral-300">
-        <li><a className="underline" href="https://www.nist.gov/news-events/news/2024/08/nist-releases-first-3-finalized-post-quantum-encryption-standards" target="_blank" rel="noreferrer">NIST: First finalized PQC standards (Aug 13, 2024)</a></li>
-        <li><a className="underline" href="https://media.defense.gov/2022/Sep/07/2003071836/-1/-1/0/CSI_CNSA_2.0_FAQ_.PDF" target="_blank" rel="noreferrer">NSA CNSA 2.0 FAQ (Sept 7, 2022) — 2035 target</a></li>
-        <li><a className="underline" href="https://www.federalreserve.gov/econres/feds/harvest-now-decrypt-later-examining-post-quantum-cryptography-and-the-data-privacy-risks-for-distributed-ledger-networks.htm" target="_blank" rel="noreferrer">Federal Reserve: HNDL analysis (Oct 2025)</a></li>
-        <li><a className="underline" href="https://quantum-journal.org/papers/q-2021-04-15-433/" target="_blank" rel="noreferrer">Quantum (2021): RSA‑2048 factoring resource estimate</a></li>
-        <li><a className="underline" href="https://postquantum.com/industry-news/quantum-breakthrough-rsa-2048/" target="_blank" rel="noreferrer">Gidney (2025) coverage: &lt;1M qubits claim</a></li>
-        <li><a className="underline" href="https://www.ncsc.gov.uk/collection/quantum-security" target="_blank" rel="noreferrer">NCSC UK: Quantum security guidance</a></li>
+        <li><a className="underline" href="https://www.bis.org/publ/bppdf/bispap158.pdf" target="_blank" rel="noreferrer">BIS Paper 158: Quantum‑readiness for the financial system</a></li>
+        <li><a className="underline" href="https://arxiv.org/abs/2508.21548" target="_blank" rel="noreferrer">Quantum Leap in Finance: Economic Advantages, Security, and Post‑Quantum Readiness (arXiv)</a></li>
+        <li><a className="underline" href="https://arxiv.org/abs/2503.12952" target="_blank" rel="noreferrer">Performance Analysis and Industry Deployment of Post‑Quantum Cryptography Algorithms (arXiv)</a></li>
+        <li><a className="underline" href="https://arxiv.org/abs/2508.16078" target="_blank" rel="noreferrer">A Survey of Post‑Quantum Cryptography Support in Cryptographic Libraries (arXiv)</a></li>
+        <li><a className="underline" href="https://kpmg.com/xx/en/our-insights/ai-and-technology/quantum-and-cybersecurity.html" target="_blank" rel="noreferrer">KPMG: Quantum is coming — and bringing new cybersecurity risks</a></li>
+        <li><a className="underline" href="https://www.paloaltonetworks.com/blog/2025/08/securing-the-quantum-age/" target="_blank" rel="noreferrer">Palo Alto Networks: Securing the Quantum Age</a></li>
+        <li><a className="underline" href="https://www.bofbulletin.fi/en/2025/articles/quantum-computing-is-coming-is-the-financial-sector-ready/" target="_blank" rel="noreferrer">Bank of Finland Bulletin: Is the financial sector ready?</a></li>
+      </ul>
+    </div>
+  </dialog>
+);
+
+const StandardsModal = () => (
+  <dialog id="standards" className="backdrop:bg-black/70 rounded-2xl p-0">
+    <div className="p-6 bg-neutral-950 text-neutral-100 max-w-2xl">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold">Standards & Guidance</h3>
+        <form method="dialog"><button className="px-3 py-1 rounded-xl bg-white text-black text-sm">Close</button></form>
+      </div>
+      <ul className="mt-4 space-y-2 text-sm text-neutral-300">
+        <li><a className="underline" href="https://www.nist.gov/news-events/news/2024/08/nist-releases-first-3-finalized-post-quantum-encryption-standards" target="_blank" rel="noreferrer">NIST: First finalized PQC standards (FIPS 203/204/205, 2024)</a></li>
+        <li><a className="underline" href="https://media.defense.gov/2022/Sep/07/2003071836/-1/-1/0/CSI_CNSA_2.0_FAQ_.PDF" target="_blank" rel="noreferrer">NSA: Commercial National Security Algorithm Suite 2.0 FAQ (2035 target)</a></li>
+        <li><a className="underline" href="https://www.ncsc.gov.uk/collection/quantum-security" target="_blank" rel="noreferrer">NCSC UK: Quantum security guidance collection</a></li>
       </ul>
     </div>
   </dialog>
