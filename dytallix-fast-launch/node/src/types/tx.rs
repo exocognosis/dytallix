@@ -225,7 +225,11 @@ pub enum ValidationError {
     InvalidChainId { expected: String, got: String },
     InvalidNonce { expected: u64, got: u64 },
     InvalidSignature,
-    InsufficientFunds { required: u128, available: u128 },
+    InsufficientFunds {
+        denom: String,
+        required: u128,
+        available: u128,
+    },
     DuplicateTransaction,
     MempoolFull,
     Internal(String),
@@ -280,12 +284,17 @@ impl ValidationError {
                 })
             }
             ValidationError::InsufficientFunds {
+                denom,
                 required,
                 available,
             } => {
                 serde_json::json!({
                     "error": self.error_code(),
-                    "message": format!("Insufficient funds: required {}, available {}", required, available),
+                    "message": format!(
+                        "Insufficient funds for {}: required {}, available {}",
+                        denom, required, available
+                    ),
+                    "denom": denom,
                     "required": required.to_string(),
                     "available": available.to_string()
                 })
@@ -337,6 +346,7 @@ mod tests {
         assert_eq!(ValidationError::InvalidSignature.http_status(), 422);
         assert_eq!(
             ValidationError::InsufficientFunds {
+                denom: "udgt".into(),
                 required: 100,
                 available: 50
             }
@@ -358,6 +368,17 @@ mod tests {
         assert_eq!(json["error"], "INVALID_NONCE");
         assert_eq!(json["expected"], 5);
         assert_eq!(json["got"], 3);
+
+        let insufficient = ValidationError::InsufficientFunds {
+            denom: "udrt".into(),
+            required: 1_000_000,
+            available: 500_000,
+        };
+        let json = insufficient.to_json();
+        assert_eq!(json["error"], "INSUFFICIENT_FUNDS");
+        assert_eq!(json["denom"], "udrt");
+        assert_eq!(json["required"], "1000000");
+        assert_eq!(json["available"], "500000");
     }
 
     #[test]

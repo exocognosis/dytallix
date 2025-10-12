@@ -30,8 +30,11 @@ const useBlockchainStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch directly from the node
-        const rpcUrl = import.meta.env.VITE_DYT_NODE || import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+        // Use relative URL for production, absolute for development
+        const isDev = window.location.hostname === 'localhost';
+        const rpcUrl = isDev 
+          ? (import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030')
+          : '/rpc';
         const res = await fetch(`${rpcUrl}/status`);
         const data = await res.json();
         setStats(data);
@@ -99,9 +102,9 @@ const Nav = () => {
           ))}
         </nav>
         
-        {/* Desktop Launch App Button */}
+        {/* Desktop Wallet Button */}
         <div className="hidden md:flex items-center gap-2">
-          <a href="#/wallet" className="px-3 py-2 rounded-2xl bg-white text-black text-sm font-semibold hover:opacity-90 transition">Launch App</a>
+          <a href="#/wallet" className="px-3 py-2 rounded-2xl bg-white text-black text-sm font-semibold hover:opacity-90 transition">Open Wallet</a>
         </div>
         
         {/* Mobile Menu Button */}
@@ -141,7 +144,7 @@ const Nav = () => {
               onClick={() => setMobileMenuOpen(false)}
               className="block px-3 py-2 mt-4 rounded-xl bg-white text-black text-center font-semibold hover:opacity-90 transition"
             >
-              Launch App
+              Open Wallet
             </a>
           </nav>
         </div>
@@ -156,7 +159,7 @@ const Hero = () => (
       <div>
         <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight">DYTALLIX</h1>
         <p className="mt-4 text-xl md:text-2xl font-semibold text-neutral-200">Future Ready. Quantum Proof. Open Source.</p>
-        <p className="mt-6 text-neutral-300 max-w-prose">Dytallix is a PQC-native, open-source blockchain—crypto-agile, standards-ready, and built for resilient systems. 
+        <p className="mt-6 text-neutral-300 max-w-prose">Dytallix is a PQC-native, open-source blockchain—crypto-agile, standards-ready and built for resilient systems. 
           It unites standardized post-quantum cryptography, adaptive primitives, and developer-first tooling to help you build with confidence.</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a href="#/wallet" className="px-5 py-3 rounded-2xl bg-white text-black font-semibold">Create PQC Wallet</a>
@@ -219,7 +222,7 @@ const Problem = () => (
     <ul className="mt-6 grid md:grid-cols-4 gap-4">
       <StatCard title="Financial system readiness" body="BIS Paper 158 outlines quantum‑readiness for the financial system and urges migration to PQC for signatures, TLS, and critical infrastructure." footnote="BIS 158" footnoteId="sources" color="from-blue-500/10"/>
       <StatCard title="Quantum risk & adoption" body="Industry and policy guidance (KPMG, surveys, and arXiv benchmarks) describe the threat model (HNDL, X+Y>Z) and practical steps to start PQC adoption now." footnote="KPMG & surveys" footnoteId="sources" color="from-purple-500/10"/>
-      <StatCard title="Economic & policy impact" body="Central‑bank and national bulletins (e.g., Bank of Finland) discuss systemic risks, timelines, and policy drivers shaping a Y2Q transition." footnote="BoF bulletin" footnoteId="sources" color="from-red-500/10"/>
+      <StatCard title="Economic & policy impact" body="Central‑bank research (e.g., Federal Reserve HNDL) discusses systemic risks, timelines, and policy drivers shaping a Y2Q transition." footnote="Federal Reserve" footnoteId="sources" color="from-red-500/10"/>
       <StatCard title="Standards status" body="NIST finalized ML‑KEM/ML‑DSA/SLH‑DSA (FIPS 203/204/205) and NSA CNSA 2.0 sets a no‑later‑than 2035 horizon for national security systems." footnote="Standards" color="from-emerald-500/10"/>
     </ul>
     <div className="mt-4 text-sm text-neutral-400">See <button className="underline underline-offset-4" onClick={() => document.getElementById('sources')?.showModal()}>sources</button> or <button className="underline underline-offset-4" onClick={() => document.getElementById('standards')?.showModal()}>standards</button> for details.</div>
@@ -250,7 +253,7 @@ const SourcesModal = () => (
         <li><a className="underline" href="https://arxiv.org/abs/2508.16078" target="_blank" rel="noreferrer">A Survey of Post‑Quantum Cryptography Support in Cryptographic Libraries (arXiv)</a></li>
         <li><a className="underline" href="https://kpmg.com/xx/en/our-insights/ai-and-technology/quantum-and-cybersecurity.html" target="_blank" rel="noreferrer">KPMG: Quantum is coming — and bringing new cybersecurity risks</a></li>
         <li><a className="underline" href="https://www.paloaltonetworks.com/blog/2025/08/securing-the-quantum-age/" target="_blank" rel="noreferrer">Palo Alto Networks: Securing the Quantum Age</a></li>
-        <li><a className="underline" href="https://www.bofbulletin.fi/en/2025/articles/quantum-computing-is-coming-is-the-financial-sector-ready/" target="_blank" rel="noreferrer">Bank of Finland Bulletin: Is the financial sector ready?</a></li>
+        <li><a className="underline" href="https://www.federalreserve.gov/econres/feds/harvest-now-decrypt-later-examining-post-quantum-cryptography-and-the-data-privacy-risks-for-distributed-ledger-networks.htm" target="_blank" rel="noreferrer">Federal Reserve: “Harvest Now, Decrypt Later” — PQC & data-privacy risks for DLT</a></li>
       </ul>
     </div>
   </dialog>
@@ -321,6 +324,164 @@ const TechStack = () => {
   );
 };
 
+const InvestorsPage = () => (
+  <Page>
+    <section className="mt-4">
+      <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">For Seed Investors</h1>
+      <p className="mt-3 text-neutral-300 max-w-3xl">
+        Dytallix is a PQC-native, AI-enhanced blockchain built to withstand the quantum transition.
+        This page summarizes the quantum problem, the market opportunity, why we’re positioned to execute,
+        and how early investors participate.
+      </p>
+    </section>
+
+    <section className="mt-12 grid md:grid-cols-2 gap-6">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-red-500/10 to-transparent p-6">
+        <h2 className="text-xl font-semibold">The Quantum Problem</h2>
+        <ul className="mt-3 space-y-2 text-sm text-neutral-300">
+          <li>Shor’s algorithm breaks today’s public-key crypto (RSA/ECC). “Harvest-now-decrypt-later” (HNDL) is already occurring.</li>
+          <li>Migration is non-trivial: certs, protocols, hardware/firmware take years to rotate.</li>
+          <li>Standards: NIST FIPS 203/204/205; NSA CNSA 2.0 ~2035 horizon.</li>
+        </ul>
+      </div>
+
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+        <h2 className="text-xl font-semibold">Threat → Opportunity</h2>
+        <ul className="mt-3 space-y-2 text-sm text-neutral-300">
+          <li><strong>Quantum tech TAM:</strong> ~\$97B by 2035 (computing/comms/sensing).</li>
+          <li><strong>PQC segment:</strong> ~\$2.84B by 2030 (mid-40s % CAGR).</li>
+          <li><strong>Tailwinds:</strong> Blockchain + security spend demand PQC-ready infra.</li>
+        </ul>
+        <div className="mt-3 text-xs text-neutral-500">Detailed citations available on request.</div>
+      </div>
+    </section>
+
+    <section className="mt-12">
+      <h2 className="text-2xl font-extrabold tracking-tight">Why Dytallix Will Win</h2>
+      <div className="mt-4 grid md:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-5">
+          <div className="font-semibold">PQC-Native Architecture</div>
+          <p className="mt-2 text-sm text-neutral-300">Standardized PQC (ML-KEM/ML-DSA/SLH-DSA). Hybrid (PQC+ECC) for staged migration.</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent p-5">
+          <div className="font-semibold">AI-Enhanced Ops</div>
+          <p className="mt-2 text-sm text-neutral-300">Governance analytics, validator behavior, fraud detection, economic tuning.</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-transparent p-5">
+          <div className="font-semibold">Telemetry & Compliance</div>
+          <p className="mt-2 text-sm text-neutral-300">Signed metrics, SBOMs, policy manifests; controlled algorithm upgrades.</p>
+        </div>
+      </div>
+      <div className="mt-4 grid md:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <div className="font-semibold">Go-to-Market Fit</div>
+          <p className="mt-2 text-sm text-neutral-300">Wallet, faucet, explorer, SDKs; WASM + precompiles make PQC drop-in.</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <div className="font-semibold">First-Mover Advantage</div>
+          <p className="mt-2 text-sm text-neutral-300">Few chains are truly PQC-ready; standards-aligned infra wins early.</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <div className="font-semibold">Enterprise Path</div>
+          <p className="mt-2 text-sm text-neutral-300">Licensable key vaults, telemetry, “policy nodes” for B2B revenue.</p>
+        </div>
+      </div>
+      <div className="mt-3 text-xs text-neutral-500">Based on the Dytallix Seed Investment Brief.</div>
+    </section>
+
+    <section className="mt-12">
+      <h2 className="text-2xl font-extrabold tracking-tight">Early-Stage Investor Rewards</h2>
+      <div className="mt-4 grid md:grid-cols-2 gap-6">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-yellow-500/10 to-transparent p-6">
+          <div className="font-semibold">Instruments &amp; Rights</div>
+          <ul className="mt-2 space-y-2 text-sm text-neutral-300">
+            <li>SAFE + optional token warrant (or convertible grant).</li>
+            <li>Pro-rata rights; milestone-based draws; transparent reporting.</li>
+            <li>Option for rev-share on AI modules or validator nodes.</li>
+          </ul>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-orange-500/10 to-transparent p-6">
+          <div className="font-semibold">Token Economics (high-level)</div>
+          <ul className="mt-2 space-y-2 text-sm text-neutral-300">
+            <li><strong>DGT:</strong> Governance; fixed 1B supply; 4-yr team vest; treasury & staking.</li>
+            <li><strong>DRT:</strong> Reward; ~5% inflation; burns via usage/AI/bridge fees.</li>
+            <li>Year 1 (foundational), Year 2 (early liquidity potential), Year 3 (scale/listings).</li>
+          </ul>
+        </div>
+      </div>
+      <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6">
+  <h3 className="text-lg font-semibold">Funding Sought & Terms</h3>
+  <div className="mt-3 grid md:grid-cols-2 gap-6 text-sm text-neutral-300">
+    {/* Left column */}
+    <div className="space-y-3">
+      <div>
+        <div className="text-neutral-400 text-xs uppercase tracking-wide">Target Raise</div>
+        <div><strong>$20k – $40k</strong> (stepped tranches tied to milestones)</div>
+      </div>
+      <div>
+        <div className="text-neutral-400 text-xs uppercase tracking-wide">Instrument</div>
+        <div>SAFE (post-money) with optional token warrant <span className="text-neutral-500">(negotiable)</span></div>
+      </div>
+      <div>
+        <div className="text-neutral-400 text-xs uppercase tracking-wide">Runway & Burn</div>
+        <div>~6–9 months runway; lean burn focused on infra, security, and developer growth</div>
+      </div>
+      <div>
+        <div className="text-neutral-400 text-xs uppercase tracking-wide">Use of Proceeds</div>
+        <ul className="mt-1 list-disc pl-5 space-y-1">
+          <li>Testnet operations & infra (nodes, monitoring, incident response) — <strong>35%</strong></li>
+          <li>Developer incentives (grants, bounties, hackathons, docs) — <strong>30%</strong></li>
+          <li>Security & audits (PQC libraries, fuzzing, SBOMs, scope reviews) — <strong>20%</strong></li>
+          <li>Compliance & governance tooling (attestation, policy manifests) — <strong>10%</strong></li>
+          <li>Legal/ops contingency — <strong>5%</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    {/* Right column */}
+    <div className="space-y-3">
+      <div>
+        <div className="text-neutral-400 text-xs uppercase tracking-wide">Milestones & Tranches</div>
+        <ul className="mt-1 list-disc pl-5 space-y-1">
+          <li><strong>M1:</strong> PQC-wallet + explorer GA; validator telemetry live → unlock 40%</li>
+          <li><strong>M2:</strong> First 25 external devs building; faucet + SDK usage KPIs → unlock 35%</li>
+          <li><strong>M3:</strong> Security review scope complete; PQC policy governance on-chain → unlock 25%</li>
+        </ul>
+      </div>
+      <div>
+        <div className="text-neutral-400 text-xs uppercase tracking-wide">Investor Protections</div>
+        <ul className="mt-1 list-disc pl-5 space-y-1">
+          <li>Pro-rata participation in future rounds</li>
+          <li>Milestone-based draws & right to pause if KPIs missed</li>
+          <li>Transparency: monthly metrics (nodes, tx, devs), quarterly financials</li>
+        </ul>
+      </div>
+      <div>
+        <div className="text-neutral-400 text-xs uppercase tracking-wide">Upside Mechanics (Optional)</div>
+        <ul className="mt-1 list-disc pl-5 space-y-1">
+          <li>Token warrant coverage (e.g., 10–25%) with 12–24 mo. lock</li>
+          <li>Validator revenue share pilot or staking booster during testnet</li>
+          <li>Advisory access & early governance participation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+    </section>
+
+    <section className="mt-12">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h3 className="font-semibold">Contact &amp; Next Steps</h3>
+        <p className="mt-2 text-sm text-neutral-300">Request the detailed deck and a 30-minute technical diligence session.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <a href="mailto:hello@dytallix.com" className="px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition">Contact Founders</a>
+          <a href="#/docs" className="px-5 py-3 rounded-2xl border border-white/20 hover:border-white/40 transition">Read the Docs</a>
+        </div>
+      </div>
+    </section>
+  </Page>
+);
+
 const DevInvite = () => (
   <section className="mt-24">
     <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-transparent p-8">
@@ -381,29 +542,317 @@ const Home = () => (
   </Page>
 );
 
+// ==========================================
+// SECURE KEY MANAGEMENT HOOK
+// ==========================================
+/**
+ * useEphemeralPQCKeys - Manages PQC keys in memory only
+ * 
+ * SECURITY PRINCIPLES:
+ * 1. Secret keys are NEVER stored in localStorage
+ * 2. Keys exist only in memory during the session
+ * 3. Keys are derived from encrypted keystores on demand
+ * 4. Proper zeroization when keys are no longer needed
+ */
+const useEphemeralPQCKeys = () => {
+  const [keyData, setKeyData] = useState(null); // { secretKey, publicKey, address }
+  const keyDataRef = useRef(null); // For zeroization
+  
+  // Load keys from encrypted keystore
+  const loadFromKeystore = async (keystoreJson, password) => {
+    try {
+      const keystore = JSON.parse(keystoreJson);
+      
+      // Decrypt using PBKDF2/Argon2
+      const decrypted = await decryptKeystore(keystore, password);
+      
+      const keys = {
+        secretKey: decrypted.secretKey,
+        publicKey: decrypted.publicKey,
+        address: decrypted.address,
+        algorithm: decrypted.algorithm,
+      };
+      
+      setKeyData(keys);
+      keyDataRef.current = keys;
+      
+      // Zeroize decrypted buffer
+      zeroize(decrypted.secretKey);
+      
+      return keys;
+    } catch (err) {
+      throw new Error('Failed to decrypt keystore: ' + err.message);
+    }
+  };
+  
+  // Generate new ephemeral keys
+  const generateEphemeralKeys = async (algorithm = 'ML-DSA') => {
+    const keypair = await PQCWallet.generateKeypair(algorithm);
+    
+    const keys = {
+      secretKey: keypair.secretKey,
+      publicKey: keypair.publicKey,
+      address: keypair.address,
+      algorithm: algorithm,
+    };
+    
+    setKeyData(keys);
+    keyDataRef.current = keys;
+    
+    return keys;
+  };
+  
+  // Export to encrypted keystore (PBKDF2/Argon2)
+  const exportToKeystore = async (password, metadata = {}) => {
+    if (!keyData) throw new Error('No keys to export');
+    
+    const keystore = await encryptKeystore(
+      {
+        secretKey: keyData.secretKey,
+        publicKey: keyData.publicKey,
+        address: keyData.address,
+        algorithm: keyData.algorithm,
+      },
+      password,
+      metadata
+    );
+    
+    return JSON.stringify(keystore, null, 2);
+  };
+  
+  // Clear keys from memory with zeroization
+  const clearKeys = () => {
+    if (keyDataRef.current) {
+      // Zeroize sensitive data
+      if (keyDataRef.current.secretKey) {
+        zeroize(keyDataRef.current.secretKey);
+      }
+      keyDataRef.current = null;
+    }
+    setKeyData(null);
+  };
+  
+  // Auto-cleanup on unmount
+  useEffect(() => {
+    return () => clearKeys();
+  }, []);
+  
+  return {
+    keyData,
+    loadFromKeystore,
+    generateEphemeralKeys,
+    exportToKeystore,
+    clearKeys,
+    hasKeys: !!keyData,
+  };
+};
+
+// ==========================================
+// CRYPTOGRAPHIC UTILITIES
+// ==========================================
+
+/**
+ * Encrypt keystore using PBKDF2-HMAC-SHA256 + AES-256-GCM
+ * Production: Consider upgrading to Argon2id for better resistance to GPU attacks
+ */
+const encryptKeystore = async (keys, password, metadata = {}) => {
+  // Convert password to key using PBKDF2
+  const encoder = new TextEncoder();
+  const passwordBuffer = encoder.encode(password);
+  
+  // Import password for PBKDF2
+  const passwordKey = await crypto.subtle.importKey(
+    'raw',
+    passwordBuffer,
+    'PBKDF2',
+    false,
+    ['deriveBits', 'deriveKey']
+  );
+  
+  // Generate random salt
+  const salt = crypto.getRandomValues(new Uint8Array(32));
+  
+  // Derive encryption key using PBKDF2 (600k iterations for 2024 OWASP recommendation)
+  const iterations = 600000;
+  const encryptionKey = await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: iterations,
+      hash: 'SHA-256',
+    },
+    passwordKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+  
+  // Prepare data to encrypt
+  const keyData = JSON.stringify({
+    secretKey: keys.secretKey,
+    publicKey: keys.publicKey,
+    address: keys.address,
+    algorithm: keys.algorithm,
+  });
+  
+  const dataBuffer = encoder.encode(keyData);
+  
+  // Generate random IV for AES-GCM
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  
+  // Encrypt
+  const encrypted = await crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv: iv,
+    },
+    encryptionKey,
+    dataBuffer
+  );
+  
+  // Return keystore structure
+  return {
+    version: 1,
+    crypto: {
+      cipher: 'aes-256-gcm',
+      ciphertext: arrayBufferToBase64(encrypted),
+      iv: arrayBufferToBase64(iv),
+      kdf: 'pbkdf2',
+      kdfparams: {
+        dklen: 32,
+        n: iterations,
+        salt: arrayBufferToBase64(salt),
+        prf: 'hmac-sha256',
+      },
+    },
+    address: keys.address,
+    algorithm: keys.algorithm,
+    ...metadata,
+    createdAt: new Date().toISOString(),
+  };
+};
+
+/**
+ * Decrypt keystore
+ */
+const decryptKeystore = async (keystore, password) => {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const passwordBuffer = encoder.encode(password);
+  
+  // Import password
+  const passwordKey = await crypto.subtle.importKey(
+    'raw',
+    passwordBuffer,
+    'PBKDF2',
+    false,
+    ['deriveBits', 'deriveKey']
+  );
+  
+  // Parse keystore params
+  const salt = base64ToArrayBuffer(keystore.crypto.kdfparams.salt);
+  const iterations = keystore.crypto.kdfparams.n;
+  const iv = base64ToArrayBuffer(keystore.crypto.iv);
+  const ciphertext = base64ToArrayBuffer(keystore.crypto.ciphertext);
+  
+  // Derive decryption key
+  const decryptionKey = await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: iterations,
+      hash: 'SHA-256',
+    },
+    passwordKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+  
+  // Decrypt
+  const decrypted = await crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv: iv,
+    },
+    decryptionKey,
+    ciphertext
+  );
+  
+  const decryptedText = decoder.decode(decrypted);
+  const keyData = JSON.parse(decryptedText);
+  
+  return keyData;
+};
+
+/**
+ * Zeroize sensitive data in memory
+ * NOTE: JavaScript doesn't give us true memory control, but we can:
+ * 1. Overwrite the string/buffer with zeros
+ * 2. Delete references
+ * 3. Trigger GC (best effort)
+ */
+const zeroize = (data) => {
+  if (typeof data === 'string') {
+    // For strings, we can't truly zeroize in JS, but we can dereference
+    data = null;
+  } else if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
+    // For typed arrays, we can overwrite
+    const view = new Uint8Array(data);
+    view.fill(0);
+  }
+};
+
+// Base64 helpers
+const arrayBufferToBase64 = (buffer) => {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+};
+
+const base64ToArrayBuffer = (base64) => {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+};
+
+// ==========================================
+// REFACTORED WALLET PAGE
+// ==========================================
 const WalletPage = () => {
-  // Multi-wallet support
-  const [wallets, setWallets] = useState([]);
-  const [activeWalletId, setActiveWalletId] = useState(null);
-  const [created, setCreated] = useState(false);
-  const [addr, setAddr] = useState("");
-  const [fullAddr, setFullAddr] = useState(""); // Store full address separately
-  const [algorithm, setAlgorithm] = useState('ML-DSA'); // Default to ML-DSA
+  // Secure key management
+  const {
+    keyData,
+    loadFromKeystore,
+    generateEphemeralKeys,
+    exportToKeystore,
+    clearKeys,
+    hasKeys,
+  } = useEphemeralPQCKeys();
+  
+  // UI state (NO SECRET KEYS STORED HERE)
+  const [walletMetadata, setWalletMetadata] = useState(null); // { id, name, address, algorithm }
+  const [algorithm, setAlgorithm] = useState('ML-DSA');
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showGuardianModal, setShowGuardianModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [password, setPassword] = useState("");
+  const [keystoreFile, setKeystoreFile] = useState(null);
   const [exportSuccess, setExportSuccess] = useState(false);
-  const [guardians, setGuardians] = useState([]);
-  const [newGuardian, setNewGuardian] = useState("");
   const [copied, setCopied] = useState(false);
   const [balances, setBalances] = useState({ DGT: 0, DRT: 0 });
-  const [balanceSource, setBalanceSource] = useState('local'); // 'blockchain' or 'local'
+  const [balanceSource, setBalanceSource] = useState('local');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
   // Transaction state
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [txType, setTxType] = useState('send'); // 'send' or 'request'
+  const [txType, setTxType] = useState('send');
   const [txForm, setTxForm] = useState({
     to: '',
     amount: '',
@@ -416,7 +865,168 @@ const WalletPage = () => {
   const [transactions, setTransactions] = useState([]);
   const [paymentRequestLink, setPaymentRequestLink] = useState('');
 
-  const NETWORK_FEE = 0.001; // 1000 micro-units = 0.001 tokens
+  const NETWORK_FEE = 0.001;
+
+  // Load wallet metadata from localStorage (NO KEYS!)
+  useEffect(() => {
+    const savedMetadata = localStorage.getItem('dytallix_wallet_metadata');
+    if (savedMetadata) {
+      try {
+        const metadata = JSON.parse(savedMetadata);
+        setWalletMetadata(metadata);
+        setAlgorithm(metadata.algorithm || 'ML-DSA');
+      } catch (err) {
+        console.error('Failed to load wallet metadata:', err);
+      }
+    }
+    
+    // Load transaction history
+    const savedTxs = localStorage.getItem('dytallix_transactions');
+    if (savedTxs) {
+      try {
+        setTransactions(JSON.parse(savedTxs));
+      } catch (err) {
+        console.error('Failed to load transactions:', err);
+      }
+    }
+  }, []);
+
+  // Create new wallet with ephemeral keys
+  const createWallet = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Generate ephemeral PQC keys (memory only!)
+      const keys = await generateEphemeralKeys(algorithm);
+      
+      // Store ONLY metadata (no keys!)
+      const metadata = {
+        id: `wallet-${Date.now()}`,
+        name: `PQC Wallet (${algorithm})`,
+        address: keys.address,
+        algorithm: keys.algorithm,
+        createdAt: new Date().toISOString(),
+      };
+      
+      setWalletMetadata(metadata);
+      localStorage.setItem('dytallix_wallet_metadata', JSON.stringify(metadata));
+      
+      // Prompt user to export encrypted keystore immediately
+      setTimeout(() => {
+        if (confirm('✅ Wallet created!\n\nIMPORTANT: Export your encrypted keystore NOW to backup your keys. Without this backup, you will lose access if you refresh the page!\n\nExport now?')) {
+          setShowExportModal(true);
+        }
+      }, 500);
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to create wallet:', err);
+      setError('Failed to create wallet: ' + err.message);
+      setLoading(false);
+    }
+  };
+
+  // Import wallet from encrypted keystore
+  const importWallet = async () => {
+    if (!keystoreFile || !password) {
+      setError('Please select a keystore file and enter password');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const keystoreJson = await keystoreFile.text();
+      const keys = await loadFromKeystore(keystoreJson, password);
+      
+      // Store metadata only
+      const metadata = {
+        id: `wallet-${Date.now()}`,
+        name: `Imported PQC Wallet (${keys.algorithm})`,
+        address: keys.address,
+        algorithm: keys.algorithm,
+        createdAt: new Date().toISOString(),
+        imported: true,
+      };
+      
+      setWalletMetadata(metadata);
+      localStorage.setItem('dytallix_wallet_metadata', JSON.stringify(metadata));
+      
+      setShowImportModal(false);
+      setPassword('');
+      setKeystoreFile(null);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to import wallet:', err);
+      setError('Failed to import wallet: ' + err.message);
+      setLoading(false);
+    }
+  };
+
+  // Export encrypted keystore
+  const handleExportKeystore = async () => {
+    if (!password) {
+      alert('Please enter a password to encrypt your keystore');
+      return;
+    }
+    
+    if (password.length < 12) {
+      alert('Password must be at least 12 characters for security');
+      return;
+    }
+    
+    try {
+      const metadata = {
+        name: walletMetadata?.name || 'PQC Wallet',
+      };
+      
+      const keystoreJson = await exportToKeystore(password, metadata);
+      
+      // Download
+      const blob = new Blob([keystoreJson], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const addrPrefix = keyData.address.replace(/^pqc1(ml|slh)/, '').slice(0, 8);
+      a.download = `dytallix-keystore-${addrPrefix}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setExportSuccess(true);
+      setPassword('');
+      
+      setTimeout(() => {
+        setShowExportModal(false);
+        setExportSuccess(false);
+      }, 2000);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Failed to export keystore: ' + err.message);
+    }
+  };
+
+  // Lock wallet (clear keys from memory)
+  const lockWallet = () => {
+    if (confirm('Lock wallet? You will need to import your keystore to access it again.')) {
+      clearKeys();
+      alert('Wallet locked. Keys cleared from memory.');
+    }
+  };
+
+  // Delete wallet completely
+  const deleteWallet = () => {
+    if (confirm('⚠️ DELETE WALLET?\n\nThis will remove all wallet data. Make sure you have exported your keystore first!\n\nThis action CANNOT be undone.')) {
+      clearKeys();
+      setWalletMetadata(null);
+      setBalances({ DGT: 0, DRT: 0 });
+      localStorage.removeItem('dytallix_wallet_metadata');
+      alert('Wallet deleted. Keys cleared from memory.');
+    }
+  };
 
   const resolveDenomForTx = (value = 'DRT') => {
     const raw = (value || '').trim();
@@ -468,7 +1078,7 @@ const WalletPage = () => {
 
   const openRequestModal = () => {
     setTxType('request');
-    resetTransactionState({ to: fullAddr || '' });
+    resetTransactionState({ to: keyData?.address || '' });
     setShowTransactionModal(true);
   };
 
@@ -479,78 +1089,21 @@ const WalletPage = () => {
     setTxSuccess(null);
     setPaymentRequestLink('');
   };
-  
-  // Load wallets from localStorage on mount
-  useEffect(() => {
-    const savedWallets = localStorage.getItem('dytallix_wallets');
-    const savedActiveId = localStorage.getItem('dytallix_active_wallet_id');
-    
-    if (savedWallets) {
-      try {
-        const walletsData = JSON.parse(savedWallets);
-        setWallets(walletsData);
-        
-        // Load active wallet
-        if (savedActiveId && walletsData.length > 0) {
-          const activeWallet = walletsData.find(w => w.id === savedActiveId);
-          if (activeWallet) {
-            loadWallet(activeWallet);
-            setActiveWalletId(savedActiveId);
-          } else {
-            // Load first wallet if active not found
-            loadWallet(walletsData[0]);
-            setActiveWalletId(walletsData[0].id);
-          }
-        } else if (walletsData.length > 0) {
-          // Load first wallet by default
-          loadWallet(walletsData[0]);
-          setActiveWalletId(walletsData[0].id);
-        }
-      } catch (err) {
-        console.error('Failed to load wallets from localStorage:', err);
-      }
-    }
-    
-    // Load transaction history for all wallets
-    const savedTxs = localStorage.getItem('dytallix_transactions');
-    if (savedTxs) {
-      try {
-        setTransactions(JSON.parse(savedTxs));
-      } catch (err) {
-        console.error('Failed to load transactions:', err);
-      }
-    }
-  }, []);
-  
-  // Helper function to load a wallet
-  const loadWallet = (wallet) => {
-    setFullAddr(wallet.fullAddr);
-    setAddr(wallet.addr);
-    setAlgorithm(wallet.algorithm);
-    setGuardians(wallet.guardians || []);
-    setCreated(true);
-    setBalances(getAddressBalances(wallet.fullAddr));
-  };
-  
-  // Switch to a different wallet
-  const switchWallet = (walletId) => {
-    const wallet = wallets.find(w => w.id === walletId);
-    if (wallet) {
-      loadWallet(wallet);
-      setActiveWalletId(walletId);
-      localStorage.setItem('dytallix_active_wallet_id', walletId);
-    }
-  };
-  
+
   // Save transactions to localStorage
   const saveTransaction = (tx) => {
-    const newTxs = [tx, ...transactions].slice(0, 50); // Keep last 50
+    const newTxs = [tx, ...transactions].slice(0, 50);
     setTransactions(newTxs);
     localStorage.setItem('dytallix_transactions', JSON.stringify(newTxs));
   };
   
-  // Submit transaction (send tokens)
+  // Submit transaction (send tokens) - SECURE VERSION
   const submitTransaction = async () => {
+    if (!hasKeys) {
+      setTxError('No keys loaded. Please import your keystore or create a new wallet.');
+      return;
+    }
+    
     if (!txForm.to || !txForm.amount) {
       setTxError('Please fill in all required fields');
       return;
@@ -563,13 +1116,7 @@ const WalletPage = () => {
     try {
       const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
       
-      // Get current wallet's keys
-      const currentWallet = wallets.find(w => w.id === activeWalletId);
-      if (!currentWallet || !currentWallet.secretKey) {
-        throw new Error('Wallet keys not found. Please recreate your wallet.');
-      }
-      
-      console.log('🔐 Signing transaction with PQC keys...');
+      console.log('🔐 Signing transaction with ephemeral PQC keys...');
       
       const denomInfo = resolveDenomForTx(txForm.denom);
       const amountNum = parseFloat(txForm.amount);
@@ -583,7 +1130,7 @@ const WalletPage = () => {
       }
       
       // Fetch real blockchain balance and account data
-      const accountResponse = await fetch(`${rpcUrl}/account/${fullAddr}`);
+      const accountResponse = await fetch(`${rpcUrl}/account/${keyData.address}`);
       
       if (!accountResponse.ok) {
         const errorText = await accountResponse.text();
@@ -662,7 +1209,7 @@ const WalletPage = () => {
         msgs: [
           {
             type: 'send',
-            from: fullAddr,
+            from: keyData.address,
             to: txForm.to,
             amount: String(microAmount),
             denom: denomInfo.micro
@@ -670,11 +1217,11 @@ const WalletPage = () => {
         ]
       };
       
-      // Sign transaction with real PQC signature
+      // Sign transaction with ephemeral PQC keys (secure!)
       const signedTx = await PQCWallet.signTransaction(
         txObj,
-        currentWallet.secretKey,
-        currentWallet.publicKey
+        keyData.secretKey,
+        keyData.publicKey
       );
       
       // Submit transaction to backend
@@ -692,9 +1239,19 @@ const WalletPage = () => {
         try {
           const errorJson = JSON.parse(errorText);
           if (errorJson.error) {
+            // Backend returns structured error: { error: "InsufficientFunds", message: "..." }
             errorMsg = errorJson.message || errorJson.error;
+            
+            // Add helpful context for specific errors
+            if (errorJson.error === 'InsufficientFunds') {
+              errorMsg += '\n\n💡 TIP: Visit the Faucet page to get test tokens (DGT for fees + DRT for sending)';
+            } else if (errorJson.error === 'InvalidNonce') {
+              errorMsg += `\n\nExpected nonce: ${errorJson.expected}, but got: ${errorJson.got}`;
+              errorMsg += '\n\n💡 TIP: Try refreshing your balance to sync the nonce';
+            }
           }
         } catch (e) {
+          // If parsing fails, use raw error text
           errorMsg += `: ${errorText}`;
         }
         
@@ -703,11 +1260,13 @@ const WalletPage = () => {
       
       const result = await submitResponse.json();
       console.log('✅ Transaction submitted to blockchain:', result);
-      const txHash = result.tx_hash || result.hash || ('tx_' + Math.random().toString(36).substr(2, 16));
+      
+      // Backend returns { "hash": "...", "status": "pending" } on success
+      const txHash = result.hash || result.tx_hash || ('tx_' + Math.random().toString(36).substr(2, 16));
       
       // Only save to history if transaction was accepted by blockchain
-      // Check if result indicates success
-      if (result.error || !result.tx_hash) {
+      // Check if result indicates success (has hash field)
+      if (result.error || (!result.hash && !result.tx_hash)) {
         throw new Error(result.message || result.error || 'Transaction was rejected by the blockchain');
       }
       
@@ -715,32 +1274,28 @@ const WalletPage = () => {
       const tx = {
         hash: txHash,
         type: 'send',
-        from: fullAddr,
+        from: keyData.address,
         to: txForm.to,
         amount: amountNum,
         denom: denomInfo.display,
         memo: txForm.memo,
-        status: 'pending', // Will be updated to 'confirmed' when we see it in a block
+        status: 'pending',
         timestamp: new Date().toISOString(),
       };
       saveTransaction(tx);
       
       console.log('💾 Transaction saved to local history:', tx);
       
-      // Update local balances (will be corrected by next balance refresh)
-      const currentBal = getAddressBalances(fullAddr);
+      // Update local balances optimistically
       const newBal = {
-        ...currentBal,
-        [denomInfo.display]: Math.max(0, (currentBal[denomInfo.display] || 0) - amountNum),
+        ...actualBalances,
+        [denomInfo.display]: Math.max(0, actualBalances[denomInfo.display] - amountNum),
       };
       if (denomInfo.display === 'DGT') {
-        newBal.DGT = Math.max(0, (currentBal.DGT || 0) - (amountNum + NETWORK_FEE));
+        newBal.DGT = Math.max(0, actualBalances.DGT - (amountNum + NETWORK_FEE));
       } else {
-        newBal.DGT = Math.max(0, (currentBal.DGT || 0) - NETWORK_FEE);
+        newBal.DGT = Math.max(0, actualBalances.DGT - NETWORK_FEE);
       }
-      const allBal = readBalances();
-      allBal[fullAddr] = newBal;
-      writeBalances(allBal);
       setBalances(newBal);
       
       setTxSuccess({
@@ -770,8 +1325,8 @@ const WalletPage = () => {
   
   // Generate payment request link
   const generatePaymentRequest = () => {
-    if (!fullAddr) {
-      setTxError('Wallet address not available. Create or reload your wallet.');
+    if (!keyData?.address) {
+      setTxError('Wallet address not available. Create or import your wallet.');
       return;
     }
 
@@ -789,7 +1344,7 @@ const WalletPage = () => {
     setTxError(null);
 
     const params = new URLSearchParams({
-      to: fullAddr,
+      to: keyData.address,
       amount: txForm.amount,
       denom: txForm.denom,
       memo: txForm.memo || '',
@@ -814,138 +1369,10 @@ const WalletPage = () => {
     }
   };
   
-  const create = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Generate real PQC keypair using WASM module
-      console.log('🔐 Generating PQC keypair...');
-      const keypair = await PQCWallet.generateKeypair();
-      console.log('✅ PQC keypair generated:', {
-        address: keypair.address,
-        algorithm: keypair.algorithm
-      });
-      
-      const walletId = `wallet-${Date.now()}-${Math.random().toString(36).slice(2,9)}`;
-      const walletData = {
-        id: walletId,
-        fullAddr: keypair.address,
-        addr: truncateAddress(keypair.address),
-        algorithm: algorithm,
-        publicKey: keypair.publicKey,  // Store base64-encoded public key
-        secretKey: keypair.secretKey,  // Store base64-encoded secret key (encrypted in production!)
-        guardians: [],
-        createdAt: new Date().toISOString(),
-        name: `Wallet ${wallets.length + 1} (${algorithm})`,
-      };
-      
-      // Add to wallets array
-      const newWallets = [...wallets, walletData];
-      setWallets(newWallets);
-      localStorage.setItem('dytallix_wallets', JSON.stringify(newWallets));
-      
-      // Set as active wallet
-      loadWallet(walletData);
-      setActiveWalletId(walletId);
-      localStorage.setItem('dytallix_active_wallet_id', walletId);
-      
-      setLoading(false);
-    } catch (err) {
-      console.error('❌ Failed to create wallet:', err);
-      setError('Failed to create wallet: ' + err.message);
-      setLoading(false);
-    }
-  };
-
-  const refreshBalances = async () => {
-    if (!fullAddr) return;
-    
-    // Try to fetch real blockchain balance first
-    const blockchainBalances = await fetchBlockchainBalance(fullAddr);
-    if (blockchainBalances) {
-      setBalances(blockchainBalances);
-      setBalanceSource('blockchain');
-      // Sync to localStorage
-      const allBal = readBalances();
-      allBal[fullAddr] = blockchainBalances;
-      writeBalances(allBal);
-    } else {
-      // Fallback to localStorage
-      const newBalances = getAddressBalances(fullAddr);
-      setBalances(newBalances);
-      setBalanceSource('local');
-    }
-  };
   
-  // Fetch real blockchain balances
-  const fetchBlockchainBalance = async (address) => {
-    try {
-      const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
-      const response = await fetch(`${rpcUrl}/account/${address}`);
-      
-      if (!response.ok) return null;
-      
-      const accountData = await response.json();
-      
-      // Convert micro-units to regular units
-      return {
-        DGT: accountData.balances?.udgt ? accountData.balances.udgt / 1_000_000 : 0,
-        DRT: accountData.balances?.udrt ? accountData.balances.udrt / 1_000_000 : 0,
-      };
-    } catch (err) {
-      return null;
-    }
-  };
-  
-  // Auto-refresh balances when fullAddr changes or component mounts
-  useEffect(() => {
-    if (fullAddr) {
-      // First try blockchain balance, fallback to localStorage
-      const updateBalances = async () => {
-        const blockchainBalances = await fetchBlockchainBalance(fullAddr);
-        if (blockchainBalances) {
-          setBalances(blockchainBalances);
-          setBalanceSource('blockchain');
-          // Sync to localStorage for offline display
-          const allBal = readBalances();
-          allBal[fullAddr] = blockchainBalances;
-          writeBalances(allBal);
-        } else {
-          // Fallback to localStorage if blockchain is unavailable
-          const localBalances = getAddressBalances(fullAddr);
-          setBalances(localBalances);
-          setBalanceSource('local');
-        }
-      };
-      
-      updateBalances();
-      
-      // Set up auto-refresh every 5 seconds
-      const interval = setInterval(updateBalances, 5000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [fullAddr]);
-  
-  // Save guardians to localStorage when they change
-  useEffect(() => {
-    if (created && fullAddr) {
-      const savedWallet = localStorage.getItem('dytallix_wallet');
-      if (savedWallet) {
-        try {
-          const wallet = JSON.parse(savedWallet);
-          wallet.guardians = guardians;
-          localStorage.setItem('dytallix_wallet', JSON.stringify(wallet));
-        } catch (err) {
-          console.error('Failed to save guardians:', err);
-        }
-      }
-    }
-  }, [guardians, created, fullAddr]);
-
+  // Copy address to clipboard
   const handleCopyAddress = async () => {
-    const success = await copyToClipboard(fullAddr);
+    const success = await copyToClipboard(keyData?.address || '');
     if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
@@ -953,100 +1380,40 @@ const WalletPage = () => {
       alert('Failed to copy address to clipboard');
     }
   };
-
-  const exportKeystore = async () => {
-    if (!password) {
-      alert('Please enter a password to encrypt your keystore');
-      return;
-    }
-    
-    if (password.length < 8) {
-      alert('Password must be at least 8 characters long');
-      return;
-    }
+  
+  // Refresh balances from blockchain
+  const refreshBalances = async () => {
+    if (!keyData?.address) return;
     
     try {
-      // Create wallet adapter from current state (use fullAddr for export)
-      const wallet = createWalletAdapter({ addr: fullAddr, algorithm });
+      const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+      const response = await fetch(`${rpcUrl}/account/${keyData.address}`);
       
-      // Export keystore with real encryption
-      const keystore = await exportKeystoreAPI(wallet, { password });
+      if (!response.ok) return;
       
-      // Serialize to JSON
-      const json = await serializeKeystore(keystore);
+      const accountData = await response.json();
       
-      // Download as JSON file
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      // Use first 8 chars of address for filename
-      const addrPrefix = fullAddr.replace(/^pqc1(ml|slh)/, '').slice(0, 8);
-      a.download = `pqc-wallet-${addrPrefix}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      setExportSuccess(true);
-      setTimeout(() => {
-        setShowExportModal(false);
-        setExportSuccess(false);
-        setPassword("");
-      }, 2000);
+      // Convert micro-units to regular units
+      const newBalances = {
+        DGT: accountData.balances?.udgt ? accountData.balances.udgt / 1_000_000 : 0,
+        DRT: accountData.balances?.udrt ? accountData.balances.udrt / 1_000_000 : 0,
+      };
+      
+      setBalances(newBalances);
+      setBalanceSource('blockchain');
     } catch (err) {
-      console.error('Export failed:', err);
-      alert('Failed to export keystore: ' + err.message);
+      console.error('Failed to fetch balances:', err);
     }
-  };
-
-  const addGuardian = () => {
-    if (!newGuardian || !newGuardian.startsWith('pqc1')) {
-      alert('Please enter a valid PQC address (starts with pqc1)');
-      return;
-    }
-    if (newGuardian === addr) {
-      alert('Cannot add yourself as a guardian');
-      return;
-    }
-    if (guardians.includes(newGuardian)) {
-      alert('This guardian has already been added');
-      return;
-    }
-    
-    setGuardians([...guardians, newGuardian]);
-    setNewGuardian("");
-  };
-
-  const removeGuardian = (guardian) => {
-    setGuardians(guardians.filter(g => g !== guardian));
   };
   
-  const deleteWallet = () => {
-    if (confirm('Are you sure you want to delete this wallet? This action cannot be undone. Make sure you have exported your keystore first!')) {
-      // Remove current wallet from the list
-      const newWallets = wallets.filter(w => w.id !== activeWalletId);
-      setWallets(newWallets);
-      localStorage.setItem('dytallix_wallets', JSON.stringify(newWallets));
-      
-      // Load another wallet if available, otherwise reset
-      if (newWallets.length > 0) {
-        loadWallet(newWallets[0]);
-        setActiveWalletId(newWallets[0].id);
-        localStorage.setItem('dytallix_active_wallet_id', newWallets[0].id);
-      } else {
-        // No wallets left
-        setCreated(false);
-        setAddr("");
-        setFullAddr("");
-        setAlgorithm('ML-DSA');
-        setGuardians([]);
-        setBalances({ DGT: 0, DRT: 0 });
-        setActiveWalletId(null);
-        localStorage.removeItem('dytallix_active_wallet_id');
-      }
+  // Auto-refresh balances
+  useEffect(() => {
+    if (keyData?.address) {
+      refreshBalances();
+      const interval = setInterval(refreshBalances, 5000);
+      return () => clearInterval(interval);
     }
-  };
+  }, [keyData?.address]);
   
   // Poll transaction status for pending transactions
   useEffect(() => {
@@ -2936,17 +3303,19 @@ const detectQueryType = (q) => {
   // Address: starts with dyt, dytallix, or pqc (Bech32-like)
   if (/^(dyt1|dytallix1?|pqc1)[a-z0-9]{20,}$/i.test(trimmed)) return 'address';
   
-  // Transaction ID: 64 hex chars
-  if (/^0x[0-9a-fA-F]{64}$/.test(trimmed) || /^[0-9a-fA-F]{64}$/.test(trimmed)) return 'tx';
-  
-  // Block height: numeric
+  // Block height: numeric (check this before hex to avoid confusion)
   if (/^\d+$/.test(trimmed)) {
     const num = parseInt(trimmed, 10);
     if (num >= 0 && num < 1000000000) return 'blockHeight';
   }
   
-  // Block hash: 64 hex chars (same as tx but context differs)
-  if (/^0x[0-9a-fA-F]{64}$/.test(trimmed) || /^[0-9a-fA-F]{64}$/.test(trimmed)) return 'blockHash';
+  // Transaction hash: hex string (with or without 0x prefix, at least 8 chars)
+  // This catches both full 64-char hashes and shorter hashes from the blockchain
+  if (/^0x[0-9a-fA-F]{8,}$/.test(trimmed) || /^[0-9a-fA-F]{8,}$/.test(trimmed)) {
+    // If it's exactly 64 chars, it could be a block hash too, but default to tx
+    // The API will handle disambiguation
+    return 'tx';
+  }
   
   return 'unknown';
 };
@@ -3005,28 +3374,41 @@ const fmtAmount = (amount, decimals = 6) => {
 
 // Format amount with micro-unit symbol (μ) for small amounts
 const fmtAmountWithDenom = (amount, denom) => {
-  const num = typeof amount === 'number' ? amount : parseFloat(amount);
-  if (isNaN(num)) return { amount: '0', displayDenom: denom };
-  
-  // If amount is less than 0.001, show in micro-units (μDRT/μDGT)
-  if (num < 0.001 && num > 0) {
-    const microAmount = num * 1_000_000;
+  const rawDenom = (denom || '').toString();
+  const normalized = rawDenom.toLowerCase();
+  let value = typeof amount === 'number' ? amount : parseFloat(amount);
+
+  if (isNaN(value)) {
+    const fallback = rawDenom ? rawDenom.toUpperCase() : '—';
+    return { amount: '0', displayDenom: fallback };
+  }
+
+  let displayDenom = rawDenom ? rawDenom.toUpperCase() : '—';
+
+  // If the denom is a micro-denomination (udgt/udrt/etc), convert to base units first
+  if (normalized.startsWith('u') && normalized.length > 1) {
+    displayDenom = rawDenom.slice(1).toUpperCase();
+    value = value / 1_000_000;
+  }
+
+  // Show micro symbol if the converted value is still tiny
+  if (value > 0 && value < 0.001) {
+    const microAmount = value * 1_000_000;
     return {
       amount: microAmount.toLocaleString(undefined, {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 2
+        maximumFractionDigits: 2,
       }),
-      displayDenom: `μ${denom}`
+      displayDenom: `μ${displayDenom}`,
     };
   }
-  
-  // Otherwise show in main units
+
   return {
-    amount: num.toLocaleString(undefined, {
+    amount: value.toLocaleString(undefined, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 6
+      maximumFractionDigits: 6,
     }),
-    displayDenom: denom
+    displayDenom,
   };
 };
 
@@ -3180,6 +3562,11 @@ const ExplorerPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showRawJson, setShowRawJson] = useState(false);
   
+  // Sync input value with query param changes
+  useEffect(() => {
+    setInputValue(q);
+  }, [q]);
+  
   // Initialize recentActivity from localStorage if available
   const [recentActivity, setRecentActivity] = useState(() => {
     try {
@@ -3266,6 +3653,7 @@ const ExplorerPage = () => {
           if (!blocksResp.ok) break;
           
           const blocksData = await blocksResp.json();
+          console.log('[Explorer] Raw blocks data from API:', blocksData);
           const blocks = blocksData.blocks || [];
           
           if (blocks.length === 0) break;
@@ -3276,21 +3664,65 @@ const ExplorerPage = () => {
           // Extract transactions from this batch
           for (const block of blocks) {
             if (block.txs && block.txs.length > 0) {
-              for (const tx of block.txs) {
-                recentTxs.push({
-                  hash: tx.hash,
-                  from: tx.from,
-                  to: tx.to,
-                  amount: tx.amount,
-                  denom: tx.denom || 'udrt',
-                  status: tx.status || 'confirmed',
-                  timestamp: block.timestamp,
-                  block: block.height,
-                  fee: tx.fee || 0
-                });
-                
-                // Stop if we have enough transactions
-                if (recentTxs.length >= MIN_TRANSACTIONS) break;
+              console.log(`[Explorer] Block ${block.height} has ${block.txs.length} txs:`, block.txs);
+              
+              // Check if txs are strings (hashes) or objects
+              const firstTx = block.txs[0];
+              const isHashOnly = typeof firstTx === 'string';
+              
+              if (isHashOnly) {
+                // txs are just hashes, need to fetch full block data
+                console.log(`[Explorer] Block ${block.height} txs are hashes only, fetching full block`);
+                try {
+                  const fullBlockResp = await fetch(`${rpcUrl}/block/${block.height}`, { signal: controller.signal });
+                  if (!fullBlockResp.ok) {
+                    console.warn(`[Explorer] Failed to fetch full block ${block.height}`);
+                    continue;
+                  }
+                  const fullBlock = await fullBlockResp.json();
+                  console.log(`[Explorer] Fetched full block ${block.height}:`, fullBlock);
+                  
+                  // Process full transaction objects
+                  for (const tx of fullBlock.txs || []) {
+                    if (typeof tx === 'string') {
+                      console.warn(`[Explorer] Full block still has string txs:`, tx);
+                      continue;
+                    }
+                    
+                    recentTxs.push({
+                      hash: tx.hash,
+                      from: tx.from,
+                      to: tx.to,
+                      amount: parseInt(tx.amount || '0'),
+                      denom: tx.denom || 'udrt',
+                      status: 'confirmed',
+                      timestamp: fullBlock.timestamp,
+                      block: block.height,
+                      fee: parseInt(tx.fee || '0')
+                    });
+                    
+                    if (recentTxs.length >= MIN_TRANSACTIONS) break;
+                  }
+                } catch (e) {
+                  console.error(`[Explorer] Error fetching full block ${block.height}:`, e);
+                }
+              } else {
+                // txs are already full objects
+                for (const tx of block.txs) {
+                  recentTxs.push({
+                    hash: tx.hash,
+                    from: tx.from,
+                    to: tx.to,
+                    amount: parseInt(tx.amount || '0'),
+                    denom: tx.denom || 'udrt',
+                    status: tx.status || 'confirmed',
+                    timestamp: block.timestamp,
+                    block: block.height,
+                    fee: parseInt(tx.fee || '0')
+                  });
+                  
+                  if (recentTxs.length >= MIN_TRANSACTIONS) break;
+                }
               }
             }
             
@@ -3371,6 +3803,8 @@ const ExplorerPage = () => {
       return;
     }
     
+    console.log('[Explorer] Fetching data for query:', debouncedQ, 'detected as:', detected);
+    
     const controller = new AbortController();
     
     const fetchData = async () => {
@@ -3387,6 +3821,8 @@ const ExplorerPage = () => {
         } else if (detected === 'blockHeight' || detected === 'blockHash') {
           endpoint = `${rpcUrl}/block/${encodeURIComponent(debouncedQ)}`;
         }
+        
+        console.log('[Explorer] Fetching from endpoint:', endpoint);
         
         if (endpoint) {
           const response = await fetch(endpoint, {
@@ -3529,6 +3965,31 @@ const ExplorerPage = () => {
                 memo: result.memo || ''
               };
               setData(txData);
+            } else if (detected === 'blockHeight' || detected === 'blockHash') {
+              // Transform block response
+              console.log('[Explorer] Transforming block data:', result);
+              const blockData = {
+                height: result.height,
+                hash: result.hash,
+                parentHash: result.parent, // Map parent to parentHash
+                timestamp: result.timestamp,
+                txCount: result.txs?.length || 0,
+                producer: 'dyt1validator', // Default producer
+                gasUsed: 0, // Not available yet
+                transactions: (result.txs || []).map(tx => ({
+                  hash: tx.hash,
+                  from: tx.from,
+                  to: tx.to,
+                  amount: parseInt(tx.amount || '0') / 1000000,
+                  denom: (tx.denom || 'udrt').startsWith('u') 
+                    ? (tx.denom || 'udrt').substring(1).toUpperCase() 
+                    : (tx.denom || 'DRT').toUpperCase(),
+                  fee: parseInt(tx.fee || '0') / 1000000,
+                  status: 'confirmed'
+                }))
+              };
+              console.log('[Explorer] Transformed block data:', blockData);
+              setData(blockData);
             } else {
               setData(result);
             }
@@ -3675,13 +4136,15 @@ const ExplorerPage = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {data.transactions.slice(0, currentPage * 10).map((tx) => (
+              {data.transactions.slice(0, currentPage * 10).map((tx, idx) => (
                 <div
-                  key={tx.hash}
+                  key={tx.hash || `addr-tx-${idx}`}
                   className="rounded-xl bg-white/5 hover:bg-gradient-to-br hover:from-green-500/10 hover:to-transparent border border-white/5 hover:border-green-500/20 p-4 transition cursor-pointer"
                   onClick={() => {
-                    setQ(tx.hash);
-                    setActiveTab('tx');
+                    if (tx.hash) {
+                      setQ(tx.hash);
+                      setActiveTab('tx');
+                    }
                   }}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -4173,13 +4636,22 @@ const ExplorerPage = () => {
               </div>
             ) : (
               <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                {recentActivity.transactions.slice(0, currentPage * 20).map((tx) => (
+                {recentActivity.transactions.slice(0, currentPage * 20).map((tx, idx) => (
                   <div
-                    key={tx.hash}
+                    key={tx.hash || `tx-${idx}`}
                     className="rounded-xl bg-white/5 hover:bg-gradient-to-br hover:from-green-500/10 hover:to-transparent border border-white/5 hover:border-green-500/20 p-4 transition cursor-pointer"
                     onClick={() => {
-                      setQ(tx.hash);
-                      setActiveTab('tx');
+                      console.log('[Explorer] Transaction clicked:', tx.hash);
+                      console.log('[Explorer] Full tx object:', tx);
+                      console.log('[Explorer] Detected type:', detectQueryType(tx.hash));
+                      if (tx.hash) {
+                        setQ(tx.hash);
+                        setActiveTab('tx');
+                        // Scroll to top to see the details
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      } else {
+                        console.error('[Explorer] Cannot search for transaction with no hash');
+                      }
                     }}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -4381,20 +4853,21 @@ const ExplorerPage = () => {
   );
 };
 
-// ================== END EXPLORER PAGE ==================
-
 export default function App() {
   const { route } = useHashRoute();
+
   const Component = useMemo(() => {
-    switch(route){
+    switch (route) {
       case '/wallet': return WalletPage;
       case '/faucet': return FaucetPage;
       case '/explorer': return ExplorerPage;
       case '/docs': return DocsPage;
       case '/dashboard': return DashboardPage;
       case '/tokenomics': return TokenomicsPage;
+      case '/investors': return InvestorsPage; // 👈 stealth route added
       default: return Home;
     }
   }, [route]);
-  return <Component/>;
+
+  return <Component />;
 }

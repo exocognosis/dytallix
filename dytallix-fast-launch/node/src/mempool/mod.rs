@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::crypto::{canonical_json, sha3_256, PQCAlgorithm, PQCVerifyError};
 use crate::gas::{validate_gas_limit, GasSchedule, TxKind};
 use crate::state::State;
-use crate::storage::tx::Transaction;
+use crate::storage::tx::{Transaction, TxMessage};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use dytallix_node::policy::signature_policy::{PolicyError, PolicyManager};
 
@@ -29,7 +29,7 @@ pub const TX_INVALID_SIG: &str = "TX_INVALID_SIG";
 pub enum RejectionReason {
     InvalidSignature,
     NonceGap { expected: u64, got: u64 },
-    InsufficientFunds,
+    InsufficientFunds { denom: String, required: u128, available: u128 },
     UnderpricedGas { min: u64, got: u64 },
     OversizedTx { max: usize, got: usize },
     Duplicate(String),
@@ -43,7 +43,7 @@ impl RejectionReason {
         match self {
             RejectionReason::InvalidSignature => "invalid_signature",
             RejectionReason::NonceGap { .. } => "nonce_gap",
-            RejectionReason::InsufficientFunds => "insufficient_funds",
+            RejectionReason::InsufficientFunds { .. } => "insufficient_funds",
             RejectionReason::UnderpricedGas { .. } => "underpriced_gas",
             RejectionReason::OversizedTx { .. } => "oversized_tx",
             RejectionReason::Duplicate(_) => "duplicate",
@@ -61,7 +61,13 @@ impl std::fmt::Display for RejectionReason {
             RejectionReason::NonceGap { expected, got } => {
                 write!(f, "nonce gap: expected {expected}, got {got}")
             }
-            RejectionReason::InsufficientFunds => write!(f, "insufficient funds"),
+            RejectionReason::InsufficientFunds { denom, required, available } => {
+                write!(
+                    f,
+                    "insufficient funds for {}: required {}, available {}",
+                    denom, required, available
+                )
+            }
             RejectionReason::UnderpricedGas { min, got } => {
                 write!(f, "underpriced gas: min {min}, got {got}")
             }
@@ -184,8 +190,8 @@ pub struct Mempool {
     total_bytes: usize,
     /// Per-sender count of eligible (ready) transactions, used to compute expected nonce fast
     eligible_by_sender: HashMap<String, usize>,
-    /// Per-sender total reserved value (amount + fee + gas_cost) across eligible + deferred
-    reserved_by_sender: HashMap<String, u128>,
+    /// Per-sender reserved balances per denomination (amount + fee + gas_cost) across eligible + deferred
+    reserved_by_sender: HashMap<String, HashMap<String, u128>>,
 }
 
 impl Mempool {
@@ -220,17 +226,79 @@ impl Mempool {
         *self.eligible_by_sender.get(sender).unwrap_or(&0)
     }
 
-    /// Compute the total reserved amount (amount + fee + gas_cost) for a given sender
-    /// across all transactions in the mempool (eligible + deferred). This ensures we do not accept
-    /// transactions that would oversubscribe the account's balance once included.
-    fn reserved_total_for_sender(&self, sender: &str) -> u128 {
-        *self.reserved_by_sender.get(sender).unwrap_or(&0)
+    /// Helper to compute a transaction's reserved contribution per denomination.
+    /// Always accounts for fees/gas in `udgt` and message amounts in their respective denoms.
+    fn reserved_amounts_for_tx(tx: &Transaction) -> HashMap<String, u128> {
+        let mut required: HashMap<String, u128> = HashMap::new();
+
+        let mut add = |denom: &str, amount: u128| {
+            if amount == 0 {
+                return;
+            }
+            let denom_key = denom.to_ascii_lowercase();
+            let entry = required.entry(denom_key).or_insert(0);
+            *entry = (*entry).saturating_add(amount);
+        };
+
+        // Fees and gas are always denominated in udgt for now.
+        let gas_cost = (tx.gas_limit as u128) * (tx.gas_price as u128);
+        add("udgt", tx.fee.saturating_add(gas_cost));
+
+        if let Some(messages) = &tx.messages {
+            for message in messages {
+                match message {
+                    TxMessage::Send { denom, amount, .. } => add(denom, *amount),
+                }
+            }
+        } else {
+            // Legacy fallback: use top-level amount/denom fields
+            add(&tx.denom, tx.amount);
+        }
+
+        required
     }
 
-    /// Helper to compute a transaction's reserved contribution
-    fn reserved_value_of_tx(tx: &Transaction) -> u128 {
-        let gas_cost = (tx.gas_limit as u128) * (tx.gas_price as u128);
-        tx.amount + tx.fee + gas_cost
+    fn add_reserved_amounts(
+        reserved: &mut HashMap<String, HashMap<String, u128>>,
+        sender: &str,
+        delta: &HashMap<String, u128>,
+    ) {
+        if delta.is_empty() {
+            return;
+        }
+        let entry = reserved.entry(sender.to_string()).or_insert_with(HashMap::new);
+        for (denom, amount) in delta {
+            if *amount == 0 {
+                continue;
+            }
+            let slot = entry.entry(denom.clone()).or_insert(0);
+            *slot = (*slot).saturating_add(*amount);
+        }
+    }
+
+    fn subtract_reserved_amounts(
+        reserved: &mut HashMap<String, HashMap<String, u128>>,
+        sender: &str,
+        delta: &HashMap<String, u128>,
+    ) {
+        if let Some(entry) = reserved.get_mut(sender) {
+            let mut remove_keys: Vec<String> = Vec::new();
+            for (denom, amount) in delta {
+                if let Some(current) = entry.get_mut(denom) {
+                    if *amount >= *current {
+                        remove_keys.push(denom.clone());
+                    } else {
+                        *current = current.saturating_sub(*amount);
+                    }
+                }
+            }
+            for denom in remove_keys {
+                entry.remove(&denom);
+            }
+            if entry.is_empty() {
+                reserved.remove(sender);
+            }
+        }
     }
 
     /// Total count of transactions (eligible + deferred)
@@ -315,10 +383,10 @@ impl Mempool {
         // Ensure capacity before inserting (counts all)
         self.ensure_capacity_for(&pending_tx)?;
 
-        let reserved_delta = Self::reserved_value_of_tx(&tx);
+        let reserved_delta = Self::reserved_amounts_for_tx(&tx);
         if tx.nonce == expected {
             // Eligible now: track reserved and eligible count
-            *self.reserved_by_sender.entry(tx.from.clone()).or_default() += reserved_delta;
+            Self::add_reserved_amounts(&mut self.reserved_by_sender, &tx.from, &reserved_delta);
             self.insert_eligible(pending_tx);
             // Try to promote any deferred txs for this sender
             self.try_promote_deferred(&tx.from, state);
@@ -336,17 +404,32 @@ impl Mempool {
         state: &State,
         tx: &Transaction,
     ) -> Result<(), RejectionReason> {
-        let balance = state.snapshot_legacy_balance(&tx.from);
+        let account = state.snapshot_account(&tx.from);
+        let existing_reserved = self.reserved_by_sender.get(&tx.from);
+        let required = Self::reserved_amounts_for_tx(tx);
 
-        // Balance check must include already reserved amounts for this sender
-        let total_needed = Self::reserved_value_of_tx(tx);
-        let reserved = self.reserved_total_for_sender(&tx.from);
-        let post_reserve_total = reserved + total_needed;
+        for (denom, needed_now) in required.iter() {
+            let already_reserved = existing_reserved
+                .and_then(|m| m.get(denom))
+                .copied()
+                .unwrap_or(0);
+            let total_needed = already_reserved.saturating_add(*needed_now);
+            let available = account.balance_of(denom);
 
-        if balance < post_reserve_total {
-            eprintln!("WARN  [Mempool] Rejecting tx from {} (insufficient balance: {} < {})", 
-                &tx.from[..12], balance, post_reserve_total);
-            return Err(RejectionReason::InsufficientFunds);
+            if available < total_needed {
+                eprintln!(
+                    "WARN  [Mempool] Rejecting tx from {} (insufficient {} balance: {} < {})",
+                    &tx.from[..12],
+                    denom,
+                    available,
+                    total_needed
+                );
+                return Err(RejectionReason::InsufficientFunds {
+                    denom: denom.clone(),
+                    required: total_needed,
+                    available,
+                });
+            }
         }
 
         // Gas validation
@@ -383,11 +466,8 @@ impl Mempool {
             .entry(pending_tx.tx.nonce)
             .or_default();
         // Track reserved value for deferred txs as well
-        let delta = Self::reserved_value_of_tx(&pending_tx.tx);
-        *self
-            .reserved_by_sender
-            .entry(pending_tx.tx.from.clone())
-            .or_default() += delta;
+        let delta = Self::reserved_amounts_for_tx(&pending_tx.tx);
+        Self::add_reserved_amounts(&mut self.reserved_by_sender, &pending_tx.tx.from, &delta);
         self.deferred_lookup
             .insert(pending_tx.tx.hash.clone(), pending_tx);
     }
@@ -529,13 +609,12 @@ impl Mempool {
                             self.eligible_by_sender.remove(&tx.tx.from);
                         }
                     }
-                    let delta = Self::reserved_value_of_tx(&tx.tx);
-                    if let Some(total) = self.reserved_by_sender.get_mut(&tx.tx.from) {
-                        *total = total.saturating_sub(delta);
-                        if *total == 0 {
-                            self.reserved_by_sender.remove(&tx.tx.from);
-                        }
-                    }
+                    let delta = Self::reserved_amounts_for_tx(&tx.tx);
+                    Self::subtract_reserved_amounts(
+                        &mut self.reserved_by_sender,
+                        &tx.tx.from,
+                        &delta,
+                    );
                     log::info!("Evicted transaction {} due to capacity", key.hash);
                 }
             } else {
@@ -550,13 +629,12 @@ impl Mempool {
                     }
                     self.tx_hashes.remove(&key.hash);
                     self.total_bytes = self.total_bytes.saturating_sub(tx.serialized_size);
-                    let delta = Self::reserved_value_of_tx(&tx.tx);
-                    if let Some(total) = self.reserved_by_sender.get_mut(&tx.tx.from) {
-                        *total = total.saturating_sub(delta);
-                        if *total == 0 {
-                            self.reserved_by_sender.remove(&tx.tx.from);
-                        }
-                    }
+                    let delta = Self::reserved_amounts_for_tx(&tx.tx);
+                    Self::subtract_reserved_amounts(
+                        &mut self.reserved_by_sender,
+                        &tx.tx.from,
+                        &delta,
+                    );
                     log::info!("Evicted deferred transaction {} due to capacity", key.hash);
                 }
             }
@@ -594,13 +672,12 @@ impl Mempool {
                         self.eligible_by_sender.remove(&pending_tx.tx.from);
                     }
                 }
-                let delta = Self::reserved_value_of_tx(&pending_tx.tx);
-                if let Some(total) = self.reserved_by_sender.get_mut(&pending_tx.tx.from) {
-                    *total = total.saturating_sub(delta);
-                    if *total == 0 {
-                        self.reserved_by_sender.remove(&pending_tx.tx.from);
-                    }
-                }
+                let delta = Self::reserved_amounts_for_tx(&pending_tx.tx);
+                Self::subtract_reserved_amounts(
+                    &mut self.reserved_by_sender,
+                    &pending_tx.tx.from,
+                    &delta,
+                );
 
                 // Record removed nonce per sender (eligible inclusion)
                 let sender = pending_tx.tx.from.clone();
@@ -622,13 +699,12 @@ impl Mempool {
                 self.tx_hashes.remove(hash);
                 self.total_bytes = self.total_bytes.saturating_sub(deferred_tx.serialized_size);
                 // Update reserved totals
-                let delta = Self::reserved_value_of_tx(&deferred_tx.tx);
-                if let Some(total) = self.reserved_by_sender.get_mut(&deferred_tx.tx.from) {
-                    *total = total.saturating_sub(delta);
-                    if *total == 0 {
-                        self.reserved_by_sender.remove(&deferred_tx.tx.from);
-                    }
-                }
+                let delta = Self::reserved_amounts_for_tx(&deferred_tx.tx);
+                Self::subtract_reserved_amounts(
+                    &mut self.reserved_by_sender,
+                    &deferred_tx.tx.from,
+                    &delta,
+                );
             }
         }
 

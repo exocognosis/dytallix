@@ -154,6 +154,7 @@ fn validate_signed_tx(
             eprintln!("WARN  [Validator] Insufficient {} balance for tx: required={}, available={}", 
                 denom, required_amount, available);
             return Err(ValidationError::InsufficientFunds {
+                denom: denom.clone(),
                 required: required_amount,
                 available,
             });
@@ -224,10 +225,16 @@ pub async fn submit(
                 "error": "INVALID_SIGNATURE", "from": from, "nonce": signed_tx.tx.nonce
             }),
             ValidationError::InsufficientFunds {
+                denom,
                 required,
                 available,
             } => json!({
-                "error": "INSUFFICIENT_FUNDS", "required": required.to_string(), "available": available.to_string(), "from": from, "nonce": signed_tx.tx.nonce
+                "error": "INSUFFICIENT_FUNDS",
+                "denom": denom,
+                "required": required.to_string(),
+                "available": available.to_string(),
+                "from": from,
+                "nonce": signed_tx.tx.nonce
             }),
             ValidationError::DuplicateTransaction => json!({
                 "error": "DUPLICATE_TRANSACTION", "from": from, "nonce": signed_tx.tx.nonce
@@ -371,8 +378,23 @@ pub async fn submit(
                     ));
                     return Err(e);
                 }
-                crate::mempool::RejectionReason::InsufficientFunds => {
-                    (ApiError::InsufficientFunds, "INSUFFICIENT_FUNDS")
+                crate::mempool::RejectionReason::InsufficientFunds { denom, required, available } => {
+                    let ve = ValidationError::InsufficientFunds {
+                        denom: denom.clone(),
+                        required,
+                        available,
+                    };
+                    append_submit_log(&base_log(
+                        false,
+                        json!({
+                            "error": "INSUFFICIENT_FUNDS",
+                            "denom": denom,
+                            "required": required.to_string(),
+                            "available": available.to_string(),
+                            "tx_hash": tx_hash
+                        }),
+                    ));
+                    return Err(ApiError::from(ve));
                 }
                 crate::mempool::RejectionReason::UnderpricedGas { .. } => (
                     ApiError::BadRequest("underpriced gas".to_string()),
@@ -455,12 +477,30 @@ pub async fn list_blocks(
     let mut h = q.offset.unwrap_or(height);
     while h > 0 && blocks.len() < limit as usize {
         if let Some(b) = ctx.storage.get_block_by_height(h) {
-            // Return full transaction objects, not just hashes, so Explorer can display them
+            // Explicitly serialize transactions to ensure full objects are returned
+            let tx_objects: Vec<serde_json::Value> = b.txs.iter().map(|tx| {
+                json!({
+                    "hash": tx.hash,
+                    "from": tx.from,
+                    "to": tx.to,
+                    "amount": tx.amount.to_string(),
+                    "fee": tx.fee.to_string(),
+                    "nonce": tx.nonce,
+                    "denom": tx.denom,
+                    "signature": tx.signature,
+                    "gas_limit": tx.gas_limit,
+                    "gas_price": tx.gas_price,
+                    "public_key": tx.public_key,
+                    "chain_id": tx.chain_id,
+                    "memo": tx.memo,
+                })
+            }).collect();
+            
             blocks.push(json!({
                 "height": b.header.height, 
                 "hash": b.hash, 
                 "timestamp": b.header.timestamp,
-                "txs": b.txs  // Full transaction objects with all fields
+                "txs": tx_objects
             }));
         }
         if h == 0 {
