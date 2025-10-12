@@ -1548,15 +1548,15 @@ const WalletPage = () => {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>In-Memory Security:</strong> Keys exist only in RAM with proper zeroization, never persisted to localStorage</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              <span><strong>Encrypted Backup:</strong> PBKDF2 (600k iterations) + AES-256-GCM keystore export with password protection</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
               <span><strong>Account Abstraction:</strong> Multi-sig support with guardian recovery</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500 mt-0.5">✓</span>
-              <span><strong>Hybrid Mode:</strong> Optional PQC+ECC dual signatures for migration paths</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500 mt-0.5">✓</span>
-              <span><strong>Keystore Export:</strong> Encrypted JSON backup with password protection</span>
             </li>
           </ul>
         </div>
