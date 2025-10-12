@@ -3019,8 +3019,21 @@ const shorten = (str, start = 10, end = 6) => {
 const timeAgo = (timestamp) => {
   if (!timestamp) return '';
   const now = Date.now();
-  // Backend returns Unix timestamp in seconds, JS Date expects milliseconds
-  const ts = typeof timestamp === 'number' ? timestamp * 1000 : new Date(timestamp).getTime();
+  
+  // Handle different timestamp formats
+  let ts;
+  if (typeof timestamp === 'string') {
+    // ISO 8601 string like "2025-10-12T00:52:06.888Z"
+    ts = new Date(timestamp).getTime();
+  } else if (typeof timestamp === 'number') {
+    // Unix timestamp - check if it's in seconds or milliseconds
+    ts = timestamp > 10000000000 ? timestamp : timestamp * 1000;
+  } else {
+    return '';
+  }
+  
+  if (isNaN(ts)) return 'Invalid Date';
+  
   const diff = Math.floor((now - ts) / 1000);
   
   if (diff < 0) return 'just now'; // Handle future timestamps
@@ -3028,6 +3041,29 @@ const timeAgo = (timestamp) => {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
+};
+
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return 'N/A';
+  
+  try {
+    let date;
+    if (typeof timestamp === 'string') {
+      // ISO 8601 string
+      date = new Date(timestamp);
+    } else if (typeof timestamp === 'number') {
+      // Unix timestamp - check if it's in seconds or milliseconds
+      date = new Date(timestamp > 10000000000 ? timestamp : timestamp * 1000);
+    } else {
+      return 'Invalid Date';
+    }
+    
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    
+    return date.toLocaleString();
+  } catch (e) {
+    return 'Invalid Date';
+  }
 };
 
 // Simple QR code generator (inline, no external deps)
@@ -3787,7 +3823,7 @@ const ExplorerPage = () => {
             <div>
               <div className="text-xs text-neutral-400 font-medium mb-1">Timestamp</div>
               <div className="text-sm">
-                <span className="text-neutral-200">{new Date(data.timestamp * 1000).toLocaleString()}</span>
+                <span className="text-neutral-200">{formatTimestamp(data.timestamp)}</span>
                 <span className="ml-2 text-neutral-400">({timeAgo(data.timestamp)})</span>
               </div>
             </div>
@@ -3859,7 +3895,7 @@ const ExplorerPage = () => {
             <div>
               <div className="text-xs text-purple-400 font-medium mb-1">Timestamp</div>
               <div className="text-sm text-purple-300">
-                {new Date(data.timestamp * 1000).toLocaleString()}
+                {formatTimestamp(data.timestamp)}
               </div>
               <div className="text-xs text-neutral-400">{timeAgo(data.timestamp)}</div>
             </div>
