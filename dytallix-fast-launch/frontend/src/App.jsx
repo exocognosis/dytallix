@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { exportKeystore as exportKeystoreAPI, serializeKeystore } from './wallet/keystore/index.js';
 import { createWalletAdapter } from './wallet/pqc.js';
 import * as PQCWallet from './wallet/pqc-wallet.js';
