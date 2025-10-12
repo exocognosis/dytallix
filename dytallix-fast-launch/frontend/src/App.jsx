@@ -5,6 +5,14 @@ import * as PQCWallet from './wallet/pqc-wallet.js';
 import { copyToClipboard } from './utils/clipboard.js';
 import { truncateAddress } from './utils/format.js';
 
+// Helper to get the correct RPC URL for the environment
+const getRpcUrl = () => {
+  const isDev = window.location.hostname === 'localhost';
+  return isDev 
+    ? (import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030')
+    : '/rpc';
+};
+
 // Simple hash router
 const useHashRoute = () => {
   const [route, setRoute] = useState(() => {
@@ -30,11 +38,7 @@ const useBlockchainStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Use relative URL for production, absolute for development
-        const isDev = window.location.hostname === 'localhost';
-        const rpcUrl = isDev 
-          ? (import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030')
-          : '/rpc';
+        const rpcUrl = getRpcUrl();
         const res = await fetch(`${rpcUrl}/status`);
         const data = await res.json();
         setStats(data);
@@ -864,6 +868,11 @@ const WalletPage = () => {
   const [txSuccess, setTxSuccess] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [paymentRequestLink, setPaymentRequestLink] = useState('');
+  
+  // Guardian state
+  const [showGuardianModal, setShowGuardianModal] = useState(false);
+  const [guardians, setGuardians] = useState([]);
+  const [newGuardian, setNewGuardian] = useState('');
 
   const NETWORK_FEE = 0.001;
 
@@ -1097,6 +1106,32 @@ const WalletPage = () => {
     localStorage.setItem('dytallix_transactions', JSON.stringify(newTxs));
   };
   
+  // Guardian management functions
+  const addGuardian = () => {
+    if (!newGuardian || !newGuardian.startsWith('pqc1')) {
+      alert('Invalid guardian address. Must start with pqc1');
+      return;
+    }
+    if (guardians.length >= 5) {
+      alert('Maximum 5 guardians allowed');
+      return;
+    }
+    if (guardians.includes(newGuardian)) {
+      alert('This guardian is already added');
+      return;
+    }
+    setGuardians([...guardians, newGuardian]);
+    setNewGuardian('');
+    setShowGuardianModal(false);
+    alert('Guardian added successfully!');
+  };
+  
+  const removeGuardian = (address) => {
+    if (confirm(`Remove guardian ${address.slice(0, 20)}...?`)) {
+      setGuardians(guardians.filter(g => g !== address));
+    }
+  };
+  
   // Submit transaction (send tokens) - SECURE VERSION
   const submitTransaction = async () => {
     if (!hasKeys) {
@@ -1114,7 +1149,7 @@ const WalletPage = () => {
     setTxSuccess(null);
     
     try {
-      const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+      const rpcUrl = getRpcUrl();
       
       console.log('🔐 Signing transaction with ephemeral PQC keys...');
       
@@ -1386,7 +1421,7 @@ const WalletPage = () => {
     if (!keyData?.address) return;
     
     try {
-      const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+      const rpcUrl = getRpcUrl();
       const response = await fetch(`${rpcUrl}/account/${keyData.address}`);
       
       if (!response.ok) return;
@@ -1421,7 +1456,7 @@ const WalletPage = () => {
       const pendingTxs = transactions.filter(tx => tx.status === 'pending');
       if (pendingTxs.length === 0) return;
       
-      const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+      const rpcUrl = getRpcUrl();
       let updated = false;
       
       for (const tx of pendingTxs) {
@@ -1480,53 +1515,16 @@ const WalletPage = () => {
     return () => clearInterval(interval);
   }, [transactions]);
   
+  // Derived state for UI
+  const created = !!(walletMetadata && hasKeys);
+  const addr = keyData?.address || walletMetadata?.address || '';
+  const fullAddr = addr; // fullAddr is just an alias for addr in this refactored version
+  
   return (
     <>
       <Page>
       <h1 className="text-3xl md:text-4xl font-extrabold">PQC Wallet</h1>
       <p className="mt-3 text-neutral-300 max-w-prose">Create and manage a quantum-resistant wallet secured by NIST-standardized post-quantum cryptography. Your keys never leave your device.</p>
-      
-      {/* Wallet Switcher */}
-      {wallets.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-neutral-400 font-medium">Active Wallet:</div>
-              <select
-                value={activeWalletId || ''}
-                onChange={(e) => switchWallet(e.target.value)}
-                className="px-4 py-2 rounded-xl bg-neutral-900 border border-white/10 focus:border-white/30 focus:outline-none text-white text-sm cursor-pointer font-semibold"
-              >
-                {wallets.map((wallet) => (
-                  <option key={wallet.id} value={wallet.id}>
-                    {wallet.name} - {wallet.addr}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-neutral-500">
-              <span>{wallets.length} wallet{wallets.length !== 1 ? 's' : ''} total</span>
-              <span>•</span>
-              <button 
-                onClick={() => {
-                  setCreated(false);
-                  setAlgorithm('ML-DSA');
-                  // Scroll to wallet creation form on mobile
-                  setTimeout(() => {
-                    const walletSection = document.querySelector('.rounded-3xl.border.border-white\\/10.bg-white\\/5');
-                    if (walletSection) {
-                      walletSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  }, 100);
-                }}
-                className="text-blue-400 hover:text-blue-300 underline"
-              >
-                + Create New Wallet
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* Wallet Features */}
       <div className="mt-8 grid md:grid-cols-2 gap-6">
@@ -1645,7 +1643,7 @@ const WalletPage = () => {
               </div>
             )}
             <button 
-              onClick={create} 
+              onClick={createWallet} 
               disabled={loading}
               className="mt-6 w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -1804,11 +1802,12 @@ const WalletPage = () => {
             <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
               <button
                 onClick={() => {
-                  setCreated(false);
-                  setAddr("");
-                  setFullAddr("");
-                  setAlgorithm('ML-DSA');
-                  setError(null);
+                  if (confirm('Create a new wallet? This will clear your current wallet from memory. Make sure you have exported your keystore first!')) {
+                    clearKeys();
+                    setWalletMetadata(null);
+                    setAlgorithm('ML-DSA');
+                    setError(null);
+                  }
                 }}
                 className="w-full px-5 py-3 rounded-2xl border-2 border-white/20 hover:border-white/40 hover:bg-white/5 text-white text-center font-semibold transition"
               >
@@ -1987,36 +1986,12 @@ const WalletPage = () => {
                 }
               }}
             >
-              {/* Wallet Selector for Send */}
-              {wallets.length > 1 && (
-                <div>
-                  <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wide">
-                    Send From Wallet
-                  </label>
-                  <select
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-white/40 cursor-pointer"
-                    value={activeWalletId || ''}
-                    onChange={(e) => switchWallet(e.target.value)}
-                    disabled={txLoading}
-                  >
-                    {wallets.map((wallet) => (
-                      <option key={wallet.id} value={wallet.id}>
-                        {wallet.name} - {wallet.addr} (DGT: {getAddressBalances(wallet.fullAddr).DGT}, DRT: {getAddressBalances(wallet.fullAddr).DRT})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="mt-1 text-xs text-neutral-500">
-                    Current balance: DGT {balances.DGT?.toFixed(2) || 0} • DRT {balances.DRT?.toFixed(2) || 0}
-                  </div>
-                </div>
-              )}
-              
               <div>
                 <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wide">
                   Recipient Address
                 </label>
                 <input
-                  autoFocus={wallets.length <= 1}
+                  autoFocus
                   className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm font-mono text-neutral-100 outline-none focus:border-white/40"
                   onChange={(e) => setTxForm({ ...txForm, to: e.target.value })}
                   placeholder="pqc1..."
@@ -2113,36 +2088,6 @@ const WalletPage = () => {
                 generatePaymentRequest();
               }}
             >
-              {/* Wallet Selector for Request */}
-              {wallets.length > 1 && (
-                <div>
-                  <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wide">
-                    Request To Wallet
-                  </label>
-                  <select
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-white/40 cursor-pointer"
-                    value={activeWalletId || ''}
-                    onChange={(e) => {
-                      switchWallet(e.target.value);
-                      // Update the form with the new wallet address
-                      const selectedWallet = wallets.find(w => w.id === e.target.value);
-                      if (selectedWallet) {
-                        setTxForm({ ...txForm, to: selectedWallet.fullAddr });
-                      }
-                    }}
-                  >
-                    {wallets.map((wallet) => (
-                      <option key={wallet.id} value={wallet.id}>
-                        {wallet.name} - {wallet.addr}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="mt-1 text-xs text-neutral-500">
-                    Payment requests will be sent to this wallet
-                  </div>
-                </div>
-              )}
-              
               <div>
                 <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wide">
                   Your Address
@@ -2300,8 +2245,8 @@ const WalletPage = () => {
                 </button>
                 <button
                   className="flex-1 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-3 text-sm font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
-                  onClick={exportKeystore}
-                  disabled={!password || password.length < 8}
+                  onClick={handleExportKeystore}
+                  disabled={!password || password.length < 12}
                   type="button"
                 >
                   Export
@@ -2438,7 +2383,7 @@ const FaucetPage = () => {
     
     try {
       // Call the real backend faucet API
-      const rpcUrl = import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+      const rpcUrl = getRpcUrl();
       
       // Map token to micro-units (DGT = 100, DRT = 1000 from UI, convert to udgt/udrt)
       const amount = token === 'DGT' ? 100 * 1_000_000 : 1000 * 1_000_000; // Convert to micro-units
@@ -2987,7 +2932,7 @@ const DashboardPage = () => {
   
   useEffect(() => {
     const fetchNodeStats = async () => {
-      const rpcUrl = import.meta.env.VITE_DYT_NODE || import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030';
+      const rpcUrl = getRpcUrl();
       
       const nodeConfig = [
         { name: 'Seed Node', id: 'seed', port: 3030, role: 'seed' },
@@ -3590,10 +3535,12 @@ const ExplorerPage = () => {
   const debouncedQ = useDebouncedValue(q, 300);
   const detected = useMemo(() => detectQueryType(debouncedQ), [debouncedQ]);
   
-  const rpcUrl = import.meta.env.VITE_DYT_NODE || import.meta.env.VITE_RPC_HTTP_URL;
+  // Use getRpcUrl helper for consistent environment-aware URL handling
+  const rpcUrl = getRpcUrl();
+  const isDev = window.location.hostname === 'localhost';
   
   // Debug logging
-  console.log('[Explorer] RPC URL:', rpcUrl);
+  console.log('[Explorer] RPC URL:', rpcUrl, 'isDev:', isDev);
   
   // Keyboard shortcut: / to focus search
   useEffect(() => {
