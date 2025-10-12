@@ -3160,7 +3160,25 @@ const ExplorerPage = () => {
   const [copied, setCopied] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showRawJson, setShowRawJson] = useState(false);
-  const [recentActivity, setRecentActivity] = useState({ blocks: [], transactions: [] });
+  
+  // Initialize recentActivity from localStorage if available
+  const [recentActivity, setRecentActivity] = useState(() => {
+    try {
+      const cached = localStorage.getItem('explorer_recent_activity');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        // Only use cache if it's less than 30 minutes old
+        if (parsed.timestamp && Date.now() - parsed.timestamp < 30 * 60 * 1000) {
+          console.log('[Explorer] Loaded cached transactions:', parsed.data?.transactions?.length || 0);
+          return parsed.data || { blocks: [], transactions: [] };
+        }
+      }
+    } catch (e) {
+      console.warn('[Explorer] Failed to load cached activity:', e);
+    }
+    return { blocks: [], transactions: [] };
+  });
+  
   const [activityLoading, setActivityLoading] = useState(true);
   
   const debouncedQ = useDebouncedValue(q, 300);
@@ -3199,86 +3217,112 @@ const ExplorerPage = () => {
       }
       
       try {
-        // Fetch recent blocks in multiple batches since API limits to 100 per request
-        // Fetch 5 batches of 100 blocks = 500 blocks total (~16 mins of history at 2s/block)
-        const allBlocks = [];
-        const batchSize = 100;
-        const numBatches = 5;
-        
         // Get current height first
         const statusResp = await fetch(`${rpcUrl}/status`, { signal: controller.signal });
         const statusData = await statusResp.json();
         const currentHeight = statusData.latest_height;
         
-        // Fetch multiple batches of blocks going backwards from current height
-        for (let i = 0; i < numBatches; i++) {
-          const offset = currentHeight - (i * batchSize);
+        console.log('[Explorer] Starting transaction search from block', currentHeight);
+        
+        // Search backwards through blocks until we find at least 5 transactions
+        // This ensures we always show the 5 most recent transactions regardless of how far back they are
+        const MIN_TRANSACTIONS = 5;
+        const MAX_BLOCKS_TO_SEARCH = 1000; // Safety limit to prevent infinite search
+        const BATCH_SIZE = 100;
+        
+        const allBlocks = [];
+        const recentTxs = [];
+        let searchedBlocks = 0;
+        let batchNum = 0;
+        
+        // Keep searching backwards until we have enough transactions or hit the limit
+        while (recentTxs.length < MIN_TRANSACTIONS && searchedBlocks < MAX_BLOCKS_TO_SEARCH) {
+          const offset = currentHeight - (batchNum * BATCH_SIZE);
           if (offset <= 0) break;
           
-          const blocksResp = await fetch(`${rpcUrl}/blocks?offset=${offset}&limit=${batchSize}`, { 
+          const blocksResp = await fetch(`${rpcUrl}/blocks?offset=${offset}&limit=${BATCH_SIZE}`, { 
             signal: controller.signal 
           });
           
-          if (blocksResp.ok) {
-            const blocksData = await blocksResp.json();
-            allBlocks.push(...(blocksData.blocks || []));
-          }
-        }
-        
-        console.log('[Explorer] Fetched blocks:', {
-          totalBlocks: allBlocks.length,
-          heightRange: allBlocks.length > 0 ? 
-            `${allBlocks[allBlocks.length - 1]?.height} - ${allBlocks[0]?.height}` : 
-            'none'
-        });
-        
-        // Process blocks and extract transactions directly (no need to refetch)
-        const recentTxs = [];
-        const recentBlocks = [];
-        
-        for (const block of allBlocks) {
-          // Add block to recent blocks list
-          recentBlocks.push({
-            height: block.height,
-            hash: block.hash,
-            timestamp: block.timestamp,
-            txCount: block.txs?.length || 0,
-            producer: block.producer || 'dyt1validator'
-          });
+          if (!blocksResp.ok) break;
           
-          // Extract transactions directly from the block (already included in /blocks response)
-          if (block.txs && block.txs.length > 0) {
-            for (const tx of block.txs) {
-              if (recentTxs.length >= 100) break; // Limit to 100 recent txs
-              
-              recentTxs.push({
-                hash: tx.hash,
-                from: tx.from,
-                to: tx.to,
-                amount: tx.amount,
-                denom: tx.denom || 'udrt',
-                status: tx.status || 'confirmed',
-                timestamp: block.timestamp,
-                block: block.height,
-                fee: tx.fee || 0
-              });
+          const blocksData = await blocksResp.json();
+          const blocks = blocksData.blocks || [];
+          
+          if (blocks.length === 0) break;
+          
+          allBlocks.push(...blocks);
+          searchedBlocks += blocks.length;
+          
+          // Extract transactions from this batch
+          for (const block of blocks) {
+            if (block.txs && block.txs.length > 0) {
+              for (const tx of block.txs) {
+                recentTxs.push({
+                  hash: tx.hash,
+                  from: tx.from,
+                  to: tx.to,
+                  amount: tx.amount,
+                  denom: tx.denom || 'udrt',
+                  status: tx.status || 'confirmed',
+                  timestamp: block.timestamp,
+                  block: block.height,
+                  fee: tx.fee || 0
+                });
+                
+                // Stop if we have enough transactions
+                if (recentTxs.length >= MIN_TRANSACTIONS) break;
+              }
             }
+            
+            if (recentTxs.length >= MIN_TRANSACTIONS) break;
           }
           
-          if (recentTxs.length >= 100) break;
+          batchNum++;
+          
+          // Log progress
+          console.log('[Explorer] Search progress:', {
+            batchNum,
+            searchedBlocks,
+            foundTxs: recentTxs.length,
+            heightRange: `${blocks[blocks.length - 1]?.height} - ${blocks[0]?.height}`
+          });
         }
         
-        console.log('[Explorer] Processed activity:', { 
-          totalBlocks: recentBlocks.length, 
-          blocksWithTxs: recentBlocks.filter(b => b.txCount > 0).length,
-          totalTxs: recentTxs.length 
+        console.log('[Explorer] Search complete:', {
+          totalBlocksSearched: searchedBlocks,
+          totalTxsFound: recentTxs.length,
+          searchedBackTo: allBlocks.length > 0 ? allBlocks[allBlocks.length - 1]?.height : 'N/A'
         });
+        
+        // Process blocks for the block list
+        const recentBlocks = allBlocks.slice(0, 100).map(block => ({
+          height: block.height,
+          hash: block.hash,
+          timestamp: block.timestamp,
+          txCount: block.txs?.length || 0,
+          producer: block.producer || 'dyt1validator'
+        }));
+        
+        // Prepare the new activity data
+        const newActivity = {
+          blocks: recentBlocks,
+          transactions: recentTxs.slice(0, MIN_TRANSACTIONS) // Keep exactly 5 most recent
+        };
         
         // Update state with new data
-        setRecentActivity({
-          blocks: recentBlocks,
-          transactions: recentTxs
-        });
+        setRecentActivity(newActivity);
+        
+        // Persist to localStorage for fast loading on next visit
+        try {
+          localStorage.setItem('explorer_recent_activity', JSON.stringify({
+            timestamp: Date.now(),
+            data: newActivity
+          }));
+          console.log('[Explorer] Cached transactions to localStorage');
+        } catch (e) {
+          console.warn('[Explorer] Failed to cache transactions:', e);
+        }
       } catch (err) {
         if (err.name !== 'AbortError') {
           console.error('Failed to fetch recent activity:', err);

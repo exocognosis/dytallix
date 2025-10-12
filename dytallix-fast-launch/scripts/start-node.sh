@@ -14,7 +14,7 @@ fi
 export DYT_DATA_DIR="${DYT_DATA_DIR:-./data}"
 export DYT_CHAIN_ID="${DYT_CHAIN_ID:-dyt-local-1}"
 export DYT_GENESIS_FILE="${DYT_GENESIS_FILE:-../genesis.json}"
-export DYT_BLOCK_INTERVAL_MS="${DYT_BLOCK_INTERVAL_MS:-2000}"
+export DYT_BLOCK_INTERVAL_MS="${DYT_BLOCK_INTERVAL_MS:-15000}"  # 15 second block time
 export DYT_EMPTY_BLOCKS="${DYT_EMPTY_BLOCKS:-true}"
 export BLOCK_MAX_TX="${BLOCK_MAX_TX:-100}"
 export DYT_WS_ENABLED="${DYT_WS_ENABLED:-true}"

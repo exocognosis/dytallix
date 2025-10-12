@@ -98,7 +98,7 @@ start_node() {
     # Minimal env for node
     export DYT_CHAIN_ID="${DYT_CHAIN_ID:-dytallix-testnet-1}"
     export DYT_DATA_DIR="${DYT_DATA_DIR:-$ART_DIR/node-data}"
-    export DYT_BLOCK_INTERVAL_MS="${DYT_BLOCK_INTERVAL_MS:-2000}"
+    export DYT_BLOCK_INTERVAL_MS="${DYT_BLOCK_INTERVAL_MS:-15000}"  # 15 second block time
     export DYT_EMPTY_BLOCKS="${DYT_EMPTY_BLOCKS:-true}"
     # DYT_WS_ENABLED inherited from top-level
     mkdir -p "$DYT_DATA_DIR"

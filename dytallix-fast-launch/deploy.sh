@@ -127,7 +127,7 @@ log "🚀 Starting blockchain node on port $NODE_PORT..."
 export DYT_CHAIN_ID="${DYT_CHAIN_ID:-dyt-local-1}"
 export DYT_DATA_DIR="${DYT_DATA_DIR:-$ROOT_DIR/data}"
 export DYT_GENESIS_FILE="${DYT_GENESIS_FILE:-$ROOT_DIR/genesis.json}"
-export DYT_BLOCK_INTERVAL_MS="${DYT_BLOCK_INTERVAL_MS:-2000}"
+export DYT_BLOCK_INTERVAL_MS="${DYT_BLOCK_INTERVAL_MS:-15000}"  # 15 second block time (similar to Ethereum)
 export DYT_RPC_PORT="${NODE_PORT}"
 
 mkdir -p "$DYT_DATA_DIR"
