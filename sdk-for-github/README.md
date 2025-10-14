@@ -21,6 +21,31 @@ yarn add @dytallix/sdk
 pnpm add @dytallix/sdk
 ```
 
+### For PQC Wallet Support
+
+To use PQC (Post-Quantum Cryptography) wallet features, you also need to install the WASM cryptography package:
+
+```bash
+npm install @dytallix/pqc-wasm
+```
+
+**Why is this separate?** The PQC WASM module adds ~500KB to your bundle. By making it optional, projects that only need to query the blockchain (without wallet operations) can stay lightweight.
+
+**Alternative: Use it without installing**
+
+You can also load the PQC module at runtime from a CDN:
+
+```html
+<script type="module">
+  import init from 'https://unpkg.com/@dytallix/pqc-wasm/pqc_wasm.js';
+  await init();
+  
+  // Now PQCWallet will work
+  import { PQCWallet } from '@dytallix/sdk';
+  const wallet = await PQCWallet.generate('ML-DSA');
+</script>
+```
+
 ## Quick Start
 
 ### 1. Connect to Dytallix

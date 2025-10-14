@@ -21,9 +21,20 @@ yarn add @dytallix/sdk
 pnpm add @dytallix/sdk
 ```
 
+**Note**: The SDK includes `@dytallix/pqc-wasm` for quantum-resistant cryptography.
+
 ## Quick Start
 
-### 1. Connect to Dytallix
+### 1. Initialize PQC Module (Required for Wallet Operations)
+
+```typescript
+import { initPQC } from '@dytallix/sdk';
+
+// Initialize the PQC WASM module (call this once at app startup)
+await initPQC();
+```
+
+### 2. Connect to Dytallix
 
 ```typescript
 import { DytallixClient } from '@dytallix/sdk';
@@ -38,10 +49,13 @@ const status = await client.getStatus();
 console.log('Block height:', status.block_height);
 ```
 
-### 2. Create a PQC Wallet
+### 3. Create a PQC Wallet
 
 ```typescript
-import { PQCWallet } from '@dytallix/sdk';
+import { PQCWallet, initPQC } from '@dytallix/sdk';
+
+// Initialize PQC first
+await initPQC();
 
 // Generate ML-DSA (Dilithium) wallet
 const wallet = await PQCWallet.generate('ML-DSA');
@@ -53,7 +67,7 @@ console.log('Algorithm:', wallet.algorithm);
 const keystore = await wallet.exportKeystore('your-secure-password');
 ```
 
-### 3. Query Account Balance
+### 4. Query Account Balance
 
 ```typescript
 const account = await client.getAccount(wallet.address);
@@ -63,7 +77,7 @@ console.log('DRT Balance:', account.balances.DRT);
 console.log('Nonce:', account.nonce);
 ```
 
-### 4. Send a Transaction
+### 5. Send a Transaction
 
 ```typescript
 // Send 10 DRT to another address
@@ -82,7 +96,7 @@ const receipt = await client.waitForTransaction(tx.hash);
 console.log('Status:', receipt.status); // 'success' or 'failed'
 ```
 
-### 5. Query Transaction History
+### 6. Query Transaction History
 
 ```typescript
 const txs = await client.getTransactions({

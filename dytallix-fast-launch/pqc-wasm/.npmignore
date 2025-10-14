@@ -1,0 +1,11 @@
+# Ignore everything except what we want to publish
+*
+
+# Include essential files
+!pqc_wasm_bg.wasm
+!pqc_wasm.js
+!pqc_wasm.d.ts
+!pqc_wasm_bg.wasm.d.ts
+!package.json
+!README.md
+!LICENSE

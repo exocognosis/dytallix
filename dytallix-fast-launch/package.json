@@ -45,6 +45,7 @@
     "@cosmjs/encoding": "^0.35.0",
     "@cosmjs/proto-signing": "^0.35.0",
     "@cosmjs/stargate": "^0.35.0",
+    "@dytallix/sdk": "file:sdk",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "argon2": "^0.40.3",

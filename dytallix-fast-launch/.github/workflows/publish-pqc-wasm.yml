@@ -1,0 +1,118 @@
+name: Publish @dytallix/pqc-wasm
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      registry:
+        description: 'NPM Registry to publish to'
+        required: true
+        default: 'npm'
+        type: choice
+        options:
+          - npm
+          - github
+          - both
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Build WASM package
+        run: |
+          cd dytallix-fast-launch/pqc-wasm
+          wasm-pack build --target web --out-dir pkg
+      
+      - name: Bump version
+        id: version
+        run: |
+          cd dytallix-fast-launch/pqc-wasm/pkg
+          npm version ${{ github.event.inputs.version }} --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Publish to NPM
+        if: github.event.inputs.registry == 'npm' || github.event.inputs.registry == 'both'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd dytallix-fast-launch/pqc-wasm/pkg
+          npm publish --access public
+      
+      - name: Setup Node for GitHub Packages
+        if: github.event.inputs.registry == 'github' || github.event.inputs.registry == 'both'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@dytallix'
+      
+      - name: Publish to GitHub Packages
+        if: github.event.inputs.registry == 'github' || github.event.inputs.registry == 'both'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd dytallix-fast-launch/pqc-wasm/pkg
+          npm publish --access public
+      
+      - name: Commit version bump
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add dytallix-fast-launch/pqc-wasm/pkg/package.json
+          git commit -m "chore: bump @dytallix/pqc-wasm to v${{ steps.version.outputs.version }}" || true
+          git push origin main || true
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: pqc-wasm-v${{ steps.version.outputs.version }}
+          name: "@dytallix/pqc-wasm v${{ steps.version.outputs.version }}"
+          body: |
+            ## @dytallix/pqc-wasm v${{ steps.version.outputs.version }}
+            
+            Post-Quantum Cryptography WASM package for Dytallix.
+            
+            ### Installation
+            ```bash
+            npm install @dytallix/pqc-wasm@${{ steps.version.outputs.version }}
+            ```
+            
+            ### What's Changed
+            - Updated WASM bindings for ML-DSA-65 cryptography
+            - See commit history for detailed changes
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

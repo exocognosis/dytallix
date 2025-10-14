@@ -10,7 +10,7 @@ export type {
   TransactionResponse
 } from './client';
 
-export { PQCWallet } from './wallet';
+export { PQCWallet, initPQC } from './wallet';
 export type {
   PQCAlgorithm,
   KeyPair

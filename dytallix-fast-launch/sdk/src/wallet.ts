@@ -1,126 +1,211 @@
 /**
  * PQC Wallet class for managing quantum-resistant wallets
  * 
- * This is a simplified wrapper around the WASM PQC module.
- * In production, this should import from @dytallix/pqc-wasm package.
+ * Integrates with pqc-wasm for ML-DSA cryptography
  */
+
+import type * as PQC from 'pqc-wasm';
 
 export type PQCAlgorithm = 'ML-DSA' | 'SLH-DSA';
 
 export interface KeyPair {
-  publicKey: string;
-  secretKey: string;
+  publicKey: Uint8Array;
+  privateKey: Uint8Array;
   address: string;
   algorithm: PQCAlgorithm;
+}
+
+// Lazy-loaded WASM module
+let pqcModule: typeof PQC | null = null;
+
+/**
+ * Initialize the PQC WASM module
+ * This must be called before using any PQC wallet functionality
+ */
+export async function initPQC(wasmBinary?: BufferSource): Promise<void> {
+  if (pqcModule) return;
+  
+  try {
+    const module = await import('pqc-wasm');
+    
+    // Initialize WASM
+    if (wasmBinary) {
+      // Use provided binary
+      await module.default(wasmBinary);
+    } else if (typeof window === 'undefined') {
+      // Node.js environment - load from file
+      try {
+        const { readFileSync } = await import('fs');
+        const { createRequire } = await import('module');
+        const require = createRequire(import.meta.url);
+        
+        // Resolve the WASM file path
+        const wasmPath = require.resolve('pqc-wasm/pqc_wasm_bg.wasm');
+        const wasm = readFileSync(wasmPath);
+        await module.default(wasm);
+      } catch (e) {
+        // Fallback - let it try default loading
+        await module.default();
+      }
+    } else {
+      // Browser environment - let it fetch automatically
+      await module.default();
+    }
+    
+    pqcModule = module;
+  } catch (error) {
+    throw new Error(
+      'Failed to load pqc-wasm. ' +
+      'Please ensure the package is installed: npm install pqc-wasm'
+    );
+  }
 }
 
 export class PQCWallet {
   public address: string;
   public algorithm: PQCAlgorithm;
-  private publicKey: string;
-  private secretKey: string;
+  private publicKey: Uint8Array;
+  private privateKey: Uint8Array;
 
   constructor(keypair: KeyPair) {
     this.address = keypair.address;
     this.algorithm = keypair.algorithm;
     this.publicKey = keypair.publicKey;
-    this.secretKey = keypair.secretKey;
+    this.privateKey = keypair.privateKey;
   }
 
   /**
    * Generate a new PQC wallet
-   * 
-   * Note: This requires the @dytallix/pqc-wasm package to be installed
-   * and properly initialized in the browser or Node.js environment.
+   * Note: Only ML-DSA is currently supported in the WASM module
    */
   static async generate(algorithm: PQCAlgorithm = 'ML-DSA'): Promise<PQCWallet> {
-    // Check if PQC WASM module is available
-    if (typeof window !== 'undefined' && (window as any).PQCWallet) {
-      const keypair = await (window as any).PQCWallet.generateKeypair(algorithm);
-      return new PQCWallet(keypair);
+    // Auto-initialize if not already done
+    if (!pqcModule) {
+      await initPQC();
     }
 
-    throw new Error(
-      'PQC WASM module not loaded. ' +
-      'Please ensure @dytallix/pqc-wasm is installed and initialized. ' +
-      'See https://docs.dytallix.network/developers/pqc-wallet'
-    );
+    if (!pqcModule) {
+      throw new Error('PQC module failed to initialize');
+    }
+
+    if (algorithm !== 'ML-DSA') {
+      throw new Error('Only ML-DSA algorithm is currently supported in WASM');
+    }
+
+    // Generate keypair using WASM
+    const result = pqcModule.generate_keypair();
+    const publicKey = result.publicKey;
+    const privateKey = result.privateKey;
+    
+    // Generate address from public key
+    const address = pqcModule.public_key_to_address(publicKey);
+
+    return new PQCWallet({
+      publicKey,
+      privateKey,
+      address,
+      algorithm: 'ML-DSA'
+    });
   }
 
   /**
-   * Import wallet from encrypted keystore JSON
+   * Import wallet from private key bytes
    */
-  static async fromKeystore(keystoreJson: string, password: string): Promise<PQCWallet> {
-    // Check if PQC WASM module is available
-    if (typeof window !== 'undefined' && (window as any).PQCWallet) {
-      const keystore = JSON.parse(keystoreJson);
-      const keypair = await (window as any).PQCWallet.importKeystore(keystore, password);
-      return new PQCWallet(keypair);
+  static async fromPrivateKey(privateKey: Uint8Array, algorithm: PQCAlgorithm = 'ML-DSA'): Promise<PQCWallet> {
+    if (!pqcModule) {
+      await initPQC();
     }
 
-    throw new Error(
-      'PQC WASM module not loaded. ' +
-      'Please ensure @dytallix/pqc-wasm is installed and initialized.'
-    );
+    if (!pqcModule) {
+      throw new Error('PQC module failed to initialize');
+    }
+
+    // Derive public key from private key
+    const publicKey = pqcModule.derive_public_key(privateKey);
+    const address = pqcModule.public_key_to_address(publicKey);
+
+    return new PQCWallet({
+      publicKey,
+      privateKey,
+      address,
+      algorithm
+    });
   }
 
   /**
-   * Import wallet from secret key
+   * Sign a message/transaction
    */
-  static fromSecretKey(secretKey: string, algorithm: PQCAlgorithm = 'ML-DSA'): PQCWallet {
-    // This is a simplified version - in production, derive address from secret key
-    throw new Error('fromSecretKey not yet implemented');
+  async sign(message: Uint8Array): Promise<Uint8Array> {
+    if (!pqcModule) {
+      await initPQC();
+    }
+
+    if (!pqcModule) {
+      throw new Error('PQC module failed to initialize');
+    }
+
+    return pqcModule.sign(this.privateKey, message);
   }
 
   /**
-   * Sign a transaction with PQC signature
+   * Verify a signature
    */
-  async signTransaction(txObj: any): Promise<any> {
-    // Check if PQC WASM module is available
-    if (typeof window !== 'undefined' && (window as any).PQCWallet) {
-      return await (window as any).PQCWallet.signTransaction(
-        txObj,
-        this.secretKey,
-        this.publicKey
-      );
+  static async verify(publicKey: Uint8Array, message: Uint8Array, signature: Uint8Array): Promise<boolean> {
+    if (!pqcModule) {
+      await initPQC();
     }
 
-    throw new Error('PQC WASM module not loaded.');
-  }
-
-  /**
-   * Export wallet as encrypted keystore JSON
-   */
-  async exportKeystore(password: string): Promise<string> {
-    // Check if PQC WASM module is available
-    if (typeof window !== 'undefined' && (window as any).PQCWallet) {
-      const keystore = await (window as any).PQCWallet.exportKeystore(
-        {
-          address: this.address,
-          secretKey: this.secretKey,
-          publicKey: this.publicKey,
-          algorithm: this.algorithm
-        },
-        password
-      );
-      return JSON.stringify(keystore);
+    if (!pqcModule) {
+      throw new Error('PQC module failed to initialize');
     }
 
-    throw new Error('PQC WASM module not loaded.');
+    return pqcModule.verify(publicKey, message, signature);
   }
 
   /**
    * Get wallet public key
    */
-  getPublicKey(): string {
+  getPublicKey(): Uint8Array {
     return this.publicKey;
   }
 
   /**
-   * Truncate address for display (pqc1ml...xyz)
+   * Get wallet private key (use with caution!)
+   */
+  getPrivateKey(): Uint8Array {
+    return this.privateKey;
+  }
+
+  /**
+   * Truncate address for display (dyt1...xyz)
    */
   getTruncatedAddress(): string {
     if (this.address.length <= 15) return this.address;
     return `${this.address.slice(0, 8)}...${this.address.slice(-4)}`;
+  }
+
+  /**
+   * Export wallet as JSON (WARNING: This exports the private key in plaintext!)
+   * For production, use proper keystore encryption
+   */
+  toJSON(): { address: string; publicKey: string; privateKey: string; algorithm: PQCAlgorithm } {
+    return {
+      address: this.address,
+      publicKey: Buffer.from(this.publicKey).toString('base64'),
+      privateKey: Buffer.from(this.privateKey).toString('base64'),
+      algorithm: this.algorithm
+    };
+  }
+
+  /**
+   * Import wallet from JSON
+   */
+  static fromJSON(json: { address: string; publicKey: string; privateKey: string; algorithm: PQCAlgorithm }): PQCWallet {
+    return new PQCWallet({
+      address: json.address,
+      publicKey: Buffer.from(json.publicKey, 'base64'),
+      privateKey: Buffer.from(json.privateKey, 'base64'),
+      algorithm: json.algorithm
+    });
   }
 }

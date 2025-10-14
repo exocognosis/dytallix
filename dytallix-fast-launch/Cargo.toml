@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "node",
+    "pqc-wasm",
 ]
 resolver = "2"
