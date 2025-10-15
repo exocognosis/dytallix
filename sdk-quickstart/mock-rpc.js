@@ -59,6 +59,9 @@ app.get('/health', (req, res) => {
 
 const PORT = process.env.PORT || 26657;
 
+// Box formatting constants
+const BOX_FIELD_WIDTH = 46; // Width for field values within the formatted box
+
 app.listen(PORT, () => {
   const statusUrl = `http://localhost:${PORT}/status`;
   console.log(`
@@ -66,8 +69,8 @@ app.listen(PORT, () => {
 ║  🚀 Dytallix Mock RPC Server                              ║
 ║                                                            ║
 ║  Status:    RUNNING                                        ║
-║  Port:      ${PORT.toString().padEnd(46)}║
-║  Endpoint:  ${statusUrl.padEnd(46)}║
+║  Port:      ${PORT.toString().padEnd(BOX_FIELD_WIDTH)}║
+║  Endpoint:  ${statusUrl.padEnd(BOX_FIELD_WIDTH)}║
 ║                                                            ║
 ║  This server simulates a Dytallix node for SDK testing    ║
 ╚════════════════════════════════════════════════════════════╝
