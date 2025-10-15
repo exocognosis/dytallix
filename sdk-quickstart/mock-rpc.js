@@ -60,13 +60,14 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || 26657;
 
 app.listen(PORT, () => {
+  const statusUrl = `http://localhost:${PORT}/status`;
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║  🚀 Dytallix Mock RPC Server                              ║
 ║                                                            ║
 ║  Status:    RUNNING                                        ║
-║  Port:      ${PORT}                                        ║
-║  Endpoint:  http://localhost:${PORT}/status                    ║
+║  Port:      ${PORT.toString().padEnd(46)}║
+║  Endpoint:  ${statusUrl.padEnd(46)}║
 ║                                                            ║
 ║  This server simulates a Dytallix node for SDK testing    ║
 ╚════════════════════════════════════════════════════════════╝

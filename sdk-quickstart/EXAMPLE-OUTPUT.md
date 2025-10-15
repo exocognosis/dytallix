@@ -22,12 +22,12 @@ This document shows example outputs from the Dytallix SDK Quickstart scripts.
 ║  🚀 Dytallix Mock RPC Server                              ║
 ║                                                            ║
 ║  Status:    RUNNING                                        ║
-║  Port:      26657                                        ║
-║  Endpoint:  http://localhost:26657/status                    ║
+║  Port:      26657                                          ║
+║  Endpoint:  http://localhost:26657/status                  ║
 ║                                                            ║
 ║  This server simulates a Dytallix node for SDK testing    ║
 ╚════════════════════════════════════════════════════════════╝
-  
+
 
 🔍 Testing connection to: http://localhost:26657
 📡 Mock RPC: Received /status request
@@ -82,8 +82,8 @@ This document shows example outputs from the Dytallix SDK Quickstart scripts.
 ║  🚀 Dytallix Mock RPC Server                              ║
 ║                                                            ║
 ║  Status:    RUNNING                                        ║
-║  Port:      26657                                        ║
-║  Endpoint:  http://localhost:26657/status                    ║
+║  Port:      26657                                          ║
+║  Endpoint:  http://localhost:26657/status                  ║
 ║                                                            ║
 ║  This server simulates a Dytallix node for SDK testing    ║
 ╚════════════════════════════════════════════════════════════╝
