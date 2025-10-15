@@ -1,0 +1,23 @@
+{
+  "name": "dytallix-sdk-quickstart",
+  "version": "1.0.0",
+  "description": "Quickstart demo for Dytallix SDK onboarding",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "start:mock": "node mock-rpc.js",
+    "demo": "node demo.js"
+  },
+  "keywords": [
+    "dytallix",
+    "blockchain",
+    "sdk",
+    "quickstart"
+  ],
+  "author": "Dytallix Network",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "express": "^4.18.0"
+  }
+}
