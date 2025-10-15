@@ -19,21 +19,21 @@ jobs:
   test-new-developer-flow:
     name: Test New Developer Onboarding Flow
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [20, 22]
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      
+
       - name: Build SDK
         working-directory: sdk-for-github
         run: |
@@ -41,38 +41,38 @@ jobs:
           npm ci
           npm run build
           echo "✅ SDK build complete"
-      
+
       - name: Test Quickstart Demo - Mock RPC Path
         working-directory: sdk-quickstart
         run: |
           echo "🚀 Testing quickstart with mock RPC..."
-          
+
           # Install dependencies
           npm install
-          
+
           # Link local SDK for testing
           npm link ../sdk-for-github
-          
+
           # Start mock RPC server in background
           echo "Starting mock RPC server..."
           npm run start:mock > mock-server.log 2>&1 &
           MOCK_PID=$!
           echo "Mock server PID: $MOCK_PID"
-          
+
           # Wait for server to be ready
           sleep 3
-          
+
           # Check if server is running
           if ! kill -0 $MOCK_PID 2>/dev/null; then
             echo "❌ Mock server failed to start"
             cat mock-server.log
             exit 1
           fi
-          
+
           # Test connection to mock RPC
           echo "Testing connection to mock RPC..."
           RPC_URL=http://localhost:26657 CHAIN_ID=dyt-testnet-1 node index.js
-          
+
           # Check the output
           if [ $? -eq 0 ]; then
             echo "✅ Mock RPC test passed!"
@@ -82,16 +82,16 @@ jobs:
             kill $MOCK_PID 2>/dev/null || true
             exit 1
           fi
-          
+
           # Clean up
           kill $MOCK_PID 2>/dev/null || true
           echo "✅ Quickstart mock RPC test complete"
-      
+
       - name: Test Quickstart Demo - Full Flow
         working-directory: sdk-quickstart
         run: |
           echo "🎯 Testing full demo flow..."
-          
+
           # The demo script handles both online and offline modes
           # It will try testnet first, then fall back to mock
           timeout 120 npm run demo || {
@@ -105,19 +105,19 @@ jobs:
               exit $EXIT_CODE
             fi
           }
-          
+
           echo "✅ Full demo flow test complete"
-      
+
       - name: Test One-Liner from README
         working-directory: sdk-quickstart
         run: |
           echo "📝 Testing one-liner command from README..."
-          
+
           # Start mock server
           npm run start:mock > mock-server.log 2>&1 &
           MOCK_PID=$!
           sleep 3
-          
+
           # Test the simple one-liner approach
           RPC_URL=http://localhost:26657 node -e "
             import('@dytallix/sdk').then(async (m) => {
@@ -136,27 +136,27 @@ jobs:
               process.exit(1);
             });
           "
-          
+
           # Clean up
           kill $MOCK_PID 2>/dev/null || true
-          
+
           echo "✅ One-liner test passed"
-      
+
       - name: Verify Mock Server Responses
         working-directory: sdk-quickstart
         run: |
           echo "🔍 Verifying mock server responses..."
-          
+
           # Start mock server
           npm run start:mock > mock-server.log 2>&1 &
           MOCK_PID=$!
           sleep 3
-          
+
           # Test /status endpoint
           echo "Testing GET /status..."
           RESPONSE=$(curl -s http://localhost:26657/status)
           echo "Response: $RESPONSE"
-          
+
           # Check if response contains expected fields
           if echo "$RESPONSE" | grep -q "block_height"; then
             echo "✅ block_height found"
@@ -165,7 +165,7 @@ jobs:
             kill $MOCK_PID 2>/dev/null || true
             exit 1
           fi
-          
+
           if echo "$RESPONSE" | grep -q "chain_id"; then
             echo "✅ chain_id found"
           else
@@ -173,12 +173,12 @@ jobs:
             kill $MOCK_PID 2>/dev/null || true
             exit 1
           fi
-          
+
           # Test /health endpoint
           echo "Testing GET /health..."
           HEALTH=$(curl -s http://localhost:26657/health)
           echo "Response: $HEALTH"
-          
+
           if echo "$HEALTH" | grep -q "ok"; then
             echo "✅ Health check passed"
           else
@@ -186,12 +186,12 @@ jobs:
             kill $MOCK_PID 2>/dev/null || true
             exit 1
           fi
-          
+
           # Clean up
           kill $MOCK_PID 2>/dev/null || true
-          
+
           echo "✅ Mock server verification complete"
-      
+
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -200,20 +200,20 @@ jobs:
           path: |
             sdk-quickstart/*.log
           retention-days: 5
-  
+
   test-fresh-install:
     name: Test Fresh Installation
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      
+
       - name: Build and Pack SDK
         working-directory: sdk-for-github
         run: |
@@ -222,47 +222,47 @@ jobs:
           npm run build
           npm pack
           echo "✅ SDK packed"
-      
+
       - name: Simulate Fresh Developer Experience
         run: |
           echo "🆕 Simulating completely fresh developer experience..."
-          
+
           # Create a new directory simulating a developer's workspace
           mkdir -p /tmp/fresh-dev-test
           cd /tmp/fresh-dev-test
-          
+
           # Initialize new project
           echo "Initializing new Node.js project..."
           npm init -y
-          
+
           # Add module type for ESM
           node -e "
             const pkg = require('./package.json');
             pkg.type = 'module';
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
-          
+
           # Install SDK from local pack
           echo "Installing @dytallix/sdk from local package..."
           SDK_TARBALL=$(ls ${GITHUB_WORKSPACE}/sdk-for-github/dytallix-sdk-*.tgz)
           npm install "$SDK_TARBALL"
-          
+
           # Install express for mock server
           npm install express
-          
+
           # Copy quickstart files
           cp ${GITHUB_WORKSPACE}/sdk-quickstart/mock-rpc.js .
           cp ${GITHUB_WORKSPACE}/sdk-quickstart/index.js .
-          
+
           # Test with mock server
           echo "Testing SDK with mock server..."
           node mock-rpc.js > mock.log 2>&1 &
           MOCK_PID=$!
           sleep 3
-          
+
           # Run the test
           RPC_URL=http://localhost:26657 node index.js
-          
+
           if [ $? -eq 0 ]; then
             echo "✅ Fresh install test passed!"
           else
@@ -271,63 +271,63 @@ jobs:
             kill $MOCK_PID 2>/dev/null || true
             exit 1
           fi
-          
+
           # Clean up
           kill $MOCK_PID 2>/dev/null || true
-          
+
           echo "✅ Fresh developer experience test complete"
-  
+
   test-readme-accuracy:
     name: Validate README Instructions
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      
+
       - name: Check README for broken links
         working-directory: sdk-quickstart
         run: |
           echo "🔍 Checking README.md for issues..."
-          
+
           # Check if README exists
           if [ ! -f README.md ]; then
             echo "❌ README.md not found"
             exit 1
           fi
-          
+
           # Check for key sections
           echo "Checking for required sections..."
-          
+
           grep -q "Quick Start" README.md || { echo "❌ Missing Quick Start section"; exit 1; }
           grep -q "Prerequisites" README.md || { echo "❌ Missing Prerequisites section"; exit 1; }
           grep -q "Demo Scripts" README.md || { echo "❌ Missing Demo Scripts section"; exit 1; }
           grep -q "Troubleshooting" README.md || { echo "❌ Missing Troubleshooting section"; exit 1; }
           grep -q "Next Steps" README.md || { echo "❌ Missing Next Steps section"; exit 1; }
-          
+
           echo "✅ README.md validation passed"
-      
+
       - name: Verify package.json scripts
         working-directory: sdk-quickstart
         run: |
           echo "🔍 Verifying package.json scripts..."
-          
+
           # Check if scripts exist
           node -e "
             const pkg = require('./package.json');
             const required = ['start', 'start:mock', 'demo'];
-            
+
             for (const script of required) {
               if (!pkg.scripts[script]) {
                 console.error(\`❌ Missing script: \${script}\`);
                 process.exit(1);
               }
             }
-            
+
             console.log('✅ All required scripts present');
           "
