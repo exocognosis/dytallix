@@ -869,12 +869,23 @@ const WalletPage = () => {
   const [transactions, setTransactions] = useState([]);
   const [paymentRequestLink, setPaymentRequestLink] = useState('');
   
+  // Faucet state
+  const [showFaucetModal, setShowFaucetModal] = useState(false);
+  const [faucetLoading, setFaucetLoading] = useState(false);
+  const [faucetError, setFaucetError] = useState(null);
+  const [faucetSuccess, setFaucetSuccess] = useState(null);
+  const [faucetToken, setFaucetToken] = useState('DRT');
+  
   // Guardian state
   const [showGuardianModal, setShowGuardianModal] = useState(false);
   const [guardians, setGuardians] = useState([]);
   const [newGuardian, setNewGuardian] = useState('');
 
   const NETWORK_FEE = 0.001;
+  
+  // Faucet token amounts
+  const FAUCET_DGT_AMOUNT = 100;
+  const FAUCET_DRT_AMOUNT = 1000;
 
   // Load wallet metadata from localStorage (NO KEYS!)
   useEffect(() => {
@@ -1129,6 +1140,73 @@ const WalletPage = () => {
   const removeGuardian = (address) => {
     if (confirm(`Remove guardian ${address.slice(0, 20)}...?`)) {
       setGuardians(guardians.filter(g => g !== address));
+    }
+  };
+  
+  // Request tokens from faucet
+  const requestFaucetTokens = async () => {
+    if (!addr) {
+      setFaucetError('No wallet address available');
+      return;
+    }
+    
+    setFaucetLoading(true);
+    setFaucetError(null);
+    setFaucetSuccess(null);
+    
+    try {
+      const rpcUrl = getRpcUrl();
+      
+      // Map token to micro-units (DGT = 100, DRT = 1000 from UI, convert to udgt/udrt)
+      const amount = faucetToken === 'DGT' ? FAUCET_DGT_AMOUNT * 1_000_000 : FAUCET_DRT_AMOUNT * 1_000_000;
+      const payload = {
+        address: addr,
+        ...(faucetToken === 'DGT' ? { udgt: amount } : { udrt: amount })
+      };
+      
+      const response = await fetch(`${rpcUrl}/dev/faucet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Faucet request failed: ${response.status} ${response.statusText}`);
+      }
+      
+      await response.json();
+      setFaucetSuccess({
+        token: faucetToken,
+        amount: faucetToken === 'DGT' ? FAUCET_DGT_AMOUNT : FAUCET_DRT_AMOUNT,
+        address: addr,
+      });
+      
+      // Update localStorage for demo balance display
+      creditBalance(addr, faucetToken, faucetToken === 'DGT' ? FAUCET_DGT_AMOUNT : FAUCET_DRT_AMOUNT);
+      
+      // Refresh balances after a short delay
+      setTimeout(() => {
+        refreshBalances();
+      }, 2000);
+      
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        setShowFaucetModal(false);
+        setFaucetSuccess(null);
+        setFaucetError(null);
+      }, 3000);
+      
+    } catch (err) {
+      console.error('Faucet error:', err);
+      let errorMsg = 'Failed to request tokens';
+      if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
+        errorMsg = 'Cannot connect to backend node. Make sure the node is running on port 3030.';
+      } else {
+        errorMsg = err.message;
+      }
+      setFaucetError(errorMsg);
+    } finally {
+      setFaucetLoading(false);
     }
   };
   
@@ -1842,18 +1920,24 @@ const WalletPage = () => {
                     DGT: {balances.DGT?.toLocaleString?.() || balances.DGT} • DRT: {balances.DRT?.toLocaleString?.() || balances.DRT}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   <button 
                     onClick={openSendModal}
-                    className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-semibold hover:opacity-90 transition"
+                    className="px-3 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-semibold hover:opacity-90 transition"
                   >
                     💸 Send
                   </button>
                   <button 
                     onClick={openRequestModal}
-                    className="px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-cyan-500 text-white text-sm font-semibold hover:opacity-90 transition"
+                    className="px-3 py-3 rounded-xl bg-gradient-to-r from-green-500 to-cyan-500 text-white text-sm font-semibold hover:opacity-90 transition"
                   >
                     📥 Request
+                  </button>
+                  <button 
+                    onClick={() => setShowFaucetModal(true)}
+                    className="px-3 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-sm font-semibold hover:opacity-90 transition"
+                  >
+                    💧 Faucet
                   </button>
                 </div>
                 <div className="mt-4 text-xs text-neutral-500">
@@ -1871,6 +1955,10 @@ const WalletPage = () => {
                   <li className="flex items-start gap-2">
                     <span className="text-purple-400 mt-0.5">•</span>
                     <span><strong className="text-neutral-300">Payment Requests:</strong> Generate shareable links for requesting tokens from others</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5">•</span>
+                    <span><strong className="text-neutral-300">Faucet Access:</strong> Request test DGT/DRT tokens directly without leaving the wallet</span>
                   </li>
                 </ul>
               </>
@@ -2322,6 +2410,127 @@ const WalletPage = () => {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    )}
+    
+    {/* Faucet Modal */}
+    {showFaucetModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-gradient-to-br from-neutral-900 to-neutral-950 p-6 shadow-2xl">
+          <button
+            className="absolute right-4 top-4 text-neutral-500 hover:text-white transition"
+            onClick={() => {
+              setShowFaucetModal(false);
+              setFaucetError(null);
+              setFaucetSuccess(null);
+            }}
+            type="button"
+            disabled={faucetLoading}
+          >
+            ×
+          </button>
+          <div className="text-lg font-semibold text-white">Request Test Tokens</div>
+          <div className="mt-1 text-xs text-neutral-400">
+            Get free DGT or DRT tokens for testing on the Dytallix testnet
+          </div>
+
+          {faucetError && (
+            <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+              {faucetError}
+            </div>
+          )}
+
+          {faucetSuccess && (
+            <div className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+              <div className="font-semibold text-green-300">✓ Tokens requested successfully</div>
+              <div className="mt-1 text-neutral-300">
+                {faucetSuccess.amount} {faucetSuccess.token} will be credited to your wallet shortly
+              </div>
+              <div className="mt-1 text-xs text-neutral-400">
+                Closing automatically...
+              </div>
+            </div>
+          )}
+
+          {!faucetSuccess && (
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wide">
+                  Your Wallet Address
+                </label>
+                <div className="mt-2 rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-xs font-mono text-neutral-200 break-all">
+                  {addr || 'No address available'}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wide">
+                  Token Type
+                </label>
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFaucetToken('DGT')}
+                    className={`px-4 py-3 rounded-xl text-sm font-semibold transition ${
+                      faucetToken === 'DGT'
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                        : 'border border-white/20 text-neutral-300 hover:border-white/40 hover:text-white'
+                    }`}
+                    disabled={faucetLoading}
+                  >
+                    <div className="font-bold">DGT</div>
+                    <div className="text-xs opacity-80">{FAUCET_DGT_AMOUNT} tokens</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFaucetToken('DRT')}
+                    className={`px-4 py-3 rounded-xl text-sm font-semibold transition ${
+                      faucetToken === 'DRT'
+                        ? 'bg-gradient-to-r from-green-500 to-cyan-500 text-white'
+                        : 'border border-white/20 text-neutral-300 hover:border-white/40 hover:text-white'
+                    }`}
+                    disabled={faucetLoading}
+                  >
+                    <div className="font-bold">DRT</div>
+                    <div className="text-xs opacity-80">{FAUCET_DRT_AMOUNT} tokens</div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 px-3 py-2 text-xs text-blue-400">
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-400">ℹ️</span>
+                  <div>
+                    <strong>Note:</strong> DGT is required for network fees. Make sure to request DGT tokens first if you plan to send transactions.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  className="flex-1 rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-neutral-300 hover:border-white/40 hover:text-white transition"
+                  onClick={() => {
+                    setShowFaucetModal(false);
+                    setFaucetError(null);
+                    setFaucetSuccess(null);
+                  }}
+                  type="button"
+                  disabled={faucetLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="flex-1 rounded-2xl bg-gradient-to-r from-orange-500 to-yellow-500 px-4 py-3 text-sm font-semibold text-white hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={requestFaucetTokens}
+                  type="button"
+                  disabled={faucetLoading || !addr}
+                >
+                  {faucetLoading ? 'Requesting...' : 'Request Tokens'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )}
