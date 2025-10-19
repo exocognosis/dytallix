@@ -882,6 +882,10 @@ const WalletPage = () => {
   const [newGuardian, setNewGuardian] = useState('');
 
   const NETWORK_FEE = 0.001;
+  
+  // Faucet token amounts
+  const FAUCET_DGT_AMOUNT = 100;
+  const FAUCET_DRT_AMOUNT = 1000;
 
   // Load wallet metadata from localStorage (NO KEYS!)
   useEffect(() => {
@@ -1154,7 +1158,7 @@ const WalletPage = () => {
       const rpcUrl = getRpcUrl();
       
       // Map token to micro-units (DGT = 100, DRT = 1000 from UI, convert to udgt/udrt)
-      const amount = faucetToken === 'DGT' ? 100 * 1_000_000 : 1000 * 1_000_000;
+      const amount = faucetToken === 'DGT' ? FAUCET_DGT_AMOUNT * 1_000_000 : FAUCET_DRT_AMOUNT * 1_000_000;
       const payload = {
         address: addr,
         ...(faucetToken === 'DGT' ? { udgt: amount } : { udrt: amount })
@@ -1170,15 +1174,15 @@ const WalletPage = () => {
         throw new Error(`Faucet request failed: ${response.status} ${response.statusText}`);
       }
       
-      const result = await response.json();
+      await response.json();
       setFaucetSuccess({
         token: faucetToken,
-        amount: faucetToken === 'DGT' ? 100 : 1000,
+        amount: faucetToken === 'DGT' ? FAUCET_DGT_AMOUNT : FAUCET_DRT_AMOUNT,
         address: addr,
       });
       
       // Update localStorage for demo balance display
-      creditBalance(addr, faucetToken, faucetToken === 'DGT' ? 100 : 1000);
+      creditBalance(addr, faucetToken, faucetToken === 'DGT' ? FAUCET_DGT_AMOUNT : FAUCET_DRT_AMOUNT);
       
       // Refresh balances after a short delay
       setTimeout(() => {
@@ -2476,7 +2480,7 @@ const WalletPage = () => {
                     disabled={faucetLoading}
                   >
                     <div className="font-bold">DGT</div>
-                    <div className="text-xs opacity-80">100 tokens</div>
+                    <div className="text-xs opacity-80">{FAUCET_DGT_AMOUNT} tokens</div>
                   </button>
                   <button
                     type="button"
@@ -2489,7 +2493,7 @@ const WalletPage = () => {
                     disabled={faucetLoading}
                   >
                     <div className="font-bold">DRT</div>
-                    <div className="text-xs opacity-80">1000 tokens</div>
+                    <div className="text-xs opacity-80">{FAUCET_DRT_AMOUNT} tokens</div>
                   </button>
                 </div>
               </div>
