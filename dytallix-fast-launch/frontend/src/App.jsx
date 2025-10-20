@@ -4,6 +4,7 @@ import { createWalletAdapter } from './wallet/pqc.js';
 import * as PQCWallet from './wallet/pqc-wallet.js';
 import { copyToClipboard } from './utils/clipboard.js';
 import { truncateAddress } from './utils/format.js';
+import QuantumVault from './routes/QuantumVault.jsx';
 
 // Helper to get the correct RPC URL for the environment
 const getRpcUrl = () => {
@@ -88,6 +89,7 @@ const Nav = () => {
   const links = [
     { href: '/', label: 'Home' },
     { href: '/wallet', label: 'PQC Wallet' },
+    { href: '/quantumvault', label: 'QuantumVault' },
     { href: '/faucet', label: 'Faucet' },
     { href: '/explorer', label: 'Explorer' },
     { href: '/dashboard', label: 'Dashboard' },
@@ -5015,6 +5017,7 @@ export default function App() {
   const Component = useMemo(() => {
     switch (route) {
       case '/wallet': return WalletPage;
+      case '/quantumvault': return QuantumVault;
       case '/faucet': return FaucetPage;
       case '/explorer': return ExplorerPage;
       case '/docs': return DocsPage;

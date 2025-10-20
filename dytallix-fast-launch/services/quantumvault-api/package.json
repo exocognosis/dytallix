@@ -1,0 +1,16 @@
+{
+  "name": "quantumvault-api",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "QuantumVault backend API for encrypted asset storage",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}
