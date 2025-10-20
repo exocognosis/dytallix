@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'http://localhost:3030',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/node/, '')
+      },
+      '/api/quantumvault': {
+        target: 'http://localhost:3031',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/quantumvault/, '')
       }
     }
   }
