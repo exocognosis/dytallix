@@ -27,7 +27,7 @@ NC='\033[0m' # No Color
 SERVER_IP="178.156.187.81"
 SERVER_USER="root"
 DEPLOY_DIR="/opt/dytallix-fast-launch"
-LOCAL_DIR="/Users/rickglenn/dytallix/dytallix-fast-launch"
+LOCAL_DIR="/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
 
 # Deployment mode (full, update, verify)
 MODE="${1:-full}"
