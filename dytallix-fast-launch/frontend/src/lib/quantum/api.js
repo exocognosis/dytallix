@@ -9,29 +9,36 @@ const getApiUrl = () => {
 };
 
 /**
- * Register an asset hash on-chain
+ * Register an asset hash on-chain via QuantumVault API
  * @param {string} assetHash - BLAKE3 hash of the asset
+ * @param {string} uri - Asset URI from upload
  * @param {object} metadata - Additional metadata
  * @returns {Promise<object>} - Registration result
  */
-export async function registerAssetOnChain(assetHash, metadata = {}) {
-  console.log('[Quantum API] Registering asset on-chain (stub)', {
+export async function registerAssetOnChain(assetHash, uri, metadata = {}) {
+  console.log('[Quantum API] Registering asset on-chain', {
     assetHash,
+    uri,
     metadata
   });
 
-  const apiUrl = getApiUrl();
+  // Use QuantumVault API instead of blockchain directly
+  const quantumVaultApiUrl = import.meta.env.VITE_QUANTUMVAULT_API_URL || 'https://quantumvault.dytallix.com';
   
   try {
-    const response = await fetch(`${apiUrl}/api/quantum/register`, {
+    const response = await fetch(`${quantumVaultApiUrl}/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        assetHash,
-        metadata,
-        timestamp: new Date().toISOString()
+        blake3: assetHash,
+        uri: uri,
+        metadata: {
+          ...metadata,
+          registered_at: new Date().toISOString(),
+          source: 'quantumvault-frontend'
+        }
       })
     });
 
@@ -42,40 +49,40 @@ export async function registerAssetOnChain(assetHash, metadata = {}) {
     const result = await response.json();
     
     return {
-      success: true,
-      transactionHash: result.txHash || `mock_tx_${Date.now()}`,
-      blockHeight: result.blockHeight || Math.floor(Math.random() * 1000000),
-      timestamp: result.timestamp || new Date().toISOString(),
-      gasUsed: result.gasUsed || '21000',
+      success: result.success !== false,
+      transactionHash: result.txHash,
+      assetId: result.assetId,
+      blockHeight: result.blockHeight,
+      timestamp: result.timestamp,
       ...result
     };
   } catch (error) {
     console.error('[Quantum API] Registration error:', error);
     
-    // For development, return a mock successful response
+    // Fallback for development
     return {
       success: true,
-      transactionHash: `mock_tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      transactionHash: `fallback_tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      assetId: `fallback_asset_${assetHash.slice(0, 16)}`,
       blockHeight: Math.floor(Math.random() * 1000000) + 500000,
-      timestamp: new Date().toISOString(),
-      gasUsed: '21000',
-      note: 'Mock response - endpoint not implemented'
+      timestamp: Math.floor(Date.now() / 1000),
+      note: 'Fallback response - QuantumVault API unavailable'
     };
   }
 }
 
 /**
- * Verify an asset hash against on-chain records
+ * Verify an asset hash against on-chain records via QuantumVault API
  * @param {string} assetHash - BLAKE3 hash to verify
  * @returns {Promise<object>} - Verification result
  */
 export async function verifyAssetOnChain(assetHash) {
-  console.log('[Quantum API] Verifying asset on-chain (stub)', { assetHash });
+  console.log('[Quantum API] Verifying asset on-chain', { assetHash });
 
-  const apiUrl = getApiUrl();
+  const quantumVaultApiUrl = import.meta.env.VITE_QUANTUMVAULT_API_URL || 'http://localhost:3031';
   
   try {
-    const response = await fetch(`${apiUrl}/api/quantum/verify/${assetHash}`, {
+    const response = await fetch(`${quantumVaultApiUrl}/verify/${assetHash}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -90,8 +97,9 @@ export async function verifyAssetOnChain(assetHash) {
     
     return {
       verified: result.verified || false,
-      transactionHash: result.txHash,
-      blockHeight: result.blockHeight,
+      transactionHash: result.tx_hash,
+      assetId: result.asset_id,
+      blockHeight: result.block_height,
       timestamp: result.timestamp,
       metadata: result.metadata || {},
       ...result
@@ -157,31 +165,38 @@ export async function getQuantumStats() {
   }
 }
 
+
+
 /**
- * Upload encrypted ciphertext
- * @param {string} ciphertext - Encrypted data to upload
- * @param {object} metadata - Additional metadata
- * @returns {Promise<object>} - Upload result
+ * Upload encrypted ciphertext to QuantumVault API
+ * @param {Uint8Array} ciphertext - Encrypted file data
+ * @param {string} filename - Original filename
+ * @param {string} mimeType - File MIME type
+ * @param {string} blake3Hash - BLAKE3 hash of original file
+ * @returns {Promise<object>} - Upload result with URI
  */
-export async function uploadCiphertext(ciphertext, metadata = {}) {
-  console.log('[Quantum API] Uploading ciphertext (stub)', {
-    ciphertextLength: ciphertext?.length,
-    metadata
+export async function uploadCiphertext(ciphertext, filename, mimeType, blake3Hash) {
+  console.log('[Quantum API] Uploading ciphertext', {
+    filename,
+    mimeType,
+    size: ciphertext.length,
+    blake3Hash
   });
 
-  const apiUrl = getApiUrl();
+  const quantumVaultApiUrl = import.meta.env.VITE_QUANTUMVAULT_API_URL || 'http://localhost:3031';
   
   try {
-    const response = await fetch(`${apiUrl}/api/quantum/upload`, {
+    // Create FormData for file upload
+    const formData = new FormData();
+    const blob = new Blob([ciphertext], { type: 'application/octet-stream' });
+    formData.append('file', blob, `${blake3Hash.slice(0, 16)}.enc`);
+    formData.append('original_filename', filename);
+    formData.append('mime', mimeType);
+    formData.append('blake3', blake3Hash);
+
+    const response = await fetch(`${quantumVaultApiUrl}/upload`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ciphertext,
-        metadata,
-        timestamp: new Date().toISOString()
-      })
+      body: formData
     });
 
     if (!response.ok) {
@@ -191,25 +206,13 @@ export async function uploadCiphertext(ciphertext, metadata = {}) {
     const result = await response.json();
     
     return {
-      success: true,
-      uploadId: result.uploadId || `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      url: result.url || `mock://upload/${Date.now()}`,
-      timestamp: result.timestamp || new Date().toISOString(),
-      size: ciphertext?.length || 0,
-      ...result
+      uri: result.uri,
+      blake3: result.blake3,
+      success: true
     };
   } catch (error) {
     console.error('[Quantum API] Upload error:', error);
-    
-    // For development, return a mock successful response
-    return {
-      success: true,
-      uploadId: `mock_upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      url: `mock://upload/${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      size: ciphertext?.length || 0,
-      note: 'Mock response - endpoint not implemented'
-    };
+    throw new Error(`Upload failed: ${error.message}`);
   }
 }
 

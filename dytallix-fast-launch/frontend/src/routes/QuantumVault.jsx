@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import UploadCard from '../components/quantum/UploadCard';
 import ProofPanel from '../components/quantum/ProofPanel';
 import AnchorPanel from '../components/quantum/AnchorPanel';
@@ -16,10 +16,161 @@ import VerifyPanel from '../components/quantum/VerifyPanel';
  * - Verification workflow
  */
 
+// Navigation component (matches App.jsx structure)
+const Nav = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const links = [
+    { href: '/', label: 'Home' },
+    { href: '/wallet', label: 'PQC Wallet' },
+    { href: '/quantumvault', label: 'QuantumVault' },
+    { href: '/faucet', label: 'Faucet' },
+    { href: '/explorer', label: 'Explorer' },
+    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/tokenomics', label: 'Tokenomics' },
+    { href: '/docs', label: 'Docs' },
+  ];
+  return (
+    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur border-b border-white/10 bg-neutral-950/90">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 flex h-16 items-center justify-between">
+        <a href="#/" className="font-black tracking-widest text-xl">DYTALLIX</a>
+        
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex gap-6">
+          {links.map((l) => (
+            <a key={l.href} href={`#${l.href}`} className="text-sm text-neutral-300 hover:text-white transition">{l.label}</a>
+          ))}
+        </nav>
+        
+        {/* Desktop Wallet Button */}
+        <div className="hidden md:flex items-center gap-2">
+          <a href="#/wallet" className="px-3 py-2 rounded-2xl bg-white text-black text-sm font-semibold hover:opacity-90 transition">Open Wallet</a>
+        </div>
+        
+        {/* Mobile Menu Button */}
+        <button 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 text-neutral-300 hover:text-white"
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+      </div>
+      
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-white/10 bg-neutral-950/95 backdrop-blur">
+          <nav className="px-4 py-4 space-y-2">
+            {links.map((l) => (
+              <a 
+                key={l.href} 
+                href={`#${l.href}`}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-neutral-300 hover:text-white hover:bg-white/5 transition"
+              >
+                {l.label}
+              </a>
+            ))}
+            <a 
+              href="#/wallet" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 mt-4 rounded-xl bg-white text-black text-center font-semibold hover:opacity-90 transition"
+            >
+              Open Wallet
+            </a>
+          </nav>
+        </div>
+      )}
+    </header>
+  );
+};
+
+// Footer component (matches App.jsx structure)
+const Footer = () => (
+  <footer className="border-t border-white/10 bg-neutral-950/70">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 text-sm text-neutral-400 grid md:grid-cols-3 gap-6">
+      <div>
+        <div className="font-black tracking-widest text-neutral-200">DYTALLIX</div>
+        <div className="mt-2">Future Ready · Quantum Proof · Open Source</div>
+      </div>
+      <div>
+        <div className="font-semibold text-neutral-300">Resources</div>
+        <ul className="mt-2 space-y-1">
+          <li><a className="hover:underline" href="#/docs">Documentation</a></li>
+          <li><a className="hover:underline" href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noreferrer">SDK on GitHub</a></li>
+          <li><a className="hover:underline" href="https://www.npmjs.com/package/@dytallix/sdk" target="_blank" rel="noreferrer">SDK on NPM</a></li>
+          <li><a className="hover:underline" href="#/dashboard">Status & Telemetry</a></li>
+          <li><a className="hover:underline" href="#/tokenomics">Tokenomics</a></li>
+        </ul>
+      </div>
+      <div>
+        <div className="font-semibold text-neutral-300">Community</div>
+        <ul className="mt-2 space-y-1">
+          <li><a className="hover:underline" href="https://github.com/DytallixHQ/Dytallix/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">Contributing</a></li>
+          <li><a className="hover:underline" href="https://github.com/DytallixHQ/Dytallix/issues" target="_blank" rel="noreferrer">Report Issues</a></li>
+          <li><a className="hover:underline" href="#/docs#rfc">RFCs</a></li>
+          <li><a className="hover:underline" href="#/docs#security">Security</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+);
+
+// Page wrapper component (matches App.jsx structure)
+const Page = ({ children }) => (
+  <div className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
+    <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(120,119,198,0.15),transparent_60%)]"/>
+    <Nav />
+    <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-28 pb-24">{children}</main>
+    <Footer />
+  </div>
+);
+
 const QuantumVaultContent = () => {
   const [proof, setProof] = useState(null);
   const [uploadResult, setUploadResult] = useState(null);
   const [anchorResult, setAnchorResult] = useState(null);
+  const [serviceStatus, setServiceStatus] = useState({
+    quantumvault: null,
+    blockchain: null,
+    loading: true
+  });
+
+  // Check service connectivity on mount
+  useEffect(() => {
+    checkServiceConnectivity();
+  }, []);
+
+  const checkServiceConnectivity = async () => {
+    setServiceStatus(prev => ({ ...prev, loading: true }));
+    
+    const results = { quantumvault: false, blockchain: false, loading: false };
+    
+    // Check QuantumVault API
+    try {
+      const qvResponse = await fetch(`${import.meta.env.VITE_QUANTUMVAULT_API_URL || 'http://localhost:3031'}/health`);
+      results.quantumvault = qvResponse.ok;
+    } catch (error) {
+      console.warn('QuantumVault API not accessible:', error.message);
+    }
+    
+    // Check Blockchain API via QuantumVault (as a proxy test)
+    try {
+      const bcResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8787'}/health`);
+      results.blockchain = bcResponse.ok;
+    } catch (error) {
+      console.warn('Blockchain API not accessible:', error.message);
+    }
+    
+    setServiceStatus(results);
+  };
 
   const handleUploadComplete = (result) => {
     setUploadResult(result);
@@ -31,49 +182,41 @@ const QuantumVaultContent = () => {
   };
 
   return (
-    <div>
+    <Page>
+      <div>
         {/* Hero Section */}
         <section className="mb-16">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center border border-purple-500/30">
-              <span className="text-2xl">🔐</span>
-            </div>
-            <div>
-              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">QuantumVault</h1>
-              <p className="text-neutral-400 mt-1">Next-generation quantum-secure digital asset protection</p>
-            </div>
+          <div className="mb-6">
+            <h1 className="text-3xl md:text-4xl font-extrabold">QuantumVault</h1>
+            <p className="text-neutral-400 mt-3">
+              PQC-compliant, content-agnostic permsissionless asset for storing and verifying high value digital assets.
+            </p>
           </div>
-          
-          <p className="text-xl text-neutral-300 max-w-4xl mb-8">
-            QuantumVault is a revolutionary digital asset protection platform that combines post-quantum cryptography, 
-            decentralized storage, and blockchain-based proof anchoring to ensure your critical data remains secure 
-            against both classical and quantum computing threats.
-          </p>
-          
-          <div className="grid md:grid-cols-3 gap-4 mb-8">
+
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
             <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 p-4">
-              <div className="text-blue-400 font-semibold mb-2">🛡️ Quantum-Resistant</div>
-              <p className="text-sm text-neutral-300">NIST-approved post-quantum algorithms protect against future quantum attacks</p>
+              <div className="text-blue-400 font-semibold mb-2">Quantum-Resistant</div>
+              <p className="text-sm text-neutral-300">Post-quantum algorithms for long-term integrity.</p>
             </div>
             <div className="rounded-xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 p-4">
-              <div className="text-purple-400 font-semibold mb-2">🔒 Zero-Knowledge</div>
-              <p className="text-sm text-neutral-300">Client-side encryption ensures only you have access to your data</p>
+              <div className="text-purple-400 font-semibold mb-2">Client-Side Encryption</div>
+              <p className="text-sm text-neutral-300">Keys and encryption run in the browser.</p>
             </div>
             <div className="rounded-xl bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20 p-4">
-              <div className="text-green-400 font-semibold mb-2">⚡ Immutable Proof</div>
-              <p className="text-sm text-neutral-300">Blockchain anchoring provides cryptographic proof of existence and integrity</p>
+              <div className="text-green-400 font-semibold mb-2">On-Chain Anchoring</div>
+              <p className="text-sm text-neutral-300">Proof hashes can be registered on blockchain.</p>
             </div>
           </div>
-          
+
           <div className="flex flex-wrap gap-3">
             <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 text-sm">
-              <span className="text-blue-400 font-semibold">✓</span> BLAKE3 Hashing
+              <span className="text-blue-400 font-semibold">✓</span> BLAKE3
             </div>
             <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 text-sm">
-              <span className="text-purple-400 font-semibold">✓</span> ML-DSA (Dilithium)
+              <span className="text-purple-400 font-semibold">✓</span> Dilithium
             </div>
             <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20 text-sm">
-              <span className="text-green-400 font-semibold">✓</span> SLH-DSA (SPHINCS+)
+              <span className="text-green-400 font-semibold">✓</span> SPHINCS+
             </div>
             <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20 text-sm">
               <span className="text-orange-400 font-semibold">✓</span> Blockchain Anchoring
@@ -371,34 +514,43 @@ const QuantumVaultContent = () => {
           </div>
         </section>
 
-        {/* Main Workflow */}
+        {/* Interactive QuantumVault */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold mb-8">Try QuantumVault</h2>
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Left Column: Upload & Proof */}
-            <div className="space-y-6">
-              <UploadCard onComplete={handleUploadComplete} />
-              
-              {proof && (
-                <ProofPanel 
-                  proof={proof} 
-                  uploadResult={uploadResult}
-                />
-              )}
-            </div>
-
-            {/* Right Column: Anchor & Verify */}
-            <div className="space-y-6">
-              {proof && (
-                <AnchorPanel 
-                  proof={proof}
-                  onAnchorComplete={handleAnchorComplete}
-                />
-              )}
-              
-              <VerifyPanel anchorResult={anchorResult} />
-            </div>
+          
+          {/* Upload and Generate Proof */}
+          <div className="grid lg:grid-cols-2 gap-6 mb-8">
+            <UploadCard onComplete={handleUploadComplete} />
+            <VerifyPanel />
           </div>
+          
+          {/* Proof Display and Anchoring */}
+          {proof && (
+            <div className="grid lg:grid-cols-2 gap-6">
+              <ProofPanel proof={proof} />
+              <AnchorPanel 
+                proof={proof} 
+                onComplete={handleAnchorComplete}
+              />
+            </div>
+          )}
+          
+          {/* Anchor Result Display */}
+          {anchorResult && (
+            <div className="mt-6 rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent p-6">
+              <h3 className="text-xl font-semibold text-green-400 mb-4">✓ Blockchain Anchored</h3>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-neutral-400 mb-1">Transaction Hash:</div>
+                  <code className="text-green-400 break-all">{anchorResult.txHash}</code>
+                </div>
+                <div>
+                  <div className="text-neutral-400 mb-1">Block Height:</div>
+                  <span className="text-green-400">{anchorResult.blockHeight}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Security & Compliance */}
@@ -447,132 +599,42 @@ const QuantumVaultContent = () => {
 
           </div>
         </section>
-      </div>
-  );
-};
 
-// Page wrapper component that can be imported from App.jsx or created locally
-const Page = ({ children }) => (
-  <div className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
-    <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(120,119,198,0.15),transparent_60%)]"/>
-    <Nav />
-    <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-28 pb-24">{children}</main>
-    <Footer />
-  </div>
-);
-
-// Navigation component (simplified version - should ideally be imported from App.jsx)
-const Nav = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const links = [
-    { href: '/', label: 'Home' },
-    { href: '/wallet', label: 'PQC Wallet' },
-    { href: '/quantumvault', label: 'QuantumVault' },
-    { href: '/faucet', label: 'Faucet' },
-    { href: '/explorer', label: 'Explorer' },
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/tokenomics', label: 'Tokenomics' },
-    { href: '/docs', label: 'Docs' },
-  ];
-  return (
-    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur border-b border-white/10 bg-neutral-950/90">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 flex h-16 items-center justify-between">
-        <a href="#/" className="font-black tracking-widest text-xl">DYTALLIX</a>
-        
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex gap-6">
-          {links.map((l) => (
-            <a key={l.href} href={`#${l.href}`} className="text-sm text-neutral-300 hover:text-white transition">{l.label}</a>
-          ))}
-        </nav>
-        
-        {/* Desktop Wallet Button */}
-        <div className="hidden md:flex items-center gap-2">
-          <a href="#/wallet" className="px-3 py-2 rounded-2xl bg-white text-black text-sm font-semibold hover:opacity-90 transition">Open Wallet</a>
-        </div>
-        
-        {/* Mobile Menu Button */}
-        <button 
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-neutral-300 hover:text-white"
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
-      </div>
-      
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-white/10 bg-neutral-950/95 backdrop-blur">
-          <nav className="px-4 py-4 space-y-2">
-            {links.map((l) => (
-              <a 
-                key={l.href} 
-                href={`#${l.href}`}
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-neutral-300 hover:text-white hover:bg-white/5 transition"
+        {/* Integration Status Panel */}
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold mb-8">Integration Status</h2>
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="text-sm text-neutral-400 mb-1">QuantumVault API</div>
+                <div className={`text-lg font-semibold ${serviceStatus.quantumvault ? 'text-green-400' : 'text-red-400'}`}>
+                  {serviceStatus.loading ? 'Checking...' : serviceStatus.quantumvault ? '✓ Connected' : '✗ Disconnected'}
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-neutral-400 mb-1">Blockchain API</div>
+                <div className={`text-lg font-semibold ${serviceStatus.blockchain ? 'text-green-400' : 'text-red-400'}`}>
+                  {serviceStatus.loading ? 'Checking...' : serviceStatus.blockchain ? '✓ Connected' : '✗ Disconnected'}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end">
+              <button 
+                onClick={checkServiceConnectivity}
+                className="px-4 py-2 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition text-sm"
               >
-                {l.label}
-              </a>
-            ))}
-            <a 
-              href="#/wallet" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 mt-4 rounded-xl bg-white text-black text-center font-semibold hover:opacity-90 transition"
-            >
-              Open Wallet
-            </a>
-          </nav>
-        </div>
-      )}
-    </header>
-  );
-};
-
-// Footer component (simplified version - should ideally be imported from App.jsx)
-const Footer = () => (
-  <footer className="border-t border-white/10 bg-neutral-950/70">
-    <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 text-sm text-neutral-400 grid md:grid-cols-3 gap-6">
-      <div>
-        <div className="font-black tracking-widest text-neutral-200">DYTALLIX</div>
-        <div className="mt-2">Future Ready · Quantum Proof · Open Source</div>
+                Refresh Status
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
-      <div>
-        <div className="font-semibold text-neutral-300">Resources</div>
-        <ul className="mt-2 space-y-1">
-          <li><a className="hover:underline" href="#/docs">Documentation</a></li>
-          <li><a className="hover:underline" href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noreferrer">SDK on GitHub</a></li>
-          <li><a className="hover:underline" href="https://www.npmjs.com/package/@dytallix/sdk" target="_blank" rel="noreferrer">SDK on NPM</a></li>
-          <li><a className="hover:underline" href="#/dashboard">Status & Telemetry</a></li>
-          <li><a className="hover:underline" href="#/tokenomics">Tokenomics</a></li>
-        </ul>
-      </div>
-      <div>
-        <div className="font-semibold text-neutral-300">Community</div>
-        <ul className="mt-2 space-y-1">
-          <li><a className="hover:underline" href="https://github.com/DytallixHQ/Dytallix/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">Contributing</a></li>
-          <li><a className="hover:underline" href="https://github.com/DytallixHQ/Dytallix/issues" target="_blank" rel="noreferrer">Report Issues</a></li>
-          <li><a className="hover:underline" href="#/docs#rfc">RFCs</a></li>
-          <li><a className="hover:underline" href="#/docs#security">Security</a></li>
-        </ul>
-      </div>
-    </div>
-  </footer>
-);
-
-// Main QuantumVault component using the Page wrapper
-export default function QuantumVault() {
-  return (
-    <Page>
-      <QuantumVaultContent />
     </Page>
   );
-}
+};
+
+// Export as QuantumVault page component
+const QuantumVault = () => <QuantumVaultContent />;
+
+export default QuantumVault;
