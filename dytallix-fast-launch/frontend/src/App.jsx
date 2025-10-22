@@ -4888,7 +4888,7 @@ const ExplorerPage = () => {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Explorer</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold">Explorer</h1>
           <p className="mt-2 text-neutral-400">Search addresses, transactions, and blocks</p>
         </div>
         

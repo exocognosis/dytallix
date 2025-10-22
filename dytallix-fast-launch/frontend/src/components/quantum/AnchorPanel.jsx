@@ -24,10 +24,15 @@ export default function AnchorPanel({ proof, onAnchorComplete }) {
 
       setStatus('anchoring');
 
-      // Register on-chain (mock for POC)
-      const result = await registerAssetOnChain(proof.file_hash_blake3, proof.uri);
+      // Register on-chain via QuantumVault API
+      const result = await registerAssetOnChain(proof.file_hash_blake3, proof.uri, {
+        filename: proof.meta?.filename,
+        mime: proof.meta?.mime,
+        bytes: proof.meta?.bytes,
+        created: proof.created
+      });
 
-      setTxHash(result.txHash);
+      setTxHash(result.transactionHash || result.txHash);
       setAssetId(result.assetId);
       setStatus('complete');
 

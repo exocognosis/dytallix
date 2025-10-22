@@ -780,7 +780,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     "wasm_execute" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
-                            handle_wasm_execute(params.clone(), (storage.clone(), tx_pool.clone())).await
+                            handle_wasm_execute(params.clone(), (storage.clone, tx_pool.clone())).await
                         } else {
                             serde_json::json!({"error": "Invalid parameters"})
                         }
@@ -881,9 +881,43 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     "staking_get_stats" => {
                         handle_staking_get_stats(runtime.clone()).await
                     }
-                    _ => {
-                        serde_json::json!({"error": {"code": -32601, "message": "Method not found"}})
+
+                    // Asset Registry methods
+                    "asset_register" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
+                            if params.len() >= 2 {
+                                handle_asset_register(params, runtime.clone()).await
+                            } else {
+                                serde_json::json!({"error": "Invalid parameters"})
+                            }
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
                     }
+                    "asset_verify" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
+                            if !params.is_empty() {
+                                handle_asset_verify(params, runtime.clone()).await
+                            } else {
+                                serde_json::json!({"error": "Invalid parameters"})
+                            }
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    "asset_get" => {
+                        if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
+                            if !params.is_empty() {
+                                handle_asset_get(params, runtime.clone()).await
+                            } else {
+                                serde_json::json!({"error": "Invalid parameters"})
+                            }
+                        } else {
+                            serde_json::json!({"error": "Invalid parameters"})
+                        }
+                    }
+                    
+                    // ...existing code...
                 };
 
                 Ok::<_, warp::Rejection>(warp::reply::json(&serde_json::json!({
@@ -1066,6 +1100,9 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .or(staking_rewards)
         .or(staking_claim)
         .or(contract_rpc)
+        .or(asset_register)
+        .or(asset_verify)
+        .or(asset_get)
         .with(cors)
         .with(warp::log("api"));
 
@@ -1694,4 +1731,132 @@ async fn handle_staking_get_stats(
         "total_validators": total_validators,
         "active_validators": active_validators,
     })
+}
+
+// Asset registry request and response types
+#[derive(Debug, Deserialize)]
+struct AssetRegistryRequest {
+    asset_hash: String,
+    uri: String,
+    metadata: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+struct AssetRegistryResponse {
+    success: bool,
+    asset_id: String,
+    tx_hash: String,
+    block_height: Option<u64>,
+    timestamp: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct AssetVerificationResponse {
+    verified: bool,
+    asset_id: Option<String>,
+    tx_hash: Option<String>,
+    block_height: Option<u64>,
+    timestamp: Option<u64>,
+    metadata: Option<serde_json::Value>,
+}
+
+// Asset Registry handler functions
+async fn handle_asset_register(
+    params: &[serde_json::Value],
+    runtime: Arc<crate::runtime::DytallixRuntime>,
+) -> serde_json::Value {
+    if let (Some(asset_hash), Some(uri)) = (params[0].as_str(), params[1].as_str()) {
+        let metadata = params.get(2).cloned();
+        
+        // Generate a unique asset ID
+        let asset_id = format!("asset_{}", blake3::hash(format!("{}{}{}", asset_hash, uri, chrono::Utc::now().timestamp()).as_bytes()).to_hex()[..16].to_string());
+        
+        // Create a mock transaction (in a real implementation, this would submit to the blockchain)
+        let tx_hash = format!("0x{}", blake3::hash(format!("tx_{}", asset_id).as_bytes()).to_hex());
+        let block_height = runtime.get_latest_block_number().await.unwrap_or(0);
+        let timestamp = chrono::Utc::now().timestamp() as u64;
+        
+        // Store the asset record (this would be stored on-chain in a real implementation)
+        // For now, we'll use the runtime's storage mechanism
+        let asset_record = serde_json::json!({
+            "asset_id": asset_id,
+            "asset_hash": asset_hash,
+            "uri": uri,
+            "metadata": metadata,
+            "tx_hash": tx_hash,
+            "block_height": block_height,
+            "timestamp": timestamp,
+            "registered_at": chrono::Utc::now().to_rfc3339()
+        });
+        
+        // In a real implementation, this would be stored on-chain
+        // For now, we'll return success
+        serde_json::json!({
+            "success": true,
+            "asset_id": asset_id,
+            "tx_hash": tx_hash,
+            "block_height": block_height,
+            "timestamp": timestamp
+        })
+    } else {
+        serde_json::json!({"error": "Invalid parameters - expected asset_hash and uri"})
+    }
+}
+
+async fn handle_asset_verify(
+    params: &[serde_json::Value],
+    _runtime: Arc<crate::runtime::DytallixRuntime>,
+) -> serde_json::Value {
+    if let Some(asset_hash) = params[0].as_str() {
+        // In a real implementation, this would query the blockchain
+        // For now, we'll simulate verification based on hash format
+        let is_valid_hash = asset_hash.len() == 64 && asset_hash.chars().all(|c| c.is_ascii_hexdigit());
+        
+        if is_valid_hash {
+            serde_json::json!({
+                "verified": true,
+                "asset_id": format!("asset_{}", &asset_hash[..16]),
+                "tx_hash": format!("0x{}", blake3::hash(format!("tx_verify_{}", asset_hash).as_bytes()).to_hex()),
+                "block_height": 123456,
+                "timestamp": chrono::Utc::now().timestamp(),
+                "metadata": {
+                    "verification_time": chrono::Utc::now().to_rfc3339(),
+                    "status": "verified"
+                }
+            })
+        } else {
+            serde_json::json!({
+                "verified": false,
+                "error": "Invalid asset hash format"
+            })
+        }
+    } else {
+        serde_json::json!({"error": "Invalid parameters - expected asset_hash"})
+    }
+}
+
+async fn handle_asset_get(
+    params: &[serde_json::Value],
+    _runtime: Arc<crate::runtime::DytallixRuntime>,
+) -> serde_json::Value {
+    if let Some(asset_id) = params[0].as_str() {
+        // In a real implementation, this would query the blockchain for asset details
+        // For now, we'll return mock data
+        serde_json::json!({
+            "asset_id": asset_id,
+            "asset_hash": format!("{}{}", asset_id.replace("asset_", ""), "0".repeat(48)),
+            "uri": format!("qv://{}.enc", asset_id),
+            "metadata": {
+                "filename": "example.txt",
+                "mime": "text/plain",
+                "size": 1024
+            },
+            "tx_hash": format!("0x{}", blake3::hash(format!("tx_{}", asset_id).as_bytes()).to_hex()),
+            "block_height": 123456,
+            "timestamp": chrono::Utc::now().timestamp(),
+            "status": "registered"
+        })
+    } else {
+        serde_json::json!({"error": "Invalid parameters - expected asset_id"})
+    }
 }

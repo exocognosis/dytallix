@@ -10,15 +10,23 @@
  * @returns {string} - Truncated hash
  */
 export function truncateHash(hash, start = 8, end = 6) {
-  if (!hash || typeof hash !== 'string') {
+  // Handle null, undefined, or non-string values
+  if (!hash || typeof hash !== 'string' || hash.length === 0) {
     return '';
   }
   
+  // If hash is shorter than truncation length, return as-is
   if (hash.length <= start + end) {
     return hash;
   }
   
-  return `${hash.substring(0, start)}...${hash.substring(hash.length - end)}`;
+  // Safely truncate with substring
+  try {
+    return `${hash.substring(0, start)}...${hash.substring(hash.length - end)}`;
+  } catch (error) {
+    console.error('[Format] Error truncating hash:', error);
+    return hash; // Return original if truncation fails
+  }
 }
 
 /**

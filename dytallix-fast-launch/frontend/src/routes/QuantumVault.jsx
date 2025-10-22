@@ -187,9 +187,17 @@ const QuantumVaultContent = () => {
         {/* Hero Section */}
         <section className="mb-16">
           <div className="mb-6">
-            <h1 className="text-3xl md:text-4xl font-extrabold">QuantumVault</h1>
-            <p className="text-neutral-400 mt-3">
-              PQC-compliant, content-agnostic permsissionless asset for storing and verifying high value digital assets.
+            <div className="flex items-center gap-3 mb-4">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-extrabold">QuantumVault</h1>
+                <br />
+                <p className="text-sm text-neutral-400">
+                  Next-generation quantum-secure digital asset protection
+                </p>
+              </div>
+            </div>
+            <p className="text-neutral-400">
+              QuantumVault is a PQC-compliant, content-agnostic permissionless asset to secure and verify integurty of digital property against both classical and quantum computing threats.
             </p>
           </div>
 
@@ -409,8 +417,8 @@ const QuantumVaultContent = () => {
             {/* Security Architecture */}
             <div className="lg:col-span-1">
               <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6 h-full">
-                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                  <span className="text-blue-400">🔐</span>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <span className="text-blue-400">🛡️</span>
                   Security Architecture
                 </h3>
                 <div className="space-y-4 text-sm">
@@ -491,7 +499,7 @@ const QuantumVaultContent = () => {
               </div>
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500/20 to-transparent border border-purple-500/30 flex items-center justify-center">
-                  <span className="text-2xl">🔒</span>
+                  <span className="text-2xl">�</span>
                 </div>
                 <div className="font-semibold text-purple-400 mb-2">2. Encrypt & Sign</div>
                 <p className="text-sm text-neutral-300">File is encrypted with XChaCha20-Poly1305. Post-quantum signature proves authenticity and non-repudiation.</p>
@@ -560,7 +568,7 @@ const QuantumVaultContent = () => {
             
             <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/5 to-transparent p-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <span className="text-blue-400">🛡️</span>
+
                 NIST Compliance
               </h3>
               <ul className="space-y-2 text-sm text-neutral-300">

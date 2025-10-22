@@ -123,7 +123,7 @@ export default function UploadCard({ onComplete }) {
       setProgress(0);
       
       const proofData = {
-        schema: 'https://dytallix.io/proof/v1',
+        schema: 'https://dytallix.com/proof/v1',
         file_hash_blake3: hashHex,
         created: new Date().toISOString(),
         uri: uploadResult.uri,
