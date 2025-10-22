@@ -298,10 +298,12 @@ npm start
 ### Acceptance Tests
 
 - [x] **A1**: Upload ≤10MB file produces proof JSON and URI
-- [ ] **A2**: registerAsset stores hash and emits event
-- [ ] **A3**: Verify flow accepts valid proof and passes checks
+- [x] **A2**: registerAsset stores hash and emits event
+- [x] **A3**: Verify flow accepts valid proof and passes checks
 - [x] **A4**: Brand look matches site variables (no hard-coded colors)
 - [x] **A5**: Route #/quantumvault is directly loadable
+- [x] **A6**: Deployed to production server with 15s block intervals
+- [x] **A7**: All changes committed and pushed to git repository
 
 ### Unit Tests
 

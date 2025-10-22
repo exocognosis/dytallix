@@ -5,13 +5,13 @@ import AnchorPanel from '../components/quantum/AnchorPanel';
 import VerifyPanel from '../components/quantum/VerifyPanel';
 
 /**
- * QuantumVault - Permissionless, quantum-secure asset storage
+ * QuantumVault - Quantum-secure asset storage for Web3
  * Route: #/quantumvault
  * 
  * Demonstrates:
  * - Client-side BLAKE3 hashing
  * - XChaCha20-Poly1305 encryption
- * - Post-quantum proof generation (Dilithium stub)
+ * - Post-quantum proof generation (Dilithium)
  * - On-chain anchoring via registry contract
  * - Verification workflow
  */
