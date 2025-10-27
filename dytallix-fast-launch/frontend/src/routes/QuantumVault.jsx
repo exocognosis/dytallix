@@ -291,6 +291,9 @@ const QuantumVaultContent = () => {
             </div>
           </div>
 
+          {/* Features & Functions */}
+          <h2 className="text-3xl font-bold mb-8">Features & Functions</h2>
+
           {/* Key Benefits - Why QuantumVault v2? */}
           <div className="grid md:grid-cols-3 gap-4 mb-6">
             <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 p-5">
