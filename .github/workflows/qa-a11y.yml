@@ -73,7 +73,7 @@ jobs:
           LHCI_BUILD_CONTEXT__COMMIT_TIME: ${{ github.event.head_commit.timestamp }}
 
       - name: Upload Cypress artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: cypress-artifacts
@@ -83,7 +83,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Lighthouse artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: lighthouse-artifacts

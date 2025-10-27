@@ -86,7 +86,7 @@ jobs:
           echo "✓ WASM size within budget"
       
       - name: Upload WASM artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: pqc-wasm
           path: |
@@ -129,7 +129,7 @@ jobs:
         run: npx tsc --noEmit
       
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: pqc-dist
           path: DytallixLiteLaunch/packages/pqc/dist/
@@ -174,7 +174,7 @@ jobs:
         run: npm run test:vitest
       
       - name: Upload coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: coverage
@@ -213,7 +213,7 @@ jobs:
             > launch-evidence/pqc-sdk/kat_meta.json
       
       - name: Upload evidence
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: pqc-evidence
           path: launch-evidence/pqc-sdk/

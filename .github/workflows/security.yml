@@ -67,7 +67,7 @@ jobs:
           echo 'Trivy findings summary:'
           grep -E 'Severity:|PkgName:' -n trivy-fs.sarif || true
       - name: Upload raw SARIF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: trivy-sarif
           path: trivy-fs.sarif
@@ -82,7 +82,7 @@ jobs:
           config-path: .gitleaks.toml
           args: "detect --no-git --redact --report-format=json --report-path=launch-evidence/secrets/secret_scan_report.json"
       - name: Upload secrets scan report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: secret-scan-report
           path: launch-evidence/secrets/secret_scan_report.json
