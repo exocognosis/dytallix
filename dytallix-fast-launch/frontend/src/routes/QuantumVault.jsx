@@ -263,6 +263,34 @@ const QuantumVaultContent = () => {
             </p>
           </div>
 
+          {/* Quantum Threat Warning */}
+          <div className="rounded-xl border border-red-500/30 bg-gradient-to-br from-red-500/10 to-transparent p-6 mb-6">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="text-2xl">⚠️</div>
+              <div>
+                <h3 className="text-lg font-semibold text-red-400 mb-2">The Quantum Threat is Real</h3>
+                <ul className="space-y-2 text-sm text-neutral-300">
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400 mt-0.5">•</span>
+                    <span><strong>Quantum computers</strong> will break today's encryption standards (RSA, ECC) within the next decade, compromising all data encrypted with classical algorithms</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400 mt-0.5">•</span>
+                    <span><strong>"Harvest Now, Decrypt Later" attacks</strong> are happening today – adversaries are collecting encrypted data now to decrypt it once quantum computers become available</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400 mt-0.5">•</span>
+                    <span><strong>Data with long-term value</strong> (medical records, financial data, government secrets, intellectual property) is especially vulnerable and needs protection NOW</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-400 mt-0.5">✓</span>
+                    <span><strong>QuantumVault protects against both threats</strong> by using post-quantum cryptography (PQC) algorithms standardized by NIST, ensuring your data remains secure even against future quantum attacks</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           {/* Key Benefits - Why QuantumVault v2? */}
           <div className="grid md:grid-cols-3 gap-4 mb-6">
             <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 p-5">
