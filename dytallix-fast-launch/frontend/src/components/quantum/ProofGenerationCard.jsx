@@ -1,43 +1,33 @@
 import React, { useState, useRef } from 'react';
-import { blake3Hex, blake3Stream } from '../../lib/quantum/blake3';
+import { blake3Hex } from '../../lib/quantum/blake3';
 import { encryptEnvelope } from '../../lib/quantum/envelope';
-import { generateProofSignature } from '../../lib/quantum/pq-signature';
-import { uploadCiphertext } from '../../lib/quantum/api';
 import { formatBytes } from '../../lib/quantum/format';
 import PasswordPrompt from './PasswordPrompt';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const API_URL = import.meta.env.VITE_QUANTUMVAULT_API_URL || 'http://localhost:3031';
 
 /**
- * UploadCard - File upload with client-side encryption
- * 
- * Flow:
- * 1. User selects or drags file
- * 2. Validate size (≤10MB)
- * 3. Hash with BLAKE3
- * 4. Encrypt with XChaCha20-Poly1305
- * 5. Upload to backend
- * 6. Generate proof JSON with PQ signature
+ * ProofGenerationCard - Generate cryptographic proofs using v2 API
+ * No file upload required - generates proof from metadata only
  */
-export default function UploadCard({ onComplete }) {
+export default function ProofGenerationCard({ storageLocation, onComplete }) {
   const [file, setFile] = useState(null);
-  const [status, setStatus] = useState('idle'); // idle, hashing, encrypting, uploading, generating, complete, error
+  const [status, setStatus] = useState('idle'); 
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-  const [encryptionPassword, setEncryptionPassword] = useState(null);
+  const [encryptedFileData, setEncryptedFileData] = useState(null);
   
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (selectedFile) => {
-    // Reset state
     setError(null);
     setMessage('');
     setProgress(0);
     
-    // Validate file size
     if (selectedFile.size > MAX_FILE_SIZE) {
       setError(`File too large. Maximum size is ${formatBytes(MAX_FILE_SIZE)}`);
       return;
@@ -55,11 +45,8 @@ export default function UploadCard({ onComplete }) {
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
-    
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      handleFileSelect(droppedFile);
-    }
+    if (droppedFile) handleFileSelect(droppedFile);
   };
 
   const handleDragOver = (e) => {
@@ -71,29 +58,38 @@ export default function UploadCard({ onComplete }) {
     setDragOver(false);
   };
 
-  const processFile = async (password = null) => {
+  const startProcess = () => {
+    if (!file) return;
+    setShowPasswordPrompt(true);
+  };
+
+  const handlePasswordComplete = async (password) => {
+    setShowPasswordPrompt(false);
+    await processFile(password);
+  };
+
+  const handlePasswordCancel = () => {
+    setShowPasswordPrompt(false);
+  };
+
+  const processFile = async (password) => {
     if (!file) {
       setError('No file selected');
       return;
     }
 
     try {
+      // Step 1: Hash the file
       setStatus('hashing');
-      setMessage('Hashing file with BLAKE3...');
+      setMessage('Computing BLAKE3 hash...');
       setProgress(0);
 
-      // Step 1: Hash the file
       const fileBuffer = await file.arrayBuffer();
       const plainBytes = new Uint8Array(fileBuffer);
-      
-      // Use streaming hash for progress
-      const hash = await blake3Stream(file, (percent) => {
-        setProgress(percent);
-      });
-      const hashHex = await blake3Hex(plainBytes);
+      const hash = await blake3Hex(plainBytes);
       
       setProgress(100);
-      setMessage(`Hash complete: ${hashHex.slice(0, 20)}...`);
+      setMessage(`Hash complete: ${hash.slice(0, 20)}...`);
       
       // Step 2: Encrypt with password
       setStatus('encrypting');
@@ -101,102 +97,102 @@ export default function UploadCard({ onComplete }) {
       setProgress(0);
       
       const encryptionResult = await encryptEnvelope(plainBytes, password);
-      console.log('[UploadCard] Encryption result:', {
-        hasResult: !!encryptionResult,
-        hasCiphertext: !!encryptionResult?.ciphertext,
-        hasKey: !!encryptionResult?.key,
-        hasNonce: !!encryptionResult?.nonce,
-        hasSalt: !!encryptionResult?.salt,
-        passwordProtected: encryptionResult?.envelope?.passwordProtected,
-        ciphertextType: typeof encryptionResult?.ciphertext,
-        keyType: typeof encryptionResult?.key,
-        nonceType: typeof encryptionResult?.nonce
-      });
-      
-      const { ciphertext, key, nonce, salt, iterations } = encryptionResult;
+      const { ciphertext, salt, nonce, iterations } = encryptionResult;
       
       setProgress(100);
       setMessage('Encryption complete');
+
+      // Store encrypted data for user download
+      setEncryptedFileData({
+        data: ciphertext,
+        filename: `${file.name}.enc`,
+        salt,
+        nonce,
+        iterations
+      });
       
-      // Step 3: Upload ciphertext
-      setStatus('uploading');
-      setMessage('Uploading encrypted file...');
-      setProgress(0);
-      
-      console.log('[UploadCard] About to upload with hash:', hashHex);
-      console.log('[UploadCard] Hash type:', typeof hashHex);
-      
-      const uploadResult = await uploadCiphertext(
-        ciphertext,
-        file.name,
-        file.type || 'application/octet-stream',
-        hashHex
-      );
-      
-      setProgress(100);
-      setMessage(`Uploaded to: ${uploadResult.uri}`);
-      
-      // Step 4: Generate proof with PQ signature
+      // Step 3: Generate proof (v2 API - no upload!)
       setStatus('generating');
-      setMessage('Generating proof with PQ signature...');
+      setMessage('Generating cryptographic proof...');
       setProgress(0);
       
-      const proofData = {
-        schema: 'https://dytallix.com/proof/v1',
-        file_hash_blake3: hashHex,
-        created: new Date().toISOString(),
-        uri: uploadResult.uri,
-        meta: {
+      const proofResponse = await fetch(`${API_URL}/proof/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          blake3: hash,
           filename: file.name,
           mime: file.type || 'application/octet-stream',
-          bytes: file.size,
-        }
-      };
-      
-      console.log('[UploadCard] About to generate signature with hash:', hashHex);
-      console.log('[UploadCard] Hash type before signature:', typeof hashHex);
-      console.log('[UploadCard] ProofData:', proofData);
-      
-      // Generate PQ signature (stub for POC)
-      const { signature, publicKey } = await generateProofSignature(hashHex);
-      
-      const proof = {
-        ...proofData,
-        owner_sig_pk: publicKey,
-        signature: signature
-      };
+          size: file.size,
+          storageLocation: storageLocation?.location || 'user-managed',
+          metadata: {
+            encrypted: true,
+            algorithm: 'AES-256-GCM',
+            keyDerivation: 'PBKDF2-SHA256',
+            iterations: iterations || 100000,
+            originalFilename: file.name,
+            encryptedSize: ciphertext.length
+          }
+        })
+      });
+
+      if (!proofResponse.ok) {
+        throw new Error('Failed to generate proof');
+      }
+
+      const proofResult = await proofResponse.json();
       
       setProgress(100);
       setMessage('Proof generated successfully!');
       setStatus('complete');
       
-      // Notify parent
+      // Notify parent with proof and encrypted data
       if (onComplete) {
         onComplete({
-          proof,
-          uri: uploadResult.uri,  // Include the URI for downloads
-          blake3: uploadResult.blake3,
+          proof: proofResult.proof,
+          proofId: proofResult.proofId,
+          certificate: proofResult.certificate,
+          blake3: hash,
           file: {
             name: file.name,
             size: file.size,
             type: file.type,
           },
           encryption: {
-            // Include password-based encryption details
-            passwordProtected: !!password,
-            key: key ? Array.from(key).map(b => b.toString(16).padStart(2, '0')).join('') : 'key_unavailable',
-            nonce: nonce ? Array.from(nonce).map(b => b.toString(16).padStart(2, '0')).join('') : 'nonce_unavailable',
+            passwordProtected: true,
+            algorithm: 'AES-256-GCM',
             salt: salt ? Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('') : null,
-            iterations: iterations || null
-          }
+            nonce: nonce ? Array.from(nonce).map(b => b.toString(16).padStart(2, '0')).join('') : null,
+            iterations: iterations || 100000
+          },
+          encryptedFile: {
+            data: ciphertext,
+            filename: `${file.name}.enc`,
+            size: ciphertext.length
+          },
+          storageLocation: storageLocation
         });
       }
       
     } catch (err) {
-      console.error('Upload process failed:', err);
-      setError(err.message || 'Upload failed');
+      console.error('Proof generation failed:', err);
+      setError(err.message || 'Proof generation failed');
       setStatus('error');
     }
+  };
+
+  const downloadEncryptedFile = () => {
+    if (!encryptedFileData) return;
+
+    const blob = new Blob([encryptedFileData.data], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = encryptedFileData.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const reset = () => {
@@ -206,39 +202,23 @@ export default function UploadCard({ onComplete }) {
     setMessage('');
     setError(null);
     setShowPasswordPrompt(false);
-    setEncryptionPassword(null);
+    setEncryptedFileData(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
-
-  const handlePasswordComplete = (password) => {
-    setEncryptionPassword(password);
-    setShowPasswordPrompt(false);
-    // Start processing with the password
-    processFile(password);
-  };
-
-  const handlePasswordCancel = () => {
-    setShowPasswordPrompt(false);
-    setEncryptionPassword(null);
-  };
-
-  const startUpload = () => {
-    if (!file) return;
-    // Show password prompt instead of processing directly
-    setShowPasswordPrompt(true);
   };
 
   return (
     <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-transparent p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-          <span className="text-blue-500 text-xl">📁</span>
+          <span className="text-blue-500 text-xl">🔐</span>
         </div>
         <div>
-          <h3 className="text-lg font-semibold">1. Upload & Hash</h3>
-          <p className="text-xs text-neutral-400 mt-1">Select your file (up to 10MB). BLAKE3 hash is computed client-side for integrity verification.</p>
+          <h3 className="text-lg font-semibold">1. Generate Proof</h3>
+          <p className="text-xs text-neutral-400 mt-1">
+            Encrypt & generate cryptographic proof - no upload required
+          </p>
         </div>
       </div>
 
@@ -258,7 +238,7 @@ export default function UploadCard({ onComplete }) {
             <>
               <div className="text-4xl mb-3">⬆️</div>
               <div className="text-neutral-300 mb-2">
-                Drag and drop a file here, or click to browse
+                Select file to encrypt and generate proof
               </div>
               <div className="text-xs text-neutral-500 mb-4">
                 Maximum file size: {formatBytes(MAX_FILE_SIZE)}
@@ -288,10 +268,10 @@ export default function UploadCard({ onComplete }) {
               {status === 'idle' && (
                 <div className="flex gap-2 justify-center">
                   <button
-                    onClick={startUpload}
+                    onClick={startProcess}
                     className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold transition"
                   >
-                    🔐 Encrypt & Upload
+                    🔐 Encrypt & Generate Proof
                   </button>
                   <button
                     onClick={reset}
@@ -326,14 +306,24 @@ export default function UploadCard({ onComplete }) {
       {status === 'complete' && (
         <div className="mt-4 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
           <div className="flex items-center gap-2 text-green-400 font-semibold mb-1">
-            <span>✓</span> Upload Complete!
+            <span>✓</span> Proof Generated!
           </div>
-          <div className="text-sm text-neutral-300">{message}</div>
+          <div className="text-sm text-neutral-300 mb-3">{message}</div>
+          
+          {encryptedFileData && (
+            <button
+              onClick={downloadEncryptedFile}
+              className="w-full px-4 py-2 rounded-xl bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 transition text-sm font-semibold text-green-300"
+            >
+              📥 Download Encrypted File
+            </button>
+          )}
+          
           <button
             onClick={reset}
-            className="mt-3 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
+            className="w-full mt-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm"
           >
-            Upload Another File
+            Generate Another Proof
           </button>
         </div>
       )}

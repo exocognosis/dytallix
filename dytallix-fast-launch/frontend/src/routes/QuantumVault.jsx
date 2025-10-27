@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import UploadCard from '../components/quantum/UploadCard';
-import ProofPanel from '../components/quantum/ProofPanel';
-import AnchorPanel from '../components/quantum/AnchorPanel';
-import VerifyPanel from '../components/quantum/VerifyPanel';
+import StorageSelector from '../components/quantum/StorageSelector';
+import ProofGenerationCard from '../components/quantum/ProofGenerationCard';
+import VerificationCertificate from '../components/quantum/VerificationCertificate';
+import FileVerifier from '../components/quantum/FileVerifier';
+
+const API_URL = import.meta.env.VITE_QUANTUMVAULT_API_URL || 'http://localhost:3031';
 
 /**
- * QuantumVault - Quantum-secure asset storage for Web3
+ * QuantumVault v2 - Storage-Agnostic Cryptographic Verification
  * Route: #/quantumvault
  * 
- * Demonstrates:
- * - Client-side BLAKE3 hashing
- * - XChaCha20-Poly1305 encryption
- * - Post-quantum proof generation (Dilithium)
- * - On-chain anchoring via registry contract
- * - Verification workflow
+ * Features:
+ * - User-controlled storage (local, S3, Azure, IPFS, custom)
+ * - Client-side encryption (AES-256-GCM)
+ * - Zero-knowledge architecture
+ * - Blockchain anchoring on Dytallix
+ * - Compliance certificates
+ * - File verification
  */
 
 // Navigation component (matches App.jsx structure)
@@ -134,9 +137,11 @@ const Page = ({ children }) => (
 );
 
 const QuantumVaultContent = () => {
-  const [proof, setProof] = useState(null);
-  const [uploadResult, setUploadResult] = useState(null);
-  const [anchorResult, setAnchorResult] = useState(null);
+  const [storageLocation, setStorageLocation] = useState(null);
+  const [proofResult, setProofResult] = useState(null);
+  const [anchored, setAnchored] = useState(false);
+  const [anchoring, setAnchoring] = useState(false);
+  const [activeTab, setActiveTab] = useState('generate'); // 'generate', 'verify'
   const [serviceStatus, setServiceStatus] = useState({
     quantumvault: null,
     blockchain: null,
@@ -148,37 +153,102 @@ const QuantumVaultContent = () => {
     checkServiceConnectivity();
   }, []);
 
-  const checkServiceConnectivity = async () => {
+  const checkServiceConnectivity = async (retryCount = 0) => {
     setServiceStatus(prev => ({ ...prev, loading: true }));
     
     const results = { quantumvault: false, blockchain: false, loading: false };
     
     // Check QuantumVault API
     try {
-      const qvResponse = await fetch(`${import.meta.env.VITE_QUANTUMVAULT_API_URL || 'http://localhost:3031'}/health`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const qvResponse = await fetch(`${API_URL}/health`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
       results.quantumvault = qvResponse.ok;
+      if (qvResponse.ok) {
+        console.log('✅ QuantumVault API connected');
+      }
     } catch (error) {
-      console.warn('QuantumVault API not accessible:', error.message);
+      console.warn('⚠️ QuantumVault API not accessible:', error.message);
+      if (retryCount === 0) {
+        setTimeout(() => checkServiceConnectivity(1), 2000);
+        return;
+      }
     }
     
-    // Check Blockchain API via QuantumVault (as a proxy test)
+    // Check Blockchain status via QuantumVault API
     try {
-      const bcResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8787'}/health`);
-      results.blockchain = bcResponse.ok;
+      const bcResponse = await fetch(`${API_URL}/blockchain/status`);
+      if (bcResponse.ok) {
+        const status = await bcResponse.json();
+        results.blockchain = status.blockchain?.connected || false;
+        console.log('✅ Blockchain connected:', status);
+      }
     } catch (error) {
-      console.warn('Blockchain API not accessible:', error.message);
+      console.warn('⚠️ Blockchain check failed:', error.message);
     }
     
     setServiceStatus(results);
   };
 
-  const handleUploadComplete = (result) => {
-    setUploadResult(result);
-    setProof(result.proof);
+  const handleStorageSelect = (storage) => {
+    setStorageLocation(storage);
   };
 
-  const handleAnchorComplete = (result) => {
-    setAnchorResult(result);
+  const handleProofComplete = (result) => {
+    console.log('[QuantumVault] Proof generated:', result);
+    setProofResult(result);
+  };
+
+  const anchorProof = async () => {
+    if (!proofResult?.proofId || anchored) return;
+
+    try {
+      setAnchoring(true);
+
+      const response = await fetch(`${API_URL}/anchor`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proofId: proofResult.proofId })
+      });
+
+      if (!response.ok) {
+        throw new Error('Anchoring failed');
+      }
+
+      const result = await response.json();
+      console.log('[QuantumVault] Anchored:', result);
+      
+      setAnchored(true);
+      
+      // Update proof result with anchoring info
+      setProofResult({
+        ...proofResult,
+        proof: {
+          ...proofResult.proof,
+          anchored: true,
+          blockchainTxHash: result.transaction.hash,
+          blockchainBlock: result.transaction.blockHeight
+        }
+      });
+
+    } catch (error) {
+      console.error('[QuantumVault] Anchoring error:', error);
+      alert('Failed to anchor proof on blockchain');
+    } finally {
+      setAnchoring(false);
+    }
+  };
+
+  const reset = () => {
+    setStorageLocation(null);
+    setProofResult(null);
+    setAnchored(false);
+    setActiveTab('generate');
   };
 
   return (
@@ -187,52 +257,211 @@ const QuantumVaultContent = () => {
         {/* Hero Section */}
         <section className="mb-16">
           <div className="mb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-extrabold">QuantumVault</h1>
-                <br />
-                <p className="text-sm text-neutral-400">
-                  Next-generation quantum-secure digital asset protection
-                </p>
-              </div>
-            </div>
-            <p className="text-neutral-400">
-              QuantumVault is a PQC-compliant, content-agnostic permissionless asset to secure and verify integurty of digital property against both classical and quantum computing threats.
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-4">QuantumVault</h1>
+            <p className="text-lg text-neutral-300 mb-4">
+              QuantumVault is a PQC-compliant, content-agnostic permissionless asset that secures high value data against classical and quantum threats through client-side encryption, decentralized storage, and blockchain anchoring.
             </p>
           </div>
 
+          {/* Key Benefits - Why QuantumVault v2? */}
           <div className="grid md:grid-cols-3 gap-4 mb-6">
-            <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 p-4">
-              <div className="text-blue-400 font-semibold mb-2">Quantum-Resistant</div>
-              <p className="text-sm text-neutral-300">Post-quantum algorithms for long-term integrity.</p>
+            <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 p-5">
+              <div className="text-3xl mb-2">👤</div>
+              <div className="text-blue-400 font-semibold mb-2">User-Controlled Storage</div>
+              <p className="text-sm text-neutral-300">Store your encrypted files wherever you want - S3, IPFS, local storage, or any cloud provider. You own the data.</p>
             </div>
-            <div className="rounded-xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 p-4">
-              <div className="text-purple-400 font-semibold mb-2">Client-Side Encryption</div>
-              <p className="text-sm text-neutral-300">Keys and encryption run in the browser.</p>
+            <div className="rounded-xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 p-5">
+              <div className="text-3xl mb-2">🔐</div>
+              <div className="text-purple-400 font-semibold mb-2">Zero-Knowledge Encryption</div>
+              <p className="text-sm text-neutral-300">We never see your files or passwords. All encryption happens client-side in your browser using AES-256-GCM.</p>
             </div>
-            <div className="rounded-xl bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20 p-4">
-              <div className="text-green-400 font-semibold mb-2">On-Chain Anchoring</div>
-              <p className="text-sm text-neutral-300">Proof hashes can be registered on blockchain.</p>
+            <div className="rounded-xl bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20 p-5">
+              <div className="text-3xl mb-2">⚓</div>
+              <div className="text-green-400 font-semibold mb-2">Blockchain Anchored</div>
+              <p className="text-sm text-neutral-300">Cryptographic proofs are anchored on the blockchain for immutable, timestamped verification records.</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 text-sm">
-              <span className="text-blue-400 font-semibold">✓</span> BLAKE3
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
+            <div className="rounded-xl bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20 p-5">
+              <div className="text-3xl mb-2">📜</div>
+              <div className="text-orange-400 font-semibold mb-2">Compliance Ready</div>
+              <p className="text-sm text-neutral-300">Generate verification certificates and audit trails for regulatory compliance (SOC2, HIPAA, GDPR, etc).</p>
             </div>
-            <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 text-sm">
-              <span className="text-purple-400 font-semibold">✓</span> Dilithium
+            <div className="rounded-xl bg-gradient-to-br from-yellow-500/10 to-transparent border border-yellow-500/20 p-5">
+              <div className="text-3xl mb-2">⚡</div>
+              <div className="text-yellow-400 font-semibold mb-2">Fast & Efficient</div>
+              <p className="text-sm text-neutral-300">Client-side processing means no upload delays. Generate proofs instantly without network bottlenecks.</p>
             </div>
-            <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20 text-sm">
-              <span className="text-green-400 font-semibold">✓</span> SPHINCS+
+            <div className="rounded-xl bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 p-5">
+              <div className="text-3xl mb-2">🔄</div>
+              <div className="text-cyan-400 font-semibold mb-2">Batch Processing</div>
+              <p className="text-sm text-neutral-300">Process multiple files at once with batch proof generation and verification (Enterprise feature).</p>
             </div>
-            <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20 text-sm">
-              <span className="text-orange-400 font-semibold">✓</span> Blockchain Anchoring
+          </div>
+
+          {/* Service Status Banner */}
+          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${serviceStatus.quantumvault ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+                  <span className="text-sm text-neutral-400">API: </span>
+                  <span className={`text-sm font-semibold ${serviceStatus.quantumvault ? 'text-green-400' : 'text-red-400'}`}>
+                    {serviceStatus.loading ? 'Checking...' : serviceStatus.quantumvault ? 'Connected' : 'Disconnected'}
+                  </span>
+                </div>
+                <div className="h-4 w-px bg-white/10" />
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${serviceStatus.blockchain ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+                  <span className="text-sm text-neutral-400">Blockchain: </span>
+                  <span className={`text-sm font-semibold ${serviceStatus.blockchain ? 'text-green-400' : 'text-red-400'}`}>
+                    {serviceStatus.loading ? 'Checking...' : serviceStatus.blockchain ? 'Connected' : 'Disconnected'}
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => checkServiceConnectivity(0)}
+                className="px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition text-sm"
+              >
+                Refresh Status
+              </button>
             </div>
           </div>
         </section>
 
-        {/* Use Cases by Vertical */}
+        {/* Try QuantumVault - Interactive Section */}
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold mb-8">Try QuantumVault</h2>
+
+          {/* Tab Navigation */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setActiveTab('generate')}
+              className={`px-6 py-3 rounded-lg font-semibold transition ${
+                activeTab === 'generate'
+                  ? 'bg-purple-500/20 border-2 border-purple-500/50 text-purple-400'
+                  : 'bg-white/5 border-2 border-white/10 text-neutral-400 hover:border-white/20'
+              }`}
+            >
+              Generate Proof
+            </button>
+            <button
+              onClick={() => setActiveTab('verify')}
+              className={`px-6 py-3 rounded-lg font-semibold transition ${
+                activeTab === 'verify'
+                  ? 'bg-green-500/20 border-2 border-green-500/50 text-green-400'
+                  : 'bg-white/5 border-2 border-white/10 text-neutral-400 hover:border-white/20'
+              }`}
+            >
+              Verify File
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'generate' ? (
+            <div className="space-y-8">
+              {/* Workflow Steps */}
+              <div className="grid md:grid-cols-5 gap-4 mb-8">
+                <div className={`rounded-xl border p-4 text-center transition ${
+                  !storageLocation ? 'border-purple-500/50 bg-purple-500/10' : 'border-white/10 bg-white/5'
+                }`}>
+                  <div className="text-2xl mb-2">📁</div>
+                  <div className="text-sm font-semibold mb-1">1. Choose Storage</div>
+                  <div className="text-xs text-neutral-400">Select where to store your file</div>
+                </div>
+                <div className={`rounded-xl border p-4 text-center transition ${
+                  storageLocation && !proofResult ? 'border-purple-500/50 bg-purple-500/10' : 'border-white/10 bg-white/5'
+                }`}>
+                  <div className="text-2xl mb-2">🔐</div>
+                  <div className="text-sm font-semibold mb-1">2. Encrypt & Hash</div>
+                  <div className="text-xs text-neutral-400">Generate cryptographic proof</div>
+                </div>
+                <div className={`rounded-xl border p-4 text-center transition ${
+                  proofResult && !anchored ? 'border-purple-500/50 bg-purple-500/10' : 'border-white/10 bg-white/5'
+                }`}>
+                  <div className="text-2xl mb-2">📜</div>
+                  <div className="text-sm font-semibold mb-1">3. Download</div>
+                  <div className="text-xs text-neutral-400">Get file & certificate</div>
+                </div>
+                <div className={`rounded-xl border p-4 text-center transition ${
+                  proofResult && !anchored ? 'border-orange-500/50 bg-orange-500/10' : 'border-white/10 bg-white/5'
+                }`}>
+                  <div className="text-2xl mb-2">⚓</div>
+                  <div className="text-sm font-semibold mb-1">4. Anchor</div>
+                  <div className="text-xs text-neutral-400">Register on blockchain</div>
+                </div>
+                <div className={`rounded-xl border p-4 text-center transition ${
+                  anchored ? 'border-green-500/50 bg-green-500/10' : 'border-white/10 bg-white/5'
+                }`}>
+                  <div className="text-2xl mb-2">✅</div>
+                  <div className="text-sm font-semibold mb-1">5. Complete</div>
+                  <div className="text-xs text-neutral-400">Verification ready</div>
+                </div>
+              </div>
+
+              {/* Step 1: Storage Selection */}
+              {!storageLocation && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Step 1: Choose Your Storage Location</h3>
+                  <StorageSelector onSelect={handleStorageSelect} />
+                </div>
+              )}
+
+              {/* Step 2: Proof Generation */}
+              {storageLocation && !proofResult && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-semibold">Step 2: Generate Cryptographic Proof</h3>
+                    <button
+                      onClick={reset}
+                      className="text-sm text-neutral-400 hover:text-white transition"
+                    >
+                      ← Change Storage
+                    </button>
+                  </div>
+                  <ProofGenerationCard 
+                    storageLocation={storageLocation}
+                    onComplete={handleProofComplete}
+                  />
+                </div>
+              )}
+
+              {/* Step 3 & 4: Certificate Display and Anchoring */}
+              {proofResult && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-semibold">
+                      {anchored ? '✅ Proof Anchored Successfully' : 'Step 3 & 4: Certificate & Blockchain Anchoring'}
+                    </h3>
+                    <button
+                      onClick={reset}
+                      className="text-sm text-neutral-400 hover:text-white transition"
+                    >
+                      ← Start Over
+                    </button>
+                  </div>
+                  
+                  <VerificationCertificate 
+                    proof={proofResult.proof}
+                    proofId={proofResult.proofId}
+                    storageLocation={storageLocation}
+                    onAnchor={anchorProof}
+                    anchored={anchored}
+                    anchoring={anchoring}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Verify File Integrity</h3>
+              <FileVerifier />
+            </div>
+          )}
+        </section>
+
+          {/* Use Cases by Vertical */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold mb-8">Industry Use Cases</h2>
           <div className="grid lg:grid-cols-2 gap-6">
@@ -483,7 +712,8 @@ const QuantumVaultContent = () => {
             </div>
           </div>
 
-          {/* Step-by-Step Process */}
+          {/* Step-by-Step Process - MOVED TO INDIVIDUAL COMPONENTS */}
+          {/*
           <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
             <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
               <span className="text-orange-400">⚡</span>
@@ -520,45 +750,7 @@ const QuantumVaultContent = () => {
               </div>
             </div>
           </div>
-        </section>
-
-        {/* Interactive QuantumVault */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8">Try QuantumVault</h2>
-          
-          {/* Upload and Generate Proof */}
-          <div className="grid lg:grid-cols-2 gap-6 mb-8">
-            <UploadCard onComplete={handleUploadComplete} />
-            <VerifyPanel />
-          </div>
-          
-          {/* Proof Display and Anchoring */}
-          {proof && (
-            <div className="grid lg:grid-cols-2 gap-6">
-              <ProofPanel proof={proof} />
-              <AnchorPanel 
-                proof={proof} 
-                onComplete={handleAnchorComplete}
-              />
-            </div>
-          )}
-          
-          {/* Anchor Result Display */}
-          {anchorResult && (
-            <div className="mt-6 rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent p-6">
-              <h3 className="text-xl font-semibold text-green-400 mb-4">✓ Blockchain Anchored</h3>
-              <div className="grid md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <div className="text-neutral-400 mb-1">Transaction Hash:</div>
-                  <code className="text-green-400 break-all">{anchorResult.txHash}</code>
-                </div>
-                <div>
-                  <div className="text-neutral-400 mb-1">Block Height:</div>
-                  <span className="text-green-400">{anchorResult.blockHeight}</span>
-                </div>
-              </div>
-            </div>
-          )}
+          */}
         </section>
 
         {/* Security & Compliance */}
@@ -605,36 +797,6 @@ const QuantumVaultContent = () => {
               </ul>
             </div>
 
-          </div>
-        </section>
-
-        {/* Integration Status Panel */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8">Integration Status</h2>
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="text-sm text-neutral-400 mb-1">QuantumVault API</div>
-                <div className={`text-lg font-semibold ${serviceStatus.quantumvault ? 'text-green-400' : 'text-red-400'}`}>
-                  {serviceStatus.loading ? 'Checking...' : serviceStatus.quantumvault ? '✓ Connected' : '✗ Disconnected'}
-                </div>
-              </div>
-              <div className="flex-1">
-                <div className="text-sm text-neutral-400 mb-1">Blockchain API</div>
-                <div className={`text-lg font-semibold ${serviceStatus.blockchain ? 'text-green-400' : 'text-red-400'}`}>
-                  {serviceStatus.loading ? 'Checking...' : serviceStatus.blockchain ? '✓ Connected' : '✗ Disconnected'}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end">
-              <button 
-                onClick={checkServiceConnectivity}
-                className="px-4 py-2 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition text-sm"
-              >
-                Refresh Status
-              </button>
-            </div>
           </div>
         </section>
       </div>

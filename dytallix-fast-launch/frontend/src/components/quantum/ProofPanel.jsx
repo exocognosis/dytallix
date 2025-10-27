@@ -9,7 +9,22 @@ export default function ProofPanel({ proof, uploadResult }) {
   const [copied, setCopied] = useState(false);
   const [showFullJson, setShowFullJson] = useState(false);
 
-  if (!proof) return null;
+  if (!proof) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-green-500/5 to-transparent p-6 opacity-50">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+            <span className="text-green-500 text-xl">📜</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-400">3. Generate Proof</h3>
+            <p className="text-xs text-neutral-500 mt-1">Cryptographic proof bundle contains hash, signature, metadata, and verification instructions.</p>
+          </div>
+        </div>
+        <p className="text-sm text-neutral-500">Complete encryption to generate cryptographic proof</p>
+      </div>
+    );
+  }
 
   const proofJson = JSON.stringify(proof, null, 2);
 
@@ -27,12 +42,23 @@ export default function ProofPanel({ proof, uploadResult }) {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent p-6">
+    <div className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent p-6 shadow-lg shadow-green-500/10">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-          <span className="text-purple-500 text-xl">📜</span>
+        <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+          <span className="text-green-500 text-xl">📜</span>
         </div>
-        <h3 className="text-lg font-semibold">Proof Certificate</h3>
+        <div>
+          <h3 className="text-lg font-semibold">3. Generate Proof</h3>
+          <p className="text-xs text-neutral-400 mt-1">Cryptographic proof bundle contains hash, signature, metadata, and verification instructions.</p>
+        </div>
+        <div className="ml-auto">
+          <div className="flex items-center gap-2 text-green-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="text-sm font-medium">Complete</span>
+          </div>
+        </div>
       </div>
 
       {/* Proof summary */}
