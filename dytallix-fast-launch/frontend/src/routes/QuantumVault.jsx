@@ -291,6 +291,17 @@ const QuantumVaultContent = () => {
             </div>
           </div>
 
+          <div className="text-center mt-6 mb-12">
+            <a
+              href="/QuantumVaultWhitepaper.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-6 py-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition"
+            >
+              Read the Full Whitepaper
+            </a>
+          </div>
+
           {/* Features & Functions */}
           <h2 className="text-3xl font-bold mb-8">Features & Functions</h2>
 
@@ -830,6 +841,17 @@ const QuantumVaultContent = () => {
 
           </div>
         </section>
+
+        <div className="text-center mt-12 mb-20">
+          <a
+            href="/QuantumVaultWhitepaper.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-8 py-4 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition"
+          >
+            Download the Full Whitepaper
+          </a>
+        </div>
       </div>
     </Page>
   );
