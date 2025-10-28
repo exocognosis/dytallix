@@ -21,6 +21,8 @@ const Footer = () => {
           <div className={styles.footerSection}>
             <h4 className={styles.footerSubtitle}>Platform</h4>
             <ul className={styles.footerLinks}>
+              <li><Link to="/quantumshield" className={styles.footerLink}>QuantumShield</Link></li>
+              <li><Link to="/build" className={styles.footerLink}>Dytallix Build</Link></li>
               <li><Link to="/faucet" className={styles.footerLink}>Faucet</Link></li>
               <li><Link to="/tech-stack" className={styles.footerLink}>Tech Stack</Link></li>
               <li><Link to="/modules" className={styles.footerLink}>AI Modules</Link></li>

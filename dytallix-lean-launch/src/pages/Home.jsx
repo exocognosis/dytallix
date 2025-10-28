@@ -2,259 +2,224 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import '../styles/global.css'
 
+const stats = [
+  { value: '12', label: 'QuantumShield control modules in production pilots' },
+  { value: '4.3M+', label: 'Post-quantum transactions simulated across partner datasets' },
+  { value: '<120ms', label: 'Average global signing latency with PQC acceleration' }
+]
 
+const enterprisePillars = [
+  {
+    title: 'Harvest-Now Prevention',
+    points: [
+      'Cryptographically re-encrypt sensitive archives before adversaries can.',
+      'Layered PQC key management and zero-trust access controls.'
+    ]
+  },
+  {
+    title: 'Operational Continuity',
+    points: [
+      'Drop-in adapters for hardware security modules and SIEM pipelines.',
+      'Governance playbooks aligned with NIST PQ readiness guidance.'
+    ]
+  }
+]
+
+const developerPillars = [
+  {
+    title: 'Quantum-Ready APIs',
+    points: [
+      'Unified SDKs for signing, key rotation, and secure storage.',
+      'Language support for TypeScript, Rust, Go, and Python teams.'
+    ]
+  },
+  {
+    title: 'Accelerated Ship Cycles',
+    points: [
+      'Starter architectures for wallets, bridges, and confidential compute.',
+      'Tutorials and code walkthroughs maintained with every release.'
+    ]
+  }
+]
+
+const timeline = [
+  { stage: 'Assess', detail: 'Benchmark current cryptography against QuantumShield threat matrices.' },
+  { stage: 'Harden', detail: 'Activate PQC signing, encrypted archival storage, and anomaly analytics.' },
+  { stage: 'Deploy', detail: 'Roll out enterprise policy orchestration with audit-ready evidence packs.' },
+  { stage: 'Evolve', detail: 'Iterate with the Dytallix Build community and stay aligned with NIST updates.' }
+]
+
+const resources = [
+  {
+    title: 'Download the Whitepaper',
+    description: 'Deep dive into lattice cryptography, AI ops, and tokenized governance.',
+    link: '/whitepaper.pdf',
+    external: false
+  },
+  {
+    title: 'Watch the Explainer',
+    description: 'Get the five-minute overview of QuantumShield and Dytallix Build.',
+    link: 'https://www.youtube.com/@dytallix',
+    external: true
+  },
+  {
+    title: 'Explore the Docs',
+    description: 'SDK quickstarts, architecture diagrams, and integration guides.',
+    link: '/dev-resources',
+    external: false
+  }
+]
 
 const Home = () => {
-  const colorFor = (accent) => {
-    switch (accent) {
-      case 'primary': return 'var(--primary-400)'
-      case 'accent': return 'var(--accent-500)'
-      case 'success': return 'var(--success-500)'
-      case 'warning': return 'var(--warning-500)'
-      case 'danger': return 'var(--danger-500)'
-      case 'info':
-      default: return 'var(--primary-400)'
-    }
-  }
-
   return (
-    <div className="home">
-      {/* Hero Section */}
-      <section className="section" style={{
-        background: 'radial-gradient(800px 400px at 50% -10%, rgba(96,165,250,0.12) 0%, rgba(96,165,250,0) 60%)',
-        paddingTop: '120px',
-      }}>
-        <div className="container center">
-          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            {/* Centered & responsive hero headline */}
-            <h1 className="section-title" style={{ fontSize: '3rem', marginBottom: 16, textAlign: 'center', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.15 }}>
-              Quantum-Secure. AI-Enhanced. Future-Ready.
-            </h1>
-            <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 0', textAlign: 'center' }}>
-              Dytallix is an open source L1 blockchain platform and post-quantum cryptocurrency, built from the ground up
+    <div className="marketing-page home">
+      <section className="split-hero" aria-labelledby="home-hero-heading">
+        <div className="container split-hero__grid">
+          <div className="split-hero__copy">
+            <p className="eyebrow">Dual-path platform</p>
+            <h1 id="home-hero-heading">Securing the Quantum Future — Today.</h1>
+            <p className="lead">
+              Dytallix develops quantum-safe data protection and developer tooling so security leaders and builders can defend
+              against tomorrow’s decryption threats before they land.
             </p>
-            <p className="muted" style={{ fontSize: '1.125rem', margin: '0 auto 36px', textAlign: 'center' }}>
-              to resist quantum attacks and support secure, intelligent applications.
-            </p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {/* Updated hero buttons */}
-              <Link to="/faucet" className="btn btn-primary glow">Join the Testnet</Link>
-              <a
-                href="https://discord.gg/dytallix"
-                className="btn btn-primary glow"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Join the Discord
-              </a>
+            <div className="split-hero__actions" role="group" aria-label="Primary navigation paths">
+              <Link to="/quantumshield" className="btn btn-primary glow">Explore QuantumShield</Link>
+              <Link to="/build" className="btn btn-secondary">Build on Dytallix</Link>
+            </div>
+            <dl className="split-hero__meta" aria-label="Key platform signals">
+              {stats.map((item) => (
+                <div key={item.label} className="split-hero__meta-item">
+                  <dt>{item.value}</dt>
+                  <dd>{item.label}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <div className="split-hero__panes" aria-hidden="true">
+            <div className="split-hero__visual split-hero__visual--enterprise">
+              <div className="split-hero__caption">QuantumShield for the enterprise</div>
+              <div className="split-hero__animation" data-animation="enterprise-hero" />
+            </div>
+            <div className="split-hero__visual split-hero__visual--developer">
+              <div className="split-hero__caption">Dytallix Build for developers</div>
+              <div className="split-hero__animation" data-animation="developer-hero" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Why Dytallix? Section (inserted) */}
-      <section className="section">
+      <section className="marketing-section">
         <div className="container">
-          <div className="section-header" style={{ textAlign: 'center' }}>
-            <h2 className="section-title">Why Dytallix?</h2>
-            <p className="section-subtitle" style={{ maxWidth: 900, margin: '0 auto 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-              Dytallix is built to meet the quantum threat. We secure digital assets with post-quantum
-            </p>
-            <p className="section-subtitle" style={{ maxWidth: 900, margin: '0 auto 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-              cryptography, zero-knowledge privacy, and decentralized AI governance.
-            </p>
-            <p className="section-subtitle" style={{ maxWidth: 900, margin: '0 auto', fontWeight: 600 }}>
-              Our mission is to evolve blockchain before it is outpaced by the future.
+          <div className="marketing-section__header">
+            <h2>One platform, two mission-critical outcomes</h2>
+            <p>
+              Choose the enterprise protection track to safeguard regulated workloads, or ship on the developer track with
+              composable post-quantum primitives. Both paths share the same cryptographic core and threat intelligence.
             </p>
           </div>
+          <div className="marketing-grid marketing-grid--two">
+            <article className="marketing-card marketing-card--enterprise">
+              <h3>QuantumShield</h3>
+              <p className="muted">
+                Enterprise-grade vaulting, policy orchestration, and compliance evidence designed for CISOs and security teams.
+              </p>
+              <ul>
+                {enterprisePillars.map((pillar) => (
+                  <li key={pillar.title}>
+                    <h4>{pillar.title}</h4>
+                    <p className="muted">
+                      {pillar.points[0]}
+                    </p>
+                    <p className="muted">
+                      {pillar.points[1]}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/quantumshield" className="btn btn-outline">See the roadmap</Link>
+            </article>
 
-          {/* Ensure equal-height cards and center content */}
-          <div className="grid grid-3" style={{ alignItems: 'stretch' }}>
-            {/* Card 1 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderTop: `3px solid ${colorFor('accent')}` }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ fontSize: '1.75rem', marginBottom: 10, textAlign: 'center' }}>🛡️</div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, color: colorFor('accent') }}>Quantum-Resistant Future</h3>
-                <p className="muted" style={{ lineHeight: 1.6, marginBottom: 12 }}>
-                  The quantum threat is real. Dytallix implements NIST-approved post-quantum cryptography today
-                  to secure assets before legacy encryption fails.
-                </p>
-                <ul style={{ listStyle: 'none', paddingLeft: 0, margin: 0 }}>
-                  {[
-                    'Dilithium & Falcon signatures',
-                    'SPHINCS+ quantum-secure hashing',
-                    'PQC key exchange',
-                    'Crypto-agile architecture',
-                  ].map((t, i) => (
-                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
-                      <span style={{ width: 8, height: 8, background: colorFor('accent'), borderRadius: '50%' }} />
-                      <span className="muted">{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '12px 0 10px' }} />
-              <div style={{ color: 'var(--primary-400)', fontWeight: 700 }}>Quantum attack resistance</div>
-            </div>
-
-            {/* Card 2 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderTop: `3px solid ${colorFor('success')}` }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ fontSize: '1.75rem', marginBottom: 10, textAlign: 'center' }}>🧠</div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, color: colorFor('success') }}>On-Chain Intelligence</h3>
-                <p className="muted" style={{ lineHeight: 1.6, marginBottom: 12 }}>
-                  Enterprise-ready AI modules run directly on chain, enabling autonomous threat detection, smart contract auditing, and predictive analytics without centralized control.
-                </p>
-                <ul style={{ listStyle: 'none', paddingLeft: 0, margin: 0 }}>
-                  {[
-                    'Real-time anomaly detection',
-                    'Automated smart contract audits',
-                    'Predictive market analytics',
-                    'Decentralized AI governance',
-                  ].map((t, i) => (
-                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
-                      <span style={{ width: 8, height: 8, background: colorFor('success'), borderRadius: '50%' }} />
-                      <span className="muted">{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '12px 0 10px' }} />
-              <div style={{ color: 'var(--primary-400)', fontWeight: 700 }}>Autonomous AI modules</div>
-            </div>
-
-            {/* Card 3 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderTop: `3px solid ${colorFor('primary')}` }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ fontSize: '1.75rem', marginBottom: 10, textAlign: 'center' }}>⚡</div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, color: colorFor('primary') }}>Uncompromising Security</h3>
-                <p className="muted" style={{ lineHeight: 1.6, marginBottom: 12 }}>
-                  Zero-knowledge proofs and multi-signature wallets secure your digital assets with post-quantum resilience and intelligent, enterprise-grade assurance.
-                </p>
-                <ul style={{ listStyle: 'none', paddingLeft: 0, margin: 0 }}>
-                  {[
-                    'Zero-knowledge privacy',
-                    'Multi-signature protection',
-                    'Post-quantum security',
-                    'Advanced threat monitoring',
-                  ].map((t, i) => (
-                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
-                      <span style={{ width: 8, height: 8, background: colorFor('primary'), borderRadius: '50%' }} />
-                      <span className="muted">{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '12px 0 10px' }} />
-              <div style={{ color: 'var(--primary-400)', fontWeight: 700 }}>Military-grade encryption</div>
-            </div>
+            <article className="marketing-card marketing-card--developer">
+              <h3>Dytallix Build</h3>
+              <p className="muted">
+                APIs, SDKs, and developer previews for engineering teams that need verifiable quantum resilience.
+              </p>
+              <ul>
+                {developerPillars.map((pillar) => (
+                  <li key={pillar.title}>
+                    <h4>{pillar.title}</h4>
+                    {pillar.points.map((point) => (
+                      <p key={point} className="muted">{point}</p>
+                    ))}
+                  </li>
+                ))}
+              </ul>
+              <Link to="/build" className="btn btn-outline">Browse developer tools</Link>
+            </article>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Key Features</h2>
-            <p className="section-subtitle" style={{ textAlign: 'center', whiteSpace: 'nowrap', margin: '0 auto 6px' }}>
-              Engineered for the quantum era with next-gen security, AI-driven
-            </p>
-            <p className="section-subtitle" style={{ textAlign: 'center', whiteSpace: 'nowrap', margin: '0 auto' }}>
-              defense and enterprise-grade performance.
-            </p>
-          </div>
+      <section className="marketing-section">
+        <div className="container marketing-section__header">
+          <h2>The quantum risk is already here</h2>
+          <p>
+            Harvest-now, decrypt-later campaigns are underway. Dytallix aligns enterprise security controls with NIST PQ
+            milestones while giving developers the tooling to rotate keys, protect data, and ship resilient apps.
+          </p>
+        </div>
+        <div className="container marketing-timeline">
+          {timeline.map((item) => (
+            <div key={item.stage} className="marketing-timeline__item">
+              <span className="marketing-timeline__stage">{item.stage}</span>
+              <p className="muted">{item.detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          <div className="grid grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
-            {[
-              {
-                icon: '🛡️',
-                title: 'Post-Quantum Security',
-                desc: 'NIST-approved PQC algorithms (Dilithium, Falcon, SPHINCS+) secure every layer: consensus, transactions, and contracts.'
-              },
-              {
-                icon: '🤖',
-                title: 'AI-Enhanced Protection',
-                desc: 'On-chain AI monitors transactions, detects anomalies, and audits smart contracts in real time.'
-              },
-              {
-                icon: '⚡',
-                title: 'High-Performance Consensus',
-                desc: 'Quantum-Proof Delegated Proof of Stake delivers fast finality and optimized throughput without sacrificing security.'
-              },
-              {
-                icon: '🔗',
-                title: 'Cross-Chain Interoperability',
-                desc: 'A modular, crypto-agile bridge connects Dytallix with other blockchains and supports seamless algorithm upgrades.'
-              },
-              {
-                icon: '🧩',
-                title: 'Developer-Ready Architecture',
-                desc: 'EVM compatibility and migration tools let teams port existing dApps with minimal changes.'
-              },
-              {
-                icon: '🏛',
-                title: 'Governance & Tokenomics',
-                desc: 'Dual-token design: DGT for governance and DRT for rewards. Deflationary mechanics align incentives.'
-              }
-            ].map((f, i) => (
-              <div className="card" key={i} style={{ borderTop: `3px solid ${colorFor(['accent','success','primary','primary','accent','warning'][i])}` }}>
-                <div style={{ fontSize: 32, marginBottom: 16, textAlign: 'center' }}>{f.icon}</div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8, color: colorFor(['accent','success','primary','primary','accent','warning'][i]) }}>{f.title}</h3>
-                <p className="muted" style={{ lineHeight: 1.6 }}>{f.desc}</p>
-              </div>
+      <section className="marketing-section marketing-section--resources">
+        <div className="container">
+          <div className="marketing-section__header">
+            <h2>Resources for your next review cycle</h2>
+            <p>Brief your stakeholders with the latest collateral from the Dytallix team.</p>
+          </div>
+          <div className="marketing-grid marketing-grid--three">
+            {resources.map((resource) => (
+              <article key={resource.title} className="marketing-card marketing-card--resource">
+                <h3>{resource.title}</h3>
+                <p className="muted">{resource.description}</p>
+                {resource.external ? (
+                  <a href={resource.link} className="btn btn-secondary" target="_blank" rel="noreferrer">
+                    Open in new tab
+                  </a>
+                ) : (
+                  <Link to={resource.link} className="btn btn-secondary">
+                    View resource
+                  </Link>
+                )}
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Get Started Section */}
-      <section className="section" style={{ background: 'radial-gradient(700px 300px at 50% -10%, rgba(34,197,94,0.08) 0%, rgba(34,197,94,0) 60%)' }}>
-        <div className="container">
-          <div className="section-header" style={{ textAlign: 'center' }}>
-            <h2 className="section-title">Ready to Build on Dytallix?</h2>
-            <p className="section-subtitle" style={{ maxWidth: 900, margin: '0 auto' }}>
-              Spin up a wallet, claim test tokens, and deploy a contract on the Dytallix testnet.
+      <section className="marketing-section marketing-section--cta">
+        <div className="container marketing-cta">
+          <div>
+            <h2>Ready to choose your path?</h2>
+            <p className="muted">
+              QuantumShield keeps regulated data safe. Dytallix Build gives engineers the blueprint to launch secure apps.
+              Whichever team you lead, we are ready with implementation support.
             </p>
           </div>
-
-          <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24 }}>
-            {/* Step 1 */}
-            <div className="card" style={{ borderTop: `3px solid ${colorFor('primary')}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary-400)', color: '#0b1220', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: colorFor('primary') }}>Create or Connect Wallet</h3>
-              </div>
-              <p className="muted" style={{ marginBottom: 12 }}>Use the quantum-secure wallet to generate keys and manage addresses.</p>
-              <div><Link to="/wallet" className="btn btn-primary">Open Wallet</Link></div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="card" style={{ borderTop: `3px solid ${colorFor('accent')}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary-400)', color: '#0b1220', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: colorFor('accent') }}>Get Test Tokens</h3>
-              </div>
-              <p className="muted" style={{ marginBottom: 12 }}>Request DGT or DRT from the faucet to fund transactions and deployments.</p>
-              <div><Link to="/faucet" className="btn btn-primary">Open Faucet</Link></div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="card" style={{ borderTop: `3px solid ${colorFor('success')}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary-400)', color: '#0b1220', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: colorFor('success') }}>Deploy and Explore</h3>
-              </div>
-              <p className="muted" style={{ marginBottom: 12 }}>Deploy a contract and watch transactions in real time with the explorer.</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Link to="/contracts" className="btn btn-primary glow">Contracts</Link>
-                <Link to="/explorer" className="btn btn-primary glow">Explorer</Link>
-              </div>
-            </div>
+          <div className="marketing-cta__actions">
+            <Link to="/quantumshield" className="btn btn-primary glow">Schedule a QuantumShield briefing</Link>
+            <Link to="/build" className="btn btn-outline">Join the developer preview</Link>
           </div>
         </div>
       </section>
-
     </div>
   )
 }
