@@ -8,15 +8,14 @@ const Navbar = () => {
 
   const navItems = [
     { path: '/', label: 'Home' },
+    { path: '/quantumshield', label: 'QuantumShield' },
+    { path: '/build', label: 'Build' },
+    { path: '/explorer', label: 'Explorer' },
+    { path: '/docs', label: 'Docs' },
+    { path: '/modules', label: 'AI Modules' },
     { path: '/wallet', label: 'Wallet' },
     { path: '/faucet', label: 'Faucet' },
-    { path: '/tech-stack', label: 'Tech Stack' },
-    { path: '/roadmap', label: 'Roadmap' },
-    { path: '/deploy', label: 'Deploy' },
-    { path: '/explorer', label: 'Explorer' },
-    { path: '/dashboard', label: 'Dashboard' },
-    { path: '/modules', label: 'AI Modules' },
-    { path: '/dev-resources', label: 'Docs' }
+    { path: '/roadmap', label: 'Roadmap' }
   ]
 
   const toggleMenu = () => {

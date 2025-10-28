@@ -12,6 +12,8 @@ import DevResources from './pages/DevResources.jsx'
 import Documentation from './pages/Documentation.jsx'
 import Changelog from './pages/Changelog.jsx'
 import NotFound from './pages/NotFound.jsx'
+import QuantumShield from './pages/QuantumShield.jsx'
+import Build from './pages/Build.jsx'
 import { validateConfig } from './config/cosmos.js'
 import Wallet from './pages/Wallet.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -44,6 +46,8 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/quantumshield" element={<QuantumShield />} />
+            <Route path="/build" element={<Build />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/faucet" element={<Faucet />} />
             <Route path="/deploy" element={<Deploy />} />
