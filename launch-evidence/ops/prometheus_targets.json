@@ -2,7 +2,7 @@
   {
     "labels": { "job": "dytallix-node" },
     "targets": [
-      "localhost:3030"
+      "localhost:3003"
     ]
   },
   {

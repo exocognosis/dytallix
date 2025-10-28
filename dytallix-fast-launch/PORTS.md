@@ -1,46 +1,15 @@
-# Dytallix Service Port Configuration
+# DEPRECATED - Use UNIFIED_PORT_CONFIG.md
 
-## Fixed Port Assignments
+This file has been replaced by [UNIFIED_PORT_CONFIG.md](./UNIFIED_PORT_CONFIG.md) which contains the official port assignments for all Dytallix Fast-Launch services.
 
-| Service | Port | URL | Description |
-|---------|------|-----|-------------|
-| **Frontend** | 3000 | http://localhost:3000 | React/Vite frontend |
-| **Blockchain Core** | 3030 | http://localhost:3030 | Rust blockchain node |
-| **QuantumVault API** | 3031 | http://localhost:3031 | Node.js QuantumVault service |
-| **Advanced API** | 8787 | http://localhost:8787 | Advanced blockchain API |
-| **Backend API** | 8080 | http://localhost:8080 | Main backend service |
-| **WebSocket** | 9000 | ws://localhost:9000 | Real-time updates |
+## Quick Reference (Updated Ports)
 
-## Environment Variables
+| Service | New Port | Old Port |
+|---------|----------|----------|
+| Frontend | 3000 | 3000 ✅ |
+| Backend API | 3001 | 8787 🔄 |
+| QuantumVault API | 3002 | 3031 🔄 |
+| Blockchain Node | 3003 | 3030 🔄 |
+| WebSocket | 3004 | 9000 🔄 |
 
-```bash
-# Frontend
-VITE_PORT=3000
-VITE_API_URL=http://localhost:8787
-VITE_QUANTUMVAULT_API_URL=http://localhost:3031
-VITE_BLOCKCHAIN_URL=http://localhost:3030
-VITE_WEBSOCKET_URL=ws://localhost:9000
-
-# Blockchain Core
-BLOCKCHAIN_PORT=3030
-BLOCKCHAIN_RPC_PORT=3030
-
-# QuantumVault API
-QUANTUMVAULT_PORT=3031
-
-# Advanced API
-ADVANCED_API_PORT=8787
-
-# Backend API
-BACKEND_PORT=8080
-
-# WebSocket
-WEBSOCKET_PORT=9000
-```
-
-## No More Random Ports!
-
-- All services now have fixed, documented ports
-- Port conflicts are resolved by proper service management
-- Each service checks if its port is available before starting
-- Clear error messages if ports are in use
+Please refer to [UNIFIED_PORT_CONFIG.md](./UNIFIED_PORT_CONFIG.md) for the complete documentation.

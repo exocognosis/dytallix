@@ -1,0 +1,10 @@
+This is a test file for password-based encryption in QuantumVault.
+
+Features being tested:
+- Password-based AES-256-GCM encryption
+- PBKDF2 key derivation with 100,000 iterations
+- Secure salt and IV generation
+- Client-side decryption
+- Zero-knowledge architecture
+
+Test timestamp: October 26, 2025

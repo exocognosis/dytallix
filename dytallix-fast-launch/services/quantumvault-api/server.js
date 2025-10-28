@@ -27,7 +27,12 @@ const app = express();
 const PORT = process.env.PORT || 3031;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Storage configuration
@@ -123,6 +128,65 @@ app.get('/asset/:uri', (req, res) => {
 });
 
 /**
+ * GET /download/:assetHash
+ * Download encrypted file by asset hash or URI
+ */
+app.get('/download/:assetHash', async (req, res) => {
+  try {
+    const assetHash = req.params.assetHash;
+    console.log(`[QuantumVault] Download request for: ${assetHash}`);
+
+    // Handle both URI format (qv://hash.enc) and plain hash
+    let uri = assetHash;
+    if (!assetHash.startsWith('qv://')) {
+      uri = `qv://${assetHash}${assetHash.endsWith('.enc') ? '' : '.enc'}`;
+    }
+
+    // Look up asset metadata
+    const asset = metadata[uri];
+    if (!asset) {
+      console.log(`[QuantumVault] Asset not found for URI: ${uri}`);
+      console.log(`[QuantumVault] Available assets:`, Object.keys(metadata));
+      return res.status(404).json({ 
+        error: 'Asset not found',
+        uri: uri,
+        assetHash: assetHash
+      });
+    }
+
+    // Check if file exists on disk
+    try {
+      await fs.access(asset.path);
+    } catch (err) {
+      console.error(`[QuantumVault] File not found on disk: ${asset.path}`);
+      return res.status(404).json({ 
+        error: 'File not found on storage',
+        path: asset.path
+      });
+    }
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${asset.original_filename || 'download.enc'}"`);
+    res.setHeader('X-Original-Filename', asset.original_filename || 'unknown');
+    res.setHeader('X-Original-MIME', asset.mime || 'application/octet-stream');
+    res.setHeader('X-Blake3-Hash', asset.blake3 || 'unknown');
+    res.setHeader('X-Asset-URI', asset.uri);
+
+    // Stream the file
+    console.log(`[QuantumVault] Serving file: ${asset.path} (${asset.size} bytes)`);
+    res.sendFile(asset.path);
+
+  } catch (error) {
+    console.error('[QuantumVault] Download error:', error);
+    res.status(500).json({ 
+      error: 'Download failed',
+      message: error.message
+    });
+  }
+});
+
+/**
  * POST /register
  * Register asset on-chain via Dytallix blockchain
  */
@@ -134,68 +198,72 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Missing blake3 or uri' });
     }
 
-    // Connect to the actual blockchain API
-    const BLOCKCHAIN_API_URL = process.env.BLOCKCHAIN_API_URL || 'https://rpc.dytallix.com/api/quantum/register';
+    // Use fallback mode for development (skip external blockchain call)
+    const BLOCKCHAIN_API_URL = process.env.BLOCKCHAIN_API_URL;
     
-    try {
-      const response = await fetch(BLOCKCHAIN_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          assetHash: blake3,
-          uri: uri,
-          metadata: metadata || {
-            registered_by: 'quantumvault-api',
-            timestamp: new Date().toISOString()
-          }
-        })
-      });
+    if (BLOCKCHAIN_API_URL && BLOCKCHAIN_API_URL !== 'http://localhost:3001/api/quantum/register') {
+      try {
+        const response = await fetch(BLOCKCHAIN_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            assetHash: blake3,
+            uri: uri,
+            metadata: metadata || {
+              registered_by: 'quantumvault-api',
+              timestamp: new Date().toISOString()
+            }
+          })
+        });
 
-      if (!response.ok) {
-        throw new Error(`Blockchain API error: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`Blockchain API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        console.log(`[QuantumVault] Registered asset on blockchain: ${blake3}`);
+        
+        return res.json({
+          txHash: result.tx_hash,
+          assetId: result.asset_id,
+          blockHeight: result.block_height,
+          timestamp: result.timestamp,
+          success: result.success
+        });
+
+      } catch (blockchainError) {
+        console.warn('[QuantumVault] Blockchain registration failed, using fallback:', blockchainError.message);
       }
-
-      const result = await response.json();
-      
-      console.log(`[QuantumVault] Registered asset on blockchain: ${blake3}`);
-      
-      res.json({
-        txHash: result.tx_hash,
-        assetId: result.asset_id,
-        blockHeight: result.block_height,
-        timestamp: result.timestamp,
-        success: result.success
-      });
-
-    } catch (blockchainError) {
-      console.warn('[QuantumVault] Blockchain registration failed, using fallback:', blockchainError.message);
-      
-      // Fallback to mock implementation if blockchain is not available
-      const txHash = '0x' + createHash('sha256')
-        .update(blake3 + uri + Date.now())
-        .digest('hex');
-      const assetId = assetIdCounter++;
-
-      onChainRegistry[assetId] = {
-        assetId,
-        blake3,
-        uri,
-        owner: '0x' + randomBytes(20).toString('hex'),
-        timestamp: Math.floor(Date.now() / 1000),
-        txHash
-      };
-
-      res.json({ 
-        txHash, 
-        assetId,
-        blockHeight: 0,
-        timestamp: Math.floor(Date.now() / 1000),
-        success: true,
-        note: 'Fallback mode - blockchain unavailable'
-      });
+    } else {
+      console.log('[QuantumVault] Using fallback mode for development');
     }
+    
+    // Fallback to mock implementation (either due to error or development mode)
+    const txHash = '0x' + createHash('sha256')
+      .update(blake3 + uri + Date.now())
+      .digest('hex');
+    const assetId = assetIdCounter++;
+
+    onChainRegistry[assetId] = {
+      assetId,
+      blake3,
+      uri,
+      owner: '0x' + randomBytes(20).toString('hex'),
+      timestamp: Math.floor(Date.now() / 1000),
+      txHash
+    };
+
+    res.json({ 
+      txHash, 
+      assetId,
+      blockHeight: 0,
+      timestamp: Math.floor(Date.now() / 1000),
+      success: true,
+      note: 'Fallback mode - blockchain unavailable'
+    });
 
   } catch (error) {
     console.error('[QuantumVault] Register error:', error);
@@ -236,17 +304,18 @@ app.get('/verify/:assetHash', async (req, res) => {
       console.warn('[QuantumVault] Blockchain verification failed, using fallback:', blockchainError.message);
       
       // Fallback to mock implementation
-      const assetId = parseInt(req.params.assetHash) || 0;
+      const assetId = parseInt(assetHash) || 0;
       const asset = onChainRegistry[assetId];
 
       if (asset) {
         res.json(asset);
       } else {
-        // Mock verification response
+        // Mock verification response - ensure assetHash is a string
+        const hashStr = String(assetHash || '');
         res.json({
-          verified: assetHash.length === 64,
-          asset_id: `asset_${assetHash.slice(0, 16)}`,
-          tx_hash: `0x${createHash('sha256').update(`verify_${assetHash}`).digest('hex')}`,
+          verified: hashStr.length === 64,
+          asset_id: `asset_${hashStr.slice(0, 16)}`,
+          tx_hash: `0x${createHash('sha256').update(`verify_${hashStr}`).digest('hex')}`,
           block_height: 123456,
           timestamp: Math.floor(Date.now() / 1000),
           metadata: {

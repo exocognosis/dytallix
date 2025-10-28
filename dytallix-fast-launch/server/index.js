@@ -38,8 +38,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const app = express()
-const PORT = process.env.PORT || 8787
-const ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:5173'
+const PORT = process.env.PORT || 3001
+const ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:3000'
 const COOLDOWN_MIN = parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10)
 const ENABLE_SEC_HEADERS = process.env.ENABLE_SEC_HEADERS === '1'
 const ENABLE_CSP = process.env.ENABLE_CSP === '1' || ENABLE_SEC_HEADERS
@@ -184,7 +184,23 @@ function isBech32Address(addr) {
 }
 
 const RPC_HTTP = process.env.VITE_RPC_HTTP_URL || process.env.RPC_HTTP_URL
+const BLOCKCHAIN_NODE = process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_URL || 'http://localhost:3003'
+
 async function fetchNodeStatus() {
+  // Try our blockchain node first
+  try {
+    const nodeResponse = await fetch(`${BLOCKCHAIN_NODE}/stats`)
+    if (nodeResponse.ok) {
+      const nodeData = await nodeResponse.json().catch(() => ({}))
+      const network = 'dytallix-local'
+      const height = nodeData?.data?.height || 0
+      return { network, height, raw: nodeData, source: 'dytallix-node' }
+    }
+  } catch (err) {
+    console.log('Dytallix node not available, trying Cosmos RPC...')
+  }
+
+  // Fallback to Cosmos RPC if available
   if (!RPC_HTTP) {
     const e = new Error('RPC_NOT_CONFIGURED')
     e.status = 500
@@ -200,7 +216,7 @@ async function fetchNodeStatus() {
   const network = j?.result?.node_info?.network || null
   const heightStr = j?.result?.sync_info?.latest_block_height
   const height = Number(heightStr || 0)
-  return { network, height, raw: j }
+  return { network, height, raw: j, source: 'cosmos-rpc' }
 }
 
 // Standardized API status endpoint
@@ -209,10 +225,12 @@ app.get('/api/status', async (req, res, next) => {
     const started = Date.now()
     let network = 'unknown'
     let nodeStatus = false
+    let height = 0
     
     try {
       const nodeInfo = await fetchNodeStatus()
       network = nodeInfo.network || 'dytallix-testnet-1'
+      height = nodeInfo.height || 0
       nodeStatus = true
     } catch (nodeErr) {
       logError('Node status check failed', nodeErr)
@@ -220,7 +238,10 @@ app.get('/api/status', async (req, res, next) => {
 
     const response = {
       ok: nodeStatus,
+      status: nodeStatus ? 'healthy' : 'offline', // Frontend expects 'healthy'
       network,
+      latest_height: height, // Frontend expects latest_height
+      height, // Keep both for compatibility
       redis: !!process.env.DLX_RATE_LIMIT_REDIS_URL, // Redis availability
       rateLimit: {
         dgtWindowHours: 24,
@@ -242,11 +263,11 @@ app.get('/api/status', async (req, res, next) => {
 // Node cluster proxy endpoints
 // -------------------------
 const NODE_PORTS = {
-  seed: 3030,
-  validator1: 3031,
-  validator2: 3032,
-  validator3: 3034,
-  rpc: 3033
+  seed: 3010,
+  validator1: 3011,
+  validator2: 3012,
+  validator3: 3013,
+  rpc: 3014
 };
 
 // Proxy endpoint for individual node status
@@ -306,9 +327,9 @@ app.get('/api/nodes/cluster', async (req, res, next) => {
 });
 
 // -------------------------
-// Explorer proxy to Node (port 3030)
+// Explorer proxy to Node (port 3003)
 // -------------------------
-function getNodeBase() { return (process.env.RPC_HTTP_URL || 'http://localhost:3030').replace(/\/$/, '') }
+function getNodeBase() { return (process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_URL || process.env.RPC_HTTP_URL || 'http://localhost:3003').replace(/\/$/, '') }
 
 async function nodeGet(path) {
   const r = await fetch(getNodeBase() + path)
@@ -1223,7 +1244,7 @@ app.post('/api/faucet', async (req, res, next) => {
         
         // Use the node's direct /dev/faucet endpoint which credits balances directly to the state
         // This avoids the CosmJS transaction format mismatch issue
-        const nodeUrl = process.env.RPC_HTTP_URL || 'http://localhost:3030'
+        const nodeUrl = process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_URL || process.env.RPC_HTTP_URL || 'http://localhost:3003'
         const amountNum = Number(getMaxFor(tokenSymbol))
         const microAmount = Math.floor(amountNum * 1_000_000) // Convert to micro-units
         
@@ -1713,7 +1734,7 @@ let lastBlockHeight = null
 let lastBlockTime = null
 let lastTxCount = null
 
-const NODE_STATS_BASE = process.env.NODE_METRICS_URL || process.env.REACT_APP_NODE_URL || 'http://localhost:3030'
+const NODE_STATS_BASE = process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_URL || process.env.NODE_METRICS_URL || process.env.REACT_APP_NODE_URL || 'http://localhost:3003'
 
 // Prometheus text parser (minimal) and normalizer for dashboard needs
 let __statsFallbackWarned = false
@@ -1939,8 +1960,8 @@ app.get('/api/dashboard/timeseries', handleTimeseries)
 // -------------------------------
 // WASM Contracts REST facade
 // -------------------------------
-// Bridges to the Rust node JSON-RPC contract API (running on 3030 by default)
-const NODE_RPC = process.env.NODE_STATS_BASE || process.env.CONTRACT_NODE_URL || 'http://localhost:3030'
+// Bridges to the Rust node JSON-RPC contract API (running on 3003 by default)
+const NODE_RPC = process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_URL || process.env.NODE_STATS_BASE || process.env.CONTRACT_NODE_URL || 'http://localhost:3003'
 
 async function rpcCall(method, params){
   const r = await fetch(`${NODE_RPC.replace(/\/$/, '')}/rpc`, {

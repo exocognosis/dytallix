@@ -3,6 +3,8 @@ use crate::types::Amount as Tokens;
 use base64::Engine as _;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info}; // removed unused warn import
+use rand; // for block hash generation
+use chrono; // for block timestamps
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -238,11 +240,7 @@ static ADDRESS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^dyt1[0-9a-z]{10,}$")
 const MIN_FEE: Tokens = 1;
 const MAX_TX_BODY: usize = 8192;
 
-fn runtime_mocks() -> bool {
-    std::env::var("RUNTIME_MOCKS")
-        .map(|v| v == "true" || v == "1")
-        .unwrap_or(false)
-}
+// Removed runtime_mocks function - block production is now enabled by default
 
 // Temporarily implementing basic API server for testing
 pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
@@ -255,29 +253,65 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
     let storage = Arc::new(crate::storage::StorageManager::new().await?);
     let tx_pool = Arc::new(crate::types::TransactionPool::new(10_000));
 
-    // Simulate events only if mocks enabled
-    if runtime_mocks() {
-        let ws_tx_clone = ws_tx.clone();
-        tokio::spawn(async move {
-            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
-            let mut block_height = 1u64;
-            loop {
-                interval.tick().await;
-                let block = BlockInfo {
-                    number: block_height,
-                    hash: format!("0x{:064x}", rand::random::<u64>()),
-                    parent_hash: format!("0x{:064x}", rand::random::<u64>()),
+    // Start block production - create blocks automatically every 10 seconds
+    let ws_tx_clone = ws_tx.clone();
+    let storage_clone = storage.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(10));
+        loop {
+            interval.tick().await;
+            
+            // Get current height and create next block
+            let current_height = storage_clone.get_height().unwrap_or(0);
+            let next_height = current_height + 1;
+            
+            // Create a new block
+            let block = crate::types::Block {
+                header: crate::types::BlockHeader {
+                    number: next_height,
+                    parent_hash: if current_height == 0 {
+                        "0x0000000000000000000000000000000000000000000000000000000000000000".to_string()
+                    } else {
+                        format!("0x{:064x}", rand::random::<u64>())
+                    },
+                    transactions_root: format!("0x{:064x}", rand::random::<u64>()),
+                    state_root: format!("0x{:064x}", rand::random::<u64>()),
                     timestamp: chrono::Utc::now().timestamp() as u64,
-                    transactions: vec![],
-                    size: 0,
-                    gas_used: 0,
-                    gas_limit: 0,
-                };
-                let _ = ws_tx_clone.send(WebSocketMessage::new_block(&block));
-                block_height += 1;
+                    validator: "dyt1validator000000000000000000000000000000000000".to_string(),
+                    signature: crate::types::PQCBlockSignature {
+                        signature: dytallix_pqc::Signature {
+                            data: vec![], // Empty signature for now
+                            algorithm: dytallix_pqc::SignatureAlgorithm::Dilithium3,
+                        },
+                        public_key: vec![],
+                    },
+                    nonce: 0,
+                },
+                transactions: vec![], // Empty block for now
+            };
+            
+            // Store the block
+            if let Err(e) = storage_clone._store_block(&block) {
+                error!("Failed to store block {}: {}", next_height, e);
+                continue;
             }
-        });
-    }
+            
+            info!("Created and stored block #{}", next_height);
+            
+            // Send WebSocket notification
+            let block_info = BlockInfo {
+                number: next_height,
+                hash: block.hash(),
+                parent_hash: block.header.parent_hash.clone(),
+                timestamp: block.header.timestamp,
+                transactions: vec![],
+                size: 0,
+                gas_used: 0, // Default value since we don't have gas tracking yet
+                gas_limit: 1000000, // Default value
+            };
+            let _ = ws_tx_clone.send(WebSocketMessage::new_block(&block_info));
+        }
+    });
 
     // WebSocket endpoint
     let ws_tx_root = ws_tx.clone();
@@ -513,26 +547,23 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     req.fee.unwrap_or(MIN_FEE),
                     effective_nonce,
                 );
-                // Enforce signature presence and validity unless runtime mocks are enabled
-                if runtime_mocks() {
-                    // Skip verification in mock mode
-                } else {
-                    let sig = match req.signature {
-                        Some(s) => s,
-                        None => {
-                            return Ok::<_, warp::Rejection>(
-                                warp::reply::with_status(
-                                    warp::reply::json(&ApiResponse::<()> {
-                                        success: false,
-                                        data: None,
-                                        error: Some("signature_required".into()),
-                                    }),
-                                    warp::http::StatusCode::BAD_REQUEST,
-                                )
-                                .into_response(),
+                // Always enforce signature presence and validity
+                let sig = match req.signature {
+                    Some(s) => s,
+                    None => {
+                        return Ok::<_, warp::Rejection>(
+                            warp::reply::with_status(
+                                warp::reply::json(&ApiResponse::<()> {
+                                    success: false,
+                                    data: None,
+                                    error: Some("signature_required".into()),
+                                }),
+                                warp::http::StatusCode::BAD_REQUEST,
                             )
-                        }
-                    };
+                            .into_response(),
+                        )
+                    }
+                };
                     let sig_bytes = match hex::decode(sig.data) {
                         Ok(b) => b,
                         Err(_) => {
@@ -588,7 +619,6 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                             .into_response());
                         }
                     }
-                }
                 let hash = tx.hash.clone();
                 // Add to mempool
                 if let Err(e) = pool
@@ -780,7 +810,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     "wasm_execute" => {
                         if let Some(params) = request.get("params").and_then(|p| p.as_array()).and_then(|arr| arr.first()) {
-                            handle_wasm_execute(params.clone(), (storage.clone, tx_pool.clone())).await
+                            handle_wasm_execute(params.clone(), (storage.clone(), tx_pool.clone())).await
                         } else {
                             serde_json::json!({"error": "Invalid parameters"})
                         }
@@ -917,7 +947,10 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                     
-                    // ...existing code...
+                    // Default case for unknown methods
+                    _ => {
+                        serde_json::json!({"error": "Method not found"})
+                    }
                 };
 
                 Ok::<_, warp::Rejection>(warp::reply::json(&serde_json::json!({
@@ -1073,6 +1106,70 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
             )
             .boxed();
 
+    // Asset Registry Routes
+    let asset_register_runtime = _runtime.clone();
+    let asset_register = warp::path!("asset" / "register")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(warp::any().map(move || asset_register_runtime.clone()))
+        .and_then(|request: serde_json::Value, runtime: Arc<crate::runtime::DytallixRuntime>| async move {
+            if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
+                if params.len() >= 2 {
+                    let result = handle_asset_register(params, runtime.clone()).await;
+                    Ok::<_, warp::Rejection>(warp::reply::json(&result).into_response())
+                } else {
+                    let error = serde_json::json!({"error": "Invalid parameters"});
+                    Ok::<_, warp::Rejection>(warp::reply::json(&error).into_response())
+                }
+            } else {
+                let error = serde_json::json!({"error": "Invalid parameters"});
+                Ok::<_, warp::Rejection>(warp::reply::json(&error).into_response())
+            }
+        })
+        .boxed();
+
+    let asset_verify_runtime = _runtime.clone();
+    let asset_verify = warp::path!("asset" / "verify")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(warp::any().map(move || asset_verify_runtime.clone()))
+        .and_then(|request: serde_json::Value, runtime: Arc<crate::runtime::DytallixRuntime>| async move {
+            if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
+                if !params.is_empty() {
+                    let result = handle_asset_verify(params, runtime.clone()).await;
+                    Ok::<_, warp::Rejection>(warp::reply::json(&result).into_response())
+                } else {
+                    let error = serde_json::json!({"error": "Invalid parameters"});
+                    Ok::<_, warp::Rejection>(warp::reply::json(&error).into_response())
+                }
+            } else {
+                let error = serde_json::json!({"error": "Invalid parameters"});
+                Ok::<_, warp::Rejection>(warp::reply::json(&error).into_response())
+            }
+        })
+        .boxed();
+
+    let asset_get_runtime = _runtime.clone();
+    let asset_get = warp::path!("asset" / "get")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(warp::any().map(move || asset_get_runtime.clone()))
+        .and_then(|request: serde_json::Value, runtime: Arc<crate::runtime::DytallixRuntime>| async move {
+            if let Some(params) = request.get("params").and_then(|p| p.as_array()) {
+                if !params.is_empty() {
+                    let result = handle_asset_get(params, runtime.clone()).await;
+                    Ok::<_, warp::Rejection>(warp::reply::json(&result).into_response())
+                } else {
+                    let error = serde_json::json!({"error": "Invalid parameters"});
+                    Ok::<_, warp::Rejection>(warp::reply::json(&error).into_response())
+                }
+            } else {
+                let error = serde_json::json!({"error": "Invalid parameters"});
+                Ok::<_, warp::Rejection>(warp::reply::json(&error).into_response())
+            }
+        })
+        .boxed();
+
     // CORS
     let cors = {
         let origin = std::env::var("FRONTEND_ORIGIN").ok();
@@ -1108,11 +1205,16 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
 
     let routes = json_routes.or(websocket);
 
+    let port = std::env::var("PORT")
+        .unwrap_or_else(|_| "3003".to_string())
+        .parse::<u16>()
+        .unwrap_or(3003);
+    
     info!(
-        "API server listening on 0.0.0.0:3030 (mocks: {})",
-        runtime_mocks()
+        "API server listening on 0.0.0.0:{} (block production: enabled)",
+        port
     );
-    warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], port)).await;
     Ok(())
 }
 
@@ -1773,7 +1875,7 @@ async fn handle_asset_register(
         
         // Create a mock transaction (in a real implementation, this would submit to the blockchain)
         let tx_hash = format!("0x{}", blake3::hash(format!("tx_{}", asset_id).as_bytes()).to_hex());
-        let block_height = runtime.get_latest_block_number().await.unwrap_or(0);
+        let block_height = runtime.get_current_height().await.unwrap_or(0);
         let timestamp = chrono::Utc::now().timestamp() as u64;
         
         // Store the asset record (this would be stored on-chain in a real implementation)
@@ -1789,6 +1891,9 @@ async fn handle_asset_register(
             "registered_at": chrono::Utc::now().to_rfc3339()
         });
         
+        // Log the asset record for debugging
+        info!("Asset registered: {}", asset_record);
+        
         // In a real implementation, this would be stored on-chain
         // For now, we'll return success
         serde_json::json!({
@@ -1796,7 +1901,8 @@ async fn handle_asset_register(
             "asset_id": asset_id,
             "tx_hash": tx_hash,
             "block_height": block_height,
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "metadata": asset_record["metadata"].clone()
         })
     } else {
         serde_json::json!({"error": "Invalid parameters - expected asset_hash and uri"})

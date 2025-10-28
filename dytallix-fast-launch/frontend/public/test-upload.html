@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumVault Upload Test</title>
+    <style>
+        body { font-family: monospace; margin: 20px; background: #1a1a1a; color: #fff; }
+        .log { background: #333; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        input[type="file"] { margin: 10px 0; }
+        button { padding: 10px 20px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0052a3; }
+    </style>
+</head>
+<body>
+    <h1>QuantumVault Upload Test</h1>
+    
+    <div class="log" id="envLog">
+        <h3>Environment Variables:</h3>
+        <p>This will show what environment variables are available...</p>
+    </div>
+    
+    <div>
+        <input type="file" id="fileInput" />
+        <button onclick="testUpload()">Test Upload</button>
+    </div>
+    
+    <div class="log" id="uploadLog">
+        <h3>Upload Results:</h3>
+        <p>Select a file and click Test Upload...</p>
+    </div>
+
+    <script>
+        // Check environment variables
+        function checkEnv() {
+            const envLog = document.getElementById('envLog');
+            envLog.innerHTML = `
+                <h3>Environment Check:</h3>
+                <p><strong>Note:</strong> Environment variables are not available in static HTML</p>
+                <p><strong>Fallback URL:</strong> http://localhost:3031</p>
+                <p><strong>Will use:</strong> http://localhost:3031</p>
+                <p><strong>Status:</strong> Testing direct connection to QuantumVault API</p>
+            `;
+        }
+
+        async function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadLog = document.getElementById('uploadLog');
+            
+            if (!fileInput.files[0]) {
+                uploadLog.innerHTML = '<h3>Upload Results:</h3><p style="color: red;">Please select a file first!</p>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const quantumVaultApiUrl = 'http://localhost:3031';
+            
+            uploadLog.innerHTML = `
+                <h3>Upload Results:</h3>
+                <p>📁 File: ${file.name} (${file.size} bytes)</p>
+                <p>🌐 Using URL: ${quantumVaultApiUrl}</p>
+                <p>⏳ Uploading...</p>
+            `;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file, `test-${Date.now()}.enc`);
+                formData.append('original_filename', file.name);
+                formData.append('mime', file.type || 'application/octet-stream');
+                formData.append('blake3', 'test-hash-' + Date.now());
+
+                console.log('🚀 Uploading to:', quantumVaultApiUrl + '/upload');
+                console.log('📁 Form data preview:', {
+                    file: file.name,
+                    original_filename: file.name,
+                    mime: file.type || 'application/octet-stream',
+                    size: file.size
+                });
+
+                const response = await fetch(quantumVaultApiUrl + '/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log('📊 Response:', response.status, response.statusText);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    uploadLog.innerHTML = `
+                        <h3>Upload Results:</h3>
+                        <p style="color: green;">✅ Upload successful!</p>
+                        <p><strong>URI:</strong> ${result.uri}</p>
+                        <p><strong>BLAKE3:</strong> ${result.blake3}</p>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    uploadLog.innerHTML = `
+                        <h3>Upload Results:</h3>
+                        <p style="color: red;">❌ Upload failed (${response.status})</p>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                console.error('💥 Upload error:', error);
+                uploadLog.innerHTML = `
+                    <h3>Upload Results:</h3>
+                    <p style="color: red;">💥 Upload error: ${error.message}</p>
+                    <p>This could be a CORS issue or network connectivity problem.</p>
+                `;
+            }
+        }
+
+        // Check environment on page load
+        checkEnv();
+    </script>
+</body>
+</html>

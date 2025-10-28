@@ -5,7 +5,7 @@
 
 // Get API base URL from environment
 const getApiUrl = () => {
-  return import.meta.env.VITE_API_URL || 'http://localhost:8787';
+  return import.meta.env.VITE_API_URL || 'http://localhost:3001';
 };
 
 /**
@@ -23,7 +23,7 @@ export async function registerAssetOnChain(assetHash, uri, metadata = {}) {
   });
 
   // Use QuantumVault API instead of blockchain directly
-  const quantumVaultApiUrl = import.meta.env.VITE_QUANTUMVAULT_API_URL || 'https://quantumvault.dytallix.com';
+  const quantumVaultApiUrl = import.meta.env.VITE_QUANTUMVAULT_API_URL || 'http://localhost:3031';
   
   try {
     const response = await fetch(`${quantumVaultApiUrl}/register`, {
@@ -184,6 +184,7 @@ export async function uploadCiphertext(ciphertext, filename, mimeType, blake3Has
   });
 
   const quantumVaultApiUrl = import.meta.env.VITE_QUANTUMVAULT_API_URL || 'http://localhost:3031';
+  console.log('[Quantum API] Using URL:', quantumVaultApiUrl);
   
   try {
     // Create FormData for file upload
@@ -194,16 +195,24 @@ export async function uploadCiphertext(ciphertext, filename, mimeType, blake3Has
     formData.append('mime', mimeType);
     formData.append('blake3', blake3Hash);
 
+    console.log('[Quantum API] Form data entries:', Object.fromEntries(formData.entries()));
+    console.log('[Quantum API] Making request to:', `${quantumVaultApiUrl}/upload`);
+
     const response = await fetch(`${quantumVaultApiUrl}/upload`, {
       method: 'POST',
       body: formData
     });
 
+    console.log('[Quantum API] Response status:', response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('[Quantum API] Error response:', errorText);
+      throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const result = await response.json();
+    console.log('[Quantum API] Upload successful:', result);
     
     return {
       uri: result.uri,
@@ -212,7 +221,58 @@ export async function uploadCiphertext(ciphertext, filename, mimeType, blake3Has
     };
   } catch (error) {
     console.error('[Quantum API] Upload error:', error);
+    console.error('[Quantum API] Error stack:', error.stack);
     throw new Error(`Upload failed: ${error.message}`);
+  }
+}
+
+/**
+ * Download an asset from QuantumVault
+ * @param {string} uri - Asset URI (e.g., qv://hash.enc)
+ * @param {object} decryptionKey - Key and nonce for decryption
+ * @returns {Promise<object>} - Downloaded and decrypted file data
+ */
+export async function downloadAsset(uri, decryptionKey = null) {
+  console.log('[Quantum API] Downloading asset', { uri, hasKey: !!decryptionKey });
+
+  const quantumVaultApiUrl = import.meta.env.VITE_QUANTUMVAULT_API_URL || 'http://localhost:3031';
+  
+  try {
+    // Extract hash from URI (qv://hash.enc -> hash)
+    const assetHash = uri.replace('qv://', '').replace('.enc', '');
+    
+    const response = await fetch(`${quantumVaultApiUrl}/download/${assetHash}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/octet-stream'
+      }
+    });
+
+    console.log('[Quantum API] Download response:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Quantum API] Download error response:', errorText);
+      throw new Error(`Download failed: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const encryptedData = new Uint8Array(await response.arrayBuffer());
+    console.log('[Quantum API] Downloaded encrypted data:', encryptedData.length, 'bytes');
+    
+    // For now, return the encrypted data
+    // In a full implementation, you would decrypt here using decryptionKey
+    return {
+      success: true,
+      encryptedData: encryptedData,
+      size: encryptedData.length,
+      needsDecryption: true,
+      message: 'File downloaded successfully (encrypted)'
+    };
+    
+  } catch (error) {
+    console.error('[Quantum API] Download error:', error);
+    console.error('[Quantum API] Error stack:', error.stack);
+    throw new Error(`Download failed: ${error.message}`);
   }
 }
 

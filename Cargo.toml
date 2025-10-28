@@ -8,7 +8,6 @@ members = [
     "interoperability",
     "dytallix-lean-launch/node",
     "cli",
-    "sdk",
     "explorer/indexer",
     "explorer/api",
     "benchmarks",

@@ -6,12 +6,14 @@ import { copyToClipboard } from './utils/clipboard.js';
 import { truncateAddress } from './utils/format.js';
 import QuantumVault from './routes/QuantumVault.jsx';
 
-// Helper to get the correct RPC URL for the environment
+// Helper to get the correct API URL for the environment
+const getApiUrl = () => {
+  return import.meta.env.VITE_API_URL || 'http://localhost:3001';
+};
+
+// Helper to get the correct RPC URL for the blockchain node
 const getRpcUrl = () => {
-  const isDev = window.location.hostname === 'localhost';
-  return isDev 
-    ? (import.meta.env.VITE_RPC_HTTP_URL || 'http://localhost:3030')
-    : '/rpc';
+  return import.meta.env.VITE_RPC_URL || 'http://localhost:3030';
 };
 
 // Simple hash router

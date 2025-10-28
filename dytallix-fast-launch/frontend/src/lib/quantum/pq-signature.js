@@ -80,13 +80,18 @@ export async function verifyFalcon(message, signature, publicKey) {
 export async function generateProofSignature(assetHash, algorithm = 'dilithium') {
   console.log('[PQ-Signature] Generating proof signature (stub)', {
     assetHash,
-    algorithm
+    algorithm,
+    hashType: typeof assetHash
   });
+  
+  // Validate and normalize assetHash
+  const hashStr = typeof assetHash === 'string' ? assetHash : String(assetHash || 'unknown');
+  const hashPrefix = hashStr.length >= 16 ? hashStr.substring(0, 16) : hashStr.padEnd(16, '0');
   
   // For development, return a mock signature
   const mockSignature = {
     algorithm: algorithm,
-    signature: `mock_sig_${assetHash?.substring(0, 16)}_${Date.now()}`,
+    signature: `mock_sig_${hashPrefix}_${Date.now()}`,
     publicKey: `mock_pub_${algorithm}_${Math.random().toString(36).substr(2, 16)}`,
     timestamp: new Date().toISOString(),
     version: '1.0'

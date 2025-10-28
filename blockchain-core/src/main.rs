@@ -115,7 +115,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Dytallix blockchain core is running!");
 
     // Start API server
-    info!("Starting API server on port 3030...");
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3003".to_string());
+    info!("Starting API server on port {}...", port);
     tokio::spawn(async move {
         if let Err(e) = api::start_api_server().await {
             error!("API server failed to start: {e}");

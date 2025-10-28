@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.testnet.dytallix.org';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
 
 async function http(path, opts={}) {
   const res = await fetch(`${API_BASE}${path}`, {

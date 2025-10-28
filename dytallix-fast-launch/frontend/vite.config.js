@@ -11,19 +11,19 @@ export default defineConfig({
     proxy: {
       // Blockchain node API
       '/api/node': {
-        target: 'http://localhost:3030',
+        target: 'http://localhost:3003',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/node/, '')
       },
       // QuantumVault API  
       '/api/quantumvault': {
-        target: 'http://localhost:3031',
+        target: 'http://localhost:3002',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/quantumvault/, '')
       },
       // Backend API proxy
       '/api': {
-        target: 'http://localhost:8787',
+        target: 'http://localhost:3001',
         changeOrigin: true
       }
     }
