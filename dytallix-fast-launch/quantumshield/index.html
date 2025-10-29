@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="QuantumShield - Enterprise Post-Quantum Security Platform">
+  <title>QuantumShield - Enterprise PQC Security | Dytallix</title>
+  <link rel="stylesheet" href="../shared-assets/styles.css">
+  <style>
+    .accordion-header {
+      cursor: pointer;
+      padding: 1rem;
+      background: var(--gray-100);
+      border-radius: var(--radius-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all var(--transition-fast);
+    }
+    .accordion-header:hover {
+      background: var(--gray-200);
+    }
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+      padding: 0 1rem;
+    }
+    .accordion-item.active .accordion-content {
+      padding: 1rem;
+      max-height: 500px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="global-header">
+    <div class="container">
+      <div class="header-content">
+        <a href="../homepage/index.html" class="logo">
+          <img src="../shared-assets/logo.svg" alt="Dytallix Logo">
+          <span>Dytallix</span>
+        </a>
+        <nav>
+          <ul class="nav-menu">
+            <li><a href="../homepage/index.html">Home</a></li>
+            <li><a href="../build/index.html">Build</a></li>
+            <li><a href="./index.html" class="active">QuantumShield</a></li>
+            <li><a href="../build/docs.html">Docs</a></li>
+            <li><a href="#demo" class="btn btn-primary" style="padding: 0.5rem 1rem;">Request Demo</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- 1. Hero Section -->
+  <section id="hero" class="hero" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 4rem 0;">
+    <div class="container">
+      <div style="max-width: 900px; margin: 0 auto; text-align: center;">
+        <h1 class="hero-title" style="-webkit-text-fill-color: white;">
+          🛡️ QuantumShield
+        </h1>
+        <p class="hero-subtitle" style="color: #cbd5e1; margin-bottom: 2rem;">
+          Enterprise Post-Quantum Security Platform
+        </p>
+        
+        <!-- Video Placeholder -->
+        <div style="background: #1e293b; border-radius: var(--radius-xl); padding: 2rem; margin-bottom: 2rem; border: 2px solid #334155;">
+          <div style="aspect-ratio: 16/9; background: #0f172a; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; position: relative;">
+            <div style="text-align: center;">
+              <div style="font-size: 4rem; margin-bottom: 1rem;">▶️</div>
+              <div style="font-size: 1.25rem; margin-bottom: 0.5rem;">Harvest Now, Decrypt Later</div>
+              <div style="font-size: 0.875rem; opacity: 0.7;">2 minute explainer video</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- CTAs -->
+        <div class="hero-actions" style="gap: 1rem;">
+          <a href="#demo" class="btn btn-large" style="background-color: var(--accent-purple); color: white;">
+            Request Demo
+          </a>
+          <a href="#whitepaper" class="btn btn-large btn-outline" style="color: white; border-color: white;" 
+             onclick="Dytallix.Analytics.trackDownload('whitepaper')">
+            Get White Paper
+          </a>
+        </div>
+        
+        <!-- Trust Badges -->
+        <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 3rem; flex-wrap: wrap;">
+          <div style="text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏛️</div>
+            <div style="font-size: 0.875rem; opacity: 0.9;">Regulated Industries</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔄</div>
+            <div style="font-size: 0.875rem; opacity: 0.9;">Crypto-Agile</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+            <div style="font-size: 0.875rem; opacity: 0.9;">NIST PQC Aligned</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Threat Brief Section -->
+  <section id="threat" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">The Quantum Threat</h2>
+        <p class="section-subtitle">Understanding Harvest Now, Decrypt Later attacks</p>
+      </div>
+      
+      <div class="grid grid-2" style="margin-bottom: 3rem;">
+        <div>
+          <div class="card">
+            <h3 class="card-title">⚠️ The Attack is Already Happening</h3>
+            <p class="card-content">
+              Nation-state adversaries and sophisticated attackers are storing encrypted data today with the 
+              intent to decrypt it once quantum computers become available. Your sensitive information—financial 
+              records, health data, trade secrets—is at risk right now.
+            </p>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <h3 class="card-title">⏰ The Quantum Timeline</h3>
+            <p class="card-content">
+              Experts predict cryptographically relevant quantum computers within 5-10 years. The migration 
+              to post-quantum cryptography can take 3-5 years. Organizations must start their transition now 
+              to protect long-lived data.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Interactive Timeline -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title">HNDL Attack Timeline</h3>
+        <div style="position: relative; padding: 2rem 0;">
+          <div style="position: absolute; top: 50%; left: 0; right: 0; height: 4px; background: var(--gray-200);"></div>
+          <div style="display: flex; justify-content: space-between; position: relative;">
+            <div style="text-align: center; flex: 1;">
+              <div style="width: 60px; height: 60px; background: var(--danger-red); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">
+                Today
+              </div>
+              <div style="font-weight: 600; margin-bottom: 0.5rem;">Data Harvesting</div>
+              <div style="font-size: 0.875rem; color: var(--gray-600);">
+                Adversaries collect encrypted data
+              </div>
+            </div>
+            <div style="text-align: center; flex: 1;">
+              <div style="width: 60px; height: 60px; background: var(--warning-amber); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">
+                5-10y
+              </div>
+              <div style="font-weight: 600; margin-bottom: 0.5rem;">Quantum Arrives</div>
+              <div style="font-size: 0.875rem; color: var(--gray-600);">
+                CRQC breaks classical encryption
+              </div>
+            </div>
+            <div style="text-align: center; flex: 1;">
+              <div style="width: 60px; height: 60px; background: var(--success-green); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">
+                Now
+              </div>
+              <div style="font-weight: 600; margin-bottom: 0.5rem;">PQC Protection</div>
+              <div style="font-size: 0.875rem; color: var(--gray-600);">
+                Secure your data before it's too late
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Accordion FAQ -->
+      <div class="card">
+        <h3 class="card-title">FAQ: How Quantum Attacks Work</h3>
+        <div>
+          <div class="accordion-item" style="margin-bottom: 1rem;">
+            <div class="accordion-header">
+              <span><strong>What is a Cryptographically Relevant Quantum Computer (CRQC)?</strong></span>
+              <span>+</span>
+            </div>
+            <div class="accordion-content">
+              <p>A CRQC is a quantum computer powerful enough to break current encryption standards like RSA and ECC. 
+              It requires millions of stable qubits and will likely emerge within the next decade.</p>
+            </div>
+          </div>
+          
+          <div class="accordion-item" style="margin-bottom: 1rem;">
+            <div class="accordion-header">
+              <span><strong>Why should I act now if quantum computers aren't here yet?</strong></span>
+              <span>+</span>
+            </div>
+            <div class="accordion-content">
+              <p>Because adversaries are already harvesting encrypted data today. If your data has long-term value 
+              (financial records, health data, IP), it's vulnerable. The migration to PQC takes years, so starting 
+              now ensures you're protected before quantum computers arrive.</p>
+            </div>
+          </div>
+          
+          <div class="accordion-item">
+            <div class="accordion-header">
+              <span><strong>What data is most at risk?</strong></span>
+              <span>+</span>
+            </div>
+            <div class="accordion-content">
+              <p>Any data that must remain confidential for 5+ years: financial transactions, healthcare records, 
+              government communications, trade secrets, personal identity information, and encrypted backups.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 1.5rem; text-align: center;">
+          <a href="#whitepaper" class="btn btn-outline" onclick="Dytallix.Analytics.trackDownload('whitepaper')">
+            Download Technical White Paper →
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Solution Overview Section -->
+  <section id="solution" class="section" style="background: var(--gray-50);">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">The QuantumShield Solution</h2>
+        <p class="section-subtitle">Comprehensive post-quantum security for your enterprise</p>
+      </div>
+      
+      <!-- Animated Flow -->
+      <div style="max-width: 900px; margin: 0 auto 3rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; position: relative;">
+          <div style="position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; background: var(--primary-blue); z-index: 0;"></div>
+          
+          <div class="card" style="flex: 1; margin: 0 0.5rem; position: relative; z-index: 1;">
+            <div style="font-size: 2rem; text-align: center; margin-bottom: 0.5rem;">🔍</div>
+            <h4 style="text-align: center; margin-bottom: 0.5rem;">1. Identify</h4>
+            <p style="text-align: center; font-size: 0.875rem; color: var(--gray-600);">
+              Discover vulnerable cryptographic assets
+            </p>
+          </div>
+          
+          <div class="card" style="flex: 1; margin: 0 0.5rem; position: relative; z-index: 1;">
+            <div style="font-size: 2rem; text-align: center; margin-bottom: 0.5rem;">📊</div>
+            <h4 style="text-align: center; margin-bottom: 0.5rem;">2. Classify</h4>
+            <p style="text-align: center; font-size: 0.875rem; color: var(--gray-600);">
+              Prioritize based on risk and value
+            </p>
+          </div>
+          
+          <div class="card" style="flex: 1; margin: 0 0.5rem; position: relative; z-index: 1;">
+            <div style="font-size: 2rem; text-align: center; margin-bottom: 0.5rem;">🛡️</div>
+            <h4 style="text-align: center; margin-bottom: 0.5rem;">3. Protect</h4>
+            <p style="text-align: center; font-size: 0.875rem; color: var(--gray-600);">
+              Migrate to quantum-resistant encryption
+            </p>
+          </div>
+          
+          <div class="card" style="flex: 1; margin: 0 0.5rem; position: relative; z-index: 1;">
+            <div style="font-size: 2rem; text-align: center; margin-bottom: 0.5rem;">✅</div>
+            <h4 style="text-align: center; margin-bottom: 0.5rem;">4. Prove</h4>
+            <p style="text-align: center; font-size: 0.875rem; color: var(--gray-600);">
+              Demonstrate compliance & security
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div style="text-align: center;">
+        <a href="#features" class="btn btn-primary btn-large">See It in Action →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Feature Grid Section -->
+  <section id="features" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Key Features</h2>
+        <p class="section-subtitle">Enterprise-grade quantum security capabilities</p>
+      </div>
+      
+      <div class="grid grid-2">
+        <div class="card">
+          <h3 class="card-title">🔐 Post-Quantum Encryption Enforcement</h3>
+          <p class="card-content" style="margin-bottom: 1rem;">
+            Automatically enforce NIST-approved PQC algorithms across your infrastructure. Support for 
+            Kyber, Dilithium, SPHINCS+, and Falcon with seamless integration.
+          </p>
+          <ul style="list-style: none; padding: 0; font-size: 0.875rem;">
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Automatic algorithm selection
+            </li>
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Hybrid classical + PQC mode
+            </li>
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Policy-based enforcement
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">🔄 Secure Data Re-Wrapping</h3>
+          <p class="card-content" style="margin-bottom: 1rem;">
+            Migrate existing encrypted data from classical to quantum-resistant encryption without 
+            decrypting in transit. Zero-downtime migration paths.
+          </p>
+          <ul style="list-style: none; padding: 0; font-size: 0.875rem;">
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Automated re-encryption pipeline
+            </li>
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Batch processing capabilities
+            </li>
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Rollback protection
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">📋 Attestation & Audit Trail</h3>
+          <p class="card-content" style="margin-bottom: 1rem;">
+            Immutable cryptographic proof of your security posture. Meet compliance requirements with 
+            blockchain-based attestation records.
+          </p>
+          <ul style="list-style: none; padding: 0; font-size: 0.875rem;">
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Real-time compliance monitoring
+            </li>
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Tamper-proof audit logs
+            </li>
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Automated reporting
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">⚙️ Crypto-Agile Framework</h3>
+          <p class="card-content" style="margin-bottom: 1rem;">
+            Future-proof your infrastructure with the ability to swap cryptographic algorithms without 
+            major code changes. Adapt as standards evolve.
+          </p>
+          <ul style="list-style: none; padding: 0; font-size: 0.875rem;">
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Algorithm abstraction layer
+            </li>
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Multi-algorithm support
+            </li>
+            <li style="padding: 0.5rem 0; border-top: 1px solid var(--gray-200);">
+              ✓ Gradual migration paths
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Architecture / How It Works Section -->
+  <section id="architecture" class="section" style="background: var(--gray-50);">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-subtitle">QuantumShield architecture and deployment</p>
+      </div>
+      
+      <div class="card">
+        <div style="margin-bottom: 2rem;">
+          <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem;">
+            <button class="btn btn-outline" onclick="showArchTab('classical')">Classical</button>
+            <button class="btn btn-primary" onclick="showArchTab('hybrid')">Hybrid</button>
+            <button class="btn btn-outline" onclick="showArchTab('pqc')">Full PQC</button>
+          </div>
+        </div>
+        
+        <div id="arch-hybrid" style="display: block;">
+          <h3 style="text-align: center; margin-bottom: 2rem;">Hybrid Classical + PQC Architecture</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div style="flex: 1; padding: 1.5rem; background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); text-align: center;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">📱</div>
+              <strong>Client Application</strong>
+              <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.5rem;">Your systems</div>
+            </div>
+            
+            <div style="padding: 0 2rem;">→</div>
+            
+            <div style="flex: 1; padding: 1.5rem; background: var(--primary-blue); color: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); text-align: center;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">🛡️</div>
+              <strong>QuantumShield Gateway</strong>
+              <div style="font-size: 0.75rem; opacity: 0.9; margin-top: 0.5rem;">Hybrid encryption layer</div>
+            </div>
+            
+            <div style="padding: 0 2rem;">→</div>
+            
+            <div style="flex: 1; padding: 1.5rem; background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); text-align: center;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">💾</div>
+              <strong>Data Storage</strong>
+              <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.5rem;">PQC encrypted</div>
+            </div>
+          </div>
+          
+          <div style="background: white; padding: 2rem; border-radius: var(--radius-lg); border: 2px solid var(--primary-blue);">
+            <h4 style="margin-bottom: 1rem;">4-Step Deployment Process</h4>
+            <div style="display: grid; gap: 1rem;">
+              <div style="display: flex; align-items: start; gap: 1rem;">
+                <div style="width: 40px; height: 40px; background: var(--primary-blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700;">
+                  1
+                </div>
+                <div>
+                  <strong>Discovery & Assessment</strong>
+                  <p style="margin: 0.5rem 0 0; color: var(--gray-600); font-size: 0.875rem;">
+                    Scan your infrastructure to identify cryptographic assets and vulnerable systems
+                  </p>
+                </div>
+              </div>
+              
+              <div style="display: flex; align-items: start; gap: 1rem;">
+                <div style="width: 40px; height: 40px; background: var(--accent-purple); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700;">
+                  2
+                </div>
+                <div>
+                  <strong>Policy Configuration</strong>
+                  <p style="margin: 0.5rem 0 0; color: var(--gray-600); font-size: 0.875rem;">
+                    Define security policies, algorithm preferences, and migration timelines
+                  </p>
+                </div>
+              </div>
+              
+              <div style="display: flex; align-items: start; gap: 1rem;">
+                <div style="width: 40px; height: 40px; background: var(--success-green); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700;">
+                  3
+                </div>
+                <div>
+                  <strong>Gradual Migration</strong>
+                  <p style="margin: 0.5rem 0 0; color: var(--gray-600); font-size: 0.875rem;">
+                    Deploy QuantumShield gateway and begin phased migration to PQC encryption
+                  </p>
+                </div>
+              </div>
+              
+              <div style="display: flex; align-items: start; gap: 1rem;">
+                <div style="width: 40px; height: 40px; background: var(--warning-amber); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700;">
+                  4
+                </div>
+                <div>
+                  <strong>Monitor & Attest</strong>
+                  <p style="margin: 0.5rem 0 0; color: var(--gray-600); font-size: 0.875rem;">
+                    Continuous monitoring with blockchain-based attestation for compliance
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Proof & Credibility Section -->
+  <section id="proof" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Built for Critical Infrastructure</h2>
+        <p class="section-subtitle">Trusted by organizations that can't afford to fail</p>
+      </div>
+      
+      <div class="grid grid-3">
+        <div class="card" style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">🏛️</div>
+          <h3 class="card-title">Critical Infrastructure</h3>
+          <p class="card-content">
+            Designed for financial institutions, healthcare providers, and government agencies where 
+            data protection is mission-critical.
+          </p>
+        </div>
+        
+        <div class="card" style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">🎯</div>
+          <h3 class="card-title">Offensive Mindset</h3>
+          <p class="card-content">
+            Built by security researchers who understand real-world threats. We think like attackers 
+            to defend better.
+          </p>
+        </div>
+        
+        <div class="card" style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📋</div>
+          <h3 class="card-title">Regulatory Readiness</h3>
+          <p class="card-content">
+            Compliant with emerging PQC regulations. NIST standards, FIPS validation roadmap, and 
+            industry-specific frameworks.
+          </p>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 2rem;">
+        <a href="#whitepaper" class="btn btn-secondary btn-large" onclick="Dytallix.Analytics.trackDownload('whitepaper')">
+          Read Technical White Paper →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Demo / Contact Form Section -->
+  <section id="demo" class="section" style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: white;">
+    <div class="container">
+      <div style="max-width: 700px; margin: 0 auto;">
+        <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">Request a Demo</h2>
+        <p style="text-align: center; font-size: 1.125rem; margin-bottom: 3rem; opacity: 0.9;">
+          See QuantumShield in action. Our team will show you how to protect your organization from quantum threats.
+        </p>
+        
+        <div class="card">
+          <form class="demo-form" id="demo-request-form">
+            <div class="form-group">
+              <label class="form-label">Name *</label>
+              <input type="text" name="name" class="form-input" required placeholder="John Doe">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Organization *</label>
+              <input type="text" name="organization" class="form-input" required placeholder="Acme Corporation">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Email *</label>
+              <input type="email" name="email" class="form-input" required placeholder="john@acme.com">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">What type of data concerns you most?</label>
+              <select name="data_type" class="form-select">
+                <option value="">Select...</option>
+                <option value="financial">Financial Records</option>
+                <option value="health">Healthcare Data</option>
+                <option value="ip">Intellectual Property</option>
+                <option value="government">Government Communications</option>
+                <option value="personal">Personal Identity Information</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Additional Details</label>
+              <textarea name="details" class="form-textarea" placeholder="Tell us about your security requirements..."></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-large" style="width: 100%; background-color: var(--accent-purple);">
+              Request Demo
+            </button>
+            
+            <p style="font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 1rem;">
+              By submitting this form, you agree to our 
+              <a href="#" style="color: var(--primary-blue);">Privacy Policy</a>. 
+              We'll never share your information.
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Success Modal -->
+  <div id="success-modal" class="modal-overlay modal-hidden">
+    <div class="modal-content">
+      <h2 style="margin-bottom: 1rem; color: var(--success-green);">✓ Thank You!</h2>
+      <p style="margin-bottom: 1.5rem; color: var(--gray-600);">
+        Your demo request has been received. Our team will contact you within 24 hours to schedule your personalized QuantumShield demonstration.
+      </p>
+      <button class="btn btn-primary" style="width: 100%;" onclick="Dytallix.Modal.close('success-modal')">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- 8. Footer -->
+  <footer class="global-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>QuantumShield</h4>
+          <ul class="footer-links">
+            <li><a href="#hero">Overview</a></li>
+            <li><a href="#threat">Threat Brief</a></li>
+            <li><a href="#solution">Solution</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#demo">Request Demo</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Technology</h4>
+          <ul class="footer-links">
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#proof">Security Approach</a></li>
+            <li><a href="#whitepaper" onclick="Dytallix.Analytics.trackDownload('whitepaper')">White Paper</a></li>
+            <li><a href="../build/docs.html">API Documentation</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Build on Dytallix</h4>
+          <ul class="footer-links">
+            <li><a href="../build/index.html">Developer Ecosystem</a></li>
+            <li><a href="../build/pqc-wallet.html">PQC Wallet</a></li>
+            <li><a href="../build/faucet.html">Testnet Faucet</a></li>
+            <li><a href="../build/explorer.html">Blockchain Explorer</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Stay Updated</h4>
+          <form style="margin-bottom: 1rem;" onsubmit="event.preventDefault(); alert('Newsletter subscription');">
+            <input type="email" class="form-input" placeholder="Your email" 
+                   style="margin-bottom: 0.5rem; background: var(--gray-800); border-color: var(--gray-700); color: white;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Subscribe</button>
+          </form>
+          <ul class="footer-links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 Dytallix. All rights reserved. | Securing the Quantum Future</p>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--gray-400);">
+          QuantumShield is built on NIST-approved post-quantum cryptographic algorithms. This technology is designed 
+          to protect against both classical and quantum computer attacks. Dytallix makes no warranties regarding the 
+          timeline for quantum computing development or the effectiveness of any cryptographic algorithm against 
+          future attack vectors. Organizations should conduct their own risk assessments.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../shared-assets/app.js"></script>
+  <script>
+    function showArchTab(tab) {
+      // Tab switching logic
+      console.log('Switching to', tab, 'architecture view');
+    }
+  </script>
+</body>
+</html>

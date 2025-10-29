@@ -12,6 +12,8 @@ __pycache__/
 *.so
 .Python
 build/
+# Exception: allow dytallix-fast-launch/build directory for web pages
+!dytallix-fast-launch/build/
 develop-eggs/
 dist/
 downloads/
