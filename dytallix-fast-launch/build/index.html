@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Build on Dytallix - Developer Ecosystem for Post-Quantum Blockchain">
+  <title>Build on Dytallix - Developer Ecosystem</title>
+  <link rel="stylesheet" href="../shared-assets/styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="global-header">
+    <div class="container">
+      <div class="header-content">
+        <a href="../homepage/index.html" class="logo">
+          <img src="../shared-assets/logo.svg" alt="Dytallix Logo">
+          <span>Dytallix</span>
+        </a>
+        <nav>
+          <ul class="nav-menu">
+            <li><a href="../homepage/index.html">Home</a></li>
+            <li><a href="./index.html" class="active">Build</a></li>
+            <li><a href="../quantumshield/index.html">QuantumShield</a></li>
+            <li><a href="./docs.html">Docs</a></li>
+            <li><a href="../quantumshield/index.html#demo" class="btn btn-primary" style="padding: 0.5rem 1rem;">Request Demo</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
+    <div class="container">
+      <h1 class="hero-title" style="-webkit-text-fill-color: white;">
+        Build the Quantum-Resistant Future
+      </h1>
+      <p class="hero-subtitle" style="color: #cbd5e1;">
+        A complete developer ecosystem for post-quantum blockchain applications
+      </p>
+      <div class="hero-actions">
+        <a href="./docs.html" class="btn btn-primary btn-large">Read the Docs</a>
+        <a href="./pqc-wallet.html" class="btn btn-outline btn-large" style="color: white; border-color: white;">
+          Try PQC Wallet
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Overview -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Developer Ecosystem Overview</h2>
+        <p class="section-subtitle">
+          Everything you need to build, test, and deploy quantum-resistant applications
+        </p>
+      </div>
+      
+      <div style="max-width: 800px; margin: 0 auto 3rem; text-align: center;">
+        <p style="font-size: 1.125rem; color: var(--gray-600); line-height: 1.8;">
+          Dytallix provides a complete blockchain platform built from the ground up with post-quantum 
+          cryptography. Our developer tools, testnet infrastructure, and comprehensive documentation 
+          make it easy to create quantum-resistant decentralized applications.
+        </p>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <h3 class="card-title">🔐 PQC Wallet</h3>
+          <p class="card-content">
+            Generate and manage post-quantum keypairs using Kyber and Dilithium. Support for 
+            hybrid RSA+PQC mode and local encrypted storage.
+          </p>
+          <a href="./pqc-wallet.html" class="btn btn-primary" style="margin-top: 1rem;">Open Wallet →</a>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">💧 Testnet Faucet</h3>
+          <p class="card-content">
+            Request testnet tokens to start building. Rate-limited with captcha protection and 
+            transaction log integration.
+          </p>
+          <a href="./faucet.html" class="btn btn-primary" style="margin-top: 1rem;">Get Tokens →</a>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">🔍 Blockchain Explorer</h3>
+          <p class="card-content">
+            Real-time blockchain explorer with PQC signature insights, WebSocket block feed, 
+            and comprehensive search capabilities.
+          </p>
+          <a href="./explorer.html" class="btn btn-primary" style="margin-top: 1rem;">Explore Chain →</a>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">📊 Developer Dashboard</h3>
+          <p class="card-content">
+            Manage projects, API keys, usage analytics, and deploy smart contracts through 
+            our comprehensive dashboard.
+          </p>
+          <a href="./dashboard.html" class="btn btn-primary" style="margin-top: 1rem;">Open Dashboard →</a>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">💰 Tokenomics</h3>
+          <p class="card-content">
+            Interactive charts, staking calculator, governance feed, and complete token 
+            economics visualization.
+          </p>
+          <a href="./tokenomics.html" class="btn btn-primary" style="margin-top: 1rem;">View Tokenomics →</a>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">📚 Documentation</h3>
+          <p class="card-content">
+            Comprehensive guides, API reference with OpenAPI specs, code examples, and 
+            interactive "Try It" console.
+          </p>
+          <a href="./docs.html" class="btn btn-primary" style="margin-top: 1rem;">Read Docs →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="section" style="background-color: var(--gray-50);">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Technology Stack</h2>
+        <p class="section-subtitle">
+          Built with cutting-edge technologies for performance and security
+        </p>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="card">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">🔐</div>
+          <h4 style="margin-bottom: 0.5rem;">Post-Quantum Cryptography</h4>
+          <p style="color: var(--gray-600); font-size: 0.9375rem; margin-bottom: 1rem;">
+            NIST-approved algorithms: Kyber, Dilithium, SPHINCS+, and Falcon for quantum-resistant security.
+          </p>
+          <div style="background: var(--gray-100); padding: 0.75rem; border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.875rem;">
+            Lattice-based cryptography<br>
+            Hybrid classical + PQC<br>
+            Crypto-agile framework
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">⚙️</div>
+          <h4 style="margin-bottom: 0.5rem;">Rust & WebAssembly</h4>
+          <p style="color: var(--gray-600); font-size: 0.9375rem; margin-bottom: 1rem;">
+            High-performance blockchain core in Rust with WASM support for browser-based applications.
+          </p>
+          <div style="background: var(--gray-100); padding: 0.75rem; border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.875rem;">
+            Memory-safe execution<br>
+            Zero-cost abstractions<br>
+            Browser compatibility
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">🔗</div>
+          <h4 style="margin-bottom: 0.5rem;">GraphQL & REST APIs</h4>
+          <p style="color: var(--gray-600); font-size: 0.9375rem; margin-bottom: 1rem;">
+            Flexible query interface with GraphQL and traditional REST endpoints for all operations.
+          </p>
+          <div style="background: var(--gray-100); padding: 0.75rem; border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.875rem;">
+            Type-safe queries<br>
+            Real-time subscriptions<br>
+            OpenAPI documentation
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">📦</div>
+          <h4 style="margin-bottom: 0.5rem;">IPFS Integration</h4>
+          <p style="color: var(--gray-600); font-size: 0.9375rem; margin-bottom: 1rem;">
+            Decentralized storage for contract data, metadata, and large file storage.
+          </p>
+          <div style="background: var(--gray-100); padding: 0.75rem; border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.875rem;">
+            Content-addressable storage<br>
+            Distributed file system<br>
+            Immutable references
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">⚡</div>
+          <h4 style="margin-bottom: 0.5rem;">Smart Contracts</h4>
+          <p style="color: var(--gray-600); font-size: 0.9375rem; margin-bottom: 1rem;">
+            Write and deploy smart contracts with PQC signature verification built-in.
+          </p>
+          <div style="background: var(--gray-100); padding: 0.75rem; border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.875rem;">
+            WASM runtime<br>
+            Gas metering<br>
+            PQC signature support
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">🔄</div>
+          <h4 style="margin-bottom: 0.5rem;">Cross-Chain Bridges</h4>
+          <p style="color: var(--gray-600); font-size: 0.9375rem; margin-bottom: 1rem;">
+            Connect to Ethereum, Cosmos, and other major blockchain networks.
+          </p>
+          <div style="background: var(--gray-100); padding: 0.75rem; border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.875rem;">
+            Multi-chain compatibility<br>
+            Asset bridging<br>
+            Secure validators
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Start -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Quick Start Guide</h2>
+        <p class="section-subtitle">Get up and running in minutes</p>
+      </div>
+
+      <div style="max-width: 800px; margin: 0 auto;">
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <h3 style="margin-bottom: 1rem;">1️⃣ Create a Wallet</h3>
+          <p style="color: var(--gray-600); margin-bottom: 1rem;">
+            Generate your post-quantum keypair using our browser-based wallet tool.
+          </p>
+          <div style="background: #0f172a; padding: 1rem; border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.875rem; color: #e2e8f0;">
+            <span style="color: #94a3b8;">// Navigate to wallet</span><br>
+            <span style="color: #60a5fa;">https://dytallix.com/build/pqc-wallet.html</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <h3 style="margin-bottom: 1rem;">2️⃣ Get Testnet Tokens</h3>
+          <p style="color: var(--gray-600); margin-bottom: 1rem;">
+            Request tokens from the faucet to start making transactions.
+          </p>
+          <div style="background: #0f172a; padding: 1rem; border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.875rem; color: #e2e8f0;">
+            <span style="color: #94a3b8;">// Request tokens</span><br>
+            <span style="color: #60a5fa;">POST</span> /faucet/request<br>
+            { "address": "your_address_here" }
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom: 1rem;">3️⃣ Start Building</h3>
+          <p style="color: var(--gray-600); margin-bottom: 1rem;">
+            Check out our documentation and start developing your quantum-resistant dApp.
+          </p>
+          <a href="./docs.html" class="btn btn-primary btn-large">Read Full Documentation →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cross-link to QuantumShield -->
+  <section class="section" style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: white;">
+    <div class="container">
+      <div style="text-align: center; max-width: 700px; margin: 0 auto;">
+        <h2 style="font-size: 2.25rem; margin-bottom: 1rem;">Need Enterprise Security?</h2>
+        <p style="font-size: 1.125rem; margin-bottom: 2rem; opacity: 0.9;">
+          If you're looking to protect existing infrastructure from quantum threats, 
+          explore QuantumShield - our enterprise post-quantum security platform.
+        </p>
+        <a href="../quantumshield/index.html" class="btn btn-large" 
+           style="background-color: white; color: var(--accent-purple); font-weight: 600;">
+          Explore QuantumShield →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="global-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>Build on Dytallix</h4>
+          <ul class="footer-links">
+            <li><a href="./index.html">Overview</a></li>
+            <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
+            <li><a href="./faucet.html">Faucet</a></li>
+            <li><a href="./explorer.html">Explorer</a></li>
+            <li><a href="./dashboard.html">Dashboard</a></li>
+            <li><a href="./docs.html">Documentation</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>QuantumShield</h4>
+          <ul class="footer-links">
+            <li><a href="../quantumshield/index.html">Overview</a></li>
+            <li><a href="../quantumshield/index.html#threat">Threat Brief</a></li>
+            <li><a href="../quantumshield/index.html#solution">Solution</a></li>
+            <li><a href="../quantumshield/index.html#features">Features</a></li>
+            <li><a href="../quantumshield/index.html#demo">Request Demo</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="./tokenomics.html">Tokenomics</a></li>
+            <li><a href="#" onclick="Dytallix.Analytics.trackDownload('whitepaper')">White Paper</a></li>
+            <li><a href="./docs.html">API Reference</a></li>
+            <li><a href="https://github.com/dytallix" target="_blank" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Company</h4>
+          <ul class="footer-links">
+            <li><a href="#">About</a></li>
+            <li><a href="#">Blog</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 Dytallix. All rights reserved. | Securing the Quantum Future</p>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--gray-400);">
+          Post-Quantum Cryptography implementation based on NIST standards. 
+          This technology is designed for quantum-resistant security.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../shared-assets/app.js"></script>
+</body>
+</html>

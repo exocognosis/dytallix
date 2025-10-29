@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Developer Dashboard - Dytallix</title>
+  <link rel="stylesheet" href="../shared-assets/styles.css">
+</head>
+<body>
+  <header class="global-header">
+    <div class="container">
+      <div class="header-content">
+        <a href="../homepage/index.html" class="logo">
+          <img src="../shared-assets/logo.svg" alt="Dytallix Logo">
+          <span>Dytallix</span>
+        </a>
+        <nav>
+          <ul class="nav-menu">
+            <li><a href="../homepage/index.html">Home</a></li>
+            <li><a href="./index.html">Build</a></li>
+            <li><a href="../quantumshield/index.html">QuantumShield</a></li>
+            <li><a href="./docs.html">Docs</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <section class="section" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 3rem 0;">
+    <div class="container">
+      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">📊 Developer Dashboard</h1>
+      <p style="font-size: 1.25rem; opacity: 0.9;">Manage projects, API keys, and monitor usage</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>My Projects</h2>
+        <button class="btn btn-primary">+ New Project</button>
+      </div>
+
+      <div class="grid grid-3" style="margin-bottom: 2rem;">
+        <div class="card">
+          <h4>Total Requests</h4>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--primary-blue);">125,489</div>
+          <div style="font-size: 0.875rem; color: var(--success-green); margin-top: 0.5rem;">↑ 12% this month</div>
+        </div>
+        <div class="card">
+          <h4>Avg Latency</h4>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--success-green);">45ms</div>
+          <div style="font-size: 0.875rem; color: var(--success-green); margin-top: 0.5rem;">↓ 5ms improved</div>
+        </div>
+        <div class="card">
+          <h4>Active Keys</h4>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--accent-purple);">3</div>
+          <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">2 production, 1 dev</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title">Environment Switcher</h3>
+        <div style="display: flex; gap: 1rem;">
+          <button class="btn btn-outline">Development</button>
+          <button class="btn btn-outline">Staging</button>
+          <button class="btn btn-primary">Mainnet</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title">API Keys</h3>
+        <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--radius-md); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: var(--font-mono); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                dyt_live_1234567890abcdef
+              </div>
+              <div style="font-size: 0.75rem; color: var(--gray-500);">Production | Created: Jan 15, 2025</div>
+            </div>
+            <button class="btn btn-outline">Manage</button>
+          </div>
+        </div>
+        <button class="btn btn-secondary">+ Generate New Key</button>
+      </div>
+
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title">Wallet Integration</h3>
+        <div style="display: flex; gap: 2rem; align-items: center;">
+          <div>
+            <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Connected Wallet</div>
+            <div style="font-family: var(--font-mono); font-weight: 600;">dyt1abc...xyz</div>
+          </div>
+          <div>
+            <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Balance</div>
+            <div style="font-weight: 700; font-size: 1.5rem; color: var(--primary-blue);">1,250 DYT</div>
+          </div>
+          <div style="margin-left: auto;">
+            <a href="./faucet.html" class="btn btn-outline">Get Testnet Tokens</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Contract Deployment Wizard</h3>
+        <p class="card-content">Deploy smart contracts with PQC signature verification.</p>
+        <button class="btn btn-primary">Start Deployment</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="global-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>Build on Dytallix</h4>
+          <ul class="footer-links">
+            <li><a href="./index.html">Overview</a></li>
+            <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 Dytallix. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../shared-assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blockchain Explorer - Dytallix</title>
+  <link rel="stylesheet" href="../shared-assets/styles.css">
+</head>
+<body>
+  <header class="global-header">
+    <div class="container">
+      <div class="header-content">
+        <a href="../homepage/index.html" class="logo">
+          <img src="../shared-assets/logo.svg" alt="Dytallix Logo">
+          <span>Dytallix</span>
+        </a>
+        <nav>
+          <ul class="nav-menu">
+            <li><a href="../homepage/index.html">Home</a></li>
+            <li><a href="./index.html">Build</a></li>
+            <li><a href="../quantumshield/index.html">QuantumShield</a></li>
+            <li><a href="./docs.html">Docs</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <section class="section" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 3rem 0;">
+    <div class="container">
+      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">🔍 Blockchain Explorer</h1>
+      <p style="font-size: 1.25rem; opacity: 0.9;">Real-time PQC blockchain explorer with signature insights</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="card">
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+          <input type="text" class="form-input" placeholder="Search by address, tx hash, or block..." style="flex: 1;">
+          <button class="btn btn-primary">Search</button>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+          <label><input type="checkbox" checked> Kyber</label>
+          <label><input type="checkbox" checked> Dilithium</label>
+          <label><input type="checkbox" checked> SPHINCS+</label>
+        </div>
+      </div>
+
+      <div class="grid grid-3" style="margin-bottom: 2rem;">
+        <div class="card">
+          <h4>Latest Block</h4>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--primary-blue);">145,892</div>
+        </div>
+        <div class="card">
+          <h4>Block Time</h4>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--success-green);">3.2s</div>
+        </div>
+        <div class="card">
+          <h4>Network Hash Rate</h4>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--accent-purple);">1.2 TH/s</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Recent Blocks</h3>
+        <div id="block-feed">
+          <div style="padding: 1rem; border-bottom: 1px solid var(--gray-200);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <strong>Block #145,892</strong>
+              <span style="color: var(--gray-500);">2 seconds ago</span>
+            </div>
+            <div style="font-size: 0.875rem; color: var(--gray-600);">
+              Transactions: 45 | Size: 128 KB | Miner: dyt1abc...
+            </div>
+          </div>
+          <div style="padding: 1rem; border-bottom: 1px solid var(--gray-200);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <strong>Block #145,891</strong>
+              <span style="color: var(--gray-500);">5 seconds ago</span>
+            </div>
+            <div style="font-size: 0.875rem; color: var(--gray-600);">
+              Transactions: 32 | Size: 95 KB | Miner: dyt1def...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 2rem;">
+        <h3 class="card-title">Recent Transactions</h3>
+        <div>
+          <div style="padding: 1rem; border-bottom: 1px solid var(--gray-200);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="font-family: var(--font-mono); font-size: 0.875rem;">0x1234...abcd</span>
+              <span style="background: var(--success-green); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem;">
+                ✓ Success
+              </span>
+            </div>
+            <div style="font-size: 0.875rem; color: var(--gray-600);">
+              From: dyt1abc... | To: dyt1def... | Amount: 100 DYT | Signature: Dilithium
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="global-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>Build on Dytallix</h4>
+          <ul class="footer-links">
+            <li><a href="./index.html">Overview</a></li>
+            <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
+            <li><a href="./faucet.html">Faucet</a></li>
+            <li><a href="./explorer.html">Explorer</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 Dytallix. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../shared-assets/app.js"></script>
+  <script>
+    // WebSocket simulation for real-time block feed
+    setInterval(() => {
+      console.log('Real-time block update (WebSocket)');
+    }, 3000);
+  </script>
+</body>
+</html>

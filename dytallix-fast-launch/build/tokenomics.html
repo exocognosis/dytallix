@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tokenomics - Dytallix</title>
+  <link rel="stylesheet" href="../shared-assets/styles.css">
+</head>
+<body>
+  <header class="global-header">
+    <div class="container">
+      <div class="header-content">
+        <a href="../homepage/index.html" class="logo">
+          <img src="../shared-assets/logo.svg" alt="Dytallix Logo">
+          <span>Dytallix</span>
+        </a>
+        <nav>
+          <ul class="nav-menu">
+            <li><a href="../homepage/index.html">Home</a></li>
+            <li><a href="./index.html">Build</a></li>
+            <li><a href="../quantumshield/index.html">QuantumShield</a></li>
+            <li><a href="./docs.html">Docs</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <section class="section" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 3rem 0;">
+    <div class="container">
+      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">💰 Tokenomics</h1>
+      <p style="font-size: 1.25rem; opacity: 0.9;">DYT Token Economics and Staking Information</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid grid-3" style="margin-bottom: 3rem;">
+        <div class="card">
+          <h4>Total Supply</h4>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--primary-blue);">1,000,000,000</div>
+          <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">DYT Tokens</div>
+        </div>
+        <div class="card">
+          <h4>Circulating Supply</h4>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--success-green);">350,000,000</div>
+          <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">35% of total</div>
+        </div>
+        <div class="card">
+          <h4>Current APY</h4>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--accent-purple);">12.5%</div>
+          <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">Staking rewards</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title">Token Allocation</h3>
+        <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 300px;">
+            <div style="height: 200px; background: var(--gray-100); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+              📊 Interactive Pie Chart Placeholder
+            </div>
+          </div>
+          <div style="flex: 1; min-width: 300px;">
+            <div style="margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span>🔵 Public Sale - 35%</span>
+                <strong>350M DYT</strong>
+              </div>
+              <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                <div style="width: 35%; height: 100%; background: var(--primary-blue);"></div>
+              </div>
+            </div>
+            <div style="margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span>🟣 Team & Advisors - 20%</span>
+                <strong>200M DYT</strong>
+              </div>
+              <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                <div style="width: 20%; height: 100%; background: var(--accent-purple);"></div>
+              </div>
+            </div>
+            <div style="margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span>🟢 Ecosystem Fund - 25%</span>
+                <strong>250M DYT</strong>
+              </div>
+              <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                <div style="width: 25%; height: 100%; background: var(--success-green);"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span>🟡 Staking Rewards - 20%</span>
+                <strong>200M DYT</strong>
+              </div>
+              <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                <div style="width: 20%; height: 100%; background: var(--warning-amber);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title">Staking Calculator</h3>
+        <div class="grid grid-2">
+          <div>
+            <div class="form-group">
+              <label class="form-label">Amount to Stake (DYT)</label>
+              <input type="number" class="form-input" id="stake-amount" value="10000" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Staking Period</label>
+              <select class="form-select" id="stake-period">
+                <option value="30">30 Days</option>
+                <option value="90" selected>90 Days</option>
+                <option value="180">180 Days</option>
+                <option value="365">1 Year</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="calculateRewards()">Calculate Rewards</button>
+          </div>
+          <div style="background: var(--gray-50); padding: 2rem; border-radius: var(--radius-md);">
+            <h4 style="margin-bottom: 1rem;">Estimated Rewards</h4>
+            <div style="font-size: 2.5rem; font-weight: 700; color: var(--success-green); margin-bottom: 0.5rem;">
+              <span id="reward-amount">312.5</span> DYT
+            </div>
+            <div style="font-size: 0.875rem; color: var(--gray-600);">
+              Based on 12.5% APY
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title">Governance</h3>
+        <p class="card-content">Token holders can participate in governance decisions.</p>
+        <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--radius-md); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <strong>Proposal #12: Upgrade PQC Algorithm Suite</strong>
+            <span style="background: var(--success-green); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem;">
+              Active
+            </span>
+          </div>
+          <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 1rem;">
+            Ends in 3 days | 65% Yes, 35% No
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary">Vote Yes</button>
+            <button class="btn btn-outline">Vote No</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Vesting Schedule</h3>
+        <div style="height: 250px; background: var(--gray-50); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+          📈 Interactive Vesting Timeline Chart (Recharts/D3)
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="global-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>Build on Dytallix</h4>
+          <ul class="footer-links">
+            <li><a href="./index.html">Overview</a></li>
+            <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 Dytallix. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../shared-assets/app.js"></script>
+  <script>
+    function calculateRewards() {
+      const amount = parseFloat(document.getElementById('stake-amount').value);
+      const period = parseInt(document.getElementById('stake-period').value);
+      const apy = 0.125; // 12.5%
+      const rewards = (amount * apy * period) / 365;
+      document.getElementById('reward-amount').textContent = rewards.toFixed(2);
+      Dytallix.Analytics.track('staking_calculation', { amount, period });
+    }
+  </script>
+</body>
+</html>

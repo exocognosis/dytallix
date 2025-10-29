@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PQC Wallet - Post-Quantum Cryptography Wallet for Dytallix">
+  <title>PQC Wallet - Dytallix</title>
+  <link rel="stylesheet" href="../shared-assets/styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="global-header">
+    <div class="container">
+      <div class="header-content">
+        <a href="../homepage/index.html" class="logo">
+          <img src="../shared-assets/logo.svg" alt="Dytallix Logo">
+          <span>Dytallix</span>
+        </a>
+        <nav>
+          <ul class="nav-menu">
+            <li><a href="../homepage/index.html">Home</a></li>
+            <li><a href="./index.html">Build</a></li>
+            <li><a href="../quantumshield/index.html">QuantumShield</a></li>
+            <li><a href="./docs.html">Docs</a></li>
+            <li><a href="../quantumshield/index.html#demo" class="btn btn-primary" style="padding: 0.5rem 1rem;">Request Demo</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Header -->
+  <section class="section" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 3rem 0;">
+    <div class="container">
+      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">🔐 PQC Wallet</h1>
+      <p style="font-size: 1.25rem; opacity: 0.9;">
+        Post-Quantum Secure Wallet with Kyber and Dilithium Support
+      </p>
+    </div>
+  </section>
+
+  <!-- Wallet Interface -->
+  <section class="section">
+    <div class="container">
+      <div class="grid grid-2">
+        <!-- Left Column: Wallet Status -->
+        <div>
+          <div class="card" id="wallet-status">
+            <h3 class="card-title">Wallet Status</h3>
+            <div id="no-wallet" style="padding: 2rem; text-align: center; background: var(--gray-50); border-radius: var(--radius-md);">
+              <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+              <p style="color: var(--gray-600); margin-bottom: 1.5rem;">No wallet connected</p>
+              <button class="btn btn-primary" onclick="createWallet()">Create New Wallet</button>
+              <button class="btn btn-outline" style="margin-left: 0.5rem;" onclick="importWallet()">Import Wallet</button>
+            </div>
+            
+            <div id="wallet-connected" style="display: none;">
+              <div style="margin-bottom: 1.5rem;">
+                <label class="form-label">Address</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <input type="text" id="wallet-address" class="form-input" readonly 
+                         value="dyt1q2w3e4r5t6y7u8i9o0p" style="flex: 1; font-family: var(--font-mono); font-size: 0.875rem;">
+                  <button class="btn btn-outline" onclick="copyAddress()">📋 Copy</button>
+                </div>
+              </div>
+              
+              <div style="margin-bottom: 1.5rem;">
+                <label class="form-label">Balance</label>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--primary-blue);">
+                  <span id="wallet-balance">0.00</span> <span style="font-size: 1rem; color: var(--gray-500);">DYT</span>
+                </div>
+              </div>
+              
+              <div style="margin-bottom: 1.5rem;">
+                <label class="form-label">QR Code</label>
+                <div id="qr-code" style="padding: 1rem; background: white; border: 2px solid var(--gray-200); border-radius: var(--radius-md); text-align: center;">
+                  <div style="width: 200px; height: 200px; background: var(--gray-100); margin: 0 auto; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md);">
+                    QR Code
+                  </div>
+                </div>
+              </div>
+              
+              <button class="btn btn-secondary" style="width: 100%; margin-bottom: 0.5rem;" onclick="exportWallet()">
+                Export Wallet
+              </button>
+              <button class="btn btn-outline" style="width: 100%;" onclick="disconnectWallet()">
+                Disconnect
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Key Generation & Features -->
+        <div>
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <h3 class="card-title">PQC Key Generation</h3>
+            <p class="card-content" style="margin-bottom: 1.5rem;">
+              Generate quantum-resistant keypairs using NIST-approved algorithms.
+            </p>
+            
+            <div class="form-group">
+              <label class="form-label">Algorithm Selection</label>
+              <select id="algorithm-select" class="form-select">
+                <option value="kyber">Kyber (Key Encapsulation)</option>
+                <option value="dilithium">Dilithium (Digital Signature)</option>
+                <option value="hybrid">Hybrid RSA + PQC</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Security Level</label>
+              <select id="security-level" class="form-select">
+                <option value="512">Level 1 (NIST Security Level 1)</option>
+                <option value="768" selected>Level 3 (NIST Security Level 3)</option>
+                <option value="1024">Level 5 (NIST Security Level 5)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="local-encryption" checked>
+                <span class="form-label" style="display: inline; margin-left: 0.5rem;">
+                  Enable local encryption
+                </span>
+              </label>
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%;" onclick="generateKeys()">
+              Generate Keys
+            </button>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Features</h3>
+            <ul style="list-style: none; padding: 0;">
+              <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--gray-200);">
+                <strong>✅ In-Browser Key Manager</strong>
+                <p style="margin: 0.25rem 0 0; color: var(--gray-600); font-size: 0.875rem;">
+                  WebCrypto API for secure local storage
+                </p>
+              </li>
+              <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--gray-200);">
+                <strong>✅ Recovery Phrase</strong>
+                <p style="margin: 0.25rem 0 0; color: var(--gray-600); font-size: 0.875rem;">
+                  BIP39-compatible mnemonic generation
+                </p>
+              </li>
+              <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--gray-200);">
+                <strong>✅ Hybrid Mode</strong>
+                <p style="margin: 0.25rem 0 0; color: var(--gray-600); font-size: 0.875rem;">
+                  Combine classical RSA with PQC algorithms
+                </p>
+              </li>
+              <li style="padding: 0.75rem 0;">
+                <strong>✅ Transaction Signing</strong>
+                <p style="margin: 0.25rem 0 0; color: var(--gray-600); font-size: 0.875rem;">
+                  Sign transactions with PQC signatures
+                </p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Reference -->
+      <div class="card" style="margin-top: 2rem;">
+        <h3 class="card-title">API Endpoints</h3>
+        <div style="font-family: var(--font-mono); font-size: 0.875rem;">
+          <div style="margin-bottom: 1.5rem;">
+            <div style="background: var(--gray-100); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.5rem;">
+              <strong style="color: var(--accent-purple);">POST</strong> /wallet/create
+            </div>
+            <p style="color: var(--gray-600); margin-left: 1rem;">
+              Create a new wallet with PQC keypair
+            </p>
+          </div>
+          
+          <div style="margin-bottom: 1.5rem;">
+            <div style="background: var(--gray-100); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.5rem;">
+              <strong style="color: var(--primary-blue);">POST</strong> /wallet/sign
+            </div>
+            <p style="color: var(--gray-600); margin-left: 1rem;">
+              Sign a transaction with PQC signature
+            </p>
+          </div>
+          
+          <div>
+            <div style="background: var(--gray-100); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.5rem;">
+              <strong style="color: var(--success-green);">GET</strong> /wallet/export
+            </div>
+            <p style="color: var(--gray-600); margin-left: 1rem;">
+              Export wallet keystore file
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="global-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>Build on Dytallix</h4>
+          <ul class="footer-links">
+            <li><a href="./index.html">Overview</a></li>
+            <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
+            <li><a href="./faucet.html">Faucet</a></li>
+            <li><a href="./explorer.html">Explorer</a></li>
+            <li><a href="./dashboard.html">Dashboard</a></li>
+            <li><a href="./docs.html">Documentation</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>QuantumShield</h4>
+          <ul class="footer-links">
+            <li><a href="../quantumshield/index.html">Overview</a></li>
+            <li><a href="../quantumshield/index.html#threat">Threat Brief</a></li>
+            <li><a href="../quantumshield/index.html#solution">Solution</a></li>
+            <li><a href="../quantumshield/index.html#features">Features</a></li>
+            <li><a href="../quantumshield/index.html#demo">Request Demo</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="./tokenomics.html">Tokenomics</a></li>
+            <li><a href="#" onclick="Dytallix.Analytics.trackDownload('whitepaper')">White Paper</a></li>
+            <li><a href="./docs.html">API Reference</a></li>
+            <li><a href="https://github.com/dytallix" target="_blank" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Company</h4>
+          <ul class="footer-links">
+            <li><a href="#">About</a></li>
+            <li><a href="#">Blog</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 Dytallix. All rights reserved. | Securing the Quantum Future</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../shared-assets/app.js"></script>
+  <script>
+    // Wallet functionality stubs
+    function createWallet() {
+      document.getElementById('no-wallet').style.display = 'none';
+      document.getElementById('wallet-connected').style.display = 'block';
+      Dytallix.Analytics.track('wallet_created');
+    }
+    
+    function importWallet() {
+      alert('Import wallet functionality - would show file picker');
+      Dytallix.Analytics.track('wallet_import_initiated');
+    }
+    
+    function disconnectWallet() {
+      document.getElementById('no-wallet').style.display = 'block';
+      document.getElementById('wallet-connected').style.display = 'none';
+      Dytallix.Analytics.track('wallet_disconnected');
+    }
+    
+    function copyAddress() {
+      const address = document.getElementById('wallet-address').value;
+      Dytallix.Clipboard.copy(address, 'Address copied to clipboard!');
+    }
+    
+    function exportWallet() {
+      alert('Export wallet - would download keystore file');
+      Dytallix.Analytics.track('wallet_exported');
+    }
+    
+    function generateKeys() {
+      const algorithm = document.getElementById('algorithm-select').value;
+      const level = document.getElementById('security-level').value;
+      alert(`Generating ${algorithm} keys at security level ${level}`);
+      Dytallix.Analytics.track('keys_generated', { algorithm, level });
+    }
+  </script>
+</body>
+</html>
