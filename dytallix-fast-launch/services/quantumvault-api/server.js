@@ -28,7 +28,15 @@ const PORT = process.env.PORT || 3031;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
+  origin: [
+    'http://localhost:3000', 
+    'http://localhost:3001', 
+    'http://localhost:3002', 
+    'http://localhost:3003',
+    'https://dytallix.com',
+    'https://www.dytallix.com',
+    'http://178.156.187.81'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -330,6 +338,108 @@ app.get('/verify/:assetHash', async (req, res) => {
     console.error('[QuantumVault] Verify error:', error);
     res.status(500).json({ error: 'Verification failed' });
   }
+});
+
+/**
+ * POST /proof/generate
+ * Generate cryptographic proof without upload (v2 API)
+ */
+app.post('/proof/generate', async (req, res) => {
+  try {
+    const { blake3, filename, mime, size, storageLocation, metadata: metaData } = req.body;
+
+    if (!blake3 || !filename) {
+      return res.status(400).json({ error: 'Missing blake3 or filename' });
+    }
+
+    // Generate proof ID
+    const proofId = createHash('sha256')
+      .update(blake3 + filename + Date.now())
+      .digest('hex')
+      .slice(0, 16);
+
+    // Create proof certificate
+    const certificate = {
+      version: '2.0',
+      proofId,
+      blake3Hash: blake3,
+      filename,
+      mimeType: mime || 'application/octet-stream',
+      size: size || 0,
+      storageLocation: storageLocation || 'user-managed',
+      timestamp: new Date().toISOString(),
+      algorithm: 'BLAKE3',
+      metadata: metaData || {}
+    };
+
+    // Sign the certificate (in production, use proper signing)
+    const signature = createHash('sha256')
+      .update(JSON.stringify(certificate))
+      .digest('hex');
+
+    const proof = {
+      ...certificate,
+      signature,
+      issuer: 'QuantumVault-API',
+      verificationUrl: `${req.protocol}://${req.get('host')}/verify/${blake3}`
+    };
+
+    console.log(`[QuantumVault] Generated proof for ${filename} (${blake3.slice(0, 16)}...)`);
+
+    res.json({
+      success: true,
+      proofId,
+      proof,
+      certificate,
+      downloadUrl: null // No download URL since file isn't stored
+    });
+
+  } catch (error) {
+    console.error('[QuantumVault] Proof generation error:', error);
+    res.status(500).json({ error: 'Proof generation failed' });
+  }
+});
+
+/**
+ * GET /status
+ * Get blockchain connection status
+ */
+app.get('/status', async (req, res) => {
+  const blockchainUrl = process.env.BLOCKCHAIN_API_URL || process.env.VITE_BLOCKCHAIN_URL || 'http://localhost:3030';
+  
+  let blockchainConnected = false;
+  let blockchainHeight = 0;
+  
+  try {
+    const response = await fetch(`${blockchainUrl}/health`, {
+      method: 'GET',
+      timeout: 5000
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      blockchainConnected = true;
+      blockchainHeight = data.block_height || data.blockHeight || 0;
+    }
+  } catch (err) {
+    console.warn('[QuantumVault] Blockchain health check failed:', err.message);
+  }
+
+  res.json({
+    status: 'operational',
+    service: 'quantumvault-api',
+    version: '2.0',
+    blockchain: {
+      connected: blockchainConnected,
+      url: blockchainUrl,
+      blockHeight: blockchainHeight
+    },
+    storage: {
+      assets: Object.keys(metadata).length,
+      onChainRegistrations: Object.keys(onChainRegistry).length
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
 /**
