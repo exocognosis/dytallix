@@ -2,6 +2,10 @@
 
 # Dytallix Master Service Manager
 # Starts all services with FIXED ports - no more random port assignment!
+# Updated to serve new web structure from PR #223:
+#   - Homepage at /
+#   - Developer pages at /build/
+#   - Enterprise pages at /quantumvault/ (alias for legacy /quantumshield/)
 
 set -e
 
@@ -54,22 +58,27 @@ start_service() {
     echo -e "${BLUE}Starting ${service_name} on port ${port}...${NC}"
     check_port $port "$service_name"
     
+    # Create logs directory in the fast-launch root
+    local base_dir="/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
+    mkdir -p "$base_dir/logs"
+    
     if [ -n "$directory" ]; then
         cd "$directory"
     fi
     
     # Start service in background and capture PID
-    eval "$command" > "logs/${service_name,,}.log" 2>&1 &
+    local log_name=$(echo "$service_name" | tr '[:upper:]' '[:lower:]')
+    eval "$command" > "$base_dir/logs/${log_name}.log" 2>&1 &
     local pid=$!
     
     # Wait a moment and check if service started
     sleep 3
     if kill -0 $pid 2>/dev/null; then
         echo -e "${GREEN}✅ ${service_name} started successfully (PID: $pid)${NC}"
-        echo $pid > "logs/${service_name,,}.pid"
+        echo $pid > "$base_dir/logs/${log_name}.pid"
     else
         echo -e "${RED}❌ ${service_name} failed to start${NC}"
-        tail -10 "logs/${service_name,,}.log"
+        tail -10 "$base_dir/logs/${log_name}.log"
         return 1
     fi
     
@@ -80,9 +89,9 @@ start_service() {
 echo -e "${YELLOW}🛑 Stopping existing services...${NC}"
 ./stop-services.sh 2>/dev/null || true
 
-# Export environment variables
-export PORT=$BACKEND_PORT
+# Export environment variables (avoid setting global PORT to prevent conflicts)
 export FRONTEND_PORT=$FRONTEND_PORT
+export BACKEND_PORT=$BACKEND_PORT
 export BLOCKCHAIN_PORT=$BLOCKCHAIN_PORT
 export QUANTUMVAULT_PORT=$QUANTUMVAULT_PORT
 export WEBSOCKET_PORT=$WEBSOCKET_PORT
@@ -92,28 +101,31 @@ echo -e "${BLUE}🔧 Starting services...${NC}"
 
 # 1. Blockchain Core (Rust)
 start_service "Blockchain" $BLOCKCHAIN_PORT \
-    "cargo run --bin blockchain-core" \
-    "../blockchain-core"
+    "DYT_RPC_PORT=$BLOCKCHAIN_PORT cargo run --package dytallix-fast-node --bin dytallix-fast-node" \
+    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
 
 # 2. QuantumVault API (Node.js)
 start_service "QuantumVault" $QUANTUMVAULT_PORT \
-    "PORT=$QUANTUMVAULT_PORT node server.js" \
-    "services/quantumvault-api"
+    "PORT=$QUANTUMVAULT_PORT BLOCKCHAIN_API_URL=http://localhost:$BLOCKCHAIN_PORT node server.js" \
+    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch/services/quantumvault-api"
 
 # 3. Backend API (Node.js)
 start_service "Backend" $BACKEND_PORT \
     "PORT=$BACKEND_PORT node server/index.js" \
-    "."
+    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
 
-# 4. Frontend (Vite)
+# 4. Frontend (Static Server for new web structure - PR #223)
 start_service "Frontend" $FRONTEND_PORT \
-    "npm run dev -- --port $FRONTEND_PORT --host 0.0.0.0" \
-    "frontend"
+    "PORT=$FRONTEND_PORT node serve-static.js" \
+    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
 
 echo ""
 echo -e "${GREEN}🎉 All services started successfully!${NC}"
 echo "=============================================="
 echo -e "Frontend:     ${GREEN}http://localhost:${FRONTEND_PORT}${NC}"
+echo -e "  • Homepage: ${GREEN}http://localhost:${FRONTEND_PORT}/${NC}"
+echo -e "  • Build:    ${GREEN}http://localhost:${FRONTEND_PORT}/build/${NC}"
+echo -e "  • Shield:   ${GREEN}http://localhost:${FRONTEND_PORT}/quantumvault/${NC} (alias, legacy /quantumshield redirects)"
 echo -e "Backend API:  ${GREEN}http://localhost:${BACKEND_PORT}${NC}"
 echo -e "Blockchain:   ${GREEN}http://localhost:${BLOCKCHAIN_PORT}${NC}"
 echo -e "QuantumVault: ${GREEN}http://localhost:${QUANTUMVAULT_PORT}${NC}"
@@ -122,9 +134,10 @@ echo ""
 echo -e "${BLUE}📋 Service Management:${NC}"
 echo "  • View logs: tail -f logs/[service].log"
 echo "  • Stop all:  ./stop-services.sh"
-echo "  • Check status: ps aux | grep -E '(node|cargo|vite)'"
+echo "  • Check status: ps aux | grep -E '(node|cargo)'"
 echo ""
 echo -e "${YELLOW}🔗 No more random ports! All services now use fixed ports.${NC}"
+echo -e "${YELLOW}✨ New web structure from PR #223 with dual-audience experience${NC}"
 
 # Wait for user input to keep services running
 echo "Press Ctrl+C to stop all services..."

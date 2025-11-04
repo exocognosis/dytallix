@@ -696,6 +696,11 @@ pub async fn status(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value>
     }))
 }
 
+/// GET /health - Health check endpoint (alias for /status)
+pub async fn health(ctx: axum::Extension<RpcContext>) -> Json<serde_json::Value> {
+    status(ctx).await
+}
+
 /// GET /genesis - Return genesis configuration
 pub async fn get_genesis() -> Result<Json<serde_json::Value>, ApiError> {
     // Read genesis.json file
