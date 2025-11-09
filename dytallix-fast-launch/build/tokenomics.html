@@ -18,147 +18,155 @@
           <ul class="nav-menu">
             <li><a href="../homepage/index.html">Home</a></li>
             <li><a href="./index.html">Build</a></li>
-            <li><a href="../quantumshield/index.html">QuantumShield</a></li>
-            <li><a href="./docs.html">Docs</a></li>
+            <li><a href="../quantumvault/index.html">QuantumVault</a></li>
+            <li><a href="../quantumvault/index.html#demo" class="btn btn-primary btn-small">Request Demo</a></li>
           </ul>
         </nav>
       </div>
     </div>
   </header>
 
-  <section class="section" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 3rem 0;">
-    <div class="container">
-      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">💰 Tokenomics</h1>
-      <p style="font-size: 1.25rem; opacity: 0.9;">DYT Token Economics and Staking Information</p>
+  <section class="page-hero">
+    <div class="container page-hero-content">
+      <span class="hero-eyebrow">Tokenomics</span>
+      <h1 class="hero-title">Transparent economics for a secure network</h1>
+      <p class="hero-subtitle">
+        Explore supply schedules, staking incentives, and treasury distributions that keep Dytallix sustainable for
+        builders and validators alike.
+      </p>
+      <div class="hero-actions">
+        <a href="./dashboard.html" class="btn btn-primary btn-large">Open staking dashboard</a>
+        <a href="./docs.html#rest-api" class="btn btn-outline btn-large">Query economic APIs</a>
+      </div>
+      <div class="hero-metrics">
+        <div class="metric metric-card">
+          <span class="metric-label">Circulating supply</span>
+          <span class="metric-value">620M DYT</span>
+          <span class="metric-trend is-up">↑ 1.2% month over month</span>
+        </div>
+        <div class="metric metric-card">
+          <span class="metric-label">Staked</span>
+          <span class="metric-value">68%</span>
+          <span class="metric-trend is-up">226k validators</span>
+        </div>
+        <div class="metric metric-card">
+          <span class="metric-label">Treasury runway</span>
+          <span class="metric-value">36 months</span>
+          <span class="metric-trend">Scenario tested</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container grid grid-2">
+      <article class="card token-card">
+        <h2 class="card-title">Supply breakdown</h2>
+        <p class="card-content">Initial genesis supply: 1B DYT with deflationary levers.</p>
+        <div class="stacked-list">
+          <div class="stacked-list-item">
+            <span>Community &amp; ecosystem</span>
+            <span class="badge">42%</span>
+          </div>
+          <div class="stacked-list-item">
+            <span>Validator incentives</span>
+            <span class="badge">28%</span>
+          </div>
+          <div class="stacked-list-item">
+            <span>Treasury &amp; ops</span>
+            <span class="badge">18%</span>
+          </div>
+          <div class="stacked-list-item">
+            <span>Team &amp; early contributors</span>
+            <span class="badge">12%</span>
+          </div>
+        </div>
+        <div class="highlight-panel mt-3">
+          <strong>Emissions:</strong> Linear emissions tailing to 0.5% annually after year 4.
+        </div>
+      </article>
+
+      <article class="card token-card">
+        <h2 class="card-title">Rewards &amp; staking</h2>
+        <p class="card-content">Delegators earn staking rewards with PQC signature verification and slashing protection.</p>
+        <div class="code-block">
+          <pre><code>APR = baseRate + usageBoost - slashing
+baseRate = 6.2%
+usageBoost = up to 2.0%</code></pre>
+        </div>
+        <div class="stacked-list mt-3">
+          <div class="stacked-list-item">
+            <span>Unbonding period</span>
+            <span class="badge">14 days</span>
+          </div>
+          <div class="stacked-list-item">
+            <span>Slashing conditions</span>
+            <span class="badge">Double-sign + downtime</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section is-alt">
+    <div class="container grid grid-3">
+      <article class="card token-card">
+        <h3>Treasury overview</h3>
+        <p class="card-content">Quarterly reports with multi-sig approvals and PQC attestations.</p>
+        <div class="stacked-list mt-2">
+          <div class="stacked-list-item">
+            <span>Operational runway</span>
+            <span class="badge">36 months</span>
+          </div>
+          <div class="stacked-list-item">
+            <span>Strategic investments</span>
+            <span class="badge">12%</span>
+          </div>
+        </div>
+      </article>
+      <article class="card token-card">
+        <h3>Governance</h3>
+        <p class="card-content">Token holders vote using PQC-secured ballots with quadratic weighting.</p>
+        <div class="stacked-list mt-2">
+          <div class="stacked-list-item">
+            <span>Active proposals</span>
+            <span class="badge">3</span>
+          </div>
+          <div class="stacked-list-item">
+            <span>Avg participation</span>
+            <span class="badge">48%</span>
+          </div>
+        </div>
+      </article>
+      <article class="card token-card">
+        <h3>Builder grants</h3>
+        <p class="card-content">Funding cycles every quarter for ecosystem tools and research.</p>
+        <div class="stacked-list mt-2">
+          <div class="stacked-list-item">
+            <span>Current cohort</span>
+            <span class="badge">18 teams</span>
+          </div>
+          <div class="stacked-list-item">
+            <span>Allocation</span>
+            <span class="badge">5M DYT</span>
+          </div>
+        </div>
+      </article>
     </div>
   </section>
 
   <section class="section">
     <div class="container">
-      <div class="grid grid-3" style="margin-bottom: 3rem;">
-        <div class="card">
-          <h4>Total Supply</h4>
-          <div style="font-size: 2rem; font-weight: 700; color: var(--primary-blue);">1,000,000,000</div>
-          <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">DYT Tokens</div>
-        </div>
-        <div class="card">
-          <h4>Circulating Supply</h4>
-          <div style="font-size: 2rem; font-weight: 700; color: var(--success-green);">350,000,000</div>
-          <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">35% of total</div>
-        </div>
-        <div class="card">
-          <h4>Current APY</h4>
-          <div style="font-size: 2rem; font-weight: 700; color: var(--accent-purple);">12.5%</div>
-          <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">Staking rewards</div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom: 2rem;">
-        <h3 class="card-title">Token Allocation</h3>
-        <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 300px;">
-            <div style="height: 200px; background: var(--gray-100); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
-              📊 Interactive Pie Chart Placeholder
-            </div>
-          </div>
-          <div style="flex: 1; min-width: 300px;">
-            <div style="margin-bottom: 1rem;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span>🔵 Public Sale - 35%</span>
-                <strong>350M DYT</strong>
-              </div>
-              <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
-                <div style="width: 35%; height: 100%; background: var(--primary-blue);"></div>
-              </div>
-            </div>
-            <div style="margin-bottom: 1rem;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span>🟣 Team & Advisors - 20%</span>
-                <strong>200M DYT</strong>
-              </div>
-              <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
-                <div style="width: 20%; height: 100%; background: var(--accent-purple);"></div>
-              </div>
-            </div>
-            <div style="margin-bottom: 1rem;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span>🟢 Ecosystem Fund - 25%</span>
-                <strong>250M DYT</strong>
-              </div>
-              <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
-                <div style="width: 25%; height: 100%; background: var(--success-green);"></div>
-              </div>
-            </div>
-            <div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span>🟡 Staking Rewards - 20%</span>
-                <strong>200M DYT</strong>
-              </div>
-              <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
-                <div style="width: 20%; height: 100%; background: var(--warning-amber);"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom: 2rem;">
-        <h3 class="card-title">Staking Calculator</h3>
-        <div class="grid grid-2">
-          <div>
-            <div class="form-group">
-              <label class="form-label">Amount to Stake (DYT)</label>
-              <input type="number" class="form-input" id="stake-amount" value="10000" min="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Staking Period</label>
-              <select class="form-select" id="stake-period">
-                <option value="30">30 Days</option>
-                <option value="90" selected>90 Days</option>
-                <option value="180">180 Days</option>
-                <option value="365">1 Year</option>
-              </select>
-            </div>
-            <button class="btn btn-primary" onclick="calculateRewards()">Calculate Rewards</button>
-          </div>
-          <div style="background: var(--gray-50); padding: 2rem; border-radius: var(--radius-md);">
-            <h4 style="margin-bottom: 1rem;">Estimated Rewards</h4>
-            <div style="font-size: 2.5rem; font-weight: 700; color: var(--success-green); margin-bottom: 0.5rem;">
-              <span id="reward-amount">312.5</span> DYT
-            </div>
-            <div style="font-size: 0.875rem; color: var(--gray-600);">
-              Based on 12.5% APY
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom: 2rem;">
-        <h3 class="card-title">Governance</h3>
-        <p class="card-content">Token holders can participate in governance decisions.</p>
-        <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--radius-md); margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <strong>Proposal #12: Upgrade PQC Algorithm Suite</strong>
-            <span style="background: var(--success-green); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem;">
-              Active
-            </span>
-          </div>
-          <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 1rem;">
-            Ends in 3 days | 65% Yes, 35% No
-          </div>
-          <div style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-primary">Vote Yes</button>
-            <button class="btn btn-outline">Vote No</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3 class="card-title">Vesting Schedule</h3>
-        <div style="height: 250px; background: var(--gray-50); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
-          📈 Interactive Vesting Timeline Chart (Recharts/D3)
-        </div>
-      </div>
+      <article class="card text-center">
+        <span class="pill">Stay aligned</span>
+        <h2 class="section-title">Subscribe to token updates</h2>
+        <p class="section-subtitle">Receive treasury reports, governance summaries, and emission schedule changes.</p>
+        <form class="hero-actions justify-center">
+          <label for="token-email" class="sr-only">Email</label>
+          <input id="token-email" type="email" class="form-input hero-search" placeholder="you@example.com" required>
+          <button class="btn btn-primary btn-large" type="submit">Subscribe</button>
+        </form>
+      </article>
     </div>
   </section>
 
@@ -170,6 +178,8 @@
           <ul class="footer-links">
             <li><a href="./index.html">Overview</a></li>
             <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
+            <li><a href="./faucet.html">Faucet</a></li>
+            <li><a href="./explorer.html">Explorer</a></li>
           </ul>
         </div>
       </div>
@@ -180,15 +190,5 @@
   </footer>
 
   <script src="../shared-assets/app.js"></script>
-  <script>
-    function calculateRewards() {
-      const amount = parseFloat(document.getElementById('stake-amount').value);
-      const period = parseInt(document.getElementById('stake-period').value);
-      const apy = 0.125; // 12.5%
-      const rewards = (amount * apy * period) / 365;
-      document.getElementById('reward-amount').textContent = rewards.toFixed(2);
-      Dytallix.Analytics.track('staking_calculation', { amount, period });
-    }
-  </script>
 </body>
 </html>

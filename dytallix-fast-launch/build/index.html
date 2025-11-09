@@ -11,16 +11,23 @@
   <header class="global-header">
     <div class="container">
       <div class="header-content">
-        <a href="../homepage/index.html" class="logo">
+        <a href="/" class="logo">
           <img src="../shared-assets/logo.svg" alt="Dytallix Logo">
           <span>Dytallix</span>
         </a>
         <nav>
           <ul class="nav-menu">
-            <li><a href="../homepage/index.html">Home</a></li>
-            <li><a href="./index.html" class="active">Build</a></li>
-            <li><a href="../quantumvault/">QuantumVault</a></li>
-            <li><a href="../quantumvault/#demo" class="btn btn-primary btn-small">Request Demo</a></li>
+            <li><a href="/">Home</a></li>
+            <li><a href="/build/">Build</a></li>
+            <li><a href="/quantumvault/">QuantumVault</a></li>
+            <li class="nav-dropdown">
+              <a href="#" class="nav-dropdown-toggle">Network ▾</a>
+              <ul class="nav-dropdown-menu">
+                <li><a href="/build/explorer.html">Explorer</a></li>
+                <li><a href="/build/dashboard.html">Dashboard</a></li>
+              </ul>
+            </li>
+            <li><a href="/quantumvault/#demo" class="btn btn-primary btn-small">Request Demo</a></li>
           </ul>
         </nav>
       </div>
@@ -28,47 +35,77 @@
   </header>
 
   <section class="page-hero">
-    <div class="container page-hero-content">
-      <span class="hero-eyebrow">Quantum-Ready Builder Hub</span>
-      <h1 class="hero-title">Build the Quantum-Resistant Future</h1>
-      <p class="hero-subtitle">
-        Launch products with post-quantum security baked in. Dytallix gives developers modern tooling,
+    <div class="container page-hero-content" style="text-align: center;">
+      <h1 class="hero-title" style="text-align: center;">Build the Quantum-Resistant Future</h1>
+      <p class="hero-subtitle" style="text-align: center; max-width: 800px; margin-left: auto; margin-right: auto;">
+        Launch products with PQC-compliance baked in. Dytallix gives developers modern tooling,
         infrastructure, and guidance to design resilient applications for the next wave of blockchain innovation.
       </p>
-      <div class="hero-actions">
-        <a href="../build/docs.html" class="btn btn-primary btn-large">Read the Docs</a>
+      <div class="hero-actions" style="justify-content: center;">
+        <a href="#quickstart" class="btn btn-primary btn-large">Start Quickstart</a>
         <a href="../build/pqc-wallet.html" class="btn btn-outline btn-large">Try the PQC Wallet</a>
         <a href="../build/dashboard.html" class="btn btn-light btn-large">Open Developer Dashboard</a>
       </div>
       <div class="hero-metrics">
         <div class="metric metric-card">
-          <span class="metric-label">Active Builders</span>
-          <span class="metric-value">2.4k</span>
-          <span class="metric-trend is-up">↑ 18% month over month</span>
+          <span class="metric-label">Getting Started</span>
+          <span class="metric-value" style="font-size: 1.5rem;">📚</span>
+          <span class="metric-trend" style="color: var(--text-secondary);">Complete docs, SDK guides, and examples to launch your first dApp</span>
         </div>
         <div class="metric metric-card">
-          <span class="metric-label">Average Deployment Time</span>
-          <span class="metric-value">6m</span>
-          <span class="metric-trend is-down">↓ 32% since v1.3</span>
+          <span class="metric-label">Post-Quantum Ready</span>
+          <span class="metric-value" style="font-size: 1.5rem;">🔐</span>
+          <span class="metric-trend" style="color: var(--text-secondary);">NIST-approved Kyber, Dilithium & Falcon signatures built-in</span>
         </div>
         <div class="metric metric-card">
-          <span class="metric-label">Secure Transactions</span>
-          <span class="metric-value">125M+</span>
-          <span class="metric-trend is-up">↑ PQC verified</span>
+          <span class="metric-label">Developer Tools</span>
+          <span class="metric-value" style="font-size: 1.5rem;">⚡</span>
+          <span class="metric-trend" style="color: var(--text-secondary);">Testnet faucet, explorer, wallet, and TypeScript SDK available now</span>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="quickstart">
+    <div class="container">
+      <div class="section-header">
+        <div style="text-align: center; width: 100%;">
+          <span class="pill">Quickstart</span>
+        </div>
+        <div style="position: relative; width: 100%; margin-top: 1.5rem; height: 3rem;">
+          <h2 class="section-title" style="position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; margin: 0;">Spin up a Node? Deploy a dApp? Start Here.</h2>
+        </div>
+        <p class="section-subtitle">
+        </p>
+      </div>
+      <ol class="quickstart-steps">
+        <li><strong>Install the TypeScript SDK</strong> – <a href="https://github.com/DytallixHQ/Dytallix/tree/main/dytallix-fast-launch/sdk" target="_blank" rel="noopener">Get the SDK</a></li>
+        <li><strong>Generate PQC keys in the Wallet</strong> – <a href="./pqc-wallet.html">Open PQC Wallet</a></li>
+        <li><strong>Fund your testnet account (DGT/DRT)</strong> – <a href="./faucet.html">Open Faucet</a></li>
+        <li><strong>Send your first transaction</strong> – Run this minimal example:
+          <pre><code>import { DytallixClient } from "@dytallix/sdk";
+const client = new DytallixClient();
+const tx = await client.sendTransaction({
+  from: "yourAddress",
+  to: "recipientAddress",
+  amount: 10,
+});
+console.log("txHash:", tx.hash);</code></pre>
+        </li>
+        <li><strong>Verify in Explorer</strong> – <a href="./explorer.html">View Explorer</a></li>
+      </ol>
+      <div class="hero-actions justify-center mt-4">
+        <a href="#docs" class="btn btn-primary btn-large">Read the Docs</a>
+        <a href="./dashboard.html" class="btn btn-outline btn-large">Open Developer Dashboard</a>
       </div>
     </div>
   </section>
 
   <section class="section is-alt" id="overview">
     <div class="container">
-      <div class="section-header">
+      <div class="section-header" style="text-align: center;">
         <span class="pill">General Dytallix Info</span>
-        <h2 class="section-title">Purpose-built for the builders shaping the next wave</h2>
-        <p class="section-subtitle">
-          Dytallix blends quantum-safe security, AI-driven observability, and operational playbooks so you can move
-          from prototype to production without sacrificing resilience.
-        </p>
+        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">What To Know</h2>
       </div>
 
       <div class="grid grid-3">
@@ -143,13 +180,9 @@
 
   <section class="section" id="docs">
     <div class="container">
-      <div class="section-header">
+      <div class="section-header" style="text-align: center;">
         <span class="pill">Documentation &amp; SDKs</span>
-        <h2 class="section-title">Everything you need to build fast and ship safely</h2>
-        <p class="section-subtitle">
-          Dive into the docs, wire up the TypeScript SDK, and lean on ready-made reference apps to jumpstart your next
-          release.
-        </p>
+        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Build Fast & Ship Safely</h2>
       </div>
 
       <div class="grid grid-3">
@@ -194,56 +227,57 @@
 
   <section class="section is-alt" id="wallet">
     <div class="container">
-      <div class="grid grid-2">
-        <div>
-          <span class="pill">Wallet</span>
-          <h2 class="section-title">Wallet onboarding tailored for developers</h2>
-          <p class="section-subtitle">
-            Generate PQC key material, manage multi-key policies, and export artifacts for automation in a single,
-            streamlined experience.
-          </p>
-          <p>
-            The PQC wallet supports deterministic seeds, hardware-assisted storage, and CLI compatibility so builders
-            can jump between UI flows and scripted pipelines without friction.
-          </p>
-          <div class="hero-actions justify-start mt-3">
-            <a href="./pqc-wallet.html" class="btn btn-primary btn-small">Launch PQC wallet</a>
-            <a href="https://github.com/DytallixHQ/Dytallix/blob/main/dytallix-fast-launch/wallet_demo.py" class="btn btn-outline btn-small" target="_blank" rel="noopener">Inspect CLI flow</a>
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <span class="pill">Wallet</span>
+        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Developer Wallet Onboarding</h2>
+      </div>
+      <div class="hero-actions justify-center mt-3">
+        <a href="./pqc-wallet.html" class="btn btn-primary btn-small">Launch PQC wallet</a>
+        <a href="https://github.com/DytallixHQ/Dytallix/blob/main/dytallix-fast-launch/wallet_demo.py" class="btn btn-outline btn-small" target="_blank" rel="noopener">Inspect CLI flow</a>
+      </div>
+      <div class="grid grid-3" style="margin-top: 2rem;">
+        <article class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4>Step 1</h4>
+            <span class="badge badge-info">Step 1</span>
           </div>
-        </div>
-        <div class="card">
-          <span class="pill">Quick Start</span>
-          <h4>Wallet setup checklist</h4>
-          <div class="stacked-list">
-            <div class="stacked-list-item">
-              <span>Generate or import Dilithium/Falcon/SPHINCS+ keys</span>
-              <span class="badge badge-info">Step 1</span>
-            </div>
-            <div class="stacked-list-item">
-              <span>Review signing policies &amp; export encrypted keystore</span>
-              <span class="badge badge-info">Step 2</span>
-            </div>
-            <div class="stacked-list-item">
-              <span>Connect wallet to dashboard, CLI, or SDK clients</span>
-              <span class="badge badge-success">Step 3</span>
-            </div>
+          <p class="card-content">
+            Generate or import Dilithium/Falcon/SPHINCS+ keys
+          </p>
+        </article>
+        <article class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4>Step 2</h4>
+            <span class="badge badge-info">Step 2</span>
           </div>
-        </div>
+          <p class="card-content">
+            Review signing policies &amp; export encrypted keystore
+          </p>
+        </article>
+        <article class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4>Step 3</h4>
+            <span class="badge badge-success">Step 3</span>
+          </div>
+          <p class="card-content">
+            Connect wallet to dashboard, CLI, or SDK clients
+          </p>
+        </article>
       </div>
     </div>
   </section>
 
   <section class="section" id="faucet">
     <div class="container">
-      <div class="section-header">
+      <div class="section-header" style="text-align: center;">
         <span class="pill">Faucet</span>
-        <h2 class="section-title">Fund testnet accounts instantly</h2>
-        <p class="section-subtitle">
-          Request governance (DGT) and reward (DRT) tokens in a single flow, complete with rate limiting and full API
-          transparency.
-        </p>
+        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Fund Testnet Accounts</h2>
       </div>
-      <div class="grid grid-2">
+      <div class="hero-actions justify-center mt-3">
+        <a href="./faucet.html" class="btn btn-primary btn-small">Open faucet</a>
+        <a href="https://github.com/DytallixHQ/Dytallix/blob/main/DYTALLIX_DUAL_TOKEN_FAUCET_COMPLETE.md" class="btn btn-outline btn-small" target="_blank" rel="noopener">Read API spec</a>
+      </div>
+      <div class="grid grid-2" style="margin-top: 2rem;">
         <article class="card">
           <h4>Dual-token distribution</h4>
           <p class="card-content">
@@ -280,10 +314,6 @@
               <span class="badge badge-success">Ready</span>
             </div>
           </div>
-          <div class="hero-actions justify-start mt-3">
-            <a href="./faucet.html" class="btn btn-primary btn-small">Open faucet</a>
-            <a href="https://github.com/DytallixHQ/Dytallix/blob/main/DYTALLIX_DUAL_TOKEN_FAUCET_COMPLETE.md" class="btn btn-outline btn-small" target="_blank" rel="noopener">Read API spec</a>
-          </div>
         </article>
       </div>
     </div>
@@ -291,15 +321,15 @@
 
   <section class="section is-alt" id="explorer">
     <div class="container">
-      <div class="section-header">
+      <div class="section-header" style="text-align: center;">
         <span class="pill">Explorer</span>
-        <h2 class="section-title">Inspect every block, transaction, and validator</h2>
-        <p class="section-subtitle">
-          The explorer surfaces validator health, transaction receipts, and PQC signature details so builders can
-          confirm behavior in real time.
-        </p>
+        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Blockchain Explorer</h2>
       </div>
-      <div class="grid grid-3">
+      <div class="hero-actions justify-center mt-3">
+        <a href="./explorer.html" class="btn btn-primary btn-small">Open explorer</a>
+        <a href="../EXPLORER_SETUP.md" class="btn btn-outline btn-small" target="_blank" rel="noopener">Setup notes</a>
+      </div>
+      <div class="grid grid-3" style="margin-top: 2rem;">
         <article class="card">
           <h4>End-to-end visibility</h4>
           <p class="card-content">
@@ -347,24 +377,96 @@
               <span class="badge badge-success">Ready</span>
             </div>
           </div>
-          <div class="hero-actions justify-start mt-3">
-            <a href="./explorer.html" class="btn btn-primary btn-small">Open explorer</a>
-            <a href="../EXPLORER_SETUP.md" class="btn btn-outline btn-small" target="_blank" rel="noopener">Setup notes</a>
-          </div>
         </article>
       </div>
     </div>
   </section>
 
-  <section class="section" id="tokenomics">
+
+  <section class="section">
     <div class="container">
-      <div class="section-header">
+      <div class="section-header" style="text-align: center;">
+        <span class="pill">From idea to deployment</span>
+        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Ship PQC Apps Confidently</h2>
+      </div>
+
+      <div class="grid grid-3" style="margin-top: 2rem;">
+        <article class="card">
+          <h4>Complete Developer Toolkit</h4>
+          <p class="card-content">
+            Everything you need to build, test, and deploy quantum-resistant applications—from wallet to explorer to faucet.
+          </p>
+          <div class="stacked-list">
+            <div class="stacked-list-item">
+              <span>PQC Wallet with Dilithium/Falcon</span>
+              <span class="badge badge-success">Ready</span>
+            </div>
+            <div class="stacked-list-item">
+              <span>Dual-token testnet faucet</span>
+              <span class="badge badge-success">Live</span>
+            </div>
+            <div class="stacked-list-item">
+              <span>Real-time blockchain explorer</span>
+              <span class="badge badge-success">Active</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <h4>Developer Dashboard</h4>
+          <p class="card-content">
+            Orchestrate your entire project lifecycle from a single interface—manage deployments, monitor performance, and track analytics.
+          </p>
+          <div class="stacked-list">
+            <div class="stacked-list-item">
+              <span>Project creation &amp; environment management</span>
+              <span class="badge badge-info">Streamlined</span>
+            </div>
+            <div class="stacked-list-item">
+              <span>Network health &amp; performance metrics</span>
+              <span class="badge badge-success">Real-time</span>
+            </div>
+            <div class="stacked-list-item">
+              <span>CI/CD integration &amp; deployment automation</span>
+              <span class="badge badge-info">Configurable</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <h4>Production-Ready Path</h4>
+          <p class="card-content">
+            Follow our proven roadmap from local development through testnet validation to mainnet launch with confidence.
+          </p>
+          <div class="stacked-list">
+            <div class="stacked-list-item">
+              <span>90-day adoption &amp; builder guide</span>
+              <span class="badge badge-info">Documented</span>
+            </div>
+            <div class="stacked-list-item">
+              <span>Testnet to mainnet migration tools</span>
+              <span class="badge badge-info">Planned</span>
+            </div>
+            <div class="stacked-list-item">
+              <span>Community support &amp; office hours</span>
+              <span class="badge badge-success">Active</span>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="hero-actions justify-center mt-4">
+        <a href="./dashboard.html" class="btn btn-primary btn-large">Create a project</a>
+        <a href="../BUILD_ON_DYTALLIX_ROADMAP.md" class="btn btn-outline btn-large" target="_blank" rel="noopener">Follow the roadmap</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section is-alt" id="tokenomics">
+    <div class="container">
+      <div class="section-header" style="text-align: center;">
         <span class="pill">Tokenomics</span>
-        <h2 class="section-title">Understand the dual-token economy powering builders</h2>
-        <p class="section-subtitle">
-          Align your product incentives with the DGT governance token and DRT rewards token to design sustainable
-          ecosystems from day one.
-        </p>
+        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Dytallix Tokenomics 101</h2>
       </div>
       <div class="grid grid-2">
         <article class="card">
@@ -415,42 +517,25 @@
     </div>
   </section>
 
-  <section class="section">
-    <div class="container">
-      <div class="card text-center">
-        <span class="pill">From idea to mainnet</span>
-        <h2 class="section-title">Ship quantum-secure products with confidence</h2>
-        <p class="section-subtitle">
-          Pair the docs, wallet, faucet, explorer, and tokenomics resources to validate your stack, then use the
-          dashboard to orchestrate testnet and production rollouts.
-        </p>
-        <div class="hero-actions">
-          <a href="./dashboard.html" class="btn btn-primary btn-large">Create a project</a>
-          <a href="../BUILD_ON_DYTALLIX_ROADMAP.md" class="btn btn-outline btn-large" target="_blank" rel="noopener">Follow the roadmap</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <footer class="global-footer">
     <div class="container">
       <div class="footer-content">
         <div class="footer-section">
           <h4>Build on Dytallix</h4>
           <ul class="footer-links">
-            <li><a href="../build/index.html">Overview</a></li>
-            <li><a href="../build/pqc-wallet.html">PQC Wallet</a></li>
-            <li><a href="../build/faucet.html">Faucet</a></li>
-            <li><a href="../build/explorer.html">Explorer</a></li>
+            <li><a href="/build/">Overview</a></li>
+            <li><a href="/build/pqc-wallet.html">PQC Wallet</a></li>
+            <li><a href="/build/faucet.html">Faucet</a></li>
+            <li><a href="/build/explorer.html">Explorer</a></li>
           </ul>
         </div>
         <div class="footer-section">
           <h4>Resources</h4>
           <ul class="footer-links">
-            <li><a href="./docs.html">Documentation</a></li>
-            <li><a href="./tokenomics.html">Tokenomics</a></li>
-            <li><a href="../quantumvault/">QuantumVault</a></li>
-            <li><a href="../homepage/index.html#contact">Contact</a></li>
+            <li><a href="/build/docs.html">Documentation</a></li>
+            <li><a href="/build/tokenomics.html">Tokenomics</a></li>
+            <li><a href="/quantumvault/">QuantumVault</a></li>
+            <li><a href="/#contact">Contact</a></li>
           </ul>
         </div>
         <div class="footer-section">

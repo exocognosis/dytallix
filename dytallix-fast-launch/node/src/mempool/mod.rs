@@ -248,6 +248,10 @@ impl Mempool {
             for message in messages {
                 match message {
                     TxMessage::Send { denom, amount, .. } => add(denom, *amount),
+                    TxMessage::Data { .. } => {
+                        // Data messages don't require token reserves, only fee payment
+                        // which is already handled above
+                    }
                 }
             }
         } else {

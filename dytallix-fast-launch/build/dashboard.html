@@ -18,92 +18,200 @@
           <ul class="nav-menu">
             <li><a href="../homepage/index.html">Home</a></li>
             <li><a href="./index.html">Build</a></li>
-            <li><a href="../quantumshield/index.html">QuantumShield</a></li>
-            <li><a href="./docs.html">Docs</a></li>
+            <li><a href="../quantumvault/">QuantumVault</a></li>
+            <li><a href="./network.html">Network</a></li>
+            <li><a href="../quantumvault/#demo" class="btn btn-primary btn-small">Request Demo</a></li>
+          </ul>
+        </nav>
+            </li>
+            <li><a href="../quantumvault/#demo" class="btn btn-primary btn-small">Request Demo</a></li>
           </ul>
         </nav>
       </div>
     </div>
   </header>
 
-  <section class="section" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 3rem 0;">
-    <div class="container">
-      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">📊 Developer Dashboard</h1>
-      <p style="font-size: 1.25rem; opacity: 0.9;">Manage projects, API keys, and monitor usage</p>
+  <section class="page-hero is-dark">
+    <div class="container page-hero-content">
+      <span class="hero-eyebrow">Developer Dashboard</span>
+      <h1 class="hero-title">Operate every project from a single control plane</h1>
+      <p class="hero-subtitle">
+        Monitor usage, manage environments, and ship PQC-verified deployments with streamlined workflows designed for
+        distributed teams.
+      </p>
+      <div class="hero-actions">
+        <a href="./index.html" class="btn btn-light btn-large">Back to Builder Hub</a>
+        <a href="../quantumvault/#demo" class="btn btn-outline btn-large">Schedule a Guided Demo</a>
+      </div>
+      <div class="hero-metrics">
+        <div class="metric metric-card is-dark">
+          <span class="metric-label">Total Requests</span>
+          <span class="metric-value">125,489</span>
+          <span class="metric-trend is-up">↑ 12% this month</span>
+        </div>
+        <div class="metric metric-card is-dark">
+          <span class="metric-label">Average Latency</span>
+          <span class="metric-value">45&nbsp;ms</span>
+          <span class="metric-trend is-down">↓ 5 ms improved</span>
+        </div>
+        <div class="metric metric-card is-dark">
+          <span class="metric-label">Active API Keys</span>
+          <span class="metric-value">3</span>
+          <span class="metric-trend">2 production · 1 staging</span>
+        </div>
+      </div>
     </div>
   </section>
 
   <section class="section">
     <div class="container">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h2>My Projects</h2>
-        <button class="btn btn-primary">+ New Project</button>
-      </div>
+      <div class="grid grid-3">
+        <article class="card">
+          <h3 class="card-title">Environment Switcher</h3>
+          <p class="card-content">
+            Toggle between isolated workspaces with synced secrets, key rotations, and contract registries.
+          </p>
+          <div class="chip-group mt-2" role="group" aria-label="Environment selector">
+            <button class="chip" type="button">Development</button>
+            <button class="chip" type="button">Preview</button>
+            <button class="chip is-active" type="button">Mainnet</button>
+          </div>
+          <div class="highlight-panel mt-3">
+            <strong>Current release:</strong> v1.3.7 &nbsp;·&nbsp; Deploy window closes in 03:18:42
+          </div>
+        </article>
 
-      <div class="grid grid-3" style="margin-bottom: 2rem;">
-        <div class="card">
-          <h4>Total Requests</h4>
-          <div style="font-size: 2rem; font-weight: 700; color: var(--primary-blue);">125,489</div>
-          <div style="font-size: 0.875rem; color: var(--success-green); margin-top: 0.5rem;">↑ 12% this month</div>
-        </div>
-        <div class="card">
-          <h4>Avg Latency</h4>
-          <div style="font-size: 2rem; font-weight: 700; color: var(--success-green);">45ms</div>
-          <div style="font-size: 0.875rem; color: var(--success-green); margin-top: 0.5rem;">↓ 5ms improved</div>
-        </div>
-        <div class="card">
-          <h4>Active Keys</h4>
-          <div style="font-size: 2rem; font-weight: 700; color: var(--accent-purple);">3</div>
-          <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">2 production, 1 dev</div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom: 2rem;">
-        <h3 class="card-title">Environment Switcher</h3>
-        <div style="display: flex; gap: 1rem;">
-          <button class="btn btn-outline">Development</button>
-          <button class="btn btn-outline">Staging</button>
-          <button class="btn btn-primary">Mainnet</button>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom: 2rem;">
-        <h3 class="card-title">API Keys</h3>
-        <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--radius-md); margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div style="font-family: var(--font-mono); font-size: 0.875rem; margin-bottom: 0.25rem;">
-                dyt_live_1234567890abcdef
-              </div>
-              <div style="font-size: 0.75rem; color: var(--gray-500);">Production | Created: Jan 15, 2025</div>
+        <article class="card">
+          <h3 class="card-title">Usage Overview</h3>
+          <p class="card-content">Keep a pulse on throughput and signature verification health.</p>
+          <div class="stacked-list">
+            <div class="stacked-list-item">
+              <span>Signed transactions (24h)</span>
+              <span class="badge badge-success">31,204</span>
             </div>
-            <button class="btn btn-outline">Manage</button>
+            <div class="stacked-list-item">
+              <span>PQC verification success</span>
+              <span class="badge badge-success">99.998%</span>
+            </div>
+            <div class="stacked-list-item">
+              <span>Rate limit utilisation</span>
+              <span class="badge">63%</span>
+            </div>
           </div>
-        </div>
-        <button class="btn btn-secondary">+ Generate New Key</button>
+        </article>
+
+        <article class="card">
+          <h3 class="card-title">Project Health</h3>
+          <p class="card-content">Focus on what needs attention before your next release.</p>
+          <div class="stacked-list">
+            <div class="stacked-list-item">
+              <span>Staging checks</span>
+              <span class="badge badge-success">All systems green</span>
+            </div>
+            <div class="stacked-list-item">
+              <span>Monitor alerts</span>
+              <span class="badge">0 open</span>
+            </div>
+            <div class="stacked-list-item">
+              <span>Governance votes</span>
+              <span class="badge">2 pending</span>
+            </div>
+          </div>
+        </article>
       </div>
 
-      <div class="card" style="margin-bottom: 2rem;">
-        <h3 class="card-title">Wallet Integration</h3>
-        <div style="display: flex; gap: 2rem; align-items: center;">
+      <div class="grid grid-2 mt-4">
+        <article class="card wallet-panel">
+          <h3 class="card-title">Wallet Integration</h3>
+          <p class="card-content">
+            Connected wallet and balance data stay in sync across environments. Rotate keys with PQC re-certification in
+            seconds.
+          </p>
           <div>
-            <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Connected Wallet</div>
-            <div style="font-family: var(--font-mono); font-weight: 600;">dyt1abc...xyz</div>
+            <span class="form-label">Connected Wallet</span>
+            <div class="address">dyt1abc...xyz</div>
           </div>
-          <div>
-            <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Balance</div>
-            <div style="font-weight: 700; font-size: 1.5rem; color: var(--primary-blue);">1,250 DYT</div>
+          <div class="list-inline">
+            <span class="form-label">Balance</span>
+            <span class="metric-value">1,250&nbsp;DYT</span>
+            <a href="./faucet.html" class="btn btn-outline btn-small">Get Testnet Tokens</a>
           </div>
-          <div style="margin-left: auto;">
-            <a href="./faucet.html" class="btn btn-outline">Get Testnet Tokens</a>
+        </article>
+
+        <article class="card">
+          <h3 class="card-title">API Keys</h3>
+          <p class="card-content">Manage scoped access and rotate credentials without downtime.</p>
+          <div class="stacked-list">
+            <div class="stacked-list-item">
+              <div>
+                <div class="form-label">Production</div>
+                <span class="address">dyt_live_1234567890abcdef</span>
+              </div>
+              <button class="btn btn-ghost btn-small" type="button">Manage</button>
+            </div>
+            <div class="stacked-list-item">
+              <div>
+                <div class="form-label">Staging</div>
+                <span class="address">dyt_stage_45cdef0911ff</span>
+              </div>
+              <button class="btn btn-ghost btn-small" type="button">Rotate</button>
+            </div>
           </div>
-        </div>
+          <div class="hero-actions justify-start mt-3">
+            <button class="btn btn-secondary btn-small" type="button">Generate New Key</button>
+          </div>
+        </article>
       </div>
 
-      <div class="card">
-        <h3 class="card-title">Contract Deployment Wizard</h3>
-        <p class="card-content">Deploy smart contracts with PQC signature verification.</p>
-        <button class="btn btn-primary">Start Deployment</button>
+      <div class="grid grid-2 mt-5">
+        <article class="card">
+          <h3 class="card-title">Contract Deployment Wizard</h3>
+          <p class="card-content">
+            Deploy audited smart contracts with PQC signature verification, environment diffing, and automated
+            rollback plans.
+          </p>
+          <ul class="stacked-list mt-3">
+            <li class="stacked-list-item">
+              <span>Pre-flight checks</span>
+              <span class="badge badge-success">Passed</span>
+            </li>
+            <li class="stacked-list-item">
+              <span>Security attestations</span>
+              <span class="badge">3 attached</span>
+            </li>
+          </ul>
+          <div class="hero-actions justify-start mt-4">
+            <button class="btn btn-primary" type="button">Start Deployment</button>
+            <button class="btn btn-ghost" type="button">View Templates</button>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3 class="card-title">Recent Activity</h3>
+          <div class="stacked-list">
+            <div class="stacked-list-item">
+              <div>
+                <strong>Contract upgrade</strong>
+                <p class="card-content mb-0">Dilithium verification added to governance module.</p>
+              </div>
+              <span class="badge">2m ago</span>
+            </div>
+            <div class="stacked-list-item">
+              <div>
+                <strong>New contributor</strong>
+                <p class="card-content mb-0">@mia joined API project with read scopes.</p>
+              </div>
+              <span class="badge">18m ago</span>
+            </div>
+            <div class="stacked-list-item">
+              <div>
+                <strong>Scheduled deployment</strong>
+                <p class="card-content mb-0">Mainnet upgrade reserved for 19:00 UTC.</p>
+              </div>
+              <span class="badge">Today</span>
+            </div>
+          </div>
+        </article>
       </div>
     </div>
   </section>
@@ -116,6 +224,8 @@
           <ul class="footer-links">
             <li><a href="./index.html">Overview</a></li>
             <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
+            <li><a href="./faucet.html">Faucet</a></li>
+            <li><a href="./explorer.html">Explorer</a></li>
           </ul>
         </div>
       </div>

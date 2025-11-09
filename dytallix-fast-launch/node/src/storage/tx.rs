@@ -65,6 +65,10 @@ pub enum TxMessage {
         #[serde(with = "u128_serde")]
         amount: u128,
     },
+    Data {
+        from: String,
+        data: String,
+    },
     // Future message types can be added here:
     // Delegate { validator: String, amount: u128 },
     // Vote { proposal_id: u64, option: VoteOption },

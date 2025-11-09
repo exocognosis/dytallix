@@ -305,6 +305,15 @@ fn execute_message(
 
             Ok(())
         }
+        TxMessage::Data { data, .. } => {
+            // Charge gas proportional to data size (1 gas per byte)
+            let data_size = data.len() as u64;
+            ctx.consume_gas(data_size, "data_storage")?;
+            
+            // Data messages don't modify state - they're just anchored on-chain
+            // The data is already stored in the transaction itself
+            Ok(())
+        }
     }
 }
 

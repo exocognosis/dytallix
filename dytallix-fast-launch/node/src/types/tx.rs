@@ -26,6 +26,10 @@ pub enum Msg {
         #[serde(with = "as_str_u128")]
         amount: u128,
     },
+    Data {
+        from: String,
+        data: String, // JSON or arbitrary string data to anchor on-chain
+    },
 }
 
 impl Msg {
@@ -56,6 +60,18 @@ impl Msg {
                 }
                 eprintln!("[DEBUG msg validate] ✅ Message validation passed");
             }
+            Msg::Data { from, data } => {
+                if from.is_empty() {
+                    return Err(anyhow!("from address cannot be empty"));
+                }
+                if data.is_empty() {
+                    return Err(anyhow!("data cannot be empty"));
+                }
+                // Limit data size to 1MB
+                if data.len() > 1_000_000 {
+                    return Err(anyhow!("data too large: max 1MB"));
+                }
+            }
         }
         Ok(())
     }
@@ -64,6 +80,7 @@ impl Msg {
     pub fn sender(&self) -> &str {
         match self {
             Msg::Send { from, .. } => from,
+            Msg::Data { from, .. } => from,
         }
     }
 }

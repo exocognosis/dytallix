@@ -4,7 +4,7 @@ echo ""
 
 # Check directory structure
 echo "1. Directory Structure:"
-for dir in homepage build quantumshield shared-assets; do
+for dir in homepage build quantumvault shared-assets; do
   if [ -d "$dir" ]; then
     echo "  ✓ /$dir exists"
   else
@@ -44,18 +44,18 @@ for page in index pqc-wallet faucet explorer dashboard tokenomics docs; do
 done
 echo ""
 
-# Check quantumshield
-echo "5. QuantumShield:"
-if [ -f "quantumshield/index.html" ]; then
-  echo "  ✓ quantumshield/index.html"
+# Check quantumvault
+echo "5. QuantumVault:"
+if [ -f "quantumvault/index.html" ]; then
+  echo "  ✓ quantumvault/index.html"
 else
-  echo "  ✗ quantumshield/index.html missing"
+  echo "  ✗ quantumvault/index.html missing"
 fi
 echo ""
 
 # Validate HTML structure
 echo "6. HTML Validation (basic):"
-for html_file in homepage/index.html build/index.html quantumshield/index.html; do
+for html_file in homepage/index.html build/index.html quantumvault/index.html; do
   if grep -q "<!DOCTYPE html>" "$html_file" && \
      grep -q "</html>" "$html_file" && \
      grep -q "<head>" "$html_file" && \
@@ -72,8 +72,8 @@ echo "7. Navigation Links (sample):"
 if grep -q 'href="../build/index.html"' homepage/index.html; then
   echo "  ✓ Homepage links to Build"
 fi
-if grep -q 'href="../quantumshield/index.html"' homepage/index.html; then
-  echo "  ✓ Homepage links to QuantumShield"
+if grep -q 'href="../quantumvault/' homepage/index.html; then
+  echo "  ✓ Homepage links to QuantumVault"
 fi
 if grep -q 'href="../shared-assets/styles.css"' homepage/index.html; then
   echo "  ✓ Homepage includes shared styles"

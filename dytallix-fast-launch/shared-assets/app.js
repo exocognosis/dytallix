@@ -85,14 +85,35 @@
   const Navigation = {
     highlightCurrent: function() {
       const currentPath = window.location.pathname;
-      const navLinks = document.querySelectorAll('.nav-menu a');
+      const navLinks = document.querySelectorAll('.nav-menu a:not(.btn)');
+      
+      // Remove all existing active classes
+      navLinks.forEach(link => link.classList.remove('active'));
+      
+      // Find the best matching link
+      let bestMatch = null;
+      let bestMatchLength = 0;
       
       navLinks.forEach(link => {
         const href = link.getAttribute('href');
-        if (href && currentPath.includes(href.replace('./', ''))) {
-          link.classList.add('active');
+        if (!href || href.startsWith('#')) return;
+        
+        // Normalize paths for comparison
+        const normalizedHref = href.endsWith('/') ? href : href + '/';
+        const normalizedPath = currentPath.endsWith('/') ? currentPath : currentPath + '/';
+        
+        // Check for exact match or path starts with href
+        if (normalizedPath === normalizedHref || 
+            (normalizedPath.startsWith(normalizedHref) && normalizedHref.length > bestMatchLength)) {
+          bestMatch = link;
+          bestMatchLength = normalizedHref.length;
         }
       });
+      
+      // Apply active class to best match
+      if (bestMatch) {
+        bestMatch.classList.add('active');
+      }
     }
   };
 
@@ -283,8 +304,41 @@
     }
   };
 
+  // NEW: Global UI adjustments
+  const UIAdjustments = {
+    removeDocsLinks: function() {
+      try {
+        // Remove any nav/footer/hero links pointing to docs
+        const docLinks = document.querySelectorAll(
+          'a[href$="docs.html"], a[href*="/docs"], a[data-role="docs"]'
+        );
+        docLinks.forEach(el => {
+          const navItem = el.closest('li');
+          if (navItem && navItem.parentElement && navItem.parentElement.classList.contains('nav-menu')) {
+            navItem.remove();
+          } else {
+            el.remove();
+          }
+        });
+
+        // Remove any card with a Docs badge
+        document.querySelectorAll('.card .badge').forEach(badge => {
+          if (badge.textContent && badge.textContent.trim().toLowerCase() === 'docs') {
+            const card = badge.closest('.card');
+            if (card) card.remove();
+          }
+        });
+      } catch (e) {
+        console.warn('UIAdjustments.removeDocsLinks error:', e);
+      }
+    }
+  };
+
   // Initialize all modules on DOM ready
   function init() {
+    // Apply global UI adjustments first
+    UIAdjustments.removeDocsLinks();
+
     Modal.init();
     Navigation.highlightCurrent();
     Forms.init();
@@ -310,6 +364,7 @@
     Accordion,
     SmoothScroll,
     Clipboard,
-    VideoPlayer
+    VideoPlayer,
+    UIAdjustments
   };
 })();

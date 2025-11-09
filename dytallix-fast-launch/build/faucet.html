@@ -3,12 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Dytallix Testnet Faucet - Get Free Tokens">
   <title>Testnet Faucet - Dytallix</title>
   <link rel="stylesheet" href="../shared-assets/styles.css">
 </head>
 <body>
-  <!-- Header -->
   <header class="global-header">
     <div class="container">
       <div class="header-content">
@@ -20,197 +18,123 @@
           <ul class="nav-menu">
             <li><a href="../homepage/index.html">Home</a></li>
             <li><a href="./index.html">Build</a></li>
-            <li><a href="../quantumshield/index.html">QuantumShield</a></li>
-            <li><a href="./docs.html">Docs</a></li>
-            <li><a href="../quantumshield/index.html#demo" class="btn btn-primary" style="padding: 0.5rem 1rem;">Request Demo</a></li>
+            <li><a href="../quantumvault/index.html">QuantumVault</a></li>
+            <li><a href="../quantumvault/index.html#demo" class="btn btn-primary btn-small">Request Demo</a></li>
           </ul>
         </nav>
       </div>
     </div>
   </header>
 
-  <!-- Page Header -->
-  <section class="section" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 3rem 0;">
-    <div class="container">
-      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">💧 Testnet Faucet</h1>
-      <p style="font-size: 1.25rem; opacity: 0.9;">
-        Get free testnet tokens to start building on Dytallix
+  <section class="page-hero">
+    <div class="container page-hero-content">
+      <span class="hero-eyebrow">Testnet Faucet</span>
+      <h1 class="hero-title">Fuel your experiments instantly</h1>
+      <p class="hero-subtitle">
+        Request capped amounts of DYT to power integration tests, contract dry-runs, and demo environments. Rate
+        limits keep the faucet fast and fair for every builder.
       </p>
+      <div class="hero-actions">
+        <a href="./explorer.html" class="btn btn-primary btn-large">View recent transfers</a>
+        <a href="./docs.html#quickstart" class="btn btn-outline btn-large">Follow the quick start</a>
+      </div>
+      <div class="hero-metrics">
+        <div class="metric metric-card">
+          <span class="metric-label">Tokens distributed (24h)</span>
+          <span class="metric-value">82,400</span>
+          <span class="metric-trend is-up">↑ Stable throughput</span>
+        </div>
+        <div class="metric metric-card">
+          <span class="metric-label">Queue time</span>
+          <span class="metric-value">&lt; 30s</span>
+          <span class="metric-trend is-up">Realtime processing</span>
+        </div>
+        <div class="metric metric-card">
+          <span class="metric-label">Per request allowance</span>
+          <span class="metric-value">250&nbsp;DYT</span>
+          <span class="metric-trend">Reset every 6h</span>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- Faucet Form -->
   <section class="section">
-    <div class="container">
-      <div style="max-width: 600px; margin: 0 auto;">
-        <div class="card">
-          <h2 class="card-title">Request Testnet Tokens</h2>
-          <p class="card-content">
-            Enter your wallet address below to receive 100 DYT testnet tokens. 
-            Limited to one request per address every 24 hours.
-          </p>
-          
-          <form id="faucet-form" onsubmit="handleFaucetRequest(event)">
-            <div class="form-group">
-              <label class="form-label">Wallet Address</label>
-              <input 
-                type="text" 
-                id="wallet-address" 
-                class="form-input" 
-                placeholder="dyt1q2w3e4r5t6y7u8i9o0p..."
-                required
-                pattern="^dyt[a-z0-9]{30,}$"
-              >
-              <small style="color: var(--gray-500); display: block; margin-top: 0.5rem;">
-                Must be a valid Dytallix address starting with 'dyt'
-              </small>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">Amount</label>
-              <select class="form-select" disabled>
-                <option>100 DYT (Testnet)</option>
-              </select>
-            </div>
-            
-            <div class="form-group" style="background: var(--gray-50); padding: 1rem; border-radius: var(--radius-md); text-align: center;">
-              <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">
-                ✓ I'm not a robot
-              </div>
-              <small style="color: var(--gray-500);">Captcha verification (simulated)</small>
-            </div>
-            
-            <button type="submit" class="btn btn-primary btn-large" style="width: 100%;">
-              Request Tokens
-            </button>
-          </form>
-        </div>
-
-        <!-- Transaction Log -->
-        <div class="card" style="margin-top: 2rem;">
-          <h3 class="card-title">Recent Requests</h3>
-          <div id="transaction-log">
-            <div style="padding: 1rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-family: var(--font-mono); font-size: 0.875rem; color: var(--gray-700);">
-                  dyt1abc...xyz
-                </div>
-                <div style="font-size: 0.75rem; color: var(--gray-500);">2 minutes ago</div>
-              </div>
-              <div>
-                <span style="background: var(--success-green); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem;">
-                  ✓ Completed
-                </span>
-              </div>
-            </div>
-            
-            <div style="padding: 1rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-family: var(--font-mono); font-size: 0.875rem; color: var(--gray-700);">
-                  dyt1def...uvw
-                </div>
-                <div style="font-size: 0.75rem; color: var(--gray-500);">15 minutes ago</div>
-              </div>
-              <div>
-                <span style="background: var(--success-green); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem;">
-                  ✓ Completed
-                </span>
-              </div>
-            </div>
-            
-            <div style="padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-family: var(--font-mono); font-size: 0.875rem; color: var(--gray-700);">
-                  dyt1ghi...rst
-                </div>
-                <div style="font-size: 0.75rem; color: var(--gray-500);">1 hour ago</div>
-              </div>
-              <div>
-                <span style="background: var(--success-green); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem;">
-                  ✓ Completed
-                </span>
-              </div>
-            </div>
+    <div class="container grid grid-2">
+      <article class="card">
+        <h2 class="card-title">Request testnet tokens</h2>
+        <form class="animate-fade-in" autocomplete="off">
+          <div class="form-group">
+            <label class="form-label" for="wallet-address">Wallet address</label>
+            <input id="wallet-address" type="text" class="form-input" placeholder="Enter a dyt1… address">
           </div>
-          
-          <div style="text-align: center; margin-top: 1rem;">
-            <a href="./explorer.html" class="btn btn-outline">View All Transactions →</a>
+          <div class="form-group">
+            <label class="form-label" for="network">Network</label>
+            <select id="network" class="form-select">
+              <option value="testnet">Testnet</option>
+              <option value="devnet">Devnet</option>
+            </select>
           </div>
-        </div>
+          <div class="form-group">
+            <label class="form-label" for="amount">Amount</label>
+            <input id="amount" type="number" class="form-input" placeholder="0 - 250" min="0" max="250">
+            <p class="card-content mb-0">Maximum 250 DYT per request. Resets every 6 hours.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="captcha">Captcha check</label>
+            <input id="captcha" type="text" class="form-input" placeholder="Enter verification code">
+          </div>
+          <button class="btn btn-primary btn-large" type="submit">Send tokens</button>
+        </form>
+      </article>
 
-        <!-- Info Box -->
-        <div class="card" style="margin-top: 2rem; background: var(--gray-50);">
-          <h3 class="card-title">Faucet Information</h3>
-          <ul style="margin: 0; padding-left: 1.25rem; color: var(--gray-600);">
-            <li style="margin-bottom: 0.5rem;">Rate limited to one request per address every 24 hours</li>
-            <li style="margin-bottom: 0.5rem;">Each request provides 100 DYT testnet tokens</li>
-            <li style="margin-bottom: 0.5rem;">Transactions are visible in the Explorer within 30 seconds</li>
-            <li style="margin-bottom: 0.5rem;">Testnet tokens have no real value and are for development only</li>
-            <li>Need more tokens? Contact us on Discord for bulk requests</li>
+      <article class="card">
+        <h2 class="card-title">How it works</h2>
+        <p class="card-content">
+          Every request is validated through rate limits, captcha verification, and PQC signatures before the faucet
+          transfers funds. The entire flow is auditable via the explorer.
+        </p>
+        <div class="highlight-panel mt-3">
+          <strong>Tips</strong>
+          <ul class="mt-2">
+            <li>Use unique wallets for separate environments.</li>
+            <li>Set up webhooks in the <a href="./dashboard.html">dashboard</a> for delivery confirmations.</li>
+            <li>Monitor activity through <a href="./explorer.html">explorer filters</a>.</li>
           </ul>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- API Reference -->
-  <section class="section" style="background: var(--gray-50);">
-    <div class="container">
-      <div style="max-width: 800px; margin: 0 auto;">
-        <h2 style="text-align: center; margin-bottom: 2rem;">API Endpoints</h2>
-        <div class="card">
-          <div style="font-family: var(--font-mono); font-size: 0.875rem;">
-            <div style="margin-bottom: 1.5rem;">
-              <div style="background: var(--gray-100); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.5rem;">
-                <strong style="color: var(--accent-purple);">POST</strong> /faucet/request
-              </div>
-              <p style="color: var(--gray-600); margin-left: 1rem; margin-bottom: 0.5rem;">
-                Request testnet tokens for an address
-              </p>
-              <pre style="background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: var(--radius-md); margin-left: 1rem; overflow-x: auto;">
-{
-  "address": "dyt1...",
-  "captcha_token": "..."
-}</pre>
-            </div>
-            
-            <div>
-              <div style="background: var(--gray-100); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.5rem;">
-                <strong style="color: var(--success-green);">GET</strong> /faucet/status/:address
-              </div>
-              <p style="color: var(--gray-600); margin-left: 1rem;">
-                Check request status and cooldown time
-              </p>
-            </div>
+        <div class="stacked-list mt-3">
+          <div class="stacked-list-item">
+            <span>Distribution window</span>
+            <span class="badge">24/7</span>
+          </div>
+          <div class="stacked-list-item">
+            <span>Rate limit</span>
+            <span class="badge">1 request / 6h</span>
+          </div>
+          <div class="stacked-list-item">
+            <span>Escalation contact</span>
+            <span class="badge">support@dytallix.com</span>
           </div>
         </div>
-      </div>
+      </article>
     </div>
   </section>
 
-  <!-- Success Modal -->
-  <div id="success-modal" class="modal-overlay modal-hidden">
-    <div class="modal-content">
-      <h2 style="margin-bottom: 1rem; color: var(--success-green);">✓ Success!</h2>
-      <p style="margin-bottom: 1.5rem; color: var(--gray-600);">
-        Your request has been processed. Tokens will arrive in your wallet within 30 seconds.
-      </p>
-      <div style="background: var(--gray-50); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
-        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Transaction ID:</div>
-        <div id="tx-id" style="font-family: var(--font-mono); font-size: 0.875rem; word-break: break-all;">
-          0x1234567890abcdef...
+  <section class="section is-alt">
+    <div class="container">
+      <article class="card text-center">
+        <span class="pill">Next steps</span>
+        <h2 class="section-title">Ready to deploy?</h2>
+        <p class="section-subtitle">
+          Once you have funds, jump into the contract deployment wizard or integrate the SDK for end-to-end testing.
+        </p>
+        <div class="hero-actions justify-center">
+          <a href="./dashboard.html" class="btn btn-primary btn-large">Open Dashboard</a>
+          <a href="./pqc-wallet.html" class="btn btn-outline btn-large">Manage wallets</a>
         </div>
-      </div>
-      <button class="btn btn-primary" style="width: 100%;" onclick="Dytallix.Modal.close('success-modal')">
-        Close
-      </button>
-      <a href="./explorer.html" class="btn btn-outline" style="width: 100%; margin-top: 0.5rem;">
-        View in Explorer
-      </a>
+      </article>
     </div>
-  </div>
+  </section>
 
-  <!-- Footer -->
   <footer class="global-footer">
     <div class="container">
       <div class="footer-content">
@@ -221,63 +145,15 @@
             <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
             <li><a href="./faucet.html">Faucet</a></li>
             <li><a href="./explorer.html">Explorer</a></li>
-            <li><a href="./dashboard.html">Dashboard</a></li>
-            <li><a href="./docs.html">Documentation</a></li>
-          </ul>
-        </div>
-        
-        <div class="footer-section">
-          <h4>QuantumShield</h4>
-          <ul class="footer-links">
-            <li><a href="../quantumshield/index.html">Overview</a></li>
-            <li><a href="../quantumshield/index.html#threat">Threat Brief</a></li>
-            <li><a href="../quantumshield/index.html#solution">Solution</a></li>
-            <li><a href="../quantumshield/index.html#features">Features</a></li>
-            <li><a href="../quantumshield/index.html#demo">Request Demo</a></li>
-          </ul>
-        </div>
-        
-        <div class="footer-section">
-          <h4>Resources</h4>
-          <ul class="footer-links">
-            <li><a href="./tokenomics.html">Tokenomics</a></li>
-            <li><a href="#" onclick="Dytallix.Analytics.trackDownload('whitepaper')">White Paper</a></li>
-            <li><a href="./docs.html">API Reference</a></li>
-            <li><a href="https://github.com/dytallix" target="_blank" rel="noopener">GitHub</a></li>
-          </ul>
-        </div>
-        
-        <div class="footer-section">
-          <h4>Company</h4>
-          <ul class="footer-links">
-            <li><a href="#">About</a></li>
-            <li><a href="#">Blog</a></li>
-            <li><a href="#">Careers</a></li>
-            <li><a href="#">Contact</a></li>
-            <li><a href="#">Privacy Policy</a></li>
           </ul>
         </div>
       </div>
-      
       <div class="footer-bottom">
-        <p>&copy; 2025 Dytallix. All rights reserved. | Securing the Quantum Future</p>
+        <p>&copy; 2025 Dytallix. All rights reserved.</p>
       </div>
     </div>
   </footer>
 
   <script src="../shared-assets/app.js"></script>
-  <script>
-    function handleFaucetRequest(event) {
-      event.preventDefault();
-      const address = document.getElementById('wallet-address').value;
-      
-      // Simulate API call
-      setTimeout(() => {
-        document.getElementById('tx-id').textContent = '0x' + Math.random().toString(16).substr(2, 40);
-        Dytallix.Modal.open('success-modal');
-        Dytallix.Analytics.track('faucet_request', { address });
-      }, 500);
-    }
-  </script>
 </body>
 </html>

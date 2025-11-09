@@ -5,23 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Documentation - Dytallix</title>
   <link rel="stylesheet" href="../shared-assets/styles.css">
-  <style>
-    .docs-layout {
-      display: grid;
-      grid-template-columns: 250px 1fr;
-      gap: 2rem;
-    }
-    .docs-sidebar {
-      position: sticky;
-      top: 80px;
-      height: fit-content;
-    }
-    @media (max-width: 768px) {
-      .docs-layout {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
 </head>
 <body>
   <header class="global-header">
@@ -35,191 +18,245 @@
           <ul class="nav-menu">
             <li><a href="../homepage/index.html">Home</a></li>
             <li><a href="./index.html">Build</a></li>
-            <li><a href="../quantumshield/index.html">QuantumShield</a></li>
-            <li><a href="./docs.html" class="active">Docs</a></li>
+            <li><a href="../quantumvault/index.html">QuantumVault</a></li>
+            <li class="nav-dropdown">
+              <a href="#" class="nav-dropdown-toggle">Network ▾</a>
+              <ul class="nav-dropdown-menu">
+                <li><a href="./explorer.html">Explorer</a></li>
+                <li><a href="./dashboard.html">Dashboard</a></li>
+              </ul>
+            </li>
+            <li><a href="../quantumvault/index.html#demo" class="btn btn-primary btn-small">Request Demo</a></li>
           </ul>
         </nav>
       </div>
     </div>
   </header>
 
-  <section class="section" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 3rem 0;">
-    <div class="container">
-      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">📚 Documentation</h1>
-      <p style="font-size: 1.25rem; opacity: 0.9;">Complete developer guides and API reference</p>
-      <div style="margin-top: 1.5rem;">
-        <input type="text" class="form-input" placeholder="Search documentation..." 
-               style="max-width: 500px; background: white;">
-      </div>
+  <section class="page-hero">
+    <div class="container page-hero-content">
+      <span class="hero-eyebrow">Developer Documentation</span>
+      <h1 class="hero-title">Ship faster with opinionated guides and living references</h1>
+      <p class="hero-subtitle">
+        Explore curated walkthroughs, API references, and SDK recipes designed to make post-quantum development feel
+        familiar, testable, and production ready.
+      </p>
+      <form class="hero-actions" role="search">
+        <label for="docs-search" class="sr-only">Search documentation</label>
+        <input id="docs-search" name="q" type="search" class="form-input hero-search" placeholder="Search for topics, SDKs, or endpoints…">
+        <button class="btn btn-primary" type="submit">Search</button>
+      </form>
     </div>
   </section>
 
   <section class="section">
-    <div class="container">
-      <div class="docs-layout">
-        <!-- Sidebar Navigation -->
-        <nav class="docs-sidebar">
-          <div class="card" style="padding: 1rem;">
-            <h4 style="margin-bottom: 1rem;">Getting Started</h4>
-            <ul style="list-style: none; padding: 0;">
-              <li style="margin-bottom: 0.5rem;"><a href="#intro">Introduction</a></li>
-              <li style="margin-bottom: 0.5rem;"><a href="#quickstart">Quick Start</a></li>
-              <li style="margin-bottom: 0.5rem;"><a href="#installation">Installation</a></li>
-            </ul>
-            
-            <h4 style="margin: 1rem 0;">Core Concepts</h4>
-            <ul style="list-style: none; padding: 0;">
-              <li style="margin-bottom: 0.5rem;"><a href="#pqc">Post-Quantum Crypto</a></li>
-              <li style="margin-bottom: 0.5rem;"><a href="#wallet">Wallet Management</a></li>
-              <li style="margin-bottom: 0.5rem;"><a href="#transactions">Transactions</a></li>
-              <li style="margin-bottom: 0.5rem;"><a href="#contracts">Smart Contracts</a></li>
-            </ul>
-            
-            <h4 style="margin: 1rem 0;">API Reference</h4>
-            <ul style="list-style: none; padding: 0;">
-              <li style="margin-bottom: 0.5rem;"><a href="#rest-api">REST API</a></li>
-              <li style="margin-bottom: 0.5rem;"><a href="#graphql">GraphQL</a></li>
-              <li style="margin-bottom: 0.5rem;"><a href="#websocket">WebSocket</a></li>
-            </ul>
-            
-            <h4 style="margin: 1rem 0;">SDKs</h4>
-            <ul style="list-style: none; padding: 0;">
-              <li style="margin-bottom: 0.5rem;"><a href="#js-sdk">JavaScript</a></li>
-              <li style="margin-bottom: 0.5rem;"><a href="#python-sdk">Python</a></li>
-              <li style="margin-bottom: 0.5rem;"><a href="#rust-sdk">Rust</a></li>
-            </ul>
+    <div class="container docs-layout">
+      <aside class="docs-sidebar">
+        <div class="card">
+          <h3 class="card-title">Contents</h3>
+          <ul class="docs-nav">
+            <li><a href="#intro">Introduction</a></li>
+            <li><a href="#quickstart">Quick Start</a></li>
+            <li><a href="#concepts">Core Concepts</a></li>
+            <li><a href="#rest-api">REST API</a></li>
+            <li><a href="#graphql">GraphQL</a></li>
+            <li><a href="#sdks">SDK Guides</a></li>
+          </ul>
+          <div class="highlight-panel mt-3">
+            <strong>Docs version:</strong> 1.3.0 &nbsp;·&nbsp; Updated 18 Feb 2025
           </div>
-          
-          <div style="margin-top: 1rem; text-align: center;">
-            <label style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer;">
-              <span>🌙</span>
-              <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
-              <span>Dark Mode</span>
-            </label>
-          </div>
-        </nav>
+        </div>
+        <div class="card mt-3">
+          <h4>Need something else?</h4>
+          <p class="card-content">Jump into our community if you get stuck.</p>
+          <a href="https://discord.gg" class="btn btn-outline btn-small" target="_blank" rel="noopener">Join Discord</a>
+        </div>
+      </aside>
 
-        <!-- Main Content -->
-        <div class="docs-content">
-          <div class="card" id="intro">
-            <h2>Introduction</h2>
-            <p>Welcome to the Dytallix developer documentation. This guide will help you build quantum-resistant blockchain applications.</p>
-            
-            <h3 style="margin-top: 2rem;">What is Dytallix?</h3>
-            <p>Dytallix is a blockchain platform built from the ground up with post-quantum cryptography (PQC). We implement NIST-approved algorithms including Kyber, Dilithium, SPHINCS+, and Falcon to ensure your applications remain secure in the quantum era.</p>
-            
-            <div style="background: var(--gray-50); padding: 1.5rem; border-radius: var(--radius-md); border-left: 4px solid var(--primary-blue); margin: 1.5rem 0;">
-              <strong>💡 Key Features:</strong>
-              <ul style="margin-top: 0.5rem;">
-                <li>Post-quantum secure by default</li>
-                <li>Hybrid classical + PQC support</li>
-                <li>WebAssembly smart contracts</li>
-                <li>GraphQL and REST APIs</li>
+      <main class="docs-content">
+        <article class="card" id="intro">
+          <span class="pill">Start here</span>
+          <h2 class="card-title">Introduction</h2>
+          <p>
+            Welcome to the Dytallix developer documentation. The platform is built around post-quantum cryptography
+            (PQC) with NIST-approved primitives including Kyber, Dilithium, SPHINCS+, and Falcon. Every guide is
+            opinionated toward real-world workflows so your team can move from prototype to production quickly and
+            safely.
+          </p>
+          <div class="highlight-panel mt-3">
+            <strong>Key advantages</strong>
+            <ul class="mt-2">
+              <li>Post-quantum secure by default across wallets, APIs, and contracts.</li>
+              <li>Hybrid classical + PQC signatures with automated key rotations.</li>
+              <li>Comprehensive testnet and observability tooling out of the box.</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="card mt-4" id="quickstart">
+          <span class="pill">Build in minutes</span>
+          <h2 class="card-title">Quick Start</h2>
+          <p>Install the SDK, create a wallet, and submit your first transaction.</p>
+          <div class="code-block">
+            <pre><code># Install via npm
+npm install @dytallix/sdk
+
+# Or with yarn
+yarn add @dytallix/sdk</code></pre>
+          </div>
+          <div class="code-block">
+            <pre><code>import { DytallixClient } from '@dytallix/sdk';
+
+const client = new DytallixClient({
+  endpoint: 'https://testnet.dytallix.com',
+  apiKey: process.env.DYTALLIX_API_KEY,
+});
+
+const wallet = await client.createWallet({
+  algorithm: 'dilithium',
+  securityLevel: 3,
+});
+
+console.log('Address:', wallet.address);</code></pre>
+          </div>
+          <div class="highlight-panel mt-3">
+            <strong>Next up:</strong> Fund your wallet from the <a href="./faucet.html">testnet faucet</a> and explore
+            live transactions inside the <a href="./explorer.html">explorer</a>.
+          </div>
+        </article>
+
+        <article class="card mt-4" id="concepts">
+          <span class="pill">Core concepts</span>
+          <h2 class="card-title">What you need to know</h2>
+          <p class="card-content">
+            Understanding these pillars will make the rest of the documentation intuitive.
+          </p>
+          <div class="grid grid-2 mt-3">
+            <div>
+              <h3>Wallet management</h3>
+              <p>Hardware-backed secrets, secure enclaves, and encrypted local storage power every wallet flow.</p>
+              <ul>
+                <li>Generate Kyber and Dilithium keypairs.</li>
+                <li>Enable hybrid RSA + PQC signatures.</li>
+                <li>Rotate keys with automated revocation.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Transactions</h3>
+              <p>All transactions are signed using PQC primitives with telemetry streamed to the dashboard.</p>
+              <ul>
+                <li>Gas fees and execution visibility via explorer.</li>
+                <li>Replay protection and nonce management.</li>
+                <li>Webhooks and GraphQL subscriptions.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Smart contracts</h3>
+              <p>Deploy WASM contracts with PQC verification gates and rollback plans.</p>
+              <ul>
+                <li>Environment diffing before deploy.</li>
+                <li>Governance approvals baked in.</li>
+                <li>Security attestations tracked automatically.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Observability</h3>
+              <p>Dashboards surface health metrics, rate limits, and PQC integrity in real time.</p>
+              <ul>
+                <li>Usage analytics with anomaly detection.</li>
+                <li>Alerting integrations for Slack and PagerDuty.</li>
+                <li>Historical exports for compliance and audits.</li>
               </ul>
             </div>
           </div>
+        </article>
 
-          <div class="card" id="quickstart" style="margin-top: 2rem;">
-            <h2>Quick Start</h2>
-            <p>Get up and running with Dytallix in 5 minutes.</p>
-            
-            <h3 style="margin-top: 1.5rem;">Step 1: Install the SDK</h3>
-            <div style="background: #0f172a; color: #e2e8f0; padding: 1.5rem; border-radius: var(--radius-md); font-family: var(--font-mono); margin: 1rem 0;">
-              <span style="color: #94a3b8;"># Using npm</span><br>
-              npm install @dytallix/sdk<br><br>
-              <span style="color: #94a3b8;"># Using yarn</span><br>
-              yarn add @dytallix/sdk
+        <article class="card mt-4" id="rest-api">
+          <span class="pill">API reference</span>
+          <h2 class="card-title">REST API</h2>
+          <p>Authenticate with your API key using the <code>Authorization: Bearer &lt;key&gt;</code> header.</p>
+          <div class="stacked-list mt-3">
+            <div class="stacked-list-item">
+              <div>
+                <strong>POST</strong>
+                <span class="form-label">/api/v1/wallet/create</span>
+                <p class="card-content mb-0">Create a new PQC wallet for a given algorithm and security level.</p>
+              </div>
+              <button class="btn btn-outline btn-small" type="button">Try it</button>
             </div>
-            
-            <h3 style="margin-top: 1.5rem;">Step 2: Initialize the Client</h3>
-            <div style="background: #0f172a; color: #e2e8f0; padding: 1.5rem; border-radius: var(--radius-md); font-family: var(--font-mono); margin: 1rem 0;">
-              <span style="color: #c084fc;">import</span> { DytallixClient } <span style="color: #c084fc;">from</span> <span style="color: #fbbf24;">'@dytallix/sdk'</span>;<br><br>
-              <span style="color: #c084fc;">const</span> client = <span style="color: #c084fc;">new</span> <span style="color: #60a5fa;">DytallixClient</span>({<br>
-              &nbsp;&nbsp;endpoint: <span style="color: #fbbf24;">'https://testnet.dytallix.com'</span>,<br>
-              &nbsp;&nbsp;apiKey: <span style="color: #fbbf24;">'your_api_key'</span><br>
-              });
+            <div class="stacked-list-item">
+              <div>
+                <strong>GET</strong>
+                <span class="form-label">/api/v1/explorer/block/:height</span>
+                <p class="card-content mb-0">Retrieve block data with signature insights and transaction counts.</p>
+              </div>
+              <button class="btn btn-outline btn-small" type="button">Try it</button>
             </div>
-            
-            <h3 style="margin-top: 1.5rem;">Step 3: Create a Wallet</h3>
-            <div style="background: #0f172a; color: #e2e8f0; padding: 1.5rem; border-radius: var(--radius-md); font-family: var(--font-mono); margin: 1rem 0;">
-              <span style="color: #c084fc;">const</span> wallet = <span style="color: #c084fc;">await</span> client.<span style="color: #60a5fa;">createWallet</span>({<br>
-              &nbsp;&nbsp;algorithm: <span style="color: #fbbf24;">'dilithium'</span>,<br>
-              &nbsp;&nbsp;securityLevel: <span style="color: #fbbf24;">3</span><br>
-              });<br><br>
-              console.<span style="color: #60a5fa;">log</span>(<span style="color: #fbbf24;">'Address:'</span>, wallet.address);
+            <div class="stacked-list-item">
+              <div>
+                <strong>POST</strong>
+                <span class="form-label">/api/v1/contracts/deploy</span>
+                <p class="card-content mb-0">Deploy a smart contract with environment diffing and PQC verification.</p>
+              </div>
+              <button class="btn btn-outline btn-small" type="button">Open console</button>
             </div>
           </div>
+        </article>
 
-          <div class="card" id="rest-api" style="margin-top: 2rem;">
-            <h2>REST API Reference</h2>
-            <p>Complete OpenAPI-compatible REST API documentation.</p>
-            
-            <h3 style="margin-top: 1.5rem;">Authentication</h3>
-            <p>All API requests require an API key in the header:</p>
-            <div style="background: #0f172a; color: #e2e8f0; padding: 1.5rem; border-radius: var(--radius-md); font-family: var(--font-mono); margin: 1rem 0;">
-              Authorization: Bearer YOUR_API_KEY
+        <article class="card mt-4" id="graphql">
+          <span class="pill">Real-time</span>
+          <h2 class="card-title">GraphQL API</h2>
+          <p>The GraphQL endpoint lives at <code>https://api.dytallix.com/graphql</code>.</p>
+          <div class="code-block">
+            <pre><code>query LatestBlocks {
+  blocks(limit: 10, orderBy: HEIGHT_DESC) {
+    height
+    timestamp
+    transactions {
+      hash
+      status
+      signatureAlgorithm
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="highlight-panel mt-3">
+            <strong>Tip:</strong> Use subscriptions for real-time block feeds and pipeline them into your monitoring or
+            analytics stack.
+          </div>
+        </article>
+
+        <article class="card mt-4" id="sdks">
+          <span class="pill">SDK playbooks</span>
+          <h2 class="card-title">Language guides</h2>
+          <div class="grid grid-3">
+            <div class="token-card">
+              <h3>JavaScript</h3>
+              <p class="card-content">Browser and Node runtimes with tree-shakeable modules.</p>
+              <div class="code-block">
+                <pre><code>npm install @dytallix/sdk-js</code></pre>
+              </div>
+              <a class="btn btn-ghost btn-small" href="#">Read guide →</a>
             </div>
-            
-            <h3 style="margin-top: 1.5rem;">Endpoints</h3>
-            
-            <div style="border: 1px solid var(--gray-200); border-radius: var(--radius-md); margin: 1rem 0; overflow: hidden;">
-              <div style="background: var(--gray-100); padding: 1rem; border-bottom: 1px solid var(--gray-200);">
-                <strong style="color: var(--accent-purple);">POST</strong> 
-                <span style="font-family: var(--font-mono); margin-left: 1rem;">/api/v1/wallet/create</span>
+            <div class="token-card">
+              <h3>Python</h3>
+              <p class="card-content">Async-first client with type hints and retries.</p>
+              <div class="code-block">
+                <pre><code>pip install dytallix-sdk</code></pre>
               </div>
-              <div style="padding: 1rem;">
-                <p style="margin-bottom: 1rem;">Create a new PQC wallet</p>
-                <button class="btn btn-outline btn-small" onclick="alert('Try It feature - would open interactive console')">
-                  ▶ Try It
-                </button>
-              </div>
+              <a class="btn btn-ghost btn-small" href="#">Read guide →</a>
             </div>
-            
-            <div style="border: 1px solid var(--gray-200); border-radius: var(--radius-md); margin: 1rem 0; overflow: hidden;">
-              <div style="background: var(--gray-100); padding: 1rem; border-bottom: 1px solid var(--gray-200);">
-                <strong style="color: var(--success-green);">GET</strong> 
-                <span style="font-family: var(--font-mono); margin-left: 1rem;">/api/v1/explorer/block/:height</span>
+            <div class="token-card">
+              <h3>Rust</h3>
+              <p class="card-content">Native crates for low-latency services and CLI tooling.</p>
+              <div class="code-block">
+                <pre><code>cargo add dytallix-sdk</code></pre>
               </div>
-              <div style="padding: 1rem;">
-                <p style="margin-bottom: 1rem;">Get block information by height</p>
-                <button class="btn btn-outline btn-small" onclick="alert('Try It feature - would open interactive console')">
-                  ▶ Try It
-                </button>
-              </div>
+              <a class="btn btn-ghost btn-small" href="#">Read guide →</a>
             </div>
           </div>
-
-          <div class="card" id="graphql" style="margin-top: 2rem;">
-            <h2>GraphQL API</h2>
-            <p>Type-safe queries with GraphQL. Endpoint: <code style="background: var(--gray-100); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-family: var(--font-mono);">https://api.dytallix.com/graphql</code></p>
-            
-            <h3 style="margin-top: 1.5rem;">Example Query</h3>
-            <div style="background: #0f172a; color: #e2e8f0; padding: 1.5rem; border-radius: var(--radius-md); font-family: var(--font-mono); margin: 1rem 0;">
-              <span style="color: #c084fc;">query</span> GetLatestBlocks {<br>
-              &nbsp;&nbsp;blocks(limit: 10, orderBy: HEIGHT_DESC) {<br>
-              &nbsp;&nbsp;&nbsp;&nbsp;height<br>
-              &nbsp;&nbsp;&nbsp;&nbsp;hash<br>
-              &nbsp;&nbsp;&nbsp;&nbsp;timestamp<br>
-              &nbsp;&nbsp;&nbsp;&nbsp;transactions {<br>
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hash<br>
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;signatureType<br>
-              &nbsp;&nbsp;&nbsp;&nbsp;}<br>
-              &nbsp;&nbsp;}<br>
-              }
-            </div>
-          </div>
-
-          <div class="card" style="margin-top: 2rem; background: var(--gray-50); border: 2px solid var(--primary-blue);">
-            <h3>Need Help?</h3>
-            <p>Join our community or contact support:</p>
-            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-              <a href="#" class="btn btn-outline">Discord</a>
-              <a href="#" class="btn btn-outline">GitHub</a>
-              <a href="#" class="btn btn-primary">Contact Support</a>
-            </div>
-          </div>
-        </div>
-      </div>
+        </article>
+      </main>
     </div>
   </section>
 
@@ -231,6 +268,17 @@
           <ul class="footer-links">
             <li><a href="./index.html">Overview</a></li>
             <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
+            <li><a href="./faucet.html">Faucet</a></li>
+            <li><a href="./explorer.html">Explorer</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="./docs.html">Documentation</a></li>
+            <li><a href="./tokenomics.html">Tokenomics</a></li>
+            <li><a href="../quantumvault/index.html">QuantumVault</a></li>
+            <li><a href="../homepage/index.html#contact">Contact</a></li>
           </ul>
         </div>
       </div>
@@ -241,13 +289,5 @@
   </footer>
 
   <script src="../shared-assets/app.js"></script>
-  <script>
-    function toggleDarkMode() {
-      const isDark = document.getElementById('dark-mode-toggle').checked;
-      document.body.style.background = isDark ? '#0f172a' : '#f9fafb';
-      document.body.style.color = isDark ? '#e2e8f0' : '#111827';
-      Dytallix.Analytics.track('dark_mode_toggle', { enabled: isDark });
-    }
-  </script>
 </body>
 </html>

@@ -384,6 +384,10 @@ app.post('/proof/generate', async (req, res) => {
       verificationUrl: `${req.protocol}://${req.get('host')}/verify/${blake3}`
     };
 
+    // Store proof for anchoring
+    metadata[proofId] = proof;
+    await saveMetadata();
+
     console.log(`[QuantumVault] Generated proof for ${filename} (${blake3.slice(0, 16)}...)`);
 
     res.json({
@@ -397,6 +401,131 @@ app.post('/proof/generate', async (req, res) => {
   } catch (error) {
     console.error('[QuantumVault] Proof generation error:', error);
     res.status(500).json({ error: 'Proof generation failed' });
+  }
+});
+
+/**
+ * POST /anchor
+ * Anchor a proof to the Dytallix blockchain
+ */
+app.post('/anchor', async (req, res) => {
+  try {
+    const { proofId } = req.body;
+
+    if (!proofId) {
+      return res.status(400).json({ error: 'Missing proofId' });
+    }
+
+    // Look up proof
+    const proof = metadata[proofId];
+    if (!proof) {
+      return res.status(404).json({ error: 'Proof not found' });
+    }
+
+    // Get blockchain URL
+    const blockchainUrl = process.env.BLOCKCHAIN_API_URL || 
+                         process.env.VITE_BLOCKCHAIN_URL || 
+                         'http://localhost:3003';
+
+    console.log(`[QuantumVault] Anchoring proof ${proofId} to blockchain at ${blockchainUrl}`);
+
+    // Import transaction signer
+    const { submitDataTransaction, getAccountNonce, loadWallet } = await import('./tx-signer.js');
+    
+    // Load service wallet
+    const wallet = loadWallet();
+    
+    // Get current nonce
+    const nonce = await getAccountNonce(wallet.address, blockchainUrl);
+    
+    // Get chain ID from blockchain
+    let chainId = 'dyt-local-1';
+    try {
+      const statusRes = await fetch(`${blockchainUrl}/status`);
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        chainId = statusData.chain_id || chainId;
+      }
+    } catch (err) {
+      console.warn('[QuantumVault] Could not fetch chain ID, using default:', chainId);
+    }
+    
+    // Submit to blockchain (store the proof hash)
+    const anchorData = {
+      type: 'quantumvault_proof',
+      proofId: proofId,
+      blake3Hash: proof.blake3Hash,
+      filename: proof.filename,
+      timestamp: proof.timestamp,
+      signature: proof.signature,
+      service: 'QuantumVault',
+      version: '2.0'
+    };
+
+    // Submit transaction to blockchain
+    console.log(`[QuantumVault] Submitting Data transaction from ${wallet.address}`);
+    const txResult = await submitDataTransaction({
+      from: wallet.address,
+      data: anchorData,
+      chainId,
+      nonce,
+      fee: 1000, // 1000 micro-units fee
+      secretKey: wallet.secretKey,
+      publicKey: wallet.publicKey,
+      rpcUrl: blockchainUrl
+    });
+
+    const txHash = txResult.hash || txResult.tx_hash;
+    let blockHeight = 0;
+    
+    // Try to get current blockchain height
+    try {
+      const statusRes = await fetch(`${blockchainUrl}/status`);
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        blockHeight = statusData.latest_height || statusData.height || 0;
+      }
+    } catch (err) {
+      console.warn('[QuantumVault] Could not get blockchain height:', err.message);
+      blockHeight = Math.floor(Date.now() / 1000); // Use timestamp as fallback
+    }
+
+    // Store in on-chain registry
+    onChainRegistry[proofId] = {
+      ...anchorData,
+      txHash,
+      blockHeight,
+      anchoredAt: new Date().toISOString(),
+      status: 'confirmed'
+    };
+
+    // Update proof with anchor info
+    proof.anchored = true;
+    proof.txHash = txHash;
+    proof.blockHeight = blockHeight;
+    metadata[proofId] = proof;
+    await saveMetadata();
+
+    console.log(`[QuantumVault] ✅ Anchored proof ${proofId} at block ${blockHeight}, tx: ${txHash}`);
+
+    res.json({
+      success: true,
+      proofId,
+      transaction: {
+        hash: txHash,
+        blockHeight: blockHeight,
+        timestamp: new Date().toISOString(),
+        status: 'confirmed'
+      },
+      proof: proof
+    });
+
+  } catch (error) {
+    console.error('[QuantumVault] Anchor error:', error);
+    res.status(500).json({ 
+      error: 'Anchoring failed',
+      message: error.message
+    });
   }
 });
 

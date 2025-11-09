@@ -101,6 +101,7 @@ export const BRAND = {
   email: 'contact@dytallix.com',
   twitter: '@dytallix',
   github: 'github.com/dytallix',
+  ENTERPRISE_NAME: 'QuantumVault',
 };
 
 export const API_ENDPOINTS = {
@@ -191,7 +192,7 @@ export const FEATURES = {
       path: '/build/docs.html',
     },
   ],
-  quantumshield: [
+  quantumvault: [
     {
       title: 'Post-Quantum Encryption',
       description: 'Enforce PQC standards across your infrastructure',
