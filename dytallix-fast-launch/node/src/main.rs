@@ -43,7 +43,7 @@ async fn main() -> anyhow::Result<()> {
     let block_interval_ms: u64 = std::env::var("DYT_BLOCK_INTERVAL_MS")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(2000);
+        .unwrap_or(15000);
     let empty_blocks = std::env::var("DYT_EMPTY_BLOCKS")
         .map(|v| v == "true" || v == "1")
         .unwrap_or(true);
