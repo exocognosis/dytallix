@@ -741,35 +741,58 @@
     // Handle search form
     document.getElementById('blockchain-search')?.addEventListener('submit', async function(e) {
       e.preventDefault();
-      const searchValue = document.getElementById('explorer-search').value.trim();
+      let searchValue = document.getElementById('explorer-search').value.trim();
       if (!searchValue) return;
+      
+      // Remove # prefix if present (e.g., #41173 -> 41173)
+      if (searchValue.startsWith('#')) {
+        searchValue = searchValue.substring(1);
+      }
       
       try {
         // Determine search type
         let endpoint = '';
+        let searchType = '';
         
         if (searchValue.startsWith('0x')) {
           // Transaction hash or block hash
           endpoint = `/tx/${searchValue}`;
+          searchType = 'Transaction/Block Hash';
         } else if (/^\d+$/.test(searchValue)) {
           // Block number
           endpoint = `/block/${searchValue}`;
+          searchType = 'Block';
         } else {
           // Address
           endpoint = `/balance/${searchValue}`;
+          searchType = 'Address';
         }
         
         const response = await fetch(`${BLOCKCHAIN_API}${endpoint}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            alert(`❌ ${searchType} not found: ${searchValue}`);
+          } else {
+            alert(`❌ Error: ${response.status} ${response.statusText}`);
+          }
+          return;
+        }
+        
         const data = await response.json();
         
-        if (data.success) {
-          alert(`Found!\n\n${JSON.stringify(data.data, null, 2)}`);
+        // Display the result in a formatted way
+        if (searchType === 'Block') {
+          alert(`✅ Block Found!\n\nHeight: ${data.height}\nHash: ${data.hash}\nTimestamp: ${new Date(data.timestamp * 1000).toLocaleString()}\nTransactions: ${data.txs.length}\nParent: ${data.parent}`);
+        } else if (searchType === 'Address') {
+          const balances = Object.entries(data.balances || {}).map(([denom, amt]) => `${denom}: ${amt}`).join('\n');
+          alert(`✅ Address Found!\n\nAddress: ${searchValue}\n\nBalances:\n${balances || 'No balances'}`);
         } else {
-          alert(`Not found: ${searchValue}`);
+          alert(`✅ ${searchType} Found!\n\n${JSON.stringify(data, null, 2)}`);
         }
       } catch (e) {
         console.error('Search error:', e);
-        alert(`Error searching for: ${searchValue}\n\nMake sure the blockchain node is running at ${BLOCKCHAIN_API}`);
+        alert(`❌ Error searching for: ${searchValue}\n\n${e.message}\n\nMake sure the blockchain node is running at ${BLOCKCHAIN_API}`);
       }
     });
 
