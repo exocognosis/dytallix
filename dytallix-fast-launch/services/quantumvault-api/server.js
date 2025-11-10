@@ -206,76 +206,104 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Missing blake3 or uri' });
     }
 
-    // Use fallback mode for development (skip external blockchain call)
-    const BLOCKCHAIN_API_URL = process.env.BLOCKCHAIN_API_URL;
+    // Get blockchain URL
+    const BLOCKCHAIN_API_URL = process.env.BLOCKCHAIN_API_URL || 
+                               process.env.VITE_BLOCKCHAIN_URL || 
+                               'http://localhost:3003';
     
-    if (BLOCKCHAIN_API_URL && BLOCKCHAIN_API_URL !== 'http://localhost:3001/api/quantum/register') {
-      try {
-        const response = await fetch(BLOCKCHAIN_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            assetHash: blake3,
-            uri: uri,
-            metadata: metadata || {
-              registered_by: 'quantumvault-api',
-              timestamp: new Date().toISOString()
-            }
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`Blockchain API error: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        console.log(`[QuantumVault] Registered asset on blockchain: ${blake3}`);
-        
-        return res.json({
-          txHash: result.tx_hash,
-          assetId: result.asset_id,
-          blockHeight: result.block_height,
-          timestamp: result.timestamp,
-          success: result.success
-        });
-
-      } catch (blockchainError) {
-        console.warn('[QuantumVault] Blockchain registration failed, using fallback:', blockchainError.message);
+    // Import transaction signer (CLI-based)
+    const { submitDataTransaction, getAccountNonce, loadWallet } = await import('./tx-signer-cli.js');
+    
+    // Load service wallet
+    const wallet = loadWallet();
+    
+    // Get current nonce
+    const nonce = await getAccountNonce(wallet.address, BLOCKCHAIN_API_URL);
+    
+    // Get chain ID from blockchain
+    let chainId = 'dyt-local-1';
+    try {
+      const statusRes = await fetch(`${BLOCKCHAIN_API_URL}/status`);
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        chainId = statusData.chain_id || chainId;
       }
-    } else {
-      console.log('[QuantumVault] Using fallback mode for development');
+    } catch (err) {
+      console.warn('[QuantumVault] Could not fetch chain ID, using default:', chainId);
     }
     
-    // Fallback to mock implementation (either due to error or development mode)
-    const txHash = '0x' + createHash('sha256')
-      .update(blake3 + uri + Date.now())
-      .digest('hex');
+    // Prepare registration data
+    const registrationData = {
+      type: 'quantumvault_registration',
+      assetHash: blake3,
+      uri: uri,
+      metadata: metadata || {
+        registered_by: 'quantumvault-api',
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    // Submit transaction to blockchain
+    console.log(`[QuantumVault] Registering asset ${blake3} from ${wallet.address}`);
+    
+    const txResult = await submitDataTransaction({
+      from: wallet.address,
+      data: registrationData,
+      chainId,
+      nonce,
+      fee: 1000, // 1000 micro-units fee
+      walletPath: wallet.walletPath,
+      rpcUrl: BLOCKCHAIN_API_URL
+    });
+
+    const txHash = txResult.hash || txResult.tx_hash;
+    
+    if (!txHash) {
+      throw new Error('Transaction submitted but no hash returned');
+    }
+    
+    // Get block height
+    let blockHeight = 0;
+    try {
+      const statusRes = await fetch(`${BLOCKCHAIN_API_URL}/status`);
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        blockHeight = statusData.latest_height || statusData.height || 0;
+      }
+    } catch (err) {
+      console.warn('[QuantumVault] Could not get blockchain height:', err.message);
+    }
+    
+    // Generate asset ID
     const assetId = assetIdCounter++;
 
+    // Store in registry
     onChainRegistry[assetId] = {
       assetId,
       blake3,
       uri,
-      owner: '0x' + randomBytes(20).toString('hex'),
+      owner: wallet.address,
       timestamp: Math.floor(Date.now() / 1000),
-      txHash
+      txHash,
+      blockHeight
     };
 
+    console.log(`[QuantumVault] ✅ Registered asset on blockchain: ${blake3}, tx: ${txHash}`);
+    
     res.json({ 
       txHash, 
       assetId,
-      blockHeight: 0,
+      blockHeight,
       timestamp: Math.floor(Date.now() / 1000),
-      success: true,
-      note: 'Fallback mode - blockchain unavailable'
+      success: true
     });
 
   } catch (error) {
     console.error('[QuantumVault] Register error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ 
+      error: 'Registration failed',
+      message: error.message
+    });
   }
 });
 
@@ -287,56 +315,65 @@ app.get('/verify/:assetHash', async (req, res) => {
   try {
     const assetHash = req.params.assetHash;
     
-    // Connect to the actual blockchain API
-    const BLOCKCHAIN_API_URL = process.env.BLOCKCHAIN_API_URL || 'https://rpc.dytallix.com/api/quantum/verify';
+    // Get blockchain URL
+    const BLOCKCHAIN_API_URL = process.env.BLOCKCHAIN_API_URL || 
+                               process.env.VITE_BLOCKCHAIN_URL || 
+                               'http://localhost:3003';
     
-    try {
-      const response = await fetch(`${BLOCKCHAIN_API_URL}/${assetHash}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Blockchain API error: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      console.log(`[QuantumVault] Verified asset on blockchain: ${assetHash}`);
-      
-      res.json(result);
-
-    } catch (blockchainError) {
-      console.warn('[QuantumVault] Blockchain verification failed, using fallback:', blockchainError.message);
-      
-      // Fallback to mock implementation
-      const assetId = parseInt(assetHash) || 0;
-      const asset = onChainRegistry[assetId];
-
-      if (asset) {
-        res.json(asset);
-      } else {
-        // Mock verification response - ensure assetHash is a string
-        const hashStr = String(assetHash || '');
-        res.json({
-          verified: hashStr.length === 64,
-          asset_id: `asset_${hashStr.slice(0, 16)}`,
-          tx_hash: `0x${createHash('sha256').update(`verify_${hashStr}`).digest('hex')}`,
-          block_height: 123456,
-          timestamp: Math.floor(Date.now() / 1000),
-          metadata: {
-            verification_time: new Date().toISOString(),
-            status: 'verified_fallback'
-          }
-        });
+    // Search for transactions containing this asset hash
+    // Try to find the transaction by searching recent blocks
+    console.log(`[QuantumVault] Verifying asset hash: ${assetHash}`);
+    
+    // First check our local registry
+    let foundAsset = null;
+    for (const [assetId, asset] of Object.entries(onChainRegistry)) {
+      if (asset.blake3 === assetHash || asset.assetId === assetHash) {
+        foundAsset = asset;
+        break;
       }
     }
+    
+    if (foundAsset) {
+      // Verify the transaction exists on-chain
+      try {
+        const txResponse = await fetch(`${BLOCKCHAIN_API_URL}/tx/${foundAsset.txHash}`);
+        
+        if (txResponse.ok) {
+          const txData = await txResponse.json();
+          
+          res.json({
+            verified: true,
+            asset_id: foundAsset.assetId,
+            tx_hash: foundAsset.txHash,
+            block_height: foundAsset.blockHeight || txData.block_height,
+            timestamp: foundAsset.timestamp,
+            owner: foundAsset.owner,
+            metadata: {
+              verification_time: new Date().toISOString(),
+              status: 'verified',
+              blockchain_status: txData.status || 'confirmed'
+            }
+          });
+          return;
+        }
+      } catch (txError) {
+        console.warn('[QuantumVault] Transaction lookup failed:', txError.message);
+      }
+    }
+    
+    // Asset not found in registry or blockchain
+    res.status(404).json({
+      verified: false,
+      error: 'Asset not found on blockchain',
+      asset_hash: assetHash
+    });
 
   } catch (error) {
     console.error('[QuantumVault] Verify error:', error);
-    res.status(500).json({ error: 'Verification failed' });
+    res.status(500).json({ 
+      error: 'Verification failed',
+      message: error.message
+    });
   }
 });
 
@@ -406,7 +443,8 @@ app.post('/proof/generate', async (req, res) => {
 
 /**
  * POST /anchor
- * Anchor a proof to the Dytallix blockchain
+ * Anchor a proof to the Dytallix blockchain using the Asset Registry
+ * Uses the blockchain's /asset/register endpoint to create an immutable on-chain record
  */
 app.post('/anchor', async (req, res) => {
   try {
@@ -429,28 +467,7 @@ app.post('/anchor', async (req, res) => {
 
     console.log(`[QuantumVault] Anchoring proof ${proofId} to blockchain at ${blockchainUrl}`);
 
-    // Import transaction signer
-    const { submitDataTransaction, getAccountNonce, loadWallet } = await import('./tx-signer.js');
-    
-    // Load service wallet
-    const wallet = loadWallet();
-    
-    // Get current nonce
-    const nonce = await getAccountNonce(wallet.address, blockchainUrl);
-    
-    // Get chain ID from blockchain
-    let chainId = 'dyt-local-1';
-    try {
-      const statusRes = await fetch(`${blockchainUrl}/status`);
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
-        chainId = statusData.chain_id || chainId;
-      }
-    } catch (err) {
-      console.warn('[QuantumVault] Could not fetch chain ID, using default:', chainId);
-    }
-    
-    // Submit to blockchain (store the proof hash)
+    // Prepare anchor data for blockchain asset registry
     const anchorData = {
       type: 'quantumvault_proof',
       proofId: proofId,
@@ -462,32 +479,87 @@ app.post('/anchor', async (req, res) => {
       version: '2.0'
     };
 
-    // Submit transaction to blockchain
-    console.log(`[QuantumVault] Submitting Data transaction from ${wallet.address}`);
-    const txResult = await submitDataTransaction({
-      from: wallet.address,
-      data: anchorData,
-      chainId,
-      nonce,
-      fee: 1000, // 1000 micro-units fee
-      secretKey: wallet.secretKey,
-      publicKey: wallet.publicKey,
-      rpcUrl: blockchainUrl
-    });
-
-    const txHash = txResult.hash || txResult.tx_hash;
-    let blockHeight = 0;
+    let txHash, blockHeight;
     
-    // Try to get current blockchain height
     try {
-      const statusRes = await fetch(`${blockchainUrl}/status`);
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
-        blockHeight = statusData.latest_height || statusData.height || 0;
+      // Submit to blockchain asset registry endpoint
+      // This uses JSON-RPC format expected by the blockchain
+      const response = await fetch(`${blockchainUrl}/asset/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          params: [
+            proof.blake3Hash,  // Asset hash (BLAKE3)
+            JSON.stringify(anchorData)  // Metadata as JSON string
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[QuantumVault] Blockchain register failed: ${response.status} - ${errorText}`);
+        throw new Error(`Blockchain asset registration failed: ${response.status}`);
       }
-    } catch (err) {
-      console.warn('[QuantumVault] Could not get blockchain height:', err.message);
-      blockHeight = Math.floor(Date.now() / 1000); // Use timestamp as fallback
+
+      const result = await response.json();
+      
+      // Extract transaction hash and block height from response
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      txHash = result.tx_hash || result.txHash || result.hash || result.transaction_hash;
+      blockHeight = result.block_height || result.blockHeight || result.height;
+      
+      console.log(`[QuantumVault] ✅ Asset registered on blockchain: ${txHash}`);
+
+      // Verify the asset was actually registered by checking the blockchain
+      if (txHash) {
+        try {
+          const verifyResponse = await fetch(`${blockchainUrl}/asset/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              params: [proof.blake3Hash]
+            })
+          });
+          
+          if (verifyResponse.ok) {
+            const verifyResult = await verifyResponse.json();
+            console.log(`[QuantumVault] ✅ Verified asset on-chain:`, verifyResult);
+          }
+        } catch (verifyErr) {
+          console.warn('[QuantumVault] Could not verify asset:', verifyErr.message);
+        }
+      }
+
+    } catch (blockchainError) {
+      console.error('[QuantumVault] Blockchain anchoring failed:', blockchainError.message);
+      
+      return res.status(500).json({
+        success: false,
+        error: 'Blockchain anchoring failed',
+        message: blockchainError.message,
+        note: 'The blockchain asset registry is not responding. Please ensure the blockchain node is running.'
+      });
+    }
+
+    // Get current block height if not returned
+    if (!blockHeight) {
+      try {
+        const statusRes = await fetch(`${blockchainUrl}/status`);
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          blockHeight = statusData.latest_height || statusData.height || 0;
+        }
+      } catch (err) {
+        console.warn('[QuantumVault] Could not get block height:', err.message);
+        blockHeight = 0;
+      }
     }
 
     // Store in on-chain registry
@@ -506,7 +578,7 @@ app.post('/anchor', async (req, res) => {
     metadata[proofId] = proof;
     await saveMetadata();
 
-    console.log(`[QuantumVault] ✅ Anchored proof ${proofId} at block ${blockHeight}, tx: ${txHash}`);
+    console.log(`[QuantumVault] ✅ Proof ${proofId} anchored at block ${blockHeight}, tx: ${txHash}`);
 
     res.json({
       success: true,
@@ -517,7 +589,8 @@ app.post('/anchor', async (req, res) => {
         timestamp: new Date().toISOString(),
         status: 'confirmed'
       },
-      proof: proof
+      proof: proof,
+      verification: `You can verify this proof at: ${blockchainUrl}/asset/verify with hash ${proof.blake3Hash}`
     });
 
   } catch (error) {

@@ -9,6 +9,8 @@ pub struct BlockHeader {
     pub timestamp: u64,
     pub tx_count: u32,
     pub tx_root: String,
+    #[serde(default)]
+    pub asset_hashes: Vec<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
@@ -36,6 +38,7 @@ impl Block {
             timestamp,
             tx_count: txs.len() as u32,
             tx_root: "".to_string(),
+            asset_hashes: Vec::new(),
         };
         let hash = Self::compute_hash(&header, &txs);
         Self { header, txs, hash }

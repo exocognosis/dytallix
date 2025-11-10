@@ -579,6 +579,25 @@ impl DytallixRuntime {
         Ok(state.staking.current_height)
     }
 
+    /// Store arbitrary data in the blockchain state (for asset registry, etc.)
+    pub async fn store_data(&self, key: &str, value: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let storage_key = format!("data:{}", key);
+        self.storage._put(storage_key.as_bytes(), value.as_bytes()).await?;
+        Ok(())
+    }
+
+    /// Get arbitrary data from the blockchain state
+    pub async fn get_data(&self, key: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
+        let storage_key = format!("data:{}", key);
+        match self.storage._get(storage_key.as_bytes()).await? {
+            Some(bytes) => {
+                let value = String::from_utf8(bytes)?;
+                Ok(Some(value))
+            },
+            None => Ok(None)
+        }
+    }
+
     /// Get staking statistics
     pub async fn get_staking_stats(&self) -> (u128, u32, u32) {
         let state = self.state.read().await;

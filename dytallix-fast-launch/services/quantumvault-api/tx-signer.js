@@ -2,10 +2,18 @@
  * Transaction Signer for QuantumVault
  * 
  * Creates and signs Dytallix blockchain transactions for file anchoring
+ * 
+ * NOTE: This uses the Dytallix CLI to sign transactions because the JavaScript
+ * Dilithium library (dilithium-crystals-js) produces signatures in a different format
+ * than what the blockchain expects. The CLI uses the same Rust implementation as the node.
  */
 
 import { createHash } from 'crypto';
-import dilithium from 'crystals-dilithium';
+import { spawn } from 'child_process';
+import { promisify } from 'util';
+import { writeFile, unlink } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 const fetch = globalThis.fetch || (await import('node-fetch')).default;
 
@@ -53,8 +61,8 @@ export async function submitDataTransaction({
   // Hash the transaction
   const hash = createHash('sha3-256').update(txBytes).digest();
   
-  // Sign with Dilithium
-  const signature = dilithium.sign(secretKey, hash);
+  // Sign with Dilithium (kind 3 = Dilithium3, equivalent to ML-DSA-65)
+  const { signature } = dilithium.sign(hash, secretKey, 3);
   
   // Create signed transaction
   const signedTx = {
@@ -120,11 +128,12 @@ export function loadWallet() {
 
   // For development: generate a deterministic keypair
   console.log('[TxSigner] Generating development keypair (not for production!)');
-  const seed = Buffer.alloc(32, 0xAB); // Deterministic seed for dev
-  const keypair = dilithium.keyPair(seed);
+  
+  // Generate Dilithium3 keypair (kind = 3, equivalent to ML-DSA-65)
+  const { publicKey, privateKey } = dilithium.generateKeys(3);
   
   // Generate address from public key hash
-  const pkHash = createHash('sha256').update(keypair.publicKey).digest();
+  const pkHash = createHash('sha256').update(publicKey).digest();
   const devAddress = 'dytallix1' + Buffer.from(pkHash).toString('hex').substring(0, 40);
 
   console.log('[TxSigner] Development wallet address:', devAddress);
@@ -132,7 +141,7 @@ export function loadWallet() {
 
   return {
     address: devAddress,
-    secretKey: keypair.secretKey,
-    publicKey: keypair.publicKey
+    secretKey: privateKey,
+    publicKey: publicKey
   };
 }

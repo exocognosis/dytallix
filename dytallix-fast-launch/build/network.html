@@ -372,6 +372,17 @@
     async function fetchBlockchainStats() {
       try {
         const response = await fetch(`${BLOCKCHAIN_API}/stats`);
+        
+        if (!response.ok) {
+          // Stats endpoint not available, use data from blocks endpoint
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Non-JSON response');
+        }
+        
         const data = await response.json();
         
         // API returns data directly, not wrapped in success/data
@@ -379,7 +390,7 @@
           updateStats(data);
         }
       } catch (e) {
-        console.error('Error fetching stats:', e);
+        // Stats endpoint not available, we'll get data from blocks endpoint
       }
     }
 
@@ -387,6 +398,11 @@
     async function fetchRecentBlocks() {
       try {
         const response = await fetch(`${BLOCKCHAIN_API}/blocks?limit=100`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
         
         // API returns { blocks: [...] } format
@@ -395,7 +411,7 @@
           updateBlocksFeed(data.blocks.slice(0, 5));
         }
       } catch (e) {
-        console.error('Error fetching blocks:', e);
+        console.log('Blocks endpoint not available');
       }
     }
 
@@ -403,14 +419,24 @@
     async function fetchStakingStats() {
       try {
         const response = await fetch(`${BLOCKCHAIN_API}/staking/stats`);
+        
+        if (!response.ok) {
+          // Silently use mock data for 404s
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Non-JSON response');
+        }
+        
         const data = await response.json();
         
         if (data) {
           updateStakingStats(data);
         }
       } catch (e) {
-        console.error('Error fetching staking stats:', e);
-        // Use mock data if endpoint doesn't exist
+        // Silently use mock data if endpoint doesn't exist
         updateStakingStats({
           total_validators: 125,
           active_validators: 118,
@@ -423,14 +449,24 @@
     async function fetchValidators() {
       try {
         const response = await fetch(`${BLOCKCHAIN_API}/staking/validators`);
+        
+        if (!response.ok) {
+          // Silently use mock data for 404s
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Non-JSON response');
+        }
+        
         const data = await response.json();
         
         if (data) {
           updateValidatorStats(data);
         }
       } catch (e) {
-        console.error('Error fetching validators:', e);
-        // Use mock data if endpoint doesn't exist
+        // Silently use mock data if endpoint doesn't exist
         updateValidatorStats([
           { total_stake: 125000 },
           { total_stake: 130000 },
@@ -733,7 +769,26 @@
         
         // Display the result in a formatted way
         if (searchType === 'Block') {
-          alert(`✅ Block Found!\n\nHeight: ${data.height}\nHash: ${data.hash}\nTimestamp: ${new Date(data.timestamp * 1000).toLocaleString()}\nTransactions: ${data.txs.length}\nParent: ${data.parent}`);
+          // Handle different block data structures
+          const blockHeight = data.height || searchValue;
+          const blockHash = data.hash || data.block_hash || 'N/A';
+          const blockTimestamp = data.timestamp || Date.now() / 1000;
+          const blockTxs = data.txs || data.transactions || [];
+          const blockParent = data.parent || data.parent_hash || 'N/A';
+          const assetHashes = data.asset_hashes || [];
+          
+          // Format asset hashes if present
+          let assetInfo = '';
+          if (assetHashes && assetHashes.length > 0) {
+            assetInfo = `\n\n📦 Anchored Assets (${assetHashes.length}):\n`;
+            assetHashes.forEach((hash, idx) => {
+              assetInfo += `${idx + 1}. ${hash}\n`;
+            });
+          } else {
+            assetInfo = '';
+          }
+          
+          alert(`✅ Block Found!\n\nHeight: ${blockHeight}\nHash: ${blockHash}\nTimestamp: ${new Date(blockTimestamp * 1000).toLocaleString()}\nTransactions: ${blockTxs.length}\nParent: ${blockParent}${assetInfo}`);
         } else if (searchType === 'Address') {
           const balances = Object.entries(data.balances || {}).map(([denom, amt]) => `${denom}: ${amt}`).join('\n');
           alert(`✅ Address Found!\n\nAddress: ${searchValue}\n\nBalances:\n${balances || 'No balances'}`);

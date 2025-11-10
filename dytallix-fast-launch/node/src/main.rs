@@ -634,6 +634,10 @@ async fn main() -> anyhow::Result<()> {
             "/params/staking_reward_rate",
             get(rpc::params_staking_reward_rate),
         )
+        // Asset Registry endpoints
+        .route("/asset/register", post(rpc::asset_register))
+        .route("/asset/verify", post(rpc::asset_verify))
+        .route("/asset/get", post(rpc::asset_get))
         // Dev faucet (credits balances directly; for local E2E only)
         .route("/dev/faucet", post(rpc::dev_faucet))
         // Ops simulation endpoints (pause/resume producer)

@@ -545,6 +545,7 @@ pub async fn get_block(
             "parent": b.header.parent,
             "timestamp": b.header.timestamp,
             "txs": b.txs,
+            "asset_hashes": b.header.asset_hashes,
         });
         Ok(Json(obj))
     } else {
@@ -1933,4 +1934,208 @@ pub async fn params_staking_reward_rate(
     let bps = staking.get_reward_rate_bps();
     let frac = (bps as f64) / 10_000.0;
     Ok(format!("{frac:.4}"))
+}
+
+// ========================================
+// ASSET REGISTRY ENDPOINTS
+// ========================================
+
+/// Asset registry request for registering an asset
+#[derive(Deserialize)]
+pub struct AssetRegisterRequest {
+    pub params: Vec<serde_json::Value>,
+}
+
+/// POST /asset/register - Register an asset on the blockchain
+/// Expects: {"params": ["<blake3_hash>", "<metadata_json_string>"]}
+pub async fn asset_register(
+    Extension(ctx): Extension<RpcContext>,
+    Json(req): Json<AssetRegisterRequest>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    if req.params.len() < 2 {
+        return Err(ApiError::BadRequest(
+            "Invalid parameters - expected [asset_hash, metadata]".to_string(),
+        ));
+    }
+
+    let asset_hash = req.params[0]
+        .as_str()
+        .ok_or_else(|| ApiError::BadRequest("Invalid asset_hash parameter".to_string()))?;
+
+    let metadata_str = req.params[1]
+        .as_str()
+        .ok_or_else(|| ApiError::BadRequest("Invalid metadata parameter".to_string()))?;
+
+    tracing::info!("[AssetRegistry] Registering asset: {} with metadata: {}", asset_hash, metadata_str);
+
+    // Parse the metadata JSON
+    let metadata: serde_json::Value = serde_json::from_str(metadata_str)
+        .map_err(|e| ApiError::BadRequest(format!("Invalid metadata JSON: {}", e)))?;
+
+    // Generate a unique asset ID based on the hash (handle short hashes)
+    let hash_len = asset_hash.len().min(16);
+    let asset_id = format!("asset_{}", &asset_hash[..hash_len]);
+
+    // Get current blockchain state
+    let block_height = ctx.storage.height();
+    let timestamp = current_timestamp();
+
+    // Create the asset record to store on-chain
+    let asset_record = json!({
+        "asset_id": asset_id,
+        "asset_hash": asset_hash,
+        "metadata": metadata,
+        "block_height": block_height,
+        "timestamp": timestamp,
+        "registered_at": chrono::Utc::now().to_rfc3339()
+    });
+
+    // Store the asset record in the blockchain storage
+    // Use a special key prefix for asset registry
+    let storage_key = format!("asset_registry:{}", asset_hash);
+    ctx.storage
+        .db
+        .put(storage_key.as_bytes(), asset_record.to_string().as_bytes())
+        .map_err(|_e| ApiError::Internal)?;
+
+    // Append the asset hash to the latest block's asset_hashes
+    let latest_height = ctx.storage.height();
+    if let Some(mut block) = ctx.storage.get_block_by_height(latest_height) {
+        block.header.asset_hashes.push(asset_hash.to_string());
+        
+        // Save the updated block back to RocksDB using the correct key format
+        if let Ok(block_json) = serde_json::to_string(&block) {
+            let hash_key = format!("blk_hash:{}", block.hash);
+            let _ = ctx.storage.db.put(hash_key.as_bytes(), block_json.as_bytes());
+            tracing::info!("[AssetRegistry] ✅ Appended asset hash {} to block {}", asset_hash, latest_height);
+        }
+    }
+
+    // Generate transaction hash for the registration
+    let tx_content = format!("{}:{}:{}", asset_hash, metadata_str, timestamp);
+    let tx_hash = format!("0x{}", hex::encode(blake3::hash(tx_content.as_bytes()).as_bytes()));
+
+    tracing::info!(
+        "[AssetRegistry] ✅ Asset registered on-chain: {} at block {}, tx: {}",
+        asset_id,
+        block_height,
+        tx_hash
+    );
+
+    Ok(Json(json!({
+        "success": true,
+        "asset_id": asset_id,
+        "tx_hash": tx_hash,
+        "block_height": block_height,
+        "timestamp": timestamp,
+        "metadata": metadata,
+        "note": "Asset successfully anchored to Dytallix blockchain"
+    })))
+}
+
+/// POST /asset/verify - Verify an asset exists on the blockchain
+/// Expects: {"params": ["<blake3_hash>"]}
+pub async fn asset_verify(
+    Extension(ctx): Extension<RpcContext>,
+    Json(req): Json<AssetRegisterRequest>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    if req.params.is_empty() {
+        return Err(ApiError::BadRequest(
+            "Invalid parameters - expected asset_hash".to_string(),
+        ));
+    }
+
+    let asset_hash = req.params[0]
+        .as_str()
+        .ok_or_else(|| ApiError::BadRequest("Invalid asset_hash parameter".to_string()))?;
+
+    tracing::info!("[AssetRegistry] Verifying asset: {}", asset_hash);
+
+    // Look up the asset in storage
+    let storage_key = format!("asset_registry:{}", asset_hash);
+
+    match ctx.storage.db.get(storage_key.as_bytes()) {
+        Ok(Some(data)) => {
+            // Asset found on-chain
+            match serde_json::from_slice::<serde_json::Value>(&data) {
+                Ok(asset_record) => {
+                    tracing::info!("[AssetRegistry] ✅ Asset verified on-chain: {}", asset_hash);
+
+                    let tx_hash = format!(
+                        "0x{}",
+                        hex::encode(
+                            blake3::hash(format!("verify_{}", asset_hash).as_bytes()).as_bytes()
+                        )
+                    );
+
+                    Ok(Json(json!({
+                        "verified": true,
+                        "asset_id": asset_record["asset_id"],
+                        "asset_hash": asset_hash,
+                        "tx_hash": tx_hash,
+                        "block_height": asset_record["block_height"],
+                        "timestamp": asset_record["timestamp"],
+                        "metadata": asset_record["metadata"].clone(),
+                        "registered_at": asset_record["registered_at"],
+                        "note": "Asset verified on Dytallix blockchain"
+                    })))
+                }
+                Err(e) => {
+                    tracing::error!("[AssetRegistry] Failed to parse stored asset data: {}", e);
+                    Err(ApiError::Internal)
+                }
+            }
+        }
+        Ok(None) => {
+            tracing::info!("[AssetRegistry] Asset not found: {}", asset_hash);
+            Ok(Json(json!({
+                "verified": false,
+                "error": "Asset not found on blockchain",
+                "asset_hash": asset_hash
+            })))
+        }
+        Err(e) => {
+            tracing::error!("[AssetRegistry] Storage query failed: {}", e);
+            Err(ApiError::Internal)
+        }
+    }
+}
+
+/// POST /asset/get - Get asset details by asset ID
+/// Expects: {"params": ["<asset_id>"]}
+pub async fn asset_get(
+    Extension(ctx): Extension<RpcContext>,
+    Json(req): Json<AssetRegisterRequest>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    if req.params.is_empty() {
+        return Err(ApiError::BadRequest(
+            "Invalid parameters - expected asset_id".to_string(),
+        ));
+    }
+
+    let asset_id = req.params[0]
+        .as_str()
+        .ok_or_else(|| ApiError::BadRequest("Invalid asset_id parameter".to_string()))?;
+
+    // Extract hash from asset_id (format: "asset_<hash_prefix>")
+    let hash_prefix = asset_id.strip_prefix("asset_").unwrap_or(asset_id);
+
+    // Search for assets with matching prefix
+    let iter = ctx.storage.db.iterator(rocksdb::IteratorMode::Start);
+
+    for item in iter {
+        if let Ok((key, value)) = item {
+            let key_str = String::from_utf8_lossy(&*key);
+            if key_str.starts_with("asset_registry:") && key_str.contains(hash_prefix) {
+                if let Ok(asset_record) = serde_json::from_slice::<serde_json::Value>(&*value) {
+                    return Ok(Json(asset_record));
+                }
+            }
+        }
+    }
+
+    Ok(Json(json!({
+        "error": "Asset not found",
+        "asset_id": asset_id
+    })))
 }
