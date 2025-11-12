@@ -1,0 +1,22 @@
+    Updating crates.io index
+     Locking 641 packages to latest compatible versions
+      Adding axum v0.7.9 (available: v0.8.6)
+      Adding base64ct v1.6.0 (available: v1.8.0)
+      Adding bincode v1.3.3 (available: v2.0.1)
+      Adding colored v2.2.0 (available: v3.0.0)
+      Adding curve25519-dalek v3.2.0 (available: v3.2.1)
+      Adding ed25519-dalek v1.0.1 (available: v2.2.0)
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding pqcrypto-falcon v0.3.0 (available: v0.4.1)
+      Adding prometheus v0.13.4 (available: v0.14.0)
+      Adding rand v0.7.3 (available: v0.9.2)
+      Adding rand v0.8.5 (available: v0.9.2)
+      Adding rand_core v0.6.4 (available: v0.9.3)
+      Adding reqwest v0.11.27 (available: v0.12.24)
+      Adding rocksdb v0.21.0 (available: v0.24.0)
+      Adding thiserror v1.0.69 (available: v2.0.17)
+      Adding tower-http v0.5.2 (available: v0.6.6)
+[0m[0m[1m[31merror:[0m not found: Couldn't load Cargo.lock
+Caused by:
+  -> I/O operation failed: I/O operation failed: entity not found
+  -> I/O operation failed: entity not found
