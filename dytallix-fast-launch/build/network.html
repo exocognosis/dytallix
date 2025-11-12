@@ -5,6 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Network - Dytallix Blockchain Explorer & Dashboard</title>
   <link rel="stylesheet" href="../shared-assets/styles.css">
+  <style>
+    .section-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 254, 0.6);
+      background: rgba(15, 23, 42, 0.9);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(199, 210, 254, 0.95);
+      margin-bottom: 0.75rem;
+    }
+    
+    .section-pill.section-pill-center {
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
 </head>
 <body>
   <header class="global-header">
@@ -29,11 +50,7 @@
 
   <section class="page-hero is-dark">
     <div class="container page-hero-content">
-      <span class="hero-eyebrow">Network</span>
-      <h1 class="hero-title">Blockchain Explorer & Network Health</h1>
-      <p class="hero-subtitle">
-        Monitor real-time network activity, explore blocks and transactions, and track PQC signature distribution across the Dytallix blockchain.
-      </p>
+      <h1 class="hero-title" style="text-align: center;">Blockchain Explorer & Network Health</h1>
       
       <!-- Key Network Metrics -->
       <div class="hero-metrics">
@@ -64,6 +81,11 @@
   <!-- Search Section -->
   <section class="section">
     <div class="container">
+      <div class="section-header" style="text-align: center; margin-bottom: 2.5rem;">
+        <div class="section-pill section-pill-center" style="margin-bottom: 1.25rem;">Blockchain Explorer</div>
+        <h2 class="section-title" style="margin-bottom: 0;">Search and Discover</h2>
+      </div>
+      
       <article class="card">
         <h3 class="card-title">🔍 Explore the Blockchain</h3>
         <p class="card-content">Search by address, transaction hash, block number, or validator public key.</p>
@@ -90,9 +112,9 @@
   <!-- Network Dashboard KPIs -->
   <section class="section is-alt">
     <div class="container">
-      <div class="section-header">
-        <h2 class="section-title">Network Health Dashboard</h2>
-        <p class="section-subtitle">Real-time performance metrics and operational insights</p>
+      <div class="section-header" style="text-align: center; margin-bottom: 2.5rem;">
+        <div class="section-pill section-pill-center" style="margin-bottom: 1.25rem;">Network Health</div>
+        <h2 class="section-title" style="margin-bottom: 0;">Real-Time Performance Metrics</h2>
       </div>
       
       <div class="grid grid-3">
@@ -168,9 +190,12 @@
   <!-- Live Blockchain Data -->
   <section class="section">
     <div class="container">
-      <h2 class="section-title">Live Blockchain Activity</h2>
+      <div class="section-header" style="text-align: center; margin-bottom: 2.5rem;">
+        <div class="section-pill section-pill-center" style="margin-bottom: 1.25rem;">Live Activity</div>
+        <h2 class="section-title" style="margin-bottom: 0;">Latest Blocks and Transactions</h2>
+      </div>
       
-      <div class="grid grid-2 mt-4">
+      <div class="grid grid-3 mt-4">
         <!-- Recent Blocks -->
         <article class="card table-card">
           <div style="margin-bottom: 1rem;">
@@ -224,6 +249,21 @@
             </table>
           </div>
         </article>
+
+        <!-- Anchored Assets -->
+        <article class="card table-card">
+          <div style="margin-bottom: 1rem;">
+            <h3 class="card-title">📦 Anchored Assets</h3>
+            <p class="card-content">QuantumVault proofs anchored on-chain</p>
+          </div>
+          <div id="anchored-assets-container" style="max-height: 400px; overflow-y: auto;">
+            <div id="anchored-assets-feed" style="padding: 0.5rem;">
+              <div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+                No anchored assets yet
+              </div>
+            </div>
+          </div>
+        </article>
       </div>
     </div>
   </section>
@@ -231,9 +271,9 @@
   <!-- Validator Information -->
   <section class="section is-alt">
     <div class="container">
-      <div class="section-header">
-        <h2 class="section-title">Active Validators</h2>
-        <p class="section-subtitle">Network security powered by distributed PQC-secured validators</p>
+      <div class="section-header" style="text-align: center; margin-bottom: 2.5rem;">
+        <div class="section-pill section-pill-center" style="margin-bottom: 1.25rem;">Validator Network</div>
+        <h2 class="section-title" style="margin-bottom: 0;">PQC-Secured Validator Stats</h2>
       </div>
       
       <div class="grid grid-4">
@@ -246,13 +286,13 @@
         <article class="card">
           <h4 class="card-title" style="font-size: 1rem;">Total Stake</h4>
           <div class="metric-value" style="font-size: 2.5rem; color: var(--primary-blue);" id="total-stake">...</div>
-          <p class="card-content mb-0">DYT tokens staked</p>
+          <p class="card-content mb-0">DGT tokens staked</p>
         </article>
         
         <article class="card">
           <h4 class="card-title" style="font-size: 1rem;">Avg. Stake</h4>
           <div class="metric-value" style="font-size: 2.5rem; color: var(--primary-blue);" id="avg-stake">...</div>
-          <p class="card-content mb-0">DYT per validator</p>
+          <p class="card-content mb-0">DGT per validator</p>
         </article>
         
         <article class="card">
@@ -313,7 +353,7 @@
 
   <script>
     // Blockchain API configuration
-    const BLOCKCHAIN_API = 'http://localhost:3003';
+    const BLOCKCHAIN_API = 'http://localhost:3030';
     
     // State management
     let latestBlockHeight = 145892;
@@ -327,7 +367,7 @@
     // Connect to WebSocket for real-time updates
     function connectWebSocket() {
       try {
-        ws = new WebSocket(`ws://localhost:3003/ws`);
+        ws = new WebSocket(`ws://localhost:3030/ws`);
         
         ws.onopen = () => {
           console.log('✅ Connected to blockchain WebSocket');
@@ -371,7 +411,7 @@
     // Fetch blockchain stats
     async function fetchBlockchainStats() {
       try {
-        const response = await fetch(`${BLOCKCHAIN_API}/stats`);
+        const response = await fetch(`${BLOCKCHAIN_API}/api/stats`);
         
         if (!response.ok) {
           // Stats endpoint not available, use data from blocks endpoint
@@ -397,7 +437,7 @@
     // Fetch recent blocks
     async function fetchRecentBlocks() {
       try {
-        const response = await fetch(`${BLOCKCHAIN_API}/blocks?limit=100`);
+        const response = await fetch(`${BLOCKCHAIN_API}/api/blocks?limit=100`);
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -418,7 +458,7 @@
     // Fetch staking stats
     async function fetchStakingStats() {
       try {
-        const response = await fetch(`${BLOCKCHAIN_API}/staking/stats`);
+        const response = await fetch(`${BLOCKCHAIN_API}/api/staking/stats`);
         
         if (!response.ok) {
           // Silently use mock data for 404s
@@ -448,7 +488,7 @@
     // Fetch validators
     async function fetchValidators() {
       try {
-        const response = await fetch(`${BLOCKCHAIN_API}/staking/validators`);
+        const response = await fetch(`${BLOCKCHAIN_API}/api/staking/validators`);
         
         if (!response.ok) {
           // Silently use mock data for 404s
@@ -532,11 +572,73 @@
       }
       
       // Estimate avg tx fee (placeholder - would need actual tx data)
-      updateElement('avg-tx-fee', '~0.0001 DYT');
+      updateElement('avg-tx-fee', '~0.0001 DRT');
       
       // Estimate block propagation (placeholder)
       updateElement('block-propagation', '< 500ms');
       updateElement('network-latency', 'Local node');
+      
+      // Extract and display anchored assets
+      updateAnchoredAssets(blocks);
+    }
+    
+    // Update anchored assets feed
+    function updateAnchoredAssets(blocks) {
+      if (!blocks || blocks.length === 0) return;
+      
+      const assetsFeed = document.getElementById('anchored-assets-feed');
+      if (!assetsFeed) return;
+      
+      // Collect all assets from recent blocks (last 100)
+      const assetsWithBlocks = [];
+      blocks.forEach(block => {
+        if (block.asset_hashes && block.asset_hashes.length > 0) {
+          block.asset_hashes.forEach(assetHash => {
+            assetsWithBlocks.push({
+              hash: assetHash,
+              blockHeight: block.height || block.number,
+              timestamp: block.timestamp
+            });
+          });
+        }
+      });
+      
+      // Sort by block height (newest first)
+      assetsWithBlocks.sort((a, b) => b.blockHeight - a.blockHeight);
+      
+      // Display assets
+      if (assetsWithBlocks.length === 0) {
+        assetsFeed.innerHTML = `
+          <div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+            No anchored assets yet
+          </div>
+        `;
+      } else {
+        assetsFeed.innerHTML = assetsWithBlocks.slice(0, 20).map(asset => `
+          <div style="padding: 0.75rem; border-bottom: 1px solid rgba(87, 113, 153, 0.15); cursor: pointer;" 
+               onclick="searchForBlock(${asset.blockHeight})">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.25rem;">
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary); word-break: break-all; margin-bottom: 0.25rem;">
+                  ${asset.hash}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                  Block #${asset.blockHeight.toLocaleString()} • ${calculateTimeAgo(asset.timestamp)}
+                </div>
+              </div>
+              <div>
+                <span class="badge" style="font-size: 0.7rem; background: rgba(124, 135, 255, 0.25); border: 1px solid rgba(124, 135, 255, 0.4);">QV</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+    
+    // Helper function to search for a block
+    function searchForBlock(blockHeight) {
+      document.getElementById('explorer-search').value = blockHeight;
+      document.getElementById('blockchain-search').dispatchEvent(new Event('submit'));
     }
 
     // Update stats display
@@ -631,6 +733,12 @@
         }
       }
       
+      // If block has anchored assets, refresh the assets feed
+      if (block.asset_hashes && block.asset_hashes.length > 0) {
+        console.log(`📦 Block #${block.height || block.number} has ${block.asset_hashes.length} anchored asset(s)`);
+        fetchRecentBlocks(); // Refresh to get updated asset list
+      }
+      
       // Re-fetch stats periodically with new blocks
       fetchBlockchainStats();
     }
@@ -690,7 +798,7 @@
       tr.innerHTML = `
         <td style="padding: 0.75rem;"><span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary);">${hash.substring(0, 8)}...</span><br><span style="font-size: 0.85rem; color: var(--text-muted);">${timeAgo}</span></td>
         <td style="padding: 0.75rem;"><span class="badge badge-info" style="font-size: 0.75rem; ${algoBadgeClass}">${algo}</span></td>
-        <td style="padding: 0.75rem; color: var(--text-secondary);">${amount} DYT</td>
+        <td style="padding: 0.75rem; color: var(--text-secondary);">${amount} DGT</td>
         <td style="padding: 0.75rem;"><span class="badge badge-success" style="font-size: 0.75rem;">${status}</span></td>
       `;
       
@@ -742,15 +850,15 @@
         
         if (searchValue.startsWith('0x')) {
           // Transaction hash or block hash
-          endpoint = `/tx/${searchValue}`;
+          endpoint = `/api/tx/${searchValue}`;
           searchType = 'Transaction/Block Hash';
         } else if (/^\d+$/.test(searchValue)) {
           // Block number
-          endpoint = `/block/${searchValue}`;
+          endpoint = `/api/block/${searchValue}`;
           searchType = 'Block';
         } else {
           // Address
-          endpoint = `/balance/${searchValue}`;
+          endpoint = `/api/balance/${searchValue}`;
           searchType = 'Address';
         }
         
@@ -784,8 +892,7 @@
             assetHashes.forEach((hash, idx) => {
               assetInfo += `${idx + 1}. ${hash}\n`;
             });
-          } else {
-            assetInfo = '';
+            assetInfo += '\nThese proofs are displayed in the Anchored Assets section on this page.';
           }
           
           alert(`✅ Block Found!\n\nHeight: ${blockHeight}\nHash: ${blockHash}\nTimestamp: ${new Date(blockTimestamp * 1000).toLocaleString()}\nTransactions: ${blockTxs.length}\nParent: ${blockParent}${assetInfo}`);

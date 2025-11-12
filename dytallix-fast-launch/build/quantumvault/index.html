@@ -804,9 +804,9 @@
   <!-- 2. Threat Brief Section -->
   <section id="threat" class="section theme-light">
     <div class="container">
-      <div class="section-header">
-        <div class="section-pill">Threat Brief</div>
-        <h2 class="section-title">Understand the Quantum Threat</h2>
+      <div class="section-header" style="margin-bottom: 3rem;">
+        <div class="section-pill" style="margin-bottom: 1.25rem;">Threat Brief</div>
+        <h2 class="section-title" style="margin-bottom: 0;">Understand the Quantum Threat</h2>
       </div>
       
       <!-- Video Placeholder (moved from hero) -->
@@ -945,11 +945,11 @@
 </section>
 
   <!-- QuantumVault Interactive Demo -->
-  <section id="quantumvault-demo" class="section theme-dark" data-api-url="http://localhost:3002" data-chain-url="http://localhost:3003">
+  <section id="quantumvault-demo" class="section theme-dark" data-api-url="http://localhost:3031" data-chain-url="http://localhost:3030">
     <div class="container">
-      <div class="section-header" style="text-align: center;">
-        <div class="section-pill section-pill-center">Interactive Demo</div>
-        <h2 class="section-title">Try QuantumVault in Your Browser</h2>
+      <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
+        <div class="section-pill section-pill-center" style="margin-bottom: 1.25rem;">Interactive Demo</div>
+        <h2 class="section-title" style="margin-bottom: 0;">Try QuantumVault in Your Browser</h2>
       </div>
 
       <div class="card quantumvault-card">
@@ -1227,9 +1227,9 @@
   <!-- 3. Solution Overview Section -->
   <section id="solution" class="section theme-light">
     <div class="container">
-      <div class="section-header">
-        <div class="section-pill">Solution Overview</div>
-        <h2 class="section-title">How QuantumVault Works</h2>
+      <div class="section-header" style="margin-bottom: 3rem;">
+        <div class="section-pill" style="margin-bottom: 1.25rem;">Solution Overview</div>
+        <h2 class="section-title" style="margin-bottom: 0;">How QuantumVault Works</h2>
       </div>
       
       <!-- Animated Flow (wider with added detail) -->
@@ -1296,9 +1296,9 @@
   <!-- 4. Feature Grid Section -->
   <section id="features" class="section theme-dark">
     <div class="container" style="max-width: 1280px;">
-      <div class="section-header">
-        <div class="section-pill">Platform Capabilities</div>
-        <h2 class="section-title">Key Features</h2>
+      <div class="section-header" style="margin-bottom: 3rem;">
+        <div class="section-pill" style="margin-bottom: 1.25rem;">Platform Capabilities</div>
+        <h2 class="section-title" style="margin-bottom: 0;">Key Features</h2>
       </div>
       
       <div class="grid grid-3" style="grid-template-columns: repeat(3, minmax(360px, 1fr)); gap: 2rem;">
@@ -1423,9 +1423,9 @@
   <!-- New: Technology Stack (copied from Build) -->
   <section class="section theme-light">
     <div class="container">
-      <div class="section-header">
-        <div class="section-pill">Under the Hood</div>
-        <h2 class="section-title">Tech Stack</h2>
+      <div class="section-header" style="margin-bottom: 3rem;">
+        <div class="section-pill" style="margin-bottom: 1.25rem;">Under the Hood</div>
+        <h2 class="section-title" style="margin-bottom: 0;">Tech Stack</h2>
       </div>
 
       <div class="grid grid-3">
@@ -1489,9 +1489,9 @@
   <!-- Pricing Section -->
   <section id="pricing" class="section theme-light">
     <div class="container" style="max-width: 1100px;">
-      <div class="section-header" style="text-align: center;">
-        <div class="section-pill section-pill-center">Plans</div>
-        <h2 class="section-title">Pricing</h2>
+      <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
+        <div class="section-pill section-pill-center" style="margin-bottom: 1.25rem;">Plans</div>
+        <h2 class="section-title" style="margin-bottom: 0;">Pricing</h2>
       </div>
 
       <div class="grid grid-3" style="gap: 1.75rem; align-items: stretch;">
@@ -1574,9 +1574,9 @@
   <!-- Buyer Objections FAQ -->
   <section id="buyer-faq" class="section theme-dark">
     <div class="container">
-      <div class="section-header" style="text-align: center;">
-        <div class="section-pill section-pill-center">FAQ</div>
-        <h2 class="section-title">Frequently Asked Questions</h2>
+      <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
+        <div class="section-pill section-pill-center" style="margin-bottom: 1.25rem;">FAQ</div>
+        <h2 class="section-title" style="margin-bottom: 0;">Frequently Asked Questions</h2>
       </div>
 
       <div class="card">
@@ -1650,9 +1650,12 @@
   <!-- 7. Demo / Contact Form Section -->
   <section id="demo" class="section bg-gradient-quantum" style="color: white;">
     <div class="container">
+      <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
+        <div class="section-pill section-pill-center" style="margin-bottom: 1.25rem;">Request a Demo</div>
+        <h2 class="section-title text-light" style="margin-bottom: 0;">Talk To Us</h2>
+      </div>
+      
       <div style="max-width: 700px; margin: 0 auto;">
-        <h2 class="text-light" style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">Request a Demo</h2>
-        
         <div class="card">
           <form class="demo-form" id="demo-request-form">
             <div class="form-group">
@@ -2086,7 +2089,12 @@
       }
 
       if (refreshBtn) refreshBtn.addEventListener('click', checkStatus);
-      checkStatus();
+      
+      // Initial check with a small delay to let page finish loading
+      setTimeout(checkStatus, 500);
+      
+      // Auto-refresh status every 10 seconds to catch when blockchain comes online
+      setInterval(checkStatus, 10000);
     })();
 
     (function() {

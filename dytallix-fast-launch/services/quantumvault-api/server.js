@@ -16,6 +16,10 @@ import { createHash, randomBytes } from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { promises as fs } from 'fs';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Use built-in fetch (Node.js 18+) or import from node-fetch
 const fetch = globalThis.fetch || (await import('node-fetch')).default;

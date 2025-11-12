@@ -405,6 +405,7 @@ async fn main() -> anyhow::Result<()> {
         wasm_contracts: Arc::new(Mutex::new(std::collections::HashMap::new())),
         #[cfg(feature = "contracts")]
         wasm_runtime: Arc::new(dytallix_fast_node::runtime::wasm::WasmRuntime::new()),
+        pending_assets: Arc::new(Mutex::new(Vec::new())),
     };
 
     // Apply governance env overrides (after ctx creation so we can mutate inside mutex)
@@ -516,7 +517,16 @@ async fn main() -> anyhow::Result<()> {
                 }
                 continue;
             }
-            let block = Block::new(height, parent, ts, success_txs.clone());
+            let mut block = Block::new(height, parent, ts, success_txs.clone());
+            
+            // Add pending asset hashes to the block
+            let pending = producer_ctx.pending_assets.lock().unwrap();
+            if !pending.is_empty() {
+                block.header.asset_hashes = pending.clone();
+                eprintln!("[Block Producer] Including {} asset hash(es) in block #{}", pending.len(), height);
+            }
+            drop(pending); // Release lock before clearing
+            
             for (idx, r) in receipts.iter_mut().enumerate() {
                 if r.status == TxStatus::Success {
                     r.block_height = Some(height);
@@ -524,6 +534,9 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             let _ = producer_ctx.storage.put_block(&block, &receipts);
+            
+            // Clear pending assets after they've been included in a block
+            producer_ctx.pending_assets.lock().unwrap().clear();
 
             // Record metrics
             if let Ok(block_processing_time) = block_start_time.elapsed() {
@@ -603,6 +616,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/submit", post(rpc::submit))
         .route("/transactions/submit", post(rpc::submit)) // Standard endpoint path
         .route("/blocks", get(rpc::list_blocks))
+        .route("/api/blocks", get(rpc::list_blocks)) // API prefix version
         .route("/block/:id", get(rpc::get_block))
         .route("/balance/:addr", get(rpc::get_balance))
         .route("/account/:addr", get(rpc::get_account))
@@ -707,7 +721,15 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/staking/balance/:delegator",
             get(rpc::staking_get_balance),
-        );
+        )
+        .route("/api/staking/stats", get(rpc::staking_get_stats))
+        .route("/api/staking/validators", get(rpc::staking_get_validators));
+
+    // API routes for explorer search (aliases with /api prefix)
+    app = app
+        .route("/api/block/:id", get(rpc::get_block))
+        .route("/api/tx/:hash", get(rpc::get_tx))
+        .route("/api/balance/:addr", get(rpc::get_balance));
 
     app = app.layer(Extension(ctx));
     
