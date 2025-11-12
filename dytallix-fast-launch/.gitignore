@@ -1,0 +1,28 @@
+# Security audit artifacts (keep first run for evidence, ignore subsequent runs)
+launch-evidence/security-audit/*-2025*.json
+launch-evidence/security-audit/*-2025*.txt
+launch-evidence/security-audit/*-2025*.md
+# Keep the initial audit run
+!launch-evidence/security-audit/*-20251112-200512.*
+# Keep the implementation summary
+!launch-evidence/security-audit/IMPLEMENTATION_SUMMARY.md
+
+# Build artifacts
+dist/
+build/
+target/
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.staging
+
+# Process IDs
+.api_pid
+.static_pid
+
+# Logs
+*.log
