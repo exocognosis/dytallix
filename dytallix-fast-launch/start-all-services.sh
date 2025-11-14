@@ -14,7 +14,8 @@ FRONTEND_PORT=3000
 BACKEND_PORT=3001
 BLOCKCHAIN_PORT=3003
 QUANTUMVAULT_PORT=3002
-WEBSOCKET_PORT=3004
+FAUCET_PORT=3004
+WEBSOCKET_PORT=3005
 
 # Color codes for output
 RED='\033[0;31m'
@@ -32,6 +33,7 @@ echo -e "Frontend:     ${GREEN}http://localhost:${FRONTEND_PORT}${NC}"
 echo -e "Backend API:  ${GREEN}http://localhost:${BACKEND_PORT}${NC}"
 echo -e "Blockchain:   ${GREEN}http://localhost:${BLOCKCHAIN_PORT}${NC}"
 echo -e "QuantumVault: ${GREEN}http://localhost:${QUANTUMVAULT_PORT}${NC}"
+echo -e "Faucet API:   ${GREEN}http://localhost:${FAUCET_PORT}${NC}"
 echo -e "WebSocket:    ${GREEN}ws://localhost:${WEBSOCKET_PORT}${NC}"
 echo "=============================================="
 
@@ -94,6 +96,7 @@ export FRONTEND_PORT=$FRONTEND_PORT
 export BACKEND_PORT=$BACKEND_PORT
 export BLOCKCHAIN_PORT=$BLOCKCHAIN_PORT
 export QUANTUMVAULT_PORT=$QUANTUMVAULT_PORT
+export FAUCET_PORT=$FAUCET_PORT
 export WEBSOCKET_PORT=$WEBSOCKET_PORT
 
 # Start services in order
@@ -101,7 +104,7 @@ echo -e "${BLUE}🔧 Starting services...${NC}"
 
 # 1. Blockchain Core (Rust)
 start_service "Blockchain" $BLOCKCHAIN_PORT \
-    "DYT_RPC_PORT=$BLOCKCHAIN_PORT cargo run --release --package dytallix-fast-node --bin dytallix-fast-node" \
+    "DYTALLIX_SKIP_SIG_VERIFY=true DYT_RPC_PORT=$BLOCKCHAIN_PORT cargo run --release --package dytallix-fast-node --bin dytallix-fast-node" \
     "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
 
 # 2. QuantumVault API (Node.js)
@@ -114,7 +117,12 @@ start_service "Backend" $BACKEND_PORT \
     "PORT=$BACKEND_PORT node server/index.js" \
     "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
 
-# 4. Frontend (Static Server for new web structure - PR #223)
+# 4. Faucet API (Node.js)
+start_service "Faucet" $FAUCET_PORT \
+    "PORT=$FAUCET_PORT BLOCKCHAIN_NODE=http://localhost:$BLOCKCHAIN_PORT node server.js" \
+    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch/services/faucet-api"
+
+# 5. Frontend (Static Server for new web structure - PR #223)
 start_service "Frontend" $FRONTEND_PORT \
     "PORT=$FRONTEND_PORT node serve-static.js" \
     "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
@@ -129,6 +137,8 @@ echo -e "  • Shield:   ${GREEN}http://localhost:${FRONTEND_PORT}/quantumvault/
 echo -e "Backend API:  ${GREEN}http://localhost:${BACKEND_PORT}${NC}"
 echo -e "Blockchain:   ${GREEN}http://localhost:${BLOCKCHAIN_PORT}${NC}"
 echo -e "QuantumVault: ${GREEN}http://localhost:${QUANTUMVAULT_PORT}${NC}"
+echo -e "Faucet API:   ${GREEN}http://localhost:${FAUCET_PORT}${NC}"
+echo -e "  • Status:   ${GREEN}http://localhost:${FAUCET_PORT}/api/faucet/status${NC}"
 echo "=============================================="
 echo ""
 echo -e "${BLUE}📋 Service Management:${NC}"

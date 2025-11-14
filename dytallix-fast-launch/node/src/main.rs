@@ -617,10 +617,12 @@ async fn main() -> anyhow::Result<()> {
         .route("/transactions/submit", post(rpc::submit)) // Standard endpoint path
         .route("/blocks", get(rpc::list_blocks))
         .route("/api/blocks", get(rpc::list_blocks)) // API prefix version
+        .route("/api/anchored-assets", get(rpc::list_anchored_assets)) // All blocks with anchored assets (no limit)
         .route("/block/:id", get(rpc::get_block))
         .route("/balance/:addr", get(rpc::get_balance))
         .route("/account/:addr", get(rpc::get_account))
         .route("/tx/:hash", get(rpc::get_tx))
+        .route("/transactions", get(rpc::list_transactions)) // List all transactions
         .route("/transactions/:hash", get(rpc::get_tx)) // Standard endpoint path
         .route("/transactions/pending", get(rpc::get_pending_transactions)) // Pending transactions list
         .route("/genesis", get(rpc::get_genesis)) // Genesis configuration

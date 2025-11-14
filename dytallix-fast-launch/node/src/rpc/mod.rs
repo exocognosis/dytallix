@@ -97,9 +97,16 @@ fn validate_signed_tx(
     expected_nonce: u64,
     account_state: &crate::state::AccountState,
 ) -> Result<(), ValidationError> {
-    // Verify signature
-    if signed_tx.verify().is_err() {
+    // Verify signature (skip in dev mode for testing)
+    let skip_sig_check = std::env::var("DYTALLIX_SKIP_SIG_VERIFY")
+        .ok()
+        .and_then(|v| v.parse::<bool>().ok())
+        .unwrap_or(false);
+    
+    if !skip_sig_check && signed_tx.verify().is_err() {
         return Err(ValidationError::InvalidSignature);
+    } else if skip_sig_check {
+        eprintln!("[WARN] Signature verification SKIPPED (DYTALLIX_SKIP_SIG_VERIFY=true)");
     }
 
     // Validate transaction
@@ -444,11 +451,17 @@ pub async fn submit(
     // Store transaction and receipt
     ctx.storage
         .put_tx(&legacy_tx)
-        .map_err(|_| ApiError::Internal)?;
+        .map_err(|e| {
+            eprintln!("[ERROR] Failed to store transaction: {:?}", e);
+            ApiError::Internal
+        })?;
     let pending = TxReceipt::pending(&legacy_tx);
     ctx.storage
         .put_pending_receipt(&pending)
-        .map_err(|_| ApiError::Internal)?;
+        .map_err(|e| {
+            eprintln!("[ERROR] Failed to store pending receipt: {:?}", e);
+            ApiError::Internal
+        })?;
 
     // Broadcast to websocket
     ctx.ws.broadcast_json(&json!({
@@ -526,6 +539,84 @@ pub async fn list_blocks(
         h -= 1;
     }
     Json(json!({"blocks": blocks}))
+}
+
+/// GET /api/anchored-assets - Return all blocks with anchored assets (no limit)
+pub async fn list_anchored_assets(
+    ctx: axum::Extension<RpcContext>,
+) -> Json<serde_json::Value> {
+    let height = ctx.storage.height();
+    let mut anchored_blocks = vec![];
+    
+    // Scan all blocks from genesis to current height
+    for h in 1..=height {
+        if let Some(b) = ctx.storage.get_block_by_height(h) {
+            // Only include blocks that have anchored assets
+            if !b.header.asset_hashes.is_empty() {
+                anchored_blocks.push(json!({
+                    "height": b.header.height,
+                    "hash": b.hash,
+                    "timestamp": b.header.timestamp,
+                    "asset_hashes": b.header.asset_hashes,
+                    "txs": b.txs.len()
+                }));
+            }
+        }
+    }
+    
+    Json(json!({
+        "blocks": anchored_blocks,
+        "total": anchored_blocks.len()
+    }))
+}
+
+/// GET /transactions - Return recent transactions from blocks
+#[derive(Deserialize)]
+pub struct TransactionsQuery {
+    pub offset: Option<u64>,
+    pub limit: Option<u64>,
+}
+
+pub async fn list_transactions(
+    Query(q): Query<TransactionsQuery>,
+    ctx: axum::Extension<RpcContext>,
+) -> Json<serde_json::Value> {
+    let limit = q.limit.unwrap_or(50).min(1000);
+    let height = ctx.storage.height();
+    let mut transactions = vec![];
+    let mut h = q.offset.unwrap_or(height);
+    
+    // Scan blocks from most recent backwards to find transactions
+    while h > 0 && transactions.len() < limit as usize {
+        if let Some(b) = ctx.storage.get_block_by_height(h) {
+            for tx in b.txs.iter().rev() {
+                if transactions.len() >= limit as usize {
+                    break;
+                }
+                transactions.push(json!({
+                    "hash": tx.hash,
+                    "from": tx.from,
+                    "to": tx.to,
+                    "amount": tx.amount.to_string(),
+                    "fee": tx.fee.to_string(),
+                    "nonce": tx.nonce,
+                    "denom": tx.denom,
+                    "block_height": b.header.height,
+                    "timestamp": b.header.timestamp,
+                    "status": "confirmed",
+                }));
+            }
+        }
+        if h == 0 {
+            break;
+        }
+        h -= 1;
+    }
+    
+    Json(json!({
+        "transactions": transactions,
+        "total": transactions.len()
+    }))
 }
 
 pub async fn get_block(

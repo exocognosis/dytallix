@@ -353,10 +353,10 @@
 
   <script>
     // Blockchain API configuration
-    const BLOCKCHAIN_API = 'http://localhost:3030';
+    const BLOCKCHAIN_API = 'http://localhost:3003';
     
     // State management
-    let latestBlockHeight = 145892;
+    let latestBlockHeight = 0;
     let isConnected = false;
     let ws = null;
     let blockTimestamps = []; // Track recent block timestamps for calculating avg block time
@@ -367,7 +367,7 @@
     // Connect to WebSocket for real-time updates
     function connectWebSocket() {
       try {
-        ws = new WebSocket(`ws://localhost:3030/ws`);
+        ws = new WebSocket(`ws://localhost:3003/ws`);
         
         ws.onopen = () => {
           console.log('✅ Connected to blockchain WebSocket');
@@ -414,6 +414,7 @@
         const response = await fetch(`${BLOCKCHAIN_API}/api/stats`);
         
         if (!response.ok) {
+          console.log('Stats endpoint not available, falling back to blocks');
           // Stats endpoint not available, use data from blocks endpoint
           throw new Error(`HTTP ${response.status}`);
         }
@@ -427,9 +428,18 @@
         
         // API returns data directly, not wrapped in success/data
         if (data) {
+          console.log('[Network] Stats fetched:', data);
           updateStats(data);
+          
+          // Calculate and show time since last block
+          if (data.height && data.last_block_time) {
+            const now = Date.now() / 1000;
+            const timeSince = now - data.last_block_time;
+            updateElement('latest-block-time', `${Math.floor(timeSince)}s ago`);
+          }
         }
       } catch (e) {
+        console.log('[Network] Stats endpoint error:', e.message);
         // Stats endpoint not available, we'll get data from blocks endpoint
       }
     }
@@ -437,7 +447,7 @@
     // Fetch recent blocks
     async function fetchRecentBlocks() {
       try {
-        const response = await fetch(`${BLOCKCHAIN_API}/api/blocks?limit=100`);
+        const response = await fetch(`${BLOCKCHAIN_API}/api/blocks?limit=1000`);
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -446,12 +456,63 @@
         const data = await response.json();
         
         // API returns { blocks: [...] } format
-        if (data && data.blocks) {
+        if (data && data.blocks && data.blocks.length > 0) {
+          console.log('[Network] Fetched', data.blocks.length, 'blocks');
+          
+          // Update latest block info if not already set
+          const latestBlock = data.blocks[0];
+          if (latestBlock && latestBlock.height) {
+            latestBlockHeight = latestBlock.height;
+            updateElement('latest-block', latestBlock.height.toLocaleString());
+            
+            // Calculate time since last block
+            if (latestBlock.timestamp) {
+              const now = Date.now() / 1000;
+              const timeSince = Math.floor(now - latestBlock.timestamp);
+              updateElement('latest-block-time', `${timeSince}s ago`);
+            }
+          }
+          
           analyzeBlocks(data.blocks);
           updateBlocksFeed(data.blocks.slice(0, 5));
         }
       } catch (e) {
-        console.log('Blocks endpoint not available');
+        console.error('[Network] Blocks endpoint error:', e);
+        // Show error state
+        updateElement('latest-block', 'N/A');
+        updateElement('latest-block-time', 'Node offline');
+      }
+    }
+
+    // Fetch recent transactions
+    async function fetchRecentTransactions() {
+      try {
+        const response = await fetch(`${BLOCKCHAIN_API}/transactions?limit=10`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // API returns { total, transactions: [...] } format
+        if (data && data.transactions && data.transactions.length > 0) {
+          console.log('[Network] Fetched', data.transactions.length, 'transactions');
+          updateTransactionsFeed(data.transactions.slice(0, 5));
+        } else {
+          // No transactions yet
+          const txFeed = document.getElementById('tx-feed');
+          if (txFeed) {
+            txFeed.innerHTML = '<tr><td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-muted);">No transactions yet</td></tr>';
+          }
+        }
+      } catch (e) {
+        console.error('[Network] Transactions endpoint error:', e);
+        // Show error state
+        const txFeed = document.getElementById('tx-feed');
+        if (txFeed) {
+          txFeed.innerHTML = '<tr><td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-muted);">Unable to load transactions</td></tr>';
+        }
       }
     }
 
@@ -578,43 +639,48 @@
       updateElement('block-propagation', '< 500ms');
       updateElement('network-latency', 'Local node');
       
-      // Extract and display anchored assets
-      updateAnchoredAssets(blocks);
+      // Fetch and display all anchored assets (global search)
+      updateAnchoredAssets();
     }
     
-    // Update anchored assets feed
-    function updateAnchoredAssets(blocks) {
-      if (!blocks || blocks.length === 0) return;
-      
+    // Update anchored assets feed - now fetches from dedicated endpoint
+    async function updateAnchoredAssets() {
       const assetsFeed = document.getElementById('anchored-assets-feed');
       if (!assetsFeed) return;
       
-      // Collect all assets from recent blocks (last 100)
-      const assetsWithBlocks = [];
-      blocks.forEach(block => {
-        if (block.asset_hashes && block.asset_hashes.length > 0) {
-          block.asset_hashes.forEach(assetHash => {
-            assetsWithBlocks.push({
-              hash: assetHash,
-              blockHeight: block.height || block.number,
-              timestamp: block.timestamp
-            });
-          });
+      try {
+        // Fetch all blocks with anchored assets (no limit)
+        const response = await fetch(`${BLOCKCHAIN_API}/api/anchored-assets`);
+        const data = await response.json();
+        
+        if (!data.assets || data.assets.length === 0) {
+          assetsFeed.innerHTML = `
+            <div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+              No anchored assets yet
+            </div>
+          `;
+          return;
         }
-      });
-      
-      // Sort by block height (newest first)
-      assetsWithBlocks.sort((a, b) => b.blockHeight - a.blockHeight);
-      
-      // Display assets
-      if (assetsWithBlocks.length === 0) {
-        assetsFeed.innerHTML = `
-          <div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
-            No anchored assets yet
-          </div>
-        `;
-      } else {
-        assetsFeed.innerHTML = assetsWithBlocks.slice(0, 20).map(asset => `
+        
+        // Collect all assets with their block info
+        const assetsWithBlocks = [];
+        data.assets.forEach(block => {
+          if (block.asset_hashes && block.asset_hashes.length > 0) {
+            block.asset_hashes.forEach(assetHash => {
+              assetsWithBlocks.push({
+                hash: assetHash,
+                blockHeight: block.height,
+                timestamp: block.timestamp
+              });
+            });
+          }
+        });
+        
+        // Sort by block height (newest first)
+        assetsWithBlocks.sort((a, b) => b.blockHeight - a.blockHeight);
+        
+        // Display assets (show all, not just first 20)
+        assetsFeed.innerHTML = assetsWithBlocks.map(asset => `
           <div style="padding: 0.75rem; border-bottom: 1px solid rgba(87, 113, 153, 0.15); cursor: pointer;" 
                onclick="searchForBlock(${asset.blockHeight})">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.25rem;">
@@ -632,6 +698,13 @@
             </div>
           </div>
         `).join('');
+      } catch (error) {
+        console.error('Error fetching anchored assets:', error);
+        assetsFeed.innerHTML = `
+          <div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+            Error loading anchored assets
+          </div>
+        `;
       }
     }
     
@@ -736,7 +809,7 @@
       // If block has anchored assets, refresh the assets feed
       if (block.asset_hashes && block.asset_hashes.length > 0) {
         console.log(`📦 Block #${block.height || block.number} has ${block.asset_hashes.length} anchored asset(s)`);
-        fetchRecentBlocks(); // Refresh to get updated asset list
+        updateAnchoredAssets(); // Refresh anchored assets from dedicated endpoint
       }
       
       // Re-fetch stats periodically with new blocks
@@ -787,19 +860,27 @@
       
       const timeAgo = tx.timestamp ? calculateTimeAgo(tx.timestamp) : 'just now';
       const hash = tx.hash || tx.tx_hash || '0x0000...';
-      const algo = tx.algorithm || 'Kyber';
-      const amount = tx.amount || tx.value || '0';
-      const status = tx.status || 'Confirmed';
       
-      const algoBadgeClass = algo === 'Dilithium' ? 'background: rgba(147, 51, 234, 0.25); border: 1px solid rgba(147, 51, 234, 0.4);' :
-                             algo === 'SPHINCS+' ? 'background: rgba(245, 158, 11, 0.25); border: 1px solid rgba(245, 158, 11, 0.4);' :
-                             '';
+      // Convert amount from micro-units (udgt) to DGT
+      let amount = tx.amount || tx.value || '0';
+      if (tx.denom === 'udgt' || tx.denom === 'udrt') {
+        amount = (parseInt(amount) / 1000000).toFixed(2);
+      }
+      const tokenSymbol = tx.denom === 'udrt' ? 'DRT' : 'DGT';
+      
+      // Determine type based on from/to addresses (placeholder, could be enhanced)
+      const txType = 'Transfer';
+      
+      const status = tx.status || 'confirmed';
+      const statusBadge = status === 'confirmed' 
+        ? '<span class="badge badge-success" style="font-size: 0.75rem;">Confirmed</span>'
+        : '<span class="badge badge-warning" style="font-size: 0.75rem;">Pending</span>';
       
       tr.innerHTML = `
-        <td style="padding: 0.75rem;"><span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary);">${hash.substring(0, 8)}...</span><br><span style="font-size: 0.85rem; color: var(--text-muted);">${timeAgo}</span></td>
-        <td style="padding: 0.75rem;"><span class="badge badge-info" style="font-size: 0.75rem; ${algoBadgeClass}">${algo}</span></td>
-        <td style="padding: 0.75rem; color: var(--text-secondary);">${amount} DGT</td>
-        <td style="padding: 0.75rem;"><span class="badge badge-success" style="font-size: 0.75rem;">${status}</span></td>
+        <td style="padding: 0.75rem;"><span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary);">${hash.substring(0, 10)}...</span><br><span style="font-size: 0.85rem; color: var(--text-muted);">${timeAgo}</span></td>
+        <td style="padding: 0.75rem;"><span class="badge badge-info" style="font-size: 0.75rem;">${txType}</span></td>
+        <td style="padding: 0.75rem; color: var(--text-secondary);">${amount} ${tokenSymbol}</td>
+        <td style="padding: 0.75rem;">${statusBadge}</td>
       `;
       
       return tr;
@@ -824,6 +905,17 @@
       feed.innerHTML = '';
       blocks.slice(0, 5).forEach(block => {
         feed.appendChild(createBlockRow(block));
+      });
+    }
+
+    // Update transactions feed
+    function updateTransactionsFeed(transactions) {
+      const feed = document.getElementById('tx-feed');
+      if (!feed || !transactions || !transactions.length) return;
+      
+      feed.innerHTML = '';
+      transactions.slice(0, 5).forEach(tx => {
+        feed.appendChild(createTransactionRow(tx));
       });
     }
 
@@ -925,8 +1017,10 @@
       // Fetch initial data
       await fetchBlockchainStats();
       await fetchRecentBlocks();
+      await fetchRecentTransactions();
       await fetchStakingStats();
       await fetchValidators();
+      await updateAnchoredAssets(); // Load all anchored assets from dedicated endpoint
       
       // Update PQC distribution
       updatePQCDistribution();
@@ -936,6 +1030,7 @@
         await fetchBlockchainStats();
         if (!isConnected) {
           await fetchRecentBlocks();
+          await fetchRecentTransactions(); // Refresh transactions feed
         }
         // Update staking stats every 30 seconds
         if (Date.now() % 30000 < 10000) {
