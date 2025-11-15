@@ -7,7 +7,7 @@
   <title>Build on Dytallix - Developer Ecosystem</title>
   <link rel="stylesheet" href="../shared-assets/styles.css">
 </head>
-<body>
+<body class="build-page">
   <header class="global-header">
     <div class="container">
       <div class="header-content">
@@ -23,7 +23,7 @@
             <li class="nav-dropdown">
               <a href="#" class="nav-dropdown-toggle">Network ▾</a>
               <ul class="nav-dropdown-menu">
-                <li><a href="/build/explorer.html">Explorer</a></li>
+                <li><a href="/build/network.html">Explorer</a></li>
                 <li><a href="/build/dashboard.html">Dashboard</a></li>
               </ul>
             </li>
@@ -69,14 +69,9 @@
   <section class="section" id="quickstart">
     <div class="container">
       <div class="section-header">
-        <div style="text-align: center; width: 100%;">
-          <span class="pill">Quickstart</span>
-        </div>
-        <div style="position: relative; width: 100%; margin-top: 1.5rem; height: 3rem;">
-          <h2 class="section-title" style="position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; margin: 0;">Spin up a Node? Deploy a dApp? Start Here.</h2>
-        </div>
-        <p class="section-subtitle">
-        </p>
+        <span class="pill">Quickstart</span>
+        <h2 class="section-title">Spin up a Node? Deploy a dApp? Start Here.</h2>
+        <p class="section-subtitle"></p>
       </div>
       <ol class="quickstart-steps">
         <li><strong>Install the TypeScript SDK</strong> – <a href="https://github.com/DytallixHQ/Dytallix/tree/main/dytallix-fast-launch/sdk" target="_blank" rel="noopener">Get the SDK</a></li>
@@ -92,7 +87,7 @@ const tx = await client.sendTransaction({
 });
 console.log("txHash:", tx.hash);</code></pre>
         </li>
-        <li><strong>Verify in Explorer</strong> – <a href="./explorer.html">View Explorer</a></li>
+        <li><strong>Verify in Explorer</strong> – <a href="./network.html">View Explorer</a></li>
       </ol>
       <div class="hero-actions justify-center mt-4">
         <a href="#docs" class="btn btn-primary btn-large">Read the Docs</a>
@@ -103,9 +98,9 @@ console.log("txHash:", tx.hash);</code></pre>
 
   <section class="section is-alt" id="overview">
     <div class="container">
-      <div class="section-header" style="text-align: center;">
+      <div class="section-header">
         <span class="pill">General Dytallix Info</span>
-        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">What To Know</h2>
+        <h2 class="section-title">What To Know</h2>
       </div>
 
       <div class="grid grid-3">
@@ -180,9 +175,9 @@ console.log("txHash:", tx.hash);</code></pre>
 
   <section class="section" id="docs">
     <div class="container">
-      <div class="section-header" style="text-align: center;">
+      <div class="section-header">
         <span class="pill">Documentation &amp; SDKs</span>
-        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Build Fast & Ship Safely</h2>
+        <h2 class="section-title">Build Fast & Ship Safely</h2>
       </div>
 
       <div class="grid grid-3">
@@ -227,9 +222,9 @@ console.log("txHash:", tx.hash);</code></pre>
 
   <section class="section is-alt" id="wallet">
     <div class="container">
-      <div style="text-align: center; margin-bottom: 2rem;">
+      <div class="section-header">
         <span class="pill">Wallet</span>
-        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Developer Wallet Onboarding</h2>
+        <h2 class="section-title">Developer Wallet Onboarding</h2>
       </div>
       <div class="hero-actions justify-center mt-3">
         <a href="./pqc-wallet.html" class="btn btn-primary btn-small">Launch PQC wallet</a>
@@ -269,9 +264,9 @@ console.log("txHash:", tx.hash);</code></pre>
 
   <section class="section" id="faucet">
     <div class="container">
-      <div class="section-header" style="text-align: center;">
+      <div class="section-header">
         <span class="pill">Faucet</span>
-        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Fund Testnet Accounts</h2>
+        <h2 class="section-title">Fund Testnet Accounts</h2>
       </div>
       <div class="hero-actions justify-center mt-3">
         <a href="./faucet.html" class="btn btn-primary btn-small">Open faucet</a>
@@ -321,12 +316,12 @@ console.log("txHash:", tx.hash);</code></pre>
 
   <section class="section is-alt" id="explorer">
     <div class="container">
-      <div class="section-header" style="text-align: center;">
+      <div class="section-header">
         <span class="pill">Explorer</span>
-        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Blockchain Explorer</h2>
+        <h2 class="section-title">Blockchain Explorer</h2>
       </div>
       <div class="hero-actions justify-center mt-3">
-        <a href="./explorer.html" class="btn btn-primary btn-small">Open explorer</a>
+        <a href="./network.html" class="btn btn-primary btn-small">Open explorer</a>
         <a href="../EXPLORER_SETUP.md" class="btn btn-outline btn-small" target="_blank" rel="noopener">Setup notes</a>
       </div>
       <div class="grid grid-3" style="margin-top: 2rem;">
@@ -385,9 +380,9 @@ console.log("txHash:", tx.hash);</code></pre>
 
   <section class="section">
     <div class="container">
-      <div class="section-header" style="text-align: center;">
+      <div class="section-header">
         <span class="pill">From idea to deployment</span>
-        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Ship PQC Apps Confidently</h2>
+        <h2 class="section-title">Ship PQC Apps Confidently</h2>
       </div>
 
       <div class="grid grid-3" style="margin-top: 2rem;">
@@ -464,9 +459,9 @@ console.log("txHash:", tx.hash);</code></pre>
 
   <section class="section is-alt" id="tokenomics">
     <div class="container">
-      <div class="section-header" style="text-align: center;">
+      <div class="section-header">
         <span class="pill">Tokenomics</span>
-        <h2 class="section-title" style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">Dytallix Tokenomics 101</h2>
+        <h2 class="section-title">Dytallix Tokenomics 101</h2>
       </div>
       <div class="grid grid-2">
         <article class="card">
@@ -543,7 +538,7 @@ console.log("txHash:", tx.hash);</code></pre>
           <ul class="footer-links">
             <li><a href="mailto:hello@dytallix.com">hello@dytallix.com</a></li>
             <li><a href="https://status.dytallix.com" target="_blank" rel="noopener">Status Dashboard</a></li>
-            <li><a href="https://discord.gg" target="_blank" rel="noopener">Discord Community</a></li>
+            <li><a href="https://t.me/Dytallix" target="_blank" rel="noopener">Telegram Community</a></li>
             <li><a href="https://twitter.com" target="_blank" rel="noopener">X (Twitter)</a></li>
           </ul>
         </div>

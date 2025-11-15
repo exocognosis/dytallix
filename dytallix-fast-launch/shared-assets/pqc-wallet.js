@@ -922,7 +922,7 @@
           }
           
           // Show success message with blockchain confirmation
-          alert(`✅ Transaction confirmed on Dytallix blockchain!\n\nSent: ${amount} ${token}\nTo: ${recipient.substring(0, 20)}...\nTx Hash: ${txHash.substring(0, 24)}...\n\nView on explorer: http://localhost:3000/build/explorer.html`);
+          alert(`✅ Transaction confirmed on Dytallix blockchain!\n\nSent: ${amount} ${token}\nTo: ${recipient.substring(0, 20)}...\nTx Hash: ${txHash.substring(0, 24)}...\n\nView on explorer: http://localhost:3000/build/network.html`);
           
           // Hide form
           this.hideSendForm();
