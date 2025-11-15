@@ -5,6 +5,355 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tokenomics - Dytallix</title>
   <link rel="stylesheet" href="../shared-assets/styles.css">
+  <style>
+    .tokenomics-shell {
+      position: relative;
+      min-height: 100vh;
+      background: radial-gradient(circle at 0% 0%, rgba(108, 87, 255, 0.25), transparent 55%),
+                  radial-gradient(circle at 70% 20%, rgba(65, 208, 245, 0.18), transparent 40%),
+                  radial-gradient(circle at 50% 80%, rgba(75, 173, 122, 0.25), transparent 55%),
+                  #050c1c;
+      padding-bottom: var(--spacing-3xl);
+    }
+
+    .tokenomics-shell::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(3, 8, 20, 0.15) 0%, rgba(5, 9, 18, 0.6) 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .tokenomics-shell > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .tokenomics-hero {
+      padding: var(--spacing-3xl) 0 var(--spacing-2xl);
+    }
+
+    .hero-intro {
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto var(--spacing-2xl);
+    }
+
+    .hero-pill {
+      margin-bottom: var(--spacing-md);
+    }
+
+    .hero-title {
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .hero-lede {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .hero-actions {
+      display: inline-flex;
+      gap: var(--spacing-md);
+    }
+
+    .hero-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--spacing-xl);
+    }
+
+    .feature-card {
+      border-radius: 1.35rem;
+      padding: var(--spacing-2xl);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(145deg, rgba(13, 23, 46, 0.9), rgba(10, 15, 28, 0.9));
+      box-shadow: 0 25px 60px -45px rgba(3, 4, 8, 0.95);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .feature-card::before {
+      content: "";
+      position: absolute;
+      inset: 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .feature-card h3 {
+      font-size: 1.5rem;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .feature-card ul {
+      list-style: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .feature-card ul li {
+      padding-left: 1.2rem;
+      position: relative;
+    }
+
+    .feature-card ul li::before {
+      content: "";
+      width: 0.4rem;
+      height: 0.4rem;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.85;
+      position: absolute;
+      left: 0;
+      top: 0.55rem;
+    }
+
+    .card-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-sm);
+    }
+
+    .chip {
+      font-size: 0.85rem;
+      padding: var(--spacing-xs) var(--spacing-md);
+      border-radius: var(--radius-full);
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .accent-lilac {
+      background: linear-gradient(145deg, rgba(27, 24, 62, 0.95), rgba(33, 49, 104, 0.92));
+      border-color: rgba(151, 141, 255, 0.35);
+    }
+
+    .accent-blue {
+      background: linear-gradient(145deg, rgba(21, 41, 90, 0.92), rgba(17, 69, 105, 0.9));
+      border-color: rgba(68, 189, 255, 0.35);
+    }
+
+    .tokenomics-insights {
+      padding: var(--spacing-2xl) 0;
+    }
+
+    .economic-section {
+      padding: var(--spacing-2xl) 0;
+    }
+
+    .economic-heading,
+    .section-heading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-xl);
+      padding: var(--spacing-2xl) 0;
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .economic-heading .section-pill,
+    .section-heading .section-pill {
+      margin-bottom: 0;
+    }
+
+    .economic-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--spacing-2xl);
+    }
+
+    .economic-card {
+      border-radius: 1.5rem;
+      padding: var(--spacing-2xl);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(155deg, rgba(9, 16, 35, 0.95), rgba(12, 26, 53, 0.92));
+      box-shadow: 0 28px 60px -40px rgba(0, 0, 0, 0.85);
+      position: relative;
+    }
+
+    .economic-card h3 {
+      font-size: 1.65rem;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .economic-card .token-meta {
+      list-style: none;
+      margin-bottom: var(--spacing-lg);
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+    }
+
+    .economic-card .token-meta li strong {
+      color: var(--text-primary);
+      margin-right: 0.25rem;
+    }
+
+    .details-grid {
+      display: grid;
+      gap: var(--spacing-lg);
+    }
+
+    .detail-block {
+      border-radius: 1rem;
+      padding: var(--spacing-lg);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .detail-block h4 {
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .detail-block ul {
+      list-style: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+    }
+
+    .detail-block ul li {
+      position: relative;
+      padding-left: 1.2rem;
+    }
+
+    .detail-block ul li::before {
+      content: "";
+      width: 0.3rem;
+      height: 0.3rem;
+      border-radius: 999px;
+      background: rgba(146, 179, 255, 0.9);
+      position: absolute;
+      left: 0;
+      top: 0.55rem;
+    }
+
+    .section-heading h2,
+    .economic-heading h2 {
+      margin: 0;
+    }
+
+    .section-heading h2 {
+      white-space: nowrap;
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--spacing-xl);
+    }
+
+    .insight-card {
+      border-radius: 1.2rem;
+      padding: var(--spacing-xl);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: linear-gradient(160deg, rgba(10, 14, 28, 0.9), rgba(18, 23, 42, 0.88));
+      box-shadow: 0 20px 40px -35px rgba(0, 0, 0, 0.8);
+    }
+
+    .insight-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: var(--spacing-md);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .insight-card h4 {
+      font-size: 1.25rem;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .insight-card p {
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .insight-card strong {
+      color: var(--text-secondary);
+    }
+
+    .tokenomics-stats {
+      padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--spacing-lg);
+    }
+
+    .stat-card {
+      border-radius: 1rem;
+      padding: var(--spacing-xl);
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(145deg, rgba(8, 17, 36, 0.9), rgba(6, 12, 24, 0.92));
+    }
+
+    .stat-card .metric-label {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: var(--spacing-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-card .metric-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .stat-card .metric-detail {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 720px) {
+      .hero-intro {
+        text-align: left;
+        margin-bottom: var(--spacing-xl);
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .hero-actions .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
 </head>
 <body>
   <header class="global-header">
@@ -19,6 +368,7 @@
             <li><a href="../homepage/index.html">Home</a></li>
             <li><a href="./index.html">Build</a></li>
             <li><a href="../quantumvault/index.html">QuantumVault</a></li>
+            <li><a href="./network.html">Network</a></li>
             <li><a href="../quantumvault/index.html#demo" class="btn btn-primary btn-small">Request Demo</a></li>
           </ul>
         </nav>
@@ -26,160 +376,212 @@
     </div>
   </header>
 
-  <section class="page-hero">
-    <div class="container page-hero-content">
-      <span class="hero-eyebrow">Tokenomics</span>
-      <h1 class="hero-title">Transparent economics for a secure network</h1>
-      <p class="hero-subtitle">
-        Explore supply schedules, staking incentives, and treasury distributions that keep Dytallix sustainable for
-        builders and validators alike.
-      </p>
-      <div class="hero-actions">
-        <a href="./dashboard.html" class="btn btn-primary btn-large">Open staking dashboard</a>
-        <a href="./docs.html#rest-api" class="btn btn-outline btn-large">Query economic APIs</a>
+  <main class="tokenomics-shell">
+    <section class="tokenomics-hero">
+      <div class="container">
+        <div class="hero-intro">
+          <span class="section-pill hero-pill">Dual-token economic layer</span>
+          <h1 class="hero-title">Future-ready Tokenomics</h1>
+          <p class="hero-lede">
+
+          </p>
+          <div class="hero-actions">
+            <a href="./dashboard.html" class="btn btn-primary btn-large">Open dashboard</a>
+            <a href="./faucet.html" class="btn btn-outline btn-large">Visit faucet</a>
+          </div>
+        </div>
+
+        <div class="hero-cards">
+          <article class="feature-card accent-lilac">
+            <h3>DGT — Governance</h3>
+            <p>Locked for delegation and DAO votes with a fixed 1B supply.</p>
+            <ul>
+              <li>Non-inflationary, standard ERC-style transfers only.</li>
+              <li>Delegated to validators; voting power mirrors stake weight.</li>
+              <li>Signals governance intent and secures validator selection.</li>
+            </ul>
+            <div class="card-chips">
+              <span class="chip">Governance</span>
+              <span class="chip">Delegation</span>
+              <span class="chip">Fixed Supply</span>
+            </div>
+          </article>
+
+          <article class="feature-card accent-blue">
+            <h3>DRT — Rewards</h3>
+            <p>Emission-controlled reward token minted and burned on-chain.</p>
+            <ul>
+              <li>Adaptive issuance enforced via Emission Controller.</li>
+              <li>Distributed to validators, stakers, and treasury each block.</li>
+              <li>Burnable by holders; rate changes require governance.</li>
+            </ul>
+            <div class="card-chips">
+              <span class="chip">Adaptive Emission</span>
+              <span class="chip">Validator Pools</span>
+              <span class="chip">DAO Managed</span>
+            </div>
+          </article>
+        </div>
       </div>
-      <div class="hero-metrics">
-        <div class="metric metric-card">
-          <span class="metric-label">Circulating supply</span>
-          <span class="metric-value">620M DYT</span>
-          <span class="metric-trend is-up">↑ 1.2% month over month</span>
+    </section>
+
+    <section class="economic-section">
+      <div class="container">
+        <div class="economic-heading">
+          <span class="section-pill section-pill-center">Economic Functions</span>
+          <h2>DGT Governs. DRT Rewards.</h2>
         </div>
-        <div class="metric metric-card">
-          <span class="metric-label">Staked</span>
-          <span class="metric-value">68%</span>
-          <span class="metric-trend is-up">226k validators</span>
-        </div>
-        <div class="metric metric-card">
-          <span class="metric-label">Treasury runway</span>
-          <span class="metric-value">36 months</span>
-          <span class="metric-trend">Scenario tested</span>
+        <div class="economic-grid">
+          <article class="economic-card">
+            <h3>Governance Token: DGT</h3>
+            <ul class="token-meta">
+              <li><strong>Name:</strong> Dytallix Governance Token (DGT)</li>
+              <li><strong>Supply:</strong> 1,000,000,000 (fixed, no inflation)</li>
+              <li><strong>Decimals:</strong> 18</li>
+              <li><strong>Voting:</strong> 1 DGT = 1 vote</li>
+              <li><strong>Features:</strong> Transferable, stakeable, earns DRT when staked</li>
+            </ul>
+            <div class="details-grid">
+              <div class="detail-block">
+                <h4>DGT Utilities</h4>
+                <ul>
+                  <li>Governance voting on DAO proposals</li>
+                  <li>Validator staking to secure the chain</li>
+                  <li>Community treasury allocation oversight</li>
+                  <li>Protocol parameter adjustments with guardrails</li>
+                </ul>
+              </div>
+              <div class="detail-block">
+                <h4>Allocation breakdown</h4>
+                <ul>
+                  <li>Community Treasury: 40% (unlocked)</li>
+                  <li>Staking Rewards: 25% (linear over 4 years)</li>
+                  <li>Dev Team: 15% (1-year cliff, 3-year linear)</li>
+                  <li>Initial Validators: 10% (6-month cliff, 2-year linear)</li>
+                  <li>Ecosystem Fund: 10% (linear over 5 years)</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+          <article class="economic-card">
+            <h3>Reward Token: DRT</h3>
+            <ul class="token-meta">
+              <li><strong>Name:</strong> Dytallix Reward Token (DRT)</li>
+              <li><strong>Supply Model:</strong> Inflationary (~5% annually)</li>
+              <li><strong>Decimals:</strong> 18</li>
+              <li><strong>Distribution:</strong> Fully automated</li>
+              <li><strong>Features:</strong> Transferable and burnable</li>
+            </ul>
+            <div class="details-grid">
+              <div class="detail-block">
+                <h4>Emission schedule</h4>
+                <ul>
+                  <li>60% Block rewards</li>
+                  <li>25% Staking rewards</li>
+                  <li>10% AI module incentives</li>
+                  <li>5% Bridge operations</li>
+                </ul>
+              </div>
+              <div class="detail-block">
+                <h4>Burn rules</h4>
+                <ul>
+                  <li>100% of transaction fees</li>
+                  <li>50% of AI service fees</li>
+                  <li>75% of bridge fees</li>
+                  <li>Penalty burns on governance violations</li>
+                </ul>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="section">
-    <div class="container grid grid-2">
-      <article class="card token-card">
-        <h2 class="card-title">Supply breakdown</h2>
-        <p class="card-content">Initial genesis supply: 1B DYT with deflationary levers.</p>
-        <div class="stacked-list">
-          <div class="stacked-list-item">
-            <span>Community &amp; ecosystem</span>
-            <span class="badge">42%</span>
-          </div>
-          <div class="stacked-list-item">
-            <span>Validator incentives</span>
-            <span class="badge">28%</span>
-          </div>
-          <div class="stacked-list-item">
-            <span>Treasury &amp; ops</span>
-            <span class="badge">18%</span>
-          </div>
-          <div class="stacked-list-item">
-            <span>Team &amp; early contributors</span>
-            <span class="badge">12%</span>
-          </div>
+    <section class="tokenomics-insights">
+      <div class="container">
+        <div class="section-heading">
+          <span class="section-pill section-pill-center">Why dual tokens matter</span>
+          <h2>Predictable Builds. Flexible Economics.</h2>
         </div>
-        <div class="highlight-panel mt-3">
-          <strong>Emissions:</strong> Linear emissions tailing to 0.5% annually after year 4.
+        <div class="insight-grid">
+          <article class="insight-card">
+            <div class="insight-icon">⚡</div>
+            <h4>Emission Controller</h4>
+            <p>DAO-set bounds (min/max rate, adjustment factor, base rate) determine every DRT block reward.</p>
+            <strong>Automatic tuning prevents runaway inflation.</strong>
+          </article>
+          <article class="insight-card">
+            <div class="insight-icon">🛡️</div>
+            <h4>Delegated security</h4>
+            <p>DGT stays locked while delegators earn DRT from validator pools; no principal dilution.</p>
+            <strong>Safe math + anti-slash logic guard rewards.</strong>
+          </article>
+          <article class="insight-card">
+            <div class="insight-icon">📜</div>
+            <h4>Governance guardrails</h4>
+            <p>Parameter edits, burns, and (init-only) DGT mints require proposals and on-chain execution.</p>
+            <strong>Every change is auditable and rate-limited.</strong>
+          </article>
         </div>
-      </article>
+      </div>
+    </section>
 
-      <article class="card token-card">
-        <h2 class="card-title">Rewards &amp; staking</h2>
-        <p class="card-content">Delegators earn staking rewards with PQC signature verification and slashing protection.</p>
-        <div class="code-block">
-          <pre><code>APR = baseRate + usageBoost - slashing
-baseRate = 6.2%
-usageBoost = up to 2.0%</code></pre>
+    <section class="tokenomics-stats">
+      <div class="container">
+        <div class="stat-grid">
+          <article class="stat-card">
+            <div class="metric-label">Validator rewards</div>
+            <div class="metric-value">40%</div>
+            <div class="metric-detail">Adaptive share from each DRT emission cycle</div>
+          </article>
+          <article class="stat-card">
+            <div class="metric-label">Staker rewards</div>
+            <div class="metric-value">30%</div>
+            <div class="metric-detail">Delegators accrue automatically per block</div>
+          </article>
+          <article class="stat-card">
+            <div class="metric-label">Treasury &amp; dev</div>
+            <div class="metric-value">30%</div>
+            <div class="metric-detail">Reinvested through governance-tracked programs</div>
+          </article>
         </div>
-        <div class="stacked-list mt-3">
-          <div class="stacked-list-item">
-            <span>Unbonding period</span>
-            <span class="badge">14 days</span>
-          </div>
-          <div class="stacked-list-item">
-            <span>Slashing conditions</span>
-            <span class="badge">Double-sign + downtime</span>
-          </div>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <section class="section is-alt">
-    <div class="container grid grid-3">
-      <article class="card token-card">
-        <h3>Treasury overview</h3>
-        <p class="card-content">Quarterly reports with multi-sig approvals and PQC attestations.</p>
-        <div class="stacked-list mt-2">
-          <div class="stacked-list-item">
-            <span>Operational runway</span>
-            <span class="badge">36 months</span>
-          </div>
-          <div class="stacked-list-item">
-            <span>Strategic investments</span>
-            <span class="badge">12%</span>
-          </div>
-        </div>
-      </article>
-      <article class="card token-card">
-        <h3>Governance</h3>
-        <p class="card-content">Token holders vote using PQC-secured ballots with quadratic weighting.</p>
-        <div class="stacked-list mt-2">
-          <div class="stacked-list-item">
-            <span>Active proposals</span>
-            <span class="badge">3</span>
-          </div>
-          <div class="stacked-list-item">
-            <span>Avg participation</span>
-            <span class="badge">48%</span>
-          </div>
-        </div>
-      </article>
-      <article class="card token-card">
-        <h3>Builder grants</h3>
-        <p class="card-content">Funding cycles every quarter for ecosystem tools and research.</p>
-        <div class="stacked-list mt-2">
-          <div class="stacked-list-item">
-            <span>Current cohort</span>
-            <span class="badge">18 teams</span>
-          </div>
-          <div class="stacked-list-item">
-            <span>Allocation</span>
-            <span class="badge">5M DYT</span>
-          </div>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <article class="card text-center">
-        <span class="pill">Stay aligned</span>
-        <h2 class="section-title">Subscribe to token updates</h2>
-        <p class="section-subtitle">Receive treasury reports, governance summaries, and emission schedule changes.</p>
-        <form class="hero-actions justify-center">
-          <label for="token-email" class="sr-only">Email</label>
-          <input id="token-email" type="email" class="form-input hero-search" placeholder="you@example.com" required>
-          <button class="btn btn-primary btn-large" type="submit">Subscribe</button>
-        </form>
-      </article>
-    </div>
-  </section>
+      </div>
+    </section>
+  </main>
 
   <footer class="global-footer">
     <div class="container">
       <div class="footer-content">
         <div class="footer-section">
-          <h4>Build on Dytallix</h4>
+          <h4>BUILD</h4>
           <ul class="footer-links">
-            <li><a href="./index.html">Overview</a></li>
+            <li><a href="./index.html">Developer Hub</a></li>
+            <li><a href="./docs.html">Documentation</a></li>
             <li><a href="./pqc-wallet.html">PQC Wallet</a></li>
-            <li><a href="./faucet.html">Faucet</a></li>
-            <li><a href="./network.html">Explorer</a></li>
+            <li><a href="./faucet.html">Testnet Faucet</a></li>
+            <li><a href="./network.html">Block Explorer</a></li>
+            <li><a href="./dashboard.html">Dashboard</a></li>
+            <li><a href="./tokenomics.html">Tokenomics</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>QUANTUMVAULT</h4>
+          <ul class="footer-links">
+            <li><a href="../quantumvault/index.html">Overview</a></li>
+            <li><a href="../quantumvault/index.html#features">Features</a></li>
+            <li><a href="../quantumvault/index.html#security">Security</a></li>
+            <li><a href="../quantumvault/index.html#demo">Request Demo</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>COMPANY</h4>
+          <ul class="footer-links">
+            <li><a href="../homepage/index.html">Home</a></li>
+            <li><a href="../homepage/index.html#about">About</a></li>
+            <li><a href="../homepage/index.html#contact">Contact</a></li>
+            <li><a href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="https://t.me/Dytallix" target="_blank" rel="noopener">Telegram</a></li>
+            <li><a href="mailto:hello@dytallix.com">hello@dytallix.com</a></li>
           </ul>
         </div>
       </div>
