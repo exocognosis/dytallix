@@ -5,6 +5,7 @@ import * as PQCWallet from './wallet/pqc-wallet.js';
 import { copyToClipboard } from './utils/clipboard.js';
 import { truncateAddress } from './utils/format.js';
 import QuantumVault from './routes/QuantumVault.jsx';
+import Enterprise from './routes/Enterprise.jsx';
 
 // Helper to get the correct API URL for the environment
 const getApiUrl = () => {
@@ -92,6 +93,7 @@ const Nav = () => {
     { href: '/', label: 'Home' },
     { href: '/wallet', label: 'PQC Wallet' },
     { href: '/quantumvault', label: 'QuantumVault' },
+    { href: '/enterprise', label: 'Enterprise' },
     { href: '/faucet', label: 'Faucet' },
     { href: '/explorer', label: 'Explorer' },
     { href: '/dashboard', label: 'Dashboard' },
@@ -5020,6 +5022,7 @@ export default function App() {
     switch (route) {
       case '/wallet': return WalletPage;
       case '/quantumvault': return QuantumVault;
+      case '/enterprise': return Enterprise;
       case '/faucet': return FaucetPage;
       case '/explorer': return ExplorerPage;
       case '/docs': return DocsPage;
