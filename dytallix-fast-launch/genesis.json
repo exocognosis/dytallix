@@ -4,13 +4,13 @@
   "chain_version": "0.1.0",
   "consensus": {
     "type": "tendermint-like",
-    "block_time_target_ms": 2000,
+    "block_time_target_ms": 15000,
     "timeout_propose_ms": 3000,
     "timeout_prevote_ms": 1000,
     "timeout_precommit_ms": 1000
   },
   "network_params": {
-    "block_time_ms": 2000,
+    "block_time_ms": 15000,
     "max_block_size_bytes": 1000000,
     "max_tx_per_block": 100,
     "max_tx_size_bytes": 8192,
