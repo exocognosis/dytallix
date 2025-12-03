@@ -21,19 +21,19 @@ dotenv.config()
 
 // Reset in-memory rate limiter between test runs to avoid cross-test interference
 if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
-  try { __testResetRateLimiter() } catch {}
+  try { __testResetRateLimiter() } catch { }
 }
 
 // Production environment validation
 if (process.env.NODE_ENV === 'production') {
   const requiredSecrets = ['FAUCET_MNEMONIC']
   const missing = requiredSecrets.filter(secret => !process.env[secret] || process.env[secret].includes('placeholder'))
-  
+
   if (missing.length > 0) {
     logError('Production startup failed: missing required secrets', { missing })
     process.exit(1)
   }
-  
+
   logInfo('Production environment validation passed')
 }
 
@@ -59,7 +59,7 @@ function creditDemo(address, symbol, amountBase) {
     const rec = demoLedger.get(key) || { udgt: 0, udrt: 0 }
     rec[den] = (Number(rec[den]) || 0) + Number(amountBase || 0)
     demoLedger.set(key, rec)
-  } catch {}
+  } catch { }
 }
 function getDemoBalances(address) {
   const key = String(address || '').trim()
@@ -121,7 +121,7 @@ function collectConnectSrc() {
     process.env.VITE_API_URL, // New unified API endpoint
     process.env.VITE_FAUCET_URL // Optional explicit faucet endpoint  
   ].filter(Boolean)
-  const origins = new Set(["'self'" ])
+  const origins = new Set(["'self'"])
   for (const c of candidates) {
     try {
       const u = new URL(c)
@@ -193,7 +193,7 @@ async function fetchNodeStatus() {
     if (nodeResponse.ok) {
       const nodeData = await nodeResponse.json().catch(() => ({}))
       const network = 'dytallix-local'
-      const height = nodeData?.data?.height || 0
+      const height = nodeData?.height || nodeData?.data?.height || 0
       return { network, height, raw: nodeData, source: 'dytallix-node' }
     }
   } catch (err) {
@@ -226,7 +226,7 @@ app.get('/api/status', async (req, res, next) => {
     let network = 'unknown'
     let nodeStatus = false
     let height = 0
-    
+
     try {
       const nodeInfo = await fetchNodeStatus()
       network = nodeInfo.network || 'dytallix-testnet-1'
@@ -236,12 +236,56 @@ app.get('/api/status', async (req, res, next) => {
       logError('Node status check failed', nodeErr)
     }
 
+    // Calculate KPIs from recent blocks
+    let tps = 0
+    let avgLatency = 0
+    let networkLoad = 0
+    let activeValidators = 1 // Default to 1 (self)
+
+    try {
+      // Fetch last 10 blocks for stats
+      const blocksRes = await nodeGet('/blocks?limit=10')
+      const blocks = blocksRes.blocks || []
+
+      if (blocks.length >= 2) {
+        // Calculate TPS
+        // Calculate TPS
+        const getTimeSeconds = (t) => {
+          if (typeof t === 'number') return t; // Assume seconds if number
+          return new Date(t).getTime() / 1000; // Parse ISO string
+        }
+        const newestTime = getTimeSeconds(blocks[0].block.header.time)
+        const oldestTime = getTimeSeconds(blocks[blocks.length - 1].block.header.time)
+        const timeDiffSeconds = newestTime - oldestTime
+
+        if (timeDiffSeconds > 0) {
+          const totalTxs = blocks.reduce((sum, b) => sum + (b.block.data.txs ? b.block.data.txs.length : 0), 0)
+          tps = Math.floor(totalTxs / timeDiffSeconds)
+        }
+
+        // Calculate Latency (avg time between blocks)
+        avgLatency = Number((timeDiffSeconds / (blocks.length - 1)).toFixed(2))
+
+        // Calculate Network Load (assuming max 1000 txs per block capacity for demo)
+        const avgTxsPerBlock = blocks.reduce((sum, b) => sum + (b.block.data.txs ? b.block.data.txs.length : 0), 0) / blocks.length
+        networkLoad = Math.min(100, Math.floor((avgTxsPerBlock / 1000) * 100))
+      }
+    } catch (e) {
+      logWarn('Failed to calculate KPIs', e)
+    }
+
     const response = {
       ok: nodeStatus,
       status: nodeStatus ? 'healthy' : 'offline', // Frontend expects 'healthy'
       network,
       latest_height: height, // Frontend expects latest_height
       height, // Keep both for compatibility
+      metrics: {
+        tps,
+        avgLatency,
+        networkLoad,
+        activeValidators
+      },
       redis: !!process.env.DLX_RATE_LIMIT_REDIS_URL, // Redis availability
       rateLimit: {
         dgtWindowHours: 24,
@@ -251,11 +295,11 @@ app.get('/api/status', async (req, res, next) => {
       uptime: process.uptime(),
       timestamp: new Date().toISOString()
     }
-    
+
     res.json(response)
     logInfo('api.status', { ms: Date.now() - started, network, redis: response.redis })
-  } catch (err) { 
-    next(err) 
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -275,18 +319,18 @@ app.get('/api/nodes/:nodeId/status', async (req, res, next) => {
   try {
     const { nodeId } = req.params;
     const port = NODE_PORTS[nodeId];
-    
+
     if (!port) {
       return res.status(404).json({ error: 'Node not found' });
     }
-    
+
     const nodeUrl = `http://localhost:${port}/status`;
     const response = await fetch(nodeUrl);
-    
+
     if (!response.ok) {
       throw new Error(`Node returned status ${response.status}`);
     }
-    
+
     const data = await response.json();
     res.json(data);
   } catch (err) {
@@ -299,7 +343,7 @@ app.get('/api/nodes/:nodeId/status', async (req, res, next) => {
 app.get('/api/nodes/cluster', async (req, res, next) => {
   try {
     const nodes = [];
-    
+
     for (const [nodeId, port] of Object.entries(NODE_PORTS)) {
       try {
         const nodeUrl = `http://localhost:${port}/status`;
@@ -319,7 +363,7 @@ app.get('/api/nodes/cluster', async (req, res, next) => {
         });
       }
     }
-    
+
     res.json({ nodes });
   } catch (err) {
     next(err);
@@ -410,7 +454,7 @@ app.get('/api/transactions', async (req, res, next) => {
             status: 'confirmed'
           })
         }
-      } catch {/* ignore per-block errors */}
+      } catch {/* ignore per-block errors */ }
     }
     res.json({ transactions: out })
   } catch (err) { next(err) }
@@ -525,14 +569,58 @@ app.get('/api/ai/risk/transaction/:hash', async (req, res, next) => {
 app.get('/api/addresses/:addr', async (req, res, next) => {
   try {
     const a = req.params.addr
-    const acc = await nodeGet(`/account/${encodeURIComponent(a)}`)
-    const b = await nodeGet(`/balance/${encodeURIComponent(a)}`)
-    const udgt = Number(b?.balances?.udgt?.balance || 0)
-    const udrt = Number(b?.balances?.udrt?.balance || 0)
+    let udgt = 0
+    let udrt = 0
+
+    // 1. Check Demo Ledger (if enabled)
+    if (DEMO_MODE) {
+      const demo = getDemoBalances(a)
+      if (demo) {
+        udgt = Number(demo.udgt || 0)
+        udrt = Number(demo.udrt || 0)
+      }
+    }
+
+    // 2. Check Real Node (if available)
+    let acc = {}
+    let balancesRaw = {}
+
+    try {
+      // Fetch account info (nonce, etc)
+      try {
+        acc = await nodeGet(`/account/${encodeURIComponent(a)}`)
+      } catch (e) { /* ignore account fetch error */ }
+
+      // Fetch balances
+      const b = await nodeGet(`/balance/${encodeURIComponent(a)}`)
+      balancesRaw = b?.balances || {}
+
+      // Handle Cosmos SDK format (Array of { denom, amount })
+      if (Array.isArray(balancesRaw)) {
+        const dgtItem = balancesRaw.find(i => i.denom === 'udgt')
+        const drtItem = balancesRaw.find(i => i.denom === 'udrt')
+        // If not in demo mode, use these values. If in demo mode, we might want to ADD them or just prefer demo.
+        // For simplicity, if we have node data, we use it (or add to demo if that makes sense, but usually it's one or the other).
+        // Let's ADD them to support hybrid scenarios or just use max.
+        udgt = Math.max(udgt, Number(dgtItem?.amount || 0))
+        udrt = Math.max(udrt, Number(drtItem?.amount || 0))
+      }
+      // Handle Legacy/Custom format (Object { udgt: { balance: X } })
+      else {
+        const dgtVal = Number(balancesRaw?.udgt?.balance || balancesRaw?.udgt || 0)
+        const drtVal = Number(balancesRaw?.udrt?.balance || balancesRaw?.udrt || 0)
+        udgt = Math.max(udgt, dgtVal)
+        udrt = Math.max(udrt, drtVal)
+      }
+    } catch (e) {
+      // Node offline or request failed
+      if (!DEMO_MODE) logWarn('Node balance fetch failed', { address: a, error: e.message })
+    }
+
     res.json({
       address: a,
-      balance: `${Math.floor(udgt/1_000_000)} DGT / ${Math.floor(udrt/1_000_000)} DRT`,
-      balances: b?.balances || {},
+      balance: `${Math.floor(udgt / 1_000_000)} DGT / ${Math.floor(udrt / 1_000_000)} DRT`,
+      balances: balancesRaw,
       nonce: acc?.nonce || 0,
       firstSeen: null,
       lastSeen: null
@@ -558,7 +646,7 @@ app.get('/api/addresses/:addr/transactions', async (req, res, next) => {
             out.push({ hash: t.hash, to: t.to, from: t.from, amount: t.amount, height: b.height, time: b.timestamp, status: 'confirmed' })
           }
         }
-      } catch {/* continue */}
+      } catch {/* continue */ }
     }
     res.json({ transactions: out })
   } catch (err) { next(err) }
@@ -568,9 +656,51 @@ app.get('/api/addresses/:addr/transactions', async (req, res, next) => {
 app.get('/api/search/:q', async (req, res) => {
   const q = String(req.params.q || '').trim()
   const results = []
-  if (/^\d+$/.test(q)) results.push({ type: 'block', data: { height: Number(q) } })
-  if (/^0x[a-fA-F0-9]{64}$/.test(q)) results.push({ type: 'transaction', data: { hash: q } })
-  if (/^dyt[a-z0-9]+$/.test(q)) results.push({ type: 'address', data: { address: q } })
+
+  if (/^\d+$/.test(q)) {
+    results.push({ type: 'block', data: { height: Number(q) } })
+  }
+
+  if (/^0x[a-fA-F0-9]{64}$/.test(q)) {
+    results.push({ type: 'transaction', data: { hash: q } })
+  }
+
+  // Updated regex to support dytallix prefix
+  if (/^(dyt|dytallix)[a-z0-9]+$/.test(q)) {
+    try {
+      // Fetch address details
+      const balanceRes = await fetch(`http://localhost:${PORT}/api/addresses/${q}`)
+      const txsRes = await fetch(`http://localhost:${PORT}/api/addresses/${q}/transactions?limit=1`)
+
+      let balance = "0 DGT / 0 DRT"
+      let txCount = 0
+
+      if (balanceRes.ok) {
+        const balanceData = await balanceRes.json()
+        balance = balanceData.balance || balance
+      }
+
+      if (txsRes.ok) {
+        const txsData = await txsRes.json()
+        txCount = txsData.transactions ? txsData.transactions.length : 0
+        // Note: This is just recent txs count, ideally we'd get total count from account info
+      }
+
+      results.push({
+        type: 'wallet',
+        data: {
+          address: q,
+          balance: balance,
+          staked: "0 DGT", // Placeholder for now
+          txCount: txCount
+        }
+      })
+    } catch (e) {
+      // Fallback if fetch fails
+      results.push({ type: 'address', data: { address: q } })
+    }
+  }
+
   res.json({ results })
 })
 
@@ -588,7 +718,7 @@ app.post('/api/governance/submit', async (req, res, next) => {
   try {
     const r = await fetch(getNodeBase() + '/gov/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
     const j = await r.json().catch(() => null)
-    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    if (!r.ok) return next(Object.assign(new Error('NODE_' + r.status), { status: r.status }))
     res.json(j)
   } catch (e) { next(e) }
 })
@@ -596,7 +726,7 @@ app.post('/api/governance/deposit', async (req, res, next) => {
   try {
     const r = await fetch(getNodeBase() + '/gov/deposit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
     const j = await r.json().catch(() => null)
-    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    if (!r.ok) return next(Object.assign(new Error('NODE_' + r.status), { status: r.status }))
     res.json(j)
   } catch (e) { next(e) }
 })
@@ -604,7 +734,7 @@ app.post('/api/governance/vote', async (req, res, next) => {
   try {
     const r = await fetch(getNodeBase() + '/gov/vote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req.body || {}) })
     const j = await r.json().catch(() => null)
-    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    if (!r.ok) return next(Object.assign(new Error('NODE_' + r.status), { status: r.status }))
     res.json(j)
   } catch (e) { next(e) }
 })
@@ -626,7 +756,7 @@ app.post('/api/contracts/deploy', async (req, res, next) => {
     const body = { jsonrpc: '2.0', id: 1, method: 'contract_deploy', params: [{ code: codeHex, gas_limit: gasLimit }] }
     const r = await fetch(getNodeBase() + '/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
     const j = await r.json().catch(() => null)
-    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    if (!r.ok) return next(Object.assign(new Error('NODE_' + r.status), { status: r.status }))
     res.json(j?.result || j)
   } catch (e) { next(e) }
 })
@@ -638,7 +768,7 @@ app.post('/api/contracts/:address/execute', async (req, res, next) => {
     const body = { jsonrpc: '2.0', id: 1, method: 'contract_execute', params: [{ contract_address: address, function: func, gas_limit: gasLimit }] }
     const r = await fetch(getNodeBase() + '/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
     const j = await r.json().catch(() => null)
-    if (!r.ok) return next(Object.assign(new Error('NODE_'+r.status), { status: r.status }))
+    if (!r.ok) return next(Object.assign(new Error('NODE_' + r.status), { status: r.status }))
     res.json(j?.result || j)
   } catch (e) { next(e) }
 })
@@ -799,7 +929,7 @@ app.get('/api/staking/apr', async (req, res, next) => {
 app.get('/api/balance', async (req, res, next) => {
   try {
     const address = req.query.address || req.params.address
-    
+
     if (!address || !isBech32Address(address)) {
       return res.status(400).json({
         error: 'Invalid address parameter'
@@ -808,30 +938,30 @@ app.get('/api/balance', async (req, res, next) => {
 
     // Query real balance from node RPC instead of mock data
     let balances = []
-    
+
     try {
       if (RPC_HTTP) {
         // Try to fetch balance from node RPC
         const balanceReq = await fetch(`${RPC_HTTP}/bank/balances/${address}`, {
           timeout: 5000
         })
-        
+
         if (balanceReq.ok) {
           const balanceData = await balanceReq.json()
-          
+
           // Parse Cosmos SDK balance response
           if (balanceData.balances && Array.isArray(balanceData.balances)) {
             balances = balanceData.balances.map(bal => ({
               denom: bal.denom,
               amount: bal.amount,
-              symbol: bal.denom === 'udgt' ? 'DGT' : 
-                     bal.denom === 'udrt' ? 'DRT' : 
-                     bal.denom.toUpperCase()
+              symbol: bal.denom === 'udgt' ? 'DGT' :
+                bal.denom === 'udrt' ? 'DRT' :
+                  bal.denom.toUpperCase()
             }))
           }
         }
       }
-      
+
       // Fallback: ensure DGT and DRT are always present
       const foundDenoms = new Set(balances.map(b => b.denom))
       if (!foundDenoms.has('udgt')) {
@@ -840,7 +970,7 @@ app.get('/api/balance', async (req, res, next) => {
       if (!foundDenoms.has('udrt')) {
         balances.push({ symbol: 'DRT', amount: '0', denom: 'udrt' })
       }
-      
+
     } catch (rpcError) {
       logError('RPC balance query failed, using fallback', rpcError)
       // Fallback to default balances on RPC failure
@@ -951,7 +1081,7 @@ async function computeTimeseriesFromBlocks(metric, range) {
   if (!RPC_HTTP) {
     return synthesizeSeries(metric, range) // Fallback to synthetic if no RPC
   }
-  
+
   const now = Date.now()
   const normRange = (range || '').toLowerCase()
   let pointsWanted = 15
@@ -964,30 +1094,30 @@ async function computeTimeseriesFromBlocks(metric, range) {
     // Get current status to determine latest height
     const statusResp = await fetch(`${RPC_HTTP}/status`, { timeout: 3000 })
     if (!statusResp.ok) throw new Error('Status fetch failed')
-    
+
     const status = await statusResp.json()
     const latestHeight = parseInt(status.result?.sync_info?.latest_block_height || status.height || 0)
-    
+
     if (latestHeight < pointsWanted) {
       // Not enough blocks yet, use synthetic data
       return synthesizeSeries(metric, range)
     }
-    
+
     const series = []
     const heightStep = Math.max(1, Math.floor(latestHeight / pointsWanted))
-    
+
     // Sample blocks across the range
     for (let i = 0; i < pointsWanted; i++) {
       const height = Math.max(1, latestHeight - (pointsWanted - i - 1) * heightStep)
       const timestamp = now - (pointsWanted - i - 1) * intervalMs
-      
+
       try {
         // Fetch block info
         const blockResp = await fetch(`${RPC_HTTP}/block?height=${height}`, { timeout: 2000 })
         if (blockResp.ok) {
           const blockData = await blockResp.json()
           const block = blockData.result?.block || blockData.block || {}
-          
+
           let value = 0
           if (metric === 'tps') {
             // Calculate TPS from transaction count
@@ -997,7 +1127,7 @@ async function computeTimeseriesFromBlocks(metric, range) {
             // Use actual block time if available
             const blockTime = block.header?.time
             if (blockTime && i > 0) {
-              const prevTs = series[i-1]?.blockTime || timestamp - intervalMs
+              const prevTs = series[i - 1]?.blockTime || timestamp - intervalMs
               const currentTs = new Date(blockTime).getTime()
               value = Math.max(1, (currentTs - prevTs) / 1000) // seconds
             } else {
@@ -1007,9 +1137,9 @@ async function computeTimeseriesFromBlocks(metric, range) {
             // Peers would need different endpoint, fallback to reasonable default
             value = 8 + Math.floor(Math.random() * 5)
           }
-          
-          series.push({ 
-            t: timestamp, 
+
+          series.push({
+            t: timestamp,
             v: Number(value.toFixed(2)),
             height,
             blockTime: block.header?.time
@@ -1027,9 +1157,9 @@ async function computeTimeseriesFromBlocks(metric, range) {
         series.push({ t: timestamp, v, height })
       }
     }
-    
+
     return series
-    
+
   } catch (statusErr) {
     logError('Timeseries computation failed, using synthetic', statusErr)
     return synthesizeSeries(metric, range)
@@ -1075,17 +1205,17 @@ app.get('/api/dashboard/timeseries', async (req, res, next) => {
       const status = await fetchNodeStatus()
       height = status.height
     } catch { /* ignore for placeholder series */ }
-    
+
     // Use real blockchain data instead of synthetic
     const points = await computeTimeseriesFromBlocks(metric, range)
-    const payload = { 
-      ok: true, 
-      metric, 
-      range: range || 'default', 
-      points, 
-      height, 
+    const payload = {
+      ok: true,
+      metric,
+      range: range || 'default',
+      points,
+      height,
       source: RPC_HTTP ? 'blockchain' : 'synthetic',
-      updatedAt: new Date().toISOString() 
+      updatedAt: new Date().toISOString()
     }
     res.setHeader('Cache-Control', 'no-store')
     res.json(payload)
@@ -1096,17 +1226,17 @@ app.get('/api/dashboard/timeseries', async (req, res, next) => {
 app.post('/api/faucet', async (req, res, next) => {
   const startTime = Date.now()
   const requestId = `faucet-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  
+
   // Set request ID header for all responses
   res.setHeader('x-request-id', requestId)
-  
+
   try {
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
     const userAgent = req.headers['user-agent'] || 'unknown'
     const { address, token, tokens } = req.body || {}
 
     const cleanAddress = typeof address === 'string' ? address.trim() : ''
-    
+
     // Enhanced abuse logging: log all incoming requests with context
     logInfo('Faucet request received', {
       requestId,
@@ -1116,7 +1246,7 @@ app.post('/api/faucet', async (req, res, next) => {
       requestedTokens: tokens || [token],
       timestamp: new Date().toISOString()
     })
-    
+
     // Support both legacy single token and new dual-token requests
     let requestedTokens = []
     if (tokens && Array.isArray(tokens)) {
@@ -1199,13 +1329,13 @@ app.post('/api/faucet', async (req, res, next) => {
             retryAfterSeconds: rateLimitError.retryAfter,
             message: rateLimitError.message
           })
-          
+
           // Record rate limit hit metric
           rateLimitHitsTotal.inc({ token: tokenSymbol })
-          
+
           // Record request outcome metric  
           faucetRequestsTotal.inc({ token: tokenSymbol, outcome: 'denied' })
-          
+
           throw rateLimitError
         }
       }
@@ -1234,20 +1364,20 @@ app.post('/api/faucet', async (req, res, next) => {
           faucetRequestsTotal.inc({ token: tokenSymbol, outcome: 'allow' })
           continue
         }
-        
+
         logInfo('Initiating transfer', {
           requestId,
           token: tokenSymbol,
           to: cleanAddress,
           amount: getMaxFor(tokenSymbol)
         })
-        
+
         // Use the node's direct /dev/faucet endpoint which credits balances directly to the state
         // This avoids the CosmJS transaction format mismatch issue
         const nodeUrl = process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_URL || process.env.RPC_HTTP_URL || 'http://localhost:3003'
         const amountNum = Number(getMaxFor(tokenSymbol))
         const microAmount = Math.floor(amountNum * 1_000_000) // Convert to micro-units
-        
+
         const faucetPayload = {
           address: cleanAddress
         }
@@ -1257,27 +1387,27 @@ app.post('/api/faucet', async (req, res, next) => {
         } else if (tokenSymbol === 'DRT') {
           faucetPayload.udrt = microAmount
         }
-        
+
         const faucetResponse = await fetch(`${nodeUrl}/dev/faucet`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(faucetPayload)
         })
-        
+
         if (!faucetResponse.ok) {
           throw new Error(`Node faucet failed: ${faucetResponse.status}`)
         }
-        
+
         const faucetResult = await faucetResponse.json()
         const txHash = `0xfaucet${Date.now()}${Math.random().toString(16).slice(2, 10)}`
-        
+
         dispensed.push({
           symbol: tokenSymbol,
           amount: String(amountNum),
           txHash
         })
         await markGranted(ip, cleanAddress, tokenSymbol, COOLDOWN_MIN)
-        
+
         // Enhanced success logging
         logInfo('Faucet transfer successful', {
           requestId,
@@ -1288,7 +1418,7 @@ app.post('/api/faucet', async (req, res, next) => {
           txHash: hash,
           timestamp: new Date().toISOString()
         })
-        
+
         // Record successful request metric
         faucetRequestsTotal.inc({ token: tokenSymbol, outcome: 'allow' })
       } catch (transferError) {
@@ -1353,7 +1483,7 @@ app.post('/api/faucet', async (req, res, next) => {
     res.json(response)
   } catch (err) {
     const duration = Date.now() - startTime
-    
+
     if (err.message?.includes('Rate limit exceeded') || err.code === 'RATE_LIMITED') {
       // Rate limit errors are already logged above
       return res.status(429).json({
@@ -1364,7 +1494,7 @@ app.post('/api/faucet', async (req, res, next) => {
         requestId
       })
     }
-    
+
     if (err.message === 'INVALID_ADDRESS' || err.message === 'INVALID_TOKEN') {
       // Validation errors are already logged above
       return res.status(400).json({
@@ -1374,7 +1504,7 @@ app.post('/api/faucet', async (req, res, next) => {
         requestId
       })
     }
-    
+
     // Enhanced error logging for unexpected errors
     logError('Faucet request failed with unexpected error', {
       requestId,
@@ -1388,7 +1518,7 @@ app.post('/api/faucet', async (req, res, next) => {
       duration: `${duration}ms`,
       timestamp: new Date().toISOString()
     })
-    
+
     res.status(500).json({
       success: false,
       error: 'SERVER_ERROR',
@@ -1400,21 +1530,21 @@ app.post('/api/faucet', async (req, res, next) => {
 
 // Simple AI demo rate-limited endpoint placeholder
 const aiRate = { store: new Map(), WINDOW_MS: 60_000, MAX_PER_WINDOW: 12 }
-function aiRateCheck(ip, key){ const now=Date.now(); const bucketKey=`${ip}:${key}`; let b=aiRate.store.get(bucketKey); if(!b|| now>b.reset){ b={count:0, reset: now+aiRate.WINDOW_MS} } b.count++; if(b.count>aiRate.MAX_PER_WINDOW){ const e=new Error('RATE_LIMITED'); e.status=429; throw e } aiRate.store.set(bucketKey,b) }
+function aiRateCheck(ip, key) { const now = Date.now(); const bucketKey = `${ip}:${key}`; let b = aiRate.store.get(bucketKey); if (!b || now > b.reset) { b = { count: 0, reset: now + aiRate.WINDOW_MS } } b.count++; if (b.count > aiRate.MAX_PER_WINDOW) { const e = new Error('RATE_LIMITED'); e.status = 429; throw e } aiRate.store.set(bucketKey, b) }
 
-app.post('/api/ai/anomaly', (req,res,next)=>{ try { const ip=req.socket.remoteAddress||'unknown'; aiRateCheck(ip,'anomaly'); res.json({ ok:true, anomaly:false, score:Number((Math.random()*0.4).toFixed(3)) }) } catch(e){ next(e) } })
+app.post('/api/ai/anomaly', (req, res, next) => { try { const ip = req.socket.remoteAddress || 'unknown'; aiRateCheck(ip, 'anomaly'); res.json({ ok: true, anomaly: false, score: Number((Math.random() * 0.4).toFixed(3)) }) } catch (e) { next(e) } })
 
 // GET version of anomaly endpoint for testing purposes
 app.get('/anomaly', (req, res, next) => {
   try {
     const timestamp = new Date().toISOString()
-    
+
     // Extract query parameters
     const since = req.query.since ? parseInt(req.query.since) : undefined
     const limit = req.query.limit ? parseInt(req.query.limit) : 100
     const type = req.query.type
     const severity = req.query.severity
-    
+
     // Get anomalies from detection engine
     const anomalies = anomalyEngine.getRecentAnomalies({
       since,
@@ -1422,11 +1552,11 @@ app.get('/anomaly', (req, res, next) => {
       type,
       severity
     })
-    
+
     // Determine overall status
     const criticalCount = anomalies.filter(a => a.severity === 'critical').length
     const highCount = anomalies.filter(a => a.severity === 'high').length
-    
+
     let status = 'healthy'
     if (criticalCount > 0) {
       status = 'critical'
@@ -1435,7 +1565,7 @@ app.get('/anomaly', (req, res, next) => {
     } else if (anomalies.length > 0) {
       status = 'degraded'
     }
-    
+
     res.json({
       ok: true,
       timestamp,
@@ -1524,25 +1654,25 @@ app.get('/api/emission', (req, res, next) => {
     const currentBlock = 100000;
     const blocksPerEpoch = 210000; // Bitcoin-style halving
     const currentEpoch = Math.floor(currentBlock / blocksPerEpoch);
-    
+
     // Calculate emission rate (starts at 50 DGT per block, halves each epoch)
     const baseEmissionRate = 50;
     const currentEmissionRate = baseEmissionRate / Math.pow(2, currentEpoch);
-    
+
     // Calculate total supply
     let totalSupply = 0;
     for (let epoch = 0; epoch <= currentEpoch; epoch++) {
       const epochRate = baseEmissionRate / Math.pow(2, epoch);
-      const blocksInThisEpoch = epoch === currentEpoch 
-        ? currentBlock % blocksPerEpoch 
+      const blocksInThisEpoch = epoch === currentEpoch
+        ? currentBlock % blocksPerEpoch
         : blocksPerEpoch;
       totalSupply += epochRate * blocksInThisEpoch;
     }
-    
+
     // Next reduction calculations
     const nextReductionBlock = (currentEpoch + 1) * blocksPerEpoch;
     const blocksUntilReduction = nextReductionBlock - currentBlock;
-    
+
     res.json({
       ok: true,
       timestamp: new Date().toISOString(),
@@ -1574,26 +1704,26 @@ app.get('/emission', (req, res, next) => {
 // --- Contract Security Scanner API ---
 app.post('/api/contract/scan', async (req, res, next) => {
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
-  
+
   try {
     // Rate limiting for scanner endpoint
     aiRateCheck(ip, 'scan')
-    
+
     const { code } = req.body || {}
-    
+
     // Validate input
     if (typeof code !== 'string') {
       const e = new Error('INVALID_CODE')
       e.status = 400
       throw e
     }
-    
+
     if (!code.trim()) {
       const e = new Error('CODE_REQUIRED')
       e.status = 400
       throw e
     }
-    
+
     // Check size limit (100KB)
     const sizeBytes = new TextEncoder().encode(code).length
     if (sizeBytes > 100 * 1024) {
@@ -1603,35 +1733,35 @@ app.post('/api/contract/scan', async (req, res, next) => {
     }
 
     logInfo('Contract scan initiated', { ip, sizeBytes })
-    
+
     // Run the scan
     const result = await contractScanner.scanContract(code)
-    
+
     // Update performance metrics
     if (result.summary && result.summary.performance) {
       result.summary.performance.seconds = result.meta.durationMs / 1000
     }
-    
-    logInfo('Contract scan completed', { 
-      scanId: result.meta.scanId, 
+
+    logInfo('Contract scan completed', {
+      scanId: result.meta.scanId,
       duration: result.meta.durationMs,
       findings: result.summary.total
     })
-    
+
     res.json(result)
-    
+
   } catch (err) {
     if (err.message === 'SCANNER_BUSY') {
       err.status = 503
       err.message = 'Scanner is busy, please try again later'
     }
-    
+
     logError('Contract scan failed', { ip, error: err.message })
     next(err)
   }
 })
 
-app.get('/health', (req,res)=> res.json({ ok:true, ts:new Date().toISOString() }))
+app.get('/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }))
 
 // Prometheus metrics endpoint
 app.get('/metrics', async (req, res) => {
@@ -1705,14 +1835,14 @@ if (!isTestEnv) {
     wss.on('connection', (ws, req) => {
       const reqPath = req?.url || ''
       if (!reqPath.startsWith('/api/ws')) {
-        try { ws.close() } catch {}
+        try { ws.close() } catch { }
         return
       }
       logInfo('ws.connection', { path: reqPath, remote: req.socket.remoteAddress })
       // Send an immediate snapshot on connect
       sampleMetrics().then((m) => {
-        try { ws.send(JSON.stringify({ type: 'overview', data: { ...m, updatedAt: new Date().toISOString() } })) } catch {}
-      }).catch(() => {})
+        try { ws.send(JSON.stringify({ type: 'overview', data: { ...m, updatedAt: new Date().toISOString() } })) } catch { }
+      }).catch(() => { })
     })
     logInfo('WebSocket server attached', { path: '/api/ws' })
   } catch (e) {
@@ -1738,10 +1868,10 @@ const NODE_STATS_BASE = process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_
 
 // Prometheus text parser (minimal) and normalizer for dashboard needs
 let __statsFallbackWarned = false
-function parsePrometheusText(text){
+function parsePrometheusText(text) {
   const map = new Map()
   if (!text || typeof text !== 'string') return map
-  for (const raw of text.split('\n')){
+  for (const raw of text.split('\n')) {
     const line = raw.trim()
     if (!line || line.startsWith('#')) continue
     // Strip labels e.g. metric{a="b"} 123 -> metric 123
@@ -1755,22 +1885,22 @@ function parsePrometheusText(text){
   }
   return map
 }
-function normalizeStatsFromProm(map){
+function normalizeStatsFromProm(map) {
   const pick = (...keys) => {
-    for (const k of keys){ if (map.has(k)) return map.get(k) }
+    for (const k of keys) { if (map.has(k)) return map.get(k) }
     return undefined
   }
   const height = pick(
-    'latest_block_height','block_height','dyt_block_height','tendermint_consensus_height','dyt_chain_block_height'
+    'latest_block_height', 'block_height', 'dyt_block_height', 'tendermint_consensus_height', 'dyt_chain_block_height'
   )
   const mempool = pick(
-    'mempool_size','dyt_mempool_size','tendermint_mempool_size'
+    'mempool_size', 'dyt_mempool_size', 'tendermint_mempool_size'
   )
   const peers = pick(
-    'peer_count','p2p_peer_count','tendermint_p2p_peers','dyt_peer_count'
+    'peer_count', 'p2p_peer_count', 'tendermint_p2p_peers', 'dyt_peer_count'
   )
   const txs = pick(
-    'txs_total','transactions_total','dyt_txs_total','dyt_transactions_total'
+    'txs_total', 'transactions_total', 'dyt_txs_total', 'dyt_transactions_total'
   )
   const out = {}
   if (Number.isFinite(height)) out.height = height
@@ -1814,15 +1944,15 @@ async function fetchNodeStats() {
   return {}
 }
 
-function pushSeries(metric, value){
-  if(!Number.isFinite(value)) return
+function pushSeries(metric, value) {
+  if (!Number.isFinite(value)) return
   const arr = seriesStore[metric]
-  if(!arr) return
+  if (!arr) return
   arr.push({ ts: Date.now(), value })
-  if(arr.length > SERIES_MAX_POINTS) arr.splice(0, arr.length - SERIES_MAX_POINTS)
+  if (arr.length > SERIES_MAX_POINTS) arr.splice(0, arr.length - SERIES_MAX_POINTS)
 }
 
-function computeCpuPercent(){
+function computeCpuPercent() {
   // Approximate: 1m load avg / number of cores *100
   try {
     const cores = os.cpus()?.length || 1
@@ -1830,27 +1960,27 @@ function computeCpuPercent(){
     return Number(((load / cores) * 100).toFixed(2))
   } catch { return undefined }
 }
-function computeMemoryPercent(){
+function computeMemoryPercent() {
   try {
     const total = os.totalmem()
     const free = os.freemem()
-    return Number((((total - free)/total)*100).toFixed(2))
+    return Number((((total - free) / total) * 100).toFixed(2))
   } catch { return undefined }
 }
 
-async function sampleMetrics(){
+async function sampleMetrics() {
   const stats = await fetchNodeStats()
   // Heights / block time
   const height = Number(stats.height || stats.block_height || stats.latest_block_height)
   let blockTime = undefined
   const now = Date.now()
-  if(Number.isFinite(height)){
-    if(lastBlockHeight != null && height > lastBlockHeight){
+  if (Number.isFinite(height)) {
+    if (lastBlockHeight != null && height > lastBlockHeight) {
       const elapsedMs = now - lastBlockTime
-      if(elapsedMs > 0) blockTime = Number((elapsedMs / 1000).toFixed(2))
+      if (elapsedMs > 0) blockTime = Number((elapsedMs / 1000).toFixed(2))
       lastBlockTime = now
       lastBlockHeight = height
-    } else if(lastBlockHeight == null){
+    } else if (lastBlockHeight == null) {
       lastBlockHeight = height
       lastBlockTime = now
     }
@@ -1863,24 +1993,24 @@ async function sampleMetrics(){
   // Transactions per second (delta of cumulative tx count)
   const txTotal = Number(stats.total_txs || stats.tx_count || stats.txs_total || stats.txs)
   let tps = undefined
-  if(Number.isFinite(txTotal)){
-    if(lastTxCount != null && lastBlockTime){
+  if (Number.isFinite(txTotal)) {
+    if (lastTxCount != null && lastBlockTime) {
       const delta = txTotal - lastTxCount
-      const elapsedSec = (now - lastBlockTime)/1000
-      if(delta >= 0 && elapsedSec > 0){
-        tps = Number((delta/elapsedSec).toFixed(2))
+      const elapsedSec = (now - lastBlockTime) / 1000
+      if (delta >= 0 && elapsedSec > 0) {
+        tps = Number((delta / elapsedSec).toFixed(2))
       }
     }
     lastTxCount = txTotal
   }
-  if(Number.isFinite(tps)) pushSeries('tps', tps)
-  if(Number.isFinite(blockTime)) pushSeries('blockTime', blockTime)
-  if(Number.isFinite(peers)) pushSeries('peers', peers)
+  if (Number.isFinite(tps)) pushSeries('tps', tps)
+  if (Number.isFinite(blockTime)) pushSeries('blockTime', blockTime)
+  if (Number.isFinite(peers)) pushSeries('peers', peers)
 
   return { height, tps, blockTime, peers, mempool }
 }
 
-function broadcastOverview(data){
+function broadcastOverview(data) {
   if (!wss || !wss.clients) return
   const payload = JSON.stringify({ type: 'overview', data })
   for (const client of wss.clients) {
@@ -1912,45 +2042,45 @@ app.get('/api/sse', (req, res) => {
 
   req.on('close', () => { sseClients.delete(client) })
   // immediate snapshot
-  sampleMetrics().then((m)=>{
-    try { res.write(`data: ${JSON.stringify({ type:'overview', data:{...m, updatedAt:new Date().toISOString()} })}\n\n`) } catch {}
+  sampleMetrics().then((m) => {
+    try { res.write(`data: ${JSON.stringify({ type: 'overview', data: { ...m, updatedAt: new Date().toISOString() } })}\n\n`) } catch { }
   })
 })
 
-function sseBroadcast(data){
-  const line = `data: ${JSON.stringify({ type:'overview', data })}\n\n`
-  for(const {res} of sseClients){
-    try { res.write(line) } catch {}
+function sseBroadcast(data) {
+  const line = `data: ${JSON.stringify({ type: 'overview', data })}\n\n`
+  for (const { res } of sseClients) {
+    try { res.write(line) } catch { }
   }
 }
 
-function rangeToMs(range){
-  switch(range){
-    case '15m': return 15*60*1000
-    case '1h': return 60*60*1000
-    case '24h': return 24*60*60*1000
-    default: return 60*60*1000
+function rangeToMs(range) {
+  switch (range) {
+    case '15m': return 15 * 60 * 1000
+    case '1h': return 60 * 60 * 1000
+    case '24h': return 24 * 60 * 60 * 1000
+    default: return 60 * 60 * 1000
   }
 }
 
-function filterSeries(metric, range){
+function filterSeries(metric, range) {
   const arr = seriesStore[metric] || []
   const cutoff = Date.now() - rangeToMs(range)
   return arr.filter(p => p.ts >= cutoff)
 }
 
-async function handleTimeseries(req, res, next){
+async function handleTimeseries(req, res, next) {
   try {
-    const { metric, range='1h' } = req.query || {}
-    if(!metric || !['tps','blockTime','peers'].includes(metric)){
+    const { metric, range = '1h' } = req.query || {}
+    if (!metric || !['tps', 'blockTime', 'peers'].includes(metric)) {
       const e = new Error('INVALID_METRIC')
       e.status = 400
       throw e
     }
     const points = filterSeries(metric, range)
-    res.setHeader('Cache-Control','no-store')
-    return res.json({ ok:true, metric, range, points, updatedAt:new Date().toISOString() })
-  } catch(e){ next(e) }
+    res.setHeader('Cache-Control', 'no-store')
+    return res.json({ ok: true, metric, range, points, updatedAt: new Date().toISOString() })
+  } catch (e) { next(e) }
 }
 
 // Alias endpoints (new preferred path /api/timeseries)
@@ -1963,29 +2093,29 @@ app.get('/api/dashboard/timeseries', handleTimeseries)
 // Bridges to the Rust node JSON-RPC contract API (running on 3003 by default)
 const NODE_RPC = process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_URL || process.env.NODE_STATS_BASE || process.env.CONTRACT_NODE_URL || 'http://localhost:3003'
 
-async function rpcCall(method, params){
+async function rpcCall(method, params) {
   const r = await fetch(`${NODE_RPC.replace(/\/$/, '')}/rpc`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: [params] })
   })
-  const j = await r.json().catch(()=>null)
+  const j = await r.json().catch(() => null)
   return j?.result || j
 }
 
-function hexOf(buf){ return Buffer.from(buf).toString('hex') }
-function b64ToBytes(b64){ return Buffer.from(b64, 'base64') }
-function nowIso(){ return new Date().toISOString() }
-function ensureDir(p){ try { fs.mkdirSync(p, { recursive: true }) } catch{} }
+function hexOf(buf) { return Buffer.from(buf).toString('hex') }
+function b64ToBytes(b64) { return Buffer.from(b64, 'base64') }
+function nowIso() { return new Date().toISOString() }
+function ensureDir(p) { try { fs.mkdirSync(p, { recursive: true }) } catch { } }
 
 const EVIDENCE_DIR = new URL('../launch-evidence/wasm', import.meta.url)
-function writeEvidence(name, obj){ try { ensureDir(EVIDENCE_DIR); fs.writeFileSync(new URL(name, EVIDENCE_DIR), typeof obj==='string'?obj:JSON.stringify(obj,null,2)) } catch(e){ logError('evidence.write_failed', e) } }
+function writeEvidence(name, obj) { try { ensureDir(EVIDENCE_DIR); fs.writeFileSync(new URL(name, EVIDENCE_DIR), typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2)) } catch (e) { logError('evidence.write_failed', e) } }
 
 // POST /contract/deploy
 // body: { code_base64? , from?, gas_limit?, initial_state? }
 app.post('/contract/deploy', async (req, res, next) => {
   try {
-    const { code_base64, from='api_deployer', gas_limit=100000, initial_state } = req.body || {}
+    const { code_base64, from = 'api_deployer', gas_limit = 100000, initial_state } = req.body || {}
     let codeBuf
     if (code_base64) {
       codeBuf = b64ToBytes(code_base64)
@@ -1995,7 +2125,7 @@ app.post('/contract/deploy', async (req, res, next) => {
         const p = new URL('../artifacts/counter.wasm', import.meta.url)
         codeBuf = fs.readFileSync(p)
       } catch {
-        return res.status(400).json({ ok:false, error:'NO_CODE', message:'Provide code_base64 or build artifacts/counter.wasm' })
+        return res.status(400).json({ ok: false, error: 'NO_CODE', message: 'Provide code_base64 or build artifacts/counter.wasm' })
       }
     }
 
@@ -2004,12 +2134,12 @@ app.post('/contract/deploy', async (req, res, next) => {
 
     const codeHex = hexOf(codeBuf)
     const result = await rpcCall('contract_deploy', { code: codeHex, from, gas_limit, initial_state })
-    if (result?.error) return res.status(400).json({ ok:false, error:'DEPLOY_FAILED', message:String(result.error) })
+    if (result?.error) return res.status(400).json({ ok: false, error: 'DEPLOY_FAILED', message: String(result.error) })
 
     const deploy_tx = { ts: nowIso(), from, gas_limit, code_hash: result.code_hash, address: result.address }
     writeEvidence('deploy_tx.json', deploy_tx)
 
-    res.json({ ok:true, address: result.address, code_hash: result.code_hash })
+    res.json({ ok: true, address: result.address, code_hash: result.code_hash })
   } catch (e) { next(e) }
 })
 
@@ -2017,10 +2147,10 @@ app.post('/contract/deploy', async (req, res, next) => {
 // body: { address, method, params?, gas_limit? }
 app.post('/contract/call', async (req, res, next) => {
   try {
-    const { address, method='get', params={}, gas_limit=100000, from='api_caller' } = req.body || {}
-    if(!address) return res.status(400).json({ ok:false, error:'MISSING_ADDRESS' })
+    const { address, method = 'get', params = {}, gas_limit = 100000, from = 'api_caller' } = req.body || {}
+    if (!address) return res.status(400).json({ ok: false, error: 'MISSING_ADDRESS' })
     const result = await rpcCall('contract_execute', { contract_address: address, function: method, args: params, gas_limit, from })
-    if (result?.error) return res.status(400).json({ ok:false, error:'EXEC_FAILED', message:String(result.error) })
+    if (result?.error) return res.status(400).json({ ok: false, error: 'EXEC_FAILED', message: String(result.error) })
 
     // Collect call evidence
     const call = { ts: nowIso(), address, method, params, gas_used: result.gas_used }
@@ -2029,13 +2159,13 @@ app.post('/contract/call', async (req, res, next) => {
       ensureDir(EVIDENCE_DIR)
       const f = new URL('calls.json', EVIDENCE_DIR)
       let arr = []
-      if (fs.existsSync(f)) arr = JSON.parse(fs.readFileSync(f,'utf8'))
+      if (fs.existsSync(f)) arr = JSON.parse(fs.readFileSync(f, 'utf8'))
       arr.push(call)
       fs.writeFileSync(f, JSON.stringify(arr, null, 2))
       writeEvidence('gas_report.json', { updated_at: nowIso(), last_call: call })
-    } catch(e){ logError('evidence.calls_write_failed', e) }
+    } catch (e) { logError('evidence.calls_write_failed', e) }
 
-    res.json({ ok:true, result: result.return_value, gas_used: result.gas_used, events: result.events || [] })
+    res.json({ ok: true, result: result.return_value, gas_used: result.gas_used, events: result.events || [] })
   } catch (e) { next(e) }
 })
 
@@ -2043,10 +2173,10 @@ app.post('/contract/call', async (req, res, next) => {
 app.get('/contract/state/:addr/get', async (req, res, next) => {
   try {
     const address = req.params.addr
-    const result = await rpcCall('contract_execute', { contract_address: address, function:'get', args:{}, gas_limit: 50000, from:'api_reader' })
-    if (result?.error) return res.status(404).json({ ok:false, error:'NOT_FOUND', message:String(result.error) })
+    const result = await rpcCall('contract_execute', { contract_address: address, function: 'get', args: {}, gas_limit: 50000, from: 'api_reader' })
+    if (result?.error) return res.status(404).json({ ok: false, error: 'NOT_FOUND', message: String(result.error) })
     // persist final state snapshot
     writeEvidence('final_state.json', { ts: nowIso(), address, value_hex: result.return_value })
-    res.json({ ok:true, value_hex: result.return_value, gas_used: result.gas_used })
+    res.json({ ok: true, value_hex: result.return_value, gas_used: result.gas_used })
   } catch (e) { next(e) }
 })

@@ -16,8 +16,10 @@ NC='\033[0m' # No Color
 # Fixed ports configuration
 FRONTEND_PORT=3000
 BACKEND_PORT=8787
-BLOCKCHAIN_PORT=3030
-QUANTUMVAULT_PORT=3031
+export BLOCKCHAIN_PORT=3030
+export BLOCKCHAIN_API_URL="http://localhost:$BLOCKCHAIN_PORT"
+export BLOCKCHAIN_NODE_URL="http://localhost:$BLOCKCHAIN_PORT" # Ensure backend uses this port
+export QUANTUM_VAULT_PORT=3031
 
 echo -e "${BLUE}🚀 Starting Dytallix Services with Fixed Ports${NC}"
 echo -e "${BLUE}===============================================${NC}"
@@ -61,7 +63,9 @@ cd "$(dirname "$0")"
 
 # Load environment variables
 if [ -f ".env.local" ]; then
+    set -a
     source .env.local
+    set +a
 fi
 
 echo -e "\n${BLUE}🔍 Checking ports...${NC}"
@@ -74,14 +78,14 @@ echo -e "\n${BLUE}🏗️  Starting services...${NC}"
 
 # Start Blockchain Node (if not already running)
 echo -e "${BLUE}1. Starting Blockchain Node on port ${BLOCKCHAIN_PORT}...${NC}"
-if [ -d "blockchain-core" ]; then
-    cd blockchain-core
-    BLOCKCHAIN_PORT=$BLOCKCHAIN_PORT nohup cargo run > ../logs/blockchain.log 2>&1 &
+if [ -d "node" ]; then
+    cd node
+    BLOCKCHAIN_PORT=$BLOCKCHAIN_PORT nohup cargo run --bin dytallix-fast-node > ../logs/blockchain.log 2>&1 &
     BLOCKCHAIN_PID=$!
     echo "   Blockchain PID: $BLOCKCHAIN_PID"
     cd ..
 else
-    echo -e "${RED}   ✗ blockchain-core directory not found${NC}"
+    echo -e "${RED}   ✗ node directory not found${NC}"
 fi
 
 # Start QuantumVault API
@@ -101,22 +105,24 @@ sleep 2
 
 # Start Backend API Proxy
 echo -e "${BLUE}3. Starting Backend API on port ${BACKEND_PORT}...${NC}"
-if [ -f "api-proxy.js" ]; then
-    PORT=$BACKEND_PORT nohup node api-proxy.js > logs/backend.log 2>&1 &
+if [ -d "server" ]; then
+    cd server
+    PORT=$BACKEND_PORT BLOCKCHAIN_NODE_URL=$BLOCKCHAIN_NODE_URL nohup node index.js > ../logs/backend.log 2>&1 &
     BACKEND_PID=$!
     echo "   Backend PID: $BACKEND_PID"
+    cd ..
 else
-    echo -e "${RED}   ✗ api-proxy.js not found${NC}"
+    echo -e "${RED}   ✗ server directory not found${NC}"
 fi
 
 # Start Frontend (Vite dev server) - this one shows output
 echo -e "${BLUE}4. Starting Frontend on port ${FRONTEND_PORT}...${NC}"
-if [ -d "frontend" ]; then
-    cd frontend
+if [ -d "build" ]; then
+    cd build
     echo -e "${GREEN}   Frontend will start with live output...${NC}"
     VITE_PORT=$FRONTEND_PORT npm run dev
 else
-    echo -e "${RED}   ✗ frontend directory not found${NC}"
+    echo -e "${RED}   ✗ build directory not found${NC}"
 fi
 
 # Note: The script will end here because npm run dev runs in foreground
