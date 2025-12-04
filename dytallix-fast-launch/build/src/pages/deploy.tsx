@@ -27,7 +27,7 @@ export function Deploy() {
                             <p className="text-muted-foreground mb-6">Essential protection for modern enterprises.</p>
                             <div className="flex items-baseline gap-1">
                                 <span className="text-4xl font-bold">$50,000</span>
-                                <span className="text-muted-foreground">/ standard launch</span>
+                                <span className="text-muted-foreground">/ one time</span>
                             </div>
                         </div>
 
