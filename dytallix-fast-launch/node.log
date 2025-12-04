@@ -33,3 +33,74 @@ QuantumVault:  http://localhost:
   ➜  Local:   http://localhost:3000/
   ➜  Network: use --host to expose
   ➜  press h + enter to show help
+6:35:30 PM [vite] (client) hmr update /src/pages/deploy.tsx, /src/index.css
+6:35:54 PM [vite] (client) hmr update /src/pages/deploy.tsx, /src/index.css
+6:35:54 PM [vite] Internal server error: /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/src/pages/deploy.tsx: Expected corresponding JSX closing tag for <GlassPanel>. (31:16)
+
+  29 |                             <div className="text-sm text-gray-400">Standard Launch</div>
+  30 |                         </div>
+> 31 |                 </div>
+     |                 ^
+  32 |
+  33 |                 <div className="space-y-4 flex-grow">
+  34 |                     <div className="flex items-start gap-3">
+  Plugin: vite:react-babel
+  File: /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/src/pages/deploy.tsx:31:16
+  29 |                              <div className="text-sm text-gray-400">Standard Launch</div>
+  30 |                          </div>
+  31 |                  </div>
+     |                  ^
+  32 |  
+  33 |                  <div className="space-y-4 flex-grow">
+      at constructor (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:6624:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:4756:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:4727:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:4727:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:4727:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10895:21)
+      at /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:9828:39
+      at TypeScriptParserMixin.tryParse (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:6932:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:9828:18)
+      at /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10864:39
+      at TypeScriptParserMixin.allowInAnd (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10864:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:12567:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:11747:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:11395:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:4793:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10895:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:9839:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10848:23)
+      at /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10844:39
+      at TypeScriptParserMixin.allowInAnd (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:12495:16)
+      at TypeScriptParserMixin.parseExpression (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:10844:17)
+      at TypeScriptParserMixin.parseReturnStatement (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:13218:28)
+      at TypeScriptParserMixin.parseStatementContent (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:12874:21)
+      at TypeScriptParserMixin.parseStatementContent (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:9569:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:12843:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:12823:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:13392:61)
+      at TypeScriptParserMixin.parseBlockBody (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:13385:10)
+      at TypeScriptParserMixin.parseBlock (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:13373:10)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:12174:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:12160:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/build/node_modules/@babel/parser/lib/index.js:9223:18)
+6:37:57 PM [vite] (client) hmr update /src/pages/deploy.tsx, /src/index.css
+6:38:15 PM [vite] (client) hmr update /src/pages/deploy.tsx, /src/index.css

@@ -25,11 +25,10 @@ export function Deploy() {
                         <div className="mb-6">
                             <h3 className="text-2xl font-bold mb-2">Standard Deployment</h3>
                             <p className="text-muted-foreground mb-6">Essential protection for modern enterprises.</p>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-4xl font-bold">$35,000</span>
-                                <span className="text-muted-foreground">/ one-time</span>
-                            </div>
+                            <div className="text-3xl font-bold text-white mb-2">$50,000</div>
+                            <div className="text-sm text-gray-400">Standard Launch</div>
                         </div>
+
 
                         <div className="space-y-4 flex-grow">
                             <div className="flex items-start gap-3">
