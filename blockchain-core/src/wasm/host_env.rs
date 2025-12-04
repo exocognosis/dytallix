@@ -16,6 +16,7 @@ pub struct HostExecutionContext {
     pub block_time: i64,
     pub caller: String,
     pub deployer: String,
+    pub input: Vec<u8>,
 }
 
 #[derive(Clone)]
@@ -28,6 +29,7 @@ struct HostEnvInner {
     ctx: Mutex<HostExecutionContext>,
     kv: Mutex<HashMap<Vec<u8>, Vec<u8>>>, // simple deterministic in-memory storage
     logs: Mutex<Vec<String>>,             // structured logs captured per execution
+    output: Mutex<Vec<u8>>,               // captured output from contract execution
     gas_table: GasTable,
     pqc: Arc<PQCManager>,
 }
@@ -47,6 +49,7 @@ pub struct GasTable {
     pub crypto_hash: u64,
     pub crypto_verify: u64,
     pub env_read: u64,
+    pub env_write: u64,
     pub log: u64,
 }
 
@@ -59,6 +62,7 @@ impl Default for GasTable {
             crypto_hash: 15, // per 32-byte chunk charged additionally inside host fn
             crypto_verify: 5000, // PQ signature verification baseline
             env_read: 5,
+            env_write: 5,
             log: 30,
         }
     }
@@ -80,6 +84,7 @@ impl HostEnv {
                 ctx: Mutex::new(HostExecutionContext::default()),
                 kv: Mutex::new(HashMap::new()),
                 logs: Mutex::new(Vec::new()),
+                output: Mutex::new(Vec::new()),
                 gas_table: GasTable::default(),
                 pqc,
             }),
@@ -118,11 +123,24 @@ impl HostEnv {
         self.inner.kv.lock().unwrap().remove(key).is_some()
     }
     pub fn push_log(&self, msg: String) {
+        eprintln!("HostEnv::push_log: {}", msg);
         self.inner.logs.lock().unwrap().push(msg);
     }
     #[allow(dead_code)]
     pub fn take_logs(&self) -> Vec<String> {
         self.inner.logs.lock().unwrap().drain(..).collect()
+    }
+    
+    pub fn write_output(&self, data: &[u8]) {
+        let mut out = self.inner.output.lock().unwrap();
+        *out = data.to_vec();
+    }
+    
+    pub fn take_output(&self) -> Vec<u8> {
+        let mut out = self.inner.output.lock().unwrap();
+        let res = out.clone();
+        out.clear();
+        res
     }
 
     pub fn blake3_hash(&self, data: &[u8]) -> [u8; 32] {

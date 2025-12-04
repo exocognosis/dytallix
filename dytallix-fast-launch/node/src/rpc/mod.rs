@@ -40,6 +40,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub mod ai;
 pub mod errors; // restored errors module export
+#[cfg(feature = "contracts")]
+pub mod contracts;
+#[cfg(feature = "contracts")]
+pub use contracts::{contracts_deploy, contracts_call, contracts_state};
 #[cfg(feature = "oracle")]
 pub mod oracle;
 

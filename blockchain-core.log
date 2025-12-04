@@ -1,0 +1,5 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/rickglenn/Downloads/dytallix-main/DytallixLiteLaunch/crates/pqc-wasm/Cargo.toml
+workspace: /Users/rickglenn/Downloads/dytallix-main/Cargo.toml
+error: `cargo run` could not determine which binary to run. Use the `--bin` option to specify a binary, or the `default-run` manifest key.
+available binaries: bridge-server, dytallix-node

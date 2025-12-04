@@ -4,7 +4,8 @@ use crate::storage::oracle::{AiRiskRecord, OracleStore};
 use axum::{Extension, Json};
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine; // for new decode API
-use ed25519_dalek::{PublicKey, Signature, Verifier};
+use fips204::ml_dsa_87; // Dilithium5 equivalent
+use fips204::traits::{Verifier, SerDes};
 use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -22,7 +23,7 @@ pub struct OracleAiRiskBatchInput {
     pub records: Vec<OracleAiRiskInput>,
 }
 
-/// Verify Ed25519 signature for oracle data
+/// Verify ML-DSA-87 (Dilithium5) signature for oracle data
 ///
 /// # Arguments
 /// * `payload` - The data that was signed
@@ -33,11 +34,26 @@ pub struct OracleAiRiskBatchInput {
 /// `true` if signature is valid, `false` otherwise
 pub fn verify_sig(payload: &str, signature: &str, pubkey: &str) -> bool {
     if let (Ok(pk_bytes), Ok(sig_bytes)) = (B64.decode(pubkey), B64.decode(signature)) {
-        if let (Ok(pk), Ok(sig)) = (
-            PublicKey::from_bytes(&pk_bytes),
-            Signature::from_bytes(&sig_bytes),
-        ) {
-            return pk.verify(payload.as_bytes(), &sig).is_ok();
+        // ML-DSA-87 PK serialized size is 2592
+        if pk_bytes.len() != 2592 {
+            return false;
+        }
+        
+        let mut pk_arr = [0u8; 2592];
+        pk_arr.copy_from_slice(&pk_bytes);
+        
+        if let Ok(pk) = ml_dsa_87::PublicKey::try_from_bytes(pk_arr) {
+             let ctx = b"dytallix-oracle";
+             
+             // ML-DSA-87 Sig size observed: 4627
+             if sig_bytes.len() != 4627 {
+                 return false;
+             }
+             let mut sig_arr = [0u8; 4627];
+             sig_arr.copy_from_slice(&sig_bytes);
+             
+             // Verify using the byte array directly since try_sign returns [u8; 4627]
+             return pk.verify(payload.as_bytes(), &sig_arr, ctx);
         }
     }
     false

@@ -43,6 +43,7 @@ pub struct ContractExecution {
     pub gas_used: u64,
     pub tx_hash: TxHash,
     pub executed_at: u64,
+    pub logs: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,17 +156,35 @@ impl WasmRuntime {
             .ok_or_else(|| anyhow!("Contract not found: {}", contract_address))?;
 
         // Instantiate contract with fuel
-        let (_store, _instance) = self
+        let (mut store, instance) = self
             .engine
             .instantiate_with_fuel(&contract.code, gas_limit)
             .map_err(|e| anyhow!("Failed to instantiate contract: {}", e))?;
 
-        // Execute the method (note: current demo uses host-controlled state)
-        let result = match method {
-            "increment" => self.execute_increment(contract_address)?,
-            "get" => self.execute_get(contract_address)?,
-            _ => return Err(anyhow!("Unknown method: {}", method)),
-        };
+        // Set input in context
+        let mut ctx = self.engine.env().context();
+        ctx.input = args.to_vec();
+        // Update context with current block info if available (placeholder for now)
+        ctx.caller = "caller_placeholder".to_string(); 
+        self.engine.set_context(ctx);
+
+        // Execute the method
+        let func = instance
+            .get_func(&mut store, method)
+            .ok_or_else(|| anyhow!("Method not found: {}", method))?;
+
+        // Call the function (expecting 0 args, 0 results for void/standard ABI, or flexible)
+        // We support functions returning nothing (void) or i32/i64 (status)
+        let ty = func.ty(&store);
+        let mut results = vec![wasmtime::Val::I32(0); ty.results().len()];
+        
+        if let Err(e) = func.call(&mut store, &[], &mut results) {
+            let logs = self.engine.env().take_logs();
+            return Err(anyhow!("WASM execution failed: {}\nLogs:\n{}", e, logs.join("\n")));
+        }
+
+        // Retrieve output from env
+        let result = self.engine.env().take_output();
 
         let gas_used = gas_meter.gas_used();
         let tx_hash = self.generate_tx_hash(contract_address, method);
@@ -178,6 +197,7 @@ impl WasmRuntime {
             gas_used,
             tx_hash,
             executed_at: SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
+            logs: self.engine.env().take_logs(),
         };
 
         // Store execution history
@@ -193,44 +213,6 @@ impl WasmRuntime {
         state
             .get(&(contract_address.clone(), key.to_string()))
             .cloned()
-    }
-
-    /// Set contract state (internal method for contract execution)
-    fn set_contract_state(&self, contract_address: &Address, key: &str, value: Vec<u8>) {
-        let mut state = self.contract_state.lock().unwrap();
-        state.insert((contract_address.clone(), key.to_string()), value);
-    }
-
-    /// Execute increment method on counter contract
-    fn execute_increment(&self, contract_address: &Address) -> Result<Vec<u8>> {
-        // Get current counter value
-        let current = self
-            .get_contract_state(contract_address, "counter")
-            .map(|v| u32::from_le_bytes(v.try_into().unwrap_or([0; 4])))
-            .unwrap_or(0);
-
-        let new_value = current + 1; // increment by 1 per call
-
-        // Store new value
-        self.set_contract_state(
-            contract_address,
-            "counter",
-            new_value.to_le_bytes().to_vec(),
-        );
-
-        // Return the new value
-        Ok(new_value.to_le_bytes().to_vec())
-    }
-
-    /// Execute get method on counter contract
-    fn execute_get(&self, contract_address: &Address) -> Result<Vec<u8>> {
-        // Get current counter value, default to 0 if not set
-        let value = self
-            .get_contract_state(contract_address, "counter")
-            .map(|v| u32::from_le_bytes(v.try_into().unwrap_or([0; 4])))
-            .unwrap_or(0);
-
-        Ok(value.to_le_bytes().to_vec())
     }
 
     /// Generate contract address from code hash and deployer

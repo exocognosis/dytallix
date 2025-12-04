@@ -1,0 +1,9 @@
+{"accepted":false,"detail":{"available":"0","denom":"udgt","error":"INSUFFICIENT_FUNDS","from":"dyt1quantumvault000000000000000000000","nonce":0,"required":"2"},"ts":1763477476}
+{"accepted":false,"detail":{"available":"0","denom":"udgt","error":"INSUFFICIENT_FUNDS","required":"2000000","tx_hash":"0xb784bb5dcbfd542c5a4d453de6b7771948d41210b2abc6baba43e45fbfd7564f"},"ts":1763477767}
+{"accepted":false,"detail":{"available":"0","denom":"udgt","error":"INSUFFICIENT_FUNDS","required":"2000000","tx_hash":"0x7a7cf36aed05e7a238a994706de0dfbf9f5225339c5d3129d85c66596d99e519"},"ts":1763477813}
+{"accepted":true,"detail":{"chain_id":"dyt-local-1","fee":"0","from":"dyt1quantumvault000000000000000000000","nonce":0,"tx_hash":"0xd0aa848d19a4dc8eb91e3f26abb67b5e205439303c8a4617be90efdfbae50deb"},"ts":1763478283}
+{"accepted":true,"detail":{"chain_id":"dyt-local-1","fee":"0","from":"dyt1quantumvault000000000000000000000","nonce":0,"tx_hash":"0x66fbbcfec9c7962c745c8181740cac03667bcd67a89e65af713852acbe93c2b4"},"ts":1763510106}
+{"accepted":true,"detail":{"chain_id":"dyt-local-1","fee":"0","from":"dyt1quantumvault000000000000000000000","nonce":0,"tx_hash":"0x5ae4188fa9715a85a80f690b9e017e4b5d252a74ed29eb63c7b0ac30a804a9d8"},"ts":1763516378}
+{"accepted":true,"detail":{"chain_id":"dyt-local-1","fee":"0","from":"dyt1quantumvault000000000000000000000","nonce":0,"tx_hash":"0x0860d4b2ede54088d8a9c24130322829c33a7ea322ea365fc0bf8ea8116a6b5a"},"ts":1763559857}
+{"accepted":true,"detail":{"chain_id":"dyt-local-1","fee":"0","from":"dyt1quantumvault000000000000000000000","nonce":0,"tx_hash":"0xee55bd1a5e96fdf118de23493320b84c1a79b7c2cd7b4571eaf22e2994d63546"},"ts":1763571225}
+{"accepted":true,"detail":{"chain_id":"dyt-local-1","fee":"0","from":"dyt1qvmi6a386im2goh1wwv5000000000000000000","nonce":1763573435946,"tx_hash":"0x2bf171b898df95f5feae839d46085989695690f8bfe69c62580c5fa11fbd5d90"},"ts":1763573435}

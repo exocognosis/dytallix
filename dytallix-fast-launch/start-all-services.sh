@@ -50,6 +50,10 @@ check_port() {
     fi
 }
 
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BASE_DIR="$SCRIPT_DIR"
+
 # Function to start a service
 start_service() {
     local service_name=$1
@@ -61,8 +65,7 @@ start_service() {
     check_port $port "$service_name"
     
     # Create logs directory in the fast-launch root
-    local base_dir="/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
-    mkdir -p "$base_dir/logs"
+    mkdir -p "$BASE_DIR/logs"
     
     if [ -n "$directory" ]; then
         cd "$directory"
@@ -70,17 +73,17 @@ start_service() {
     
     # Start service in background and capture PID
     local log_name=$(echo "$service_name" | tr '[:upper:]' '[:lower:]')
-    eval "$command" > "$base_dir/logs/${log_name}.log" 2>&1 &
+    eval "$command" > "$BASE_DIR/logs/${log_name}.log" 2>&1 &
     local pid=$!
     
     # Wait a moment and check if service started
     sleep 3
     if kill -0 $pid 2>/dev/null; then
         echo -e "${GREEN}✅ ${service_name} started successfully (PID: $pid)${NC}"
-        echo $pid > "$base_dir/logs/${log_name}.pid"
+        echo $pid > "$BASE_DIR/logs/${log_name}.pid"
     else
         echo -e "${RED}❌ ${service_name} failed to start${NC}"
-        tail -10 "$base_dir/logs/${log_name}.log"
+        tail -10 "$BASE_DIR/logs/${log_name}.log"
         return 1
     fi
     
@@ -105,27 +108,27 @@ echo -e "${BLUE}🔧 Starting services...${NC}"
 # 1. Blockchain Core (Rust)
 start_service "Blockchain" $BLOCKCHAIN_PORT \
     "DYTALLIX_SKIP_SIG_VERIFY=true DYT_RPC_PORT=$BLOCKCHAIN_PORT cargo run --release --package dytallix-fast-node --bin dytallix-fast-node" \
-    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
+    "$BASE_DIR"
 
 # 2. QuantumVault API (Node.js)
 start_service "QuantumVault" $QUANTUMVAULT_PORT \
     "PORT=$QUANTUMVAULT_PORT BLOCKCHAIN_API_URL=http://localhost:$BLOCKCHAIN_PORT node server.js" \
-    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch/services/quantumvault-api"
+    "$BASE_DIR/services/quantumvault-api"
 
 # 3. Backend API (Node.js)
 start_service "Backend" $BACKEND_PORT \
     "PORT=$BACKEND_PORT node server/index.js" \
-    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
+    "$BASE_DIR"
 
 # 4. Faucet API (Node.js)
 start_service "Faucet" $FAUCET_PORT \
     "PORT=$FAUCET_PORT BLOCKCHAIN_NODE=http://localhost:$BLOCKCHAIN_PORT node server.js" \
-    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch/services/faucet-api"
+    "$BASE_DIR/services/faucet-api"
 
-# 5. Frontend (Static Server for new web structure - PR #223)
+# 5. Frontend (React Vite Dev Server)
 start_service "Frontend" $FRONTEND_PORT \
-    "PORT=$FRONTEND_PORT node serve-static.js" \
-    "/Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch"
+    "npm run dev" \
+    "$BASE_DIR/frontend"
 
 echo ""
 echo -e "${GREEN}🎉 All services started successfully!${NC}"

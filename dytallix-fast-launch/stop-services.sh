@@ -14,9 +14,11 @@ NC='\033[0m' # No Color
 
 # Fixed ports configuration
 FRONTEND_PORT=3000
-BACKEND_PORT=8787
-BLOCKCHAIN_PORT=3030
-QUANTUMVAULT_PORT=3031
+BACKEND_PORT=3001
+BLOCKCHAIN_PORT=3003
+QUANTUMVAULT_PORT=3002
+FAUCET_PORT=3004
+WEBSOCKET_PORT=3005
 
 echo -e "${BLUE}🛑 Stopping Dytallix Services${NC}"
 echo -e "${BLUE}==============================${NC}"
@@ -49,6 +51,8 @@ stop_service $FRONTEND_PORT "Frontend"
 stop_service $BACKEND_PORT "Backend API" 
 stop_service $BLOCKCHAIN_PORT "Blockchain Node"
 stop_service $QUANTUMVAULT_PORT "QuantumVault API"
+stop_service $FAUCET_PORT "Faucet API"
+stop_service $WEBSOCKET_PORT "WebSocket"
 
 echo -e "\n${GREEN}✅ All services stopped${NC}"
 

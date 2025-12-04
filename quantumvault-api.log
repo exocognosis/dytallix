@@ -1,0 +1,8 @@
+
+> quantumvault-api@1.0.0 start
+> node server.js
+
+[QuantumVault] Loaded 2 assets from metadata
+[QuantumVault] API server running on port 3002
+[QuantumVault] Storage directory: /Users/rickglenn/Downloads/dytallix-main/dytallix-fast-launch/services/quantumvault-api/storage
+[QuantumVault] Loaded 2 assets

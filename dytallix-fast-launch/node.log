@@ -1,0 +1,35 @@
+[0;34m🚀 Starting Dytallix Services with Fixed Ports[0m
+[0;34m===============================================[0m
+Frontend:      http://localhost:3000
+Backend API:   http://localhost:8787
+Blockchain:    http://localhost:3030
+QuantumVault:  http://localhost:
+[0;34m===============================================[0m
+
+[0;34m🔍 Checking ports...[0m
+[0;33m⚠️  Warning: Port 3000 is already in use (may be previous Frontend instance)[0m
+   Killing processes on port 3000...
+[0;33m⚠️  Warning: Port 8787 is already in use (may be previous Backend API instance)[0m
+   Killing processes on port 8787...
+[0;33m⚠️  Warning: Port 3031 is already in use (may be previous QuantumVault API instance)[0m
+   Killing processes on port 3031...
+
+[0;34m🏗️  Starting services...[0m
+[0;34m1. Starting Blockchain Node on port 3030...[0m
+   Blockchain PID: 73225
+[0;34m2. Starting QuantumVault API on port 3031...[0m
+   QuantumVault PID: 73226
+[0;34m3. Starting Backend API on port 8787...[0m
+   Backend PID: 73244
+[0;34m4. Starting Frontend on port 3000...[0m
+[0;32m   Frontend will start with live output...[0m
+
+> build@0.0.0 dev
+> vite
+
+
+  VITE v7.2.4  ready in 170 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help

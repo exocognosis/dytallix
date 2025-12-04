@@ -1,0 +1,1556 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/rickglenn/Downloads/dytallix-main/DytallixLiteLaunch/crates/pqc-wasm/Cargo.toml
+workspace: /Users/rickglenn/Downloads/dytallix-main/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/rickglenn/Downloads/dytallix-main/quantumvault/Cargo.toml
+workspace: /Users/rickglenn/Downloads/dytallix-main/Cargo.toml
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:187:15
+    |
+187 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: expected names are: `docsrs`, `feature`, and `test` and 31 more
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:193:15
+    |
+193 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:227:15
+    |
+227 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:233:15
+    |
+233 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:270:15
+    |
+270 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:276:15
+    |
+276 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:303:15
+    |
+303 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:309:15
+    |
+309 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:343:15
+    |
+343 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:349:15
+    |
+349 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:187:15
+    |
+187 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:193:15
+    |
+193 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:227:15
+    |
+227 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:233:15
+    |
+233 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:270:15
+    |
+270 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:276:15
+    |
+276 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:303:15
+    |
+303 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:309:15
+    |
+309 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:343:15
+    |
+343 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:349:15
+    |
+349 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:187:15
+    |
+187 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:193:15
+    |
+193 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:227:15
+    |
+227 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:233:15
+    |
+233 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:270:15
+    |
+270 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:276:15
+    |
+276 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:303:15
+    |
+303 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:309:15
+    |
+309 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:343:15
+    |
+343 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:349:15
+    |
+349 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:21:7
+   |
+21 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:23:7
+   |
+23 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:25:7
+   |
+25 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:28:7
+   |
+28 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:30:7
+   |
+30 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:32:7
+   |
+32 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:39:7
+   |
+39 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:41:7
+   |
+41 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:43:7
+   |
+43 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:46:7
+   |
+46 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:48:7
+   |
+48 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:50:7
+   |
+50 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:57:7
+   |
+57 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:59:7
+   |
+59 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:61:7
+   |
+61 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:64:7
+   |
+64 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:66:7
+   |
+66 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:68:7
+   |
+68 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:104:7
+    |
+104 | #[cfg(enable_x86_avx2)]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:143:7
+    |
+143 | #[cfg(enable_aarch64_neon)]
+    |       ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:215:7
+    |
+215 | #[cfg(enable_x86_avx2)]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:254:7
+    |
+254 | #[cfg(enable_aarch64_neon)]
+    |       ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:326:7
+    |
+326 | #[cfg(enable_x86_avx2)]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:365:7
+    |
+365 | #[cfg(enable_aarch64_neon)]
+    |       ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:521:17
+    |
+521 | #[cfg(all(test, enable_x86_avx2, feature = "avx2"))]
+    |                 ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:642:17
+    |
+642 | #[cfg(all(test, enable_aarch64_neon, feature = "neon"))]
+    |                 ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:876:17
+    |
+876 | #[cfg(all(test, enable_x86_avx2, feature = "avx2"))]
+    |                 ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:997:17
+    |
+997 | #[cfg(all(test, enable_aarch64_neon, feature = "neon"))]
+    |                 ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+    --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:1231:17
+     |
+1231 | #[cfg(all(test, enable_x86_avx2, feature = "avx2"))]
+     |                 ^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+    --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:1352:17
+     |
+1352 | #[cfg(all(test, enable_aarch64_neon, feature = "neon"))]
+     |                 ^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:146:11
+    |
+146 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:148:11
+    |
+148 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:156:11
+    |
+156 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:164:11
+    |
+164 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:172:11
+    |
+172 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:257:11
+    |
+257 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:259:11
+    |
+259 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:267:11
+    |
+267 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:275:11
+    |
+275 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:283:11
+    |
+283 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:368:11
+    |
+368 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:370:11
+    |
+370 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:378:11
+    |
+378 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:386:11
+    |
+386 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:394:11
+    |
+394 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: `pqcrypto-dilithium` (lib) generated 75 warnings
+warning: unused import: `chacha20poly1305::ChaCha20Poly1305`
+ --> quantumvault/src/infrastructure/crypto.rs:5:5
+  |
+5 | use chacha20poly1305::ChaCha20Poly1305;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::error::Error`
+ --> quantumvault/src/infrastructure/crypto.rs:9:5
+  |
+9 | use std::error::Error;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `JobStatus`
+ --> quantumvault/src/infrastructure/repository/job.rs:1:36
+  |
+1 | use crate::domain::{ProtectionJob, JobStatus};
+  |                                    ^^^^^^^^^
+
+warning: unused import: `AssetRepository`
+ --> quantumvault/src/application/audit_service.rs:2:29
+  |
+2 | use crate::infrastructure::{AssetRepository, AuditRepository};
+  |                             ^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> quantumvault/src/application/job_engine.rs:4:14
+  |
+4 | use anyhow::{Context, Result};
+  |              ^^^^^^^
+
+warning: unused import: `IntoResponse`
+ --> quantumvault/src/api/middleware.rs:5:16
+  |
+5 |     response::{IntoResponse, Response},
+  |                ^^^^^^^^^^^^
+
+warning: unused import: `serde_json::json`
+ --> quantumvault/src/api/middleware.rs:7:5
+  |
+7 | use serde_json::json;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `Serialize`
+ --> quantumvault/src/api/asset_handlers.rs:7:26
+  |
+7 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+
+warning: unused import: `Serialize`
+ --> quantumvault/src/api/policy_handlers.rs:7:26
+  |
+7 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+
+warning: unused import: `Serialize`
+ --> quantumvault/src/api/job_handlers.rs:6:26
+  |
+6 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+
+warning: unused import: `Serialize`
+ --> quantumvault/src/api/audit_handlers.rs:7:26
+  |
+7 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+
+warning: use of deprecated associated function `sha3::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> quantumvault/src/infrastructure/crypto.rs:148:28
+    |
+148 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated associated function `sha3::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> quantumvault/src/infrastructure/crypto.rs:178:28
+    |
+178 |         let nonce = Nonce::from_slice(&wrapped_info.nonce);
+    |                            ^^^^^^^^^^
+
+warning: unused variable: `secret_key`
+   --> quantumvault/src/infrastructure/crypto.rs:202:9
+    |
+202 |         secret_key: &[u8],
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_secret_key`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `data`
+   --> quantumvault/src/infrastructure/crypto.rs:225:9
+    |
+225 |         data: &[u8],
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_data`
+
+warning: unused variable: `signature`
+   --> quantumvault/src/infrastructure/crypto.rs:226:9
+    |
+226 |         signature: &[u8],
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_signature`
+
+warning: unused variable: `public_key`
+   --> quantumvault/src/infrastructure/crypto.rs:227:9
+    |
+227 |         public_key: &[u8],
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_public_key`
+
+warning: unused variable: `algorithm`
+   --> quantumvault/src/infrastructure/crypto.rs:228:9
+    |
+228 |         algorithm: &str,
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_algorithm`
+
+warning: field `master_key` is never read
+  --> quantumvault/src/infrastructure/crypto.rs:67:5
+   |
+66 | pub struct CryptoEngine {
+   |            ------------ field in this struct
+67 |     master_key: Zeroizing<Vec<u8>>,
+   |     ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: `quantumvault` (lib) generated 19 warnings (run `cargo fix --lib -p quantumvault` to apply 11 suggestions)
+    Finished `release` profile [optimized] target(s) in 0.69s
+     Running `/Users/rickglenn/Downloads/dytallix-main/target/release/quantumvault-server`
+[2m2025-11-18T23:51:53.859921Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m Starting QuantumVault server on 0.0.0.0:8080
+[2m2025-11-18T23:51:53.873666Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m Running database migrations...
+[2m2025-11-18T23:51:53.882789Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m Database migrations completed
+[2m2025-11-18T23:51:53.882925Z[0m [32m INFO[0m [2mquantumvault::application::job_engine[0m[2m:[0m Starting job engine with poll interval: 5s
+[2m2025-11-18T23:51:53.883430Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m Server listening on 0.0.0.0:8080
+[2m2025-11-18T23:51:53.883436Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m API Key authentication enabled
+[2m2025-11-18T23:51:53.883438Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m Job engine started with poll interval: 5s
+[2m2025-11-18T23:52:24.428288Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/health [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:52:24.428597Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/health [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m401
+[2m2025-11-18T23:52:25.500959Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:52:25.501053Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:52:25.507105Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:52:25.513385Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m6 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:52:25.860892Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:52:25.860953Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:52:25.861726Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:52:25.865066Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:46.263524Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:46.263855Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:46.264774Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:46.267333Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:46.290686Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:46.290763Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:46.291592Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:46.293379Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:47.814460Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:47.815800Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:47.816143Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:47.823062Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:47.824515Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:47.836182Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m20 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:47.837666Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:47.838647Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:57.819689Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:57.820199Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:57.822933Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:57.826282Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:57.830445Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:57.830573Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:54:57.832979Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:54:57.835686Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:06.197749Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets/manual [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:06.197928Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets/manual [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:06.202075Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mPOST [3muri[0m[2m=[0m/api/assets/manual [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:06.231996Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mPOST [3muri[0m[2m=[0m/api/assets/manual [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m29 ms [3mstatus[0m[2m=[0m201
+[2m2025-11-18T23:55:07.822031Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:07.822268Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:07.826472Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:07.830098Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:07.834835Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:07.834977Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:07.840070Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:07.843860Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:17.819526Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:17.819638Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:17.822199Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:17.823566Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:17.826968Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:17.827057Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:17.828611Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:17.829530Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:18.975359Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:18.975797Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:55:18.980792Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m5 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:55:18.981883Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m6 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:16.812945Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:16.813226Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:16.815403Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:16.815625Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:16.815679Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:16.816571Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:16.817123Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:16.817905Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:16.819683Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:16.819756Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:16.820099Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:16.820121Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:16.820858Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:16.821232Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:16.822173Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:16.822173Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:26.806530Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:26.806698Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:26.810250Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:26.817354Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m7 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:26.820987Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:26.821314Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:26.822546Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:26.824324Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:36.807962Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:36.808126Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:36.811184Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:36.814139Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:36.818237Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:36.818369Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:36.820625Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:36.824195Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:46.807487Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:46.807969Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:46.810229Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:46.813757Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:46.819587Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:46.819610Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:46.823554Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:46.826506Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:56.912053Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:56.912185Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:56.914806Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:56.918679Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:56.932289Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:56.932415Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:56:56.934649Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:56:56.937945Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:07.010827Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:07.010973Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:07.013631Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:07.016166Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:07.020712Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:07.020761Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:07.022481Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:07.024947Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:17.098690Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:17.098838Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:17.101398Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:17.105132Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:17.109663Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:17.109794Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:17.112099Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:17.116117Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m4 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:42.145367Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:42.146118Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:42.147861Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:42.149498Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:42.154959Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:42.154968Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:42.156310Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:42.158153Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:47.594750Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:47.594790Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:47.595896Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:47.595928Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:47.597817Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:47.599172Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:47.599641Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:47.601403Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:47.609300Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:47.609325Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:47.609644Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:47.609659Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:47.610163Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:47.610366Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:47.611363Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:47.611364Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:57.614096Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:57.615416Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:57.618359Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:57.622488Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m4 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:57.627216Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:57.627348Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:57:57.629643Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:57:57.632545Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:07.712242Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:07.713320Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:07.715355Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:07.719669Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m4 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:07.724690Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:07.724852Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:07.726500Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:07.729046Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:17.811820Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:17.811979Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:17.814151Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:17.817440Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:17.830149Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:17.830303Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:17.832942Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:17.837265Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m4 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:24.724053Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:24.724190Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:24.725976Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:24.727763Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:24.731721Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:24.731727Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:24.733269Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:24.734570Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:34.807666Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:34.808539Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:34.812012Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:34.816456Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m4 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:34.825766Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:34.825915Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:34.828357Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:34.832314Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:43.720754Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:43.720879Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:43.722709Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:43.724598Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:43.727182Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:43.727191Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:43.728544Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:43.729820Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:53.801279Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:53.802190Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:53.804746Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:53.806385Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:53.816250Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:53.816371Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:58:53.818696Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:58:53.821248Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:03.898405Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:03.898608Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:03.902393Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:03.906429Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m4 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:03.912364Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:03.912513Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:03.915126Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:03.919048Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:13.997089Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:13.997257Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:13.998623Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:14.000154Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:14.002382Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:14.002511Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:14.003649Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:14.004879Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:16.749661Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:16.751181Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:16.755175Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:16.756679Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:26.830438Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:26.831521Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:26.833785Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:26.836275Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:26.846688Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:26.846807Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:26.849677Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:26.852622Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:36.942012Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:36.942746Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:36.946043Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:36.950365Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m4 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:36.958449Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:36.958588Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:36.960140Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:36.962284Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:46.980116Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:46.981252Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:46.984012Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:46.987572Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:46.992703Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:46.992844Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:46.994696Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:46.997309Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:57.082276Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:57.082440Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:57.085402Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:57.089199Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:57.097558Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:57.097696Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-18T23:59:57.099992Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-18T23:59:57.102305Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:00:07.182569Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:00:07.183570Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:00:07.185496Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:00:07.186931Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:00:07.189417Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:00:07.189476Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:00:07.190430Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:00:07.191527Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:00:20.087722Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:00:20.087803Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:00:20.088555Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:00:20.090091Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:00:20.093647Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:00:20.093827Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:00:20.094440Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:00:20.096636Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:01:30.259047Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:01:30.259528Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:01:30.260212Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:01:30.262156Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:01:30.266830Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:01:30.266928Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:01:30.267553Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:01:30.269724Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:02:42.064508Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:02:42.065927Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:02:42.068172Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:02:42.071806Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:02:42.076193Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:02:42.076317Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:02:42.078368Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:02:42.081337Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:04:02.087431Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:04:02.088980Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:04:02.090948Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:04:02.093820Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:04:02.099755Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:04:02.099915Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:04:02.101219Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:04:02.104025Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:05:22.083514Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:05:22.084658Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:05:22.087234Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:05:22.090704Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:05:22.095337Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:05:22.095487Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:05:22.096812Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:05:22.099357Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:07:45.416384Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:07:45.416929Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:07:45.417948Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:07:45.419758Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:07:45.424596Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:07:45.424734Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:07:45.425505Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:07:45.427557Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:07:55.413981Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:07:55.415148Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:07:55.419557Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:07:55.423285Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:07:55.427812Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:07:55.427926Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:07:55.429864Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:07:55.432432Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:05.416926Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:05.417085Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:05.419288Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:05.422344Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:05.425291Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:05.425379Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:05.426748Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:05.429260Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:15.411959Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:15.412672Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:15.413784Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:15.415352Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:15.418790Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:15.418796Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:15.420036Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:15.421608Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:25.509029Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:25.509193Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:25.510765Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:25.513728Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:25.518559Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:25.518710Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:25.520173Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:25.523190Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:39.286668Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:39.286835Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:39.289533Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:39.293436Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:39.300365Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:39.300521Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:39.302990Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:39.306643Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:53.889375Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:53.890525Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:53.892724Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:53.896395Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:53.905373Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:53.905519Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:08:53.908054Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:08:53.910586Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:09:33.191603Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:09:33.192747Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:09:33.195038Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:09:33.198660Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:09:33.204431Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:09:33.204556Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:09:33.206605Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:09:33.209862Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:09:52.054666Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:09:52.055599Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:09:52.056600Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:09:52.059103Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:09:52.062980Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:09:52.063082Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:09:52.063850Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:09:52.066195Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:11:49.814453Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:11:49.815291Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:11:49.815945Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:11:49.818038Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:11:49.920327Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:11:49.920407Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:11:49.921118Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:11:49.923415Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:41.381934Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:41.382730Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:41.383746Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:41.392667Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m8 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:41.397808Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:41.397895Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:41.399075Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:41.407190Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m8 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:41.874011Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:41.875338Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:41.875469Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:41.878955Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m3 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:41.880657Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:41.883370Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:41.885160Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:41.893571Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m12 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:46.853514Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:46.853683Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:46.854306Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:46.854406Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:46.855829Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:46.856484Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:46.857944Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:46.857954Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:47.678080Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:47.678450Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:47.678542Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:47.678551Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:47.679206Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:47.679506Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:47.681206Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:47.681210Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/policies [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m2 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:48.384502Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/risk/summary [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:48.384539Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/risk/summary [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:48.384821Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/risk/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:48.384839Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/risk/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:48.385604Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/risk/summary [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:48.385630Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/risk/summary [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m404
+[2m2025-11-19T00:28:48.386024Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/risk/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:48.386036Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/risk/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m404
+[2m2025-11-19T00:28:50.732652Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/audit?limit=50 [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:50.732755Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/audit?limit=50 [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:50.734234Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/audit?limit=50 [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:50.734324Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/audit?limit=50 [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:50.737191Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/audit?limit=50 [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:50.738058Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/audit?limit=50 [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:50.746053Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/audit?limit=50 [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m8 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:50.747098Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/audit?limit=50 [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m9 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:53.704991Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/risk/summary [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:53.705970Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/risk/summary [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m1 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:53.706082Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/risk/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:53.706100Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mOPTIONS [3muri[0m[2m=[0m/api/risk/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m200
+[2m2025-11-19T00:28:53.707649Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/risk/summary [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:53.707742Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/risk/summary [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m404
+[2m2025-11-19T00:28:53.707998Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/risk/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_request[0m[2m:[0m started processing request
+[2m2025-11-19T00:28:53.708030Z[0m [34mDEBUG[0m [1mrequest[0m[1m{[0m[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/risk/assets [3mversion[0m[2m=[0mHTTP/1.1[1m}[0m[2m:[0m [2mtower_http::trace::on_response[0m[2m:[0m finished processing request [3mlatency[0m[2m=[0m0 ms [3mstatus[0m[2m=[0m404

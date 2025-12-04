@@ -14,6 +14,7 @@ __pycache__/
 build/
 # Exception: allow dytallix-fast-launch/build directory for web pages
 !dytallix-fast-launch/build/
+!dytallix-fast-launch/build/src/lib/
 develop-eggs/
 dist/
 downloads/
@@ -48,14 +49,14 @@ yarn-error.log*
 
 # Runtime data
 data/
-logs/
-*.log
+# logs/
+# *.log
 
 # Configuration files with sensitive data
 config/secrets.toml
 config/production.toml
-.env
-.env.local
+# .env
+# .env.local
 .env.production
 
 # IDE files

@@ -17,6 +17,7 @@ import Build from './pages/Build.jsx'
 import { validateConfig } from './config/cosmos.js'
 import Wallet from './pages/Wallet.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import QuantumVaultDashboard from './pages/QuantumVaultDashboard.jsx'
 import Explorer from './pages/Explorer.jsx'
 import Deploy from './pages/Deploy.jsx'
 import QuantumBackground from './components/QuantumBackground'
@@ -60,6 +61,7 @@ function App() {
             <Route path="/status" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/analytics" element={<Dashboard />} />
+            <Route path="/quantum-vault" element={<QuantumVaultDashboard />} />
             <Route path="/tech-stack" element={<TechStack />} />
             <Route path="/tech-specs" element={<TechStack />} />
             <Route path="/techspecs" element={<TechStack />} />
@@ -68,7 +70,7 @@ function App() {
             <Route path="/dev-resources" element={<DevResources />} />
             <Route path="/docs" element={<Documentation />} />
             <Route path="/changelog" element={<Changelog />} />
-            
+
             {/* Enhanced Explorer Routes */}
             <Route path="/governance" element={<Governance />} />
             <Route path="/governance/:proposalId" element={<Governance />} />
@@ -78,7 +80,7 @@ function App() {
             <Route path="/transactions" element={<TransactionsPage />} />
             <Route path="/accounts/:address" element={<AccountsPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
-            
+
             {/* Updated module routes */}
             <Route path="/pulseguard" element={<PulseGuard />} />
             <Route path="/flowrate" element={<FlowRate />} />

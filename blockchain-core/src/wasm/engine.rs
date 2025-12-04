@@ -34,7 +34,7 @@ impl WasmEngine {
         config.wasm_function_references(false);
         config.wasm_threads(false);
         config.wasm_tail_call(false);
-        config.consume_fuel(true);
+        config.consume_fuel(false);
         config.epoch_interruption(true);
         config.memory_guaranteed_dense_image_size(0);
         config.memory_init_cow(false);
@@ -65,7 +65,7 @@ impl WasmEngine {
     ) -> Result<(Store<HostEnv>, Instance)> {
         let module = Module::new(&self.engine, code)?;
         let mut store = Store::new(&self.engine, self.host_env.clone());
-        // store.add_fuel(gas_limit)?; // removed: fuel not enabled in current wasmtime version/config
+        // store.add_fuel(gas_limit)?; // disabled fuel
         // Use epoch deadline only for coarse interruption
         store.set_epoch_deadline(gas_limit); // coarse substitute
         let mut linker = Linker::new(&self.engine);
@@ -81,25 +81,23 @@ impl WasmEngine {
             .ok_or_else(|| anyhow!("memory export not found"))
     }
     fn read_mem<T>(caller: &mut Caller<'_, T>, ptr: i32, len: i32) -> Result<Vec<u8>> {
-        if ptr < 0 || len < 0 {
-            return Err(anyhow!("negative ptr/len"));
+        if len < 0 {
+            return Err(anyhow!("negative len"));
         }
         let mem = Self::get_memory(caller)?;
         let data = mem.data(&*caller);
-        let start = ptr as usize;
+        let start = ptr as u32 as usize;
         let end = start + len as usize;
         if end > data.len() {
+            eprintln!("Out of bounds read: ptr={}, len={}, start={}, end={}, data_len={}", ptr, len, start, end, data.len());
             return Err(anyhow!("out of bounds read"));
         }
         Ok(data[start..end].to_vec())
     }
     fn write_mem<T>(caller: &mut Caller<'_, T>, ptr: i32, bytes: &[u8]) -> Result<()> {
-        if ptr < 0 {
-            return Err(anyhow!("negative ptr"));
-        }
         let mem = Self::get_memory(caller)?;
         let data = mem.data_mut(&mut *caller);
-        let start = ptr as usize;
+        let start = ptr as u32 as usize;
         let end = start + bytes.len();
         if end > data.len() {
             return Err(anyhow!("out of bounds write"));
@@ -282,8 +280,46 @@ impl WasmEngine {
                 let _ = Self::charge_fuel(&mut caller, gas_cost);
                 if let Ok(bytes) = Self::read_mem(&mut caller, msg_ptr, msg_len) {
                     if let Ok(msg) = String::from_utf8(bytes) {
+                        eprintln!("debug_log called with: {}", msg);
                         env_log.push_log(msg);
+                    } else {
+                        eprintln!("debug_log invalid utf8");
                     }
+                } else {
+                    eprintln!("debug_log read_mem failed");
+                }
+            },
+        )?;
+
+        // read_input(out_ptr, max_len) -> i32 (len)
+        let env_in = self.host_env.clone();
+        linker.func_wrap(
+            "env",
+            "read_input",
+            move |mut caller: Caller<'_, T>, out_ptr: i32, max_len: i32| -> i32 {
+                let gas_cost = env_in.gas_table().env_read;
+                let _ = Self::charge_fuel(&mut caller, gas_cost);
+                let ctx = env_in.context();
+                let input = &ctx.input;
+                let take = std::cmp::min(input.len(), max_len as usize);
+                if Self::write_mem(&mut caller, out_ptr, &input[..take]).is_ok() {
+                    take as i32
+                } else {
+                    -1
+                }
+            },
+        )?;
+
+        // write_output(ptr, len)
+        let env_out = self.host_env.clone();
+        linker.func_wrap(
+            "env",
+            "write_output",
+            move |mut caller: Caller<'_, T>, ptr: i32, len: i32| {
+                let gas_cost = env_out.gas_table().env_write + (len.max(0) as u64).div_ceil(32) * 5;
+                let _ = Self::charge_fuel(&mut caller, gas_cost);
+                if let Ok(bytes) = Self::read_mem(&mut caller, ptr, len) {
+                    env_out.write_output(&bytes);
                 }
             },
         )?;

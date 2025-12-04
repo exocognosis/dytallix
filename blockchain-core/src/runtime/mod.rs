@@ -692,6 +692,7 @@ impl DytallixRuntime {
                         block_time,
                         caller: d.from.clone(),
                         deployer: d.from.clone(),
+                        input: Vec::new(),
                     });
                     // Execute deployment via legacy runtime for now (placeholder for WASMExecutor integration)
                     if let Err(e) = self
@@ -710,6 +711,7 @@ impl DytallixRuntime {
                         block_time,
                         caller: c.from.clone(),
                         deployer: c.from.clone(),
+                        input: c.args.clone(),
                     });
                     match self.execute_contract(&c.to, &c.args).await {
                         Ok(data) => {

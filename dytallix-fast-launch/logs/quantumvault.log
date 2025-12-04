@@ -1,0 +1,5 @@
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+[QuantumVault] Loaded 69 assets from metadata
+[QuantumVault] API server running on port 3031
+[QuantumVault] Storage directory: /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/services/quantumvault-api/storage
+[QuantumVault] Loaded 69 assets

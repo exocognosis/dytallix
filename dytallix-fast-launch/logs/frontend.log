@@ -1,0 +1,9 @@
+
+> frontend@0.0.0 dev
+> vite --port 3000 --host
+
+
+  ROLLDOWN-VITE v7.1.14  ready in 133 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: http://10.111.228.16:3000/

@@ -1,0 +1,189 @@
+warning: unused variable: `status`
+   --> /Users/rickglenn/Desktop/dytallix-main/blockchain-core/src/api/mod.rs:718:9
+    |
+718 |     let status = warp::path("status")
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_status`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: `dytallix-node` (lib) generated 1 warning
+   Compiling dytallix-fast-node v0.1.0 (/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/node)
+warning: unused import: `basic_validate`
+  --> node/src/rpc/mod.rs:20:15
+   |
+20 |     mempool::{basic_validate, Mempool},
+   |               ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused variable: `ctx`
+    --> node/src/rpc/mod.rs:1732:15
+     |
+1732 |     Extension(ctx): Extension<RpcContext>,
+     |               ^^^ help: if this is intentional, prefix it with an underscore: `_ctx`
+     |
+     = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `client`
+  --> node/src/rpc/ai.rs:84:9
+   |
+84 |     let client = reqwest::Client::new();
+   |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_client`
+
+warning: `dytallix-fast-node` (lib) generated 3 warnings (run `cargo fix --lib -p dytallix-fast-node` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.21s
+     Running `/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/target/debug/dytallix-fast-node`
+Prefunded testkey account dytallix125074e67f966c5c9a0538381c2398a8966cda568 with 1000000000 udgt and udrt
+GovernanceConfig:min_deposit=1000000000 deposit_period=300 voting_period=300 quorum_bps=3333 threshold_bps=5000 veto_bps=3333 
+Secrets mode: Plain Keystore (dev) path=/Users/rickglenn/.dytallix/keystore — no passphrase required
+Validator key loaded (64 bytes) via secure provider
+Node listening on 0.0.0.0:3030
+INFO  [Storage] Committing block #3471 with 0 transaction(s) (hash: 0x8f7112ace63492)
+INFO  [Storage] Block #3471 serialized (256 bytes)
+produced block height=3471 tx_total=0 successes=0
+INFO  [Storage] Committing block #3472 with 0 transaction(s) (hash: 0x47c4f64292438c)
+INFO  [Storage] Block #3472 serialized (256 bytes)
+produced block height=3472 tx_total=0 successes=0
+Sending AI request to http://127.0.0.1:7001/score
+Oracle Verify: payload='0x1234567890abcdef:0.2986:risk-v1' valid=true
+INFO  [Storage] Committing block #3473 with 0 transaction(s) (hash: 0x772e8fce6e6c6b)
+INFO  [Storage] Block #3473 serialized (256 bytes)
+produced block height=3473 tx_total=0 successes=0
+INFO  [Storage] Committing block #3474 with 0 transaction(s) (hash: 0x44b3942ab42dad)
+INFO  [Storage] Block #3474 serialized (256 bytes)
+produced block height=3474 tx_total=0 successes=0
+INFO  [Storage] Committing block #3475 with 0 transaction(s) (hash: 0xaab3c750734554)
+INFO  [Storage] Block #3475 serialized (256 bytes)
+produced block height=3475 tx_total=0 successes=0
+INFO  [Storage] Committing block #3476 with 0 transaction(s) (hash: 0x781e373cd43e14)
+INFO  [Storage] Block #3476 serialized (256 bytes)
+produced block height=3476 tx_total=0 successes=0
+INFO  [Storage] Committing block #3477 with 0 transaction(s) (hash: 0x1ba5d9eac3877a)
+INFO  [Storage] Block #3477 serialized (256 bytes)
+produced block height=3477 tx_total=0 successes=0
+INFO  [Storage] Committing block #3478 with 0 transaction(s) (hash: 0x872d452df6dce9)
+INFO  [Storage] Block #3478 serialized (256 bytes)
+produced block height=3478 tx_total=0 successes=0
+INFO  [Storage] Committing block #3479 with 0 transaction(s) (hash: 0x15033b76d7b07a)
+INFO  [Storage] Block #3479 serialized (256 bytes)
+produced block height=3479 tx_total=0 successes=0
+INFO  [Storage] Committing block #3480 with 0 transaction(s) (hash: 0x62af845de1b6d6)
+INFO  [Storage] Block #3480 serialized (256 bytes)
+produced block height=3480 tx_total=0 successes=0
+INFO  [Storage] Committing block #3481 with 0 transaction(s) (hash: 0x1332b3917a255e)
+INFO  [Storage] Block #3481 serialized (256 bytes)
+produced block height=3481 tx_total=0 successes=0
+INFO  [Storage] Committing block #3482 with 0 transaction(s) (hash: 0xdb0c1be919e168)
+INFO  [Storage] Block #3482 serialized (256 bytes)
+produced block height=3482 tx_total=0 successes=0
+INFO  [Storage] Committing block #3483 with 0 transaction(s) (hash: 0x8c5b41ffc4b641)
+INFO  [Storage] Block #3483 serialized (256 bytes)
+produced block height=3483 tx_total=0 successes=0
+INFO  [Storage] Committing block #3484 with 0 transaction(s) (hash: 0x011e3023166f58)
+INFO  [Storage] Block #3484 serialized (256 bytes)
+produced block height=3484 tx_total=0 successes=0
+INFO  [Storage] Committing block #3485 with 0 transaction(s) (hash: 0xd29fde6e36997f)
+INFO  [Storage] Block #3485 serialized (256 bytes)
+produced block height=3485 tx_total=0 successes=0
+INFO  [Storage] Committing block #3486 with 0 transaction(s) (hash: 0x9d2b5378abc6e8)
+INFO  [Storage] Block #3486 serialized (256 bytes)
+produced block height=3486 tx_total=0 successes=0
+INFO  [Storage] Committing block #3487 with 0 transaction(s) (hash: 0x110f476d1cf627)
+INFO  [Storage] Block #3487 serialized (256 bytes)
+produced block height=3487 tx_total=0 successes=0
+INFO  [Storage] Committing block #3488 with 0 transaction(s) (hash: 0xb6e80893ac470c)
+INFO  [Storage] Block #3488 serialized (256 bytes)
+produced block height=3488 tx_total=0 successes=0
+INFO  [Storage] Committing block #3489 with 0 transaction(s) (hash: 0x6366be8bbb026c)
+INFO  [Storage] Block #3489 serialized (256 bytes)
+produced block height=3489 tx_total=0 successes=0
+INFO  [Storage] Committing block #3490 with 0 transaction(s) (hash: 0x89f3aa94d0542b)
+INFO  [Storage] Block #3490 serialized (256 bytes)
+produced block height=3490 tx_total=0 successes=0
+INFO  [Storage] Committing block #3491 with 0 transaction(s) (hash: 0xe3d38030a450d5)
+INFO  [Storage] Block #3491 serialized (256 bytes)
+produced block height=3491 tx_total=0 successes=0
+INFO  [Storage] Committing block #3492 with 0 transaction(s) (hash: 0xf6041f00dfe536)
+INFO  [Storage] Block #3492 serialized (256 bytes)
+produced block height=3492 tx_total=0 successes=0
+INFO  [Storage] Committing block #3493 with 0 transaction(s) (hash: 0x66493252c157d5)
+INFO  [Storage] Block #3493 serialized (256 bytes)
+produced block height=3493 tx_total=0 successes=0
+INFO  [Storage] Committing block #3494 with 0 transaction(s) (hash: 0x753c8caf9fff5f)
+INFO  [Storage] Block #3494 serialized (256 bytes)
+produced block height=3494 tx_total=0 successes=0
+INFO  [Storage] Committing block #3495 with 0 transaction(s) (hash: 0x8f5981127df3ce)
+INFO  [Storage] Block #3495 serialized (256 bytes)
+produced block height=3495 tx_total=0 successes=0
+INFO  [Storage] Committing block #3496 with 0 transaction(s) (hash: 0xa4bf3a0ca6472b)
+INFO  [Storage] Block #3496 serialized (256 bytes)
+produced block height=3496 tx_total=0 successes=0
+INFO  [Storage] Committing block #3497 with 0 transaction(s) (hash: 0x6dd4dfea0cc7e0)
+INFO  [Storage] Block #3497 serialized (256 bytes)
+produced block height=3497 tx_total=0 successes=0
+INFO  [Storage] Committing block #3498 with 0 transaction(s) (hash: 0xc403c1afdb1fa7)
+INFO  [Storage] Block #3498 serialized (256 bytes)
+produced block height=3498 tx_total=0 successes=0
+INFO  [Storage] Committing block #3499 with 0 transaction(s) (hash: 0xa2ff06cefaa2d9)
+INFO  [Storage] Block #3499 serialized (256 bytes)
+produced block height=3499 tx_total=0 successes=0
+INFO  [Storage] Committing block #3500 with 0 transaction(s) (hash: 0xbb694527b89654)
+INFO  [Storage] Block #3500 serialized (256 bytes)
+produced block height=3500 tx_total=0 successes=0
+INFO  [Storage] Committing block #3501 with 0 transaction(s) (hash: 0xea24b371caa2e9)
+INFO  [Storage] Block #3501 serialized (256 bytes)
+produced block height=3501 tx_total=0 successes=0
+INFO  [Storage] Committing block #3502 with 0 transaction(s) (hash: 0xd023e4e6f431bc)
+INFO  [Storage] Block #3502 serialized (256 bytes)
+produced block height=3502 tx_total=0 successes=0
+INFO  [Storage] Committing block #3503 with 0 transaction(s) (hash: 0x83871fd57a8a26)
+INFO  [Storage] Block #3503 serialized (256 bytes)
+produced block height=3503 tx_total=0 successes=0
+INFO  [Storage] Committing block #3504 with 0 transaction(s) (hash: 0x103ec92bcec750)
+INFO  [Storage] Block #3504 serialized (256 bytes)
+produced block height=3504 tx_total=0 successes=0
+INFO  [Storage] Committing block #3505 with 0 transaction(s) (hash: 0xfaa4bdce60081c)
+INFO  [Storage] Block #3505 serialized (256 bytes)
+produced block height=3505 tx_total=0 successes=0
+INFO  [Storage] Committing block #3506 with 0 transaction(s) (hash: 0x5591f040cdcf55)
+INFO  [Storage] Block #3506 serialized (256 bytes)
+produced block height=3506 tx_total=0 successes=0
+INFO  [Storage] Committing block #3507 with 0 transaction(s) (hash: 0xdc57e8c8cd6d18)
+INFO  [Storage] Block #3507 serialized (256 bytes)
+produced block height=3507 tx_total=0 successes=0
+INFO  [Storage] Committing block #3508 with 0 transaction(s) (hash: 0x2d1f3229a5df95)
+INFO  [Storage] Block #3508 serialized (256 bytes)
+produced block height=3508 tx_total=0 successes=0
+INFO  [Storage] Committing block #3509 with 0 transaction(s) (hash: 0x9d01c5c5d53da4)
+INFO  [Storage] Block #3509 serialized (256 bytes)
+produced block height=3509 tx_total=0 successes=0
+INFO  [Storage] Committing block #3510 with 0 transaction(s) (hash: 0xb8c72c4d28ee8b)
+INFO  [Storage] Block #3510 serialized (256 bytes)
+produced block height=3510 tx_total=0 successes=0
+INFO  [Storage] Committing block #3511 with 0 transaction(s) (hash: 0x42c47f57099c7a)
+INFO  [Storage] Block #3511 serialized (256 bytes)
+produced block height=3511 tx_total=0 successes=0
+INFO  [Storage] Committing block #3512 with 0 transaction(s) (hash: 0xb7a3346efddd45)
+INFO  [Storage] Block #3512 serialized (256 bytes)
+produced block height=3512 tx_total=0 successes=0
+INFO  [Storage] Committing block #3513 with 0 transaction(s) (hash: 0x202feb0c771955)
+INFO  [Storage] Block #3513 serialized (256 bytes)
+produced block height=3513 tx_total=0 successes=0
+INFO  [Storage] Committing block #3514 with 0 transaction(s) (hash: 0xab6861ee5b9996)
+INFO  [Storage] Block #3514 serialized (256 bytes)
+produced block height=3514 tx_total=0 successes=0
+INFO  [Storage] Committing block #3515 with 0 transaction(s) (hash: 0x167b62c98973b3)
+INFO  [Storage] Block #3515 serialized (256 bytes)
+produced block height=3515 tx_total=0 successes=0
+INFO  [Storage] Committing block #3516 with 0 transaction(s) (hash: 0x64758afab8318d)
+INFO  [Storage] Block #3516 serialized (256 bytes)
+produced block height=3516 tx_total=0 successes=0
+INFO  [Storage] Committing block #3517 with 0 transaction(s) (hash: 0x1a1656515cebb1)
+INFO  [Storage] Block #3517 serialized (256 bytes)
+produced block height=3517 tx_total=0 successes=0
+INFO  [Storage] Committing block #3518 with 0 transaction(s) (hash: 0x0a4cfeb3161b8b)
+INFO  [Storage] Block #3518 serialized (256 bytes)
+produced block height=3518 tx_total=0 successes=0
+INFO  [Storage] Committing block #3519 with 0 transaction(s) (hash: 0x2563442d637f78)
+INFO  [Storage] Block #3519 serialized (256 bytes)
+produced block height=3519 tx_total=0 successes=0

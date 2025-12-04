@@ -89,11 +89,13 @@ export function WalletPage() {
   const checkBalance = async (walletId: string, address: string) => {
     setWallets(prev => prev.map(w => w.id === walletId ? { ...w, isCheckingBalance: true } : w))
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
-      const response = await fetch(`${API_URL}/api/addresses/${address}`);
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3030';
+      const response = await fetch(`${API_URL}/balance/${address}`);
       if (response.ok) {
         const data = await response.json();
-        setWallets(prev => prev.map(w => w.id === walletId ? { ...w, balance: data.balance, isCheckingBalance: false } : w))
+        // Node returns { "udgt": "100", "udrt": "200" } or similar map
+        const balStr = `${data.udgt || 0} uDGT / ${data.udrt || 0} uDRT`;
+        setWallets(prev => prev.map(w => w.id === walletId ? { ...w, balance: balStr, isCheckingBalance: false } : w))
       } else {
         setWallets(prev => prev.map(w => w.id === walletId ? { ...w, isCheckingBalance: false } : w))
       }
@@ -146,11 +148,12 @@ export function WalletPage() {
 
       // Auto-fund the new wallet
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
-        const response = await fetch(`${API_URL}/api/faucet`, {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3030';
+        // Use dev faucet endpoint
+        const response = await fetch(`${API_URL}/dev/faucet`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: addr, tokens: ['DGT', 'DRT'] }),
+          body: JSON.stringify({ address: addr, amount: 1000000, denom: "udgt" }), // Request uDGT
         });
 
         if (response.ok) {
@@ -183,13 +186,13 @@ export function WalletPage() {
     setIsSearching(true)
     setSearchResult(null)
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
-      const response = await fetch(`${API_URL}/api/addresses/${searchQuery}`);
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3030';
+      const response = await fetch(`${API_URL}/balance/${searchQuery}`);
       if (response.ok) {
         const data = await response.json();
         setSearchResult({
-          balance: data.balance,
-          txCount: data.nonce // Using nonce as proxy for tx count for now
+          balance: `${data.udgt || 0} uDGT`,
+          txCount: 0 // Node balance endpoint doesn't return nonce/txCount
         })
       }
     } catch (error) {
@@ -222,13 +225,77 @@ export function WalletPage() {
   const handleSend = async () => {
     setIsSending(true)
     setSendResult(null)
-    // Mock send for now - in real implementation this would sign and broadcast
-    setTimeout(() => {
-      setIsSending(false)
-      setSendResult({ success: true, message: `Successfully sent tokens to ${sendForm.recipients.length} recipient(s)` })
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3030';
+
+      // 1. Get Chain ID and Nonce
+      const statusRes = await fetch(`${API_URL}/status`);
+      const statusData = await statusRes.json();
+      const chainId = statusData.chain_id || "dytallix-devnet";
+
+      // Actually sendForm.from is the wallet ID in the select, let's find the wallet object
+      const senderWallet = wallets.find(w => w.id === sendForm.from);
+      if (!senderWallet) throw new Error("Sender wallet not found");
+
+      const accountData = await fetch(`${API_URL}/account/${senderWallet.address}`).then(r => r.json());
+      const nonce = accountData.nonce || 0;
+
+      // 2. Construct Messages
+      const msgs = sendForm.recipients.map(r => ({
+        type: "send",
+        from: senderWallet.address,
+        to: r.address,
+        denom: r.token === 'DGT' ? 'udgt' : 'udrt', // Convert to micro-denom
+        amount: (parseFloat(r.amount) * 1_000_000).toString() // Convert to micro-units (string for u128)
+      }));
+
+      // 3. Construct Transaction
+      const tx = {
+        chain_id: chainId,
+        nonce: nonce + 1, // Increment nonce
+        msgs: msgs,
+        fee: "5000", // Fixed fee for MVP
+        memo: "Sent via Dytallix Web Wallet"
+      };
+
+      // 4. Sign (Mock/Dev Mode)
+      // Since we don't have WASM in browser yet, we rely on node's DYTALLIX_SKIP_SIG_VERIFY=true
+      const signedTx = {
+        tx: tx,
+        public_key: "ZHVtbXlfcHViX2tleQ==", // dummy_pub_key base64
+        signature: "ZHVtbXlfc2lnbmF0dXJl", // dummy_signature base64
+        algorithm: "Dilithium5",
+        version: 1
+      };
+
+      // 5. Submit
+      const submitRes = await fetch(`${API_URL}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signed_tx: signedTx })
+      });
+
+      const submitData = await submitRes.json();
+
+      if (!submitRes.ok) {
+        throw new Error(submitData.error || submitData.message || "Transaction failed");
+      }
+
+      setSendResult({ success: true, message: `Transaction submitted! Hash: ${submitData.hash}` });
+
       // Reset form
-      setSendForm(prev => ({ ...prev, recipients: [{ address: '', amount: '', token: 'DGT' }] }))
-    }, 1500)
+      setSendForm(prev => ({ ...prev, recipients: [{ address: '', amount: '', token: 'DGT' }] }));
+
+      // Refresh balance after a delay
+      setTimeout(() => checkBalance(senderWallet.id, senderWallet.address), 2000);
+
+    } catch (e: any) {
+      console.error("Send failed", e);
+      setSendResult({ success: false, message: e.message || "Failed to send transaction" });
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (

@@ -15,6 +15,7 @@ const Navbar = () => {
     { path: '/modules', label: 'AI Modules' },
     { path: '/wallet', label: 'Wallet' },
     { path: '/faucet', label: 'Faucet' },
+    { path: '/quantum-vault', label: 'QuantumVault' },
     { path: '/roadmap', label: 'Roadmap' }
   ]
 
