@@ -86,6 +86,11 @@ export function WalletPage() {
     }
   }, [wallets])
 
+  const formatBalance = (microAmount: string | number) => {
+    const amount = Number(microAmount) || 0;
+    return (amount / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 6 });
+  }
+
   const checkBalance = async (walletId: string, address: string) => {
     setWallets(prev => prev.map(w => w.id === walletId ? { ...w, isCheckingBalance: true } : w))
     try {
@@ -93,8 +98,13 @@ export function WalletPage() {
       const response = await fetch(`${API_URL}/balance/${address}`);
       if (response.ok) {
         const data = await response.json();
-        // Node returns { "udgt": "100", "udrt": "200" } or similar map
-        const balStr = `${data.udgt || 0} uDGT / ${data.udrt || 0} uDRT`;
+        // Node returns { "balances": { "udgt": "100", "udrt": "200" } } or similar
+        const balances = data.balances || {};
+        // Handle both direct value and object wrapper { balance: "100" }
+        const getVal = (val: any) => val?.balance || val || 0;
+        const udgt = getVal(balances.udgt);
+        const udrt = getVal(balances.udrt);
+        const balStr = `${formatBalance(udgt)} DGT / ${formatBalance(udrt)} DRT`;
         setWallets(prev => prev.map(w => w.id === walletId ? { ...w, balance: balStr, isCheckingBalance: false } : w))
       } else {
         setWallets(prev => prev.map(w => w.id === walletId ? { ...w, isCheckingBalance: false } : w))
@@ -153,15 +163,25 @@ export function WalletPage() {
         const response = await fetch(`${API_URL}/dev/faucet`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: addr, amount: 1000000, denom: "udgt" }), // Request uDGT
+          // Request generous testnet amounts: 1,000 DGT and 10,000 DRT
+          body: JSON.stringify({
+            address: addr,
+            udgt: 1_000_000_000,
+            udrt: 10_000_000_000
+          }),
         });
 
         if (response.ok) {
           setWallets(prev => prev.map(w => w.id === newWallet.id ? { ...w, fundingStatus: 'success' } : w))
-          // Check balance after a short delay
+          // Check balance after a short delay to allow block commitment
           setTimeout(() => {
             checkBalance(newWallet.id, addr)
-          }, 2000)
+          }, 3000)
+
+          // Double check after a longer delay to ensure consistency
+          setTimeout(() => {
+            checkBalance(newWallet.id, addr)
+          }, 6000)
         } else {
           setWallets(prev => prev.map(w => w.id === newWallet.id ? { ...w, fundingStatus: 'error' } : w))
         }
@@ -190,8 +210,10 @@ export function WalletPage() {
       const response = await fetch(`${API_URL}/balance/${searchQuery}`);
       if (response.ok) {
         const data = await response.json();
+        const balances = data.balances || {};
+        const getVal = (val: any) => val?.balance || val || 0;
         setSearchResult({
-          balance: `${data.udgt || 0} uDGT`,
+          balance: `${formatBalance(getVal(balances.udgt))} DGT / ${formatBalance(getVal(balances.udrt))} DRT`,
           txCount: 0 // Node balance endpoint doesn't return nonce/txCount
         })
       }

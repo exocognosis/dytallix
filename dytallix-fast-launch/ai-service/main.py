@@ -63,6 +63,57 @@ class AiScoreReq(BaseModel):
     hash: str
     pass
 
+class AuditRequest(BaseModel):
+    contract_code: str
+    contract_hash: str
+
+@app.post("/audit")
+async def audit_contract(
+    request: Request,
+    audit_req: AuditRequest,
+    x_dlx_client_ts: Optional[str] = Header(None),
+    x_dlx_client_sig: Optional[str] = Header(None),
+    x_dlx_client_pk: Optional[str] = Header(None)
+):
+    # 1. Static Analysis Logic
+    code = audit_req.contract_code.lower()
+    issues = []
+    score = 1.0
+
+    # Check for common vulnerabilities
+    if "selfdestruct" in code:
+        score -= 0.3
+        issues.append("Detected 'selfdestruct' - High Risk")
+    
+    if "tx.origin" in code:
+        score -= 0.2
+        issues.append("Detected 'tx.origin' usage - Phishing Risk")
+
+    if "delegatecall" in code:
+        # Simple check: warn if delegatecall is used
+        score -= 0.1
+        issues.append("Detected 'delegatecall' - Ensure proper checks")
+
+    # Clamp score
+    score = max(0.0, score)
+    score = round(score, 4)
+
+    # 2. Sign Response with PQC
+    # Payload: contract_hash:score:code-auditor
+    model_id = "code-auditor"
+    payload = f"{audit_req.contract_hash}:{score}:{model_id}"
+    signature_b64 = run_signer(["sign", oracle_sk, payload])
+
+    # 3. Return Response
+    return {
+        "score": score,
+        "contract_hash": audit_req.contract_hash,
+        "model_id": model_id,
+        "issues": issues,
+        "ts": int(time.time()),
+        "signature": signature_b64
+    }
+
 @app.post("/score")
 async def score_transaction(
     request: Request,

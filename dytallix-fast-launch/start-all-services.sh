@@ -128,7 +128,7 @@ start_service "Faucet" $FAUCET_PORT \
 # 5. Frontend (React Vite Dev Server)
 start_service "Frontend" $FRONTEND_PORT \
     "npm run dev" \
-    "$BASE_DIR/frontend"
+    "$BASE_DIR/build"
 
 echo ""
 echo -e "${GREEN}🎉 All services started successfully!${NC}"

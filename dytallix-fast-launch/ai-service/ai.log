@@ -8,3 +8,4 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:7001 (Press CTRL+C to quit)
 INFO:     127.0.0.1:54802 - "POST /score?model_id=risk-v1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49897 - "POST /audit HTTP/1.1" 404 Not Found

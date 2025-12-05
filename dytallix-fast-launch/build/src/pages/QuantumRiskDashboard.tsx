@@ -5,6 +5,9 @@ import RiskExplanations from '../components/dashboard/RiskExplanations';
 import { Section } from '../components/layout/section';
 
 const QuantumRiskDashboard: React.FC = () => {
+    // NOTE: This dashboard is solely a marketing lead magnet.
+    // Any directions to modify it must be explicitly stated.
+    // It is not intended to be a functional part of the core product logic.
     const [formData, setFormData] = useState<RiskAssessmentData>({
         industry: '',
         region: '',

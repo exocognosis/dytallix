@@ -18,14 +18,14 @@ const MAX_REQUESTS_PER_HOUR = 3;
 // Faucet configuration
 const FAUCET_CONFIG = {
   DGT: {
-    amount: 100,
+    amount: 1000,
     denom: 'udgt',
-    microAmount: 100_000_000 // 100 DGT = 100,000,000 udgt
+    microAmount: 1_000_000_000 // 1000 DGT
   },
   DRT: {
-    amount: 1000,
+    amount: 10000,
     denom: 'udrt',
-    microAmount: 1_000_000_000 // 1000 DRT = 1,000,000,000 udrt
+    microAmount: 10_000_000_000 // 10000 DRT
   }
 };
 
@@ -33,10 +33,10 @@ const FAUCET_CONFIG = {
 function checkRateLimit(address) {
   const now = Date.now();
   const userRequests = rateLimits.get(address) || [];
-  
+
   // Remove old requests outside cooldown window
   const recentRequests = userRequests.filter(time => now - time < COOLDOWN_MS);
-  
+
   if (recentRequests.length >= MAX_REQUESTS_PER_HOUR) {
     const oldestRequest = Math.min(...recentRequests);
     const timeUntilNext = COOLDOWN_MS - (now - oldestRequest);
@@ -46,7 +46,7 @@ function checkRateLimit(address) {
       requestCount: recentRequests.length
     };
   }
-  
+
   return { allowed: true };
 }
 
@@ -72,21 +72,21 @@ async function fundAddress(address, dgtAmount, drtAmount) {
         udrt: drtAmount * 1_000_000  // Convert to micro-units
       })
     });
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Blockchain faucet failed: ${errorText}`);
     }
-    
+
     const result = await response.json();
     console.log('[Faucet] ✅ Blockchain credited:', result);
-    
+
     return {
       success: true,
       funded: { dgt: dgtAmount, drt: drtAmount }
     };
     const allSucceeded = responses.every(r => r.ok);
-    
+
     return {
       success: allSucceeded,
       results,
@@ -105,7 +105,7 @@ async function fundAddress(address, dgtAmount, drtAmount) {
 app.post('/api/faucet/request', async (req, res) => {
   try {
     const { address, dgt_amount, drt_amount } = req.body;
-    
+
     // Validation
     if (!address || !address.startsWith('dyt')) {
       return res.status(400).json({
@@ -113,17 +113,17 @@ app.post('/api/faucet/request', async (req, res) => {
         message: 'Address must start with "dyt"'
       });
     }
-    
+
     const dgtAmount = dgt_amount || 0;
     const drtAmount = drt_amount || 0;
-    
+
     if (dgtAmount <= 0 && drtAmount <= 0) {
       return res.status(400).json({
         error: 'INVALID_AMOUNT',
         message: 'Must request at least one token type'
       });
     }
-    
+
     // Check amounts don't exceed limits
     if (dgtAmount > FAUCET_CONFIG.DGT.amount) {
       return res.status(400).json({
@@ -131,14 +131,14 @@ app.post('/api/faucet/request', async (req, res) => {
         message: `Maximum DGT per request: ${FAUCET_CONFIG.DGT.amount}`
       });
     }
-    
+
     if (drtAmount > FAUCET_CONFIG.DRT.amount) {
       return res.status(400).json({
         error: 'AMOUNT_TOO_HIGH',
         message: `Maximum DRT per request: ${FAUCET_CONFIG.DRT.amount}`
       });
     }
-    
+
     // Check rate limit
     const rateCheck = checkRateLimit(address);
     if (!rateCheck.allowed) {
@@ -150,19 +150,19 @@ app.post('/api/faucet/request', async (req, res) => {
         maxRequests: MAX_REQUESTS_PER_HOUR
       });
     }
-    
+
     // Fund the address
     console.log(`[Faucet] Funding ${address} with ${dgtAmount} DGT and ${drtAmount} DRT`);
     const result = await fundAddress(address, dgtAmount, drtAmount);
-    
+
     if (result.success) {
       // Record successful request
       recordRequest(address);
-      
+
       // Fetch updated balance
       const balanceResponse = await fetch(`${BLOCKCHAIN_NODE}/balance/${address}`);
       const balances = balanceResponse.ok ? await balanceResponse.json() : {};
-      
+
       res.json({
         success: true,
         message: 'Tokens sent successfully',
@@ -212,7 +212,7 @@ app.get('/api/faucet/status', (req, res) => {
 app.get('/api/faucet/check/:address', (req, res) => {
   const { address } = req.params;
   const rateCheck = checkRateLimit(address);
-  
+
   res.json({
     address,
     canRequest: rateCheck.allowed,

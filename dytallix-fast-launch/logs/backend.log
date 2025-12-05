@@ -1,5 +1,6 @@
-[INFO] 2025-12-04T01:22:49.141Z Using in-memory rate limiter
-[INFO] 2025-12-04T01:22:49.444Z Prometheus metrics initialized
-[INFO] 2025-12-04T01:22:49.444Z Anomaly detection engine stubbed (fast-launch mode)
-[INFO] 2025-12-04T01:22:49.450Z WebSocket server attached {"path":"/api/ws"}
-[INFO] 2025-12-04T01:22:49.451Z Server started {"PORT":"8787","ORIGIN":"http://localhost:3000"}
+[INFO] 2025-12-04T15:07:59.160Z Using in-memory rate limiter
+[INFO] 2025-12-04T15:07:59.311Z Prometheus metrics initialized
+[INFO] 2025-12-04T15:07:59.312Z Anomaly detection engine stubbed (fast-launch mode)
+[INFO] 2025-12-04T15:07:59.312Z Security headers enabled {"ENABLE_CSP":true}
+[INFO] 2025-12-04T15:07:59.315Z WebSocket server attached {"path":"/api/ws"}
+[INFO] 2025-12-04T15:07:59.315Z Server started {"PORT":"3001","ORIGIN":"http://localhost:3000"}

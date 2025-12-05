@@ -1385,11 +1385,11 @@ pub async fn dev_faucet(
     let udgt = payload
         .get("udgt")
         .and_then(|v| v.as_u64())
-        .unwrap_or(1_000_000);
+        .unwrap_or(1_000_000_000); // Default 1,000 DGT
     let udrt = payload
         .get("udrt")
         .and_then(|v| v.as_u64())
-        .unwrap_or(50_000_000);
+        .unwrap_or(10_000_000_000); // Default 10,000 DRT
     {
         let mut st = ctx.state.lock().unwrap();
         st.credit(addr, "udgt", udgt as u128);

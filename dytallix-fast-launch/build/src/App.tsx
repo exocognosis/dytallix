@@ -17,6 +17,8 @@ import { Contact } from "./pages/contact"
 import { Privacy } from "./pages/legal/privacy"
 import { Terms } from "./pages/legal/terms"
 import QuantumRiskDashboard from './pages/QuantumRiskDashboard'
+import AIOracleNetwork from './pages/AIOracleNetwork'
+import SmartContractAuditor from './pages/SmartContractAuditor'
 
 import { Investor } from "./pages/investor"
 import { Deploy } from "./pages/deploy"
@@ -41,6 +43,8 @@ function App() {
 
             {/* Tools */}
             <Route path="/quantum-risk" element={<QuantumRiskDashboard />} />
+            <Route path="/ai-oracle-network" element={<AIOracleNetwork />} />
+            <Route path="/smart-contract-auditor" element={<SmartContractAuditor />} />
 
             {/* Enterprise Routes */}
             <Route path="/enterprise" element={<EnterpriseHub />} />

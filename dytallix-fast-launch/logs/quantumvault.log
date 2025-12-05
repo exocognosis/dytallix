@@ -1,5 +1,58 @@
-[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
-[QuantumVault] Loaded 69 assets from metadata
-[QuantumVault] API server running on port 3031
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[Crypto] PQC Libraries Loaded: Dilithium & Kyber
+[QuantumVault] Loaded 72 assets from metadata
+[QuantumVault] API server running on port 3002
 [QuantumVault] Storage directory: /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/services/quantumvault-api/storage
-[QuantumVault] Loaded 69 assets
+[QuantumVault] Loaded 72 assets
+[QuantumVault] Encrypting Dytallix White Paper.pdf...
+[QuantumVault] Download request for: c7bcb43352135ca4b70c5785430925ec64dc23a1befcf2214d4702550b9bbab1.enc.enc
+[QuantumVault] Serving file: /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/services/quantumvault-api/storage/c7bcb43352135ca4b70c5785430925ec64dc23a1befcf2214d4702550b9bbab1.enc.enc (234699 bytes)
+[QuantumVault] Generated proof for c7bcb43352135ca4b70c5785430925ec64dc23a1befcf2214d4702550b9bbab1.enc.enc (bcd918d6d5b59dd3...)
+[QuantumVault] Anchoring proof ce57e666498b8315 to blockchain at http://localhost:3003
+[QuantumVault] ✅ Asset registered on blockchain: qv_anchor_577e35031bdcae8e0337cc01936ad8bec8d15e630e28dbee0e1ec14e8a048406
+[QuantumVault] ✅ Verified asset on-chain: {
+  asset_hash: 'bcd918d6d5b59dd3ec9f7874bf413fcb450aab1b411f2fc6e952dd12463934dd',
+  block_height: 55548,
+  message: 'Asset found on chain',
+  verified: true
+}
+[QuantumVault] ✅ Proof ce57e666498b8315 anchored at block 55549, tx: qv_anchor_577e35031bdcae8e0337cc01936ad8bec8d15e630e28dbee0e1ec14e8a048406
+[QuantumVault] Encrypting Dytallix White Paper.pdf...
+[QuantumVault] Download request for: 1f63d11c094ba323a88ebc713ecf7b064280fa605bbbf9c6face4f8b9a0816ef.enc.enc
+[QuantumVault] Serving file: /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/services/quantumvault-api/storage/1f63d11c094ba323a88ebc713ecf7b064280fa605bbbf9c6face4f8b9a0816ef.enc.enc (234699 bytes)
+[QuantumVault] Generated proof for 1f63d11c094ba323a88ebc713ecf7b064280fa605bbbf9c6face4f8b9a0816ef.enc.enc (57cf794c710e83a5...)
+[QuantumVault] Anchoring proof 4ee47ec445bde7e0 to blockchain at http://localhost:3003
+[QuantumVault] ✅ Asset registered on blockchain: qv_anchor_4f63acc9d9d44f5ec5f12f2bccebe24bc24c7d2a7c8128c41c940cba50a266b9
+[QuantumVault] ✅ Verified asset on-chain: {
+  asset_hash: '57cf794c710e83a50700e1f9989f1017b723dd94277d0b27f4a8e39b46094d0e',
+  block_height: 55562,
+  message: 'Asset found on chain',
+  verified: true
+}
+[QuantumVault] ✅ Proof 4ee47ec445bde7e0 anchored at block 55563, tx: qv_anchor_4f63acc9d9d44f5ec5f12f2bccebe24bc24c7d2a7c8128c41c940cba50a266b9
+[QuantumVault] Encrypting Dytallix White Paper.pdf...
+[QuantumVault] Download request for: 49bc706dfec4071ee4c240819afb0570161909dc1f9e82b3ae1d9e87919ae81a.enc.enc
+[QuantumVault] Serving file: /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/services/quantumvault-api/storage/49bc706dfec4071ee4c240819afb0570161909dc1f9e82b3ae1d9e87919ae81a.enc.enc (234699 bytes)
+[QuantumVault] Generated proof for 49bc706dfec4071ee4c240819afb0570161909dc1f9e82b3ae1d9e87919ae81a.enc.enc (4033fcd527d4e3fe...)
+[QuantumVault] Anchoring proof 537573d1a07a03dd to blockchain at http://localhost:3003
+[QuantumVault] ✅ Asset registered on blockchain: qv_anchor_cd5efe8d66c3532a33392f707ba5ec8775d88f9bb348a9954c9ac66df29d32ee
+[QuantumVault] ✅ Verified asset on-chain: {
+  asset_hash: '4033fcd527d4e3fe61b3a767a91f5ca4500052ff55dda2270bf22bf1793a099f',
+  block_height: 55569,
+  message: 'Asset found on chain',
+  verified: true
+}
+[QuantumVault] ✅ Proof 537573d1a07a03dd anchored at block 55570, tx: qv_anchor_cd5efe8d66c3532a33392f707ba5ec8775d88f9bb348a9954c9ac66df29d32ee
+[QuantumVault] Encrypting Dytallix White Paper.pdf...
+[QuantumVault] Download request for: 85b5bb45b52467f632780f2f7050423a23cf1946ad007acf74e991abd3f7a2be.enc.enc
+[QuantumVault] Serving file: /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/services/quantumvault-api/storage/85b5bb45b52467f632780f2f7050423a23cf1946ad007acf74e991abd3f7a2be.enc.enc (234699 bytes)
+[QuantumVault] Generated proof for 85b5bb45b52467f632780f2f7050423a23cf1946ad007acf74e991abd3f7a2be.enc.enc (3204eb02e8be5b29...)
+[QuantumVault] Anchoring proof 44eed3f8e25ae1e3 to blockchain at http://localhost:3003
+[QuantumVault] ✅ Asset registered on blockchain: qv_anchor_5bf1b1cf6dccf669564739fc62e537704e692dccd66f1e6727135159cf6442a4
+[QuantumVault] ✅ Verified asset on-chain: {
+  asset_hash: '3204eb02e8be5b29bd345ef441d4429f01548954204346d05481b6044f0f1d64',
+  block_height: 55968,
+  message: 'Asset found on chain',
+  verified: true
+}
+[QuantumVault] ✅ Proof 44eed3f8e25ae1e3 anchored at block 55969, tx: qv_anchor_5bf1b1cf6dccf669564739fc62e537704e692dccd66f1e6727135159cf6442a4

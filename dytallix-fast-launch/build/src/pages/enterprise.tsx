@@ -5,9 +5,8 @@ import { Shield, Lock, ArrowRight, Building2, Stethoscope, Briefcase, Cpu, Palet
 import { Link } from "react-router-dom"
 
 import { useState, useRef } from "react"
-import { Upload, ShieldCheck, FileKey, Activity, CheckCircle, Loader2 } from "lucide-react"
-import { generateKyberKeys, generateDilithiumKeys, encryptFilePQC, signHashPQC } from "../utils/pqc"
-import { anchorHashToBlockchain } from "../utils/blockchain"
+import { Upload, ShieldCheck, FileKey, Activity, CheckCircle, Loader2, Info } from "lucide-react"
+
 
 export function QuantumVaultDemo() {
     const [file, setFile] = useState<File | null>(null)
@@ -16,7 +15,14 @@ export function QuantumVaultDemo() {
     const [logs, setLogs] = useState<string[]>([])
     const [encryptedBlob, setEncryptedBlob] = useState<Blob | null>(null)
     const [receipt, setReceipt] = useState<any>(null)
+
+    // Verification State
+    const [verifyFile, setVerifyFile] = useState<File | null>(null)
+    const [verifyReceipt, setVerifyReceipt] = useState<any>(null)
+
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const verifyFileInputRef = useRef<HTMLInputElement>(null)
+    const verifyReceiptInputRef = useRef<HTMLInputElement>(null)
 
     const addLog = (message: string) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`])
@@ -41,54 +47,93 @@ export function QuantumVaultDemo() {
         addLog(`File Size: ${(file.size / 1024).toFixed(2)} KB`)
 
         try {
-            // 1. Key Generation
+            // 1. Upload & Encrypt (Real Backend Call)
+            addLog("Initializing QuantumVault Secure Enclave...")
+            addLog("Securing file locally...")
+
+            const formData = new FormData()
+            formData.append('file', file)
+
+            const response = await fetch('http://localhost:3002/encrypt', {
+                method: 'POST',
+                body: formData
+            })
+
+            if (!response.ok) {
+                throw new Error(`Encryption failed: ${response.statusText}`)
+            }
+
+            const result = await response.json()
+
+            // 2. Display Real Keys from Backend
             addLog("Generating Kyber-1024 Keypair (KEM)...")
-            const kyberKeys = await generateKyberKeys()
-            addLog(`Kyber Public Key: ${kyberKeys.publicKey.substring(0, 24)}...`)
+            addLog(`Kyber Public Key: ${result.kyber.publicKey.substring(0, 24)}...`)
 
-            addLog("Generating Dilithium-5 Keypair (Digital Signature)...")
-            const dilithiumKeys = await generateDilithiumKeys()
-            addLog(`Dilithium Public Key: ${dilithiumKeys.publicKey.substring(0, 24)}...`)
+            addLog("Generating Dilithium-3 Keypair (Digital Signature)...")
+            addLog(`Dilithium Public Key: ${result.dilithium.publicKey.substring(0, 24)}...`)
 
-            // 2. Encryption
+            // 3. Display Encryption Details
             addLog("Encrypting file data (AES-GCM + Kyber Encapsulation)...")
-            const encryptedData = await encryptFilePQC(file, kyberKeys.publicKey)
-            addLog(`Encryption Complete. Ciphertext size: ${encryptedData.ciphertext.length} bytes`)
-            addLog(`Kyber Capsule: ${encryptedData.capsule.substring(0, 24)}...`)
+            addLog(`Encryption Complete. Ciphertext saved to Secure Enclave.`)
+            addLog(`Kyber Capsule: ${result.kyber.capsule.substring(0, 24)}...`)
 
-            // Store encrypted blob for download
-            const blob = new Blob([encryptedData.ciphertext], { type: "application/octet-stream" })
-            setEncryptedBlob(blob)
+            // Store encrypted blob for download (Fetch it back from backend)
+            // For this demo, we'll fetch the .enc file we just created
+            const encFileResponse = await fetch(`http://localhost:3002/download/${result.encryptedFilename}`)
+            const encBlob = await encFileResponse.blob()
+            setEncryptedBlob(encBlob)
 
-            // 3. Hashing & Signing
+            // 4. Display Hashing & Signing
             addLog("Calculating SHA-256 Hash of encrypted payload...")
-            const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(encryptedData.ciphertext));
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            addLog(`Payload Hash: ${hashHex}`)
+            addLog(`Payload Hash: ${result.hash}`)
 
-            addLog("Signing Hash with Dilithium-5...")
-            const signature = await signHashPQC(hashHex, dilithiumKeys.privateKey)
-            addLog(`Dilithium Signature: ${signature.substring(0, 24)}...`)
+            addLog("Signing Hash with Dilithium-3...")
+            addLog(`Dilithium Signature: ${result.dilithium.signature.substring(0, 24)}...`)
 
-            // 4. Blockchain Anchoring
+            // 5. Blockchain Anchoring (Real)
+            // The backend could have done this, but let's do it explicitly via /anchor if needed
+            // OR if the backend already did it (which we didn't implement fully in /encrypt yet), we do it now.
+            // Let's call /anchor on the backend to be sure.
+
+            // First generate a proof object to anchor
+            const proofRes = await fetch('http://localhost:3002/proof/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    blake3: result.hash, // Using SHA256 as blake3 placeholder for now
+                    filename: result.encryptedFilename,
+                    mime: "application/octet-stream",
+                    size: encBlob.size
+                })
+            })
+            const proofData = await proofRes.json()
+
             setStatus("anchoring")
             addLog("Connecting to Dytallix Node...")
             addLog("Anchoring Hash & Signature to Blockchain...")
-            const txHash = await anchorHashToBlockchain(hashHex, signature, "User-1")
+
+            const anchorRes = await fetch('http://localhost:3002/anchor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ proofId: proofData.proofId })
+            })
+            const anchorResult = await anchorRes.json()
+
+            if (!anchorResult.success) throw new Error(anchorResult.error)
+
             addLog(`Transaction Confirmed!`)
-            addLog(`Tx Hash: ${txHash}`)
+            addLog(`Tx Hash: ${anchorResult.transaction.hash}`)
 
             // Create Receipt
             setReceipt({
                 timestamp: new Date().toISOString(),
                 fileName: file.name,
                 fileSize: file.size,
-                encryption: "AES-GCM + Kyber-1024",
-                signature: "Dilithium-5",
-                payloadHash: hashHex,
-                txHash: txHash,
-                signer: dilithiumKeys.publicKey.substring(0, 32) + "..."
+                encryption: result.encryptionMethod,
+                signature: result.signatureMethod,
+                payloadHash: result.hash,
+                txHash: anchorResult.transaction.hash,
+                signer: result.dilithium.publicKey.substring(0, 32) + "..."
             })
 
             setStatus("secured")
@@ -129,26 +174,52 @@ export function QuantumVaultDemo() {
     const startVerification = () => {
         setView("verify")
         setLogs([]) // Clear logs for verification phase
-        addLog("Initializing Verification Sequence...")
-        addLog("Loading local encrypted asset...")
+
+        // If we just secured a file, auto-populate verification
+        if (encryptedBlob && receipt) {
+            // Convert blob to file for consistency
+            const fileFromBlob = new File([encryptedBlob], `${file?.name}.enc`, { type: "application/octet-stream" })
+            setVerifyFile(fileFromBlob)
+            setVerifyReceipt(receipt)
+            addLog("Initializing Verification Sequence...")
+            addLog("Loading local encrypted asset...")
+        } else {
+            // Clean slate for manual upload
+            setVerifyFile(null)
+            setVerifyReceipt(null)
+            addLog("Ready for verification. Please upload asset and receipt.")
+        }
     }
 
     const performVerification = async () => {
+        if (!verifyFile || !verifyReceipt) return
+
         setStatus("verifying")
-        addLog(`Verifying integrity of ${file?.name}.enc...`)
+        addLog(`Verifying integrity of ${verifyFile.name}...`)
 
         try {
             // Simulate fetching from blockchain
-            addLog(`Querying Dytallix Ledger for Tx: ${receipt.txHash}...`)
+            addLog(`Querying Dytallix Ledger for Tx: ${verifyReceipt.txHash}...`)
             await new Promise(resolve => setTimeout(resolve, 800))
             addLog("Block #1,234,567 confirmed. Retrieving anchored hash...")
 
             await new Promise(resolve => setTimeout(resolve, 600))
-            addLog(`On-Chain Hash: ${receipt.payloadHash}`)
+            addLog(`On-Chain Hash: ${verifyReceipt.payloadHash}`)
 
             addLog("Recalculating local file hash...")
+
+            // REAL HASH CALCULATION
+            const fileBuffer = await verifyFile.arrayBuffer()
+            const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer)
+            const hashArray = Array.from(new Uint8Array(hashBuffer))
+            const calculatedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+
             await new Promise(resolve => setTimeout(resolve, 500))
-            addLog(`Local Hash:    ${receipt.payloadHash}`)
+            addLog(`Local Hash:    ${calculatedHash}`)
+
+            if (calculatedHash !== verifyReceipt.payloadHash) {
+                throw new Error("HASH MISMATCH! File integrity compromised.")
+            }
 
             addLog("Verifying Dilithium-5 Signature...")
             await new Promise(resolve => setTimeout(resolve, 600))
@@ -159,12 +230,34 @@ export function QuantumVaultDemo() {
 
         } catch (error) {
             addLog(`ERROR: Verification failed. ${error}`)
-            setStatus("secured") // Revert to just secured state
+            setStatus("idle") // Allow retry
+        }
+    }
+
+    const handleVerifyFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setVerifyFile(e.target.files[0])
+        }
+    }
+
+    const handleVerifyReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0]
+            const reader = new FileReader()
+            reader.onload = (event) => {
+                try {
+                    const json = JSON.parse(event.target?.result as string)
+                    setVerifyReceipt(json)
+                } catch (err) {
+                    addLog("ERROR: Invalid receipt file format.")
+                }
+            }
+            reader.readAsText(file)
         }
     }
 
     return (
-        <div className="w-full overflow-hidden">
+        <div className="w-full overflow-hidden p-1">
             <div
                 className="transition-transform duration-700 ease-in-out flex w-[200%]"
                 style={{ transform: view === "secure" ? "translateX(0)" : "translateX(-50%)" }}
@@ -207,6 +300,21 @@ export function QuantumVaultDemo() {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+
+                            <div className="flex justify-center">
+                                <button
+                                    onClick={() => {
+                                        setView("verify")
+                                        setVerifyFile(null)
+                                        setVerifyReceipt(null)
+                                        setLogs([])
+                                    }}
+                                    className="text-sm text-muted-foreground hover:text-blue-400 transition-colors flex items-center gap-2"
+                                >
+                                    <ShieldCheck className="w-4 h-4" />
+                                    Already have a secure file? Verify it here
+                                </button>
                             </div>
 
                             {status === "idle" || status === "encrypting" || status === "anchoring" ? (
@@ -312,7 +420,7 @@ export function QuantumVaultDemo() {
                 <div className="w-1/2 px-1">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start h-full">
                         {/* Left: Verification Controls */}
-                        <GlassPanel hoverEffect={true} className="p-8 space-y-8 h-full flex flex-col justify-center">
+                        <GlassPanel hoverEffect={true} className="p-8 space-y-8 h-full flex flex-col">
                             <div className="text-center space-y-4">
                                 <div className="w-20 h-20 mx-auto rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
                                     <ShieldCheck className="w-10 h-10" />
@@ -324,18 +432,88 @@ export function QuantumVaultDemo() {
                             </div>
 
                             <div className="bg-white/5 rounded-lg p-6 space-y-4 border border-white/10">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Asset Name:</span>
-                                    <span className="font-mono">{file?.name}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Encryption:</span>
-                                    <span className="font-mono text-blue-400">Kyber-1024</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Signature:</span>
-                                    <span className="font-mono text-purple-400">Dilithium-5</span>
-                                </div>
+                                {verifyFile && verifyReceipt ? (
+                                    <>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Asset Name:</span>
+                                            <span className="font-mono">{verifyReceipt.fileName}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Encryption:</span>
+                                            <span className="font-mono text-blue-400">{verifyReceipt.encryption}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Signature:</span>
+                                            <span className="font-mono text-purple-400">{verifyReceipt.signature}</span>
+                                        </div>
+                                        <div className="pt-4 border-t border-white/10">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="w-full text-xs text-muted-foreground hover:text-white"
+                                                onClick={() => {
+                                                    setVerifyFile(null)
+                                                    setVerifyReceipt(null)
+                                                    setLogs([])
+                                                }}
+                                            >
+                                                Clear & Verify Different Asset
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-xs text-blue-200 space-y-2">
+                                            <p className="font-bold flex items-center gap-2">
+                                                <Info className="w-3 h-3" /> Instructions:
+                                            </p>
+                                            <ul className="list-disc pl-4 space-y-1 opacity-90">
+                                                <li><strong>Top Box:</strong> Upload the <code className="bg-black/30 px-1 rounded">.enc</code> file (e.g., <em>MyFile.pdf.enc</em>).</li>
+                                                <li><strong>Bottom Box:</strong> Upload the <code className="bg-black/30 px-1 rounded">.json</code> receipt file.</li>
+                                            </ul>
+                                        </div>
+
+                                        {/* File Upload */}
+                                        <div
+                                            className={`border border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${verifyFile ? 'border-green-500/50 bg-green-500/5' : 'border-white/10 hover:border-white/20'}`}
+                                            onClick={() => verifyFileInputRef.current?.click()}
+                                        >
+                                            <input
+                                                type="file"
+                                                ref={verifyFileInputRef}
+                                                onChange={handleVerifyFileChange}
+                                                className="hidden"
+                                                accept=".enc"
+                                            />
+                                            <div className="flex items-center justify-center gap-3">
+                                                <FileKey className={`w-5 h-5 ${verifyFile ? 'text-green-400' : 'text-muted-foreground'}`} />
+                                                <span className="text-sm font-medium">
+                                                    {verifyFile ? verifyFile.name : "Upload Encrypted File (.enc)"}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Receipt Upload */}
+                                        <div
+                                            className={`border border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${verifyReceipt ? 'border-green-500/50 bg-green-500/5' : 'border-white/10 hover:border-white/20'}`}
+                                            onClick={() => verifyReceiptInputRef.current?.click()}
+                                        >
+                                            <input
+                                                type="file"
+                                                ref={verifyReceiptInputRef}
+                                                onChange={handleVerifyReceiptChange}
+                                                className="hidden"
+                                                accept=".json"
+                                            />
+                                            <div className="flex items-center justify-center gap-3">
+                                                <FileText className={`w-5 h-5 ${verifyReceipt ? 'text-green-400' : 'text-muted-foreground'}`} />
+                                                <span className="text-sm font-medium">
+                                                    {verifyReceipt ? "Receipt Loaded" : "Upload Receipt (.json)"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {status === "verified" ? (
@@ -361,7 +539,7 @@ export function QuantumVaultDemo() {
                                     size="lg"
                                     className="w-full text-lg h-14 bg-blue-600 hover:bg-blue-700"
                                     onClick={performVerification}
-                                    disabled={status === "verifying"}
+                                    disabled={status === "verifying" || !verifyFile || !verifyReceipt}
                                 >
                                     {status === "verifying" ? (
                                         <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Verifying...</>
