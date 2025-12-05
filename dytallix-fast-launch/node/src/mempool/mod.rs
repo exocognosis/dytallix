@@ -252,6 +252,9 @@ impl Mempool {
                         // Data messages don't require token reserves, only fee payment
                         // which is already handled above
                     }
+                    TxMessage::DmsRegister { .. } | TxMessage::DmsPing { .. } | TxMessage::DmsClaim { .. } => {
+                        // DMS messages don't require token reserves from sender, only fee
+                    }
                 }
             }
         } else {

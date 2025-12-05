@@ -161,6 +161,9 @@ fn validate_signed_tx(
                 // Data messages don't require balance checks, only fee payment
                 // which is already accounted for above
             }
+            Msg::DmsRegister { .. } | Msg::DmsPing { .. } | Msg::DmsClaim { .. } => {
+                // DMS messages don't require balance checks, only fee
+            }
         }
     }
 
@@ -356,6 +359,24 @@ pub async fn submit(
                 tx_messages.push(TxMessage::Data {
                     from: msg_from.clone(),
                     data: data.clone(),
+                });
+            }
+            Msg::DmsRegister { from, beneficiary, period } => {
+                tx_messages.push(TxMessage::DmsRegister {
+                    from: from.clone(),
+                    beneficiary: beneficiary.clone(),
+                    period: *period,
+                });
+            }
+            Msg::DmsPing { from } => {
+                tx_messages.push(TxMessage::DmsPing {
+                    from: from.clone(),
+                });
+            }
+            Msg::DmsClaim { from, owner } => {
+                tx_messages.push(TxMessage::DmsClaim {
+                    from: from.clone(),
+                    owner: owner.clone(),
                 });
             }
         }

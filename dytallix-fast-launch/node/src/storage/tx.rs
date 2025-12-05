@@ -69,6 +69,20 @@ pub enum TxMessage {
         from: String,
         data: String,
     },
+    // Dead Man Switch messages
+    DmsRegister {
+        from: String,
+        beneficiary: String,
+        #[serde(with = "u128_serde")]
+        period: u128, 
+    },
+    DmsPing {
+        from: String,
+    },
+    DmsClaim {
+        from: String,
+        owner: String,
+    },
     // Future message types can be added here:
     // Delegate { validator: String, amount: u128 },
     // Vote { proposal_id: u64, option: VoteOption },

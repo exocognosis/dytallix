@@ -5,6 +5,7 @@ pub mod governance;
 #[cfg(feature = "oracle")]
 pub mod oracle;
 pub mod staking;
+pub mod dead_man_switch;
 #[cfg(feature = "contracts")]
 pub mod wasm;
 

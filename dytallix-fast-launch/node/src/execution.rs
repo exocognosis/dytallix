@@ -237,11 +237,11 @@ fn execute_multi_message_transaction(
 
     // Step 8: Execute each message
     for (idx, msg) in messages.iter().enumerate() {
-        if let Err(_) = execute_message(msg, state, &mut ctx) {
+        if let Err(e) = execute_message(msg, state, &mut ctx, block_height) {
             // Out of gas during execution - revert state but keep fee
             ctx.revert_state_changes(state);
             return ExecutionResult {
-                receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, format!("OutOfGas at message {}", idx), block_height, tx_index),
+                receipt: create_failed_receipt(tx, ctx.gas_used(), gas_limit, gas_price, format!("Execution failed at message {}: {}", idx, e), block_height, tx_index),
                 state_changes: Vec::new(),
                 gas_used: ctx.gas_used(),
                 success: false,
@@ -264,11 +264,12 @@ fn execute_multi_message_transaction(
     }
 }
 
-/// Execute a single message (Send transfer)
+/// Execute a single message
 fn execute_message(
     msg: &crate::storage::tx::TxMessage,
     state: &mut State,
     ctx: &mut ExecutionContext,
+    block_height: u64,
 ) -> Result<(), GasError> {
     use crate::storage::tx::TxMessage;
     
@@ -312,6 +313,45 @@ fn execute_message(
             
             // Data messages don't modify state - they're just anchored on-chain
             // The data is already stored in the transaction itself
+            Ok(())
+        }
+        TxMessage::DmsRegister { from, beneficiary, period } => {
+            ctx.consume_gas(1000, "dms_register")?;
+            let dms = crate::runtime::dead_man_switch::DeadManSwitchModule::new(state.storage.clone());
+            dms.register(from, beneficiary, *period as u64, block_height)
+                .map_err(|e| GasError::Custom(e))?;
+            Ok(())
+        }
+        TxMessage::DmsPing { from } => {
+            ctx.consume_gas(500, "dms_ping")?;
+            let dms = crate::runtime::dead_man_switch::DeadManSwitchModule::new(state.storage.clone());
+            dms.ping(from, block_height)
+                .map_err(|e| GasError::Custom(e))?;
+            Ok(())
+        }
+        TxMessage::DmsClaim { from, owner } => {
+            ctx.consume_gas(2000, "dms_claim")?;
+            let dms = crate::runtime::dead_man_switch::DeadManSwitchModule::new(state.storage.clone());
+            let beneficiary = dms.validate_claim(owner, from, block_height)
+                .map_err(|e| GasError::Custom(e))?;
+            
+            // Transfer all funds
+            let balances = state.balances_of(owner);
+            for (denom, amount) in balances {
+                if amount > 0 {
+                    let owner_old = amount;
+                    let beneficiary_old = state.balance_of(&beneficiary, &denom);
+                    
+                    let owner_new = 0;
+                    let beneficiary_new = beneficiary_old + amount;
+                    
+                    ctx.record_state_change(owner.clone(), denom.clone(), owner_old, owner_new);
+                    ctx.record_state_change(beneficiary.clone(), denom.clone(), beneficiary_old, beneficiary_new);
+                    
+                    state.set_balance(owner, &denom, owner_new);
+                    state.set_balance(&beneficiary, &denom, beneficiary_new);
+                }
+            }
             Ok(())
         }
     }

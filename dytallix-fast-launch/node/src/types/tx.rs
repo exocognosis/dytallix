@@ -30,6 +30,19 @@ pub enum Msg {
         from: String,
         data: String, // JSON or arbitrary string data to anchor on-chain
     },
+    DmsRegister {
+        from: String,
+        beneficiary: String,
+        #[serde(with = "as_str_u128")]
+        period: u128,
+    },
+    DmsPing {
+        from: String,
+    },
+    DmsClaim {
+        from: String,
+        owner: String,
+    },
 }
 
 impl Msg {
@@ -72,6 +85,30 @@ impl Msg {
                     return Err(anyhow!("data too large: max 1MB"));
                 }
             }
+            Msg::DmsRegister { from, beneficiary, period } => {
+                if from.is_empty() {
+                    return Err(anyhow!("from address cannot be empty"));
+                }
+                if beneficiary.is_empty() {
+                    return Err(anyhow!("beneficiary address cannot be empty"));
+                }
+                if *period == 0 {
+                    return Err(anyhow!("period cannot be zero"));
+                }
+            }
+            Msg::DmsPing { from } => {
+                if from.is_empty() {
+                    return Err(anyhow!("from address cannot be empty"));
+                }
+            }
+            Msg::DmsClaim { from, owner } => {
+                if from.is_empty() {
+                    return Err(anyhow!("from address cannot be empty"));
+                }
+                if owner.is_empty() {
+                    return Err(anyhow!("owner address cannot be empty"));
+                }
+            }
         }
         Ok(())
     }
@@ -81,6 +118,9 @@ impl Msg {
         match self {
             Msg::Send { from, .. } => from,
             Msg::Data { from, .. } => from,
+            Msg::DmsRegister { from, .. } => from,
+            Msg::DmsPing { from, .. } => from,
+            Msg::DmsClaim { from, .. } => from,
         }
     }
 }

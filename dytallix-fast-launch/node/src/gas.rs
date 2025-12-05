@@ -47,6 +47,9 @@ pub enum GasError {
 
     #[error("Gas overflow in calculation")]
     Overflow,
+
+    #[error("Execution error: {0}")]
+    Custom(String),
 }
 
 // Gas schedule containing all cost constants
