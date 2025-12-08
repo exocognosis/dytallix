@@ -44,7 +44,7 @@ jobs:
     outputs:
       test-matrix: ${{ steps.test-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup test matrix
         id: test-matrix
@@ -88,7 +88,7 @@ jobs:
           --health-retries=3
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -222,7 +222,7 @@ jobs:
           --health-retries=3
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -411,7 +411,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event.inputs.test_type == 'comprehensive'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download test artifacts
         uses: actions/download-artifact@v3
