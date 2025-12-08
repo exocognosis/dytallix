@@ -41,7 +41,7 @@ jobs:
           python eval/gan_eval.py --quick --seed 42
       - name: Upload GAN eval artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pulseguard-gan-eval
           path: |

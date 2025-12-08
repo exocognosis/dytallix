@@ -135,7 +135,7 @@ jobs:
           cat /tmp/test-keystore/*.json | jq .address
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: pqc-benchmark-results
@@ -188,7 +188,7 @@ jobs:
           FAUCET_URL=http://localhost:8787 cargo test --test faucet_integration || echo "Integration tests completed with issues"
 
       - name: Upload Cypress screenshots on failure
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: cypress-screenshots
@@ -196,7 +196,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload Cypress videos on failure
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: cypress-videos
@@ -262,7 +262,7 @@ jobs:
 
       - name: Upload build artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: build-artifacts
           path: |
@@ -274,7 +274,7 @@ jobs:
           bash dytallix-lean-launch/scripts/error_surfacing.sh || true
       - name: Upload build logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: build-logs
           path: |
@@ -329,7 +329,7 @@ jobs:
           npm run build
           node --test test/dilithium3.vectors.test.js
       - name: Upload KAT fixtures
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: kat-fixtures

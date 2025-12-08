@@ -104,7 +104,7 @@ jobs:
       
       - name: Upload KAT evidence
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: pqc-kat-evidence
           path: dytallix-lean-launch/launch-evidence/pqc/

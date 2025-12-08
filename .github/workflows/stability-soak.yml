@@ -33,7 +33,7 @@ jobs:
           if [ ${missed:-0} -gt 5 ]; then echo "Too many missed blocks: $missed"; exit 1; fi
           echo "Missed blocks: $missed (PASS)"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: stability-soak-results
           path: |
