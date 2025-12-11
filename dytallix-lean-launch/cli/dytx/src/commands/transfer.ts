@@ -24,7 +24,7 @@ export const transferCommand = new Command('transfer')
   .action(async (options, command) => {
     try {
       const globalOpts = command.parent.opts()
-      
+
       // Validate required options
       const required = ['from', 'to', 'amount']
       for (const field of required) {
@@ -50,7 +50,7 @@ export const transferCommand = new Command('transfer')
       console.log(chalk.gray(`From: ${options.from}`))
       console.log(chalk.gray(`To: ${options.to}`))
       console.log(chalk.gray(`Amount: ${options.amount} ${options.denom.toUpperCase()}`))
-      
+
       if (options.memo) {
         console.log(chalk.gray(`Memo: ${options.memo}`))
       }
@@ -60,7 +60,7 @@ export const transferCommand = new Command('transfer')
       const acct = await client.getAccount(options.from)
       const nonce = Number(acct.nonce || 0)
       const chainId = globalOpts.chainId || (await client.getStats()).chain_id
-      const denom = options.denom.toUpperCase() === 'UDRT' ? 'DRT' : 'DGT'
+      const denom = options.denom === 'udrt' ? 'udrt' : 'udgt'
       const tx = buildSendTx(chainId, nonce, options.from, options.to, denom, amountMicro, options.memo)
 
       // Load keystore (by name or by matching address) and decrypt

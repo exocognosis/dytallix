@@ -1,7 +1,7 @@
 import { createHash } from 'crypto'
 import { DILITHIUM_ALGO, signDilithium } from './pqc.js'
 
-export type Msg = { type: 'send'; from: string; to: string; denom: 'DGT' | 'DRT'; amount: string }
+export type Msg = { type: 'send'; from: string; to: string; denom: string; amount: string }
 
 export interface Tx {
   chain_id: string
@@ -16,7 +16,7 @@ export function buildSendTx(
   nonce: number,
   from: string,
   to: string,
-  denom: 'DGT' | 'DRT',
+  denom: string,
   amountMicro: string,
   memo = '',
   fee: string | undefined = '1000'
@@ -70,13 +70,13 @@ export function signTx(tx: Tx, secretKey: Uint8Array, publicKey: Uint8Array) {
     msgs: tx.msgs,
     nonce: tx.nonce
   })
-  
+
   // Hash the canonical bytes before signing (dilithium5 will sign the 32-byte hash)
   const txHashBytes = createHash('sha3-256').update(Buffer.from(signBytes)).digest()
-  
+
   // Sign the hash, not the canonical bytes
   const signature = signDilithium(secretKey, txHashBytes)
-  
+
   return {
     tx: {
       chain_id: tx.chain_id,

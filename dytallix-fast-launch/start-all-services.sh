@@ -107,7 +107,7 @@ echo -e "${BLUE}🔧 Starting services...${NC}"
 
 # 1. Blockchain Core (Rust)
 start_service "Blockchain" $BLOCKCHAIN_PORT \
-    "DYTALLIX_SKIP_SIG_VERIFY=true DYT_RPC_PORT=$BLOCKCHAIN_PORT cargo run --release --package dytallix-fast-node --bin dytallix-fast-node" \
+    "DYTALLIX_SKIP_SIG_VERIFY=true DYT_RPC_PORT=$BLOCKCHAIN_PORT cargo run --release --package dytallix-fast-node --bin dytallix-fast-node --features full-node" \
     "$BASE_DIR"
 
 # 2. QuantumVault API (Node.js)

@@ -54,9 +54,9 @@ export const keysCommand = new Command('keys')
     }))
   .addCommand(new Command('list')
     .description('List keys (names and addresses)')
-    .action(() => {
-      const fs = require('fs') as typeof import('fs')
-      const path = require('path') as typeof import('path')
+    .action(async () => {
+      const fs = await import('fs')
+      const path = await import('path')
       const dir = defaultKeystoreDir()
       const files = fs.readdirSync(dir).filter((f: string) => f.endsWith('.json'))
       if (!files.length) { console.log('No keys found in', dir); return }
@@ -64,6 +64,6 @@ export const keysCommand = new Command('keys')
         try {
           const rec = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))
           console.log(`${f.replace(/\.json$/, '')}\t${rec.address}`)
-        } catch {}
+        } catch { }
       }
     }))

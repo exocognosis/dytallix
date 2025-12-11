@@ -15,8 +15,8 @@ type FetchLike = (url: string, init?: RequestInit) => Promise<FetchResponse>
 const fetchFn: FetchLike = (globalThis as any).fetch
   ? ((globalThis as any).fetch.bind(globalThis) as FetchLike)
   : (() => {
-      throw new Error('Global fetch API is not available in this runtime')
-    })
+    throw new Error('Global fetch API is not available in this runtime')
+  })
 
 function normalizeUrl(base: string, path: string): string {
   const trimmed = base.replace(/\/+$/, '')
@@ -34,7 +34,7 @@ async function parseJson(res: FetchResponse) {
 }
 
 export class DytClient {
-  constructor(private readonly rpcEndpoint: string) {}
+  constructor(private readonly rpcEndpoint: string) { }
 
   private async request(path: string, init?: RequestInit) {
     const url = normalizeUrl(this.rpcEndpoint, path)
@@ -105,22 +105,21 @@ export class DytClient {
 
   async contractDeploy(wasm: Uint8Array, gasLimit: number) {
     const payload = {
-      code: Buffer.from(wasm).toString('base64'),
-      gas_limit: gasLimit,
-      init_data: '{}'
+      code: Buffer.from(wasm).toString('hex'),
+      gas_limit: gasLimit
     }
-    return this.post('/api/contract/deploy', payload)
+    return this.post('/contracts/deploy', payload)
   }
 
   async contractExecute(address: string, method: string, args?: Record<string, unknown>, gasLimit = 100_000) {
     const payload: Record<string, unknown> = {
-      contract_id: address,
+      address: address,
       method,
       gas_limit: gasLimit
     }
     if (args !== undefined) {
-      payload.args = args
+      payload.args = Buffer.from(JSON.stringify(args)).toString('hex')
     }
-    return this.post('/api/contract/call', payload)
+    return this.post('/contracts/call', payload)
   }
 }
