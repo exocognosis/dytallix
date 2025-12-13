@@ -16,8 +16,8 @@ const AIOracleNetwork: React.FC = () => {
             lastUpdate: '2 mins ago',
             transactionsScored: '14,205',
             icon: Shield,
-            color: 'text-accent-blue',
-            bg: 'bg-accent-blue/10'
+            color: 'text-blue-500',
+            bg: 'bg-blue-500/10'
         },
         {
             id: 'garrison',
@@ -94,9 +94,9 @@ const AIOracleNetwork: React.FC = () => {
                         <h2 className="text-2xl font-bold">Active Modules</h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="flex flex-wrap justify-center gap-6 items-stretch">
                         {activeModules.map((module) => (
-                            <GlassPanel key={module.id} className="p-6 relative overflow-hidden group flex flex-col h-full" hoverEffect={true}>
+                            <GlassPanel key={module.id} className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] h-[720px] p-6 relative overflow-hidden group flex flex-col" hoverEffect={true}>
                                 <div className="absolute top-0 right-0 p-4 opacity-50">
                                     <Zap className="w-24 h-24 text-accent-blue/5 -rotate-12 transform translate-x-8 -translate-y-8" />
                                 </div>
@@ -162,7 +162,7 @@ const AIOracleNetwork: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {roadmapModules.map((module) => (
-                            <GlassPanel key={module.id} className="p-6 opacity-60 hover:opacity-100 transition-opacity flex flex-col h-full" hoverEffect={true}>
+                            <GlassPanel key={module.id} className="h-[720px] p-6 opacity-60 hover:opacity-100 transition-opacity flex flex-col" hoverEffect={true}>
                                 <div className={`h-12 w-12 rounded-xl ${module.bg} flex items-center justify-center ${module.color} mb-4`}>
                                     <module.icon className="h-6 w-6" />
                                 </div>

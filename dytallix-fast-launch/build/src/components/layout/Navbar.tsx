@@ -23,10 +23,11 @@ export function Navbar() {
         { name: "Home", path: "/" },
         { name: "Build", path: "/build" },
         { name: "Enterprise", path: "/enterprise" },
-        { name: "Network", path: "/build/blockchain" },
+        { name: "Explorer", path: "/build/blockchain" },
         { name: "AI Network", path: "/ai-oracle-network" },
         { name: "Technology", path: "/tech-stack" },
         { name: "Risk Analysis", path: "/quantum-risk" },
+        { name: "Resources", path: "/resources" },
     ]
 
     return (
@@ -42,22 +43,20 @@ export function Navbar() {
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                 {/* Logo */}
                 <Link to="/" className="flex items-center gap-2 group">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg group-hover:shadow-primary/20 transition-all">
-                        D
-                    </div>
+                    <img src="/Logo2.png" alt="Dytallix Logo" className="w-8 h-8 rounded-lg shadow-lg group-hover:shadow-primary/20 transition-all" />
                     <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
                         Dytallix
                     </span>
                 </Link>
 
                 {/* Desktop Nav */}
-                <nav className="hidden md:flex items-center justify-center flex-1 gap-8">
+                <nav className="hidden md:flex items-center justify-between flex-1 mx-6 gap-1">
                     {navLinks.map((link) => (
                         <Link
                             key={link.path}
                             to={link.path}
                             className={cn(
-                                "text-sm font-medium transition-colors hover:text-primary relative py-1",
+                                "text-sm font-medium transition-colors hover:text-primary relative py-1 whitespace-nowrap",
                                 location.pathname === link.path
                                     ? "text-primary after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full"
                                     : "text-muted-foreground"

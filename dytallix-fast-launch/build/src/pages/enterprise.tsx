@@ -5,7 +5,7 @@ import { Shield, Lock, ArrowRight, Building2, Stethoscope, Briefcase, Cpu, Palet
 import { Link } from "react-router-dom"
 
 import { useState, useRef } from "react"
-import { Upload, ShieldCheck, FileKey, Activity, CheckCircle, Loader2, Info } from "lucide-react"
+import { Upload, ShieldCheck, FileKey, Activity, CheckCircle, Loader2, Info, Copy, ExternalLink } from "lucide-react"
 
 
 export function QuantumVaultDemo() {
@@ -133,7 +133,9 @@ export function QuantumVaultDemo() {
                 signature: result.signatureMethod,
                 payloadHash: result.hash,
                 txHash: anchorResult.transaction.hash,
-                signer: result.dilithium.publicKey.substring(0, 32) + "..."
+                signer: result.dilithium.publicKey.substring(0, 32) + "...",
+                publicKey: result.dilithium.publicKey, // Store full key for verification
+                signatureHex: result.dilithium.signature // Store actual hex signature for verification
             })
 
             setStatus("secured")
@@ -198,13 +200,28 @@ export function QuantumVaultDemo() {
         addLog(`Verifying integrity of ${verifyFile.name}...`)
 
         try {
-            // Simulate fetching from blockchain
             addLog(`Querying Dytallix Ledger for Tx: ${verifyReceipt.txHash}...`)
-            await new Promise(resolve => setTimeout(resolve, 800))
-            addLog("Block #1,234,567 confirmed. Retrieving anchored hash...")
 
-            await new Promise(resolve => setTimeout(resolve, 600))
-            addLog(`On-Chain Hash: ${verifyReceipt.payloadHash}`)
+            // REAL BLOCKCHAIN VERIFICATION
+            const verifyRes = await fetch('http://localhost:3002/verify/transaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    txHash: verifyReceipt.txHash,
+                    payloadHash: verifyReceipt.payloadHash,
+                    signature: verifyReceipt.signatureHex, // Use the actual hex signature
+                    publicKey: verifyReceipt.publicKey // Uses the full key we now store
+                })
+            })
+
+            if (!verifyRes.ok) {
+                const errData = await verifyRes.json()
+                throw new Error(errData.error || "Blockchain lookup failed")
+            }
+
+            const verifyData = await verifyRes.json()
+            addLog(`Block #${verifyData.blockchain.blockHeight} confirmed via Node `)
+            addLog(`On-Chain Status: ${verifyData.blockchain.status.toUpperCase()}`)
 
             addLog("Recalculating local file hash...")
 
@@ -214,22 +231,25 @@ export function QuantumVaultDemo() {
             const hashArray = Array.from(new Uint8Array(hashBuffer))
             const calculatedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
-            await new Promise(resolve => setTimeout(resolve, 500))
             addLog(`Local Hash:    ${calculatedHash}`)
 
             if (calculatedHash !== verifyReceipt.payloadHash) {
                 throw new Error("HASH MISMATCH! File integrity compromised.")
             }
 
-            addLog("Verifying Dilithium-5 Signature...")
-            await new Promise(resolve => setTimeout(resolve, 600))
-            addLog("Signature VALID.")
+            addLog("Verifying Dilithium-5 Signature (Server-Side)...")
+
+            if (verifyData.signature.valid) {
+                addLog(verifyData.signature.message)
+            } else {
+                throw new Error(verifyData.signature.message)
+            }
 
             setStatus("verified")
             addLog("SUCCESS: Asset integrity verified against immutable ledger.")
 
-        } catch (error) {
-            addLog(`ERROR: Verification failed. ${error}`)
+        } catch (error: any) {
+            addLog(`ERROR: Verification failed. ${error.message || error}`)
             setStatus("idle") // Allow retry
         }
     }
@@ -367,9 +387,9 @@ export function QuantumVaultDemo() {
                                                 <Activity className="w-4 h-4 text-blue-400" /> What's next?
                                             </h4>
                                             <p className="text-muted-foreground leading-relaxed">
-                                                1. <strong>Download</strong> the secure package to keep your asset and proof.
+                                                1. <strong>Download</strong> the secure package for your records.
                                                 <br />
-                                                2. <strong>Verify</strong> the integrity of your asset by auditing the cryptographic proofs against the immutable ledger record.
+                                                2. You can verify your file's integrity by clicking on the button above this message.
                                             </p>
                                         </div>
                                     </div>
@@ -518,11 +538,49 @@ export function QuantumVaultDemo() {
 
                             {status === "verified" ? (
                                 <div className="space-y-4">
-                                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 flex items-center gap-4 text-green-400">
+                                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 flex items-center gap-4 text-green-400 mb-4">
                                         <CheckCircle className="w-6 h-6 shrink-0" />
                                         <div>
                                             <p className="font-bold">Verification Successful</p>
                                             <p className="text-xs opacity-80">Hashes match. Signature valid.</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Copyable Details */}
+                                    <div className="space-y-3 bg-white/5 p-4 rounded-lg border border-white/10">
+                                        <div>
+                                            <label className="text-xs text-muted-foreground block mb-1">Transaction Hash (Anchor ID)</label>
+                                            <div className="flex gap-2">
+                                                <code className="bg-black/30 p-2 rounded text-xs font-mono flex-1 overflow-x-auto text-blue-300">
+                                                    {verifyReceipt?.txHash}
+                                                </code>
+                                                <Button
+                                                    size="sm" variant="outline" className="h-auto py-1 px-2"
+                                                    onClick={() => navigator.clipboard.writeText(verifyReceipt?.txHash || "")}
+                                                >
+                                                    <Copy className="w-3 h-3" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-muted-foreground block mb-1">Payload Hash</label>
+                                            <div className="flex gap-2">
+                                                <code className="bg-black/30 p-2 rounded text-xs font-mono flex-1 overflow-x-auto text-purple-300">
+                                                    {verifyReceipt?.payloadHash}
+                                                </code>
+                                                <Button
+                                                    size="sm" variant="outline" className="h-auto py-1 px-2"
+                                                    onClick={() => navigator.clipboard.writeText(verifyReceipt?.payloadHash || "")}
+                                                >
+                                                    <Copy className="w-3 h-3" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div className="pt-2">
+                                            <Link to="/build/blockchain" target="_blank" className="text-xs flex items-center gap-1 text-primary hover:underline">
+                                                <ExternalLink className="w-3 h-3" />
+                                                View on Dytallix Explorer (Search for Tx Hash)
+                                            </Link>
                                         </div>
                                     </div>
                                     <Button variant="outline" className="w-full" onClick={() => {

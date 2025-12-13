@@ -159,15 +159,16 @@ export function WalletPage() {
       // Auto-fund the new wallet
       try {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3030';
-        // Use dev faucet endpoint
-        const response = await fetch(`${API_URL}/dev/faucet`, {
+        // Use production faucet endpoint (proxied via backend)
+        const response = await fetch(`${API_URL}/api/faucet/request`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           // Request generous testnet amounts: 1,000 DGT and 10,000 DRT
+          // Production faucet API expects whole units, not micro-units
           body: JSON.stringify({
             address: addr,
-            udgt: 1_000_000_000,
-            udrt: 10_000_000_000
+            dgt_amount: 1000,
+            drt_amount: 10000
           }),
         });
 
@@ -196,6 +197,33 @@ export function WalletPage() {
     navigator.clipboard.writeText(text)
     setCopiedState({ id, type })
     setTimeout(() => setCopiedState(null), 2000)
+  }
+
+  const requestFaucet = async (walletId: string, address: string) => {
+    setWallets(prev => prev.map(w => w.id === walletId ? { ...w, fundingStatus: 'loading' } : w))
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3030';
+      const response = await fetch(`${API_URL}/api/faucet/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: address,
+          dgt_amount: 1000,
+          drt_amount: 10000
+        }),
+      });
+
+      if (response.ok) {
+        setWallets(prev => prev.map(w => w.id === walletId ? { ...w, fundingStatus: 'success' } : w))
+        setTimeout(() => checkBalance(walletId, address), 2000)
+      } else {
+        setWallets(prev => prev.map(w => w.id === walletId ? { ...w, fundingStatus: 'error' } : w))
+        alert("Faucet request failed. You might be rate limited.");
+      }
+    } catch (e) {
+      console.error("Faucet request failed", e);
+      setWallets(prev => prev.map(w => w.id === walletId ? { ...w, fundingStatus: 'error' } : w));
+    }
   }
 
   const selectedWallet = wallets.find(w => w.id === selectedWalletId)
@@ -254,7 +282,7 @@ export function WalletPage() {
       // 1. Get Chain ID and Nonce
       const statusRes = await fetch(`${API_URL}/status`);
       const statusData = await statusRes.json();
-      const chainId = statusData.chain_id || "dytallix-devnet";
+      const chainId = (statusData.chain_id || "dytallix-devnet").trim();
 
       // Actually sendForm.from is the wallet ID in the select, let's find the wallet object
       const senderWallet = wallets.find(w => w.id === sendForm.from);
@@ -264,18 +292,24 @@ export function WalletPage() {
       const nonce = accountData.nonce || 0;
 
       // 2. Construct Messages
-      const msgs = sendForm.recipients.map(r => ({
-        type: "send",
-        from: senderWallet.address,
-        to: r.address,
-        denom: r.token === 'DGT' ? 'udgt' : 'udrt', // Convert to micro-denom
-        amount: (parseFloat(r.amount) * 1_000_000).toString() // Convert to micro-units (string for u128)
-      }));
+      const msgs = sendForm.recipients.map(r => {
+        const parsedAmount = parseFloat(r.amount);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+          throw new Error(`Invalid amount for recipient ${r.address}`);
+        }
+        return {
+          type: "send",
+          from: senderWallet.address,
+          to: r.address,
+          denom: r.token === 'DGT' ? 'udgt' : 'udrt', // Convert to micro-denom
+          amount: Math.floor(parsedAmount * 1_000_000).toString()
+        };
+      });
 
       // 3. Construct Transaction
       const tx = {
         chain_id: chainId,
-        nonce: nonce + 1, // Increment nonce
+        nonce: nonce, // Do not increment (Node expects current account nonce)
         msgs: msgs,
         fee: "5000", // Fixed fee for MVP
         memo: "Sent via Dytallix Web Wallet"
@@ -291,6 +325,8 @@ export function WalletPage() {
         version: 1
       };
 
+      console.log("Submitting Signed Tx:", JSON.stringify(signedTx, null, 2));
+
       // 5. Submit
       const submitRes = await fetch(`${API_URL}/submit`, {
         method: 'POST',
@@ -298,10 +334,23 @@ export function WalletPage() {
         body: JSON.stringify({ signed_tx: signedTx })
       });
 
-      const submitData = await submitRes.json();
+      let submitData;
+      const responseText = await submitRes.text();
+      try {
+        submitData = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Failed to parse JSON response", responseText);
+        throw new Error(`Server Error (${submitRes.status}): ${responseText.slice(0, 100)}`);
+      }
 
       if (!submitRes.ok) {
-        throw new Error(submitData.error || submitData.message || "Transaction failed");
+        console.error("Transaction Error Response:", submitData);
+        const detailedMsg = submitData.message || submitData.error || "Transaction failed";
+        // make it user friendly
+        if (detailedMsg.includes("Insufficient funds") || detailedMsg === "INSUFFICIENT_FUNDS") {
+          throw new Error(`Insufficient Funds. Please fund your wallet using the 'Get Funds' button.`);
+        }
+        throw new Error(detailedMsg);
       }
 
       setSendResult({ success: true, message: `Transaction submitted! Hash: ${submitData.hash}` });
@@ -361,6 +410,9 @@ export function WalletPage() {
                   <div className="flex gap-2">
                     <Button variant="ghost" size="sm" onClick={() => checkBalance(selectedWallet.id, selectedWallet.address)} disabled={selectedWallet.isCheckingBalance}>
                       <RefreshCw className={`mr-2 h-3 w-3 ${selectedWallet.isCheckingBalance ? 'animate-spin' : ''}`} /> Refresh
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => requestFaucet(selectedWallet.id, selectedWallet.address)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
+                      <ArrowDownLeft className="mr-2 h-3 w-3" /> Get Funds
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => removeWallet(selectedWallet.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
                       <Trash2 className="mr-2 h-3 w-3" /> Remove

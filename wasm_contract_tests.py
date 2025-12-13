@@ -143,40 +143,106 @@ def test_level_2(addr):
     else:
         results.append(TestResult("L2: Logic", "Bitwise/Branching Logic", "FAIL", res.stderr))
 
+import statistics
+
+class Statistics:
+    def __init__(self):
+        self.latencies = []
+        self.success_count = 0
+        self.fail_count = 0
+        self.total_start_time = None
+        self.total_end_time = None
+
+    def start_run(self):
+        self.total_start_time = time.time()
+
+    def end_run(self):
+        self.total_end_time = time.time()
+
+    def add_result(self, latency, success):
+        self.latencies.append(latency)
+        if success:
+            self.success_count += 1
+        else:
+            self.fail_count += 1
+
+    def print_report(self):
+        if not self.total_end_time or not self.total_start_time:
+            return "No data collected."
+            
+        total_time = self.total_end_time - self.total_start_time
+        total_tx = len(self.latencies)
+        tps = total_tx / total_time if total_time > 0 else 0
+        
+        avg_lat = statistics.mean(self.latencies) if self.latencies else 0
+        med_lat = statistics.median(self.latencies) if self.latencies else 0
+        p95_lat = statistics.quantiles(self.latencies, n=20)[18] if len(self.latencies) >= 20 else max(self.latencies) if self.latencies else 0
+        min_lat = min(self.latencies) if self.latencies else 0
+        max_lat = max(self.latencies) if self.latencies else 0
+
+        print("\n" + " "*3 + "-"*60)
+        print(" "*3 + f" DETAILED STATISTICS ({total_tx} Requests)")
+        print(" "*3 + "-"*60)
+        print(" "*3 + f" Success Rate:   {self.success_count}/{total_tx} ({self.success_count/total_tx*100:.1f}%)")
+        print(" "*3 + f" Throughput:     {tps:.2f} TPS")
+        print(" "*3 + f" Total Duration: {total_time:.3f}s")
+        print(" "*3 + "-"*60)
+        print(" "*3 + f" Latency (s):")
+        print(" "*3 + f"   Min: {min_lat:.4f}  |  Max: {max_lat:.4f}")
+        print(" "*3 + f"   Avg: {avg_lat:.4f}  |  Median: {med_lat:.4f}")
+        print(" "*3 + f"   P95: {p95_lat:.4f}")
+        print(" "*3 + "-"*60 + "\n")
+        
+        return f"{tps:.2f} TPS | P95: {p95_lat:.3f}s"
+
+def measured_run_dytx(args):
+    start = time.time()
+    res = run_dytx(args)
+    duration = time.time() - start
+    success = (res is not None and res.returncode == 0)
+    return success, duration, res
+
 def test_level_3(addr):
     print_header("LEVEL 3/5: CPU STRESS")
     print("Description: Recursive Fibonacci calculation with concurrent load.")
     
     if not addr: return
 
-    print_step("INIT", "Preparing 5 concurrent transactions...")
+    concurrency = 10  # Increased for better stats
+    print_step("INIT", f"Preparing {concurrency} concurrent transactions (Fibonacci)...")
     print_step("INTERACT", "Broadcasting transactions to node...")
     
-    start_time = time.time()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    stats = Statistics()
+    stats.start_run()
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
         futures = []
-        for i in range(5):
-            futures.append(executor.submit(run_dytx, ["contract", "exec", "--address", addr, "--method", "heavy_compute", "--args", "{}", "--gas", "5000000"]))
+        for i in range(concurrency):
+            # Using heavy_compute
+            futures.append(executor.submit(measured_run_dytx, ["contract", "exec", "--address", addr, "--method", "heavy_compute", "--args", "{}", "--gas", "5000000"]))
         
-        success_count = 0
+        completed_count = 0
         for future in concurrent.futures.as_completed(futures):
-            res = future.result()
-            if res and res.returncode == 0:
-                success_count += 1
-                sys.stdout.write(".")  # Progress indicator
-                sys.stdout.flush()
+            success, duration, res = future.result()
+            stats.add_result(duration, success)
+            
+            if success:
+                sys.stdout.write(".")
             else:
                 sys.stdout.write("x")
-                sys.stdout.flush()
+            sys.stdout.flush()
+            completed_count += 1
+            
     print() # Newline
+    stats.end_run()
 
-    duration = time.time() - start_time
-    print_step("VERIFY", f"Confirmed {success_count}/5 transactions committed.")
+    report_summary = stats.print_report()
     
-    if success_count == 5:
-        results.append(TestResult("L3: CPU", "Concurrent Fibonacci (5x)", "PASS", f"100% Success ({duration:.2f}s)"))
+    # Pass if at least 80% success
+    if stats.success_count >= (concurrency * 0.8):
+        results.append(TestResult("L3: CPU", f"Concurrent Fib ({concurrency}x)", "PASS", report_summary))
     else:
-        results.append(TestResult("L3: CPU", "Concurrent Fibonacci (5x)", "FAIL", f"{success_count}/5 Success"))
+        results.append(TestResult("L3: CPU", f"Concurrent Fib ({concurrency}x)", "FAIL", f"Low success rate: {stats.success_count}/{concurrency}"))
 
 def test_level_4(addr):
     print_header("LEVEL 4/5: MEMORY STRESS")

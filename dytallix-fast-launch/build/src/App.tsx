@@ -22,6 +22,7 @@ import SmartContractAuditor from './pages/SmartContractAuditor'
 
 import { Investor } from "./pages/investor"
 import { Deploy } from "./pages/deploy"
+import { Resources } from "./pages/resources"
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
             <Route path="/tokenomics" element={<Tokenomics />} />
             <Route path="/tech-stack" element={<TechStack />} />
             <Route path="/roadmap" element={<Roadmap />} />
+            <Route path="/resources" element={<Resources />} />
             <Route path="/contact" element={<Contact />} />
 
             {/* Legal Routes */}

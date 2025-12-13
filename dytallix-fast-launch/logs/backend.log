@@ -1,6 +1,180 @@
-[INFO] 2025-12-04T15:07:59.160Z Using in-memory rate limiter
-[INFO] 2025-12-04T15:07:59.311Z Prometheus metrics initialized
-[INFO] 2025-12-04T15:07:59.312Z Anomaly detection engine stubbed (fast-launch mode)
-[INFO] 2025-12-04T15:07:59.312Z Security headers enabled {"ENABLE_CSP":true}
-[INFO] 2025-12-04T15:07:59.315Z WebSocket server attached {"path":"/api/ws"}
-[INFO] 2025-12-04T15:07:59.315Z Server started {"PORT":"3001","ORIGIN":"http://localhost:3000"}
+[INFO] 2025-12-13T00:06:45.185Z Using in-memory rate limiter
+[INFO] 2025-12-13T00:06:45.365Z Prometheus metrics initialized
+[INFO] 2025-12-13T00:06:45.365Z Anomaly detection engine stubbed (fast-launch mode)
+[INFO] 2025-12-13T00:06:45.366Z Security headers enabled {"ENABLE_CSP":true}
+[INFO] 2025-12-13T00:06:45.368Z WebSocket server attached {"path":"/api/ws"}
+[INFO] 2025-12-13T00:06:45.369Z Server started {"PORT":"3001","ORIGIN":"http://localhost:3000"}
+[WARN] 2025-12-13T00:07:25.363Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:07:25.367Z api.status {"ms":11,"network":"dytallix-local","redis":false}
+GET /api/status 200 9.264 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:07:25.370Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:07:25.370Z api.status {"ms":11,"network":"dytallix-local","redis":false}
+GET /api/status 200 11.291 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 9.336 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 9.157 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:07:28.359Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:07:28.359Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.302 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 5.652 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:07:31.364Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:07:31.365Z api.status {"ms":7,"network":"dytallix-local","redis":false}
+GET /api/status 200 6.734 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.855 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:07:34.364Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:07:34.365Z api.status {"ms":6,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.054 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 6.976 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /balance/dytallix14ba4ff418f04004b61e5c2c58e89b1e5074bf9ee 200 1.377 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /balance/dytallix1d6bdfe5f91cbad2027ba7d268aa4a347bedca429 200 1.510 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /balance/dytallix1d6bdfe5f91cbad2027ba7d268aa4a347bedca429 304 2.121 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:05.192Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:05.192Z api.status {"ms":9,"network":"dytallix-local","redis":false}
+GET /api/status 200 9.421 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:05.193Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:05.193Z api.status {"ms":9,"network":"dytallix-local","redis":false}
+GET /api/status 200 8.863 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 8.407 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 9.380 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/addresses/dytallix1d6bdfe5f91cbad2027ba7d268aa4a347bedca429 200 2.206 ms - ::1 node
+GET /api/addresses/dytallix1d6bdfe5f91cbad2027ba7d268aa4a347bedca429/transactions?limit=1 200 19.936 ms - ::1 node
+GET /api/search/dytallix1d6bdfe5f91cbad2027ba7d268aa4a347bedca429 200 30.609 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:08.184Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:08.185Z api.status {"ms":4,"network":"dytallix-local","redis":false}
+GET /api/status 200 3.939 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 3.329 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:11.188Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:11.188Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.126 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 5.936 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:14.190Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:14.191Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.866 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.582 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:17.191Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:17.191Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.589 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.327 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:20.191Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:20.192Z api.status {"ms":6,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.635 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.565 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:23.191Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:23.191Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.538 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.124 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:26.192Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:26.193Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.734 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 4.812 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:29.191Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:29.192Z api.status {"ms":4,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.063 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 3.613 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:32.195Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:32.196Z api.status {"ms":6,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.872 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.544 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:35.195Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:35.196Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.772 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.270 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:38.198Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:38.198Z api.status {"ms":7,"network":"dytallix-local","redis":false}
+GET /api/status 200 6.861 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 3.550 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:41.197Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:41.198Z api.status {"ms":6,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.253 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 3.119 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:44.196Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:44.197Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.889 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 7.114 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:47.197Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:47.197Z api.status {"ms":4,"network":"dytallix-local","redis":false}
+GET /api/status 200 3.939 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.735 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:50.201Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:50.201Z api.status {"ms":6,"network":"dytallix-local","redis":false}
+GET /api/status 200 6.679 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 5.330 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:53.200Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:53.201Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.816 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.251 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:56.201Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:56.201Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.790 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 5.139 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:08:59.202Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:08:59.203Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.202 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.424 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:02.204Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:02.205Z api.status {"ms":7,"network":"dytallix-local","redis":false}
+GET /api/status 200 6.267 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 5.555 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:05.205Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:05.205Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.974 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 5.366 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:08.203Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:08.203Z api.status {"ms":4,"network":"dytallix-local","redis":false}
+GET /api/status 200 3.659 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 2.850 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:11.207Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:11.207Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.442 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 4.689 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:14.206Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:14.207Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.359 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 3.429 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:17.207Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:17.208Z api.status {"ms":4,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.318 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.042 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:20.209Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:20.210Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.193 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 3.762 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:23.210Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:23.211Z api.status {"ms":6,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.536 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.315 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:26.209Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:26.210Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.093 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 4.323 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:29.211Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:29.212Z api.status {"ms":6,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.192 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.382 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:32.212Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:32.213Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.154 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 3.544 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:35.212Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:35.212Z api.status {"ms":4,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.536 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 3.419 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:38.213Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:38.213Z api.status {"ms":6,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.927 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 6.110 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:41.224Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:41.225Z api.status {"ms":7,"network":"dytallix-local","redis":false}
+GET /api/status 200 6.193 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 5.126 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:45.093Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:45.094Z api.status {"ms":5,"network":"dytallix-local","redis":false}
+GET /api/status 200 4.851 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 4.664 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:48.494Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:48.495Z api.status {"ms":6,"network":"dytallix-local","redis":false}
+GET /api/status 200 5.413 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 304 3.383 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[WARN] 2025-12-13T00:09:54.554Z Failed to calculate KPIs {}
+[INFO] 2025-12-13T00:09:54.555Z api.status {"ms":11,"network":"dytallix-local","redis":false}
+GET /api/status 200 11.287 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+GET /api/blocks?limit=5 200 3.639 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15

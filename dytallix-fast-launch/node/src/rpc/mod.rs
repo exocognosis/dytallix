@@ -114,11 +114,15 @@ fn validate_signed_tx(
     }
 
     // Validate transaction
-    if signed_tx.tx.validate(expected_chain_id).is_err() {
-        return Err(ValidationError::InvalidChainId {
-            expected: expected_chain_id.to_string(),
-            got: signed_tx.tx.chain_id.clone(),
-        });
+    if let Err(e) = signed_tx.tx.validate(expected_chain_id) {
+        if signed_tx.tx.chain_id != expected_chain_id {
+            return Err(ValidationError::InvalidChainId {
+                expected: expected_chain_id.to_string(),
+                got: signed_tx.tx.chain_id.clone(),
+            });
+        }
+        // If chain IDs match but validation failed, it's another error (e.g. zero amount)
+        return Err(ValidationError::Internal(e.to_string()));
     }
 
     // Check nonce

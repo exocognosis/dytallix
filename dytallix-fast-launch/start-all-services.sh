@@ -102,6 +102,12 @@ export QUANTUMVAULT_PORT=$QUANTUMVAULT_PORT
 export FAUCET_PORT=$FAUCET_PORT
 export WEBSOCKET_PORT=$WEBSOCKET_PORT
 
+# Export VITE variables for frontend
+export VITE_API_URL="http://localhost:$BACKEND_PORT"
+export VITE_BLOCKCHAIN_URL="http://localhost:$BLOCKCHAIN_PORT"
+export VITE_QUANTUMVAULT_API_URL="http://localhost:$QUANTUMVAULT_PORT"
+export VITE_WEBSOCKET_URL="ws://localhost:$WEBSOCKET_PORT"
+
 # Start services in order
 echo -e "${BLUE}🔧 Starting services...${NC}"
 

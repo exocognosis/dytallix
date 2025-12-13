@@ -1,5 +1,5 @@
 🚰 Dytallix Faucet API running on port 3004
 📡 Connected to blockchain: http://localhost:3003
 ⏱️  Cooldown: 60 minutes
-💰 DGT per request: 100
-💎 DRT per request: 1000
+💰 DGT per request: 1000
+💎 DRT per request: 10000

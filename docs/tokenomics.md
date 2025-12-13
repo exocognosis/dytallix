@@ -518,7 +518,7 @@ cd governance && cargo test --example tokenomics_governance_scenario
 2. **Governance Evolution**
    - AI-assisted proposal analysis
    - Automated parameter optimization
-   - Dynamic governance mechanism adaptation
+   - Dynamic governance mechanism adaptation–
 
 ## Conclusion
 

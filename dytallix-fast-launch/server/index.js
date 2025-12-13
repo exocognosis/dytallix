@@ -219,6 +219,95 @@ async function fetchNodeStatus() {
   return { network, height, raw: j, source: 'cosmos-rpc' }
 }
 
+
+
+// Faucet Service Proxy
+const FAUCET_SERVICE_URL = (process.env.FAUCET_URL || 'http://localhost:3004').replace(/\/$/, '')
+
+app.use('/api/faucet', async (req, res, next) => {
+  try {
+    const url = `${FAUCET_SERVICE_URL}/api/faucet${req.url === '/' ? '' : req.url}`
+    const options = {
+      method: req.method,
+      headers: { 'Content-Type': 'application/json' }
+    }
+
+    if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+      options.body = JSON.stringify(req.body)
+    }
+
+    const response = await fetch(url, options)
+    const data = await response.json().catch(() => ({}))
+
+    // Forward status code
+    res.status(response.status).json(data)
+  } catch (err) {
+    logError('Faucet proxy failed', { error: err.message, url: req.url })
+    res.status(502).json({
+      error: 'FAUCET_SERVICE_UNAVAILABLE',
+      message: 'Faucet service is currently unreachable'
+    })
+  }
+})
+
+
+// -------------------------
+// Blockchain Node Proxies (Wallet Compatibility)
+// -------------------------
+
+// Proxy /status to Node (for chain_id check)
+app.get('/status', async (req, res, next) => {
+  try {
+    const response = await fetch(`${BLOCKCHAIN_NODE}/status`)
+    const data = await response.json().catch(() => ({}))
+    // Unwrap Tendermint RPC result if needed, or pass through custom node status
+    if (data.result && data.result.node_info) {
+      res.json({ chain_id: data.result.node_info.network, ...data })
+    } else {
+      res.status(response.status).json(data)
+    }
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Proxy /balance/:address
+app.get('/balance/:address', async (req, res, next) => {
+  try {
+    const response = await fetch(`${BLOCKCHAIN_NODE}/balance/${req.params.address}`)
+    const data = await response.json().catch(() => ({}))
+    res.status(response.status).json(data)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Proxy /account/:address
+app.get('/account/:address', async (req, res, next) => {
+  try {
+    const response = await fetch(`${BLOCKCHAIN_NODE}/account/${req.params.address}`)
+    const data = await response.json().catch(() => ({}))
+    res.status(response.status).json(data)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Proxy /submit (Transaction Broadcast)
+app.post('/submit', async (req, res, next) => {
+  try {
+    const response = await fetch(`${BLOCKCHAIN_NODE}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body)
+    })
+    const data = await response.json().catch(() => ({}))
+    res.status(response.status).json(data)
+  } catch (err) {
+    next(err)
+  }
+})
+
 // Standardized API status endpoint
 app.get('/api/status', async (req, res, next) => {
   try {
@@ -657,12 +746,127 @@ app.get('/api/search/:q', async (req, res) => {
   const q = String(req.params.q || '').trim()
   const results = []
 
-  if (/^\d+$/.test(q)) {
-    results.push({ type: 'block', data: { height: Number(q) } })
+  // Support for Block Height (allow optional # prefix)
+  let heightQuery = q
+  if (heightQuery.startsWith('#')) {
+    heightQuery = heightQuery.substring(1)
+  }
+
+  if (/^\d+$/.test(heightQuery)) {
+    const height = Number(heightQuery)
+    try {
+      const nodeUrl = getNodeBase()
+      // Fetch real block data
+      const blockRes = await fetch(`${nodeUrl}/block/${height}`)
+      if (blockRes.ok) {
+        const blockData = await blockRes.json()
+        // Determine tx count safely
+        let txCount = 0
+        if (Array.isArray(blockData.txs)) {
+          txCount = blockData.txs.length
+        } else if (blockData.data && Array.isArray(blockData.data.txs)) {
+          txCount = blockData.data.txs.length
+        }
+
+        // Extract header info if available, or top-level fields
+        const hash = blockData.hash || (blockData.header ? blockData.header.hash : 'Unknown')
+        const time = blockData.time || (blockData.header ? blockData.header.time : null)
+        const validator = blockData.validator || (blockData.header ? blockData.header.proposer : 'Validator-01')
+
+        results.push({
+          type: 'block',
+          data: {
+            height: height,
+            hash: hash,
+            validator: validator,
+            txs: txCount,
+            time: time
+          }
+        })
+      } else {
+        // Fallback if block not found on node yet (but valid number format)
+        results.push({ type: 'block', data: { height } })
+      }
+    } catch (e) {
+      // Fallback on error
+      results.push({ type: 'block', data: { height } })
+    }
   }
 
   if (/^0x[a-fA-F0-9]{64}$/.test(q)) {
-    results.push({ type: 'transaction', data: { hash: q } })
+    try {
+      const txData = await nodeGet(`/tx/${encodeURIComponent(q)}`)
+      results.push({
+        type: 'tx',
+        data: {
+          hash: txData.hash || q,
+          from: txData.from || txData.sender || 'Unknown',
+          to: txData.to || txData.recipient || 'Unknown',
+          amount: txData.amount || txData.value || '0',
+          fee: txData.fee || '0',
+          status: 'confirmed'
+        }
+      })
+    } catch (e) {
+      // Fallback if not found or error
+      results.push({
+        type: 'tx',
+        data: { hash: q, status: 'unknown' }
+      })
+    }
+  }
+
+  // Support for Payload / Asset Hashes (64 hex chars, no 0x prefix)
+  if (/^[a-fA-F0-9]{64}$/.test(q)) {
+    try {
+      const nodeUrl = getNodeBase()
+      const verifyRes = await fetch(`${nodeUrl}/asset/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ params: [q] })
+      })
+
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json()
+        results.push({
+          type: 'anchoring',
+          data: {
+            root: q, // The payload hash itself
+            anchorTx: 'Pending Aggregation',
+            timestamp: new Date().toISOString()
+          }
+        })
+      }
+    } catch (e) {
+      logWarn('Asset Hash search failed', { query: q, error: e.message })
+    }
+  }
+
+  // Support for QuantumVault Anchor hashes (Strip prefix and try)
+  if (q.startsWith('qv_anchor_')) {
+    try {
+      const payloadHash = q.replace('qv_anchor_', '')
+      // Direct POST to node
+      const nodeUrl = getNodeBase()
+      const verifyRes = await fetch(`${nodeUrl}/asset/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ params: [payloadHash] })
+      })
+
+      if (verifyRes.ok) {
+        results.push({
+          type: 'anchoring',
+          data: {
+            root: payloadHash,
+            btcTx: 'Pending Aggregation',
+            timestamp: new Date().toISOString()
+          }
+        })
+      }
+    } catch (e) {
+      logWarn('Anchor search failed', { query: q, error: e.message })
+    }
   }
 
   // Updated regex to support dytallix prefix
