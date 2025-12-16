@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.sqlite
+*.sqlite-journal
+
+# Docker
+.dockerignore
+
+# Prisma
+prisma/migrations/**/migration.sql
+
+# Hardhat
+cache/
+artifacts/
+typechain-types/
+
+# Frontend
+.next/
+out/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Testing
+.pytest_cache/
+__pycache__/
+
+# Vault data (local)
+vault-data/
