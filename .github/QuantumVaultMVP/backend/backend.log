@@ -1,6 +1,0 @@
-
-> backend@1.0.0 start
-> ts-node src/index.ts
-
-[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
-Server running on port 3000
