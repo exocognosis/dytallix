@@ -10,6 +10,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
+    "prisma:seed": "ts-node prisma/seed.ts",
     "test": "echo \"Tests not yet implemented\" && exit 0"
   },
   "keywords": [
@@ -58,5 +59,8 @@
     "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }
