@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INFRA_DIR="$ROOT_DIR/infra"
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || { echo "missing dependency: $1" >&2; exit 1; }
+}
+
+require docker
+require curl
+
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker daemon is not running (or not accessible). Start Docker Desktop and try again." >&2
+  exit 1
+fi
+
+if [ ! -f "$INFRA_DIR/docker-compose.yml" ]; then
+  echo "Expected compose file not found at: $INFRA_DIR/docker-compose.yml" >&2
+  exit 1
+fi
+
+cd "$INFRA_DIR"
+
+on_fail() {
+  echo ""
+  echo "--- docker compose ps ---"
+  docker compose ps || true
+  echo ""
+  echo "--- backend logs (tail) ---"
+  docker logs --tail 120 infra-backend-1 2>/dev/null || true
+  echo ""
+  echo "--- caddy logs (tail) ---"
+  docker logs --tail 120 infra-caddy-1 2>/dev/null || true
+}
+trap on_fail ERR
+
+echo "[1/4] Building images (if needed)..."
+docker compose build
+
+echo "[2/4] Starting stack..."
+docker compose up -d
+
+echo "[3/4] Waiting for API health over TLS..."
+BASE_URL="${BASE_URL:-https://localhost:8443/api}"
+for i in $(seq 1 90); do
+  if curl -sk --max-time 3 "$BASE_URL/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+  if [ "$i" = "90" ]; then
+    echo "API not healthy at $BASE_URL" >&2
+    exit 1
+  fi
+done
+
+echo "[4/4] Running acceptance..."
+cd "$ROOT_DIR"
+./scripts/acceptance.sh
+
+echo ""
+echo "QuantumVault is running."
+echo "- UI:  https://localhost:8443"
+echo "- API: https://localhost:8443/api"

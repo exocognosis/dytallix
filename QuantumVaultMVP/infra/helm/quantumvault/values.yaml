@@ -1,0 +1,42 @@
+backend:
+  image:
+    repository: quantumvault/backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    QV_ENV: prod
+    QV_HTTP_ADDR: 0.0.0.0:8080
+    QV_DB_DSN: ""
+    QV_JWT_ISSUER: quantumvault
+    QV_JWT_ACCESS_TTL: 15m
+    QV_JWT_REFRESH_TTL: 720h
+    QV_JWT_SECRET: ""
+    QV_ADMIN_EMAIL: admin@local
+    QV_ADMIN_PASSWORD: ""
+    QV_VAULT_ADDR: ""
+    QV_VAULT_TOKEN: ""
+    QV_ETH_RPC_URL: ""
+    QV_ETH_CHAIN_ID: ""
+    QV_ETH_PRIVATE_KEY: ""
+    QV_ATTESTATION_CONTRACT_FILE: ""
+    QV_CORS_ORIGIN: ""
+
+frontend:
+  image:
+    repository: quantumvault/frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+  env:
+    NEXT_PUBLIC_API_BASE: ""
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  tls: false

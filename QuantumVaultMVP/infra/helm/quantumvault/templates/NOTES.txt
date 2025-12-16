@@ -1,0 +1,6 @@
+QuantumVault deployed.
+
+Backend service: {{ include "quantumvault.fullname" . }}-backend
+Frontend service: {{ include "quantumvault.fullname" . }}-frontend
+
+If ingress is enabled, access via: http(s)://{{ .Values.ingress.host }}
