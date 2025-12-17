@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { WrappingController } from './wrapping.controller';
 import { WrappingService } from './wrapping.service';
 import { VaultModule } from '../vault/vault.module';
+import { WrappingProcessor } from './wrapping.processor';
 
 @Module({
   imports: [
@@ -10,7 +11,7 @@ import { VaultModule } from '../vault/vault.module';
     VaultModule,
   ],
   controllers: [WrappingController],
-  providers: [WrappingService],
+  providers: [WrappingService, WrappingProcessor],
   exports: [WrappingService],
 })
 export class WrappingModule {}

@@ -45,13 +45,14 @@ services:
     volumes:
       - vault-data:/vault/data
     healthcheck:
-      test: ["CMD", "vault", "status"]
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 10s
 
   blockchain:
+    profiles: ["evm"]
     image: ethereum/client-go:latest
     container_name: quantumvault-blockchain
     command:
@@ -74,11 +75,11 @@ services:
       - --maxpeers=0
     ports:
       - "8545:8545"
-      - "8546:8546"
+      - "18546:8546"
     volumes:
       - blockchain-data:/root/.ethereum
     healthcheck:
-      test: ["CMD", "geth", "attach", "--exec", "eth.blockNumber"]
+      test: ["CMD", "geth", "attach", "--exec", "eth.blockNumber", "http://127.0.0.1:8545"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -94,6 +95,13 @@ services:
       REDIS_PORT: 6379
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: root
+      # Attestation anchoring backend: 'dytallix' (default) or 'evm'
+      ANCHORING_BACKEND: dytallix
+      # Dytallix API base URL (reachable from the backend container). For Hetzner via SSH tunnel on macOS:
+      #   ssh -N -L 3030:127.0.0.1:3030 root@178.156.187.81
+      #   DYTALLIX_API_URL=http://host.docker.internal:3030
+      DYTALLIX_API_URL: "http://host.docker.internal:3030"
+      # For ANCHORING_BACKEND=evm (run compose with --profile evm)
       BLOCKCHAIN_RPC_URL: http://blockchain:8545
       BLOCKCHAIN_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       BLOCKCHAIN_CHAIN_ID: 1337
@@ -101,7 +109,7 @@ services:
       PORT: 3000
       NODE_ENV: production
     ports:
-      - "3000:3000"
+      - "13000:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,12 +117,10 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      blockchain:
-        condition: service_healthy
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/auth/me"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/blockchain/status',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1));"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -126,13 +132,14 @@ services:
       dockerfile: Dockerfile
     container_name: quantumvault-frontend
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:3000/api/v1
+      # This value is baked into the client bundle and must be reachable from the user's browser.
+      NEXT_PUBLIC_API_URL: http://localhost:13000/api/v1
     ports:
       - "3001:3000"
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000',(r)=>process.exit(r.statusCode>=200 && r.statusCode<500?0:1)).on('error',()=>process.exit(1));"]
       interval: 30s
       timeout: 10s
       retries: 3

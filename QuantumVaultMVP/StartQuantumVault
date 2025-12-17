@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_FILE="$ROOT_DIR/infra/docker-compose.yml"
+
+DEPLOY_CONTRACTS=0
+for arg in "$@"; do
+  case "$arg" in
+    --deploy-contracts)
+      DEPLOY_CONTRACTS=1
+      ;;
+    -h|--help)
+      cat <<'EOF'
+Usage: ./StartQuantumVault [--deploy-contracts]
+
+Starts the QuantumVault MVP stack (Postgres, Redis, Vault, Geth dev chain, backend, frontend)
+using the docker compose file in ./infra.
+
+Options:
+  --deploy-contracts   Runs Hardhat deploy against the local chain (http://localhost:8545)
+EOF
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $arg" >&2
+      echo "Run: ./StartQuantumVault --help" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ ! -f "$COMPOSE_FILE" ]]; then
+  echo "Missing compose file: $COMPOSE_FILE" >&2
+  exit 1
+fi
+
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE=(docker-compose)
+else
+  echo "Docker Compose not found. Install Docker Desktop or docker-compose." >&2
+  exit 1
+fi
+
+echo "Starting QuantumVault MVP stack..."
+"${COMPOSE[@]}" -f "$COMPOSE_FILE" up -d --build
+
+echo ""
+echo "Service status:"
+"${COMPOSE[@]}" -f "$COMPOSE_FILE" ps
+
+echo ""
+echo "Endpoints:"
+echo "- Frontend:  http://localhost:3001"
+echo "- Backend:   http://localhost:13000/api/v1"
+echo "- Vault UI:  http://localhost:8200 (token: root)"
+echo "- Geth RPC:  http://localhost:8545"
+
+test "$DEPLOY_CONTRACTS" -eq 1 || exit 0
+
+echo ""
+echo "Deploying contracts (Hardhat -> localhost)..."
+if ! command -v npm >/dev/null 2>&1; then
+  echo "npm not found; skipping contract deploy." >&2
+  exit 1
+fi
+
+pushd "$ROOT_DIR/contracts" >/dev/null
+npm ci
+npm run deploy
+popd >/dev/null
+
+echo "Contracts deployed. If the backend requires a contract address, update its config/env accordingly."

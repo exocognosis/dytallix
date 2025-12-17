@@ -81,7 +81,7 @@ export class WrappingService {
     });
   }
 
-  async performWrapping(assetId: string, anchorId: string): Promise<any> {
+  async performWrapping(assetId: string, anchorId: string, jobId?: string): Promise<any> {
     // Get asset key material from Vault
     const keyMaterial = await this.prisma.assetKeyMaterial.findUnique({
       where: { assetId },
@@ -122,6 +122,7 @@ export class WrappingService {
     // Create wrapping result in DB
     const result = await this.prisma.wrappingResult.create({
       data: {
+        jobId,
         assetId,
         anchorId,
         kemCiphertext: kemCiphertext.toString('base64'),

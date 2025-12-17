@@ -98,14 +98,21 @@ export class AttestationService {
       );
 
       // Update attestation with transaction details
+      const updateData: any = {
+        txHash: result.txHash,
+        blockNumber: BigInt(result.blockNumber),
+        status: AttestationStatus.SUBMITTED,
+        submittedAt: new Date(),
+      };
+
+      if (result.chainId !== undefined) {
+        updateData.chainId = result.chainId;
+      }
+
       await this.prisma.attestation.update({
         where: { id: attestation.id },
         data: {
-          txHash: result.txHash,
-          blockNumber: BigInt(result.blockNumber),
-          chainId: result.chainId,
-          status: AttestationStatus.SUBMITTED,
-          submittedAt: new Date(),
+          ...updateData,
         },
       });
 
