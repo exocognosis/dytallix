@@ -1,6 +1,20 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
+// Prefer Node's built-in fetch (Node 18+). Fall back to node-fetch if needed.
+let fetchFn = globalThis.fetch;
+if (typeof fetchFn !== 'function') {
+  try {
+    // node-fetch v2 (CJS) returns a function; v3 (ESM) exposes default.
+    // eslint-disable-next-line global-require
+    const nodeFetch = require('node-fetch');
+    fetchFn = typeof nodeFetch === 'function' ? nodeFetch : nodeFetch?.default;
+  } catch {
+    // ignore
+  }
+}
+if (typeof fetchFn !== 'function') {
+  throw new Error('Fetch API not available. Use Node 18+ or install node-fetch.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3004;
@@ -63,7 +77,7 @@ function recordRequest(address) {
 async function fundAddress(address, dgtAmount, drtAmount) {
   try {
     // Call blockchain faucet with both DGT and DRT in a single request
-    const response = await fetch(`${BLOCKCHAIN_NODE}/dev/faucet`, {
+    const response = await fetchFn(`${BLOCKCHAIN_NODE}/dev/faucet`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -85,20 +99,30 @@ async function fundAddress(address, dgtAmount, drtAmount) {
       success: true,
       funded: { dgt: dgtAmount, drt: drtAmount }
     };
-    const allSucceeded = responses.every(r => r.ok);
-
-    return {
-      success: allSucceeded,
-      results,
-      funded: {
-        dgt: dgtAmount,
-        drt: drtAmount
-      }
-    };
   } catch (error) {
     console.error('[Faucet] Error funding address:', error);
     throw error;
   }
+}
+
+function extractMicroBalance(balanceData, denom) {
+  try {
+    const direct = balanceData?.[denom];
+    const nested = balanceData?.balances?.[denom];
+
+    const candidate = nested ?? direct;
+    if (candidate == null) return 0;
+
+    if (typeof candidate === 'number') return candidate;
+    if (typeof candidate === 'string') return parseInt(candidate, 10) || 0;
+
+    const b = candidate?.balance;
+    if (typeof b === 'number') return b;
+    if (typeof b === 'string') return parseInt(b, 10) || 0;
+  } catch {
+    // ignore
+  }
+  return 0;
 }
 
 // POST /api/faucet/request - Request tokens from faucet
@@ -160,8 +184,10 @@ app.post('/api/faucet/request', async (req, res) => {
       recordRequest(address);
 
       // Fetch updated balance
-      const balanceResponse = await fetch(`${BLOCKCHAIN_NODE}/balance/${address}`);
-      const balances = balanceResponse.ok ? await balanceResponse.json() : {};
+      const balanceResponse = await fetchFn(`${BLOCKCHAIN_NODE}/balance/${address}`);
+      const balanceData = balanceResponse.ok ? await balanceResponse.json() : {};
+      const udgtMicro = extractMicroBalance(balanceData, 'udgt');
+      const udrtMicro = extractMicroBalance(balanceData, 'udrt');
 
       res.json({
         success: true,
@@ -169,8 +195,8 @@ app.post('/api/faucet/request', async (req, res) => {
         address,
         funded: result.funded,
         balances: {
-          dgt: parseInt(balances.udgt || 0) / 1_000_000,
-          drt: parseInt(balances.udrt || 0) / 1_000_000
+          dgt: udgtMicro / 1_000_000,
+          drt: udrtMicro / 1_000_000
         },
         cooldown: {
           duration: COOLDOWN_MS / 1000 / 60, // minutes
