@@ -201,7 +201,7 @@ app.post('/encrypt', upload.single('file'), async (req, res) => {
       },
       hash: hash,
       encryptionMethod: "AES-GCM + Kyber-1024",
-      signatureMethod: "Dilithium-3 (ML-DSA-65)"
+      signatureMethod: "Dilithium-5 (ML-DSA-87)"
     });
 
   } catch (error) {
@@ -745,6 +745,113 @@ app.get('/health', (req, res) => {
     assets: Object.keys(metadata).length,
     onChainAssets: Object.keys(onChainRegistry).length
   });
+});
+
+/**
+ * GET /anchors/recent
+ * List recently anchored proofs (Explorer integration)
+ * Query: ?limit=10
+ */
+app.get('/anchors/recent', (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit || 10), 100));
+
+    const items = Object.entries(onChainRegistry)
+      .map(([proofId, entry]) => {
+        const proof = metadata[proofId] || {};
+        return {
+          proofId,
+          txHash: entry.txHash,
+          payloadHash: entry.blake3Hash || entry.blake3 || proof.blake3Hash,
+          filename: entry.filename || proof.filename,
+          blockHeight: entry.blockHeight || proof.blockHeight,
+          anchoredAt: entry.anchoredAt || proof.anchoredAt || proof.timestamp,
+          status: entry.status || 'confirmed'
+        };
+      })
+      .sort((a, b) => {
+        const ta = Date.parse(a.anchoredAt || '') || 0;
+        const tb = Date.parse(b.anchoredAt || '') || 0;
+        return tb - ta;
+      })
+      .slice(0, limit);
+
+    res.json({ anchors: items, total: items.length });
+  } catch (error) {
+    console.error('[QuantumVault] anchors/recent error:', error);
+    res.status(500).json({ error: 'Failed to fetch recent anchors' });
+  }
+});
+
+/**
+ * GET /anchors/lookup/:id
+ * Lookup an anchored proof by qv_anchor txHash, proofId, or payload hash.
+ */
+app.get('/anchors/lookup/:id', (req, res) => {
+  try {
+    const id = decodeURIComponent(req.params.id);
+
+    // 1) Direct proofId match
+    if (onChainRegistry[id]) {
+      const entry = onChainRegistry[id];
+      const proof = metadata[id] || {};
+      return res.json({
+        found: true,
+        type: 'proofId',
+        proofId: id,
+        txHash: entry.txHash,
+        payloadHash: entry.blake3Hash || entry.blake3 || proof.blake3Hash,
+        filename: entry.filename || proof.filename,
+        blockHeight: entry.blockHeight || proof.blockHeight,
+        anchoredAt: entry.anchoredAt || proof.anchoredAt || proof.timestamp,
+        status: entry.status || 'confirmed'
+      });
+    }
+
+    // 2) qv_anchor txHash match
+    if (id.startsWith('qv_anchor_')) {
+      for (const [proofId, entry] of Object.entries(onChainRegistry)) {
+        if (entry && entry.txHash === id) {
+          const proof = metadata[proofId] || {};
+          return res.json({
+            found: true,
+            type: 'txHash',
+            proofId,
+            txHash: entry.txHash,
+            payloadHash: entry.blake3Hash || entry.blake3 || proof.blake3Hash,
+            filename: entry.filename || proof.filename,
+            blockHeight: entry.blockHeight || proof.blockHeight,
+            anchoredAt: entry.anchoredAt || proof.anchoredAt || proof.timestamp,
+            status: entry.status || 'confirmed'
+          });
+        }
+      }
+    }
+
+    // 3) payload hash match (attestation hash)
+    for (const [proofId, entry] of Object.entries(onChainRegistry)) {
+      const proof = metadata[proofId] || {};
+      const payloadHash = entry.blake3Hash || entry.blake3 || proof.blake3Hash;
+      if (payloadHash === id || payloadHash === id.replace(/^0x/i, '')) {
+        return res.json({
+          found: true,
+          type: 'payloadHash',
+          proofId,
+          txHash: entry.txHash,
+          payloadHash,
+          filename: entry.filename || proof.filename,
+          blockHeight: entry.blockHeight || proof.blockHeight,
+          anchoredAt: entry.anchoredAt || proof.anchoredAt || proof.timestamp,
+          status: entry.status || 'confirmed'
+        });
+      }
+    }
+
+    return res.status(404).json({ found: false, error: 'Anchor not found', id });
+  } catch (error) {
+    console.error('[QuantumVault] anchors/lookup error:', error);
+    res.status(500).json({ error: 'Failed to lookup anchor' });
+  }
 });
 
 /**

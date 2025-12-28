@@ -27,6 +27,17 @@ log() { echo -e "${GREEN}[$(date '+%H:%M:%S')]${NC} $*"; }
 warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')]${NC} ⚠️  $*"; }
 error() { echo -e "${RED}[$(date '+%H:%M:%S')]${NC} ❌ $*"; exit 1; }
 
+# Prefer deterministic installs when a lockfile exists.
+install_js_deps() {
+  local dir="$1" log_file="$2"
+
+  if [ -f "$dir/package-lock.json" ]; then
+    (cd "$dir" && npm ci) >"$log_file" 2>&1 || error "npm ci failed in $dir"
+  else
+    (cd "$dir" && npm install) >"$log_file" 2>&1 || error "npm install failed in $dir"
+  fi
+}
+
 # Health check helper
 wait_for_service() {
   local name="$1" url="$2" max_wait="${3:-60}"
@@ -86,19 +97,19 @@ log "📦 Installing dependencies..."
 # Root dependencies
 if [ ! -d "$ROOT_DIR/node_modules" ]; then
   log "Installing root dependencies..."
-  cd "$ROOT_DIR" && npm install >"$LOG_DIR/npm-root.log" 2>&1 || error "Root npm install failed"
+  install_js_deps "$ROOT_DIR" "$LOG_DIR/npm-root.log"
 fi
 
 # Frontend dependencies
 if [ -d "$ROOT_DIR/frontend" ] && [ ! -d "$ROOT_DIR/frontend/node_modules" ]; then
   log "Installing frontend dependencies..."
-  cd "$ROOT_DIR/frontend" && npm install >"$LOG_DIR/npm-frontend.log" 2>&1 || error "Frontend npm install failed"
+  install_js_deps "$ROOT_DIR/frontend" "$LOG_DIR/npm-frontend.log"
 fi
 
 # Server dependencies
 if [ -d "$ROOT_DIR/server" ] && [ ! -d "$ROOT_DIR/server/node_modules" ]; then
   log "Installing server dependencies..."
-  cd "$ROOT_DIR/server" && npm install >"$LOG_DIR/npm-server.log" 2>&1 || error "Server npm install failed"
+  install_js_deps "$ROOT_DIR/server" "$LOG_DIR/npm-server.log"
 fi
 
 # ============================================================================

@@ -11,6 +11,10 @@ import { createHash, createHmac, randomBytes } from 'crypto';
 import { MlKem1024 } from 'crystals-kyber-js';
 import dilithiumPromise from 'dilithium-crystals-js';
 
+// dilithium-crystals-js parameter set mapping (README):
+// 0: Dilithium2, 1: Dilithium3, 2: Dilithium5, 3: Dilithium2-AES
+const DILITHIUM_KIND = 2; // Dilithium5 (NIST L5) / ML-DSA-87 equivalent
+
 class CryptographyService {
   constructor() {
     this.algorithms = {
@@ -121,8 +125,7 @@ class CryptographyService {
    */
   async generateDilithiumKeys() {
     await this.ensureReady();
-    // Use Dilithium3 (Level 3) as Level 5 seems unstable in this env
-    const { publicKey, privateKey } = this.dilithium.generateKeys(3);
+    const { publicKey, privateKey } = this.dilithium.generateKeys(DILITHIUM_KIND);
 
     return {
       publicKey: Buffer.from(publicKey).toString('hex'),
@@ -137,11 +140,10 @@ class CryptographyService {
     await this.ensureReady();
     const sk = new Uint8Array(Buffer.from(privateKeyHex, 'hex'));
 
-    // Sign using level 3
-    const signResult = this.dilithium.sign(data, sk, 3);
+    const signResult = this.dilithium.sign(data, sk, DILITHIUM_KIND);
 
     return {
-      algorithm: 'ML-DSA-65', // Dilithium3
+      algorithm: 'ML-DSA-87', // Dilithium5
       signature: Buffer.from(signResult.signature).toString('hex'),
       timestamp: Date.now(),
       pqc: true
@@ -156,8 +158,9 @@ class CryptographyService {
     const pk = new Uint8Array(Buffer.from(publicKeyHex, 'hex'));
     const sig = new Uint8Array(Buffer.from(signatureHex, 'hex'));
 
-    const result = this.dilithium.verify(sig, data, pk, 3);
-    return result;
+    const result = this.dilithium.verify(sig, data, pk, DILITHIUM_KIND);
+    // dilithium-crystals-js returns an object; valid iff result.result === 0
+    return result?.result === 0;
   }
 
   // ... (Keep other helper methods if needed, but PQC is the focus)

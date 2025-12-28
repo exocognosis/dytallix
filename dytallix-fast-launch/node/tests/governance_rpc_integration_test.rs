@@ -62,6 +62,7 @@ async fn governance_rpc_happy_path_test() {
             staking: true,
         },
         wasm_contracts: Arc::new(Mutex::new(HashMap::new())),
+        pending_assets: Arc::new(Mutex::new(Vec::new())),
     };
 
     // Test step 1: Submit proposal

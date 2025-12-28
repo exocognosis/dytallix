@@ -39,6 +39,17 @@ use std::sync::atomic::Ordering;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
+
+    // Fail closed: refuse to start if PQC verification is not compiled in.
+    // (pqc-mock is intentionally not accepted for runtime node operation.)
+    #[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-fips204")))]
+    {
+        eprintln!(
+            "FATAL: node built without PQC verification (enable feature pqc-fips204 or pqc-real; default features include pqc-fips204)"
+        );
+        std::process::exit(1);
+    }
+
     let data_dir = std::env::var("DYT_DATA_DIR").unwrap_or("./data".to_string());
     let block_interval_ms: u64 = std::env::var("DYT_BLOCK_INTERVAL_MS")
         .ok()

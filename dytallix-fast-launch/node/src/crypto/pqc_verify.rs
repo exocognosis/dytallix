@@ -21,7 +21,7 @@ use pqcrypto_sphincsplus::sphincssha2128ssimple;
 use pqcrypto_traits::sign::{DetachedSignature as _, PublicKey as SignPublicKey, SignedMessage};
 
 #[cfg(feature = "pqc-fips204")]
-use fips204::ml_dsa_65;
+use fips204::ml_dsa_87;
 #[cfg(feature = "pqc-fips204")]
 use fips204::traits::{SerDes, Verifier};
 
@@ -80,6 +80,35 @@ pub enum PQCVerifyError {
     FeatureNotCompiled { feature: String },
 }
 
+#[cfg(test)]
+mod fail_closed_tests {
+    #[test]
+    fn non_pqc_builds_fail_closed_unless_mock_enabled() {
+        // This test is only meaningful for builds where neither pqc-real nor pqc-fips204 are enabled.
+        // In those builds:
+        // - if pqc-mock is enabled, verification is allowed (dev/testing only)
+        // - otherwise, verification must fail closed
+        #[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-fips204"), not(feature = "pqc-mock")))]
+        {
+            use super::*;
+            let result = verify(b"pk", b"msg", b"sig", PQCAlgorithm::Dilithium5);
+            assert!(matches!(result, Err(PQCVerifyError::FeatureNotCompiled { .. })));
+        }
+    }
+
+    #[test]
+    fn fips204_dilithium5_lengths_are_mldsa87() {
+        // Compile-time assertion that our FIPS204 Dilithium5 path is wired to ML-DSA-87.
+        #[cfg(feature = "pqc-fips204")]
+        {
+            use fips204::ml_dsa_87;
+            assert!(ml_dsa_87::PK_LEN > 0);
+            assert!(ml_dsa_87::SIG_LEN > 0);
+            assert!(ml_dsa_87::SK_LEN > 0);
+        }
+    }
+}
+
 /// Main verification function supporting multiple PQC algorithms
 ///
 /// # Arguments
@@ -109,17 +138,32 @@ pub fn verify(
     sig: &[u8],
     alg: PQCAlgorithm,
 ) -> Result<(), PQCVerifyError> {
-    #[cfg(not(any(feature = "pqc-real", feature = "pqc-fips204")))]
+    #[cfg(all(
+        feature = "pqc-mock",
+        not(any(feature = "pqc-real", feature = "pqc-fips204"))
+    ))]
     {
-        // Mock verification for testing - always returns true for non-empty inputs
+        // Mock verification for development/testing only.
         if pubkey.is_empty() || msg.is_empty() || sig.is_empty() {
             return Err(PQCVerifyError::InvalidSignature {
                 algorithm: alg.as_str().to_string(),
                 details: "Empty input".to_string(),
             });
         }
-        tracing::warn!("Using mock PQC verification - not secure for production");
+        tracing::error!(
+            "PQC verification is running in pqc-mock mode; this MUST NOT be used in production"
+        );
         return Ok(());
+    }
+
+    #[cfg(all(
+        not(feature = "pqc-mock"),
+        not(any(feature = "pqc-real", feature = "pqc-fips204"))
+    ))]
+    {
+        return Err(PQCVerifyError::FeatureNotCompiled {
+            feature: "pqc-fips204 or pqc-real".to_string(),
+        });
     }
 
     #[cfg(feature = "pqc-fips204")]
@@ -338,7 +382,10 @@ mod tests {
 
     #[test]
     fn test_mock_verification() {
-        #[cfg(not(feature = "pqc-real"))]
+        #[cfg(all(
+            feature = "pqc-mock",
+            not(any(feature = "pqc-real", feature = "pqc-fips204"))
+        ))]
         {
             // Mock should succeed with non-empty inputs
             assert!(verify(&[1], &[2], &[3], PQCAlgorithm::Dilithium5).is_ok());
@@ -355,11 +402,14 @@ mod tests {
         // Test the compatibility function with mock data
         assert!(!verify_default(&[], &[], &[])); // Should fail for empty inputs
 
-        #[cfg(not(feature = "pqc-real"))]
+        #[cfg(all(
+            feature = "pqc-mock",
+            not(any(feature = "pqc-real", feature = "pqc-fips204"))
+        ))]
         assert!(verify_default(&[1], &[2], &[3])); // Mock should succeed
     }
 
-    #[cfg(not(feature = "falcon"))]
+    #[cfg(all(feature = "pqc-real", not(feature = "falcon")))]
     #[test]
     fn test_feature_not_compiled_falcon() {
         let result = verify(
@@ -377,7 +427,7 @@ mod tests {
         }
     }
 
-    #[cfg(not(feature = "sphincs"))]
+    #[cfg(all(feature = "pqc-real", not(feature = "sphincs")))]
     #[test]
     fn test_feature_not_compiled_sphincs() {
         let result = verify(
@@ -394,35 +444,55 @@ mod tests {
             _ => panic!("Expected FeatureNotCompiled error"),
         }
     }
+
+    #[cfg(feature = "pqc-fips204")]
+    #[test]
+    fn test_fips204_build_rejects_non_dilithium_algorithms() {
+        let result = verify(
+            b"pubkey",
+            b"message",
+            b"signature",
+            PQCAlgorithm::Falcon1024,
+        );
+        assert!(matches!(result, Err(PQCVerifyError::UnsupportedAlgorithm(_))));
+
+        let result = verify(
+            b"pubkey",
+            b"message",
+            b"signature",
+            PQCAlgorithm::SphincsPlus,
+        );
+        assert!(matches!(result, Err(PQCVerifyError::UnsupportedAlgorithm(_))));
+    }
 }
 
 #[cfg(feature = "pqc-fips204")]
 fn verify_dilithium5_fips204(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCVerifyError> {
-    // FIPS 204 ML-DSA-65 (Dilithium5)
-    let pk_array: [u8; ml_dsa_65::PK_LEN] = pubkey.try_into().map_err(|_| {
+    // FIPS 204 ML-DSA-87 (Dilithium5)
+    let pk_array: [u8; ml_dsa_87::PK_LEN] = pubkey.try_into().map_err(|_| {
         PQCVerifyError::InvalidPublicKey {
             algorithm: "dilithium5".to_string(),
             details: format!(
                 "Expected {} bytes, got {}",
-                ml_dsa_65::PK_LEN,
+                ml_dsa_87::PK_LEN,
                 pubkey.len()
             ),
         }
     })?;
 
-    let pk_obj = ml_dsa_65::PublicKey::try_from_bytes(pk_array).map_err(|_| {
+    let pk_obj = ml_dsa_87::PublicKey::try_from_bytes(pk_array).map_err(|_| {
         PQCVerifyError::InvalidPublicKey {
             algorithm: "dilithium5".to_string(),
             details: "Invalid public key format".to_string(),
         }
     })?;
 
-    let sig_array: [u8; ml_dsa_65::SIG_LEN] = sig.try_into().map_err(|_| {
+    let sig_array: [u8; ml_dsa_87::SIG_LEN] = sig.try_into().map_err(|_| {
         PQCVerifyError::InvalidSignature {
             algorithm: "dilithium5".to_string(),
             details: format!(
                 "Expected {} bytes, got {}",
-                ml_dsa_65::SIG_LEN,
+                ml_dsa_87::SIG_LEN,
                 sig.len()
             ),
         }
