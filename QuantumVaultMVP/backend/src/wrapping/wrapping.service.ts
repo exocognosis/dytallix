@@ -5,6 +5,7 @@ import { PrismaService } from '../database/prisma.service';
 import { VaultService } from '../vault/vault.service';
 import { JobStatus, AssetStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+import { deriveAes256Key, getMlKem1024, ML_KEM_1024_WRAP_SUITE } from '../crypto/mlkem';
 
 @Injectable()
 export class WrappingService {
@@ -94,9 +95,20 @@ export class WrappingService {
     const vaultData = await this.vaultService.read(keyMaterial.vaultPath);
     const plaintext = Buffer.from(vaultData.data.keyMaterial, 'base64');
 
-    // Generate symmetric key for AEAD
-    const symmetricKey = crypto.randomBytes(32); // 256-bit key for AES-256-GCM
-    
+    const anchor = await this.prisma.anchor.findUnique({ where: { id: anchorId } });
+    if (!anchor) {
+      throw new Error('Anchor not found');
+    }
+
+    const anchorPub = await this.vaultService.read(anchor.vaultKeyPath);
+    const anchorPublicKey = Buffer.from(anchorPub.data.key, 'base64');
+
+    const kem = await getMlKem1024();
+    const { ciphertext: kemCiphertext, sharedSecret } = await kem.encapsulate(anchorPublicKey);
+
+    const salt = crypto.randomBytes(32);
+    const symmetricKey = deriveAes256Key(sharedSecret, salt);
+
     // Generate nonce
     const nonce = crypto.randomBytes(12); // 96-bit nonce for GCM
 
@@ -105,14 +117,11 @@ export class WrappingService {
     const aeadCiphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
     const aeadTag = cipher.getAuthTag();
 
-    // Simulate PQC KEM encapsulation
-    // In production, this would use real Kyber KEM
-    const kemCiphertext = crypto.randomBytes(1568); // Kyber1024 ciphertext size
-
     // Store wrapped result in Vault
     const wrappedPath = `quantumvault/wrapped/${assetId}`;
     await this.vaultService.write(wrappedPath, {
-      kemCiphertext: kemCiphertext.toString('base64'),
+      kemCiphertext: Buffer.from(kemCiphertext).toString('base64'),
+      salt: salt.toString('base64'),
       nonce: nonce.toString('base64'),
       aeadCiphertext: aeadCiphertext.toString('base64'),
       aeadTag: aeadTag.toString('base64'),
@@ -125,11 +134,11 @@ export class WrappingService {
         jobId,
         assetId,
         anchorId,
-        kemCiphertext: kemCiphertext.toString('base64'),
+        kemCiphertext: Buffer.from(kemCiphertext).toString('base64'),
         nonce: nonce.toString('base64'),
         aeadCiphertext: aeadCiphertext.toString('base64'),
         aeadTag: aeadTag.toString('base64'),
-        algorithm: 'Kyber1024-HKDF-SHA256-AES-256-GCM',
+        algorithm: ML_KEM_1024_WRAP_SUITE,
         vaultPath: wrappedPath,
       },
     });

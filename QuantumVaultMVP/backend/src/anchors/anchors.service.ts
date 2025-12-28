@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { VaultService } from '../vault/vault.service';
+import { getMlKem1024, ML_KEM_1024_ALGORITHM } from '../crypto/mlkem';
 
 @Injectable()
 export class AnchorsService {
@@ -30,19 +31,23 @@ export class AnchorsService {
     });
   }
 
-  async createAnchor(name: string, algorithm: string = 'Kyber1024') {
+  async createAnchor(name: string, algorithm: string = ML_KEM_1024_ALGORITHM) {
     // Generate PQC keypair in Vault
     const keyId = `anchor-${Date.now()}`;
     const publicKeyPath = `quantumvault/anchors/${keyId}/public`;
     const privateKeyPath = `quantumvault/anchors/${keyId}/private`;
 
-    // For MVP, we generate placeholder keys
-    // In production, this would use real PQC key generation
-    const publicKey = await this.vaultService.generateKey(algorithm, 1568); // Kyber1024 public key size
-    const privateKey = await this.vaultService.generateKey(algorithm, 3168); // Kyber1024 private key size
+    const kem = await getMlKem1024();
+    const { publicKey, secretKey } = await kem.generateKeyPair();
 
-    await this.vaultService.write(publicKeyPath, { key: publicKey, algorithm });
-    await this.vaultService.write(privateKeyPath, { key: privateKey, algorithm });
+    await this.vaultService.write(publicKeyPath, {
+      key: Buffer.from(publicKey).toString('base64'),
+      algorithm,
+    });
+    await this.vaultService.write(privateKeyPath, {
+      key: Buffer.from(secretKey).toString('base64'),
+      algorithm,
+    });
 
     return this.prisma.anchor.create({
       data: {

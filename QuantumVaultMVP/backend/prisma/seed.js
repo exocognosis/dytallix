@@ -1,12 +1,13 @@
-import { PrismaClient, UserRole } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+/* eslint-disable no-console */
+
+const { PrismaClient, UserRole } = require('@prisma/client');
+const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Create admin user
   const adminPassword = await bcrypt.hash('QuantumVault2024!', 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@quantumvault.local' },
@@ -20,7 +21,6 @@ async function main() {
   });
   console.log('✅ Created admin user:', admin.email);
 
-  // Create security engineer user
   const engineerPassword = await bcrypt.hash('Engineer2024!', 12);
   const engineer = await prisma.user.upsert({
     where: { email: 'engineer@quantumvault.local' },
@@ -34,7 +34,6 @@ async function main() {
   });
   console.log('✅ Created security engineer user:', engineer.email);
 
-  // Create viewer user
   const viewerPassword = await bcrypt.hash('Viewer2024!', 12);
   const viewer = await prisma.user.upsert({
     where: { email: 'viewer@quantumvault.local' },
@@ -48,7 +47,6 @@ async function main() {
   });
   console.log('✅ Created viewer user:', viewer.email);
 
-  // Create sample scan target
   const target = await prisma.target.upsert({
     where: { id: '00000000-0000-0000-0000-000000000001' },
     update: {},
@@ -67,7 +65,6 @@ async function main() {
   });
   console.log('✅ Created sample scan target:', target.name);
 
-  // Create sample policy
   const policy = await prisma.policy.upsert({
     where: { id: '00000000-0000-0000-0000-000000000002' },
     update: {},
@@ -88,7 +85,6 @@ async function main() {
   });
   console.log('✅ Created sample policy:', policy.name);
 
-  // Create initial snapshot (idempotent)
   const snapshotId = '00000000-0000-0000-0000-000000000003';
   await prisma.orgSnapshot.upsert({
     where: { id: snapshotId },

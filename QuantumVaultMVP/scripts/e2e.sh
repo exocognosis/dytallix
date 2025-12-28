@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-API_URL="${API_URL:-http://localhost:3000/api/v1}"
+API_URL="${API_URL:-http://localhost:13000/api/v1}"
 TLS_TARGET="${TLS_TARGET:-google.com:443}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@quantumvault.local}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-QuantumVault2024!}"
