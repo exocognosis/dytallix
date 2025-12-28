@@ -100,7 +100,7 @@ Enhanced validator accounts with:
 {
   "enabled": true,
   "algorithms": {
-    "signature": ["ML-DSA-65", "SLH-DSA-SHAKE-128f"],
+    "signature": ["ML-DSA-87", "SLH-DSA-SHAKE-128f"],
     "encryption": ["ML-KEM-768"]
   },
   "transition_period_blocks": 100000,

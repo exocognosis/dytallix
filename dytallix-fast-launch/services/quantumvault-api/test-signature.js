@@ -10,9 +10,12 @@ const dilithium = await DilithiumModule;
 
 console.log('Testing Dilithium signature compatibility...\n');
 
-// Generate keypair using kind 3 (Dilithium3/ML-DSA-65)
+// dilithium-crystals-js parameter set mapping (README):
+// 0: Dilithium2 (ML-DSA-44), 1: Dilithium3 (ML-DSA-65), 2: Dilithium5 (ML-DSA-87)
+
+// Generate keypair using kind 1 (Dilithium3/ML-DSA-65)
 console.log('1. Generating Dilithium3 (ML-DSA-65) keypair...');
-const { publicKey, privateKey } = dilithium.generateKeys(3);
+const { publicKey, privateKey } = dilithium.generateKeys(1);
 
 console.log(`   Public key length: ${publicKey.length} bytes`);
 console.log(`   Private key length: ${privateKey.length} bytes`);
@@ -29,14 +32,15 @@ console.log(`   SHA3-256 hash: ${messageHash.toString('hex')}`);
 
 // Sign the hash
 console.log('\n3. Signing the message hash...');
-const { signature } = dilithium.sign(messageHash, privateKey, 3);
+const { signature } = dilithium.sign(messageHash, privateKey, 1);
 
 console.log(`   Signature length: ${signature.length} bytes`);
 console.log(`   Signature (hex, first 64 bytes): ${Buffer.from(signature).toString('hex').substring(0, 128)}...`);
 
 // Verify the signature
 console.log('\n4. Verifying the signature...');
-const isValid = dilithium.verify(messageHash, signature, publicKey, 3);
+const verifyResult = dilithium.verify(signature, messageHash, publicKey, 1);
+const isValid = typeof verifyResult === 'boolean' ? verifyResult : verifyResult?.result === 0;
 
 console.log(`   Verification result: ${isValid ? '✅ VALID' : '❌ INVALID'}`);
 
@@ -62,12 +66,13 @@ if (publicKey.length !== 1952 || privateKey.length !== 4000) {
     console.warn('   The blockchain expects Dilithium5 (ML-DSA-87) which has:');
     console.warn('   - Public key: 2592 bytes');
     console.warn('   - Private key: 4864 bytes');
-    console.warn('   - Signature: ~4595 bytes');
+    console.warn('   - Signature: 4627 bytes');
     
-    console.log('\n8. Testing with kind=5 (Dilithium5/ML-DSA-87)...');
-    const { publicKey: pk5, privateKey: sk5 } = dilithium.generateKeys(5);
-    const { signature: sig5 } = dilithium.sign(messageHash, sk5, 5);
-    const valid5 = dilithium.verify(messageHash, sig5, pk5, 5);
+    console.log('\n8. Testing with kind=2 (Dilithium5/ML-DSA-87)...');
+    const { publicKey: pk5, privateKey: sk5 } = dilithium.generateKeys(2);
+    const { signature: sig5 } = dilithium.sign(messageHash, sk5, 2);
+    const verify5 = dilithium.verify(sig5, messageHash, pk5, 2);
+    const valid5 = typeof verify5 === 'boolean' ? verify5 : verify5?.result === 0;
     
     console.log(`   Public key length: ${pk5.length} bytes ${pk5.length === 2592 ? '✅' : '❌'}`);
     console.log(`   Private key length: ${sk5.length} bytes ${sk5.length === 4864 ? '✅' : '❌'}`);
@@ -75,9 +80,10 @@ if (publicKey.length !== 1952 || privateKey.length !== 4000) {
     console.log(`   Verification: ${valid5 ? '✅ VALID' : '❌ INVALID'}`);
     
     if (pk5.length === 2592 && sk5.length === 4864) {
-        console.log('\n✅ KIND=5 MATCHES DILITHIUM5 (ML-DSA-87)!');
-        console.log('   Use kind=5 instead of kind=3 for blockchain compatibility.');
+        console.log('\n✅ KIND=2 MATCHES DILITHIUM5 (ML-DSA-87)!');
+        console.log('   Use kind=2 for blockchain compatibility.');
     }
 }
 
 console.log('\nTest complete.');
+

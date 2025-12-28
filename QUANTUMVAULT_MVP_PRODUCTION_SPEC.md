@@ -194,7 +194,7 @@ Defines what the scanning engine will touch.
 - `scope_type` ENUM (`ALL_ASSETS`, `BY_TYPE`, `BY_ENVIRONMENT`, `BY_TAG`, `BY_RISK_LEVEL`, `CUSTOM_QUERY`) NOT NULL
 - `scope_definition` JSONB NOT NULL
 - `required_pqc_algorithms` JSONB NOT NULL
-	- example: `{ "kem": ["ML-KEM-1024"], "symmetric": ["AES-256-GCM"], "signature": ["ML-DSA-65"] }`
+	- example: `{ "kem": ["ML-KEM-1024"], "symmetric": ["AES-256-GCM"], "signature": ["ML-DSA-87"] }`
 - `transition_strategy` ENUM (`HYBRID`, `PQC_ONLY`) NOT NULL
 - `enforcement_mode` ENUM (`MONITOR_ONLY`, `ENFORCE`) NOT NULL
 - `created_by_user_id` UUID NULL FK → `users.id`
