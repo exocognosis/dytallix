@@ -25,3 +25,7 @@ The format is intentionally lightweight (date-based) to support MVP-paced iterat
 
 ### Docs / Audit
 - Added baseline and remediation checklist notes under `QuantumVaultMVP/audit/`.
+
+### Planned (Next)
+- Frontend UX: add a single-file one-off flow to encrypt → attest → anchor.
+- Frontend UX: modernize and simplify the UI for better usability.
