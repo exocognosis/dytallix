@@ -21,7 +21,7 @@ use pqcrypto_sphincsplus::sphincssha2128ssimple;
 use pqcrypto_traits::sign::{DetachedSignature as _, PublicKey as SignPublicKey, SignedMessage};
 
 #[cfg(feature = "pqc-fips204")]
-use fips204::ml_dsa_65;
+use fips204::ml_dsa_87;
 #[cfg(feature = "pqc-fips204")]
 use fips204::traits::{SerDes, Verifier};
 
@@ -109,17 +109,26 @@ pub fn verify(
     sig: &[u8],
     alg: PQCAlgorithm,
 ) -> Result<(), PQCVerifyError> {
-    #[cfg(not(any(feature = "pqc-real", feature = "pqc-fips204")))]
+    // Fail closed by default: require a real PQC implementation to be compiled.
+    // The dev-only escape hatch is `pqc-mock`.
+
+    #[cfg(all(feature = "pqc-mock", not(any(feature = "pqc-real", feature = "pqc-fips204"))))]
     {
-        // Mock verification for testing - always returns true for non-empty inputs
         if pubkey.is_empty() || msg.is_empty() || sig.is_empty() {
             return Err(PQCVerifyError::InvalidSignature {
                 algorithm: alg.as_str().to_string(),
                 details: "Empty input".to_string(),
             });
         }
-        tracing::warn!("Using mock PQC verification - not secure for production");
+        tracing::warn!("Using MOCK PQC verification - not secure for production");
         return Ok(());
+    }
+
+    #[cfg(all(not(feature = "pqc-mock"), not(any(feature = "pqc-real", feature = "pqc-fips204"))))]
+    {
+        return Err(PQCVerifyError::FeatureNotCompiled {
+            feature: "pqc-fips204 or pqc-real".to_string(),
+        });
     }
 
     #[cfg(feature = "pqc-fips204")]
@@ -338,7 +347,7 @@ mod tests {
 
     #[test]
     fn test_mock_verification() {
-        #[cfg(not(feature = "pqc-real"))]
+        #[cfg(all(feature = "pqc-mock", not(any(feature = "pqc-real", feature = "pqc-fips204"))))]
         {
             // Mock should succeed with non-empty inputs
             assert!(verify(&[1], &[2], &[3], PQCAlgorithm::Dilithium5).is_ok());
@@ -355,7 +364,7 @@ mod tests {
         // Test the compatibility function with mock data
         assert!(!verify_default(&[], &[], &[])); // Should fail for empty inputs
 
-        #[cfg(not(feature = "pqc-real"))]
+        #[cfg(all(feature = "pqc-mock", not(any(feature = "pqc-real", feature = "pqc-fips204"))))]
         assert!(verify_default(&[1], &[2], &[3])); // Mock should succeed
     }
 
@@ -370,10 +379,15 @@ mod tests {
         );
 
         match result {
-            Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
-                assert_eq!(feature, "falcon");
+            // In pqc-fips204 builds, only Dilithium5 is supported.
+            Err(PQCVerifyError::UnsupportedAlgorithm(alg)) => {
+                assert_eq!(alg, "falcon1024");
             }
-            _ => panic!("Expected FeatureNotCompiled error"),
+            // In pqc-real builds without falcon enabled, report the missing feature.
+            Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
+                assert!(feature == "falcon" || feature == "pqc-fips204 or pqc-real");
+            }
+            _ => panic!("Expected UnsupportedAlgorithm or FeatureNotCompiled error"),
         }
     }
 
@@ -388,41 +402,46 @@ mod tests {
         );
 
         match result {
-            Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
-                assert_eq!(feature, "sphincs");
+            // In pqc-fips204 builds, only Dilithium5 is supported.
+            Err(PQCVerifyError::UnsupportedAlgorithm(alg)) => {
+                assert_eq!(alg, "sphincs_sha2_128s_simple");
             }
-            _ => panic!("Expected FeatureNotCompiled error"),
+            // In pqc-real builds without sphincs enabled, report the missing feature.
+            Err(PQCVerifyError::FeatureNotCompiled { feature }) => {
+                assert!(feature == "sphincs" || feature == "pqc-fips204 or pqc-real");
+            }
+            _ => panic!("Expected UnsupportedAlgorithm or FeatureNotCompiled error"),
         }
     }
 }
 
 #[cfg(feature = "pqc-fips204")]
 fn verify_dilithium5_fips204(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), PQCVerifyError> {
-    // FIPS 204 ML-DSA-65 (Dilithium5)
-    let pk_array: [u8; ml_dsa_65::PK_LEN] = pubkey.try_into().map_err(|_| {
+    // FIPS 204 ML-DSA-87 (Dilithium5)
+    let pk_array: [u8; ml_dsa_87::PK_LEN] = pubkey.try_into().map_err(|_| {
         PQCVerifyError::InvalidPublicKey {
             algorithm: "dilithium5".to_string(),
             details: format!(
                 "Expected {} bytes, got {}",
-                ml_dsa_65::PK_LEN,
+                ml_dsa_87::PK_LEN,
                 pubkey.len()
             ),
         }
     })?;
 
-    let pk_obj = ml_dsa_65::PublicKey::try_from_bytes(pk_array).map_err(|_| {
+    let pk_obj = ml_dsa_87::PublicKey::try_from_bytes(pk_array).map_err(|_| {
         PQCVerifyError::InvalidPublicKey {
             algorithm: "dilithium5".to_string(),
             details: "Invalid public key format".to_string(),
         }
     })?;
 
-    let sig_array: [u8; ml_dsa_65::SIG_LEN] = sig.try_into().map_err(|_| {
+    let sig_array: [u8; ml_dsa_87::SIG_LEN] = sig.try_into().map_err(|_| {
         PQCVerifyError::InvalidSignature {
             algorithm: "dilithium5".to_string(),
             details: format!(
                 "Expected {} bytes, got {}",
-                ml_dsa_65::SIG_LEN,
+                ml_dsa_87::SIG_LEN,
                 sig.len()
             ),
         }

@@ -1,13 +1,13 @@
-use fips204::ml_dsa_65;
+use fips204::ml_dsa_87;
 use fips204::traits::{KeyGen, SerDes, Signer, Verifier};
 use rand_core::OsRng;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 
 fn main() {
-    println!("Testing FIPS 204 ML-DSA-65 compatibility...\n");
+    println!("Testing FIPS 204 ML-DSA-87 compatibility...\n");
     
     // Generate keypair
-    let (pk, sk) = ml_dsa_65::KG::try_keygen_with_rng(&mut OsRng).expect("keygen failed");
+    let (pk, sk) = ml_dsa_87::KG::try_keygen_with_rng(&mut OsRng).expect("keygen failed");
     
     println!("Key sizes:");
     println!("  Public key: {} bytes", pk.into_bytes().len());
@@ -37,10 +37,10 @@ fn main() {
     let pk_bytes = B64.decode(&pk_b64).unwrap();
     let sig_bytes = B64.decode(&sig_b64).unwrap();
     
-    let pk_array: [u8; ml_dsa_65::PK_LEN] = pk_bytes.try_into().unwrap();
-    let pk_recovered = ml_dsa_65::PublicKey::try_from_bytes(pk_array).unwrap();
+    let pk_array: [u8; ml_dsa_87::PK_LEN] = pk_bytes.try_into().unwrap();
+    let pk_recovered = ml_dsa_87::PublicKey::try_from_bytes(pk_array).unwrap();
     
-    let sig_array: [u8; ml_dsa_65::SIG_LEN] = sig_bytes.try_into().unwrap();
+    let sig_array: [u8; ml_dsa_87::SIG_LEN] = sig_bytes.try_into().unwrap();
     let verified_after_roundtrip = pk_recovered.verify(msg, &sig_array, &[]);
     
     println!("  Verification after base64 round-trip: {}", verified_after_roundtrip);
