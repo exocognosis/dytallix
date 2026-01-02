@@ -13,9 +13,12 @@ const apiClient = axios.create({
 // Add request interceptor for auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Check if we're in a browser environment
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -28,7 +31,7 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
@@ -36,17 +39,37 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Type definitions
+interface AssetMetadata {
+  [key: string]: string | number | boolean;
+}
+
+interface Policy {
+  name: string;
+  description?: string;
+  rules?: any[];
+  isActive?: boolean;
+}
+
+interface Anchor {
+  name: string;
+  algorithm: string;
+  isActive?: boolean;
+}
+
 // Auth API
 export const authAPI = {
   login: async (email: string, password: string) => {
     const response = await apiClient.post('/auth/login', { email, password });
-    if (response.data.token) {
+    if (response.data.token && typeof window !== 'undefined') {
       localStorage.setItem('token', response.data.token);
     }
     return response.data;
   },
   logout: async () => {
-    localStorage.removeItem('token');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+    }
     await apiClient.post('/auth/logout');
   },
   getMe: async () => {
@@ -81,7 +104,7 @@ export const assetsAPI = {
     const response = await apiClient.get(`/assets/${id}`);
     return response.data;
   },
-  updateAssetMetadata: async (id: string, metadata: any) => {
+  updateAssetMetadata: async (id: string, metadata: AssetMetadata) => {
     const response = await apiClient.put(`/assets/${id}/metadata`, metadata);
     return response.data;
   },
@@ -93,7 +116,7 @@ export const policiesAPI = {
     const response = await apiClient.get('/policies');
     return response.data;
   },
-  createPolicy: async (policy: any) => {
+  createPolicy: async (policy: Policy) => {
     const response = await apiClient.post('/policies', policy);
     return response.data;
   },
@@ -109,7 +132,7 @@ export const anchorsAPI = {
     const response = await apiClient.get('/anchors');
     return response.data;
   },
-  createAnchor: async (anchor: any) => {
+  createAnchor: async (anchor: Anchor) => {
     const response = await apiClient.post('/anchors', anchor);
     return response.data;
   },
