@@ -37,7 +37,7 @@ export default function LoginPage() {
 
     try {
       const response = await authAPI.login(email, password);
-      localStorage.setItem('token', response.access_token);
+      // Token is already saved in authAPI.login
       router.push('/dashboard');
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid email or password';
