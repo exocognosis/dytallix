@@ -121,12 +121,12 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="p-6">
+      <main className="p-4 max-w-screen-2xl mx-auto">
         {activeTab === 'overview' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-slate-400 text-sm">Total Assets</h3>
                   <Database className="w-5 h-5 text-blue-400" />
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-slate-500 mt-1">Discovered: {kpis.discoveredAssets}</p>
               </div>
 
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-slate-400 text-sm">Wrapped Assets</h3>
                   <Lock className="w-5 h-5 text-green-400" />
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-slate-400 text-sm">Attested Assets</h3>
                   <CheckCircle className="w-5 h-5 text-purple-400" />
@@ -155,7 +155,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-slate-500 mt-1">Blockchain verified</p>
               </div>
 
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-slate-400 text-sm">Avg Risk Score</h3>
                   <TrendingUp className="w-5 h-5 text-orange-400" />
@@ -166,9 +166,9 @@ export default function DashboardPage() {
             </div>
 
             {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Risk Distribution */}
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <h3 className="text-white text-lg font-semibold mb-4">Risk Distribution</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Migration Progress */}
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <h3 className="text-white text-lg font-semibold mb-4">Migration Progress</h3>
                 <div className="space-y-4">
                   <div>
@@ -233,11 +233,46 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Asset Status Breakdown */}
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <h3 className="text-white text-lg font-semibold mb-4">Asset Status</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span className="text-slate-300 text-sm">Critical Risk</span>
+                    </div>
+                    <span className="text-white font-semibold">{kpis.criticalRiskAssets}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                      <span className="text-slate-300 text-sm">High Risk</span>
+                    </div>
+                    <span className="text-white font-semibold">{kpis.highRiskAssets}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span className="text-slate-300 text-sm">Medium Risk</span>
+                    </div>
+                    <span className="text-white font-semibold">{kpis.mediumRiskAssets}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-slate-300 text-sm">Low Risk</span>
+                    </div>
+                    <span className="text-white font-semibold">{kpis.lowRiskAssets}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Trends Chart */}
             {trends.length > 0 && (
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <h3 className="text-white text-lg font-semibold mb-4">30-Day Trends</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={trends}>
