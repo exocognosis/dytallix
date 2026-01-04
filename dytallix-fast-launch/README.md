@@ -94,7 +94,7 @@ All port assignments are defined in `.env`. The default port scheme is:
 | QuantumVault | 3002 | `QUANTUMVAULT_API_PORT` | Encrypted storage service |
 | Blockchain Node | 3003 | `BLOCKCHAIN_NODE_PORT` | Primary blockchain JSON-RPC |
 | WebSocket | 3004 | `WEBSOCKET_PORT` | Real-time updates |
-| Faucet | 3004 | `FAUCET_PORT` | Token distribution service |
+| Faucet | 3005 | `FAUCET_PORT` | Token distribution service |
 
 **📝 Note**: To change ports, edit `.env` file. All scripts automatically load port configuration from `.env`.
 
@@ -109,7 +109,7 @@ BACKEND_API_PORT=3001
 QUANTUMVAULT_API_PORT=3002
 BLOCKCHAIN_NODE_PORT=3003
 WEBSOCKET_PORT=3004
-FAUCET_PORT=3004
+FAUCET_PORT=3005
 ```
 
 #### **Cosmos Chain Configuration**

@@ -3,7 +3,9 @@
 # DYTALLIX SERVICES STOP SCRIPT
 # Cleanly stops all services running on fixed ports
 
-set -e
+# Note: Not using 'set -e' here to allow proper error handling
+set -u  # Exit on undefined variables
+set -o pipefail  # Catch errors in pipes
 
 # Colors for output
 RED='\033[0;31m'
@@ -26,7 +28,7 @@ FRONTEND_PORT=${FRONTEND_PORT:-3000}
 BACKEND_PORT=${BACKEND_API_PORT:-3001}
 BLOCKCHAIN_PORT=${BLOCKCHAIN_NODE_PORT:-3003}
 QUANTUMVAULT_PORT=${QUANTUMVAULT_API_PORT:-3002}
-FAUCET_PORT=${FAUCET_PORT:-3004}
+FAUCET_PORT=${FAUCET_PORT:-3005}
 WEBSOCKET_PORT=${WEBSOCKET_PORT:-3004}
 
 # Initialize counters for summary report
@@ -134,7 +136,7 @@ else
 fi
 
 # Clean up log files if requested
-if [ "$1" = "--clean-logs" ]; then
+if [ "${1:-}" = "--clean-logs" ]; then
     echo -e "${BLUE}🧹 Cleaning log files...${NC}"
     if rm -f logs/*.log 2>/dev/null; then
         echo -e "${GREEN}✅ Log files cleaned${NC}"
