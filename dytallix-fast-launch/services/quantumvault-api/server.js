@@ -31,7 +31,7 @@ import { getCrypto } from './crypto-service.js';
 const cryptoService = getCrypto();
 
 const app = express();
-const PORT = process.env.PORT || 3031;
+const PORT = process.env.PORT || process.env.QUANTUMVAULT_API_PORT || 3002;
 
 // Middleware
 app.use(cors({

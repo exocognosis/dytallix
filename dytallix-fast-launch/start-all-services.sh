@@ -9,13 +9,27 @@
 
 set -e
 
-# Fixed port configuration
-FRONTEND_PORT=3000
-BACKEND_PORT=3001
-BLOCKCHAIN_PORT=3003
-QUANTUMVAULT_PORT=3002
-FAUCET_PORT=3004
-WEBSOCKET_PORT=3005
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BASE_DIR="$SCRIPT_DIR"
+
+# Source .env for port configuration
+if [ -f "$BASE_DIR/.env" ]; then
+    echo "Loading configuration from .env..."
+    set -a
+    source "$BASE_DIR/.env"
+    set +a
+else
+    echo "Warning: .env file not found. Using default ports."
+fi
+
+# Port configuration (with fallback defaults if .env not found)
+FRONTEND_PORT=${FRONTEND_PORT:-3000}
+BACKEND_PORT=${BACKEND_API_PORT:-3001}
+BLOCKCHAIN_PORT=${BLOCKCHAIN_NODE_PORT:-3003}
+QUANTUMVAULT_PORT=${QUANTUMVAULT_API_PORT:-3002}
+FAUCET_PORT=${FAUCET_PORT:-3005}
+WEBSOCKET_PORT=${WEBSOCKET_PORT:-3004}
 
 # Color codes for output
 RED='\033[0;31m'
