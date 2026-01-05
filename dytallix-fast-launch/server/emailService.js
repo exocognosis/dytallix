@@ -11,9 +11,16 @@ import { logInfo, logError } from './logger.js';
 const createTransporter = () => {
   // Check if we have SMTP credentials configured
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const port = parseInt(process.env.SMTP_PORT || '587', 10);
+    // Validate port is within valid range
+    if (port < 1 || port > 65535) {
+      logError('Invalid SMTP_PORT value, using default 587', { port });
+      port = 587;
+    }
+    
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      port,
       secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
       auth: {
         user: process.env.SMTP_USER,
@@ -254,7 +261,10 @@ export const sendQuantumRiskEmail = async (userEmail, formData, riskScores) => {
     // Send email
     const info = await transporter.sendMail(mailOptions);
     
-    if (process.env.NODE_ENV !== 'production' && info.messageId) {
+    // Check if we're in development mode (using jsonTransport)
+    const isDevelopmentMode = !process.env.SMTP_HOST || !process.env.SMTP_USER;
+    
+    if (isDevelopmentMode && info.messageId) {
       logInfo('Email sent (development mode)', { 
         messageId: info.messageId,
         message: info.message?.toString()

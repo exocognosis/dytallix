@@ -1735,9 +1735,11 @@ app.post('/api/faucet', async (req, res, next) => {
 
 // Simple AI demo rate-limited endpoint placeholder
 const aiRate = { store: new Map(), WINDOW_MS: 60_000, MAX_PER_WINDOW: 12 }
+const RATE_LIMIT_KEY_QUANTUM_RISK_EMAIL = 'quantum-risk-email';
+const RATE_LIMIT_KEY_ANOMALY = 'anomaly';
 function aiRateCheck(ip, key) { const now = Date.now(); const bucketKey = `${ip}:${key}`; let b = aiRate.store.get(bucketKey); if (!b || now > b.reset) { b = { count: 0, reset: now + aiRate.WINDOW_MS } } b.count++; if (b.count > aiRate.MAX_PER_WINDOW) { const e = new Error('RATE_LIMITED'); e.status = 429; throw e } aiRate.store.set(bucketKey, b) }
 
-app.post('/api/ai/anomaly', (req, res, next) => { try { const ip = req.socket.remoteAddress || 'unknown'; aiRateCheck(ip, 'anomaly'); res.json({ ok: true, anomaly: false, score: Number((Math.random() * 0.4).toFixed(3)) }) } catch (e) { next(e) } })
+app.post('/api/ai/anomaly', (req, res, next) => { try { const ip = req.socket.remoteAddress || 'unknown'; aiRateCheck(ip, RATE_LIMIT_KEY_ANOMALY); res.json({ ok: true, anomaly: false, score: Number((Math.random() * 0.4).toFixed(3)) }) } catch (e) { next(e) } })
 
 // GET version of anomaly endpoint for testing purposes
 app.get('/anomaly', (req, res, next) => {
@@ -1971,8 +1973,8 @@ app.post('/api/quantum-risk/submit-email', async (req, res, next) => {
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
   
   try {
-    // Rate limiting for email submissions (reuse the AI rate limiter)
-    aiRateCheck(ip, 'quantum-risk-email')
+    // Rate limiting for email submissions
+    aiRateCheck(ip, RATE_LIMIT_KEY_QUANTUM_RISK_EMAIL)
     
     const { email, formData, riskScores } = req.body || {}
     

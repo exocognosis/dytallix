@@ -148,8 +148,10 @@ const QuantumRiskDashboard: React.FC = () => {
                             setIsSubmitting(true);
                             
                             try {
-                                // Get API URL from environment or default to localhost
-                                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                                // Get API URL from environment with proper fallback
+                                const apiUrl = import.meta.env.VITE_API_URL || 
+                                              (typeof window !== 'undefined' && window.location.origin) || 
+                                              'http://localhost:3001';
                                 const response = await fetch(`${apiUrl}/api/quantum-risk/submit-email`, {
                                     method: 'POST',
                                     headers: {
@@ -173,10 +175,11 @@ const QuantumRiskDashboard: React.FC = () => {
                                 } else {
                                     throw new Error(data.message || 'Failed to send email');
                                 }
-                            } catch (error: any) {
+                            } catch (error) {
+                                const errorMessage = error instanceof Error ? error.message : 'Failed to send email. Please try again.';
                                 setSubmitMessage({
                                     type: 'error',
-                                    text: error.message || 'Failed to send email. Please try again.'
+                                    text: errorMessage
                                 });
                             } finally {
                                 setIsSubmitting(false);
