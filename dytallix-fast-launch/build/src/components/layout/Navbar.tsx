@@ -26,7 +26,7 @@ export function Navbar() {
         { name: "Explorer", path: "/build/blockchain" },
         { name: "AI Network", path: "/ai-oracle-network" },
         { name: "Technology", path: "/tech-stack" },
-        { name: "Risk Analysis", path: "/quantum-risk" },
+        { name: "Risk Analysis", path: "/quantumrisk" },
         { name: "Resources", path: "/resources" },
     ]
 

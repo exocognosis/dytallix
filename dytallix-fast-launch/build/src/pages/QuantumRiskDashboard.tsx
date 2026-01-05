@@ -113,10 +113,6 @@ const QuantumRiskDashboard: React.FC = () => {
                     <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
                         Quantum Risk <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-red to-accent-blue">Dashboard</span>
                     </h1>
-                    <p className="text-lg text-muted-foreground">
-                        Assess your organization's vulnerability to current and future quantum threats.
-                        Understand your exposure to "Harvest Now, Decrypt Later" attacks and the looming CRQC era.
-                    </p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -134,16 +130,37 @@ const QuantumRiskDashboard: React.FC = () => {
                 {/* Explanations Section */}
                 <RiskExplanations />
 
-                {/* CTA */}
+                {/* Email Capture CTA */}
                 <div className="mt-16 text-center">
-                    <div className="inline-block p-[1px] rounded-full bg-gradient-to-r from-accent-red via-accent-blue to-accent-red">
-                        <button className="px-8 py-3 rounded-full bg-background text-foreground font-medium hover:bg-accent/10 transition-all">
-                            Get a Detailed Risk Audit
-                        </button>
-                    </div>
-                    <p className="mt-4 text-sm text-muted-foreground">
-                        This tool provides a high-level estimate. Contact QuantumVault for a comprehensive analysis.
+                    <p className="mb-4 text-sm text-muted-foreground">
+                        Enter your email address to get your Quantum Risk Analysis
                     </p>
+                    <form 
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            const form = e.target as HTMLFormElement;
+                            const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+                            alert(`Thank you! Your Quantum Risk Analysis will be sent to ${email}`);
+                            form.reset();
+                        }}
+                        className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto"
+                    >
+                        <input
+                            type="email"
+                            name="email"
+                            required
+                            placeholder="Enter your email"
+                            className="w-full sm:w-auto flex-1 px-4 py-3 rounded-lg bg-background border border-input text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                        />
+                        <div className="p-[1px] rounded-lg bg-gradient-to-r from-accent-red via-accent-blue to-accent-red">
+                            <button 
+                                type="submit"
+                                className="px-6 py-3 rounded-lg bg-background text-foreground font-medium hover:bg-accent/10 transition-all whitespace-nowrap"
+                            >
+                                Get My Analysis
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </Section>
         </div>

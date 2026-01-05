@@ -4,50 +4,95 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { dashboardAPI, assetsAPI, policiesAPI, anchorsAPI, authAPI } from '@/lib/api';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Shield, AlertTriangle, CheckCircle, Activity, TrendingUp, Lock, Database, FileCheck } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { CheckCircle, TrendingUp, Lock, Database } from 'lucide-react';
+import OneOffFlowPanel from './OneOffFlowPanel';
 
-const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981'];
+type User = {
+  email?: string;
+};
+
+type KPI = {
+  totalAssets: number;
+  discoveredAssets: number;
+  wrappedAssets: number;
+  attestedAssets: number;
+  avgRiskScore: number;
+  criticalRiskAssets: number;
+  highRiskAssets: number;
+  mediumRiskAssets: number;
+  lowRiskAssets: number;
+};
+
+type TrendPoint = {
+  timestamp: string;
+  totalAssets: number;
+  wrappedAssets: number;
+  attestedAssets: number;
+};
+
+type Asset = {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  riskLevel: string;
+  riskScore: number;
+};
+
+type Policy = {
+  id: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+};
+
+type Anchor = {
+  id: string;
+  name: string;
+  algorithm: string;
+  isActive?: boolean;
+};
 
 export default function DashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
-  const [kpis, setKpis] = useState<any>(null);
-  const [trends, setTrends] = useState<any[]>([]);
-  const [assets, setAssets] = useState<any[]>([]);
-  const [policies, setPolicies] = useState<any[]>([]);
-  const [anchors, setAnchors] = useState<any[]>([]);
+  const [kpis, setKpis] = useState<KPI | null>(null);
+  const [trends, setTrends] = useState<TrendPoint[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [anchors, setAnchors] = useState<Anchor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const run = async () => {
+      try {
+        const [userResponse, kpisResponse, trendsResponse, assetsResponse, policiesResponse, anchorsResponse] = await Promise.all([
+          authAPI.getMe(),
+          dashboardAPI.getKPIs(),
+          dashboardAPI.getTrends(90),
+          assetsAPI.getAssets(),
+          policiesAPI.getPolicies(),
+          anchorsAPI.getAnchors(),
+        ]);
 
-  const loadData = async () => {
-    try {
-      const [userResponse, kpisResponse, trendsResponse, assetsResponse, policiesResponse, anchorsResponse] = await Promise.all([
-        authAPI.getMe(),
-        dashboardAPI.getKPIs(),
-        dashboardAPI.getTrends(30),
-        assetsAPI.getAssets(),
-        policiesAPI.getPolicies(),
-        anchorsAPI.getAnchors(),
-      ]);
+        setUser(userResponse as User);
+        setKpis(kpisResponse as KPI);
+        setTrends((trendsResponse as unknown[] as TrendPoint[]) || []);
+        setAssets((assetsResponse as unknown[] as Asset[]) || []);
+        setPolicies((policiesResponse as unknown[] as Policy[]) || []);
+        setAnchors((anchorsResponse as unknown[] as Anchor[]) || []);
+      } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+        router.push('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      setUser(userResponse);
-      setKpis(kpisResponse);
-      setTrends(trendsResponse);
-      setAssets(assetsResponse);
-      setPolicies(policiesResponse);
-      setAnchors(anchorsResponse);
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-      router.push('/login');
-    } finally {
-      setLoading(false);
-    }
-  };
+    void run();
+  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -73,221 +118,262 @@ export default function DashboardPage() {
     { name: 'Low', value: kpis.lowRiskAssets, color: '#10b981' },
   ];
 
+  const totalAssets = Number(kpis.totalAssets) || 0;
+  const safePercent = (part: number) => {
+    if (!totalAssets || totalAssets <= 0) return 0;
+    const pct = (Number(part) / totalAssets) * 100;
+    if (!Number.isFinite(pct) || pct < 0) return 0;
+    return Math.min(100, pct);
+  };
+
   return (
     <div className="min-h-screen bg-slate-900">
       {/* Header */}
-      <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Image src="/QuantumVault.png" alt="QuantumVault" width={40} height={40} />
-            <h1 className="text-2xl font-bold text-white">QuantumVault</h1>
+      <header className="bg-slate-900 sticky top-0 z-50">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-slate-700">
+          <div className="flex items-center gap-4">
+            <Image src="/QuantumVault.png" alt="QuantumVault" width={44} height={44} />
+            <h1 className="text-3xl font-bold text-white tracking-wide">QuantumVault</h1>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-sm text-slate-400">Logged in as</p>
-              <p className="text-white font-medium">{user?.email}</p>
+
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:block text-right">
+              <p className="text-xs text-slate-400">Logged in as</p>
+              <p className="text-sm text-white font-medium">{user?.email}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+              className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-md border border-slate-700 transition"
             >
-              Logout
+              LOGIN/LOGOUT
             </button>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="px-6 flex space-x-1 border-t border-slate-700">
-          {[
-            { id: 'overview', label: 'Overview', icon: Activity },
-            { id: 'assets', label: 'Assets', icon: Database },
-            { id: 'policies', label: 'Policies', icon: FileCheck },
-            { id: 'attestations', label: 'Attestations', icon: CheckCircle },
-            { id: 'anchors', label: 'Anchoring Jobs', icon: Lock },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          ))}
+        <div className="px-6 py-3 bg-gradient-to-b from-blue-800/70 to-blue-900/70 border-b border-slate-700">
+          <div className="flex items-center justify-center gap-10 flex-wrap">
+            {[
+              { id: 'overview', label: 'OVERVIEW' },
+              { id: 'assets', label: 'ASSETS' },
+              { id: 'attestations', label: 'ATTESTATIONS' },
+              { id: 'policies', label: 'POLICIES' },
+              { id: 'anchors', label: 'ANCHORING JOBS' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-1 text-lg font-semibold tracking-widest transition ${
+                  activeTab === tab.id ? 'text-white' : 'text-blue-100/80 hover:text-blue-100'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
-      <main className="p-4 max-w-screen-2xl mx-auto">
+      <main className="p-6 max-w-screen-2xl mx-auto">
         {activeTab === 'overview' && (
-          <div className="space-y-4">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-slate-400 text-sm">Total Assets</h3>
-                  <Database className="w-5 h-5 text-blue-400" />
-                </div>
-                <p className="text-3xl font-bold text-white">{kpis.totalAssets}</p>
-                <p className="text-xs text-slate-500 mt-1">Discovered: {kpis.discoveredAssets}</p>
-              </div>
+          <div className="space-y-6">
+            {/* Top row: System Status | Single Asset Intake | Migration Status/Progress */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-4 bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+                <div className="p-6 flex flex-col items-center justify-center min-h-[220px]">
+                  <div className="text-4xl font-extrabold tracking-wide text-white">System</div>
+                  <div className="text-4xl font-extrabold tracking-wide text-white">Status</div>
 
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-slate-400 text-sm">Wrapped Assets</h3>
-                  <Lock className="w-5 h-5 text-green-400" />
-                </div>
-                <p className="text-3xl font-bold text-white">{kpis.wrappedAssets}</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  {kpis.totalAssets > 0 ? ((kpis.wrappedAssets / kpis.totalAssets) * 100).toFixed(1) : 0}% of total
-                </p>
-              </div>
-
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-slate-400 text-sm">Attested Assets</h3>
-                  <CheckCircle className="w-5 h-5 text-purple-400" />
-                </div>
-                <p className="text-3xl font-bold text-white">{kpis.attestedAssets}</p>
-                <p className="text-xs text-slate-500 mt-1">Blockchain verified</p>
-              </div>
-
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-slate-400 text-sm">Avg Risk Score</h3>
-                  <TrendingUp className="w-5 h-5 text-orange-400" />
-                </div>
-                <p className="text-3xl font-bold text-white">{kpis.avgRiskScore.toFixed(1)}</p>
-                <p className="text-xs text-slate-500 mt-1">Out of 100</p>
-              </div>
-            </div>
-
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Risk Distribution */}
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                <h3 className="text-white text-lg font-semibold mb-4">Risk Distribution</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={riskData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {riskData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Migration Progress */}
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                <h3 className="text-white text-lg font-semibold mb-4">Migration Progress</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-400">Discovered</span>
-                      <span className="text-white">{kpis.discoveredAssets}</span>
+                  <div className="mt-6 w-full max-w-sm space-y-3">
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-900/40 rounded-md border border-slate-700">
+                      <span className="text-slate-200 text-sm">Critical</span>
+                      <span className="text-white font-semibold">{kpis.criticalRiskAssets}</span>
                     </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full"
-                        style={{ width: `${(kpis.discoveredAssets / kpis.totalAssets) * 100}%` }}
-                      ></div>
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-900/40 rounded-md border border-slate-700">
+                      <span className="text-slate-200 text-sm">High</span>
+                      <span className="text-white font-semibold">{kpis.highRiskAssets}</span>
                     </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-400">Wrapped</span>
-                      <span className="text-white">{kpis.wrappedAssets}</span>
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-900/40 rounded-md border border-slate-700">
+                      <span className="text-slate-200 text-sm">Medium</span>
+                      <span className="text-white font-semibold">{kpis.mediumRiskAssets}</span>
                     </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full"
-                        style={{ width: `${(kpis.wrappedAssets / kpis.totalAssets) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-400">Attested</span>
-                      <span className="text-white">{kpis.attestedAssets}</span>
-                    </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div
-                        className="bg-purple-500 h-2 rounded-full"
-                        style={{ width: `${(kpis.attestedAssets / kpis.totalAssets) * 100}%` }}
-                      ></div>
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-900/40 rounded-md border border-slate-700">
+                      <span className="text-slate-200 text-sm">Low</span>
+                      <span className="text-white font-semibold">{kpis.lowRiskAssets}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Asset Status Breakdown */}
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                <h3 className="text-white text-lg font-semibold mb-4">Asset Status</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <span className="text-slate-300 text-sm">Critical Risk</span>
-                    </div>
-                    <span className="text-white font-semibold">{kpis.criticalRiskAssets}</span>
+              <div className="lg:col-span-3 bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+                <div className="p-6 min-h-[220px]">
+                  <div className="text-center text-3xl font-extrabold tracking-wide text-white">
+                    Single
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                      <span className="text-slate-300 text-sm">High Risk</span>
-                    </div>
-                    <span className="text-white font-semibold">{kpis.highRiskAssets}</span>
+                  <div className="text-center text-3xl font-extrabold tracking-wide text-white">
+                    Asset
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-slate-300 text-sm">Medium Risk</span>
-                    </div>
-                    <span className="text-white font-semibold">{kpis.mediumRiskAssets}</span>
+                  <div className="text-center text-3xl font-extrabold tracking-wide text-white">
+                    Intake
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span className="text-slate-300 text-sm">Low Risk</span>
+
+                  <div className="mt-6 max-h-[520px] overflow-auto rounded-md border border-slate-700 bg-slate-900/30 p-4">
+                    <OneOffFlowPanel assets={assets} policies={policies} anchors={anchors} variant="embedded" showHeader={false} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+                <div className="p-6 min-h-[220px] flex flex-col justify-center">
+                  <div className="text-center text-4xl font-extrabold tracking-wide text-white">Migration</div>
+                  <div className="text-center text-4xl font-extrabold tracking-wide text-white">Status/Progress</div>
+
+                  <div className="mt-8 space-y-5">
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-slate-200">Discovered</span>
+                        <span className="text-white font-semibold">{kpis.discoveredAssets}</span>
+                      </div>
+                      <div className="w-full bg-slate-900/40 rounded-full h-3 border border-slate-700">
+                        <div className="bg-blue-500 h-3 rounded-full" style={{ width: `${safePercent(kpis.discoveredAssets)}%` }}></div>
+                      </div>
                     </div>
-                    <span className="text-white font-semibold">{kpis.lowRiskAssets}</span>
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-slate-200">Wrapped</span>
+                        <span className="text-white font-semibold">{kpis.wrappedAssets}</span>
+                      </div>
+                      <div className="w-full bg-slate-900/40 rounded-full h-3 border border-slate-700">
+                        <div className="bg-green-500 h-3 rounded-full" style={{ width: `${safePercent(kpis.wrappedAssets)}%` }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-slate-200">Attested</span>
+                        <span className="text-white font-semibold">{kpis.attestedAssets}</span>
+                      </div>
+                      <div className="w-full bg-slate-900/40 rounded-full h-3 border border-slate-700">
+                        <div className="bg-purple-500 h-3 rounded-full" style={{ width: `${safePercent(kpis.attestedAssets)}%` }}></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Trends Chart */}
-            {trends.length > 0 && (
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                <h3 className="text-white text-lg font-semibold mb-4">30-Day Trends</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={trends}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="timestamp" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }} />
-                    <Legend />
-                    <Line type="monotone" dataKey="totalAssets" stroke="#3b82f6" name="Total Assets" />
-                    <Line type="monotone" dataKey="wrappedAssets" stroke="#10b981" name="Wrapped" />
-                    <Line type="monotone" dataKey="attestedAssets" stroke="#8b5cf6" name="Attested" />
-                  </LineChart>
-                </ResponsiveContainer>
+            {/* KPI strip */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+                <div className="px-5 py-3 text-center text-sm font-bold tracking-widest text-blue-100 bg-blue-900/30 border-b border-blue-900/40">
+                  TOTAL ASSETS
+                </div>
+                <div className="p-6 flex flex-col items-center justify-center">
+                  <Database className="w-7 h-7 text-blue-200 mb-3" />
+                  <div className="text-4xl font-extrabold text-white">{kpis.totalAssets}</div>
+                  <div className="text-xs text-blue-100/80 mt-2">Discovered: {kpis.discoveredAssets}</div>
+                </div>
               </div>
-            )}
+
+              <div className="bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+                <div className="px-5 py-3 text-center text-sm font-bold tracking-widest text-blue-100 bg-blue-900/30 border-b border-blue-900/40">
+                  WRAPPED ASSETS
+                </div>
+                <div className="p-6 flex flex-col items-center justify-center">
+                  <Lock className="w-7 h-7 text-blue-200 mb-3" />
+                  <div className="text-4xl font-extrabold text-white">{kpis.wrappedAssets}</div>
+                  <div className="text-xs text-blue-100/80 mt-2">{safePercent(kpis.wrappedAssets).toFixed(1)}% of total</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+                <div className="px-5 py-3 text-center text-sm font-bold tracking-widest text-blue-100 bg-blue-900/30 border-b border-blue-900/40">
+                  ATTESTED ASSETS
+                </div>
+                <div className="p-6 flex flex-col items-center justify-center">
+                  <CheckCircle className="w-7 h-7 text-blue-200 mb-3" />
+                  <div className="text-4xl font-extrabold text-white">{kpis.attestedAssets}</div>
+                  <div className="text-xs text-blue-100/80 mt-2">Blockchain verified</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+                <div className="px-5 py-3 text-center text-sm font-bold tracking-widest text-blue-100 bg-blue-900/30 border-b border-blue-900/40">
+                  AVG. ASSET RISK
+                </div>
+                <div className="p-6 flex flex-col items-center justify-center">
+                  <TrendingUp className="w-7 h-7 text-blue-200 mb-3" />
+                  <div className="text-4xl font-extrabold text-white">{kpis.avgRiskScore.toFixed(1)}</div>
+                  <div className="text-xs text-blue-100/80 mt-2">Out of 100</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+                <div className="px-5 py-3 text-center text-sm font-bold tracking-widest text-blue-100 bg-blue-900/30 border-b border-blue-900/40">
+                  ASSET RISK DISTRIBUTION
+                </div>
+                <div className="p-4">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={riskData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}`}
+                        outerRadius={95}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {riskData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {['FEATURE FUNCTION TBD', 'FEATURE FUNCTION TBD', 'FEATURE FUNCTION TBD'].map((label, idx) => (
+                <div key={idx} className="bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+                  <div className="px-5 py-3 text-center text-sm font-bold tracking-widest text-blue-100 bg-blue-900/30 border-b border-blue-900/40">
+                    {label}
+                  </div>
+                  <div className="p-10 flex items-center justify-center min-h-[280px]">
+                    <div className="text-center text-3xl font-extrabold tracking-wide text-white">FEATURE\nFUNCTION\nTBD</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Trend analysis */}
+            <div className="bg-gradient-to-b from-blue-800/60 to-blue-900/60 rounded-lg border border-blue-900/40">
+              <div className="p-8 text-center text-4xl font-extrabold tracking-wide text-white">30/60/90 Trend</div>
+              <div className="pb-8 text-center text-4xl font-extrabold tracking-wide text-white">Analysis Function</div>
+              <div className="px-6 pb-6">
+                {trends.length > 0 ? (
+                  <div className="bg-slate-900/30 rounded-md border border-slate-700 p-4">
+                    <ResponsiveContainer width="100%" height={320}>
+                      <LineChart data={trends}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                        <XAxis dataKey="timestamp" stroke="#cbd5e1" />
+                        <YAxis stroke="#cbd5e1" />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155' }} />
+                        <Legend />
+                        <Line type="monotone" dataKey="totalAssets" stroke="#3b82f6" name="Total Assets" />
+                        <Line type="monotone" dataKey="wrappedAssets" stroke="#10b981" name="Wrapped" />
+                        <Line type="monotone" dataKey="attestedAssets" stroke="#8b5cf6" name="Attested" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="text-center text-slate-200">No trend data available</div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
