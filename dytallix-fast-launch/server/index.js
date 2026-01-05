@@ -7,6 +7,7 @@ import { assertNotLimited, markGranted, __testResetRateLimiter } from './rateLim
 import { transfer, getMaxFor } from './transfer.js'
 import { register, rateLimitHitsTotal, faucetRequestsTotal, aiOracleFailuresTotal, aiOracleLatencySeconds, aiOracleRequestsTotal } from './metrics.js'
 import { ContractScanner } from './src/scanner/index.js'
+import { sendQuantumRiskEmail } from './emailService.js'
 // Anomaly detection engine stubbed for fast-launch (nice-to-have feature)
 // import { AnomalyDetectionEngine } from '../backend/pulsescan/anomaly_engine.js'
 import fs from 'fs'
@@ -1961,6 +1962,65 @@ app.post('/api/contract/scan', async (req, res, next) => {
     }
 
     logError('Contract scan failed', { ip, error: err.message })
+    next(err)
+  }
+})
+
+// Quantum Risk Email API endpoint
+app.post('/api/quantum-risk/submit-email', async (req, res, next) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
+  
+  try {
+    // Rate limiting for email submissions (reuse the AI rate limiter)
+    aiRateCheck(ip, 'quantum-risk-email')
+    
+    const { email, formData, riskScores } = req.body || {}
+    
+    // Validate email
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      const e = new Error('INVALID_EMAIL')
+      e.status = 400
+      throw e
+    }
+    
+    // Validate formData
+    if (!formData || typeof formData !== 'object') {
+      const e = new Error('INVALID_FORM_DATA')
+      e.status = 400
+      throw e
+    }
+    
+    // Validate riskScores
+    if (!riskScores || typeof riskScores !== 'object' || 
+        typeof riskScores.hndl !== 'number' || typeof riskScores.crqc !== 'number') {
+      const e = new Error('INVALID_RISK_SCORES')
+      e.status = 400
+      throw e
+    }
+    
+    logInfo('Quantum risk email submission', { ip, email })
+    
+    // Send email with PDF
+    const result = await sendQuantumRiskEmail(email, formData, riskScores)
+    
+    logInfo('Quantum risk email sent successfully', { 
+      email,
+      messageId: result.messageId 
+    })
+    
+    res.json({ 
+      success: true, 
+      message: 'Your Quantum Risk Analysis has been sent to your email',
+      messageId: result.messageId
+    })
+    
+  } catch (err) {
+    if (err.message === 'RATE_LIMITED') {
+      err.status = 429
+      err.message = 'Too many requests. Please try again later.'
+    }
+    
+    logError('Quantum risk email submission failed', { ip, error: err.message })
     next(err)
   }
 })

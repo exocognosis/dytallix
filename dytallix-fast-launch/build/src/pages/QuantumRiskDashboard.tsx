@@ -18,6 +18,8 @@ const QuantumRiskDashboard: React.FC = () => {
     });
 
     const [riskScores, setRiskScores] = useState({ hndl: 0, crqc: 0 });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
         calculateRisk();
@@ -136,12 +138,49 @@ const QuantumRiskDashboard: React.FC = () => {
                         Enter your email address to get your Quantum Risk Analysis
                     </p>
                     <form 
-                        onSubmit={(e) => {
+                        onSubmit={async (e) => {
                             e.preventDefault();
+                            setSubmitMessage(null);
                             const form = e.target as HTMLFormElement;
-                            const email = (form.elements.namedItem('email') as HTMLInputElement).value;
-                            alert(`Thank you! Your Quantum Risk Analysis will be sent to ${email}`);
-                            form.reset();
+                            const emailInput = form.elements.namedItem('email') as HTMLInputElement;
+                            const email = emailInput.value;
+                            
+                            setIsSubmitting(true);
+                            
+                            try {
+                                // Get API URL from environment or default to localhost
+                                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                                const response = await fetch(`${apiUrl}/api/quantum-risk/submit-email`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        email,
+                                        formData,
+                                        riskScores
+                                    })
+                                });
+                                
+                                const data = await response.json();
+                                
+                                if (response.ok && data.success) {
+                                    setSubmitMessage({
+                                        type: 'success',
+                                        text: `Success! Your Quantum Risk Analysis has been sent to ${email}`
+                                    });
+                                    form.reset();
+                                } else {
+                                    throw new Error(data.message || 'Failed to send email');
+                                }
+                            } catch (error: any) {
+                                setSubmitMessage({
+                                    type: 'error',
+                                    text: error.message || 'Failed to send email. Please try again.'
+                                });
+                            } finally {
+                                setIsSubmitting(false);
+                            }
                         }}
                         className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto"
                     >
@@ -150,17 +189,28 @@ const QuantumRiskDashboard: React.FC = () => {
                             name="email"
                             required
                             placeholder="Enter your email"
-                            className="w-full sm:w-auto flex-1 px-4 py-3 rounded-lg bg-background border border-input text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            disabled={isSubmitting}
+                            className="w-full sm:w-auto flex-1 px-4 py-3 rounded-lg bg-background border border-input text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all disabled:opacity-50"
                         />
                         <div className="p-[1px] rounded-lg bg-gradient-to-r from-accent-red via-accent-blue to-accent-red">
                             <button 
                                 type="submit"
-                                className="px-6 py-3 rounded-lg bg-background text-foreground font-medium hover:bg-accent/10 transition-all whitespace-nowrap"
+                                disabled={isSubmitting}
+                                className="px-6 py-3 rounded-lg bg-background text-foreground font-medium hover:bg-accent/10 transition-all whitespace-nowrap disabled:opacity-50"
                             >
-                                Get My Analysis
+                                {isSubmitting ? 'Sending...' : 'Get My Analysis'}
                             </button>
                         </div>
                     </form>
+                    {submitMessage && (
+                        <div className={`mt-4 p-4 rounded-lg ${
+                            submitMessage.type === 'success' 
+                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
+                                : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                        }`}>
+                            {submitMessage.text}
+                        </div>
+                    )}
                 </div>
             </Section>
         </div>

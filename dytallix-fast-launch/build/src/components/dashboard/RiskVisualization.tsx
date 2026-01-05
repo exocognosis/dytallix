@@ -38,7 +38,7 @@ const RiskVisualization: React.FC<RiskVisualizationProps> = ({ hndlScore, crqcSc
     };
 
     return (
-        <GlassPanel variant="card" hoverEffect={true} className="p-6 flex flex-col h-full">
+        <GlassPanel variant="card" hoverEffect={false} className="p-6 flex flex-col h-full">
             <h3 className="text-xl font-semibold text-foreground mb-2">Quantum Risk Profile</h3>
             <p className="text-muted-foreground text-sm mb-6">
                 Based on your organization's profile, here is your estimated exposure to quantum threats.
