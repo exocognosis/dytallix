@@ -13,13 +13,36 @@ BLUE='\033[0;34m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
-# Fixed ports configuration
-FRONTEND_PORT=3000
-BACKEND_PORT=8787
-export BLOCKCHAIN_PORT=3030
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Source .env for port configuration (primary source)
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    echo -e "${BLUE}Loading configuration from .env...${NC}"
+    set -a
+    source "$SCRIPT_DIR/.env"
+    set +a
+fi
+
+# Override with .env.local if it exists
+if [ -f "$SCRIPT_DIR/.env.local" ]; then
+    echo -e "${BLUE}Loading local overrides from .env.local...${NC}"
+    set -a
+    source "$SCRIPT_DIR/.env.local"
+    set +a
+fi
+
+# Port configuration (with fallback defaults if .env not found)
+FRONTEND_PORT=${FRONTEND_PORT:-3000}
+BACKEND_PORT=${BACKEND_API_PORT:-3001}
+BLOCKCHAIN_PORT=${BLOCKCHAIN_NODE_PORT:-3003}
+QUANTUMVAULT_PORT=${QUANTUMVAULT_API_PORT:-3002}
+
+# Export for child processes
+export BLOCKCHAIN_PORT
 export BLOCKCHAIN_API_URL="http://localhost:$BLOCKCHAIN_PORT"
-export BLOCKCHAIN_NODE_URL="http://localhost:$BLOCKCHAIN_PORT" # Ensure backend uses this port
-export QUANTUM_VAULT_PORT=3031
+export BLOCKCHAIN_NODE_URL="http://localhost:$BLOCKCHAIN_PORT"
+export QUANTUMVAULT_PORT
 
 echo -e "${BLUE}🚀 Starting Dytallix Services with Fixed Ports${NC}"
 echo -e "${BLUE}===============================================${NC}"
@@ -59,14 +82,7 @@ wait_for_service() {
 }
 
 # Change to the project root
-cd "$(dirname "$0")"
-
-# Load environment variables
-if [ -f ".env.local" ]; then
-    set -a
-    source .env.local
-    set +a
-fi
+cd "$SCRIPT_DIR"
 
 echo -e "\n${BLUE}🔍 Checking ports...${NC}"
 check_port $FRONTEND_PORT "Frontend"

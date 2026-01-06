@@ -37,36 +37,138 @@ dytallix-lean-launch/
 - Refactor / chores: `chore/<scope>-<desc>`; Hotfix: `fix/<issue>`
 - PRs target `mv-testnet`; periodically merged into `main` at milestones
 
-## Quick Start (Local Devnet)
+## 🚀 Quick Start (Local Development)
+
+### Prerequisites
+- Node.js 18+ and npm
+- Rust 1.78+ (for blockchain node)
+- Git
+
+### Setup Steps
+
 ```bash
-# Clone
+# 1. Clone the repository
 git clone https://github.com/HisMadRealm/dytallix.git
-cd dytallix/dytallix-lean-launch
+cd dytallix/dytallix-fast-launch
 
-# Setup environment
+# 2. Setup environment configuration
 cp .env.example .env
-# Edit .env values as needed
+# Edit .env to customize port numbers and other settings (see Environment Configuration below)
 
-# Install deps
+# 3. Install dependencies
 npm install
 
-# Start backend (faucet/API)
-npm run server &   # expected PORT=8787
+# 4. Start all services with unified port configuration
+./start-all-services.sh
 
-# Start frontend (Vite dev server)
-npm run dev        # default 5173
+# Alternatively, start services individually:
+# npm run server &    # Backend API (PORT from .env, default: 3001)
+# npm run dev         # Frontend (FRONTEND_PORT from .env, default: 3000)
 ```
-Access:
-- Frontend Dashboard: http://localhost:5173
-- Backend / Faucet API: http://localhost:8787
 
-## Environment Configuration
-Key variables (see `.env.example`):
-- **Cosmos**: `VITE_LCD_HTTP_URL`, `VITE_RPC_HTTP_URL`, `VITE_RPC_WS_URL`, `VITE_CHAIN_ID`, `CHAIN_PREFIX`
-- **API & Faucet**: `VITE_API_URL` (required base API), `VITE_FAUCET_URL` (optional override)
-- **Faucet Backend**: `FAUCET_MNEMONIC` (dev only), `FAUCET_MAX_PER_REQUEST_DGT`, `FAUCET_MAX_PER_REQUEST_DRT`, `FAUCET_COOLDOWN_MINUTES`, `FAUCET_GAS_PRICE`
-- **Security**: `ENABLE_SEC_HEADERS`, `ENABLE_CSP`
-- **Legacy React compatibility vars**: `REACT_APP_*` (phase-out; prefer `VITE_` prefix)
+### Access Points
+After starting services, you can access:
+- **Frontend Dashboard**: http://localhost:3000
+- **Backend / Faucet API**: http://localhost:3001
+- **Blockchain Node RPC**: http://localhost:3003
+- **QuantumVault API**: http://localhost:3002
+
+### Stopping Services
+```bash
+# Stop all running services
+./stop-services.sh
+
+# Stop all services and clean log files
+./stop-services.sh --clean-logs
+```
+
+## ⚙️ Environment Configuration
+
+### Port Configuration (SINGLE SOURCE OF TRUTH)
+All port assignments are defined in `.env`. The default port scheme is:
+
+| Service | Port | Environment Variable | Description |
+|---------|------|---------------------|-------------|
+| Frontend | 3000 | `FRONTEND_PORT` | React/Vite development server |
+| Backend API | 3001 | `BACKEND_API_PORT` | Faucet + Dashboard API |
+| QuantumVault | 3002 | `QUANTUMVAULT_API_PORT` | Encrypted storage service |
+| Blockchain Node | 3003 | `BLOCKCHAIN_NODE_PORT` | Primary blockchain JSON-RPC |
+| WebSocket | 3004 | `WEBSOCKET_PORT` | Real-time updates |
+| Faucet | 3005 | `FAUCET_PORT` | Token distribution service |
+
+**📝 Note**: To change ports, edit `.env` file. All scripts automatically load port configuration from `.env`.
+
+### Essential Environment Variables
+Key variables you need to configure (see `.env.example` for complete list):
+
+#### **Port Configuration**
+```bash
+# All services use these ports (defined in .env)
+FRONTEND_PORT=3000
+BACKEND_API_PORT=3001
+QUANTUMVAULT_API_PORT=3002
+BLOCKCHAIN_NODE_PORT=3003
+WEBSOCKET_PORT=3004
+FAUCET_PORT=3005
+```
+
+#### **Cosmos Chain Configuration**
+```bash
+VITE_LCD_HTTP_URL=http://localhost:1317
+VITE_RPC_HTTP_URL=http://localhost:26657
+VITE_RPC_WS_URL=ws://localhost:26657/websocket
+VITE_CHAIN_ID=dytallix-local
+CHAIN_PREFIX=dytallix
+```
+
+#### **API & Faucet Configuration**
+```bash
+VITE_API_URL=http://localhost:3001              # Required: Base API endpoint
+VITE_QUANTUMVAULT_API_URL=http://localhost:3002 # QuantumVault API
+VITE_BLOCKCHAIN_URL=http://localhost:3003       # Blockchain RPC
+VITE_WEBSOCKET_URL=ws://localhost:3004          # WebSocket endpoint
+```
+
+#### **Faucet Backend Settings**
+```bash
+# FAUCET_MNEMONIC="your test mnemonic here"  # NEVER commit real mnemonics!
+FAUCET_GAS_PRICE=0.025uDRT
+FAUCET_MAX_PER_REQUEST_DGT=2
+FAUCET_MAX_PER_REQUEST_DRT=50
+FAUCET_COOLDOWN_MINUTES=60
+```
+
+#### **Security Feature Flags**
+```bash
+ENABLE_SEC_HEADERS=1
+ENABLE_CSP=1
+```
+
+### 🔧 Troubleshooting
+
+#### Port Conflicts
+If you encounter "port already in use" errors:
+```bash
+# Check what's using a port
+lsof -i :3000
+
+# Stop all Dytallix services
+./stop-services.sh
+
+# If issues persist, kill specific port
+lsof -ti :3000 | xargs kill -9
+```
+
+#### Service Won't Start
+1. Check logs in `logs/` directory: `tail -f logs/[service].log`
+2. Verify .env configuration is correct
+3. Ensure all dependencies are installed: `npm install`
+4. Check if ports are available: `./check-service-ports.sh` (if available)
+
+#### Environment Variable Issues
+1. Ensure `.env` file exists (copy from `.env.example`)
+2. Check that port variables are set correctly
+3. Restart services after changing `.env`: `./stop-services.sh && ./start-all-services.sh`
 
 ### Environment Variable Migration (v1.1.1+)
 The faucet configuration has been unified for better consistency:
@@ -75,17 +177,11 @@ The faucet configuration has been unified for better consistency:
 - `FAUCET_URL` (unprefixed legacy)
 - `VITE_FAUCET_API_URL` (deprecated)
 
-**New variables**:
-- `VITE_API_URL` - **Required** base API endpoint (e.g., `https://api.example.com`)
+**Current standard**:
+- `VITE_API_URL` - **Required** base API endpoint
 - `VITE_FAUCET_URL` - **Optional** explicit faucet endpoint override
 
-**Migration steps**:
-1. Add `VITE_API_URL` pointing to your API base URL
-2. If your faucet lives under `/faucet` path, no additional configuration needed
-3. If your faucet has a different URL, set `VITE_FAUCET_URL` explicitly
-4. Remove old `FAUCET_URL` and `VITE_FAUCET_API_URL` references
-
-Never commit real mnemonics or secrets. `.env`, `.env.staging`, production secrets remain untracked.
+**⚠️ Important**: Never commit real mnemonics or secrets. Keep `.env`, `.env.staging`, and production secrets untracked.
 
 ## Features
 - Multi-page dashboard (Home, Faucet, Tech Specs, AI Modules, Roadmap, Developer Resources)
