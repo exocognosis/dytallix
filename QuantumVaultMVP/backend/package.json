@@ -10,7 +10,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "prisma:seed": "ts-node prisma/seed.ts",
+    "prisma:seed": "node prisma/seed.js",
     "openapi:generate": "ts-node src/generate-openapi.ts",
     "test": "echo \"Tests not yet implemented\" && exit 0"
   },
@@ -31,6 +31,7 @@
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-fastify": "^10.4.20",
+    "@openforge-sh/liboqs": "^0.14.3",
     "@prisma/client": "^5.22.0",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.66.0",
@@ -63,6 +64,6 @@
     "typescript": "^5.9.3"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "node prisma/seed.js"
   }
 }

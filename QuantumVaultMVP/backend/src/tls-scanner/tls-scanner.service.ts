@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as tls from 'tls';
-import * as forge from 'node-forge';
+import { X509Certificate } from 'crypto';
 
 export interface TlsScanResult {
   host: string;
@@ -53,25 +53,30 @@ export class TlsScannerService {
 
             // Parse certificate chain
             const certPEM = this.formatCertificate(certificate.raw);
-            const forgeCert = forge.pki.certificateFromPem(certPEM);
+            const x509 = new X509Certificate(certPEM);
 
-            // Extract public key info
-            const publicKey = forgeCert.publicKey;
+            // Extract public key info (supports RSA + ECDSA certs)
+            const keyObject = x509.publicKey;
+            const keyType = keyObject.asymmetricKeyType || 'unknown';
+
             let publicKeyAlgorithm = 'Unknown';
             let publicKeySize = 0;
 
-            if ((publicKey as any).n) {
-              // RSA key
+            if (keyType === 'rsa') {
               publicKeyAlgorithm = 'RSA';
-              publicKeySize = (publicKey as any).n.bitLength();
-            } else if ((publicKey as any).p) {
-              // DSA/ECDSA key
+              publicKeySize = (keyObject.asymmetricKeyDetails as any)?.modulusLength || 0;
+            } else if (keyType === 'ec') {
               publicKeyAlgorithm = 'ECDSA';
-              publicKeySize = (publicKey as any).p.bitLength();
+              const namedCurve = (keyObject.asymmetricKeyDetails as any)?.namedCurve as
+                | string
+                | undefined;
+              publicKeySize = this.ecCurveBits(namedCurve);
+            } else {
+              publicKeyAlgorithm = keyType.toUpperCase();
             }
 
-            // Extract signature algorithm
-            const signatureAlgorithm = forgeCert.signatureAlgorithm;
+            // Extract signature algorithm (Node exposes a string in modern versions)
+            const signatureAlgorithm = (x509 as any).signatureAlgorithm || 'Unknown';
 
             // Check for PQC compliance
             const isPqcCompliant = this.checkPqcCompliance(
@@ -100,7 +105,7 @@ export class TlsScannerService {
               validFrom: new Date(certificate.valid_from),
               validUntil: new Date(certificate.valid_to),
               subjectAltNames: certificate.subjectaltname?.split(', ').map(s => s.replace('DNS:', '')) || [],
-              commonName: certificate.subject?.CN || '',
+              commonName: certificate.subject?.CN || this.extractCommonName(x509.subject),
               isPqcCompliant,
               discoveryDetails: {
                 cipher: cipher,
@@ -132,6 +137,21 @@ export class TlsScannerService {
     const base64 = raw.toString('base64');
     const wrapped = base64.match(/.{1,64}/g)?.join('\n') || base64;
     return `-----BEGIN CERTIFICATE-----\n${wrapped}\n-----END CERTIFICATE-----`;
+  }
+
+  private extractCommonName(subject: string): string {
+    // subject example: 'CN=example.com\nO=...\nC=...'
+    const match = subject.match(/CN=([^\n,]+)/);
+    return match?.[1]?.trim() || '';
+  }
+
+  private ecCurveBits(namedCurve?: string): number {
+    if (!namedCurve) return 0;
+    const curve = namedCurve.toLowerCase();
+    if (curve.includes('256')) return 256;
+    if (curve.includes('384')) return 384;
+    if (curve.includes('521')) return 521;
+    return 0;
   }
 
   private checkPqcCompliance(
