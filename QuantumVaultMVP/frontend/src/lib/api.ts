@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:13000/api/v1';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -40,14 +40,12 @@ apiClient.interceptors.response.use(
 );
 
 // Type definitions
-interface AssetMetadata {
-  [key: string]: string | number | boolean;
-}
+type AssetMetadata = Record<string, unknown>;
 
 interface Policy {
   name: string;
   description?: string;
-  rules?: any[];
+  rules?: unknown[];
   isActive?: boolean;
 }
 
@@ -61,8 +59,9 @@ interface Anchor {
 export const authAPI = {
   login: async (email: string, password: string) => {
     const response = await apiClient.post('/auth/login', { email, password });
-    if (response.data.token && typeof window !== 'undefined') {
-      localStorage.setItem('token', response.data.token);
+    const token: string | undefined = response.data?.access_token ?? response.data?.token;
+    if (token && typeof window !== 'undefined') {
+      localStorage.setItem('token', token);
     }
     return response.data;
   },
@@ -108,6 +107,13 @@ export const assetsAPI = {
     const response = await apiClient.put(`/assets/${id}/metadata`, metadata);
     return response.data;
   },
+  ingestKeyMaterial: async (id: string, keyMaterialBase64: string, keyType: string) => {
+    const response = await apiClient.post(`/assets/${id}/key-material`, {
+      keyMaterial: keyMaterialBase64,
+      keyType,
+    });
+    return response.data;
+  },
 };
 
 // Policies API
@@ -134,6 +140,38 @@ export const anchorsAPI = {
   },
   createAnchor: async (anchor: Anchor) => {
     const response = await apiClient.post('/anchors', anchor);
+    return response.data;
+  },
+};
+
+// Wrapping API
+export const wrappingAPI = {
+  wrapAsset: async (assetId: string, anchorId: string) => {
+    const response = await apiClient.post('/wrapping/wrap', { assetId, anchorId });
+    return response.data;
+  },
+  getJobStatus: async (jobId: string) => {
+    const response = await apiClient.get(`/wrapping/job-status/${jobId}`);
+    return response.data;
+  },
+  bulkWrapByPolicy: async (policyId: string) => {
+    const response = await apiClient.post(`/wrapping/bulk-wrap-by-policy/${policyId}`);
+    return response.data;
+  },
+};
+
+// Attestation API
+export const attestationAPI = {
+  createJob: async (assetIds: string[]) => {
+    const response = await apiClient.post('/attestation/create-job', { assetIds });
+    return response.data;
+  },
+  getJobStatus: async (jobId: string) => {
+    const response = await apiClient.get(`/attestation/job-status/${jobId}`);
+    return response.data;
+  },
+  getAssetAttestations: async (assetId: string) => {
+    const response = await apiClient.get(`/attestation/asset/${assetId}`);
     return response.data;
   },
 };

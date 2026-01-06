@@ -18,6 +18,8 @@ const QuantumRiskDashboard: React.FC = () => {
     });
 
     const [riskScores, setRiskScores] = useState({ hndl: 0, crqc: 0 });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
         calculateRisk();
@@ -113,10 +115,6 @@ const QuantumRiskDashboard: React.FC = () => {
                     <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
                         Quantum Risk <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-red to-accent-blue">Dashboard</span>
                     </h1>
-                    <p className="text-lg text-muted-foreground">
-                        Assess your organization's vulnerability to current and future quantum threats.
-                        Understand your exposure to "Harvest Now, Decrypt Later" attacks and the looming CRQC era.
-                    </p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -134,16 +132,88 @@ const QuantumRiskDashboard: React.FC = () => {
                 {/* Explanations Section */}
                 <RiskExplanations />
 
-                {/* CTA */}
+                {/* Email Capture CTA */}
                 <div className="mt-16 text-center">
-                    <div className="inline-block p-[1px] rounded-full bg-gradient-to-r from-accent-red via-accent-blue to-accent-red">
-                        <button className="px-8 py-3 rounded-full bg-background text-foreground font-medium hover:bg-accent/10 transition-all">
-                            Get a Detailed Risk Audit
-                        </button>
-                    </div>
-                    <p className="mt-4 text-sm text-muted-foreground">
-                        This tool provides a high-level estimate. Contact QuantumVault for a comprehensive analysis.
+                    <p className="mb-4 text-sm text-muted-foreground">
+                        Enter your email address to get your Quantum Risk Analysis
                     </p>
+                    <form 
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+                            setSubmitMessage(null);
+                            const form = e.target as HTMLFormElement;
+                            const emailInput = form.elements.namedItem('email') as HTMLInputElement;
+                            const email = emailInput.value;
+                            
+                            setIsSubmitting(true);
+                            
+                            try {
+                                // Get API URL from environment with proper fallback
+                                const apiUrl = import.meta.env.VITE_API_URL || 
+                                              (typeof window !== 'undefined' && window.location.origin) || 
+                                              'http://localhost:3001';
+                                const response = await fetch(`${apiUrl}/api/quantum-risk/submit-email`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        email,
+                                        formData,
+                                        riskScores
+                                    })
+                                });
+                                
+                                const data = await response.json();
+                                
+                                if (response.ok && data.success) {
+                                    setSubmitMessage({
+                                        type: 'success',
+                                        text: `Success! Your Quantum Risk Analysis has been sent to ${email}`
+                                    });
+                                    form.reset();
+                                } else {
+                                    throw new Error(data.message || 'Failed to send email');
+                                }
+                            } catch (error) {
+                                const errorMessage = error instanceof Error ? error.message : 'Failed to send email. Please try again.';
+                                setSubmitMessage({
+                                    type: 'error',
+                                    text: errorMessage
+                                });
+                            } finally {
+                                setIsSubmitting(false);
+                            }
+                        }}
+                        className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto"
+                    >
+                        <input
+                            type="email"
+                            name="email"
+                            required
+                            placeholder="Enter your email"
+                            disabled={isSubmitting}
+                            className="w-full sm:w-auto flex-1 px-4 py-3 rounded-lg bg-background border border-input text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all disabled:opacity-50"
+                        />
+                        <div className="p-[1px] rounded-lg bg-gradient-to-r from-accent-red via-accent-blue to-accent-red">
+                            <button 
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="px-6 py-3 rounded-lg bg-background text-foreground font-medium hover:bg-accent/10 transition-all whitespace-nowrap disabled:opacity-50"
+                            >
+                                {isSubmitting ? 'Sending...' : 'Get My Analysis'}
+                            </button>
+                        </div>
+                    </form>
+                    {submitMessage && (
+                        <div className={`mt-4 p-4 rounded-lg ${
+                            submitMessage.type === 'success' 
+                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
+                                : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                        }`}>
+                            {submitMessage.text}
+                        </div>
+                    )}
                 </div>
             </Section>
         </div>

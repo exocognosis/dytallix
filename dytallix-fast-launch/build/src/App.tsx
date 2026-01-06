@@ -43,7 +43,7 @@ function App() {
             <Route path="/build/faucet" element={<FaucetPage />} />
 
             {/* Tools */}
-            <Route path="/quantum-risk" element={<QuantumRiskDashboard />} />
+            <Route path="/quantumrisk" element={<QuantumRiskDashboard />} />
             <Route path="/ai-oracle-network" element={<AIOracleNetwork />} />
             <Route path="/smart-contract-auditor" element={<SmartContractAuditor />} />
 

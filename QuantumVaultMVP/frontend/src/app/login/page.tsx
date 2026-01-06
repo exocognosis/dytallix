@@ -36,7 +36,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await authAPI.login(email, password);
+      await authAPI.login(email, password);
       // Token is already saved in authAPI.login
       router.push('/dashboard');
     } catch (err: unknown) {

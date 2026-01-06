@@ -130,6 +130,8 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:13000/api/v1
     container_name: quantumvault-frontend
     environment:
       # This value is baked into the client bundle and must be reachable from the user's browser.
