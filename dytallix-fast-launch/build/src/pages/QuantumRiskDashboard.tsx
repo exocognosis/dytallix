@@ -17,7 +17,7 @@ const QuantumRiskDashboard: React.FC = () => {
         orgSize: ''
     });
 
-    const [riskScores, setRiskScores] = useState({ hndl: 0, crqc: 0 });
+    const [riskScores, setRiskScores] = useState({ hndl: 0, crqc: 0, urgency: 0 });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -101,10 +101,31 @@ const QuantumRiskDashboard: React.FC = () => {
             crqc += 10;
         }
 
+        // Calculate Migration Urgency based on combined risk factors
+        let urgency = 20; // Base urgency
+        
+        // High combined risk = high urgency
+        const avgRisk = (hndl + crqc) / 2;
+        if (avgRisk > 70) urgency += 40;
+        else if (avgRisk > 50) urgency += 25;
+        else if (avgRisk > 30) urgency += 10;
+        
+        // Regulated industries need to act faster
+        if (highRiskRegs.includes(formData.regulatoryRegime)) urgency += 20;
+        
+        // Large orgs have more complex migrations
+        if (['Enterprise (500 - 5000 employees)', 'Large Enterprise (> 5000 employees)'].includes(formData.orgSize)) {
+            urgency += 15;
+        }
+        
+        // PQC adoption reduces urgency
+        if (hasPQC) urgency -= 30;
+        
         // Cap at 100 and Floor at 0
         setRiskScores({
             hndl: Math.max(0, Math.min(100, hndl)),
-            crqc: Math.max(0, Math.min(100, crqc))
+            crqc: Math.max(0, Math.min(100, crqc)),
+            urgency: Math.max(0, Math.min(100, urgency))
         });
     };
 
@@ -125,7 +146,7 @@ const QuantumRiskDashboard: React.FC = () => {
 
                     {/* Right Column: Visualization */}
                     <div className="lg:col-span-7">
-                        <RiskVisualization hndlScore={riskScores.hndl} crqcScore={riskScores.crqc} />
+                        <RiskVisualization hndlScore={riskScores.hndl} crqcScore={riskScores.crqc} urgencyScore={riskScores.urgency} />
                     </div>
                 </div>
 

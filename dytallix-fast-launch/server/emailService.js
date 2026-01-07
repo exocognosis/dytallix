@@ -123,6 +123,7 @@ const generateRiskPDF = (formData, riskScores) => {
       
       const hndlRisk = getRiskLevel(riskScores.hndl);
       const crqcRisk = getRiskLevel(riskScores.crqc);
+      const urgencyRisk = getRiskLevel(riskScores.urgency || 0);
       
       doc.fontSize(14)
          .fillColor('#000000')
@@ -152,6 +153,21 @@ const generateRiskPDF = (formData, riskScores) => {
          .fillColor(crqcRisk.color)
          .text(`Risk Score: ${riskScores.crqc}/100 (${crqcRisk.label})`, { bold: true });
       
+      doc.moveDown(1.5);
+      
+      doc.fontSize(14)
+         .fillColor('#000000')
+         .text('Migration Urgency');
+      
+      doc.fontSize(11)
+         .fillColor('#6b7280')
+         .text('This score indicates how urgently your organization should begin transitioning to post-quantum cryptography based on your risk profile, regulatory requirements, and current security posture.');
+      
+      doc.moveDown(0.5);
+      doc.fontSize(12)
+         .fillColor(urgencyRisk.color)
+         .text(`Urgency Score: ${riskScores.urgency || 0}/100 (${urgencyRisk.label})`, { bold: true });
+      
       doc.moveDown(2);
       
       // Recommendations
@@ -163,14 +179,14 @@ const generateRiskPDF = (formData, riskScores) => {
       doc.fontSize(11)
          .fillColor('#374151');
       
-      if (riskScores.hndl >= 70 || riskScores.crqc >= 70) {
+      if (riskScores.hndl >= 70 || riskScores.crqc >= 70 || (riskScores.urgency || 0) >= 70) {
         doc.text('Your organization faces significant quantum threats. We recommend:');
         doc.moveDown(0.3);
         doc.text('  • Immediate assessment of quantum-vulnerable systems', { indent: 20 });
         doc.text('  • Development of a post-quantum cryptography (PQC) migration plan', { indent: 20 });
         doc.text('  • Implementation of quantum-safe encryption for sensitive data', { indent: 20 });
         doc.text('  • Regular security audits with quantum threat considerations', { indent: 20 });
-      } else if (riskScores.hndl >= 30 || riskScores.crqc >= 30) {
+      } else if (riskScores.hndl >= 30 || riskScores.crqc >= 30 || (riskScores.urgency || 0) >= 30) {
         doc.text('Your organization should begin preparing for quantum threats:');
         doc.moveDown(0.3);
         doc.text('  • Monitor developments in quantum computing capabilities', { indent: 20 });
@@ -230,7 +246,8 @@ export const sendQuantumRiskEmail = async (userEmail, formData, riskScores) => {
             <h3 style="margin-top: 0; color: #374151;">Quick Summary</h3>
             <p style="margin: 10px 0;">
               <strong>HNDL Risk:</strong> ${riskScores.hndl}/100<br>
-              <strong>CRQC Risk:</strong> ${riskScores.crqc}/100
+              <strong>CRQC Risk:</strong> ${riskScores.crqc}/100<br>
+              <strong>Migration Urgency:</strong> ${riskScores.urgency || 0}/100
             </p>
           </div>
           

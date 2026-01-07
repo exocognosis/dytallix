@@ -14,9 +14,10 @@ import {
 interface RiskVisualizationProps {
     hndlScore: number; // 0-100
     crqcScore: number; // 0-100
+    urgencyScore: number; // 0-100
 }
 
-const RiskVisualization: React.FC<RiskVisualizationProps> = ({ hndlScore, crqcScore }) => {
+const RiskVisualization: React.FC<RiskVisualizationProps> = ({ hndlScore, crqcScore, urgencyScore }) => {
     const data = [
         {
             name: 'HNDL Risk',
@@ -27,6 +28,11 @@ const RiskVisualization: React.FC<RiskVisualizationProps> = ({ hndlScore, crqcSc
             name: 'CRQC Risk',
             score: crqcScore,
             description: 'Quantum Computer Attack',
+        },
+        {
+            name: 'Migration Urgency',
+            score: urgencyScore,
+            description: 'Time to Transition',
         },
     ];
 
@@ -61,6 +67,7 @@ const RiskVisualization: React.FC<RiskVisualizationProps> = ({ hndlScore, crqcSc
                             stroke="hsl(var(--muted-foreground))"
                             tick={{ fill: 'hsl(var(--muted-foreground))' }}
                             axisLine={{ stroke: 'hsl(var(--border))' }}
+                            tickMargin={12}
                         />
                         <YAxis
                             stroke="hsl(var(--muted-foreground))"
@@ -76,7 +83,7 @@ const RiskVisualization: React.FC<RiskVisualizationProps> = ({ hndlScore, crqcSc
                             }}
                             cursor={{ fill: 'hsl(var(--accent))', opacity: 0.1 }}
                         />
-                        <Bar dataKey="score" radius={[4, 4, 0, 0]} barSize={60}>
+                        <Bar dataKey="score" radius={[4, 4, 0, 0]} barSize={80}>
                             {data.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={getRiskLevel(entry.score).color} />
                             ))}
@@ -85,17 +92,23 @@ const RiskVisualization: React.FC<RiskVisualizationProps> = ({ hndlScore, crqcSc
                 </ResponsiveContainer>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-6">
+            <div className="grid grid-cols-3 gap-4 mt-6">
                 <div className="p-4 rounded-lg bg-accent/20 border border-border text-center">
-                    <div className="text-sm text-muted-foreground mb-1">HNDL Risk Level</div>
+                    <div className="text-sm text-muted-foreground mb-1">HNDL Risk</div>
                     <div className="text-2xl font-bold" style={{ color: getRiskLevel(hndlScore).color }}>
                         {getRiskLevel(hndlScore).label}
                     </div>
                 </div>
                 <div className="p-4 rounded-lg bg-accent/20 border border-border text-center">
-                    <div className="text-sm text-muted-foreground mb-1">CRQC Risk Level</div>
+                    <div className="text-sm text-muted-foreground mb-1">CRQC Risk</div>
                     <div className="text-2xl font-bold" style={{ color: getRiskLevel(crqcScore).color }}>
                         {getRiskLevel(crqcScore).label}
+                    </div>
+                </div>
+                <div className="p-4 rounded-lg bg-accent/20 border border-border text-center">
+                    <div className="text-sm text-muted-foreground mb-1">Migration Urgency</div>
+                    <div className="text-2xl font-bold" style={{ color: getRiskLevel(urgencyScore).color }}>
+                        {getRiskLevel(urgencyScore).label}
                     </div>
                 </div>
             </div>

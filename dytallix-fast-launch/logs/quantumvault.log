@@ -1,19 +1,6 @@
-[dotenv@17.2.3] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
 [Crypto] PQC Libraries Loaded: Dilithium & Kyber
-[QuantumVault] Loaded 14 assets from metadata
+[QuantumVault] Loaded 16 assets from metadata
 [QuantumVault] API server running on port 3002
 [QuantumVault] Storage directory: /Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/storage
-[QuantumVault] Loaded 14 assets
-[QuantumVault] Encrypting Dytallix Tokenomics Paper .pdf...
-[QuantumVault] Download request for: 42a30d56745c69ff701b957f757f14e88697d5d365cc33aef0e186daa574a344.enc.enc
-[QuantumVault] Serving file: /Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/storage/42a30d56745c69ff701b957f757f14e88697d5d365cc33aef0e186daa574a344.enc.enc (1220964 bytes)
-[QuantumVault] Generated proof for 42a30d56745c69ff701b957f757f14e88697d5d365cc33aef0e186daa574a344.enc.enc (392bcb1373bba7b9...)
-[QuantumVault] Anchoring proof 09622b36ffe5c5ae to blockchain at http://localhost:3003
-[QuantumVault] ✅ Asset registered on blockchain: qv_anchor_494618b1169e65e656e24a660d295347ee30b489d258c8a15c903576e7a85542
-[QuantumVault] ✅ Verified asset on-chain: {
-  asset_hash: '392bcb1373bba7b994add56b321700ad5a35e141f983fdc0d33194c6b7d1b0f0',
-  block_height: 7332,
-  message: 'Asset found on chain',
-  verified: true
-}
-[QuantumVault] ✅ Proof 09622b36ffe5c5ae anchored at block 7333, tx: qv_anchor_494618b1169e65e656e24a660d295347ee30b489d258c8a15c903576e7a85542
+[QuantumVault] Loaded 16 assets

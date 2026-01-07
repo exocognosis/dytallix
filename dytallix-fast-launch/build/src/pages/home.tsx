@@ -1,4 +1,4 @@
-i import { Section } from "../components/ui/Section"
+import { Section } from "../components/ui/Section"
 import { GlassPanel } from "../components/ui/GlassPanel"
 import { Button } from "../components/ui/Button"
 import { Shield, Zap, Globe, Lock, Cpu, Code, Sparkles, Layers, CheckCircle2, Leaf } from "lucide-react"
