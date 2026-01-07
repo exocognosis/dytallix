@@ -252,7 +252,7 @@ We especially welcome contributions in these areas:
 - **Pull Requests**: Code contributions
 - **Discussions**: General questions and ideas
 - **Twitter/X**: [@DytallixHQ](https://twitter.com/DytallixHQ) - Follow for updates
-- **Telegram**: Coming soon
+- **Discord**: https://discord.gg/N8Q4A2KE
 
 ## 📜 Code of Conduct
 

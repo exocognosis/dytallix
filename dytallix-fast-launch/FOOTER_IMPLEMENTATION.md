@@ -96,7 +96,7 @@ The system automatically handles different folder depths:
 - About
 - Contact
 - GitHub
-- Telegram
+- Discord
 - Email
 
 ## Technical Details

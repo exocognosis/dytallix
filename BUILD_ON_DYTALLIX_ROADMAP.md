@@ -274,7 +274,7 @@ Build reference applications developers can fork:
 ### **Phase 6: Developer Onboarding (Week 6+)**
 
 #### Community Building
-- [ ] Launch Discord/Telegram
+- [ ] Launch Discord community
 - [ ] Create GitHub Discussions
 - [ ] Start developer newsletter
 - [ ] Host virtual hackathon

@@ -294,7 +294,7 @@ After setup:
 - ✅ Post in blockchain/crypto communities
 - ✅ Add to your main project README
 - ✅ List on crypto developer resources
-- ✅ Share in Discord/Telegram
+- ✅ Share in Discord
 
 ## 🎯 Next Version (0.1.1)
 

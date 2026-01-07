@@ -498,7 +498,7 @@ await initPQC();
 ## 📚 Next Steps
 
 1. **Read the API docs**: See `docs/developers/api-reference.md`
-2. **Join the community**: Discord / Telegram / GitHub Discussions
+2. **Join the community**: Discord (https://discord.gg/N8Q4A2KE) / GitHub Discussions
 3. **Build something cool**: Share your project!
 4. **Contribute**: Help improve the SDK or docs
 

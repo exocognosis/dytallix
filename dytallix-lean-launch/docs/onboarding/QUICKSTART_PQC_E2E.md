@@ -327,7 +327,7 @@ cargo build --release --bin keygen_raw --bin pqc-sign
 
 - GitHub Issues: https://github.com/HisMadRealm/dytallix/issues
 - Documentation: https://docs.dytallix.com
-- Community: Discord or Telegram (links in README)
+- Community: Discord (https://discord.gg/N8Q4A2KE)
 
 ---
 

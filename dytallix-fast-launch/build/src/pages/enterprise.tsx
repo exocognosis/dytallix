@@ -674,7 +674,7 @@ export function EnterpriseHub() {
                             <Link to="/contact">Schedule Demo</Link>
                         </Button>
                         <Button size="lg" variant="outline" className="glass-button" asChild>
-                            <Link to="/docs">QuantumVault Whitepaper</Link>
+                            <Link to="/resources">Read Whitepapers</Link>
                         </Button>
                     </div>
                 </div>

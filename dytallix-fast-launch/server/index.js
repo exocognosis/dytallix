@@ -8,6 +8,7 @@ import { transfer, getMaxFor } from './transfer.js'
 import { register, rateLimitHitsTotal, faucetRequestsTotal, aiOracleFailuresTotal, aiOracleLatencySeconds, aiOracleRequestsTotal } from './metrics.js'
 import { ContractScanner } from './src/scanner/index.js'
 import { sendQuantumRiskEmail } from './emailService.js'
+import { saveLead } from './leadsDatabase.js'
 // Anomaly detection engine stubbed for fast-launch (nice-to-have feature)
 // import { AnomalyDetectionEngine } from '../backend/pulsescan/anomaly_engine.js'
 import fs from 'fs'
@@ -2001,6 +2002,22 @@ app.post('/api/quantum-risk/submit-email', async (req, res, next) => {
     }
     
     logInfo('Quantum risk email submission', { ip, email })
+    
+    // Save lead to database
+    try {
+      const leadData = {
+        email,
+        formData,
+        riskScores,
+        ipAddress: ip,
+        userAgent: req.headers['user-agent'] || 'Unknown'
+      };
+      const leadId = saveLead(leadData);
+      logInfo('Lead saved to database', { leadId, email });
+    } catch (dbError) {
+      logError('Failed to save lead to database', { error: dbError.message, email });
+      // Continue with email sending even if database save fails
+    }
     
     // Send email with PDF
     const result = await sendQuantumRiskEmail(email, formData, riskScores)

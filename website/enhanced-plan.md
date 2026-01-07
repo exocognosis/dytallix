@@ -33,7 +33,7 @@
    - Interactive tutorials
 
 5. **Community** (`/community.html`)
-   - Discord/Telegram links
+   - Discord link
    - Developer resources
    - Governance participation
    - Early adopter program

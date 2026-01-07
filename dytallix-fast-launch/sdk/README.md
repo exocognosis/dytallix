@@ -352,7 +352,7 @@ Apache 2.0 - See [LICENSE](../LICENSE) for details.
 
 - **GitHub Issues**: https://github.com/DytallixHQ/Dytallix/issues
 - **Twitter/X**: [@DytallixHQ](https://twitter.com/DytallixHQ)
-- **Telegram**: Coming soon
+- **Discord**: https://discord.gg/N8Q4A2KE
 
 ## Changelog
 

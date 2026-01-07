@@ -1,0 +1,29 @@
+
+> build@0.0.0 dev
+> vite
+
+
+  VITE v7.2.4  ready in 160 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: use --host to expose
+4:15:38 PM [vite] (client) hmr update /src/pages/enterprise.tsx, /src/index.css
+5:37:39 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:39:05 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:39:10 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:40:09 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:44:02 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:44:46 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:49:34 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:49:34 PM [vite] (client) hmr update /src/pages/enterprise.tsx, /src/index.css
+5:49:38 PM [vite] (client) hmr update /src/pages/enterprise.tsx, /src/index.css
+5:49:49 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:51:06 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:51:12 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:52:50 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:53:38 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+5:54:15 PM [vite] (client) hmr update /src/pages/home.tsx, /src/index.css
+6:01:44 PM [vite] (client) hmr update /src/pages/docs.tsx, /src/index.css
+6:01:44 PM [vite] (client) hmr update /src/index.css, /src/components/layout/Footer.tsx
+6:01:55 PM [vite] (client) hmr update /src/index.css, /src/components/layout/Footer.tsx
+6:01:57 PM [vite] (client) hmr update /src/index.css, /src/components/layout/Footer.tsx

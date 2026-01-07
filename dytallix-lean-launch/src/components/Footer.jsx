@@ -44,7 +44,7 @@ const Footer = () => {
             <h4 className={styles.footerSubtitle}>Connect</h4>
             <ul className={styles.footerLinks}>
               <li><a href="https://twitter.com/dytallix" className={styles.footerLink}>Twitter</a></li>
-              <li><a href="https://telegram.me/dytallix" className={styles.footerLink}>Telegram</a></li>
+              <li><a href="https://discord.gg/N8Q4A2KE" className={styles.footerLink}>Discord</a></li>
               <li><a href="https://medium.com/@dytallix" className={styles.footerLink}>Medium</a></li>
               <li><a href="mailto:hello@dytallix.com" className={styles.footerLink}>Contact</a></li>
             </ul>
