@@ -11,7 +11,8 @@ export function Resources() {
             icon: Book,
             color: "text-blue-500",
             bg: "bg-blue-500/10",
-            status: "Available"
+            status: "Available",
+            downloadUrl: "/whitepapers/dytallix-foundational-whitepaper.pdf"
         },
         {
             title: "Technical Whitepaper",
@@ -19,7 +20,8 @@ export function Resources() {
             icon: Shield,
             color: "text-purple-500",
             bg: "bg-purple-500/10",
-            status: "Available"
+            status: "Available",
+            downloadUrl: "/whitepapers/dytallix-technical-whitepaper.pdf"
         },
         {
             title: "Tokenomics Paper",
@@ -27,7 +29,8 @@ export function Resources() {
             icon: Coins,
             color: "text-amber-500",
             bg: "bg-amber-500/10",
-            status: "Available"
+            status: "Available",
+            downloadUrl: "/whitepapers/dytallix-tokenomics-paper.pdf"
         },
         {
             title: "QuantumVault Marketing",
@@ -62,14 +65,27 @@ export function Resources() {
                             </p>
 
                             <div className="mt-auto pt-6 border-t border-white/10">
-                                <Button
-                                    className="w-full gap-2"
-                                    disabled={paper.status === "Coming Soon"}
-                                    variant={paper.status === "Coming Soon" ? "outline" : "default"}
-                                >
-                                    <Download className="h-4 w-4" />
-                                    {paper.status === "Coming Soon" ? "Notify Me" : "Download PDF"}
-                                </Button>
+                                {paper.status === "Coming Soon" ? (
+                                    <Button
+                                        className="w-full gap-2"
+                                        disabled
+                                        variant="outline"
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        Notify Me
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        className="w-full gap-2"
+                                        variant="default"
+                                        asChild
+                                    >
+                                        <a href={paper.downloadUrl} download target="_blank" rel="noopener noreferrer">
+                                            <Download className="h-4 w-4" />
+                                            Download PDF
+                                        </a>
+                                    </Button>
+                                )}
                             </div>
                         </GlassPanel>
                     ))}

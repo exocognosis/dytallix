@@ -1,0 +1,13 @@
+{
+  "name": "dytallix-demo-app",
+  "version": "1.0.0",
+  "description": "Demo application showcasing Dytallix blockchain features",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "@dytallix/sdk": "file:../sdk/typescript"
+  }
+}

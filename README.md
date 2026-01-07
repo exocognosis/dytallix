@@ -11,21 +11,37 @@ Post-quantum secure blockchain with AI-enhanced transaction processing. Dytallix
 - **Cross-chain Bridge**: Bridge assets between Dytallix and EVM chains
 - **AI-Enhanced Processing**: Optimized transaction ordering and validation
 
-## Quick Start
+## Quick Start for Developers
 
-### Get Testnet Tokens
+### Run the Demo App
+
+See all SDK features in action (requires Node.js 16+):
 
 ```bash
-# Request tokens from faucet
-curl -X POST https://dytallix.com/rpc/faucet/claim \
-  -H "Content-Type: application/json" \
-  -d '{"address": "YOUR_ADDRESS"}'
+# TypeScript - Interactive wallet & contract demo
+cd demo-app
+npm install
+node demo.js
 ```
 
-### Check Balance
+**Demo includes:**
+- PQC wallet generation (ML-DSA)
+- Network status query
+- Balance checking
+- Faucet token requests
+- Message signing with quantum-resistant cryptography
+
+### Manual API Testing
 
 ```bash
-curl https://dytallix.com/rpc/accounts/YOUR_ADDRESS
+# Generate a wallet first (using SDK)
+# Then request tokens from faucet
+curl -X POST https://dytallix.com/rpc/dev/faucet \
+  -H "Content-Type: application/json" \
+  -d '{"address":"dyt1..."}'
+
+# Check balance
+curl https://dytallix.com/rpc/account/dyt1...
 ```
 
 ## SDKs
@@ -134,18 +150,38 @@ curl -X POST https://dytallix.com/rpc/contracts/call \
 
 ## Run Your Own Node
 
+Dytallix is fully open source. You can build and run your own blockchain node.
+
+### Quick Start (Requires Rust 1.70+)
+
 ```bash
-# Clone and build
+# Clone the repository
 git clone https://github.com/DytallixHQ/Dytallix.git
-cd Dytallix/dytallix-fast-launch
+cd Dytallix
+
+# Build the node
 cargo build --release -p dytallix-fast-node --features "contracts,metrics"
 
-# Run
+# Run a single node
 ./target/release/dytallix-fast-node \
   --chain-id dytallix-testnet-1 \
-  --data-dir ./data \
-  --metrics-port 9100
+  --bind-addr 127.0.0.1:26656 \
+  --rpc-addr 127.0.0.1:26657 \
+  --data-dir ./data
+
+# Test it
+curl http://127.0.0.1:26657/status
 ```
+
+### Full Documentation
+
+See [BUILDING.md](BUILDING.md) for:
+- Detailed build instructions
+- Local testnet setup (multi-node)
+- Docker deployment
+- Configuration options
+- Performance tuning
+- Production deployment checklist
 
 ## Development
 

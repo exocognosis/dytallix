@@ -130,7 +130,7 @@ export function DeveloperHub() {
                             <Link to="/docs">Read Docs</Link>
                         </Button>
                         <Button size="lg" variant="ghost" asChild>
-                            <a href="https://github.com/dytallix" target="_blank" rel="noreferrer">GitHub</a>
+                            <a href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noreferrer">GitHub</a>
                         </Button>
                     </div>
                 </GlassPanel>

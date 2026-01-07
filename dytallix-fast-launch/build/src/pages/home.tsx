@@ -26,17 +26,17 @@ export function Home() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
                     {/* Left Column: Video */}
                     <div 
-                        className="w-full aspect-square rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm flex items-center justify-center animate-slide-up transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:scale-[1.02] hover:shadow-lg hover:shadow-white/5"
+                        className="w-full aspect-square rounded-2xl border border-white/10 bg-black/50 backdrop-blur-sm overflow-hidden animate-slide-up transition-all duration-300 hover:border-white/20 hover:scale-[1.02] hover:shadow-lg hover:shadow-white/5"
                         style={{ animationDelay: "100ms" }}
                     >
-                        <div className="text-center space-y-4">
-                            <div className="h-20 w-20 mx-auto rounded-full bg-white/10 flex items-center justify-center">
-                                <svg className="h-10 w-10 text-white/50" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z" />
-                                </svg>
-                            </div>
-                            <p className="text-muted-foreground text-lg">Video Coming Soon</p>
-                        </div>
+                        <video 
+                            className="w-full h-full object-cover"
+                            controls
+                            poster="/Logo2.png"
+                        >
+                            <source src="/dytallix-intro.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
 
                     {/* Right Column: Features + CTAs */}
