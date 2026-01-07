@@ -2,6 +2,8 @@
 
 Official JavaScript/TypeScript SDK for interacting with the Dytallix blockchain.
 
+> 🚀 **New to Dytallix?** Try our [5-minute quickstart guide](../../sdk-quickstart/README.md) to get up and running with a guaranteed working example!
+
 ## Features
 
 - ✅ **PQC Wallet Integration** - ML-DSA (Dilithium) and SLH-DSA (SPHINCS+) support
@@ -22,6 +24,8 @@ pnpm add @dytallix/sdk
 ```
 
 ## Quick Start
+
+> 💡 **First time here?** Check out our [interactive quickstart guide](../../sdk-quickstart/README.md) with automatic fallback for offline testing!
 
 ### 1. Connect to Dytallix
 
