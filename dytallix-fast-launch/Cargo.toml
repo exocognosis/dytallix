@@ -1,7 +1,0 @@
-[workspace]
-members = [
-    "node",
-    "contracts/dytallix-registry",
-    "sdk/rust", "dytallix-escrow",
-]
-resolver = "2"

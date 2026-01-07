@@ -1,7 +1,0 @@
-[INFO] 2026-01-07T01:54:48.954Z Using in-memory rate limiter
-[INFO] 2026-01-07T01:54:49.122Z Prometheus metrics initialized
-[INFO] 2026-01-07T01:54:49.224Z Leads database initialized {"path":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/data/leads.db"}
-[INFO] 2026-01-07T01:54:49.225Z Anomaly detection engine stubbed (fast-launch mode)
-[INFO] 2026-01-07T01:54:49.226Z Security headers enabled {"ENABLE_CSP":true}
-[INFO] 2026-01-07T01:54:49.228Z WebSocket server attached {"path":"/api/ws"}
-[INFO] 2026-01-07T01:54:49.228Z Server started {"PORT":"3001","ORIGIN":"http://localhost:3000"}

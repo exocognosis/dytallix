@@ -145,3 +145,4 @@ ModuleTests/PulseGuard/artifacts/gan/model_checkpoint/*
 *.ckpt
 
 **/target/
+dytallix-fast-launch/

@@ -1,6 +1,0 @@
-[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
-[Crypto] PQC Libraries Loaded: Dilithium & Kyber
-[QuantumVault] Loaded 16 assets from metadata
-[QuantumVault] API server running on port 3002
-[QuantumVault] Storage directory: /Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/storage
-[QuantumVault] Loaded 16 assets
