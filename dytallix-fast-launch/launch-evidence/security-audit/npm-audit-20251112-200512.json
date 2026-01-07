@@ -1,0 +1,244 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@lhci/cli": {
+      "name": "@lhci/cli",
+      "severity": "low",
+      "isDirect": true,
+      "via": [
+        "inquirer",
+        "tmp"
+      ],
+      "effects": [],
+      "range": "*",
+      "nodes": [
+        "node_modules/@lhci/cli"
+      ],
+      "fixAvailable": {
+        "name": "@lhci/cli",
+        "version": "0.1.0",
+        "isSemVerMajor": true
+      }
+    },
+    "esbuild": {
+      "name": "esbuild",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1102341,
+          "name": "esbuild",
+          "dependency": "esbuild",
+          "title": "esbuild enables any website to send any requests to the development server and read the response",
+          "url": "https://github.com/advisories/GHSA-67mh-4wv8-2f99",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-346"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N"
+          },
+          "range": "<=0.24.2"
+        }
+      ],
+      "effects": [
+        "vite"
+      ],
+      "range": "<=0.24.2",
+      "nodes": [
+        "node_modules/esbuild",
+        "node_modules/vite-node/node_modules/esbuild",
+        "node_modules/vitest/node_modules/esbuild"
+      ],
+      "fixAvailable": {
+        "name": "vite",
+        "version": "7.2.2",
+        "isSemVerMajor": true
+      }
+    },
+    "external-editor": {
+      "name": "external-editor",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "tmp"
+      ],
+      "effects": [
+        "inquirer"
+      ],
+      "range": ">=1.1.1",
+      "nodes": [
+        "node_modules/external-editor"
+      ],
+      "fixAvailable": {
+        "name": "@lhci/cli",
+        "version": "0.1.0",
+        "isSemVerMajor": true
+      }
+    },
+    "inquirer": {
+      "name": "inquirer",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "external-editor"
+      ],
+      "effects": [
+        "@lhci/cli"
+      ],
+      "range": "3.0.0 - 8.2.6 || 9.0.0 - 9.3.7",
+      "nodes": [
+        "node_modules/inquirer"
+      ],
+      "fixAvailable": {
+        "name": "@lhci/cli",
+        "version": "0.1.0",
+        "isSemVerMajor": true
+      }
+    },
+    "tmp": {
+      "name": "tmp",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1109537,
+          "name": "tmp",
+          "dependency": "tmp",
+          "title": "tmp allows arbitrary temporary file / directory write via symbolic link `dir` parameter",
+          "url": "https://github.com/advisories/GHSA-52f5-9888-hmc6",
+          "severity": "low",
+          "cwe": [
+            "CWE-59"
+          ],
+          "cvss": {
+            "score": 2.5,
+            "vectorString": "CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:N/I:L/A:N"
+          },
+          "range": "<=0.2.3"
+        }
+      ],
+      "effects": [
+        "@lhci/cli",
+        "external-editor"
+      ],
+      "range": "<=0.2.3",
+      "nodes": [
+        "node_modules/external-editor/node_modules/tmp",
+        "node_modules/tmp"
+      ],
+      "fixAvailable": {
+        "name": "@lhci/cli",
+        "version": "0.1.0",
+        "isSemVerMajor": true
+      }
+    },
+    "vite": {
+      "name": "vite",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        {
+          "source": 1107323,
+          "name": "vite",
+          "dependency": "vite",
+          "title": "Vite middleware may serve files starting with the same name with the public directory",
+          "url": "https://github.com/advisories/GHSA-g4jq-h2w9-997c",
+          "severity": "low",
+          "cwe": [
+            "CWE-22",
+            "CWE-200",
+            "CWE-284"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<=5.4.19"
+        },
+        {
+          "source": 1107327,
+          "name": "vite",
+          "dependency": "vite",
+          "title": "Vite's `server.fs` settings were not applied to HTML files",
+          "url": "https://github.com/advisories/GHSA-jqfw-vq24-v9c3",
+          "severity": "low",
+          "cwe": [
+            "CWE-23",
+            "CWE-200",
+            "CWE-284"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<=5.4.19"
+        },
+        {
+          "source": 1109131,
+          "name": "vite",
+          "dependency": "vite",
+          "title": "vite allows server.fs.deny bypass via backslash on Windows",
+          "url": "https://github.com/advisories/GHSA-93m4-6634-74q7",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-22"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": ">=5.2.6 <=5.4.20"
+        },
+        {
+          "source": 1109132,
+          "name": "vite",
+          "dependency": "vite",
+          "title": "vite allows server.fs.deny bypass via backslash on Windows",
+          "url": "https://github.com/advisories/GHSA-93m4-6634-74q7",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-22"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": ">=4.5.3 <5.0.0"
+        },
+        "esbuild"
+      ],
+      "effects": [],
+      "range": "<=6.1.6",
+      "nodes": [
+        "node_modules/vite",
+        "node_modules/vite-node/node_modules/vite",
+        "node_modules/vitest/node_modules/vite"
+      ],
+      "fixAvailable": {
+        "name": "vite",
+        "version": "7.2.2",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 4,
+      "moderate": 2,
+      "high": 0,
+      "critical": 0,
+      "total": 6
+    },
+    "dependencies": {
+      "prod": 180,
+      "dev": 870,
+      "optional": 100,
+      "peer": 1,
+      "peerOptional": 0,
+      "total": 1049
+    }
+  }
+}

@@ -273,6 +273,28 @@ For detailed information, see [`docs/GAS.md`](docs/GAS.md).
 - Strict ignore rules to prevent secret leakage (.env*, build caches, artifacts tmp).
 - Rate-limited faucet with configurable per-request caps & cooldown.
 
+## Security Audit
+Run comprehensive security scans to identify vulnerabilities:
+
+```bash
+# Run full security audit
+npm run security:audit
+
+# Or run directly
+bash scripts/security_audit.sh
+```
+
+The security audit covers:
+- **Dependency Scanning**: npm & cargo vulnerability detection
+- **Secret Detection**: Exposed credentials and keys
+- **Security Headers**: HTTP security configuration validation
+- **PQC Validation**: Post-quantum cryptography implementation checks
+- **Configuration Review**: Security settings and best practices
+
+Results are saved to `launch-evidence/security-audit/` with detailed reports.
+
+📖 **Documentation**: See [docs/security/security-audit.md](docs/security/security-audit.md) for complete guide.
+
 ## Security Policy
 See [SECURITY.md](SECURITY.md) for coordinated vulnerability disclosure guidelines.
 
