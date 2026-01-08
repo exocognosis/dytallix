@@ -1,0 +1,54 @@
+[0;34m🚀 Dytallix Service Manager - Fixed Port Edition[0m
+==============================================
+Frontend:     [0;32mhttp://localhost:5173[0m
+Backend API:  [0;32mhttp://localhost:3001[0m
+Blockchain:   [0;32mhttp://localhost:3003[0m
+QuantumVault: [0;32mhttp://localhost:3002[0m
+Faucet API:   [0;32mhttp://localhost:3004[0m
+WebSocket:    [0;32mws://localhost:3005[0m
+==============================================
+[1;33m🛑 Stopping existing services...[0m
+[0;34m🛑 Stopping Dytallix Services[0m
+[0;34m==============================[0m
+[0;33mFrontend not running on port 5173[0m
+[0;33mBackend API not running on port 3001[0m
+[0;33mBlockchain Node not running on port 3003[0m
+[0;33mQuantumVault API not running on port 3002[0m
+[0;33mFaucet API not running on port 3004[0m
+[0;33mWebSocket not running on port 3005[0m
+
+[0;32m✅ All services stopped[0m
+[0;34mRun ./start-fixed-ports.sh to restart services[0m
+[0;34m🔧 Starting services...[0m
+[0;34mStarting Blockchain on port 3003...[0m
+[0;32m✅ Blockchain started successfully (PID: 30261)[0m
+[0;34mStarting QuantumVault on port 3002...[0m
+[0;32m✅ QuantumVault started successfully (PID: 30286)[0m
+[0;34mStarting Backend on port 3001...[0m
+[0;32m✅ Backend started successfully (PID: 30303)[0m
+[0;34mStarting Faucet on port 3004...[0m
+[0;32m✅ Faucet started successfully (PID: 30316)[0m
+[0;34mStarting Frontend on port 5173...[0m
+[0;32m✅ Frontend started successfully (PID: 30329)[0m
+
+[0;32m🎉 All services started successfully![0m
+==============================================
+Frontend:     [0;32mhttp://localhost:5173[0m
+  • Homepage: [0;32mhttp://localhost:5173/[0m
+  • Build:    [0;32mhttp://localhost:5173/build/[0m
+  • Shield:   [0;32mhttp://localhost:5173/quantumvault/[0m (alias, legacy /quantumshield redirects)
+Backend API:  [0;32mhttp://localhost:3001[0m
+Blockchain:   [0;32mhttp://localhost:3003[0m
+QuantumVault: [0;32mhttp://localhost:3002[0m
+Faucet API:   [0;32mhttp://localhost:3004[0m
+  • Status:   [0;32mhttp://localhost:3004/api/faucet/status[0m
+==============================================
+
+[0;34m📋 Service Management:[0m
+  • View logs: tail -f logs/[service].log
+  • Stop all:  ./stop-services.sh
+  • Check status: ps aux | grep -E '(node|cargo)'
+
+[1;33m🔗 No more random ports! All services now use fixed ports.[0m
+[1;33m✨ New web structure from PR #223 with dual-audience experience[0m
+Press Ctrl+C to stop all services...

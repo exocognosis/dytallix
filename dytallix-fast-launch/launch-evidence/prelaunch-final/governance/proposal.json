@@ -1,0 +1,14 @@
+{
+  "proposal_id": 32,
+  "title": "Update emission rate parameter",
+  "description": "Change emission_rate from 0.03 to 0.05 for improved validator rewards",
+  "type": "param-change",
+  "parameter": "emission_rate",
+  "old_value": "0.03",
+  "new_value": "0.05",
+  "proposer": "dyt1valoper000000000001",
+  "status": "Executed",
+  "submit_time": "2025-11-19T16:15:33Z",
+  "voting_end_time": "2025-11-19T16:15:33Z",
+  "execution_time": "2025-11-19T16:15:33Z"
+}

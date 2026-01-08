@@ -1,0 +1,8 @@
+{
+  "contract_address": "dyt1contractdc84a55d85fb838bc34d8f41b307add5",
+  "query": {"get_count": {}},
+  "result": {
+    "count": 1
+  },
+  "timestamp": "2025-11-19T16:15:33Z"
+}

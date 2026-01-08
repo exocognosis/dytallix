@@ -1,0 +1,8 @@
+{
+  "type": "gov_vote",
+  "body": {
+    "voter": "dytallix1voter123456789012345678901234567890",
+    "proposal_id": "1",
+    "option": "yes"
+  }
+}
