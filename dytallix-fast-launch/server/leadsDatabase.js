@@ -40,6 +40,21 @@ db.exec(`
   )
 `);
 
+// Create contact_leads table for general contact form submissions
+db.exec(`
+  CREATE TABLE IF NOT EXISTS contact_leads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    company TEXT,
+    message TEXT,
+    source TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Create index on email for faster lookups
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email)
@@ -89,15 +104,15 @@ export const saveLead = (leadData) => {
       userAgent || null
     );
 
-    logInfo('Lead saved to database', { 
-      id: result.lastInsertRowid, 
-      email 
+    logInfo('Lead saved to database', {
+      id: result.lastInsertRowid,
+      email
     });
 
-    return { 
-      id: result.lastInsertRowid, 
+    return {
+      id: result.lastInsertRowid,
       email,
-      success: true 
+      success: true
     };
   } catch (error) {
     logError('Failed to save lead', { error: error.message, email: leadData.email });
@@ -129,7 +144,7 @@ export const markEmailSent = (leadId) => {
  */
 export const getAllLeads = (options = {}) => {
   const { limit = 1000, offset = 0, startDate, endDate } = options;
-  
+
   let query = 'SELECT * FROM leads WHERE 1=1';
   const params = [];
 
@@ -225,7 +240,7 @@ export const getLeadStats = () => {
  */
 export const exportLeadsToCSV = () => {
   const leads = getAllLeads({ limit: 100000 });
-  
+
   const headers = [
     'ID', 'Email', 'Industry', 'Region', 'Data Types', 'Cryptography',
     'Regulatory Regime', 'Org Size', 'HNDL Score', 'CRQC Score',
@@ -255,8 +270,59 @@ export const exportLeadsToCSV = () => {
   return csv;
 };
 
+/**
+ * Save a contact lead from the contact modal
+ * @param {Object} contactData - The contact data to save
+ * @returns {Object} - The saved contact with ID
+ */
+export const saveContactLead = (contactData) => {
+  try {
+    const {
+      name,
+      email,
+      company,
+      message,
+      source,
+      ipAddress,
+      userAgent
+    } = contactData;
+
+    const stmt = db.prepare(`
+      INSERT INTO contact_leads (
+        name, email, company, message, source, ip_address, user_agent
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      name,
+      email,
+      company || null,
+      message || null,
+      source || 'unknown',
+      ipAddress || null,
+      userAgent || null
+    );
+
+    logInfo('Contact lead saved to database', {
+      id: result.lastInsertRowid,
+      email,
+      source
+    });
+
+    return {
+      id: result.lastInsertRowid,
+      email,
+      success: true
+    };
+  } catch (error) {
+    logError('Failed to save contact lead', { error: error.message, email: contactData.email });
+    throw error;
+  }
+};
+
 export default {
   saveLead,
+  saveContactLead,
   markEmailSent,
   getAllLeads,
   getLeadStats,

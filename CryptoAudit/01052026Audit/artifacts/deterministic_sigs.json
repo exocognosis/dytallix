@@ -1,0 +1,14 @@
+[
+  {
+    "algorithm": "ML-DSA-65",
+    "deterministic": true,
+    "rerandomization_safe": true,
+    "description": "Uses hedged randomness (RFC 6979 style for lattices)"
+  },
+  {
+    "algorithm": "SLH-DSA-SHAKE-192s",
+    "deterministic": true,
+    "rerandomization_safe": true,
+    "description": "Hash-based signatures are inherently deterministic"
+  }
+]

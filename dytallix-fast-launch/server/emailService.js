@@ -1,249 +1,227 @@
 import nodemailer from 'nodemailer';
-import PDFDocument from 'pdfkit';
+import { chromium } from 'playwright';
 import { logInfo, logError } from './logger.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Email service for sending quantum risk analysis reports
+ * 
+ * This service generates PDFs using Playwright to render the React QuantumRiskReport
+ * component, then attaches them to emails.
  */
 
 // Create email transporter
-// In production, configure with real SMTP credentials via environment variables
 const createTransporter = () => {
-  // Check if we have SMTP credentials configured
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    const port = parseInt(process.env.SMTP_PORT || '587', 10);
-    // Validate port is within valid range
+    let port = parseInt(process.env.SMTP_PORT || '587', 10);
     if (port < 1 || port > 65535) {
       logError('Invalid SMTP_PORT value, using default 587', { port });
       port = 587;
     }
-    
+
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port,
-      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+      secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
   }
-  
-  // Development mode: log emails to console
+
   logInfo('Email service running in development mode (emails will be logged, not sent)');
-  return nodemailer.createTransport({
-    jsonTransport: true
-  });
+  return nodemailer.createTransport({ jsonTransport: true });
 };
 
 const transporter = createTransporter();
 
 /**
- * Generate a PDF report for the quantum risk analysis
+ * Write report data to a temporary JSON file that the frontend can load
  */
-const generateRiskPDF = (formData, riskScores) => {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({
-        size: 'A4',
-        margins: { top: 50, bottom: 50, left: 50, right: 50 }
-      });
-      
-      const chunks = [];
-      doc.on('data', chunk => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-      
-      // Title
-      doc.fontSize(24)
-         .fillColor('#1e40af')
-         .text('Quantum Risk Analysis Report', { align: 'center' });
-      
-      doc.moveDown();
-      doc.fontSize(12)
-         .fillColor('#6b7280')
-         .text(`Generated: ${new Date().toLocaleDateString()}`, { align: 'center' });
-      
-      doc.moveDown(2);
-      
-      // Organization Profile Section
-      doc.fontSize(16)
-         .fillColor('#000000')
-         .text('Organization Profile');
-      
-      doc.moveDown(0.5);
-      doc.fontSize(11)
-         .fillColor('#374151');
-      
-      if (formData.industry) {
-        doc.text(`Industry: ${formData.industry}`);
+const writeReportData = async (formData, riskScores) => {
+  const reportData = {
+    generatedAt: new Date().toISOString(),
+    organization: {
+      industry: formData.industry || 'Not specified',
+      region: formData.region || 'Not specified',
+      orgSize: formData.orgSize || 'Not specified',
+      regulatoryRegime: formData.regulatoryRegime || 'Not specified',
+      dataTypes: formData.dataTypes || [],
+      cryptography: formData.cryptography || []
+    },
+    scores: {
+      hndl: riskScores.hndl || 0,
+      crqc: riskScores.crqc || 0,
+      urgency: riskScores.urgency || 0
+    },
+    recommendations: generateRecommendations(riskScores),
+    exposure: {
+      harvestNowDecryptLater: {
+        level: getRiskLevel(riskScores.hndl),
+        description: 'Your organization processes sensitive data that could be harvested today and decrypted when quantum computers become available.',
+        affectedSystems: ['Customer databases', 'Transaction logs', 'Identity records']
+      },
+      cryptographicallyRelevantQuantumComputer: {
+        level: getRiskLevel(riskScores.crqc),
+        description: 'Current cryptographic implementations will be vulnerable when CRQCs become available.',
+        affectedSystems: ['TLS/SSL communications', 'Digital signatures', 'Key exchange protocols']
       }
-      if (formData.region) {
-        doc.text(`Region: ${formData.region}`);
-      }
-      if (formData.orgSize) {
-        doc.text(`Organization Size: ${formData.orgSize}`);
-      }
-      if (formData.regulatoryRegime) {
-        doc.text(`Regulatory Regime: ${formData.regulatoryRegime}`);
-      }
-      
-      if (formData.dataTypes && formData.dataTypes.length > 0) {
-        doc.moveDown(0.5);
-        doc.text('Data Types:', { continued: false });
-        formData.dataTypes.forEach(type => {
-          doc.text(`  • ${type}`, { indent: 20 });
-        });
-      }
-      
-      if (formData.cryptography && formData.cryptography.length > 0) {
-        doc.moveDown(0.5);
-        doc.text('Current Cryptography:', { continued: false });
-        formData.cryptography.forEach(crypto => {
-          doc.text(`  • ${crypto}`, { indent: 20 });
-        });
-      }
-      
-      doc.moveDown(2);
-      
-      // Risk Scores Section
-      doc.fontSize(16)
-         .fillColor('#000000')
-         .text('Risk Assessment');
-      
-      doc.moveDown(0.5);
-      
-      // HNDL Risk
-      const getRiskLevel = (score) => {
-        if (score < 30) return { label: 'Low', color: '#10b981' };
-        if (score < 70) return { label: 'Medium', color: '#f59e0b' };
-        if (score < 90) return { label: 'High', color: '#ef4444' };
-        return { label: 'Critical', color: '#7f1d1d' };
-      };
-      
-      const hndlRisk = getRiskLevel(riskScores.hndl);
-      const crqcRisk = getRiskLevel(riskScores.crqc);
-      const urgencyRisk = getRiskLevel(riskScores.urgency || 0);
-      
-      doc.fontSize(14)
-         .fillColor('#000000')
-         .text('HNDL Risk (Harvest Now, Decrypt Later)');
-      
-      doc.fontSize(11)
-         .fillColor('#6b7280')
-         .text('This risk represents the threat of encrypted data being harvested today and decrypted in the future when quantum computers become available.');
-      
-      doc.moveDown(0.5);
-      doc.fontSize(12)
-         .fillColor(hndlRisk.color)
-         .text(`Risk Score: ${riskScores.hndl}/100 (${hndlRisk.label})`, { bold: true });
-      
-      doc.moveDown(1.5);
-      
-      doc.fontSize(14)
-         .fillColor('#000000')
-         .text('CRQC Risk (Cryptographically Relevant Quantum Computer)');
-      
-      doc.fontSize(11)
-         .fillColor('#6b7280')
-         .text('This risk represents the immediate threat when quantum computers reach the capability to break current cryptographic systems.');
-      
-      doc.moveDown(0.5);
-      doc.fontSize(12)
-         .fillColor(crqcRisk.color)
-         .text(`Risk Score: ${riskScores.crqc}/100 (${crqcRisk.label})`, { bold: true });
-      
-      doc.moveDown(1.5);
-      
-      doc.fontSize(14)
-         .fillColor('#000000')
-         .text('Migration Urgency');
-      
-      doc.fontSize(11)
-         .fillColor('#6b7280')
-         .text('This score indicates how urgently your organization should begin transitioning to post-quantum cryptography based on your risk profile, regulatory requirements, and current security posture.');
-      
-      doc.moveDown(0.5);
-      doc.fontSize(12)
-         .fillColor(urgencyRisk.color)
-         .text(`Urgency Score: ${riskScores.urgency || 0}/100 (${urgencyRisk.label})`, { bold: true });
-      
-      doc.moveDown(2);
-      
-      // Recommendations
-      doc.fontSize(16)
-         .fillColor('#000000')
-         .text('Recommendations');
-      
-      doc.moveDown(0.5);
-      doc.fontSize(11)
-         .fillColor('#374151');
-      
-      if (riskScores.hndl >= 70 || riskScores.crqc >= 70 || (riskScores.urgency || 0) >= 70) {
-        doc.text('Your organization faces significant quantum threats. We recommend:');
-        doc.moveDown(0.3);
-        doc.text('  • Immediate assessment of quantum-vulnerable systems', { indent: 20 });
-        doc.text('  • Development of a post-quantum cryptography (PQC) migration plan', { indent: 20 });
-        doc.text('  • Implementation of quantum-safe encryption for sensitive data', { indent: 20 });
-        doc.text('  • Regular security audits with quantum threat considerations', { indent: 20 });
-      } else if (riskScores.hndl >= 30 || riskScores.crqc >= 30 || (riskScores.urgency || 0) >= 30) {
-        doc.text('Your organization should begin preparing for quantum threats:');
-        doc.moveDown(0.3);
-        doc.text('  • Monitor developments in quantum computing capabilities', { indent: 20 });
-        doc.text('  • Evaluate current cryptographic implementations', { indent: 20 });
-        doc.text('  • Plan for eventual PQC migration', { indent: 20 });
-        doc.text('  • Consider quantum-safe solutions for new implementations', { indent: 20 });
-      } else {
-        doc.text('Your organization has lower quantum risk exposure:');
-        doc.moveDown(0.3);
-        doc.text('  • Stay informed about quantum computing developments', { indent: 20 });
-        doc.text('  • Review cryptographic practices periodically', { indent: 20 });
-        doc.text('  • Consider quantum-safe options for future projects', { indent: 20 });
-      }
-      
-      doc.moveDown(2);
-      
-      // Footer
-      doc.fontSize(10)
-         .fillColor('#9ca3af')
-         .text('Dytallix - Post-Quantum Cryptography Solutions', { align: 'center' });
-      doc.text('https://dytallix.com', { align: 'center', link: 'https://dytallix.com' });
-      
-      doc.end();
-    } catch (error) {
-      reject(error);
     }
+  };
+
+  // Write to public folder where the frontend can access it
+  const publicPath = path.join(__dirname, '..', 'build', 'public', 'report.json');
+  fs.writeFileSync(publicPath, JSON.stringify(reportData, null, 2));
+
+  // Also write to dist folder if it exists (for production builds)
+  const distPath = path.join(__dirname, '..', 'build', 'dist', 'report.json');
+  if (fs.existsSync(path.dirname(distPath))) {
+    fs.writeFileSync(distPath, JSON.stringify(reportData, null, 2));
+  }
+
+  return reportData;
+};
+
+const getRiskLevel = (score) => {
+  if (score >= 90) return 'Critical';
+  if (score >= 70) return 'High';
+  if (score >= 40) return 'Medium';
+  return 'Low';
+};
+
+const generateRecommendations = (riskScores) => {
+  const recommendations = [];
+
+  if (riskScores.hndl >= 70 || riskScores.crqc >= 70) {
+    recommendations.push({
+      priority: 'Critical',
+      title: 'Immediate PQC Assessment',
+      description: 'Conduct an immediate assessment of all quantum-vulnerable cryptographic systems, focusing on RSA and ECC implementations.'
+    });
+    recommendations.push({
+      priority: 'High',
+      title: 'Migration Roadmap',
+      description: 'Develop a comprehensive post-quantum cryptography (PQC) migration plan with defined milestones and resource allocation.'
+    });
+  }
+
+  if (riskScores.hndl >= 50) {
+    recommendations.push({
+      priority: 'High',
+      title: 'Data Classification',
+      description: 'Classify sensitive data by longevity requirements to prioritize protection against Harvest Now, Decrypt Later attacks.'
+    });
+  }
+
+  recommendations.push({
+    priority: 'Medium',
+    title: 'Vendor Coordination',
+    description: 'Engage with technology vendors to understand their PQC roadmaps and ensure alignment with your migration timeline.'
   });
+
+  return recommendations;
 };
 
 /**
- * Send quantum risk analysis email
+ * Generate PDF using Playwright to render the React report component
+ */
+const generateRiskPDF = async (formData, riskScores) => {
+  logInfo('Generating PDF via Playwright', { formData, riskScores });
+
+  // Write report data for the frontend to load
+  await writeReportData(formData, riskScores);
+
+  // Determine the frontend URL
+  // In production, nginx serves the frontend on port 80
+  // In development, use the dev server on port 3000
+  let reportUrl;
+  if (process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL) {
+    reportUrl = process.env.FRONTEND_URL || 'http://localhost/quantumrisk?mode=report';
+  } else {
+    const frontendPort = process.env.FRONTEND_PORT || 3000;
+    const frontendHost = process.env.FRONTEND_HOST || 'localhost';
+    reportUrl = `http://${frontendHost}:${frontendPort}/quantumrisk?mode=report`;
+  }
+
+  logInfo('Launching Playwright for PDF generation', { reportUrl });
+
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const context = await browser.newContext({
+      viewport: { width: 816, height: 1056 }
+    });
+
+    const page = await context.newPage();
+
+    await page.goto(reportUrl, {
+      waitUntil: 'networkidle',
+      timeout: 30000
+    });
+
+    // Wait for the report to render
+    await page.waitForSelector('.quantum-risk-report', {
+      state: 'visible',
+      timeout: 10000
+    });
+
+    // Wait for fonts
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(500);
+
+    // Generate PDF
+    const pdfBuffer = await page.pdf({
+      format: 'Letter',
+      printBackground: true,
+      margin: {
+        top: '0.5in',
+        right: '0.5in',
+        bottom: '0.5in',
+        left: '0.5in'
+      }
+    });
+
+    logInfo('PDF generated successfully', { size: pdfBuffer.length });
+
+    return pdfBuffer;
+
+  } finally {
+    await browser.close();
+  }
+};
+
+/**
+ * Send quantum risk analysis email with PDF attachment
  */
 export const sendQuantumRiskEmail = async (userEmail, formData, riskScores) => {
   try {
     logInfo('Generating quantum risk PDF', { userEmail });
-    
-    // Generate PDF
+
     const pdfBuffer = await generateRiskPDF(formData, riskScores);
-    
-    logInfo('PDF generated successfully', { size: pdfBuffer.length });
-    
-    // Prepare email
+
+    logInfo('PDF generated, sending email', { size: pdfBuffer.length, userEmail });
+
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'noreply@dytallix.com',
       to: userEmail,
-      bcc: 'hello@dytallix.com', // Send copy to hello@dytallix.com
+      bcc: 'hello@dytallix.com',
       subject: 'Your Quantum Risk Analysis Report',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1e40af;">Your Quantum Risk Analysis Report</h2>
+          <h2 style="color: #0f172a;">Your Quantum Risk Analysis Report</h2>
           
-          <p>Thank you for completing the Quantum Risk Assessment with Dytallix.</p>
+          <p>Thank you for completing the Quantum Risk Assessment with QuantumVault.</p>
           
           <p>Please find your personalized risk analysis report attached to this email.</p>
           
-          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #374151;">Quick Summary</h3>
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #0d9488;">
+            <h3 style="margin-top: 0; color: #0f172a;">Quick Summary</h3>
             <p style="margin: 10px 0;">
               <strong>HNDL Risk:</strong> ${riskScores.hndl}/100<br>
               <strong>CRQC Risk:</strong> ${riskScores.crqc}/100<br>
@@ -251,53 +229,52 @@ export const sendQuantumRiskEmail = async (userEmail, formData, riskScores) => {
             </p>
           </div>
           
-          <p>If you have any questions about your risk assessment or would like to discuss quantum-safe solutions for your organization, please don't hesitate to contact us.</p>
+          <p>If you have questions or would like to discuss quantum-safe solutions for your organization, please contact us.</p>
           
           <p style="margin-top: 30px;">
             Best regards,<br>
-            <strong>The Dytallix Team</strong>
+            <strong>The QuantumVault Team</strong>
           </p>
           
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
           
-          <p style="font-size: 12px; color: #6b7280;">
-            Dytallix - Post-Quantum Cryptography Solutions<br>
-            <a href="https://dytallix.com" style="color: #1e40af;">https://dytallix.com</a>
+          <p style="font-size: 12px; color: #64748b;">
+            QuantumVault - PQC Enterprise Security by Dytallix<br>
+            <a href="https://dytallix.com" style="color: #0d9488;">https://dytallix.com</a>
           </p>
         </div>
       `,
       attachments: [
         {
-          filename: 'quantum-risk-analysis.pdf',
+          filename: 'quantum-risk-report.pdf',
           content: pdfBuffer,
           contentType: 'application/pdf'
         }
       ]
     };
-    
-    // Send email
+
     const info = await transporter.sendMail(mailOptions);
-    
-    // Check if we're in development mode (using jsonTransport)
+
     const isDevelopmentMode = !process.env.SMTP_HOST || !process.env.SMTP_USER;
-    
+
     if (isDevelopmentMode && info.messageId) {
-      logInfo('Email sent (development mode)', { 
+      logInfo('Email sent (development mode)', {
         messageId: info.messageId,
         message: info.message?.toString()
       });
     } else {
-      logInfo('Email sent successfully', { 
+      logInfo('Email sent successfully', {
         messageId: info.messageId,
-        userEmail 
+        userEmail
       });
     }
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    logError('Failed to send quantum risk email', { 
+    logError('Failed to send quantum risk email', {
       error: error.message,
-      userEmail 
+      stack: error.stack,
+      userEmail
     });
     throw error;
   }

@@ -1,0 +1,160 @@
+'use client';
+
+import * as React from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import Image from 'next/image';
+import {
+    Activity,
+    Key,
+    Database,
+    Shield,
+    FileCheck,
+    AlertTriangle,
+    Calendar,
+    Building2,
+    Menu,
+    X,
+    Lock,
+    ChevronLeft,
+    ChevronRight
+} from 'lucide-react';
+import { cn } from '@/utils/cn';
+
+const NAV_ITEMS = [
+    { id: 'overview', label: 'Overview', href: '/dashboard', icon: Activity },
+    { id: 'key-management', label: 'Key Management', href: '/dashboard/key-management', icon: Key },
+    { id: 'storage', label: 'Storage Encryption', href: '/dashboard/storage', icon: Database },
+    { id: 'transport', label: 'Secure Transport', href: '/dashboard/transport', icon: Lock },
+    { id: 'policies', label: 'Policy Orchestrator', href: '/dashboard/policies', icon: Shield },
+    { id: 'compliance', label: 'Compliance & Standards', href: '/dashboard/compliance', icon: FileCheck },
+    { id: 'threats', label: 'Threat Mapping', href: '/dashboard/threats', icon: AlertTriangle },
+    { id: 'timeline', label: 'Implementation Timeline', href: '/dashboard/timeline', icon: Calendar },
+    { id: 'use-cases', label: 'Use Cases', href: '/dashboard/use-cases', icon: Building2 },
+];
+
+interface SidebarProps {
+    className?: string;
+}
+
+export function Sidebar({ className }: SidebarProps) {
+    const pathname = usePathname();
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+    const isActive = (href: string) => {
+        if (href === '/dashboard') {
+            return pathname === '/dashboard';
+        }
+        return pathname?.startsWith(href);
+    };
+
+    const SidebarContent = () => (
+        <>
+            {/* Logo */}
+            <div className={cn(
+                "flex items-center gap-3 px-4 py-5 border-b border-white/10",
+                isCollapsed && "justify-center px-2"
+            )}>
+                <Image
+                    src="/QuantumVault.png"
+                    alt="QuantumVault"
+                    width={isCollapsed ? 32 : 36}
+                    height={isCollapsed ? 32 : 36}
+                    className="shrink-0"
+                />
+                {!isCollapsed && (
+                    <div>
+                        <h1 className="text-lg font-bold text-white tracking-tight">QuantumVault</h1>
+                        <p className="text-xs text-white/50">PQC Enterprise Security</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+                {NAV_ITEMS.map((item) => (
+                    <Link
+                        key={item.id}
+                        href={item.href}
+                        onClick={() => setIsMobileOpen(false)}
+                        className={cn(
+                            'sidebar-nav-item',
+                            isActive(item.href) && 'active',
+                            isCollapsed && 'justify-center px-2'
+                        )}
+                        title={isCollapsed ? item.label : undefined}
+                    >
+                        <item.icon className={cn("w-5 h-5 shrink-0 nav-icon", isCollapsed && "w-6 h-6")} />
+                        {!isCollapsed && <span>{item.label}</span>}
+                    </Link>
+                ))}
+            </nav>
+
+            {/* Collapse Toggle - Desktop Only */}
+            <div className="hidden lg:block border-t border-white/10 p-3">
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors text-sm"
+                >
+                    {isCollapsed ? (
+                        <ChevronRight className="w-4 h-4" />
+                    ) : (
+                        <>
+                            <ChevronLeft className="w-4 h-4" />
+                            <span>Collapse</span>
+                        </>
+                    )}
+                </button>
+            </div>
+        </>
+    );
+
+    return (
+        <>
+            {/* Mobile Toggle Button */}
+            <button
+                onClick={() => setIsMobileOpen(true)}
+                className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10"
+            >
+                <Menu className="w-5 h-5 text-white" />
+            </button>
+
+            {/* Mobile Overlay */}
+            {isMobileOpen && (
+                <div
+                    className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setIsMobileOpen(false)}
+                />
+            )}
+
+            {/* Mobile Sidebar */}
+            <aside
+                className={cn(
+                    "lg:hidden fixed top-0 left-0 z-50 h-full w-64 glass-sidebar flex flex-col transform transition-transform duration-300",
+                    isMobileOpen ? "translate-x-0" : "-translate-x-full"
+                )}
+            >
+                <button
+                    onClick={() => setIsMobileOpen(false)}
+                    className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                    <X className="w-5 h-5 text-white/60" />
+                </button>
+                <SidebarContent />
+            </aside>
+
+            {/* Desktop Sidebar */}
+            <aside
+                className={cn(
+                    "hidden lg:flex fixed top-0 left-0 z-40 h-full glass-sidebar flex-col transition-all duration-300",
+                    isCollapsed ? "w-16" : "w-64",
+                    className
+                )}
+            >
+                <SidebarContent />
+            </aside>
+        </>
+    );
+}

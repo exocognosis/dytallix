@@ -1,0 +1,12 @@
+{
+  "n": true,
+  "k": true,
+  "q": true,
+  "eta1": true,
+  "eta2": true,
+  "du": true,
+  "dv": true,
+  "nist_level": 5,
+  "classical_security_bits": 256,
+  "quantum_security_bits": 192
+}

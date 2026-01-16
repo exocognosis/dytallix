@@ -1,0 +1,37 @@
+[
+  {
+    "algorithm": "ML-DSA-65",
+    "classical_cost_log2": 280.4948974278318,
+    "quantum_cost_log2": 192.0,
+    "best_known_attack": "Lattice sieving (BKZ with progressive sieving)",
+    "safety_margin_bits": 54
+  },
+  {
+    "algorithm": "ML-KEM-768",
+    "classical_cost_log2": 276.0,
+    "quantum_cost_log2": 192.0,
+    "best_known_attack": "Lattice sieving (primal attack)",
+    "safety_margin_bits": 54
+  },
+  {
+    "algorithm": "SLH-DSA-SHAKE-192s",
+    "classical_cost_log2": 192.0,
+    "quantum_cost_log2": 128.0,
+    "best_known_attack": "Generic hash collision / preimage",
+    "safety_margin_bits": 64
+  },
+  {
+    "algorithm": "BLAKE3",
+    "classical_cost_log2": 256.0,
+    "quantum_cost_log2": 128.0,
+    "best_known_attack": "Generic preimage (Grover's algorithm)",
+    "safety_margin_bits": 0
+  },
+  {
+    "algorithm": "SHAKE256",
+    "classical_cost_log2": 256.0,
+    "quantum_cost_log2": 128.0,
+    "best_known_attack": "Generic preimage (Grover's algorithm)",
+    "safety_margin_bits": 0
+  }
+]

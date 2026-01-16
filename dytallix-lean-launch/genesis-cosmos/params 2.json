@@ -1,0 +1,41 @@
+{
+  "chain_id": "dytallix-testnet-v2",
+  "block_time_ms": 2000,
+  "min_gas_prices": "0.001uDGT,0.001uDRT",
+  "gov": {
+    "quorum": "0.334000000000000000",
+    "threshold": "0.500000000000000000",
+    "veto_threshold": "0.334000000000000000",
+    "voting_period": "1209600s",
+    "min_deposit": [{ "denom": "uDGT", "amount": "100000000" }]
+  },
+  "staking": {
+    "bond_denom": "uDGT",
+    "unbonding_time": "1209600s",
+    "max_validators": 50
+  },
+  "slashing": {
+    "signed_blocks_window": "10000",
+    "min_signed_per_window": "0.500000000000000000",
+    "downtime_jail_duration": "600s",
+    "slash_fraction_double_sign": "0.050000000000000000",
+    "slash_fraction_downtime": "0.000100000000000000"
+  },
+  "emissions": {
+    "enabled": true,
+    "denom": "uDRT",
+    "annual_inflation_rate": 0.05,
+    "emissions_rate_per_block": null,
+    "splits": {
+      "block_rewards_distribution": 0.60,
+      "staking_bonuses_distribution": 0.25,
+      "ai_incentives": 0.10,
+      "bridge_ops": 0.05
+    }
+  },
+  "fee_burns": {
+    "burn_100_pct_tx_fees_drt": true,
+    "ai_service_fee_burn_ratio": 0.5,
+    "bridge_fee_burn_ratio": 0.75
+  }
+}

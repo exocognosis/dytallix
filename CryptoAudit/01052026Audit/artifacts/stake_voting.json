@@ -1,0 +1,34 @@
+[
+  {
+    "scenario": "Honest majority (80%)",
+    "total_stake": 1000000,
+    "attacker_stake": 200000,
+    "attacker_stake_percent": 20.0,
+    "attack_successful": false,
+    "threshold_met": true
+  },
+  {
+    "scenario": "At Byzantine threshold (33%)",
+    "total_stake": 1000000,
+    "attacker_stake": 333333,
+    "attacker_stake_percent": 33.3333,
+    "attack_successful": false,
+    "threshold_met": false
+  },
+  {
+    "scenario": "Supermajority attack (70%)",
+    "total_stake": 1000000,
+    "attacker_stake": 700000,
+    "attacker_stake_percent": 70.0,
+    "attack_successful": true,
+    "threshold_met": false
+  },
+  {
+    "scenario": "Stake distribution",
+    "total_stake": 1000000,
+    "attacker_stake": 18485,
+    "attacker_stake_percent": 1.8485,
+    "attack_successful": false,
+    "threshold_met": true
+  }
+]

@@ -1,0 +1,51 @@
+[package]
+name = "dcli" # renamed from dyt (deprecated) for dual-token DGT/DRT era
+version = "0.1.0"
+edition = "2021"
+
+description = "Unified CLI for Dytallix node RPC, keys, staking, governance, wasm deploy, rewards"
+license = "Apache-2.0"
+
+[[bin]]
+name = "dcli" # new binary name (old: dyt)
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+blake3 = "1"
+clap = { version = "4", features = ["derive", "env"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+ring = "0.17"
+rand = "0.8"
+sha3 = "0.10"
+sha2 = "0.10"
+ripemd = "0.1"
+thiserror = "1"
+colored = "2"
+indicatif = "0.17"
+shellexpand = "3"
+hex = "0.4"
+once_cell = "1"
+# Real PQC (Dilithium5) is mandatory
+pqcrypto-dilithium = "0.5.0"
+pqcrypto-traits = "0.3.5"
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+rpassword = "7"
+zeroize = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", features = ["serde"] }
+toml = "0.8"
+regex = "1"
+dirs = "5"
+
+[dev-dependencies]
+tempfile = "3"
+assert_cmd = "2"
+predicates = "3"
+serial_test = "3"

@@ -1,6 +1,7 @@
 import { Section } from "../components/ui/Section"
 import { GlassPanel } from "../components/ui/GlassPanel"
 import { Button } from "../components/ui/Button"
+import { ContactModal } from "../components/ui/ContactModal"
 import { Shield, Lock, ArrowRight, Building2, Stethoscope, Briefcase, Cpu, Palette, FlaskConical, FileText, Landmark } from "lucide-react"
 import { Link } from "react-router-dom"
 
@@ -24,10 +25,18 @@ export function QuantumVaultDemo() {
     const verifyFileInputRef = useRef<HTMLInputElement>(null)
     const verifyReceiptInputRef = useRef<HTMLInputElement>(null)
 
-    const quantumVaultUrl = useMemo(
-        () => (import.meta.env.VITE_QUANTUMVAULT_API_URL || "http://localhost:3002").replace(/\/$/, ""),
-        []
-    )
+    const quantumVaultUrl = useMemo(() => {
+        // Check environment variable first
+        if (import.meta.env.VITE_QUANTUMVAULT_API_URL) {
+            return import.meta.env.VITE_QUANTUMVAULT_API_URL.replace(/\/$/, "");
+        }
+        // Auto-detect production: if on dytallix.com, use relative path (proxied by nginx)
+        if (typeof window !== 'undefined' && window.location.hostname.includes('dytallix.com')) {
+            return "/quantumvault";
+        }
+        // Default to localhost for local development
+        return "http://localhost:3002";
+    }, [])
 
     const addLog = (message: string) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`])
@@ -657,6 +666,14 @@ export function QuantumVaultDemo() {
 }
 
 export function EnterpriseHub() {
+    const [isContactOpen, setIsContactOpen] = useState(false)
+    const [contactSource, setContactSource] = useState("enterprise_hero")
+
+    const openContactModal = (source: string) => {
+        setContactSource(source)
+        setIsContactOpen(true)
+    }
+
     return (
         <>
             {/* Hero */}
@@ -675,8 +692,12 @@ export function EnterpriseHub() {
                     </p>
 
                     <div className="flex gap-4">
-                        <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-900/20" asChild>
-                            <Link to="/contact">Schedule Demo</Link>
+                        <Button
+                            size="lg"
+                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-900/20"
+                            onClick={() => openContactModal('enterprise_hero_demo')}
+                        >
+                            Schedule Demo
                         </Button>
                         <Button size="lg" variant="outline" className="glass-button" asChild>
                             <Link to="/resources">Read Whitepapers</Link>
@@ -718,13 +739,16 @@ export function EnterpriseHub() {
 
 
                     </GlassPanel>
-                    <GlassPanel variant="dark" hoverEffect={true} className="p-8 aspect-square flex items-center justify-center relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10"></div>
-                        <div className="relative z-10 text-center space-y-4">
-                            <Shield className="h-24 w-24 mx-auto text-blue-500 opacity-80" />
-                            <p className="font-mono text-sm text-blue-300">Encryption: AES-256-GCM</p>
-                            <p className="font-mono text-sm text-green-400">Status: QUANTUM SECURE</p>
-                        </div>
+                    <GlassPanel variant="dark" hoverEffect={true} className="p-0 aspect-square flex items-center justify-center relative overflow-hidden">
+                        <video
+                            className="w-full h-full object-cover rounded-xl"
+                            controls
+                            playsInline
+                            poster="/dytallix-logo.png"
+                        >
+                            <source src="/QuantumVaultIntro.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
                     </GlassPanel>
                 </div>
             </Section>
@@ -960,11 +984,24 @@ export function EnterpriseHub() {
                     <p className="text-muted-foreground max-w-2xl mx-auto">
                         Join leading organizations piloting QuantumVault today.
                     </p>
-                    <Button size="lg" className="bg-blue-600 hover:bg-blue-700" asChild>
-                        <Link to="/contact">Contact Sales <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    <Button
+                        size="lg"
+                        className="bg-blue-600 hover:bg-blue-700"
+                        onClick={() => openContactModal('enterprise_cta_sales')}
+                    >
+                        Contact Sales <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </GlassPanel>
             </Section>
+
+            {/* Contact Modal */}
+            <ContactModal
+                isOpen={isContactOpen}
+                onClose={() => setIsContactOpen(false)}
+                source={contactSource}
+                title="Schedule a Demo"
+                subtitle="Let's discuss how QuantumVault can protect your organization."
+            />
         </>
     )
 }

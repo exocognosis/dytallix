@@ -1,0 +1,32 @@
+[
+  {
+    "attack": "NULL signature",
+    "attempts": 1,
+    "bypasses": 0,
+    "prevented": true
+  },
+  {
+    "attack": "All-ones signature",
+    "attempts": 1,
+    "bypasses": 0,
+    "prevented": true
+  },
+  {
+    "attack": "Random signature spray",
+    "attempts": 10000,
+    "bypasses": 0,
+    "prevented": true
+  },
+  {
+    "attack": "Signature malleability",
+    "attempts": 1,
+    "bypasses": 0,
+    "prevented": true
+  },
+  {
+    "attack": "Public key substitution",
+    "attempts": 100,
+    "bypasses": 0,
+    "prevented": true
+  }
+]

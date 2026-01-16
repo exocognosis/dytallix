@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  dytallix-node:
+    build:
+      context: ../
+      dockerfile: blockchain-core.Dockerfile
+    container_name: dytallix-node
+    restart: unless-stopped
+    ports:
+      - "26656:26656"  # P2P
+      - "26657:26657"  # RPC
+      - "1317:1317"    # REST API
+      - "9090:9090"    # gRPC
+    volumes:
+      - dytallix_node_data:/root/.dytallix
+      - ../genesis.json:/root/.dytallix/config/genesis.json:ro
+    environment:
+      - CHAIN_ID=dytallix-testnet-1
+      - MONIKER=dytallix-hetzner-node
+    networks:
+      - dytallix-network
+
+networks:
+  dytallix-network:
+    driver: bridge
+
+volumes:
+  dytallix_node_data:

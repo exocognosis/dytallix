@@ -1,0 +1,66 @@
+{
+  "chain_id": "dytallix-testnet-1",
+  "chain_version": "0.1.0",
+  "genesis_time": "2025-01-01T00:00:00Z",
+  "features": {
+    "staking": true,
+    "governance": true,
+    "bridge": true,
+    "smart_contracts": true,
+    "wasm_contracts": true,
+    "ai_oracle": true
+  },
+  "pqc": {
+    "enabled": true,
+    "algorithms": {
+      "signature": ["ML-DSA-65"],
+      "encryption": ["ML-KEM-768"]
+    }
+  },
+  "consensus": {
+    "block_time_ms": 3000,
+    "max_block_size": 22020096,
+    "max_gas_per_block": 100000000
+  },
+  "tokens": {
+    "dgt": {
+      "name": "Dytallix Governance Token",
+      "symbol": "DGT",
+      "decimals": 6,
+      "total_supply": "1000000000000000"
+    },
+    "drt": {
+      "name": "Dytallix Resource Token",
+      "symbol": "DRT",
+      "decimals": 6,
+      "initial_supply": "0",
+      "emission_rate": "5%"
+    }
+  },
+  "staking": {
+    "min_stake": "1000000",
+    "unbonding_period_blocks": 100800,
+    "max_validators": 100,
+    "slashing_rate": "5%"
+  },
+  "contracts": {
+    "max_code_size": 1048576,
+    "max_gas_per_call": 10000000,
+    "storage_cost_per_byte": 1
+  },
+  "network": {
+    "seed_nodes": [
+      "178.156.187.81:30303"
+    ],
+    "rpc_endpoint": "https://dytallix.com/rpc",
+    "explorer": "https://dytallix.com/explorer",
+    "faucet": "https://dytallix.com/rpc/dev/faucet"
+  },
+  "validators": [
+    {
+      "address": "dyt1validator0001",
+      "moniker": "genesis-validator-1",
+      "voting_power": "1000000000"
+    }
+  ]
+}

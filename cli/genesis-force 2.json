@@ -1,0 +1,11 @@
+{
+  "chain_id": "dyt-localnet",
+  "governance": {
+    "deposit_period": 5,
+    "min_deposit_udgt": "1000",
+    "quorum_bps": "3300",
+    "threshold_bps": "5000",
+    "veto_threshold_bps": "3340",
+    "voting_period": 100
+  }
+}

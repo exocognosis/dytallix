@@ -1,4 +1,4 @@
-[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
 [Crypto] PQC Libraries Loaded: Dilithium & Kyber
 [QuantumVault] Loaded 16 assets from metadata
 [QuantumVault] API server running on port 3002

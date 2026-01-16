@@ -1,0 +1,23 @@
+[
+  {
+    "test_type": "Reduced-round lattice",
+    "parameter_reduction_factor": 0.5,
+    "iterations": 1000,
+    "failures_detected": 0,
+    "weakness_found": false
+  },
+  {
+    "test_type": "Reduced-round lattice",
+    "parameter_reduction_factor": 0.25,
+    "iterations": 1000,
+    "failures_detected": 0,
+    "weakness_found": false
+  },
+  {
+    "test_type": "Reduced-round lattice",
+    "parameter_reduction_factor": 0.1,
+    "iterations": 1000,
+    "failures_detected": 0,
+    "weakness_found": false
+  }
+]

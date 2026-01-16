@@ -26,6 +26,8 @@ export interface FaucetConfig {
 
 export const faucetConfig: FaucetConfig = {
   allowedTokens: {
+    DGT: { symbol: 'DGT', decimals: 6, maxPerRequest: '100', cooldownSeconds: 3600 },
+    DRT: { symbol: 'DRT', decimals: 6, maxPerRequest: '100', cooldownSeconds: 3600 },
     TOKENA: { symbol: 'TOKENA', decimals: 18, maxPerRequest: '100', cooldownSeconds: 3600 },
     TOKENB: { symbol: 'TOKENB', decimals: 18, maxPerRequest: '50', cooldownSeconds: 3600 },
   },

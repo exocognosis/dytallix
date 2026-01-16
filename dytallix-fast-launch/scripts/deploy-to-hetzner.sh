@@ -27,7 +27,7 @@ NC='\033[0m' # No Color
 SERVER_IP="178.156.187.81"
 SERVER_USER="root"
 DEPLOY_DIR="/opt/dytallix-fast-launch"
-LOCAL_DIR="/Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch"
+LOCAL_DIR="/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch"
 
 # Deployment mode (full, update, verify)
 MODE="${1:-full}"
@@ -148,20 +148,30 @@ ENDSSH
     echo -e "${GREEN}✓ Environment configured${NC}"
 }
 
+
 # Function to build and deploy
 deploy() {
     echo -e "\n${YELLOW}[5/7] Building and deploying services...${NC}"
-    
+
+    # Build frontend locally
+    echo -e "${YELLOW}Building frontend...${NC}"
+    cd "$LOCAL_DIR/build" && npm install && npm run build && cd -
+
+    # Sync frontend build to server's nginx html directory
+    echo -e "${YELLOW}Syncing frontend build to /usr/share/nginx/html on server...${NC}"
+    rsync -av --delete "$LOCAL_DIR/build/dist/" "$SERVER_USER@$SERVER_IP:/usr/share/nginx/html/"
+
+    # Deploy backend/services as before
     ssh "$SERVER_USER@$SERVER_IP" << ENDSSH
         cd $DEPLOY_DIR
-        
         echo "Running deployment script..."
         ./deploy.sh
-        
         echo "✓ Deployment complete"
+        # Reload nginx to pick up new frontend
+        systemctl reload nginx
 ENDSSH
-    
-    echo -e "${GREEN}✓ Services deployed${NC}"
+
+    echo -e "${GREEN}✓ Services and frontend deployed${NC}"
 }
 
 # Function to verify deployment
@@ -209,9 +219,9 @@ display_info() {
     echo -e "${BLUE}║                    Access Information                      ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${GREEN}Frontend:${NC}        http://$SERVER_IP:5173"
-    echo -e "${GREEN}Node RPC:${NC}        http://$SERVER_IP:3030"
-    echo -e "${GREEN}Faucet/API:${NC}      http://$SERVER_IP:8787"
+    echo -e "${GREEN}Frontend:${NC}        https://dytallix.com"
+    echo -e "${GREEN}Node RPC:${NC}        https://rpc.dytallix.com"
+    echo -e "${GREEN}Faucet/API:${NC}      https://api.dytallix.com"
     echo -e "${GREEN}Prometheus:${NC}      http://$SERVER_IP:9090"
     echo -e "${GREEN}Grafana:${NC}         http://$SERVER_IP:3000"
     echo -e "${GREEN}Jaeger:${NC}          http://$SERVER_IP:16686"

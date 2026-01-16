@@ -1,0 +1,26 @@
+[
+  {
+    "operation": "Signature gen/verify",
+    "solve_cost_ms": 4e-6,
+    "verify_cost_ms": 0.0,
+    "asymmetry_ratio": null,
+    "min_ratio": 2.0,
+    "passed": true
+  },
+  {
+    "operation": "VRF compute/verify",
+    "solve_cost_ms": 0.0,
+    "verify_cost_ms": 0.0,
+    "asymmetry_ratio": null,
+    "min_ratio": 1.0,
+    "passed": true
+  },
+  {
+    "operation": "Block produce/validate",
+    "solve_cost_ms": 0.05241,
+    "verify_cost_ms": 0.02578,
+    "asymmetry_ratio": 2.0329712955779673,
+    "min_ratio": 1.5,
+    "passed": true
+  }
+]

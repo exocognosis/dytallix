@@ -40,7 +40,7 @@
     "deposit_period": 5,
     "voting_period": 10,
     "min_deposit_udgt": "1000000000",
-    "quorum_bps": "3333",
+    "quorum_bps": "6700",
     "threshold_bps": "5000",
     "veto_threshold_bps": "3333"
   },
@@ -59,7 +59,9 @@
     {
       "name": "validator1",
       "address": "dyt1valoper000000000001",
-      "roles": ["validator"],
+      "roles": [
+        "validator"
+      ],
       "balances": {
         "udgt": "2000000000",
         "udrt": "100000000"
@@ -75,7 +77,9 @@
     {
       "name": "validator2",
       "address": "dyt1valoper000000000002",
-      "roles": ["validator"],
+      "roles": [
+        "validator"
+      ],
       "balances": {
         "udgt": "2000000000",
         "udrt": "100000000"
@@ -91,7 +95,9 @@
     {
       "name": "validator3",
       "address": "dyt1valoper000000000003",
-      "roles": ["validator"],
+      "roles": [
+        "validator"
+      ],
       "balances": {
         "udgt": "2000000000",
         "udrt": "100000000"
@@ -107,7 +113,9 @@
     {
       "name": "user1",
       "address": "dyt1userstake0000000001",
-      "roles": ["delegator"],
+      "roles": [
+        "delegator"
+      ],
       "balances": {
         "udgt": "500000000",
         "udrt": "0"
@@ -116,7 +124,9 @@
     {
       "name": "treasury",
       "address": "dyt1treasury0000000000",
-      "roles": ["treasury"],
+      "roles": [
+        "treasury"
+      ],
       "balances": {
         "udgt": "100000000000",
         "udrt": "50000000000"
@@ -125,7 +135,9 @@
     {
       "name": "faucet",
       "address": "dyt1faucet00000000000",
-      "roles": ["faucet"],
+      "roles": [
+        "faucet"
+      ],
       "balances": {
         "udgt": "50000000000",
         "udrt": "100000000000"
@@ -189,11 +201,22 @@
     "description": "Raise emission rate from 5% to 10% to accelerate staking rewards for active validators.",
     "parameter_key": "emission.annual_inflation_rate",
     "target_rate_bps": 1000,
-    "depositors": ["dyt1valoper000000000001"],
+    "depositors": [
+      "dyt1valoper000000000001"
+    ],
     "voters": [
-      {"address": "dyt1valoper000000000001", "option": "yes"},
-      {"address": "dyt1valoper000000000002", "option": "yes"},
-      {"address": "dyt1valoper000000000003", "option": "yes"}
+      {
+        "address": "dyt1valoper000000000001",
+        "option": "yes"
+      },
+      {
+        "address": "dyt1valoper000000000002",
+        "option": "yes"
+      },
+      {
+        "address": "dyt1valoper000000000003",
+        "option": "yes"
+      }
     ]
   },
   "bridge": {
@@ -223,8 +246,13 @@
   "pqc": {
     "enabled": true,
     "algorithms": {
-      "signature": ["ML-DSA-87", "SLH-DSA-SHAKE-128f"],
-      "encryption": ["ML-KEM-768"]
+      "signature": [
+        "ML-DSA-87",
+        "SLH-DSA-SHAKE-128f"
+      ],
+      "encryption": [
+        "ML-KEM-1024"
+      ]
     },
     "transition_period_blocks": 100000,
     "allow_legacy_signatures": false

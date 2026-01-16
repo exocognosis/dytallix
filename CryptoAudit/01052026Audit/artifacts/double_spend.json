@@ -1,0 +1,22 @@
+[
+  {
+    "scenario": "Nonce reuse",
+    "prevented": true,
+    "mechanism": "Sequential nonce requirement"
+  },
+  {
+    "scenario": "Race condition",
+    "prevented": true,
+    "mechanism": "Mempool deduplication"
+  },
+  {
+    "scenario": "Fork-based double spend",
+    "prevented": true,
+    "mechanism": "Checkpoint finality"
+  },
+  {
+    "scenario": "Front-running",
+    "prevented": true,
+    "mechanism": "Commit-reveal for sensitive operations"
+  }
+]

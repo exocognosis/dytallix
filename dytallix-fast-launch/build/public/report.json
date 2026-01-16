@@ -1,0 +1,64 @@
+{
+    "generatedAt": "2026-01-16T06:54:00Z",
+    "organization": {
+        "industry": "Finance & Banking",
+        "region": "United Kingdom",
+        "orgSize": "Startup (< 50 employees)",
+        "regulatoryRegime": "FCA / PRA (UK Finance)",
+        "dataTypes": [
+            "Financial Records",
+            "PII (Personally Identifiable Information)"
+        ],
+        "cryptography": [
+            "RSA-4096 (Standard)",
+            "AES-128 (Symmetric)"
+        ]
+    },
+    "scores": {
+        "hndl": 90,
+        "crqc": 90,
+        "urgency": 80
+    },
+    "recommendations": [
+        {
+            "priority": "Critical",
+            "title": "Immediate PQC Assessment",
+            "description": "Conduct an immediate assessment of all quantum-vulnerable cryptographic systems, focusing on RSA and ECC implementations."
+        },
+        {
+            "priority": "High",
+            "title": "Migration Roadmap",
+            "description": "Develop a comprehensive post-quantum cryptography (PQC) migration plan with defined milestones and resource allocation."
+        },
+        {
+            "priority": "High",
+            "title": "Data Classification",
+            "description": "Classify sensitive data by longevity requirements to prioritize protection against Harvest Now, Decrypt Later attacks."
+        },
+        {
+            "priority": "Medium",
+            "title": "Vendor Coordination",
+            "description": "Engage with technology vendors to understand their PQC roadmaps and ensure alignment with your migration timeline."
+        }
+    ],
+    "exposure": {
+        "harvestNowDecryptLater": {
+            "level": "Critical",
+            "description": "Your organization processes financial records with long-term sensitivity. Adversaries may be harvesting encrypted data now for future decryption.",
+            "affectedSystems": [
+                "Customer databases",
+                "Transaction logs",
+                "Identity records"
+            ]
+        },
+        "cryptographicallyRelevantQuantumComputer": {
+            "level": "Critical",
+            "description": "Current RSA and symmetric implementations will be vulnerable when CRQCs become available, estimated within 5-10 years.",
+            "affectedSystems": [
+                "TLS/SSL communications",
+                "Digital signatures",
+                "Key exchange protocols"
+            ]
+        }
+    }
+}

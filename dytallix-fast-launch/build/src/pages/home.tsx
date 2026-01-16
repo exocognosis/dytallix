@@ -1,7 +1,7 @@
 import { Section } from "../components/ui/Section"
 import { GlassPanel } from "../components/ui/GlassPanel"
 import { Button } from "../components/ui/Button"
-import { Shield, Zap, Globe, Lock, Cpu, Code, Sparkles, Layers, CheckCircle2, Leaf } from "lucide-react"
+import { Shield, Zap, Globe, Lock, Cpu, Code, Sparkles, Layers, CheckCircle2, Leaf, Database } from "lucide-react"
 import { Link } from "react-router-dom"
 
 export function Home() {
@@ -25,18 +25,18 @@ export function Home() {
                 {/* Two Column Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
                     {/* Left Column: Video */}
-                    <div 
-                        className="w-full aspect-square rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm flex items-center justify-center animate-slide-up transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:scale-[1.02] hover:shadow-lg hover:shadow-white/5"
+                    <div
+                        className="w-full aspect-square rounded-2xl border border-white/10 bg-black/50 backdrop-blur-sm flex items-center justify-center animate-slide-up transition-all duration-300 hover:border-white/20 overflow-hidden"
                         style={{ animationDelay: "100ms" }}
                     >
-                        <div className="text-center space-y-4">
-                            <div className="h-20 w-20 mx-auto rounded-full bg-white/10 flex items-center justify-center">
-                                <svg className="h-10 w-10 text-white/50" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z" />
-                                </svg>
-                            </div>
-                            <p className="text-muted-foreground text-lg">Video Coming Soon</p>
-                        </div>
+                        <video
+                            className="w-full h-full object-cover"
+                            controls
+                            poster="/dytallix-logo.png"
+                        >
+                            <source src="/dytallix-intro.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
 
                     {/* Right Column: Features + CTAs */}
@@ -113,31 +113,34 @@ export function Home() {
                         </p>
                     </GlassPanel>
                     <GlassPanel variant="card" className="p-6 space-y-4 flex flex-col items-center text-center">
-                        <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
-                            <Zap className="h-6 w-6" />
+                        <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
+                            <Database className="h-6 w-6" />
                         </div>
-                        <h3 className="text-xl font-bold">The QuantumVault Solution</h3>
+                        <h3 className="text-xl font-bold">Data Harvesting Attacks</h3>
                         <p className="text-muted-foreground">
-                            Native implementation of NIST-standardized Post-Quantum Cryptography (Dilithium, Falcon) ensures long-term security.
+                            Adversaries are storing encrypted data today, planning to decrypt it instantly once quantum computers are available. Sensitive information is at risk even if stolen now.
                         </p>
                     </GlassPanel>
                 </div>
             </Section>
 
-            {/* Capabilities Grid */}
-            <Section title="Platform Capabilities" subtitle="Built for performance, security, and scalability.">
+            {/* The Dytallix Solution */}
+            <Section title="The Dytallix Solution" subtitle="Purpose-built defenses against today's Harvest Now, Decrypt Later attacks and tomorrow's direct quantum threats.">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
-                        { icon: Shield, title: "Quantum Security", desc: "Native PQC signatures for all transactions.", color: "text-purple-500", bg: "bg-purple-500/10" },
-                        { icon: Cpu, title: "AI Integration", desc: "On-chain AI oracles for risk scoring and fraud detection.", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                        { icon: Code, title: "WASM Contracts", desc: "High-performance, secure smart contracts in Rust.", color: "text-amber-500", bg: "bg-amber-500/10" },
-                        { icon: Globe, title: "Global Scale", desc: "Optimized consensus for high throughput and low latency.", color: "text-cyan-500", bg: "bg-cyan-500/10" },
-                        { icon: Sparkles, title: "Pure PQC Native", desc: "A standalone L1 with zero legacy debt. A clean break from classical systems.", color: "text-blue-500", bg: "bg-blue-500/10" },
-                        { icon: Layers, title: "Modular Architecture", desc: "Customizable execution environments for specialized use cases.", color: "text-indigo-500", bg: "bg-indigo-500/10" },
-                        { icon: CheckCircle2, title: "Instant Finality", desc: "Deterministic consensus ensures transactions are irreversible in seconds.", color: "text-rose-500", bg: "bg-rose-500/10" },
-                        { icon: Leaf, title: "Eco-Friendly", desc: "Proof-of-Stake consensus minimizes environmental impact.", color: "text-green-500", bg: "bg-green-500/10" },
+                        { icon: Shield, title: "Quantum Security", desc: "NIST-standardized ML-DSA signatures protect against HNDL attacks harvesting your data today.", color: "text-purple-500", bg: "bg-purple-500/10", threat: "HNDL" },
+                        { icon: Cpu, title: "AI Threat Detection", desc: "On-chain oracles identify suspicious patterns before quantum attackers can exploit them.", color: "text-emerald-500", bg: "bg-emerald-500/10", threat: "Both" },
+                        { icon: Code, title: "WASM Contracts", desc: "Rust-based smart contracts immune to quantum-vulnerable cryptographic dependencies.", color: "text-amber-500", bg: "bg-amber-500/10", threat: "Direct" },
+                        { icon: Globe, title: "Global Scale", desc: "High-throughput consensus ready for mass migration from quantum-vulnerable networks.", color: "text-cyan-500", bg: "bg-cyan-500/10", threat: "Direct" },
+                        { icon: Sparkles, title: "Pure PQC Native", desc: "Zero legacy cryptography. No quantum attack surface from inherited vulnerabilities.", color: "text-blue-500", bg: "bg-blue-500/10", threat: "HNDL" },
+                        { icon: Layers, title: "Modular Architecture", desc: "Crypto-agile design allows rapid algorithm upgrades as quantum threats evolve.", color: "text-indigo-500", bg: "bg-indigo-500/10", threat: "Both" },
+                        { icon: CheckCircle2, title: "Instant Finality", desc: "Transactions are irreversible before quantum computers can attempt key recovery.", color: "text-rose-500", bg: "bg-rose-500/10", threat: "Direct" },
+                        { icon: Leaf, title: "Sustainable Security", desc: "Proof-of-Stake consensus ensures long-term viability without energy vulnerabilities.", color: "text-green-500", bg: "bg-green-500/10", threat: "Both" },
                     ].map((item, i) => (
-                        <GlassPanel key={i} variant="card" className="p-6 flex flex-col items-center text-center space-y-4 hover:bg-white/10 dark:hover:bg-white/5">
+                        <GlassPanel key={i} variant="card" className="p-6 flex flex-col items-center text-center space-y-4 hover:bg-white/10 dark:hover:bg-white/5 relative">
+                            <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold ${item.threat === 'HNDL' ? 'bg-red-500/20 text-red-400' : item.threat === 'Direct' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                {item.threat === 'Both' ? 'HNDL + Direct' : item.threat}
+                            </span>
                             <div className={`h-12 w-12 rounded-full flex items-center justify-center ${item.bg} ${item.color}`}>
                                 <item.icon className="h-6 w-6" />
                             </div>
@@ -145,6 +148,26 @@ export function Home() {
                             <p className="text-sm text-muted-foreground">{item.desc}</p>
                         </GlassPanel>
                     ))}
+                </div>
+
+                {/* Quantum Risk CTA */}
+                <div className="mt-12">
+                    <GlassPanel hoverEffect={true} className="p-8 md:p-12 flex flex-col items-center text-center space-y-6 relative overflow-hidden group">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full blur-3xl -mt-32 transition-all group-hover:from-purple-500/30 group-hover:to-blue-500/30"></div>
+                        <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 flex items-center justify-center">
+                            <Shield className="h-8 w-8 text-purple-400" />
+                        </div>
+                        <h3 className="text-3xl font-bold">How Vulnerable Are You?</h3>
+                        <p className="text-muted-foreground text-lg max-w-2xl">
+                            Assess your organization's exposure to quantum threats. Our Quantum Risk Analysis provides a comprehensive evaluation of your cryptographic vulnerabilities and migration priorities.
+                        </p>
+                        <Button size="lg" className="gap-2" asChild>
+                            <a href="https://dytallix.com/quantumrisk">
+                                Get Your Quantum Risk Profile
+                                <Zap className="h-4 w-4" />
+                            </a>
+                        </Button>
+                    </GlassPanel>
                 </div>
             </Section>
 

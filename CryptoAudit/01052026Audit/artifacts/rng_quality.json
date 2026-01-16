@@ -1,0 +1,30 @@
+[
+  {
+    "test_name": "Byte frequency",
+    "value": 255.70304000000016,
+    "expected": 255.0,
+    "deviation": 0.002757019607843756,
+    "passed": true
+  },
+  {
+    "test_name": "Bit balance",
+    "value": 0.500045,
+    "expected": 0.5,
+    "deviation": 0.00004499999999996174,
+    "passed": true
+  },
+  {
+    "test_name": "Run length",
+    "value": 399629.0,
+    "expected": 400000.0,
+    "deviation": 0.0009275,
+    "passed": true
+  },
+  {
+    "test_name": "Serial correlation",
+    "value": 1630238688.0,
+    "expected": 1625608743.75,
+    "deviation": 0.002848129519357477,
+    "passed": true
+  }
+]

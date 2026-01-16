@@ -1,13 +1,29 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import RiskAssessmentForm, { type RiskAssessmentData } from '../components/dashboard/RiskAssessmentForm';
 import RiskVisualization from '../components/dashboard/RiskVisualization';
 import RiskExplanations from '../components/dashboard/RiskExplanations';
+import QuantumRiskReport, { type ReportData } from '../components/dashboard/QuantumRiskReport';
 import { Section } from '../components/layout/section';
 
+/**
+ * QuantumRiskDashboard
+ * 
+ * Supports two modes:
+ * - Default: Interactive survey for risk assessment
+ * - Report Mode (?mode=report): Renders print-grade PDF report
+ * 
+ * Report data is loaded from /report.json
+ * To generate PDF: node generate-report-pdf.js
+ */
+
 const QuantumRiskDashboard: React.FC = () => {
-    // NOTE: This dashboard is solely a marketing lead magnet.
-    // Any directions to modify it must be explicitly stated.
-    // It is not intended to be a functional part of the core product logic.
+    const [searchParams] = useSearchParams();
+    const isReportMode = searchParams.get('mode') === 'report';
+    const [reportData, setReportData] = useState<ReportData | null>(null);
+    const [reportLoading, setReportLoading] = useState(false);
+    const [reportError, setReportError] = useState<string | null>(null);
+
     const [formData, setFormData] = useState<RiskAssessmentData>({
         industry: '',
         region: '',
@@ -103,24 +119,24 @@ const QuantumRiskDashboard: React.FC = () => {
 
         // Calculate Migration Urgency based on combined risk factors
         let urgency = 20; // Base urgency
-        
+
         // High combined risk = high urgency
         const avgRisk = (hndl + crqc) / 2;
         if (avgRisk > 70) urgency += 40;
         else if (avgRisk > 50) urgency += 25;
         else if (avgRisk > 30) urgency += 10;
-        
+
         // Regulated industries need to act faster
         if (highRiskRegs.includes(formData.regulatoryRegime)) urgency += 20;
-        
+
         // Large orgs have more complex migrations
         if (['Enterprise (500 - 5000 employees)', 'Large Enterprise (> 5000 employees)'].includes(formData.orgSize)) {
             urgency += 15;
         }
-        
+
         // PQC adoption reduces urgency
         if (hasPQC) urgency -= 30;
-        
+
         // Cap at 100 and Floor at 0
         setRiskScores({
             hndl: Math.max(0, Math.min(100, hndl)),
@@ -129,6 +145,75 @@ const QuantumRiskDashboard: React.FC = () => {
         });
     };
 
+    // Load report data when in report mode
+    useEffect(() => {
+        if (isReportMode) {
+            setReportLoading(true);
+            fetch('/report.json')
+                .then(res => {
+                    if (!res.ok) throw new Error('Report data not found');
+                    return res.json();
+                })
+                .then(data => {
+                    setReportData(data);
+                    setReportError(null);
+                })
+                .catch(err => {
+                    console.error('Failed to load report data:', err);
+                    setReportError(err.message);
+                    // Fallback mock data for development
+                    setReportData({
+                        generatedAt: new Date().toISOString(),
+                        organization: {
+                            industry: 'Finance & Banking',
+                            region: 'United Kingdom',
+                            orgSize: 'Startup (< 50 employees)',
+                            regulatoryRegime: 'FCA / PRA (UK Finance)',
+                            dataTypes: ['Financial Records'],
+                            cryptography: ['RSA-4096 (Standard)', 'AES-128 (Symmetric)']
+                        },
+                        scores: { hndl: 90, crqc: 90, urgency: 80 },
+                        recommendations: [
+                            { priority: 'Critical', title: 'Immediate PQC Assessment', description: 'Conduct an assessment of quantum-vulnerable systems.' }
+                        ],
+                        exposure: {
+                            harvestNowDecryptLater: {
+                                level: 'Critical',
+                                description: 'Adversaries may be harvesting encrypted data for future decryption.',
+                                affectedSystems: ['Customer databases', 'Transaction logs']
+                            },
+                            cryptographicallyRelevantQuantumComputer: {
+                                level: 'Critical',
+                                description: 'Current implementations will be vulnerable when CRQCs become available.',
+                                affectedSystems: ['TLS/SSL', 'Digital signatures']
+                            }
+                        }
+                    });
+                })
+                .finally(() => setReportLoading(false));
+        }
+    }, [isReportMode]);
+
+    // Report Mode: Render print-grade report
+    if (isReportMode) {
+        if (reportLoading) {
+            return (
+                <div className="min-h-screen bg-white flex items-center justify-center">
+                    <p className="text-gray-500">Loading report...</p>
+                </div>
+            );
+        }
+        if (reportData) {
+            return <QuantumRiskReport data={reportData} />;
+        }
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <p className="text-red-500">Failed to load report: {reportError}</p>
+            </div>
+        );
+    }
+
+    // Default Mode: Survey UI
     return (
         <div className="min-h-screen bg-background pt-24 pb-20">
             <Section className="relative z-10">
@@ -158,21 +243,21 @@ const QuantumRiskDashboard: React.FC = () => {
                     <p className="mb-4 text-sm text-muted-foreground">
                         Enter your email address to get your Quantum Risk Analysis
                     </p>
-                    <form 
+                    <form
                         onSubmit={async (e) => {
                             e.preventDefault();
                             setSubmitMessage(null);
                             const form = e.target as HTMLFormElement;
                             const emailInput = form.elements.namedItem('email') as HTMLInputElement;
                             const email = emailInput.value;
-                            
+
                             setIsSubmitting(true);
-                            
+
                             try {
                                 // Get API URL from environment with proper fallback
-                                const apiUrl = import.meta.env.VITE_API_URL || 
-                                              (typeof window !== 'undefined' && window.location.origin) || 
-                                              'http://localhost:3001';
+                                const apiUrl = import.meta.env.VITE_API_URL ||
+                                    (typeof window !== 'undefined' && window.location.origin) ||
+                                    'https://dytallix.com';
                                 const response = await fetch(`${apiUrl}/api/quantum-risk/submit-email`, {
                                     method: 'POST',
                                     headers: {
@@ -184,9 +269,9 @@ const QuantumRiskDashboard: React.FC = () => {
                                         riskScores
                                     })
                                 });
-                                
+
                                 const data = await response.json();
-                                
+
                                 if (response.ok && data.success) {
                                     setSubmitMessage({
                                         type: 'success',
@@ -217,7 +302,7 @@ const QuantumRiskDashboard: React.FC = () => {
                             className="w-full sm:w-auto flex-1 px-4 py-3 rounded-lg bg-background border border-input text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all disabled:opacity-50"
                         />
                         <div className="p-[1px] rounded-lg bg-gradient-to-r from-accent-red via-accent-blue to-accent-red">
-                            <button 
+                            <button
                                 type="submit"
                                 disabled={isSubmitting}
                                 className="px-6 py-3 rounded-lg bg-background text-foreground font-medium hover:bg-accent/10 transition-all whitespace-nowrap disabled:opacity-50"
@@ -227,11 +312,10 @@ const QuantumRiskDashboard: React.FC = () => {
                         </div>
                     </form>
                     {submitMessage && (
-                        <div className={`mt-4 p-4 rounded-lg ${
-                            submitMessage.type === 'success' 
-                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
-                                : 'bg-red-500/10 text-red-500 border border-red-500/20'
-                        }`}>
+                        <div className={`mt-4 p-4 rounded-lg ${submitMessage.type === 'success'
+                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                            : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                            }`}>
                             {submitMessage.text}
                         </div>
                     )}

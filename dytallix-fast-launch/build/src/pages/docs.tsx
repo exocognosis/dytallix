@@ -18,7 +18,7 @@ export function Docs() {
                         Official Rust bindings for building robust applications on Dytallix. Optimized for performance and quantum security.
                     </p>
                     <div className="flex flex-col gap-3 pt-4">
-                        <a href="https://github.com/DytallixHQ/Dytallix/tree/main/DytallixRustSDK" target="_blank" rel="noreferrer" className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-white/30 hover:-translate-y-1 hover:shadow-lg group">
+                        <a href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noreferrer" className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-white/30 hover:-translate-y-1 hover:shadow-lg group">
                             <span className="font-medium group-hover:text-amber-400 transition-colors">View on GitHub</span>
                             <Github className="h-5 w-5 opacity-50 group-hover:opacity-100 transition-opacity" />
                         </a>
@@ -36,7 +36,7 @@ export function Docs() {
                         JavaScript/TypeScript client for web dApps and Node.js services. Full support for PQC wallets in browser and server.
                     </p>
                     <div className="flex flex-col gap-3 pt-4">
-                        <a href="https://github.com/DytallixHQ/Dytallix/tree/main/DytallixTypescriptSDK" target="_blank" rel="noreferrer" className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-white/30 hover:-translate-y-1 hover:shadow-lg group">
+                        <a href="https://github.com/DytallixHQ/Dytallix" target="_blank" rel="noreferrer" className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-white/30 hover:-translate-y-1 hover:shadow-lg group">
                             <span className="font-medium group-hover:text-blue-400 transition-colors">View on GitHub</span>
                             <Github className="h-5 w-5 opacity-50 group-hover:opacity-100 transition-opacity" />
                         </a>

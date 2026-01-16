@@ -1,0 +1,1289 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/rickglenn/Desktop/dytallix-main/DytallixLiteLaunch/crates/pqc-wasm/Cargo.toml
+workspace: /Users/rickglenn/Desktop/dytallix-main/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/rickglenn/Desktop/dytallix-main/quantumvault/Cargo.toml
+workspace: /Users/rickglenn/Desktop/dytallix-main/Cargo.toml
+    Blocking waiting for file lock on build directory
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:187:15
+    |
+187 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: expected names are: `docsrs`, `feature`, and `test` and 31 more
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:193:15
+    |
+193 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:227:15
+    |
+227 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:233:15
+    |
+233 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:270:15
+    |
+270 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:276:15
+    |
+276 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:303:15
+    |
+303 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:309:15
+    |
+309 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:343:15
+    |
+343 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium2.rs:349:15
+    |
+349 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:187:15
+    |
+187 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:193:15
+    |
+193 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:227:15
+    |
+227 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:233:15
+    |
+233 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:270:15
+    |
+270 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:276:15
+    |
+276 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:303:15
+    |
+303 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:309:15
+    |
+309 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:343:15
+    |
+343 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium3.rs:349:15
+    |
+349 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:187:15
+    |
+187 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:193:15
+    |
+193 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:227:15
+    |
+227 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:233:15
+    |
+233 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:270:15
+    |
+270 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:276:15
+    |
+276 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:303:15
+    |
+303 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:309:15
+    |
+309 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:343:15
+    |
+343 |     #[cfg(all(enable_x86_avx2, feature = "avx2"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/dilithium5.rs:349:15
+    |
+349 |     #[cfg(all(enable_aarch64_neon, feature = "neon"))]
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:21:7
+   |
+21 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:23:7
+   |
+23 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:25:7
+   |
+25 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:28:7
+   |
+28 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:30:7
+   |
+30 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:32:7
+   |
+32 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:39:7
+   |
+39 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:41:7
+   |
+41 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:43:7
+   |
+43 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:46:7
+   |
+46 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:48:7
+   |
+48 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:50:7
+   |
+50 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:57:7
+   |
+57 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:59:7
+   |
+59 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:61:7
+   |
+61 | #[cfg(enable_x86_avx2)]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:64:7
+   |
+64 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:66:7
+   |
+66 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+  --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:68:7
+   |
+68 | #[cfg(enable_aarch64_neon)]
+   |       ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:104:7
+    |
+104 | #[cfg(enable_x86_avx2)]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:143:7
+    |
+143 | #[cfg(enable_aarch64_neon)]
+    |       ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:215:7
+    |
+215 | #[cfg(enable_x86_avx2)]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:254:7
+    |
+254 | #[cfg(enable_aarch64_neon)]
+    |       ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:326:7
+    |
+326 | #[cfg(enable_x86_avx2)]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:365:7
+    |
+365 | #[cfg(enable_aarch64_neon)]
+    |       ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:521:17
+    |
+521 | #[cfg(all(test, enable_x86_avx2, feature = "avx2"))]
+    |                 ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:642:17
+    |
+642 | #[cfg(all(test, enable_aarch64_neon, feature = "neon"))]
+    |                 ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:876:17
+    |
+876 | #[cfg(all(test, enable_x86_avx2, feature = "avx2"))]
+    |                 ^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:997:17
+    |
+997 | #[cfg(all(test, enable_aarch64_neon, feature = "neon"))]
+    |                 ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_x86_avx2`
+    --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:1231:17
+     |
+1231 | #[cfg(all(test, enable_x86_avx2, feature = "avx2"))]
+     |                 ^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_x86_avx2)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_x86_avx2)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+    --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:1352:17
+     |
+1352 | #[cfg(all(test, enable_aarch64_neon, feature = "neon"))]
+     |                 ^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:146:11
+    |
+146 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:148:11
+    |
+148 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:156:11
+    |
+156 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:164:11
+    |
+164 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:172:11
+    |
+172 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:257:11
+    |
+257 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:259:11
+    |
+259 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:267:11
+    |
+267 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:275:11
+    |
+275 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:283:11
+    |
+283 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:368:11
+    |
+368 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:370:11
+    |
+370 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:378:11
+    |
+378 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:386:11
+    |
+386 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `enable_aarch64_neon`
+   --> DytallixLiteLaunch/vendor/pqcrypto-dilithium/src/ffi.rs:394:11
+    |
+394 |     #[cfg(enable_aarch64_neon)]
+    |           ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_aarch64_neon)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_aarch64_neon)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: `pqcrypto-dilithium` (lib) generated 75 warnings
+warning: unused import: `chacha20poly1305::ChaCha20Poly1305`
+ --> quantumvault/src/infrastructure/crypto.rs:5:5
+  |
+5 | use chacha20poly1305::ChaCha20Poly1305;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::error::Error`
+ --> quantumvault/src/infrastructure/crypto.rs:9:5
+  |
+9 | use std::error::Error;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `JobStatus`
+ --> quantumvault/src/infrastructure/repository/job.rs:1:36
+  |
+1 | use crate::domain::{ProtectionJob, JobStatus};
+  |                                    ^^^^^^^^^
+
+warning: unused import: `AssetRepository`
+ --> quantumvault/src/application/audit_service.rs:2:29
+  |
+2 | use crate::infrastructure::{AssetRepository, AuditRepository};
+  |                             ^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> quantumvault/src/application/job_engine.rs:4:14
+  |
+4 | use anyhow::{Context, Result};
+  |              ^^^^^^^
+
+warning: unused imports: `Asset`, `ScanAsset`, `ScanStatus`, and `Scan`
+ --> quantumvault/src/application/scan_service.rs:1:21
+  |
+1 | use crate::domain::{Asset, Scan, ScanType, ScanStatus, ScanAsset};
+  |                     ^^^^^  ^^^^            ^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `PostgresAssetRepository`
+ --> quantumvault/src/application/scan_service.rs:2:80
+  |
+2 | use crate::infrastructure::{Scanner, TlsScanner, HttpScanner, AssetRepository, PostgresAssetRepository};
+  |                                                                                ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `AttestationStatus`, `BlockchainAttestation`, `EncryptionAnchor`, and `JobStatus`
+ --> quantumvault/src/application/attestation_service.rs:1:47
+  |
+1 | use crate::domain::{BlockchainAttestationJob, BlockchainAttestation, EncryptionAnchor, AttestationStatus, JobStatus};
+  |                                               ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> quantumvault/src/application/attestation_service.rs:3:5
+  |
+3 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `uuid::Uuid`
+ --> quantumvault/src/application/attestation_service.rs:4:5
+  |
+4 | use uuid::Uuid;
+  |     ^^^^^^^^^^
+
+warning: unused import: `Asset`
+ --> quantumvault/src/application/wrapping_service.rs:1:21
+  |
+1 | use crate::domain::{Asset, EncryptionAnchor};
+  |                     ^^^^^
+
+warning: unused import: `Serialize`
+ --> quantumvault/src/api/asset_handlers.rs:7:26
+  |
+7 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+
+warning: unused import: `Serialize`
+ --> quantumvault/src/api/policy_handlers.rs:7:26
+  |
+7 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+
+warning: unused import: `Serialize`
+ --> quantumvault/src/api/job_handlers.rs:6:26
+  |
+6 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+
+warning: unused import: `Serialize`
+ --> quantumvault/src/api/audit_handlers.rs:7:26
+  |
+7 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+
+warning: unused imports: `AssetPreset` and `RiskClass as EngineRiskClass`
+  --> quantumvault/src/api/risk_handlers.rs:13:32
+   |
+13 | use crate::risk::{RiskWeights, RiskClass as EngineRiskClass, get_asset_presets, AssetPreset};
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^
+
+warning: unused import: `IntoResponse`
+ --> quantumvault/src/api/middleware.rs:5:16
+  |
+5 |     response::{IntoResponse, Response},
+  |                ^^^^^^^^^^^^
+
+warning: unused import: `serde_json::json`
+ --> quantumvault/src/api/middleware.rs:7:5
+  |
+7 | use serde_json::json;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `Query`
+ --> quantumvault/src/api/scan_handlers.rs:2:28
+  |
+2 |     extract::{State, Path, Query},
+  |                            ^^^^^
+
+warning: unused import: `Path`
+ --> quantumvault/src/api/attestation_handlers.rs:2:22
+  |
+2 |     extract::{State, Path},
+  |                      ^^^^
+
+warning: unused variable: `scan_id`
+  --> quantumvault/src/application/scan_service.rs:22:34
+   |
+22 |     pub async fn run_scan(&self, scan_id: Uuid, targets: Vec<String>, scan_type: ScanType) -> Result<()> {
+   |                                  ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_scan_id`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `scan_type`
+  --> quantumvault/src/application/scan_service.rs:22:71
+   |
+22 |     pub async fn run_scan(&self, scan_id: Uuid, targets: Vec<String>, scan_type: ScanType) -> Result<()> {
+   |                                                                       ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_scan_type`
+
+warning: variable `total_assets` is assigned to, but never used
+  --> quantumvault/src/application/scan_service.rs:26:17
+   |
+26 |         let mut total_assets = 0;
+   |                 ^^^^^^^^^^^^
+   |
+   = note: consider using `_total_assets` instead
+
+warning: variable `total_non_pqc` is assigned to, but never used
+  --> quantumvault/src/application/scan_service.rs:27:17
+   |
+27 |         let mut total_non_pqc = 0;
+   |                 ^^^^^^^^^^^^^
+   |
+   = note: consider using `_total_non_pqc` instead
+
+warning: unused variable: `asset`
+  --> quantumvault/src/application/scan_service.rs:44:25
+   |
+44 |                     for asset in scan_result.assets {
+   |                         ^^^^^ help: if this is intentional, prefix it with an underscore: `_asset`
+
+warning: unused variable: `job`
+  --> quantumvault/src/application/attestation_service.rs:25:37
+   |
+25 |     pub async fn process_job(&self, job: &BlockchainAttestationJob) -> Result<()> {
+   |                                     ^^^ help: if this is intentional, prefix it with an underscore: `_job`
+
+warning: unused variable: `provider`
+  --> quantumvault/src/application/attestation_service.rs:32:21
+   |
+32 |         if let Some(provider) = &self.provider {
+   |                     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_provider`
+
+warning: unused variable: `asset_id`
+  --> quantumvault/src/application/wrapping_service.rs:16:36
+   |
+16 |     pub async fn wrap_asset(&self, asset_id: Uuid, anchor: &EncryptionAnchor) -> Result<()> {
+   |                                    ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_asset_id`
+
+warning: unused variable: `anchor`
+  --> quantumvault/src/application/wrapping_service.rs:16:52
+   |
+16 |     pub async fn wrap_asset(&self, asset_id: Uuid, anchor: &EncryptionAnchor) -> Result<()> {
+   |                                                    ^^^^^^ help: if this is intentional, prefix it with an underscore: `_anchor`
+
+warning: unused variable: `wrapped_info`
+  --> quantumvault/src/application/wrapping_service.rs:26:13
+   |
+26 |         let wrapped_info = self.crypto_engine.wrap_key_material(
+   |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_wrapped_info`
+
+warning: use of deprecated associated function `sha3::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> quantumvault/src/infrastructure/crypto.rs:148:28
+    |
+148 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated associated function `sha3::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> quantumvault/src/infrastructure/crypto.rs:178:28
+    |
+178 |         let nonce = Nonce::from_slice(&wrapped_info.nonce);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `sha3::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> quantumvault/src/infrastructure/crypto.rs:265:28
+    |
+265 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `sha3::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> quantumvault/src/infrastructure/crypto.rs:317:35
+    |
+317 |         let master_nonce = Nonce::from_slice(&master_nonce_bytes);
+    |                                   ^^^^^^^^^^
+
+warning: use of deprecated associated function `sha3::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> quantumvault/src/infrastructure/crypto.rs:351:28
+    |
+351 |         let nonce = Nonce::from_slice(nonce_bytes);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `sha3::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> quantumvault/src/infrastructure/crypto.rs:360:33
+    |
+360 |         let data_nonce = Nonce::from_slice(&wrapped_info.nonce);
+    |                                 ^^^^^^^^^^
+
+warning: unused variable: `secret_key`
+   --> quantumvault/src/infrastructure/crypto.rs:202:9
+    |
+202 |         secret_key: &[u8],
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_secret_key`
+
+warning: unused variable: `data`
+   --> quantumvault/src/infrastructure/crypto.rs:225:9
+    |
+225 |         data: &[u8],
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_data`
+
+warning: unused variable: `signature`
+   --> quantumvault/src/infrastructure/crypto.rs:226:9
+    |
+226 |         signature: &[u8],
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_signature`
+
+warning: unused variable: `public_key`
+   --> quantumvault/src/infrastructure/crypto.rs:227:9
+    |
+227 |         public_key: &[u8],
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_public_key`
+
+warning: unused variable: `algorithm`
+   --> quantumvault/src/infrastructure/crypto.rs:228:9
+    |
+228 |         algorithm: &str,
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_algorithm`
+
+warning: unused variable: `algorithm`
+   --> quantumvault/src/infrastructure/crypto.rs:234:43
+    |
+234 |     pub fn generate_anchor_keypair(&self, algorithm: &str) -> Result<HybridKeyMaterial, CryptoError> {
+    |                                           ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_algorithm`
+
+warning: unused variable: `anchor_public_key`
+   --> quantumvault/src/infrastructure/crypto.rs:252:9
+    |
+252 |         anchor_public_key: &[u8], // PQC public key from anchor
+    |         ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_anchor_public_key`
+
+warning: unused variable: `asset`
+   --> quantumvault/src/risk/engine.rs:155:27
+    |
+155 | pub fn compute_risk_class(asset: &Asset, dims: &Dimensions, score: u8) -> RiskClass {
+    |                           ^^^^^ help: if this is intentional, prefix it with an underscore: `_asset`
+
+warning: field `asset_repo` is never read
+ --> quantumvault/src/application/scan_service.rs:8:5
+  |
+7 | pub struct ScanService {
+  |            ----------- field in this struct
+8 |     asset_repo: Arc<dyn AssetRepository>,
+  |     ^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: `quantumvault` (lib) generated 45 warnings (run `cargo fix --lib -p quantumvault` to apply 20 suggestions)
+   Compiling quantumvault v0.1.0 (/Users/rickglenn/Desktop/dytallix-main/quantumvault)
+warning: unused variable: `wrapping_service`
+  --> quantumvault/src/main.rs:63:9
+   |
+63 |     let wrapping_service = Arc::new(WrappingService::new(crypto_engine.clone()));
+   |         ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_wrapping_service`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `quantumvault` (bin "quantumvault-server") generated 1 warning
+    Finished `release` profile [optimized] target(s) in 52.68s
+     Running `/Users/rickglenn/Desktop/dytallix-main/target/release/quantumvault-server`
+[2m2025-11-26T01:39:17.607629Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m Starting QuantumVault server on 0.0.0.0:8080
+[2m2025-11-26T01:39:17.623894Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m Running database migrations...
+[2m2025-11-26T01:39:17.628532Z[0m [32m INFO[0m [2msqlx::postgres::notice[0m[2m:[0m relation "_sqlx_migrations" already exists, skipping
+[2m2025-11-26T01:39:17.632533Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m Database migrations completed
+[2m2025-11-26T01:39:17.635399Z[0m [32m INFO[0m [2mquantumvault::application::job_engine[0m[2m:[0m Starting job engine with poll interval: 5s
+Error: Address already in use (os error 48)
+2m2025-11-26T01:38:30.217516Z[0m [32m INFO[0m [2mquantumvault_server[0m[2m:[0m Job engine started with poll interval: 5s

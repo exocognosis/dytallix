@@ -1,0 +1,29 @@
+{
+  "name": "dytallix-docs",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dytallix Documentation (Docusaurus 3)",
+  "scripts": {
+    "docusaurus": "docusaurus",
+    "prebuild": "node ./sync-openapi.js || echo 'OpenAPI sync skipped'",
+    "start": "docusaurus start --port 3001 --host 0.0.0.0",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve --port 3001",
+    "clean": "rm -rf build .docusaurus",
+    "lint:md": "remark docs --ext .md,.mdx --frail",
+    "spellcheck": "cspell \"docs/**/*.{md,mdx}\"",
+    "links": "linkinator build --recurse --skip 'https://*'",
+    "ci": "npm run build && npm run lint:md && npm run links"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.4.0",
+    "@docusaurus/preset-classic": "^3.4.0",
+    "prism-react-renderer": "^2.3.0"
+  },
+  "devDependencies": {
+    "cspell": "^8.13.0",
+    "linkinator": "^4.0.0",
+    "remark-cli": "^11.0.0",
+    "remark-gfm": "^4.0.0"
+  }
+}

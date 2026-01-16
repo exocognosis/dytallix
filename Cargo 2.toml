@@ -1,0 +1,85 @@
+[workspace]
+members = [
+    "blockchain-core",
+    "developer-tools",
+    "pqc-crypto",
+    "smart-contracts",
+    "governance",
+    "interoperability",
+    "dytallix-lean-launch/node",
+    "cli",
+    "explorer/indexer",
+    "explorer/api",
+    "benchmarks",
+    "DytallixLiteLaunch/crates/pqc-wasm",
+    "quantumvault"
+]
+
+resolver = "2"
+
+[workspace.package]
+# Prevent child packages from assuming workspace outside this tree
+
+[package]
+name = "dytallix"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "dytallix"
+path = "src/lib.rs"
+
+[dependencies]
+blake3 = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+# Added for integration tests referencing these crates
+dytallix-pqc = { path = "pqc-crypto" }
+dytallix-interoperability = { path = "interoperability" }
+# Node/core crate for examples and tests
+dytallix-node = { path = "blockchain-core" }
+# PQC Wallet SDK dependencies
+argon2 = "0.5"
+ripemd = "0.1"
+zeroize = { version = "1", features = ["derive"] }
+rand = "0.8"
+# Added for passphrase_input_demo example
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[dev-dependencies]
+# For examples / tests that need secure password input and memory zeroization
+rpassword = "7"
+zeroize = "1"
+dytallix-contracts = { path = "smart-contracts" }
+tokio = { workspace = true }
+anyhow = "1.0"
+# Integration test dependencies
+reqwest = { version = "0.11", features = ["json"] }
+serde_json = { workspace = true }
+
+[workspace.dependencies]
+# Shared dependencies for the workspace
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+blake3 = "1.5"
+sha3 = "0.10"
+sha2 = "0.10"
+hex = "0.4"
+clap = { version = "4.4", features = ["derive"] }
+reqwest = { version = "0.11", features = ["json"] }
+
+# Pin problematic dependencies to compatible versions
+base64ct = "=1.6.0"
+time = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+
+[patch.crates-io]
+pqcrypto-dilithium = { path = "DytallixLiteLaunch/vendor/pqcrypto-dilithium" }
+pqcrypto-traits = { path = "DytallixLiteLaunch/vendor/pqcrypto-traits" }
+pqcrypto-internals = { path = "DytallixLiteLaunch/vendor/pqcrypto-internals" }

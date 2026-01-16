@@ -91,7 +91,7 @@ pub struct SecurityParameters {
     pub ml_dsa_65: MlDsa65Params,
     /// SLH-DSA-SHAKE-192s (SPHINCS+) parameters
     pub slh_dsa_shake_192s: SlhDsaParams,
-    /// ML-KEM-768 (Kyber) parameters
+    /// ML-KEM-1024 (Kyber) parameters - upgraded to Level 5
     pub ml_kem_768: MlKemParams,
 }
 
@@ -100,7 +100,7 @@ impl Default for SecurityParameters {
         Self {
             ml_dsa_65: MlDsa65Params::default(),
             slh_dsa_shake_192s: SlhDsaParams::default(),
-            ml_kem_768: MlKemParams::default(),
+            ml_kem_768: MlKemParams::default(),  // Now uses ML-KEM-1024 parameters
         }
     }
 }
@@ -177,7 +177,7 @@ impl Default for SlhDsaParams {
     }
 }
 
-/// ML-KEM-768 (FIPS 203) parameters
+/// ML-KEM-1024 (FIPS 203, Level 5) parameters
 #[derive(Clone, Debug)]
 pub struct MlKemParams {
     pub n: usize,
@@ -195,16 +195,17 @@ pub struct MlKemParams {
 
 impl Default for MlKemParams {
     fn default() -> Self {
+        // ML-KEM-1024 (NIST Level 5) parameters
         Self {
             n: 256,
-            k: 3,
+            k: 4,  // Level 5: k=4 (vs k=3 for Level 3)
             q: 3329,
             eta1: 2,
             eta2: 2,
-            du: 10,
-            dv: 4,
-            classical_security: 192,
-            quantum_security: 128,
+            du: 11,  // Level 5
+            dv: 5,   // Level 5
+            classical_security: 256,  // Level 5
+            quantum_security: 192,    // Level 5: 192-bit quantum security
         }
     }
 }

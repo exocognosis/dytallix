@@ -8,7 +8,7 @@ import { transfer, getMaxFor } from './transfer.js'
 import { register, rateLimitHitsTotal, faucetRequestsTotal, aiOracleFailuresTotal, aiOracleLatencySeconds, aiOracleRequestsTotal } from './metrics.js'
 import { ContractScanner } from './src/scanner/index.js'
 import { sendQuantumRiskEmail } from './emailService.js'
-import { saveLead } from './leadsDatabase.js'
+import { saveLead, saveContactLead } from './leadsDatabase.js'
 // Anomaly detection engine stubbed for fast-launch (nice-to-have feature)
 // import { AnomalyDetectionEngine } from '../backend/pulsescan/anomaly_engine.js'
 import fs from 'fs'
@@ -1972,37 +1972,37 @@ app.post('/api/contract/scan', async (req, res, next) => {
 // Quantum Risk Email API endpoint
 app.post('/api/quantum-risk/submit-email', async (req, res, next) => {
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
-  
+
   try {
     // Rate limiting for email submissions
     aiRateCheck(ip, RATE_LIMIT_KEY_QUANTUM_RISK_EMAIL)
-    
+
     const { email, formData, riskScores } = req.body || {}
-    
+
     // Validate email
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       const e = new Error('INVALID_EMAIL')
       e.status = 400
       throw e
     }
-    
+
     // Validate formData
     if (!formData || typeof formData !== 'object') {
       const e = new Error('INVALID_FORM_DATA')
       e.status = 400
       throw e
     }
-    
+
     // Validate riskScores
-    if (!riskScores || typeof riskScores !== 'object' || 
-        typeof riskScores.hndl !== 'number' || typeof riskScores.crqc !== 'number') {
+    if (!riskScores || typeof riskScores !== 'object' ||
+      typeof riskScores.hndl !== 'number' || typeof riskScores.crqc !== 'number') {
       const e = new Error('INVALID_RISK_SCORES')
       e.status = 400
       throw e
     }
-    
+
     logInfo('Quantum risk email submission', { ip, email })
-    
+
     // Save lead to database
     try {
       const leadData = {
@@ -2018,28 +2018,97 @@ app.post('/api/quantum-risk/submit-email', async (req, res, next) => {
       logError('Failed to save lead to database', { error: dbError.message, email });
       // Continue with email sending even if database save fails
     }
-    
+
     // Send email with PDF
     const result = await sendQuantumRiskEmail(email, formData, riskScores)
-    
-    logInfo('Quantum risk email sent successfully', { 
+
+    logInfo('Quantum risk email sent successfully', {
       email,
-      messageId: result.messageId 
+      messageId: result.messageId
     })
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Your Quantum Risk Analysis has been sent to your email',
       messageId: result.messageId
     })
-    
+
   } catch (err) {
     if (err.message === 'RATE_LIMITED') {
       err.status = 429
       err.message = 'Too many requests. Please try again later.'
     }
-    
+
     logError('Quantum risk email submission failed', { ip, error: err.message })
+    next(err)
+  }
+})
+
+// Contact Form API endpoint (for modal submissions)
+const RATE_LIMIT_KEY_CONTACT = 'contact';
+app.post('/api/contact/submit', async (req, res, next) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
+
+  try {
+    // Rate limiting for contact submissions
+    aiRateCheck(ip, RATE_LIMIT_KEY_CONTACT)
+
+    const { name, email, company, message, source } = req.body || {}
+
+    // Validate name
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      const e = new Error('INVALID_NAME')
+      e.status = 400
+      throw e
+    }
+
+    // Validate email
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      const e = new Error('INVALID_EMAIL')
+      e.status = 400
+      throw e
+    }
+
+    logInfo('Contact form submission', { ip, email, source })
+
+    // Save lead to database
+    try {
+      const contactData = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        company: company?.trim() || null,
+        message: message?.trim() || null,
+        source: source || 'unknown',
+        ipAddress: ip,
+        userAgent: req.headers['user-agent'] || 'Unknown'
+      };
+      const leadId = saveContactLead(contactData);
+      logInfo('Contact lead saved to database', { leadId, email });
+    } catch (dbError) {
+      logError('Failed to save contact lead to database', { error: dbError.message, email });
+      // Continue even if database save fails
+    }
+
+    // Send notification email to sales team
+    logInfo('Contact form received - notification would be sent to hello@dytallix.com', {
+      email,
+      name,
+      company,
+      source
+    })
+
+    res.json({
+      success: true,
+      message: 'Thank you! We\'ll be in touch shortly.'
+    })
+
+  } catch (err) {
+    if (err.message === 'RATE_LIMITED') {
+      err.status = 429
+      err.message = 'Too many requests. Please try again later.'
+    }
+
+    logError('Contact form submission failed', { ip, error: err.message })
     next(err)
   }
 })

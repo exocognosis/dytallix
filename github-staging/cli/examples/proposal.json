@@ -1,0 +1,10 @@
+{
+  "type": "gov_proposal",
+  "body": {
+    "proposer": "dytallix1proposer123456789012345678901234567890",
+    "title": "Upgrade Protocol to v2.0",
+    "description": "This proposal upgrades the Dytallix protocol to version 2.0 with enhanced PQC security features and improved transaction throughput.",
+    "deposit": "1000000000",
+    "denom": "udgt"
+  }
+}

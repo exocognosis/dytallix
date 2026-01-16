@@ -1,7 +1,32 @@
-[INFO] 2026-01-07T01:54:48.954Z Using in-memory rate limiter
-[INFO] 2026-01-07T01:54:49.122Z Prometheus metrics initialized
-[INFO] 2026-01-07T01:54:49.224Z Leads database initialized {"path":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/data/leads.db"}
-[INFO] 2026-01-07T01:54:49.225Z Anomaly detection engine stubbed (fast-launch mode)
-[INFO] 2026-01-07T01:54:49.226Z Security headers enabled {"ENABLE_CSP":true}
-[INFO] 2026-01-07T01:54:49.228Z WebSocket server attached {"path":"/api/ws"}
-[INFO] 2026-01-07T01:54:49.228Z Server started {"PORT":"3001","ORIGIN":"http://localhost:3000"}
+[INFO] 2026-01-16T13:43:36.861Z Using in-memory rate limiter
+[INFO] 2026-01-16T13:43:37.103Z Prometheus metrics initialized
+[INFO] 2026-01-16T13:43:37.237Z Leads database initialized {"path":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/data/leads.db"}
+[INFO] 2026-01-16T13:43:37.238Z Anomaly detection engine stubbed (fast-launch mode)
+[INFO] 2026-01-16T13:43:37.239Z Security headers enabled {"ENABLE_CSP":true}
+[INFO] 2026-01-16T13:43:37.240Z WebSocket server attached {"path":"/api/ws"}
+[INFO] 2026-01-16T13:43:37.241Z Server started {"PORT":"3001","ORIGIN":"http://localhost:3000"}
+[ERROR] 2026-01-16T13:43:42.264Z node.stats.fallback_failed {"base":"http://localhost:3003","error":"fetch failed"}
+[INFO] 2026-01-16T13:44:29.125Z Quantum risk email submission {"ip":"::1","email":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:44:29.127Z Lead saved to database {"id":7,"email":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:44:29.127Z Lead saved to database {"leadId":{"id":7,"email":"ricktglenn@gmail.com","success":true},"email":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:44:29.127Z Generating quantum risk PDF {"userEmail":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:44:29.168Z PDF generated successfully {"size":2606}
+[INFO] 2026-01-16T13:44:30.009Z Email sent successfully {"messageId":"<2d03a428-0b5c-0e3d-426e-7b95838db1c3@dytallix.com>","userEmail":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:44:30.010Z Quantum risk email sent successfully {"email":"ricktglenn@gmail.com","messageId":"<2d03a428-0b5c-0e3d-426e-7b95838db1c3@dytallix.com>"}
+POST /api/quantum-risk/submit-email 200 887.822 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[INFO] 2026-01-16T13:48:30.550Z Quantum risk email submission {"ip":"::1","email":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:48:30.555Z Lead saved to database {"id":8,"email":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:48:30.555Z Lead saved to database {"leadId":{"id":8,"email":"ricktglenn@gmail.com","success":true},"email":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:48:30.555Z Generating quantum risk PDF {"userEmail":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:48:30.570Z PDF generated successfully {"size":2901}
+[INFO] 2026-01-16T13:48:31.328Z Email sent successfully {"messageId":"<b0fbc58d-b63a-76a6-3aeb-c7e563c132fb@dytallix.com>","userEmail":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T13:48:31.329Z Quantum risk email sent successfully {"email":"ricktglenn@gmail.com","messageId":"<b0fbc58d-b63a-76a6-3aeb-c7e563c132fb@dytallix.com>"}
+POST /api/quantum-risk/submit-email 200 781.796 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[INFO] 2026-01-16T14:38:06.417Z Quantum risk email submission {"ip":"::1","email":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T14:38:06.428Z Lead saved to database {"id":9,"email":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T14:38:06.428Z Lead saved to database {"leadId":{"id":9,"email":"ricktglenn@gmail.com","success":true},"email":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T14:38:06.428Z Generating quantum risk PDF {"userEmail":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T14:38:06.445Z PDF generated successfully {"size":2947}
+[INFO] 2026-01-16T14:38:07.250Z Email sent successfully {"messageId":"<4ba02bfb-298f-d12b-8756-5b486e372d31@dytallix.com>","userEmail":"ricktglenn@gmail.com"}
+[INFO] 2026-01-16T14:38:07.251Z Quantum risk email sent successfully {"email":"ricktglenn@gmail.com","messageId":"<4ba02bfb-298f-d12b-8756-5b486e372d31@dytallix.com>"}
+POST /api/quantum-risk/submit-email 200 835.983 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15

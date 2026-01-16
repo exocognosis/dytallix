@@ -1,0 +1,26 @@
+[
+  {
+    "scenario": "Abort before commitment",
+    "partial_data_exposed": false,
+    "key_material_leaked": false,
+    "safe": true
+  },
+  {
+    "scenario": "Abort after commitment",
+    "partial_data_exposed": true,
+    "key_material_leaked": false,
+    "safe": true
+  },
+  {
+    "scenario": "Multiple abort cycles",
+    "partial_data_exposed": false,
+    "key_material_leaked": false,
+    "safe": true
+  },
+  {
+    "scenario": "Power failure mid-sign",
+    "partial_data_exposed": true,
+    "key_material_leaked": false,
+    "safe": true
+  }
+]

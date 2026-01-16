@@ -1,0 +1,4541 @@
+warning: variables can be used directly in the `format!` string
+   --> pqc-crypto/src/lib.rs:389:9
+    |
+389 |         log::info!("Switched to signature algorithm: {:?}", algorithm);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+    = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+    |
+389 -         log::info!("Switched to signature algorithm: {:?}", algorithm);
+389 +         log::info!("Switched to signature algorithm: {algorithm:?}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> pqc-crypto/src/lib.rs:402:9
+    |
+402 |         log::info!("Switched to key exchange algorithm: {:?}", algorithm);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+402 -         log::info!("Switched to key exchange algorithm: {:?}", algorithm);
+402 +         log::info!("Switched to key exchange algorithm: {algorithm:?}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> pqc-crypto/src/lib.rs:434:9
+    |
+434 | /         log::info!(
+435 | |             "Rotated signature key for algorithm: {:?} (old key zeroized & encrypted)",
+436 | |             algorithm
+437 | |         );
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+
+warning: variables can be used directly in the `format!` string
+   --> pqc-crypto/src/lib.rs:447:9
+    |
+447 |         log::info!("Rotated key exchange key for algorithm: {:?}", algorithm);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+447 -         log::info!("Rotated key exchange key for algorithm: {:?}", algorithm);
+447 +         log::info!("Rotated key exchange key for algorithm: {algorithm:?}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> pqc-crypto/src/bridge.rs:451:47
+    |
+451 |             .map_err(|e| PQCError::InvalidKey(format!("Payload serialization error: {}", e)))?;
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+451 -             .map_err(|e| PQCError::InvalidKey(format!("Payload serialization error: {}", e)))?;
+451 +             .map_err(|e| PQCError::InvalidKey(format!("Payload serialization error: {e}")))?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> pqc-crypto/src/bridge.rs:454:44
+    |
+454 |             PQCError::UnsupportedAlgorithm(format!("Unknown chain: {}", chain_id))
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+454 -             PQCError::UnsupportedAlgorithm(format!("Unknown chain: {}", chain_id))
+454 +             PQCError::UnsupportedAlgorithm(format!("Unknown chain: {chain_id}"))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> pqc-crypto/src/bridge.rs:481:34
+    |
+481 |             PQCError::InvalidKey(format!("Enhanced payload serialization error: {}", e))
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+481 -             PQCError::InvalidKey(format!("Enhanced payload serialization error: {}", e))
+481 +             PQCError::InvalidKey(format!("Enhanced payload serialization error: {e}"))
+    |
+
+warning: variables can be used directly in the `format!` string
+  --> pqc-crypto/src/performance.rs:78:13
+   |
+78 |             println!("📊 Benchmarking {}...", name);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+78 -             println!("📊 Benchmarking {}...", name);
+78 +             println!("📊 Benchmarking {name}...");
+   |
+
+warning: variables can be used directly in the `format!` string
+  --> pqc-crypto/src/performance.rs:82:13
+   |
+82 |             println!("✅ {} benchmark completed\n", name);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+82 -             println!("✅ {} benchmark completed\n", name);
+82 +             println!("✅ {name} benchmark completed\n");
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> pqc-crypto/src/performance.rs:491:9
+    |
+491 |         println!("📄 Results exported to: {}", filename);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+491 -         println!("📄 Results exported to: {}", filename);
+491 +         println!("📄 Results exported to: {filename}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> pqc-crypto/src/performance.rs:505:20
+    |
+505 |     let filename = format!("pqc_benchmark_results_{}.json", timestamp);
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+505 -     let filename = format!("pqc_benchmark_results_{}.json", timestamp);
+505 +     let filename = format!("pqc_benchmark_results_{timestamp}.json");
+    |
+
+warning: `dytallix-pqc` (lib) generated 11 warnings (run `cargo clippy --fix --lib -p dytallix-pqc` to apply 11 suggestions)
+warning: variable does not need to be mutable
+   --> smart-contracts/src/runtime.rs:694:18
+    |
+694 |                 |mut caller: Caller<HostCallContext>,
+    |                  ----^^^^^^
+    |                  |
+    |                  help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> smart-contracts/src/runtime.rs:776:18
+    |
+776 |                 |mut caller: Caller<HostCallContext>,
+    |                  ----^^^^^^
+    |                  |
+    |                  help: remove this `mut`
+
+warning: this function has too many arguments (9/7)
+   --> smart-contracts/src/cosmos_bridge.rs:366:1
+    |
+366 | / pub fn execute_mint_tokens(
+367 | |     deps: DepsMut,
+368 | |     env: Env,
+369 | |     info: MessageInfo,
+...   |
+375 | |     ethereum_sender: String,
+376 | | ) -> Result<Response, ContractError> {
+    | |____________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
+    = note: `#[warn(clippy::too_many_arguments)]` on by default
+
+warning: this function has too many arguments (9/7)
+   --> smart-contracts/src/cosmos_bridge_optimized.rs:440:1
+    |
+440 | / pub fn execute_mint_tokens_optimized(
+441 | |     deps: DepsMut,
+442 | |     env: Env,
+443 | |     info: MessageInfo,
+...   |
+449 | |     ethereum_sender: String,
+450 | | ) -> Result<Response, ContractError> {
+    | |____________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
+
+warning: taken reference of right operand
+   --> smart-contracts/src/cosmos_bridge_optimized.rs:512:23
+    |
+512 |         .position(|v| v == &info.sender)
+    |                       ^^^^^------------
+    |                            |
+    |                            help: use the right value directly: `info.sender`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#op_ref
+    = note: `#[warn(clippy::op_ref)]` on by default
+
+warning: taken reference of right operand
+   --> smart-contracts/src/cosmos_bridge_optimized.rs:650:31
+    |
+650 |                 .position(|v| v == &validator)
+    |                               ^^^^^----------
+    |                                    |
+    |                                    help: use the right value directly: `validator`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#op_ref
+
+warning: taken reference of right operand
+   --> smart-contracts/src/cosmos_bridge_optimized.rs:699:23
+    |
+699 |         .position(|v| v == &info.sender)
+    |                       ^^^^^------------
+    |                            |
+    |                            help: use the right value directly: `info.sender`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#op_ref
+
+warning: you should consider adding a `Default` implementation for `GasOptimizer`
+   --> smart-contracts/src/gas_optimizer.rs:113:5
+    |
+113 | /     pub fn new() -> Self {
+114 | |         Self {
+115 | |             config: GasCostConfig::default(),
+116 | |             operation_cache: HashMap::new(),
+...   |
+119 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+    = note: `#[warn(clippy::new_without_default)]` on by default
+help: try adding this
+    |
+111 + impl Default for GasOptimizer {
+112 +     fn default() -> Self {
+113 +         Self::new()
+114 +     }
+115 + }
+    |
+
+warning: casting to the same type is unnecessary (`f64` -> `f64`)
+   --> smart-contracts/src/gas_optimizer.rs:187:47
+    |
+187 |                         let batch_reduction = ((*batch_size as f64).ln() * 0.1) as f64;
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `((*batch_size as f64).ln() * 0.1)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+    = note: `#[warn(clippy::unnecessary_cast)]` on by default
+
+warning: manually reimplementing `div_ceil`
+   --> smart-contracts/src/gas_optimizer.rs:496:31
+    |
+496 |         let expansion_words = (expansion + 31) / 32; // Round up to word boundary
+    |                               ^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `expansion.div_ceil(32)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_div_ceil
+    = note: `#[warn(clippy::manual_div_ceil)]` on by default
+
+warning: you should consider adding a `Default` implementation for `SimpleOracle`
+  --> smart-contracts/src/oracle_simple.rs:40:5
+   |
+40 | /     pub fn new() -> Self {
+41 | |         Self {
+42 | |             requests: HashMap::new(),
+43 | |             responses: HashMap::new(),
+...  |
+47 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+help: try adding this
+   |
+39 + impl Default for SimpleOracle {
+40 +     fn default() -> Self {
+41 +         Self::new()
+42 +     }
+43 + }
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/runtime.rs:321:34
+    |
+321 |                         message: format!("AI analysis failed: {}", e),
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+    = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+    |
+321 -                         message: format!("AI analysis failed: {}", e),
+321 +                         message: format!("AI analysis failed: {e}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/runtime.rs:534:34
+    |
+534 |                         message: format!("Function '{}' not found: {e}", func_name),
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+534 -                         message: format!("Function '{}' not found: {e}", func_name),
+534 +                         message: format!("Function '{func_name}' not found: {e}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/runtime.rs:563:26
+    |
+563 |                 message: format!("Contract execution failed: {}", e),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+563 -                 message: format!("Contract execution failed: {}", e),
+563 +                 message: format!("Contract execution failed: {e}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/runtime.rs:858:26
+    |
+858 |                 message: format!("Failed to register block_timestamp: {}", e),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+858 -                 message: format!("Failed to register block_timestamp: {}", e),
+858 +                 message: format!("Failed to register block_timestamp: {e}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/runtime.rs:872:26
+    |
+872 |                 message: format!("Failed to register block_number: {}", e),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+872 -                 message: format!("Failed to register block_number: {}", e),
+872 +                 message: format!("Failed to register block_number: {e}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/runtime.rs:913:26
+    |
+913 |                 message: format!("WASM validation failed: {}", e),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+913 -                 message: format!("WASM validation failed: {}", e),
+913 +                 message: format!("WASM validation failed: {e}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/runtime.rs:954:26
+    |
+954 |                 message: format!("Failed to write to memory: {}", e),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+954 -                 message: format!("Failed to write to memory: {}", e),
+954 +                 message: format!("Failed to write to memory: {e}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/runtime.rs:977:26
+    |
+977 |                 message: format!("Failed to read length from memory: {}", e),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+977 -                 message: format!("Failed to read length from memory: {}", e),
+977 +                 message: format!("Failed to read length from memory: {e}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+    --> smart-contracts/src/runtime.rs:1005:26
+     |
+1005 |                 message: format!("Failed to read data from memory: {}", e),
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+     |
+1005 -                 message: format!("Failed to read data from memory: {}", e),
+1005 +                 message: format!("Failed to read data from memory: {e}"),
+     |
+
+warning: variables can be used directly in the `format!` string
+    --> smart-contracts/src/runtime.rs:1028:26
+     |
+1028 |                 message: format!("Failed to read memory slice: {}", e),
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+     |
+1028 -                 message: format!("Failed to read memory slice: {}", e),
+1028 +                 message: format!("Failed to read memory slice: {e}"),
+     |
+
+warning: variables can be used directly in the `format!` string
+    --> smart-contracts/src/runtime.rs:1053:26
+     |
+1053 |                 message: format!("Failed to write memory slice: {}", e),
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+     |
+1053 -                 message: format!("Failed to write memory slice: {}", e),
+1053 +                 message: format!("Failed to write memory slice: {e}"),
+     |
+
+warning: variables can be used directly in the `format!` string
+    --> smart-contracts/src/runtime.rs:1086:26
+     |
+1086 |                 message: format!("Failed to serialize state: {}", e),
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+     |
+1086 -                 message: format!("Failed to serialize state: {}", e),
+1086 +                 message: format!("Failed to serialize state: {e}"),
+     |
+
+warning: variables can be used directly in the `format!` string
+    --> smart-contracts/src/runtime.rs:1106:26
+     |
+1106 |                 message: format!("Failed to deserialize state: {}", e),
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+     |
+1106 -                 message: format!("Failed to deserialize state: {}", e),
+1106 +                 message: format!("Failed to deserialize state: {e}"),
+     |
+
+warning: use of `or_insert_with` to construct default value
+    --> smart-contracts/src/runtime.rs:1246:14
+     |
+1246 |             .or_insert_with(Vec::new)
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `or_default()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_or_default
+     = note: `#[warn(clippy::unwrap_or_default)]` on by default
+
+warning: you should consider adding a `Default` implementation for `AuditReportGenerator`
+   --> smart-contracts/src/security/audit_report.rs:178:5
+    |
+178 | /     pub fn new() -> Self {
+179 | |         Self {
+180 | |             template_version: "1.0".to_string(),
+181 | |             report_count: 0,
+182 | |         }
+183 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+help: try adding this
+    |
+177 + impl Default for AuditReportGenerator {
+178 +     fn default() -> Self {
+179 +         Self::new()
+180 +     }
+181 + }
+    |
+
+warning: useless use of `format!`
+   --> smart-contracts/src/security/audit_report.rs:218:28
+    |
+218 |         markdown.push_str(&format!("# Smart Contract Security Audit Report\n\n"));
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.to_string()`: `"# Smart Contract Security Audit Report\n\n".to_string()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_format
+    = note: `#[warn(clippy::useless_format)]` on by default
+
+warning: calling `push_str()` using a single-character string literal
+   --> smart-contracts/src/security/audit_report.rs:263:9
+    |
+263 |         markdown.push_str("\n");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `push` with a character literal: `markdown.push('\n')`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_char_add_str
+    = note: `#[warn(clippy::single_char_add_str)]` on by default
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:269:36
+    |
+269 |                 markdown.push_str(&format!("- {}\n", concern));
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+269 -                 markdown.push_str(&format!("- {}\n", concern));
+269 +                 markdown.push_str(&format!("- {concern}\n"));
+    |
+
+warning: calling `push_str()` using a single-character string literal
+   --> smart-contracts/src/security/audit_report.rs:271:13
+    |
+271 |             markdown.push_str("\n");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `push` with a character literal: `markdown.push('\n')`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_char_add_str
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:290:36
+    |
+290 |                 markdown.push_str(&format!("**Location:** `{}`\n", location));
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+290 -                 markdown.push_str(&format!("**Location:** `{}`\n", location));
+290 +                 markdown.push_str(&format!("**Location:** `{location}`\n"));
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:294:36
+    |
+294 |                 markdown.push_str(&format!("**Gas Impact:** {} gas units\n", gas_impact));
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+294 -                 markdown.push_str(&format!("**Gas Impact:** {} gas units\n", gas_impact));
+294 +                 markdown.push_str(&format!("**Gas Impact:** {gas_impact} gas units\n"));
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:302:40
+    |
+302 |                     markdown.push_str(&format!("- {}\n", evidence));
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+302 -                     markdown.push_str(&format!("- {}\n", evidence));
+302 +                     markdown.push_str(&format!("- {evidence}\n"));
+    |
+
+warning: calling `push_str()` using a single-character string literal
+   --> smart-contracts/src/security/audit_report.rs:304:17
+    |
+304 |                 markdown.push_str("\n");
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `push` with a character literal: `markdown.push('\n')`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_char_add_str
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:309:36
+    |
+309 |                 markdown.push_str(&format!("- {}\n", recommendation));
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+309 -                 markdown.push_str(&format!("- {}\n", recommendation));
+309 +                 markdown.push_str(&format!("- {recommendation}\n"));
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:319:36
+    |
+319 |                 markdown.push_str(&format!("```\n{}\n```\n\n", poc));
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+319 -                 markdown.push_str(&format!("```\n{}\n```\n\n", poc));
+319 +                 markdown.push_str(&format!("```\n{poc}\n```\n\n"));
+    |
+
+warning: calling `push_str()` using a single-character string literal
+   --> smart-contracts/src/security/audit_report.rs:352:13
+    |
+352 |             markdown.push_str("\n");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `push` with a character literal: `markdown.push('\n')`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_char_add_str
+
+warning: calling `push_str()` using a single-character string literal
+   --> smart-contracts/src/security/audit_report.rs:365:13
+    |
+365 |             markdown.push_str("\n");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `push` with a character literal: `markdown.push('\n')`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_char_add_str
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:386:36
+    |
+386 |                 markdown.push_str(&format!("### {}\n", title));
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+386 -                 markdown.push_str(&format!("### {}\n", title));
+386 +                 markdown.push_str(&format!("### {title}\n"));
+    |
+
+warning: calling `push_str()` using a single-character string literal
+   --> smart-contracts/src/security/audit_report.rs:396:25
+    |
+396 |                         markdown.push_str("\n");
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `push` with a character literal: `markdown.push('\n')`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_char_add_str
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:428:36
+    |
+428 |                 markdown.push_str(&format!("- **{}:** {}\n", tool, version));
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+428 -                 markdown.push_str(&format!("- **{}:** {}\n", tool, version));
+428 +                 markdown.push_str(&format!("- **{tool}:** {version}\n"));
+    |
+
+warning: calling `push_str()` using a single-character string literal
+   --> smart-contracts/src/security/audit_report.rs:430:13
+    |
+430 |             markdown.push_str("\n");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `push` with a character literal: `markdown.push('\n')`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_char_add_str
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:707:38
+    |
+707 |                     result.push_str(&format!("- {}\n", condition));
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+707 -                     result.push_str(&format!("- {}\n", condition));
+707 +                     result.push_str(&format!("- {condition}\n"));
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:715:38
+    |
+715 |                     result.push_str(&format!("- {}\n", issue));
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+715 -                     result.push_str(&format!("- {}\n", issue));
+715 +                     result.push_str(&format!("- {issue}\n"));
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:722:38
+    |
+722 |                     result.push_str(&format!("- {}\n", issue));
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+722 -                     result.push_str(&format!("- {}\n", issue));
+722 +                     result.push_str(&format!("- {issue}\n"));
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/audit_report.rs:736:27
+    |
+736 |               concerns.push(format!(
+    |  ___________________________^
+737 | |                 "{} critical security vulnerabilities require immediate attention",
+738 | |                 critical_count
+739 | |             ));
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+
+warning: useless use of `format!`
+   --> smart-contracts/src/security/audit_report.rs:937:13
+    |
+937 |             format!("2024-01-01 12:00:00 UTC") // Simplified for demo
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.to_string()`: `"2024-01-01 12:00:00 UTC".to_string()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_format
+
+warning: you should consider adding a `Default` implementation for `FuzzTester`
+  --> smart-contracts/src/security/fuzz_tester.rs:73:5
+   |
+73 | /     pub fn new() -> Self {
+74 | |         Self {
+75 | |             test_count: 0,
+76 | |             generators: vec![
+...  |
+93 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+help: try adding this
+   |
+72 + impl Default for FuzzTester {
+73 +     fn default() -> Self {
+74 +         Self::new()
+75 +     }
+76 + }
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/security/fuzz_tester.rs:329:30
+    |
+329 |                   description: format!(
+    |  ______________________________^
+330 | |                     "Fuzz testing with {} generator revealed potential buffer overflow",
+331 | |                     generator_name
+332 | |                 ),
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+
+warning: the loop variable `i` is only used to index `mutated`
+   --> smart-contracts/src/security/fuzz_tester.rs:384:26
+    |
+384 |                 for i in 0..mutated.len() {
+    |                          ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `#[warn(clippy::needless_range_loop)]` on by default
+help: consider using an iterator
+    |
+384 -                 for i in 0..mutated.len() {
+384 +                 for <item> in &mut mutated {
+    |
+
+warning: the loop variable `i` is only used to index `mutated`
+   --> smart-contracts/src/security/fuzz_tester.rs:423:26
+    |
+423 |                 for i in 0..mutated.len() {
+    |                          ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+423 -                 for i in 0..mutated.len() {
+423 +                 for <item> in &mut mutated {
+    |
+
+warning: all variants have the same postfix: `State`
+   --> smart-contracts/src/security/fuzz_tester.rs:505:1
+    |
+505 | / enum InitializationScenario {
+506 | |     EmptyState,
+507 | |     MaximumState,
+508 | |     CorruptedState,
+509 | | }
+    | |_^
+    |
+    = help: remove the postfixes and use full paths to the variants instead of glob imports
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#enum_variant_names
+    = note: `#[warn(clippy::enum_variant_names)]` on by default
+
+warning: you should consider adding a `Default` implementation for `GasAttackAnalyzer`
+  --> smart-contracts/src/security/gas_attack_analyzer.rs:59:5
+   |
+59 | /     pub fn new() -> Self {
+60 | |         Self {
+61 | |             gas_optimizer: GasOptimizer::new(),
+62 | |             attack_count: 0,
+...  |
+66 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+help: try adding this
+   |
+58 + impl Default for GasAttackAnalyzer {
+59 +     fn default() -> Self {
+60 +         Self::new()
+61 +     }
+62 + }
+   |
+
+warning: you should consider adding a `Default` implementation for `VulnerabilityScanner`
+  --> smart-contracts/src/security/vulnerability_scanner.rs:18:5
+   |
+18 | /     pub fn new() -> Self {
+19 | |         Self {
+20 | |             scan_count: 0,
+21 | |             total_findings: 0,
+...  |
+24 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+help: try adding this
+   |
+17 + impl Default for VulnerabilityScanner {
+18 +     fn default() -> Self {
+19 +         Self::new()
+20 +     }
+21 + }
+   |
+
+warning: you should consider adding a `Default` implementation for `SecurityAuditor`
+   --> smart-contracts/src/security/mod.rs:101:5
+    |
+101 | /     pub fn new() -> Self {
+102 | |         Self {
+103 | |             vulnerability_scanner: VulnerabilityScanner::new(),
+104 | |             gas_analyzer: GasAttackAnalyzer::new(),
+...   |
+107 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+help: try adding this
+    |
+99  + impl Default for SecurityAuditor {
+100 +     fn default() -> Self {
+101 +         Self::new()
+102 +     }
+103 + }
+    |
+
+warning: this `impl` can be derived
+  --> smart-contracts/src/storage_optimizer.rs:23:1
+   |
+23 | / impl Default for StorageMetrics {
+24 | |     fn default() -> Self {
+25 | |         Self {
+26 | |             reads: 0,
+...  |
+35 | | }
+   | |_^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#derivable_impls
+   = note: `#[warn(clippy::derivable_impls)]` on by default
+help: replace the manual implementation with a derive attribute
+   |
+13 + #[derive(Default)]
+14 ~ pub struct StorageMetrics {
+   |
+
+warning: you should consider adding a `Default` implementation for `OptimizedStorage`
+  --> smart-contracts/src/storage_optimizer.rs:48:5
+   |
+48 | /     pub fn new() -> Self {
+49 | |         Self::with_config(10000, true)
+50 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+help: try adding this
+   |
+46 + impl Default for OptimizedStorage {
+47 +     fn default() -> Self {
+48 +         Self::new()
+49 +     }
+50 + }
+   |
+
+warning: calling `as_bytes` after slicing a string
+   --> smart-contracts/src/storage_optimizer.rs:133:46
+    |
+133 |                 compressed.extend_from_slice(key[prefix.len()..].as_bytes());
+    |                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `&key.as_bytes()[prefix.len()..]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#sliced_string_as_bytes
+    = note: `#[warn(clippy::sliced_string_as_bytes)]` on by default
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/storage_optimizer.rs:154:24
+    |
+154 |                 return format!("{}{}", prefix, suffix);
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+154 -                 return format!("{}{}", prefix, suffix);
+154 +                 return format!("{prefix}{suffix}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/storage_optimizer.rs:242:48
+    |
+242 |             .map_err(|e| StdError::generic_err(format!("Serialization error: {}", e)))
+    |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+242 -             .map_err(|e| StdError::generic_err(format!("Serialization error: {}", e)))
+242 +             .map_err(|e| StdError::generic_err(format!("Serialization error: {e}")))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/storage_optimizer.rs:248:48
+    |
+248 |             .map_err(|e| StdError::generic_err(format!("Deserialization error: {}", e)))
+    |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+248 -             .map_err(|e| StdError::generic_err(format!("Deserialization error: {}", e)))
+248 +             .map_err(|e| StdError::generic_err(format!("Deserialization error: {e}")))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/storage_optimizer.rs:254:48
+    |
+254 |             .map_err(|e| StdError::generic_err(format!("JSON serialization error: {}", e)))
+    |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+254 -             .map_err(|e| StdError::generic_err(format!("JSON serialization error: {}", e)))
+254 +             .map_err(|e| StdError::generic_err(format!("JSON serialization error: {e}")))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/src/storage_optimizer.rs:260:48
+    |
+260 |             .map_err(|e| StdError::generic_err(format!("JSON deserialization error: {}", e)))
+    |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+260 -             .map_err(|e| StdError::generic_err(format!("JSON deserialization error: {}", e)))
+260 +             .map_err(|e| StdError::generic_err(format!("JSON deserialization error: {e}")))
+    |
+
+warning: you should consider adding a `Default` implementation for `StorageAnalyzer`
+   --> smart-contracts/src/storage_optimizer.rs:299:5
+    |
+299 | /     pub fn new() -> Self {
+300 | |         Self {
+301 | |             access_patterns: HashMap::new(),
+302 | |         }
+303 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+help: try adding this
+    |
+298 + impl Default for StorageAnalyzer {
+299 +     fn default() -> Self {
+300 +         Self::new()
+301 +     }
+302 + }
+    |
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> smart-contracts/src/storage_optimizer.rs:370:44
+    |
+370 |                     estimated_gas_savings: (pattern.reads * 100) as u64, // Estimated savings
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `(pattern.reads * 100)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> smart-contracts/src/storage_optimizer.rs:381:44
+    |
+381 |                     estimated_gas_savings: (pattern.writes * 50) as u64,
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `(pattern.writes * 50)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: `dytallix-contracts` (lib) generated 66 warnings (run `cargo clippy --fix --lib -p dytallix-contracts` to apply 60 suggestions)
+    Checking dytallix-node v0.1.0 (/Users/rickglenn/dytallix/blockchain-core)
+    Checking dytallix-interoperability v0.9.3 (/Users/rickglenn/dytallix/interoperability)
+    Checking dcli v0.1.0 (/Users/rickglenn/dytallix/cli)
+    Checking dytallix-governance v0.1.0 (/Users/rickglenn/dytallix/governance)
+    Checking dytallix-cli v0.1.0 (/Users/rickglenn/dytallix/developer-tools)
+warning: unused imports: `Block` and `Transaction`
+ --> explorer/api/src/models.rs:2:45
+  |
+2 | pub use dytallix_explorer_indexer::models::{Block, Transaction};
+  |                                             ^^^^^  ^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `Block` and `Transaction`
+  --> explorer/api/src/main.rs:10:41
+   |
+10 | use dytallix_explorer_indexer::models::{Block, Transaction};
+   |                                         ^^^^^  ^^^^^^^^^^^
+
+warning: `dytallix-explorer-api` (bin "dytallix-explorer-api" test) generated 2 warnings (run `cargo clippy --fix --bin "dytallix-explorer-api" --tests` to apply 2 suggestions)
+warning: field `height` is never read
+  --> explorer/indexer/src/models.rs:49:9
+   |
+48 | pub struct RpcLatestResponse {
+   |            ----------------- field in this struct
+49 |     pub height: u64,
+   |         ^^^^^^
+   |
+   = note: `RpcLatestResponse` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: methods `get_blocks`, `get_transactions`, and `get_transaction_by_hash` are never used
+   --> explorer/indexer/src/store.rs:51:12
+    |
+9   | impl Store {
+    | ---------- methods in this implementation
+...
+51  |     pub fn get_blocks(&self, limit: u32, offset: u32) -> Result<Vec<Block>> {
+    |            ^^^^^^^^^^
+...
+74  |     pub fn get_transactions(&self, limit: u32, offset: u32) -> Result<Vec<Transaction>> {
+    |            ^^^^^^^^^^^^^^^^
+...
+102 |     pub fn get_transaction_by_hash(&self, hash: &str) -> Result<Option<Transaction>> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `dytallix-explorer-indexer` (bin "indexer") generated 2 warnings
+warning: variables can be used directly in the `format!` string
+   --> explorer/indexer/src/store.rs:226:23
+    |
+226 |                 hash: format!("hash_{}", height),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+    = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+    |
+226 -                 hash: format!("hash_{}", height),
+226 +                 hash: format!("hash_{height}"),
+    |
+
+warning: `dytallix-explorer-indexer` (bin "indexer" test) generated 2 warnings (1 duplicate) (run `cargo clippy --fix --bin "indexer" --tests` to apply 1 suggestion)
+warning: `dytallix-explorer-api` (bin "dytallix-explorer-api") generated 2 warnings (2 duplicates)
+warning: `dytallix-explorer-indexer` (lib test) generated 1 warning (1 duplicate)
+warning: method `update_proposal_status` is never used
+   --> governance/src/lib.rs:203:8
+    |
+121 | impl FileBasedGovernance {
+    | ------------------------ method in this implementation
+...
+203 |     fn update_proposal_status(&mut self, proposal_id: u64) -> Result<(), GovernanceError> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+error: Features 'pqc-real' and 'pqc-mock' cannot both be enabled.
+  --> cli/src/crypto/mod.rs:13:1
+   |
+13 | compile_error!("Features 'pqc-real' and 'pqc-mock' cannot both be enabled.");
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `DGT_TOKEN`, `display_to_micro`, and `micro_to_display`
+ --> developer-tools/src/commands/transaction.rs:4:21
+  |
+4 | use crate::tokens::{display_to_micro, format_amount_with_symbol, micro_to_display, DGT_TOKEN};
+  |                     ^^^^^^^^^^^^^^^^                             ^^^^^^^^^^^^^^^^  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: this import is redundant
+ --> developer-tools/src/crypto.rs:2:1
+  |
+2 | use chrono;
+  | ^^^^^^^^^^^ help: remove it entirely
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_component_path_imports
+  = note: `#[warn(clippy::single_component_path_imports)]` on by default
+
+warning: unused import: `std::collections::HashMap`
+ --> developer-tools/src/tokens.rs:4:5
+  |
+4 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: this `impl` can be derived
+  --> governance/src/lib.rs:35:1
+   |
+35 | / impl Default for ProposalType {
+36 | |     fn default() -> Self {
+37 | |         ProposalType::Standard
+38 | |     }
+39 | | }
+   | |_^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#derivable_impls
+   = note: `#[warn(clippy::derivable_impls)]` on by default
+help: replace the manual implementation with a derive attribute and mark the default variant
+   |
+28 + #[derive(Default)]
+29 ~ pub enum ProposalType {
+30 |     /// Standard governance proposal (text-based)
+31 ~     #[default]
+32 ~     Standard,
+   |
+
+warning: variables can be used directly in the `format!` string
+  --> governance/src/lib.rs:72:51
+   |
+72 |             GovernanceError::StorageError(msg) => write!(f, "Storage error: {}", msg),
+   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+   = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+   |
+72 -             GovernanceError::StorageError(msg) => write!(f, "Storage error: {}", msg),
+72 +             GovernanceError::StorageError(msg) => write!(f, "Storage error: {msg}"),
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/src/lib.rs:125:54
+    |
+125 |               return Err(GovernanceError::StorageError(format!(
+    |  ______________________________________________________^
+126 | |                 "Failed to create data directory: {}",
+127 | |                 e
+128 | |             )));
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+
+warning: variables can be used directly in the `format!` string
+   --> governance/src/lib.rs:155:47
+    |
+155 |                 GovernanceError::StorageError(format!("Failed to read proposals: {}", e))
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+155 -                 GovernanceError::StorageError(format!("Failed to read proposals: {}", e))
+155 +                 GovernanceError::StorageError(format!("Failed to read proposals: {e}"))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/src/lib.rs:160:51
+    |
+160 |                     GovernanceError::StorageError(format!("Failed to parse proposals: {}", e))
+    |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+160 -                     GovernanceError::StorageError(format!("Failed to parse proposals: {}", e))
+160 +                     GovernanceError::StorageError(format!("Failed to parse proposals: {e}"))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/src/lib.rs:171:47
+    |
+171 |                 GovernanceError::StorageError(format!("Failed to read votes: {}", e))
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+171 -                 GovernanceError::StorageError(format!("Failed to read votes: {}", e))
+171 +                 GovernanceError::StorageError(format!("Failed to read votes: {e}"))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/src/lib.rs:175:47
+    |
+175 |                 GovernanceError::StorageError(format!("Failed to parse votes: {}", e))
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+175 -                 GovernanceError::StorageError(format!("Failed to parse votes: {}", e))
+175 +                 GovernanceError::StorageError(format!("Failed to parse votes: {e}"))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/src/lib.rs:185:43
+    |
+185 |             GovernanceError::StorageError(format!("Failed to serialize proposals: {}", e))
+    |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+185 -             GovernanceError::StorageError(format!("Failed to serialize proposals: {}", e))
+185 +             GovernanceError::StorageError(format!("Failed to serialize proposals: {e}"))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/src/lib.rs:189:43
+    |
+189 |             GovernanceError::StorageError(format!("Failed to write proposals: {}", e))
+    |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+189 -             GovernanceError::StorageError(format!("Failed to write proposals: {}", e))
+189 +             GovernanceError::StorageError(format!("Failed to write proposals: {e}"))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/src/lib.rs:194:43
+    |
+194 |             GovernanceError::StorageError(format!("Failed to serialize votes: {}", e))
+    |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+194 -             GovernanceError::StorageError(format!("Failed to serialize votes: {}", e))
+194 +             GovernanceError::StorageError(format!("Failed to serialize votes: {e}"))
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/src/lib.rs:198:56
+    |
+198 |             .map_err(|e| GovernanceError::StorageError(format!("Failed to write votes: {}", e)))?;
+    |                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+198 -             .map_err(|e| GovernanceError::StorageError(format!("Failed to write votes: {}", e)))?;
+198 +             .map_err(|e| GovernanceError::StorageError(format!("Failed to write votes: {e}")))?;
+    |
+
+warning: you should consider adding a `Default` implementation for `InMemoryGovernance`
+   --> governance/src/lib.rs:393:5
+    |
+393 | /     pub fn new() -> Self {
+394 | |         Self {
+395 | |             proposals: HashMap::new(),
+396 | |             votes: HashMap::new(),
+...   |
+399 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+    = note: `#[warn(clippy::new_without_default)]` on by default
+help: try adding this
+    |
+392 + impl Default for InMemoryGovernance {
+393 +     fn default() -> Self {
+394 +         Self::new()
+395 +     }
+396 + }
+    |
+
+warning: unused variable: `config`
+   --> developer-tools/src/main.rs:424:54
+    |
+424 | async fn execute_keys_command(command: KeysCommands, config: &Config) -> Result<()> {
+    |                                                      ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `config`
+   --> developer-tools/src/main.rs:434:28
+    |
+434 | async fn initialize_config(config: &Config) -> Result<()> {
+    |                            ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `config`
+  --> developer-tools/src/commands/account.rs:10:51
+   |
+10 | pub async fn create_account(name: Option<String>, config: &Config) -> Result<()> {
+   |                                                   ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `config`
+   --> developer-tools/src/commands/account.rs:150:28
+    |
+150 | pub async fn list_accounts(config: &Config) -> Result<()> {
+    |                            ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `balance_dgt`
+   --> developer-tools/src/commands/account.rs:201:25
+    |
+201 |                     let balance_dgt = micro_to_display(balance, "udgt");
+    |                         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_balance_dgt`
+
+warning: unused variable: `config`
+   --> developer-tools/src/commands/account.rs:257:5
+    |
+257 |     config: &Config,
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `config`
+   --> developer-tools/src/commands/account.rs:320:43
+    |
+320 | pub async fn import_account(file: String, config: &Config) -> Result<()> {
+    |                                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `config`
+   --> developer-tools/src/commands/account.rs:372:61
+    |
+372 | pub async fn sign_message(account: String, message: String, config: &Config) -> Result<()> {
+    |                                                             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `config`
+   --> developer-tools/src/commands/account.rs:412:5
+    |
+412 |     config: &Config,
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `config`
+   --> developer-tools/src/commands/account.rs:444:31
+    |
+444 | pub async fn generate_address(config: &Config) -> Result<()> {
+    |                               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `client`
+   --> developer-tools/src/commands/ai.rs:177:9
+    |
+177 |     let client = Client::new();
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_client`
+
+warning: unused variable: `ai_url`
+   --> developer-tools/src/commands/ai.rs:178:9
+    |
+178 |     let ai_url = format!("{}/risk-scoring", config.ai_url);
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_ai_url`
+
+warning: unused variable: `request_payload`
+   --> developer-tools/src/commands/ai.rs:181:9
+    |
+181 |     let request_payload = serde_json::json!({
+    |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request_payload`
+
+warning: unused variable: `client`
+   --> developer-tools/src/commands/ai.rs:272:9
+    |
+272 |     let client = Client::new();
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_client`
+
+warning: unused variable: `ai_url`
+   --> developer-tools/src/commands/ai.rs:273:9
+    |
+273 |     let ai_url = format!("{}/contract-generation", config.ai_url);
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_ai_url`
+
+warning: unused variable: `request_payload`
+   --> developer-tools/src/commands/ai.rs:276:9
+    |
+276 |     let request_payload = serde_json::json!({
+    |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request_payload`
+
+warning: unused variable: `ai_url`
+   --> developer-tools/src/commands/ai.rs:417:9
+    |
+417 |     let ai_url = format!("{}/oracle/status", config.ai_url);
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_ai_url`
+
+warning: unused variable: `test_transaction`
+   --> developer-tools/src/commands/ai.rs:510:9
+    |
+510 |     let test_transaction = serde_json::json!({
+    |         ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_test_transaction`
+
+warning: unused variable: `config`
+   --> developer-tools/src/commands/node.rs:155:24
+    |
+155 | pub async fn node_logs(config: &Config) -> Result<()> {
+    |                        ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `client`
+   --> developer-tools/src/commands/smart_contract.rs:245:9
+    |
+245 |     let client = BlockchainClient::new(config.node_url.clone());
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_client`
+
+warning: unused variable: `client`
+   --> developer-tools/src/commands/smart_contract.rs:290:9
+    |
+290 |     let client = BlockchainClient::new(config.node_url.clone());
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_client`
+
+warning: unused variable: `config`
+   --> developer-tools/src/commands/smart_contract.rs:382:38
+    |
+382 | pub async fn list_contract_templates(config: &Config) -> Result<()> {
+    |                                      ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `config`
+   --> developer-tools/src/commands/smart_contract.rs:430:5
+    |
+430 |     config: &Config,
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `tx_hash`
+   --> developer-tools/src/commands/transaction.rs:135:9
+    |
+135 |     let tx_hash = sign_transaction(&tx_request, &from_address, &mut crypto_manager)?;
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tx_hash`
+
+error[E0432]: unresolved import `crate::crypto::ActivePQC`
+  --> cli/src/cmd/pqc.rs:5:21
+   |
+5  | use crate::crypto::{ActivePQC, PQC};
+   |                     ^^^^^^^^^ no `ActivePQC` in `crypto`
+   |
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:18:33
+   |
+18 | pub use dilithium::Dilithium as ActivePQC;
+   |                                 ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:17:1
+   |
+17 | #[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:23:26
+   |
+23 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:22:1
+   |
+22 | #[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:29:26
+   |
+29 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:28:1
+   |
+28 | #[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0432]: unresolved import `crate::crypto::ActivePQC`
+  --> cli/src/keystore.rs:17:21
+   |
+17 | use crate::crypto::{ActivePQC as ActiveSignatureScheme, PQC};
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ActivePQC` in `crypto`
+   |
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:18:33
+   |
+18 | pub use dilithium::Dilithium as ActivePQC;
+   |                                 ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:17:1
+   |
+17 | #[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:23:26
+   |
+23 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:22:1
+   |
+22 | #[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:29:26
+   |
+29 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:28:1
+   |
+28 | #[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `PublicKey`
+  --> developer-tools/src/commands/keys.rs:16:29
+   |
+16 | use pqcrypto_traits::sign::{PublicKey, SecretKey};
+   |                             ^^^^^^^^^
+
+warning: unused import: `SecretKey`
+  --> developer-tools/src/commands/keys.rs:16:40
+   |
+16 | use pqcrypto_traits::sign::{PublicKey, SecretKey};
+   |                                        ^^^^^^^^^
+
+error[E0432]: unresolved import `crate::crypto::ActivePQC`
+  --> cli/src/tx.rs:4:47
+   |
+4  | use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+   |                                               ^^^^^^^^^ no `ActivePQC` in `crypto`
+   |
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:18:33
+   |
+18 | pub use dilithium::Dilithium as ActivePQC;
+   |                                 ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:17:1
+   |
+17 | #[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:23:26
+   |
+23 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:22:1
+   |
+22 | #[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:29:26
+   |
+29 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:28:1
+   |
+28 | #[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `from_address`
+   --> developer-tools/src/commands/transaction.rs:339:5
+    |
+339 |     from_address: &str,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_from_address`
+
+warning: unused variable: `crypto_manager`
+   --> developer-tools/src/commands/transaction.rs:340:5
+    |
+340 |     crypto_manager: &mut CryptoManager,
+    |     ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_crypto_manager`
+
+warning: unused variable: `passphrase`
+  --> developer-tools/src/crypto.rs:62:9
+   |
+62 |         passphrase: Option<&str>,
+   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_passphrase`
+
+warning: unused variable: `account_name`
+   --> developer-tools/src/crypto.rs:100:9
+    |
+100 |         account_name: &str,
+    |         ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_account_name`
+
+warning: unused variable: `passphrase`
+   --> developer-tools/src/crypto.rs:102:9
+    |
+102 |         passphrase: Option<&str>,
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_passphrase`
+
+error[E0432]: unresolved import `crate::crypto::ActivePQC`
+  --> cli/src/types/tx.rs:1:47
+   |
+1  | use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+   |                                               ^^^^^^^^^ no `ActivePQC` in `crypto`
+   |
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:18:33
+   |
+18 | pub use dilithium::Dilithium as ActivePQC;
+   |                                 ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:17:1
+   |
+17 | #[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:23:26
+   |
+23 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:22:1
+   |
+22 | #[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:29:26
+   |
+29 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:28:1
+   |
+28 | #[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `account_data`
+   --> developer-tools/src/crypto.rs:160:9
+    |
+160 |         account_data: &str,
+    |         ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_account_data`
+
+warning: unused variable: `passphrase`
+   --> developer-tools/src/crypto.rs:161:9
+    |
+161 |         passphrase: Option<&str>,
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_passphrase`
+
+error[E0432]: unresolved import `crate::crypto::ActivePQC`
+  --> cli/src/types/tx.rs:1:47
+   |
+1  | use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+   |                                               ^^^^^^^^^ no `ActivePQC` in `crypto`
+   |
+   = note: unresolved item `crate::tx::tests::ActivePQC` exists but is inaccessible
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:18:33
+   |
+18 | pub use dilithium::Dilithium as ActivePQC;
+   |                                 ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:17:1
+   |
+17 | #[cfg(all(feature = "pqc-real", not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:23:26
+   |
+23 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:22:1
+   |
+22 | #[cfg(all(feature = "pqc-mock", not(feature = "pqc-real")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: found an item that was configured out
+  --> cli/src/crypto/mod.rs:29:26
+   |
+29 | pub use mock::MockPQC as ActivePQC;
+   |                          ^^^^^^^^^
+note: the item is gated here
+  --> cli/src/crypto/mod.rs:28:1
+   |
+28 | #[cfg(all(not(feature = "pqc-real"), not(feature = "pqc-mock")))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `secret_key_b64` is never read
+  --> developer-tools/src/commands/keys.rs:25:9
+   |
+20 | pub struct KeystoreEntry {
+   |            ------------- field in this struct
+...
+25 |     pub secret_key_b64: String, // TODO: Add encryption at rest
+   |         ^^^^^^^^^^^^^^
+   |
+   = note: `KeystoreEntry` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `save_config` is never used
+   --> developer-tools/src/config.rs:117:14
+    |
+117 | pub async fn save_config(config: &Config) -> Result<()> {
+    |              ^^^^^^^^^^^
+
+warning: associated function `new_with_config` is never used
+  --> developer-tools/src/crypto.rs:48:12
+   |
+36 | impl CryptoManager {
+   | ------------------ associated function in this implementation
+...
+48 |     pub fn new_with_config(config: PQCConfig) -> Result<Self> {
+   |            ^^^^^^^^^^^^^^^
+
+warning: function `print_command_overview` is never used
+  --> developer-tools/src/help.rs:99:8
+   |
+99 | pub fn print_command_overview() {
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `micro_denom`, `role`, and `description` are never read
+  --> developer-tools/src/tokens.rs:17:9
+   |
+15 | pub struct TokenMetadata {
+   |            ------------- fields in this struct
+16 |     pub symbol: &'static str,
+17 |     pub micro_denom: &'static str,
+   |         ^^^^^^^^^^^
+...
+20 |     pub role: TokenRole,
+   |         ^^^^
+21 |     pub description: &'static str,
+   |         ^^^^^^^^^^^
+   |
+   = note: `TokenMetadata` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: constant `DGT_DECIMALS` is never used
+  --> developer-tools/src/tokens.rs:45:11
+   |
+45 | pub const DGT_DECIMALS: u8 = 6;
+   |           ^^^^^^^^^^^^
+
+warning: constant `DRT_DECIMALS` is never used
+  --> developer-tools/src/tokens.rs:46:11
+   |
+46 | pub const DRT_DECIMALS: u8 = 6;
+   |           ^^^^^^^^^^^^
+
+warning: constant `MICRO_UNIT_FACTOR` is never used
+  --> developer-tools/src/tokens.rs:47:11
+   |
+47 | pub const MICRO_UNIT_FACTOR: u64 = 1_000_000; // 10^6
+   |           ^^^^^^^^^^^^^^^^^
+
+warning: function `display_to_micro` is never used
+  --> developer-tools/src/tokens.rs:59:8
+   |
+59 | pub fn display_to_micro(amount: f64, denom: &str) -> u64 {
+   |        ^^^^^^^^^^^^^^^^
+
+warning: function `get_token_by_symbol` is never used
+  --> developer-tools/src/tokens.rs:77:8
+   |
+77 | pub fn get_token_by_symbol(symbol: &str) -> Option<&'static TokenMetadata> {
+   |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_all_tokens` is never used
+  --> developer-tools/src/tokens.rs:95:8
+   |
+95 | pub fn get_all_tokens() -> Vec<&'static TokenMetadata> {
+   |        ^^^^^^^^^^^^^^
+
+warning: function `is_valid_denom` is never used
+   --> developer-tools/src/tokens.rs:100:8
+    |
+100 | pub fn is_valid_denom(denom: &str) -> bool {
+    |        ^^^^^^^^^^^^^^
+
+warning: function `is_valid_symbol` is never used
+   --> developer-tools/src/tokens.rs:105:8
+    |
+105 | pub fn is_valid_symbol(symbol: &str) -> bool {
+    |        ^^^^^^^^^^^^^^^
+
+warning: fields `role` and `description` are never read
+  --> developer-tools/src/tokens.rs:20:9
+   |
+15 | pub struct TokenMetadata {
+   |            ------------- fields in this struct
+...
+20 |     pub role: TokenRole,
+   |         ^^^^
+21 |     pub description: &'static str,
+   |         ^^^^^^^^^^^
+   |
+   = note: `TokenMetadata` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: unused import: `error`
+  --> cli/src/cmd/contract.rs:16:15
+   |
+16 | use tracing::{error, info};
+   |               ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: `dytallix-governance` (lib) generated 13 warnings (run `cargo clippy --fix --lib -p dytallix-governance` to apply 12 suggestions)
+warning: unused import: `PQC`
+ --> cli/src/cmd/pqc.rs:5:32
+  |
+5 | use crate::crypto::{ActivePQC, PQC};
+  |                                ^^^
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/client.rs:59:25
+   |
+59 |             params.push(format!("account={}", acc));
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+   = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+   |
+59 -             params.push(format!("account={}", acc));
+59 +             params.push(format!("account={acc}"));
+   |
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/client.rs:61:21
+   |
+61 |         params.push(format!("limit={}", limit));
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+61 -         params.push(format!("limit={}", limit));
+61 +         params.push(format!("limit={limit}"));
+   |
+
+warning: unused imports: `EmissionRate` and `ProposalType`
+  --> governance/examples/tokenomics_governance_scenario.rs:14:28
+   |
+14 |     Ballot, DaoGovernance, EmissionRate, FileBasedGovernance, ProposalType, TokenomicsProposal,
+   |                            ^^^^^^^^^^^^                       ^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `crate::addr::address_from_pk`
+  --> cli/src/keystore.rs:16:5
+   |
+16 | use crate::addr::address_from_pk;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `PQC`
+  --> cli/src/keystore.rs:17:57
+   |
+17 | use crate::crypto::{ActivePQC as ActiveSignatureScheme, PQC};
+   |                                                         ^^^
+
+warning: variables can be used directly in the `format!` string
+   --> governance/examples/tokenomics_governance_scenario.rs:101:9
+    |
+101 |         println!("Created governance proposal #{}", proposal_id);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+    = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+    |
+101 -         println!("Created governance proposal #{}", proposal_id);
+101 +         println!("Created governance proposal #{proposal_id}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/examples/tokenomics_governance_scenario.rs:102:9
+    |
+102 | /         println!(
+103 | |             "Proposal: Increase DRT emission rate to {} per block",
+104 | |             new_emission_rate
+105 | |         );
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+
+warning: variables can be used directly in the `format!` string
+   --> governance/examples/tokenomics_governance_scenario.rs:219:9
+    |
+219 |         println!("Created complex governance proposal #{}", proposal_id);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+219 -         println!("Created complex governance proposal #{}", proposal_id);
+219 +         println!("Created complex governance proposal #{proposal_id}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/examples/tokenomics_governance_scenario.rs:249:13
+    |
+249 |             println!("{}: {} DRT per block", description, adaptive_rate);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+249 -             println!("{}: {} DRT per block", description, adaptive_rate);
+249 +             println!("{description}: {adaptive_rate} DRT per block");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/examples/tokenomics_governance_scenario.rs:257:9
+    |
+257 |         println!("  Total emitted: {} DRT", total_emitted);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+257 -         println!("  Total emitted: {} DRT", total_emitted);
+257 +         println!("  Total emitted: {total_emitted} DRT");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:111:9
+    |
+111 |         format!("{:?}", signature_alg).bright_blue()
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+111 -         format!("{:?}", signature_alg).bright_blue()
+111 +         format!("{signature_alg:?}").bright_blue()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:115:9
+    |
+115 |         format!("{:?}", key_exchange_alg).bright_blue()
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+115 -         format!("{:?}", key_exchange_alg).bright_blue()
+115 +         format!("{key_exchange_alg:?}").bright_blue()
+    |
+
+warning: unused imports: `PQC`, `canonical_json`, and `sha3_256`
+ --> cli/src/tx.rs:4:21
+  |
+4 | use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+  |                     ^^^^^^^^^^^^^^  ^^^^^^^^             ^^^
+
+warning: unused import: `anyhow`
+ --> cli/src/tx.rs:5:14
+  |
+5 | use anyhow::{anyhow, Result};
+  |              ^^^^^^
+
+warning: unused imports: `Engine` and `engine::general_purpose::STANDARD as B64`
+ --> cli/src/tx.rs:6:14
+  |
+6 | use base64::{engine::general_purpose::STANDARD as B64, Engine};
+  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^
+
+warning: unused import: `Serialize`
+ --> cli/src/tx.rs:7:40
+  |
+7 | use serde::{Deserialize, Deserializer, Serialize};
+  |                                        ^^^^^^^^^
+
+warning: unused imports: `Digest` and `Sha3_256`
+ --> cli/src/tx.rs:8:12
+  |
+8 | use sha3::{Digest, Sha3_256};
+  |            ^^^^^^  ^^^^^^^^
+
+warning: unused import: `PQC`
+ --> cli/src/types/tx.rs:1:58
+  |
+1 | use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+  |                                                          ^^^
+
+warning: unused import: `Deserializer`
+ --> cli/src/types/tx.rs:4:26
+  |
+4 | use serde::{Deserialize, Deserializer, Serialize};
+  |                          ^^^^^^^^^^^^
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:190:13
+    |
+190 |             format!("💰 Balance for account: {}", account).bright_blue()
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+190 -             format!("💰 Balance for account: {}", account).bright_blue()
+190 +             format!("💰 Balance for account: {account}").bright_blue()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:246:13
+    |
+246 |             format!("Account '{}' not found", account).bright_red()
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+246 -             format!("Account '{}' not found", account).bright_red()
+246 +             format!("Account '{account}' not found").bright_red()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:264:13
+    |
+264 |             format!("Account '{}' not found", account).bright_red()
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+264 -             format!("Account '{}' not found", account).bright_red()
+264 +             format!("Account '{account}' not found").bright_red()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:292:13
+    |
+292 |             format!("{}_full_export.json", account)
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+292 -             format!("{}_full_export.json", account)
+292 +             format!("{account}_full_export.json")
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:294:13
+    |
+294 |             format!("{}_public_export.json", account)
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+294 -             format!("{}_public_export.json", account)
+294 +             format!("{account}_public_export.json")
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:300:9
+    |
+300 |         format!("📤 Exporting account: {}", account).bright_blue()
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+300 -         format!("📤 Exporting account: {}", account).bright_blue()
+300 +         format!("📤 Exporting account: {account}").bright_blue()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:325:9
+    |
+325 |         format!("📥 Importing account from: {}", file).bright_blue()
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+325 -         format!("📥 Importing account from: {}", file).bright_blue()
+325 +         format!("📥 Importing account from: {file}").bright_blue()
+    |
+
+warning: `dytallix-governance` (example "tokenomics_governance_scenario") generated 6 warnings (run `cargo clippy --fix --example "tokenomics_governance_scenario"` to apply 6 suggestions)
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:378:13
+    |
+378 |             format!("Account '{}' not found", account).bright_red()
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+378 -             format!("Account '{}' not found", account).bright_red()
+378 +             format!("Account '{account}' not found").bright_red()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/account.rs:419:28
+    |
+419 |             println!("{}", format!("Unknown algorithm: {}", alg).bright_red());
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+419 -             println!("{}", format!("Unknown algorithm: {}", alg).bright_red());
+419 +             println!("{}", format!("Unknown algorithm: {alg}").bright_red());
+    |
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/commands/ai.rs:49:21
+   |
+49 |                     format!("⚠️  Could not fetch transaction data: {}", e).bright_yellow()
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+49 -                     format!("⚠️  Could not fetch transaction data: {}", e).bright_yellow()
+49 +                     format!("⚠️  Could not fetch transaction data: {e}").bright_yellow()
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/ai.rs:113:17
+    |
+113 |                 format!("⚠️  AI service unavailable ({}), using offline analysis", e)
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+113 -                 format!("⚠️  AI service unavailable ({}), using offline analysis", e)
+113 +                 format!("⚠️  AI service unavailable ({e}), using offline analysis")
+    |
+
+warning: unused import: `Sha3_256`
+ --> cli/src/tx.rs:8:20
+  |
+8 | use sha3::{Digest, Sha3_256};
+  |                    ^^^^^^^^
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/commands/keys.rs:72:20
+   |
+72 |         algorithm: format!("{:?}", algorithm),
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+72 -         algorithm: format!("{:?}", algorithm),
+72 +         algorithm: format!("{algorithm:?}"),
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/keys.rs:162:5
+    |
+162 |     format!("dyt1{}", hex_addr)
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+162 -     format!("dyt1{}", hex_addr)
+162 +     format!("dyt1{hex_addr}")
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/keys.rs:190:9
+    |
+190 |         println!("Test address: {}", address);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+190 -         println!("Test address: {}", address);
+190 +         println!("Test address: {address}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/keys.rs:215:9
+    |
+215 |         println!("Keystore entry JSON:\n{}", json);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+215 -         println!("Keystore entry JSON:\n{}", json);
+215 +         println!("Keystore entry JSON:\n{json}");
+    |
+
+warning: the borrowed expression implements the required traits
+   --> developer-tools/src/commands/node.rs:136:14
+    |
+136 |         .get(&format!("{}/health", config.ai_url))
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `format!("{}/health", config.ai_url)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrows_for_generic_args
+    = note: `#[warn(clippy::needless_borrows_for_generic_args)]` on by default
+
+warning: the borrowed expression implements the required traits
+   --> developer-tools/src/commands/node.rs:248:14
+    |
+248 |         .get(&format!("{}/health", config.node_url))
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `format!("{}/health", config.node_url)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrows_for_generic_args
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/commands/smart_contract.rs:58:17
+   |
+58 |                 format!("❌ Cannot connect to node: {}", e).bright_red()
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+58 -                 format!("❌ Cannot connect to node: {}", e).bright_red()
+58 +                 format!("❌ Cannot connect to node: {e}").bright_red()
+   |
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/commands/smart_contract.rs:83:17
+   |
+83 |                 format!("⚠️  Backend deployment failed, using simulation: {}", e).bright_yellow()
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+83 -                 format!("⚠️  Backend deployment failed, using simulation: {}", e).bright_yellow()
+83 +                 format!("⚠️  Backend deployment failed, using simulation: {e}").bright_yellow()
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:184:17
+    |
+184 |                 format!("⚠️  Backend call failed, using simulation: {}", e).bright_yellow()
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+184 -                 format!("⚠️  Backend call failed, using simulation: {}", e).bright_yellow()
+184 +                 format!("⚠️  Backend call failed, using simulation: {e}").bright_yellow()
+    |
+
+warning: variables can be used directly in the `format!` string
+  --> governance/examples/governance_demo.rs:21:5
+   |
+21 |     println!("✅ Proposal created with ID: {}", proposal_id);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+   = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+   |
+21 -     println!("✅ Proposal created with ID: {}", proposal_id);
+21 +     println!("✅ Proposal created with ID: {proposal_id}");
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:352:37
+    |
+352 |     let info_file = config_dir.join(format!("{}.json", address));
+    |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+352 -     let info_file = config_dir.join(format!("{}.json", address));
+352 +     let info_file = config_dir.join(format!("{address}.json"));
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> governance/examples/governance_demo.rs:106:19
+    |
+106 |         Err(e) => println!("❌ Unexpected error: {:?}", e),
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+106 -         Err(e) => println!("❌ Unexpected error: {:?}", e),
+106 +         Err(e) => println!("❌ Unexpected error: {e:?}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:414:13
+    |
+414 |             format!("({})", file).bright_black()
+    |             ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+414 -             format!("({})", file).bright_black()
+414 +             format!("({file})").bright_black()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:434:9
+    |
+434 |         format!("🏗️  Initializing contract from template: {}", template_name).bright_blue()
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+434 -         format!("🏗️  Initializing contract from template: {}", template_name).bright_blue()
+434 +         format!("🏗️  Initializing contract from template: {template_name}").bright_blue()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:458:5
+    |
+458 |     println!("  1. cd {}", output_path);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+458 -     println!("  1. cd {}", output_path);
+458 +     println!("  1. cd {output_path}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:532:20
+    |
+532 |     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+532 -     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
+532 +     std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:533:20
+    |
+533 |     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+533 -     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+533 +     std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:534:29
+    |
+534 |     std::fs::create_dir_all(format!("{}/src", output_path))?;
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+534 -     std::fs::create_dir_all(format!("{}/src", output_path))?;
+534 +     std::fs::create_dir_all(format!("{output_path}/src"))?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:610:20
+    |
+610 |     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+610 -     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
+610 +     std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:611:29
+    |
+611 |     std::fs::create_dir_all(format!("{}/src", output_path))?;
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+611 -     std::fs::create_dir_all(format!("{}/src", output_path))?;
+611 +     std::fs::create_dir_all(format!("{output_path}/src"))?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:612:20
+    |
+612 |     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+612 -     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+612 +     std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:663:20
+    |
+663 |     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+663 -     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
+663 +     std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:664:29
+    |
+664 |     std::fs::create_dir_all(format!("{}/src", output_path))?;
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+664 -     std::fs::create_dir_all(format!("{}/src", output_path))?;
+664 +     std::fs::create_dir_all(format!("{output_path}/src"))?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:665:20
+    |
+665 |     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+665 -     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+665 +     std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:705:20
+    |
+705 |     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+705 -     std::fs::write(format!("{}/Cargo.toml", output_path), cargo_toml)?;
+705 +     std::fs::write(format!("{output_path}/Cargo.toml"), cargo_toml)?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:706:29
+    |
+706 |     std::fs::create_dir_all(format!("{}/src", output_path))?;
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+706 -     std::fs::create_dir_all(format!("{}/src", output_path))?;
+706 +     std::fs::create_dir_all(format!("{output_path}/src"))?;
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/smart_contract.rs:707:20
+    |
+707 |     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+707 -     std::fs::write(format!("{}/src/lib.rs", output_path), lib_rs)?;
+707 +     std::fs::write(format!("{output_path}/src/lib.rs"), lib_rs)?;
+    |
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/commands/transaction.rs:48:21
+   |
+48 |                     format!("{} ({})", a, preview)
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+48 -                     format!("{} ({})", a, preview)
+48 +                     format!("{a} ({preview})")
+   |
+
+warning: `dytallix-governance` (example "governance_demo") generated 2 warnings (run `cargo clippy --fix --example "governance_demo"` to apply 2 suggestions)
+    Checking dytallix-contracts v0.1.0 (/Users/rickglenn/dytallix/smart-contracts)
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/transaction.rs:102:17
+    |
+102 |                 format!("⚠️  Could not check balance: {}", e).bright_yellow()
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+102 -                 format!("⚠️  Could not check balance: {}", e).bright_yellow()
+102 +                 format!("⚠️  Could not check balance: {e}").bright_yellow()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/transaction.rs:174:17
+    |
+174 |                 format!("❌ Failed to submit transaction: {}", e).bright_red()
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+174 -                 format!("❌ Failed to submit transaction: {}", e).bright_red()
+174 +                 format!("❌ Failed to submit transaction: {e}").bright_red()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/transaction.rs:242:17
+    |
+242 |                 format!("❌ Failed to fetch transaction: {}", e).bright_red()
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+242 -                 format!("❌ Failed to fetch transaction: {}", e).bright_red()
+242 +                 format!("❌ Failed to fetch transaction: {e}").bright_red()
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> developer-tools/src/commands/transaction.rs:324:17
+    |
+324 |                 format!("❌ Failed to list transactions: {}", e).bright_red()
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+324 -                 format!("❌ Failed to list transactions: {}", e).bright_red()
+324 +                 format!("❌ Failed to list transactions: {e}").bright_red()
+    |
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/tokens.rs:52:28
+   |
+52 |         .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+52 -         .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
+52 +         .unwrap_or_else(|| panic!("Unknown denomination: {denom}"));
+   |
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/tokens.rs:61:28
+   |
+61 |         .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+61 -         .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
+61 +         .unwrap_or_else(|| panic!("Unknown denomination: {denom}"));
+   |
+
+warning: variables can be used directly in the `format!` string
+  --> developer-tools/src/tokens.rs:88:28
+   |
+88 |         .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+88 -         .unwrap_or_else(|| panic!("Unknown denomination: {}", denom));
+88 +         .unwrap_or_else(|| panic!("Unknown denomination: {denom}"));
+   |
+
+warning: unused import: `dytallix_contracts::types::*`
+ --> smart-contracts/tests/integration_tests.rs:9:5
+  |
+9 | use dytallix_contracts::types::*;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused variable: `value`
+   --> smart-contracts/tests/integration_tests.rs:238:9
+    |
+238 |     let value = b"test_value".to_vec();
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_value`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: variables can be used directly in the `format!` string
+  --> smart-contracts/tests/integration_tests.rs:71:9
+   |
+71 |         println!("Deployment failed: {:?}", e);
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+   = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+   |
+71 -         println!("Deployment failed: {:?}", e);
+71 +         println!("Deployment failed: {e:?}");
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/integration_tests.rs:292:26
+    |
+292 |                 address: format!("dyt1concurrent_test_{}", i),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+292 -                 address: format!("dyt1concurrent_test_{}", i),
+292 +                 address: format!("dyt1concurrent_test_{i}"),
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/integration_tests.rs:296:27
+    |
+296 |                 deployer: format!("dyt1deployer_{}", i),
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+296 -                 deployer: format!("dyt1deployer_{}", i),
+296 +                 deployer: format!("dyt1deployer_{i}"),
+    |
+
+warning: `dytallix-contracts` (test "integration_tests") generated 5 warnings (run `cargo clippy --fix --test "integration_tests"` to apply 4 suggestions)
+warning: unused import: `crate::runtime::ContractDeployment`
+   --> smart-contracts/src/security/audit_report.rs:945:9
+    |
+945 |     use crate::runtime::ContractDeployment;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `StateChange`
+   --> smart-contracts/src/security/gas_attack_analyzer.rs:576:77
+    |
+576 |     use crate::runtime::{ContractCall, ContractDeployment, ExecutionResult, StateChange};
+    |                                                                             ^^^^^^^^^^^
+
+warning: unused import: `crate::runtime::ContractDeployment`
+   --> smart-contracts/src/security/mod.rs:240:9
+    |
+240 |     use crate::runtime::ContractDeployment;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated function `cosmwasm_std::from_binary`: use from_json instead
+   --> smart-contracts/src/cosmos_bridge.rs:877:31
+    |
+877 |     use cosmwasm_std::{coins, from_binary};
+    |                               ^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `cosmwasm_std::from_binary`: use from_json instead
+   --> smart-contracts/src/cosmos_bridge.rs:914:28
+    |
+914 |         let state: State = from_binary(&res).unwrap();
+    |                            ^^^^^^^^^^^
+
+warning: use of deprecated function `cosmwasm_std::from_binary`: use from_json instead
+   --> smart-contracts/src/cosmos_bridge_optimized.rs:987:31
+    |
+987 |     use cosmwasm_std::{coins, from_binary};
+    |                               ^^^^^^^^^^^
+
+warning: use of deprecated function `cosmwasm_std::from_binary`: use from_json instead
+    --> smart-contracts/src/cosmos_bridge_optimized.rs:1114:37
+     |
+1114 |         let state: OptimizedState = from_binary(&res).unwrap();
+     |                                     ^^^^^^^^^^^
+
+warning: unused variable: `findings`
+   --> smart-contracts/src/security/fuzz_tester.rs:766:13
+    |
+766 |         let findings = tester.test_deployment(&deployment).await;
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_findings`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: variable does not need to be mutable
+   --> smart-contracts/src/security/gas_attack_analyzer.rs:586:13
+    |
+586 |         let mut analyzer = GasAttackAnalyzer::new();
+    |             ----^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: `dytallix-contracts` (lib test) generated 75 warnings (66 duplicates) (run `cargo clippy --fix --lib -p dytallix-contracts --tests` to apply 4 suggestions)
+warning: useless use of `vec!`
+   --> developer-tools/src/commands/smart_contract.rs:293:23
+    |
+293 |       let mock_events = vec![
+    |  _______________________^
+294 | |         serde_json::json!({
+295 | |             "event": "Transfer",
+296 | |             "block_number": 12345,
+...   |
+313 | |         }),
+314 | |     ];
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_vec
+    = note: `#[warn(clippy::useless_vec)]` on by default
+help: you can use an array directly
+    |
+293 ~     let mock_events = [serde_json::json!({
+294 +             "event": "Transfer",
+295 +             "block_number": 12345,
+296 +             "transaction_hash": "0x123456789abcdef",
+297 +             "data": {
+298 +                 "from": "dyt1sender123456789abcdef",
+299 +                 "to": "dyt1receiver123456789abcdef",
+300 +                 "amount": 50000
+301 +             }
+302 +         }),
+303 +         serde_json::json!({
+304 +             "event": "Approval",
+305 +             "block_number": 12346,
+306 +             "transaction_hash": "0x987654321fedcba",
+307 +             "data": {
+308 +                 "owner": "dyt1owner123456789abcdef",
+309 +                 "spender": "dyt1spender123456789abcdef",
+310 +                 "amount": 100000
+311 +             }
+312 ~         })];
+    |
+
+warning: useless use of `vec!`
+   --> developer-tools/src/commands/smart_contract.rs:386:21
+    |
+386 |       let templates = vec![
+    |  _____________________^
+387 | |         (
+388 | |             "Simple Token",
+389 | |             "ERC20-like token with PQC signatures",
+...   |
+406 | |         ),
+407 | |     ];
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_vec
+help: you can use an array directly
+    |
+386 ~     let templates = [(
+387 +             "Simple Token",
+388 +             "ERC20-like token with PQC signatures",
+389 +             "token.wasm",
+390 +         ),
+391 +         (
+392 +             "Escrow Contract",
+393 +             "AI-enhanced escrow with fraud detection",
+394 +             "escrow.wasm",
+395 +         ),
+396 +         (
+397 +             "Voting DAO",
+398 +             "Decentralized voting with governance",
+399 +             "voting.wasm",
+400 +         ),
+401 +         (
+402 +             "Oracle Consumer",
+403 +             "AI oracle data consumer contract",
+404 +             "oracle.wasm",
+405 ~         )];
+    |
+
+warning: `dytallix-cli` (bin "dytallix-cli") generated 97 warnings (31 duplicates) (run `cargo clippy --fix --bin "dytallix-cli"` to apply 42 suggestions)
+warning: `dytallix-cli` (bin "dytallix-cli" test) generated 94 warnings (60 duplicates) (run `cargo clippy --fix --bin "dytallix-cli" --tests` to apply 11 suggestions)
+    Checking dytallix-sdk v0.1.0 (/Users/rickglenn/dytallix/sdk)
+warning: variable does not need to be mutable
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:335:13
+    |
+335 |         let mut harness = TokenomicsTestHarness::new();
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `accounts`
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:577:13
+    |
+577 |         let accounts = harness.setup_test_accounts();
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_accounts`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: variable does not need to be mutable
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:621:13
+    |
+621 |         let mut harness = TokenomicsTestHarness::new();
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: you should consider adding a `Default` implementation for `TokenomicsTestHarness`
+  --> smart-contracts/tests/tokenomics_test_stubs.rs:25:5
+   |
+25 | /     pub fn new() -> Self {
+26 | |         let owner = "dyt1owner".to_string();
+27 | |         let mut dgt_token = DGTToken::new(owner.clone());
+28 | |         let mut drt_token = DRTToken::new(owner.clone());
+...  |
+56 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
+   = note: `#[warn(clippy::new_without_default)]` on by default
+help: try adding this
+   |
+23 + impl Default for TokenomicsTestHarness {
+24 +     fn default() -> Self {
+25 +         Self::new()
+26 +     }
+27 + }
+   |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:150:13
+    |
+150 |             println!("{}: {} DRT per block", description, rate);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+    = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+    |
+150 -             println!("{}: {} DRT per block", description, rate);
+150 +             println!("{description}: {rate} DRT per block");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:346:13
+    |
+346 |             println!("{}: {} DRT per block", description, rate);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+346 -             println!("{}: {} DRT per block", description, rate);
+346 +             println!("{description}: {rate} DRT per block");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:349:13
+    |
+349 | /             assert!(
+350 | |                 rate >= params.min_emission_rate,
+351 | |                 "Rate below minimum for {}",
+352 | |                 description
+353 | |             );
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:354:13
+    |
+354 | /             assert!(
+355 | |                 rate <= params.max_emission_rate,
+356 | |                 "Rate above maximum for {}",
+357 | |                 description
+358 | |             );
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:408:9
+    |
+408 |         println!("101 emission rate calculations took: {:?}", duration);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+408 -         println!("101 emission rate calculations took: {:?}", duration);
+408 +         println!("101 emission rate calculations took: {duration:?}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:424:22
+    |
+424 |             let to = format!("dyt1user{}", i);
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+424 -             let to = format!("dyt1user{}", i);
+424 +             let to = format!("dyt1user{i}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:431:17
+    |
+431 |                 assert!(result.is_ok(), "Transfer {} should succeed", i);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+431 -                 assert!(result.is_ok(), "Transfer {} should succeed", i);
+431 +                 assert!(result.is_ok(), "Transfer {i} should succeed");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:436:9
+    |
+436 |         println!("100 transfer attempts took: {:?}", duration);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+436 -         println!("100 transfer attempts took: {:?}", duration);
+436 +         println!("100 transfer attempts took: {duration:?}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:454:9
+    |
+454 |         println!("1000 blocks emission processing took: {:?}", duration);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+454 -         println!("1000 blocks emission processing took: {:?}", duration);
+454 +         println!("1000 blocks emission processing took: {duration:?}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> smart-contracts/tests/tokenomics_test_stubs.rs:455:9
+    |
+455 |         println!("Total emitted: {} DRT", total_emitted);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+455 -         println!("Total emitted: {} DRT", total_emitted);
+455 +         println!("Total emitted: {total_emitted} DRT");
+    |
+
+warning: `dytallix-contracts` (test "tokenomics_test_stubs") generated 14 warnings (run `cargo clippy --fix --test "tokenomics_test_stubs"` to apply 13 suggestions)
+warning: unused import: `Zeroize`
+  --> sdk/pqc_wallet.rs:11:15
+   |
+11 | use zeroize::{Zeroize, ZeroizeOnDrop};
+   |               ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Digest`
+  --> sdk/pqc_wallet.rs:10:12
+   |
+10 | use sha2::{Digest, Sha256};
+   |            ^^^^^^
+
+warning: unused variable: `seed`
+   --> sdk/pqc_wallet.rs:161:32
+    |
+161 | fn generate_dilithium5_keypair(seed: &[u8]) -> Result<KeyPair> {
+    |                                ^^^^ help: if this is intentional, prefix it with an underscore: `_seed`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `keypair`
+   --> sdk/pqc_wallet.rs:196:32
+    |
+196 | fn create_manager_from_keypair(keypair: &KeyPair) -> Result<PQCManager> {
+    |                                ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_keypair`
+
+warning: the borrowed expression implements the required traits
+   --> sdk/pqc_wallet.rs:188:26
+    |
+188 |     ripemd_hasher.update(&sha256_hash);
+    |                          ^^^^^^^^^^^^ help: change this to: `sha256_hash`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrows_for_generic_args
+    = note: `#[warn(clippy::needless_borrows_for_generic_args)]` on by default
+
+warning: variables can be used directly in the `format!` string
+   --> sdk/pqc_wallet.rs:211:8
+    |
+211 |     Ok(format!("{}{}", prefix, encoded))
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+    = note: `#[warn(clippy::uninlined_format_args)]` on by default
+help: change this to
+    |
+211 -     Ok(format!("{}{}", prefix, encoded))
+211 +     Ok(format!("{prefix}{encoded}"))
+    |
+
+warning: `dytallix-sdk` (lib) generated 6 warnings (run `cargo clippy --fix --lib -p dytallix-sdk` to apply 3 suggestions)
+error[E0432]: unresolved import `dytallix_sdk`
+ --> sdk/integration_tests.rs:7:5
+  |
+7 | use dytallix_sdk::{PQCWallet, PublicKeyProto};
+  |     ^^^^^^^^^^^^ use of unresolved module or unlinked crate `dytallix_sdk`
+  |
+help: there is a crate or module with a similar name
+  |
+7 - use dytallix_sdk::{PQCWallet, PublicKeyProto};
+7 + use dytallix_pqc::{PQCWallet, PublicKeyProto};
+  |
+
+error[E0432]: unresolved import `super::DETERMINISTIC_SALT`
+   --> sdk/tests.rs:141:13
+    |
+141 |         use super::DETERMINISTIC_SALT;
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^ no `DETERMINISTIC_SALT` in `tests`
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+  --> sdk/tests.rs:17:23
+   |
+17 |         let wallet1 = PQCWallet::new_deterministic(passphrase).unwrap();
+   |                       ^^^^^^^^^ use of undeclared type `PQCWallet`
+   |
+help: consider importing this struct through its public re-export
+   |
+8  +     use crate::PQCWallet;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+  --> sdk/tests.rs:18:23
+   |
+18 |         let wallet2 = PQCWallet::new_deterministic(passphrase).unwrap();
+   |                       ^^^^^^^^^ use of undeclared type `PQCWallet`
+   |
+help: consider importing this struct through its public re-export
+   |
+8  +     use crate::PQCWallet;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+  --> sdk/tests.rs:29:23
+   |
+29 |         let wallet1 = PQCWallet::new_deterministic("passphrase one").unwrap();
+   |                       ^^^^^^^^^ use of undeclared type `PQCWallet`
+   |
+help: consider importing this struct through its public re-export
+   |
+8  +     use crate::PQCWallet;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+  --> sdk/tests.rs:30:23
+   |
+30 |         let wallet2 = PQCWallet::new_deterministic("passphrase two").unwrap();
+   |                       ^^^^^^^^^ use of undeclared type `PQCWallet`
+   |
+help: consider importing this struct through its public re-export
+   |
+8  +     use crate::PQCWallet;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+  --> sdk/tests.rs:40:22
+   |
+40 |         let wallet = PQCWallet::new_deterministic("test").unwrap();
+   |                      ^^^^^^^^^ use of undeclared type `PQCWallet`
+   |
+help: consider importing this struct through its public re-export
+   |
+8  +     use crate::PQCWallet;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+  --> sdk/tests.rs:69:22
+   |
+69 |         let wallet = PQCWallet::new_deterministic("test passphrase").unwrap();
+   |                      ^^^^^^^^^ use of undeclared type `PQCWallet`
+   |
+help: consider importing this struct through its public re-export
+   |
+8  +     use crate::PQCWallet;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+  --> sdk/tests.rs:82:22
+   |
+82 |         let wallet = PQCWallet::new_deterministic("test passphrase").unwrap();
+   |                      ^^^^^^^^^ use of undeclared type `PQCWallet`
+   |
+help: consider importing this struct through its public re-export
+   |
+8  +     use crate::PQCWallet;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Argon2Params`
+  --> sdk/tests.rs:99:22
+   |
+99 |         let params = Argon2Params::default();
+   |                      ^^^^^^^^^^^^ use of undeclared type `Argon2Params`
+   |
+help: consider importing this struct through its public re-export
+   |
+8  +     use crate::Argon2Params;
+   |
+
+error[E0422]: cannot find struct, variant or union type `Argon2Params` in this scope
+   --> sdk/tests.rs:113:29
+    |
+113 |         let custom_params = Argon2Params {
+    |                             ^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::Argon2Params;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:120:22
+    |
+120 |         let wallet = PQCWallet::new_with_params("test", &salt, &custom_params).unwrap();
+    |                      ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:129:22
+    |
+129 |         let wallet = PQCWallet::new_deterministic("test").unwrap();
+    |                      ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:158:23
+    |
+158 |         let wallet1 = PQCWallet::new_random("same passphrase").unwrap();
+    |                       ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:159:23
+    |
+159 |         let wallet2 = PQCWallet::new_random("same passphrase").unwrap();
+    |                       ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+error[E0425]: cannot find function `derive_address` in this scope
+   --> sdk/tests.rs:172:23
+    |
+172 |         let address = derive_address(&test_pubkey).unwrap();
+    |                       ^^^^^^^^^^^^^^ not found in this scope
+    |
+note: function `crate::pqc_wallet::derive_address` exists but is inaccessible
+   --> sdk/pqc_wallet.rs:180:1
+    |
+180 | fn derive_address(public_key: &[u8]) -> Result<String> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not accessible
+
+error[E0425]: cannot find function `derive_address` in this scope
+   --> sdk/tests.rs:177:24
+    |
+177 |         let address2 = derive_address(&test_pubkey).unwrap();
+    |                        ^^^^^^^^^^^^^^ not found in this scope
+    |
+note: function `crate::pqc_wallet::derive_address` exists but is inaccessible
+   --> sdk/pqc_wallet.rs:180:1
+    |
+180 | fn derive_address(public_key: &[u8]) -> Result<String> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not accessible
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:185:22
+    |
+185 |         let wallet = PQCWallet::new_deterministic("test").unwrap();
+    |                      ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:205:22
+    |
+205 |         let wallet = PQCWallet::new_deterministic("test").unwrap();
+    |                      ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `SignatureAlgorithm`
+   --> sdk/tests.rs:208:13
+    |
+208 |             SignatureAlgorithm::Dilithium5 => {} // Expected
+    |             ^^^^^^^^^^^^^^^^^^ use of undeclared type `SignatureAlgorithm`
+    |
+help: consider importing one of these enums
+    |
+8   +     use crate::SignatureAlgorithm;
+    |
+8   +     use dytallix_pqc::SignatureAlgorithm;
+    |
+
+error[E0422]: cannot find struct, variant or union type `Argon2Params` in this scope
+   --> sdk/tests.rs:217:30
+    |
+217 |         let invalid_params = Argon2Params {
+    |                              ^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::Argon2Params;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:224:22
+    |
+224 |         let result = PQCWallet::new_with_params("test", &salt, &invalid_params);
+    |                      ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:234:22
+    |
+234 |         let wallet = PQCWallet::new_deterministic(passphrase).unwrap();
+    |                      ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:253:23
+    |
+253 |         let wallet2 = PQCWallet::new_deterministic(passphrase).unwrap();
+    |                       ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `PQCWallet`
+   --> sdk/tests.rs:264:23
+    |
+264 |         let _wallet = PQCWallet::new_deterministic("performance test").unwrap();
+    |                       ^^^^^^^^^ use of undeclared type `PQCWallet`
+    |
+help: consider importing this struct through its public re-export
+    |
+8   +     use crate::PQCWallet;
+    |
+
+warning: unused import: `super::*`
+ --> sdk/tests.rs:8:9
+  |
+8 |     use super::*;
+  |         ^^^^^^^^
+
+warning: unused import: `tempfile::NamedTempFile`
+ --> sdk/tests.rs:9:9
+  |
+9 |     use tempfile::NamedTempFile;
+  |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no function or associated item named `new` found for struct `CoreWrapper` in the current scope
+   --> sdk/tests.rs:146:40
+    |
+146 |         let mut hasher = sha2::Sha256::new();
+    |                                        ^^^ function or associated item not found in `CoreWrapper<CtVariableCoreWrapper<Sha256VarCore, UInt<..., ...>, ...>>`
+    |
+note: if you're trying to build a new `ripemd::digest::core_api::CoreWrapper<ripemd::digest::core_api::CtVariableCoreWrapper<sha2::Sha256VarCore, ripemd::digest::typenum::UInt<ripemd::digest::typenum::UInt<ripemd::digest::typenum::UInt<ripemd::digest::typenum::UInt<ripemd::digest::typenum::UInt<ripemd::digest::typenum::UInt<ripemd::digest::typenum::UTerm, ripemd::digest::typenum::B1>, ripemd::digest::typenum::B0>, ripemd::digest::typenum::B0>, ripemd::digest::typenum::B0>, ripemd::digest::typenum::B0>, ripemd::digest::typenum::B0>, sha2::OidSha256>>`, consider using `ripemd::digest::core_api::CoreWrapper::<T>::from_core` which returns `ripemd::digest::core_api::CoreWrapper<_>`
+   --> /Users/rickglenn/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/digest-0.10.7/src/core_api/wrapper.rs:70:5
+    |
+70  |     pub fn from_core(core: T) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: items from traits can only be used if the trait is in scope
+help: trait `Digest` which provides `new` is implemented but not in scope; perhaps you want to import it
+    |
+8   +     use ripemd::Digest;
+    |
+
+Some errors have detailed explanations: E0422, E0425, E0432, E0433, E0599.
+For more information about an error, try `rustc --explain E0422`.
+warning: `dytallix-sdk` (lib test) generated 6 warnings (4 duplicates)
+error: could not compile `dytallix-sdk` (lib test) due to 26 previous errors; 6 warnings emitted
+warning: build failed, waiting for other jobs to finish...
+error: the `#[test]` attribute may only be used on a non-associated function
+   --> blockchain-core/src/genesis.rs:383:5
+    |
+383 |     #[test]
+    |     ^^^^^^^ the `#[test]` macro causes a function to be run as a test and has no effect on non-functions
+    |
+help: replace with conditional compilation to make the item only exist when tests are being run
+    |
+383 -     #[test]
+383 +     #[cfg(test)]
+    |
+
+warning: used `assert_eq!` with a literal bool
+   --> governance/src/lib.rs:734:13
+    |
+734 |             assert_eq!(votes[0].vote, true);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#bool_assert_comparison
+    = note: `#[warn(clippy::bool_assert_comparison)]` on by default
+help: replace it with `assert!(..)`
+    |
+734 -             assert_eq!(votes[0].vote, true);
+734 +             assert!(votes[0].vote);
+    |
+
+warning: `dytallix-governance` (lib test) generated 14 warnings (13 duplicates) (run `cargo clippy --fix --lib -p dytallix-governance --tests` to apply 1 suggestion)
+error[E0277]: the size for values of type `[u8]` cannot be known at compilation time
+   --> cli/src/keystore.rs:271:14
+    |
+271 |     let (sk, pk, address) = match algorithm {
+    |              ^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `[u8]`
+    = note: all local variables must have a statically known size
+    = help: unsized locals are gated as an unstable feature
+
+error[E0277]: the size for values of type `[u8]` cannot be known at compilation time
+   --> cli/src/keystore.rs:271:10
+    |
+271 |     let (sk, pk, address) = match algorithm {
+    |          ^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `[u8]`
+    = note: all local variables must have a statically known size
+    = help: unsized locals are gated as an unstable feature
+
+warning: redundant field names in struct initialization
+    --> blockchain-core/src/staking.rs:1040:13
+     |
+1040 |             pending: pending,
+     |             ^^^^^^^^^^^^^^^^ help: replace it with: `pending`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_field_names
+     = note: `#[warn(clippy::redundant_field_names)]` on by default
+
+warning: this looks like an `else if` but the `else` is missing
+ --> blockchain-core/src/risk/pulseguard/graph/dag.rs:9:460
+  |
+9 | ...g(),0)); while let Some((n,d))=q.pop_front(){ if d==k { continue;} if let Some(edges)=self.adj.get(&n){ for e in edges { if visited.in...
+  |                                                                      ^
+  |
+  = note: to remove this lint, add the missing `else` or add a new line before the second `if`
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#suspicious_else_formatting
+  = note: `#[warn(clippy::suspicious_else_formatting)]` on by default
+
+warning: unused import: `Digest`
+ --> cli/src/addr.rs:4:12
+  |
+4 | use sha3::{Digest, Sha3_256};
+  |            ^^^^^^
+
+warning: unused import: `Digest`
+ --> cli/src/tx.rs:8:12
+  |
+8 | use sha3::{Digest, Sha3_256};
+  |            ^^^^^^
+
+warning: unused import: `PQC`
+ --> cli/src/tx.rs:4:58
+  |
+4 | use crate::crypto::{canonical_json, sha3_256, ActivePQC, PQC};
+  |                                                          ^^^
+
+error[E0433]: failed to resolve: use of undeclared type `SignatureAlgorithm`
+   --> blockchain-core/src/consensus/mod.rs:172:13
+    |
+172 |             SignatureAlgorithm::Dilithium5,
+    |             ^^^^^^^^^^^^^^^^^^ use of undeclared type `SignatureAlgorithm`
+    |
+    = note: enum `crate::types::tests::SignatureAlgorithm` exists but is inaccessible
+help: consider importing this enum
+    |
+79  +     use dytallix_pqc::SignatureAlgorithm;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `SignatureAlgorithm`
+   --> blockchain-core/src/consensus/mod.rs:267:13
+    |
+267 |             SignatureAlgorithm::Dilithium5,
+    |             ^^^^^^^^^^^^^^^^^^ use of undeclared type `SignatureAlgorithm`
+    |
+    = note: enum `crate::types::tests::SignatureAlgorithm` exists but is inaccessible
+help: consider importing this enum
+    |
+79  +     use dytallix_pqc::SignatureAlgorithm;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `SignatureAlgorithm`
+   --> blockchain-core/src/consensus/mod.rs:276:13
+    |
+276 |             SignatureAlgorithm::Dilithium5,
+    |             ^^^^^^^^^^^^^^^^^^ use of undeclared type `SignatureAlgorithm`
+    |
+    = note: enum `crate::types::tests::SignatureAlgorithm` exists but is inaccessible
+help: consider importing this enum
+    |
+79  +     use dytallix_pqc::SignatureAlgorithm;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `SignatureAlgorithm`
+   --> blockchain-core/src/consensus/mod.rs:380:13
+    |
+380 |             SignatureAlgorithm::Dilithium5,
+    |             ^^^^^^^^^^^^^^^^^^ use of undeclared type `SignatureAlgorithm`
+    |
+    = note: enum `crate::types::tests::SignatureAlgorithm` exists but is inaccessible
+help: consider importing this enum
+    |
+79  +     use dytallix_pqc::SignatureAlgorithm;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `SignatureAlgorithm`
+   --> blockchain-core/src/consensus/mod.rs:399:13
+    |
+399 |             SignatureAlgorithm::Dilithium5,
+    |             ^^^^^^^^^^^^^^^^^^ use of undeclared type `SignatureAlgorithm`
+    |
+    = note: enum `crate::types::tests::SignatureAlgorithm` exists but is inaccessible
+help: consider importing this enum
+    |
+79  +     use dytallix_pqc::SignatureAlgorithm;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `SignatureAlgorithm`
+   --> blockchain-core/src/consensus/mod.rs:418:13
+    |
+418 |             SignatureAlgorithm::Dilithium5,
+    |             ^^^^^^^^^^^^^^^^^^ use of undeclared type `SignatureAlgorithm`
+    |
+    = note: enum `crate::types::tests::SignatureAlgorithm` exists but is inaccessible
+help: consider importing this enum
+    |
+79  +     use dytallix_pqc::SignatureAlgorithm;
+    |
+
+warning: unused variable: `gas_price`
+   --> cli/src/cmd/tx.rs:132:39
+    |
+132 | fn estimate_gas_for_transfer(tx: &Tx, gas_price: u64) -> Result<u64> {
+    |                                       ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_gas_price`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `gas_price`
+   --> cli/src/cmd/tx.rs:242:36
+    |
+242 | fn estimate_gas_for_batch(tx: &Tx, gas_price: u64) -> Result<u64> {
+    |                                    ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_gas_price`
+
+warning: unused import: `crate::types::TransferTransaction`
+   --> blockchain-core/src/consensus/enhanced_ai_integration.rs:527:9
+    |
+527 |     use crate::types::TransferTransaction;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` on by default
+
+warning: unused variable: `hidden`
+  --> cli/src/secure.rs:47:9
+   |
+47 |     let hidden = true; // always hidden for now; could add env toggle
+   |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_hidden`
+
+warning: variable does not need to be mutable
+  --> cli/src/secure.rs:40:5
+   |
+40 |     mut max_retries: u8,
+   |     ----^^^^^^^^^^^
+   |     |
+   |     help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: unused import: `serde_json`
+ --> blockchain-core/src/consensus/integration_tests.rs:7:5
+  |
+7 | use serde_json;
+  |     ^^^^^^^^^^
+
+warning: unused imports: `AIIntegrationConfig` and `AIIntegrationManager`
+  --> blockchain-core/src/consensus/transaction_validation_tests.rs:10:40
+   |
+10 | use crate::consensus::ai_integration::{AIIntegrationConfig, AIIntegrationManager};
+   |                                        ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `dytallix_pqc::Signature`
+ --> blockchain-core/src/consensus/performance_test.rs:7:5
+  |
+7 | use dytallix_pqc::Signature;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::time::Duration`
+  --> blockchain-core/src/consensus/mod.rs:81:9
+   |
+81 |     use std::time::Duration;
+   |         ^^^^^^^^^^^^^^^^^^^
+
+Some errors have detailed explanations: E0277, E0432.
+For more information about an error, try `rustc --explain E0277`.
+error[E0432]: unresolved import `polkadot::PolkadotChainType`
+  --> interoperability/src/connectors/mod.rs:14:37
+   |
+14 |     PolkadotAddress, PolkadotBlock, PolkadotChainType, PolkadotConfig, PolkadotConnector,
+   |                                     ^^^^^^^^^^^^^^^^^ no `PolkadotChainType` in `connectors::polkadot`
+
+warning: `dcli` (lib test) generated 17 warnings (9 duplicates)
+error: could not compile `dcli` (lib test) due to 7 previous errors; 17 warnings emitted
+warning: `dcli` (lib) generated 16 warnings (5 duplicates)
+error: could not compile `dcli` (lib) due to 7 previous errors; 16 warnings emitted
+error[E0412]: cannot find type `PolkadotChainType` in this scope
+  --> interoperability/src/connectors/polkadot/mod.rs:32:21
+   |
+32 |     pub chain_type: PolkadotChainType,
+   |                     ^^^^^^^^^^^^^^^^^ not found in this scope
+
+warning: digits grouped inconsistently by underscores
+   --> interoperability/src/connectors/cosmos/mod.rs:128:19
+    |
+128 |                 + 3600_000_000_000, // 1 hour timeout
+    |                   ^^^^^^^^^^^^^^^^ help: consider: `3_600_000_000_000`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#inconsistent_digit_grouping
+    = note: `#[warn(clippy::inconsistent_digit_grouping)]` on by default
+
+warning: unused imports: `AssetMetadata`, `BridgeStatus`, and `BridgeTxId`
+   --> interoperability/src/connectors/mod.rs:361:17
+    |
+361 |     use crate::{AssetMetadata, BridgeStatus, BridgeTxId};
+    |                 ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` on by default
+
+error[E0615]: attempted to take value of method `clone` on type `std::sync::Arc<storage::StorageManager>`
+   --> blockchain-core/src/api/mod.rs:733:74
+    |
+733 | ...                   handle_wasm_execute(params.clone(), (storage.clone, tx_pool.clone())).await
+    |                                                                    ^^^^^ method, not a field
+    |
+help: use parentheses to call the method
+    |
+733 |                             handle_wasm_execute(params.clone(), (storage.clone(), tx_pool.clone())).await
+    |                                                                               ++
+
+warning: unused variable: `runtime`
+    --> blockchain-core/src/api/mod.rs:1632:5
+     |
+1632 |     runtime: Arc<crate::runtime::DytallixRuntime>,
+     |     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_runtime`
+     |
+     = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `signature_valid`
+   --> blockchain-core/src/consensus/enhanced_ai_integration.rs:347:58
+    |
+347 |     async fn check_auto_slashing(&self, oracle_id: &str, signature_valid: bool, is_accurate: bool) {
+    |                                                          ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_signature_valid`
+
+warning: unused variable: `is_accurate`
+   --> blockchain-core/src/consensus/enhanced_ai_integration.rs:347:81
+    |
+347 |     async fn check_auto_slashing(&self, oracle_id: &str, signature_valid: bool, is_accurate: bool) {
+    |                                                                                 ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_is_accurate`
+
+error[E0119]: conflicting implementations of trait `std::default::Default` for type `connectors::cosmos::CosmosConfig`
+  --> interoperability/src/connectors/cosmos/mod.rs:29:24
+   |
+29 | #[derive(Debug, Clone, Default)]
+   |                        ^^^^^^^ conflicting implementation for `connectors::cosmos::CosmosConfig`
+...
+41 | impl Default for CosmosConfig {
+   | ----------------------------- first implementation here
+
+error[E0119]: conflicting implementations of trait `std::default::Default` for type `connectors::ethereum::EthereumConfig`
+  --> interoperability/src/connectors/ethereum/mod.rs:43:24
+   |
+43 | #[derive(Debug, Clone, Default)]
+   |                        ^^^^^^^ conflicting implementation for `connectors::ethereum::EthereumConfig`
+...
+53 | impl Default for EthereumConfig {
+   | ------------------------------- first implementation here
+
+error[E0599]: no method named `map_err` found for opaque type `impl Future<Output = Result<ConsensusEngine, Box<dyn Error>>>` in the current scope
+   --> blockchain-core/src/consensus/transaction_validation_tests.rs:37:10
+    |
+36  |       let consensus = ConsensusEngine::new(runtime, pqc_manager)
+    |  _____________________-
+37  | |         .map_err(|e| anyhow::anyhow!("Consensus engine error: {}", e))?;
+    | |         -^^^^^^^ method not found in `impl Future<Output = Result<ConsensusEngine, Box<dyn Error>>>`
+    | |_________|
+    |
+    |
+   ::: /Users/rickglenn/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/mod.rs:308:8
+    |
+308 |       fn map_err<E, F>(self, f: F) -> MapErr<Self, F>
+    |          ------- the method is available for `impl futures_util::Future<Output = std::result::Result<consensus::consensus_engine::ConsensusEngine, std::boxed::Box<(dyn std::error::Error + 'static)>>>` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: consider `await`ing on the `Future` and calling the method on its `Output`
+    |
+37  |         .await.map_err(|e| anyhow::anyhow!("Consensus engine error: {}", e))?;
+    |          ++++++
+help: trait `TryFutureExt` which provides `map_err` is implemented but not in scope; perhaps you want to import it
+    |
+6   + use futures_util::TryFutureExt;
+    |
+
+error[E0599]: no function or associated item named `from_string` found for struct `subxt::ext::sp_core::sr25519::Pair` in the current scope
+  --> interoperability/src/connectors/polkadot/substrate_client.rs:59:26
+   |
+59 |         let pair = Pair::from_string(seed_phrase, None)
+   |                          ^^^^^^^^^^^ function or associated item not found in `Pair`
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: trait `Pair` which provides `from_string` is implemented but not in scope; perhaps you want to import it
+   |
+5  + use subxt::ext::sp_core::Pair;
+   |
+help: there is an associated function `from_string_with_seed` with a similar name
+   |
+59 |         let pair = Pair::from_string_with_seed(seed_phrase, None)
+   |                                     ++++++++++
+
+error[E0433]: failed to resolve: use of undeclared type `PolkadotChainType`
+  --> interoperability/src/connectors/polkadot/mod.rs:43:25
+   |
+43 |             chain_type: PolkadotChainType::Relay,
+   |                         ^^^^^^^^^^^^^^^^^ use of undeclared type `PolkadotChainType`
+
+error[E0433]: failed to resolve: use of undeclared type `PolkadotChainType`
+   --> interoperability/src/connectors/polkadot/mod.rs:261:39
+    |
+261 |         assert_eq!(config.chain_type, PolkadotChainType::Relay);
+    |                                       ^^^^^^^^^^^^^^^^^ use of undeclared type `PolkadotChainType`
+
+warning: variable does not need to be mutable
+   --> interoperability/src/lib.rs:166:13
+    |
+166 |         let mut pqc_manager =
+    |             ----^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `cosmos_client`
+    --> interoperability/src/lib.rs:1442:21
+     |
+1442 |         if let Some(cosmos_client) = &self.cosmos_client {
+     |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cosmos_client`
+     |
+     = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `monitor`
+    --> interoperability/src/lib.rs:1455:21
+     |
+1455 |             let mut monitor = self.performance_monitor.clone();
+     |                     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_monitor`
+
+warning: variable does not need to be mutable
+    --> interoperability/src/lib.rs:1455:17
+     |
+1455 |             let mut monitor = self.performance_monitor.clone();
+     |                 ----^^^^^^^
+     |                 |
+     |                 help: remove this `mut`
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/audit_trail.rs:743:18
+    |
+743 |             fee: Some(10),
+    |                  ^^^^^^^^ expected `u64`, found `Option<{integer}>`
+    |
+    = note: expected type `u64`
+               found enum `std::option::Option<{integer}>`
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/audit_trail.rs:747:28
+    |
+747 |                 signature: vec![0x01, 0x02, 0x03],
+    |                            ^^^^^^^^^^^^^^^^^^^^^^ expected `Signature`, found `Vec<{integer}>`
+    |
+    = note: expected struct `dytallix_pqc::Signature`
+               found struct `std::vec::Vec<{integer}>`
+    = note: this error originates in the macro `vec` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/high_risk_queue.rs:720:24
+    |
+720 |             signature: vec![0x01, 0x02, 0x03],
+    |                        ^^^^^^^^^^^^^^^^^^^^^^ expected `PQCTransactionSignature`, found `Vec<{integer}>`
+    |
+    = note: expected struct `types::PQCTransactionSignature`
+               found struct `std::vec::Vec<{integer}>`
+    = note: this error originates in the macro `vec` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0063]: missing fields `ai_risk_score`, `fee` and `hash` in initializer of `types::TransferTransaction`
+   --> blockchain-core/src/consensus/high_risk_queue.rs:715:31
+    |
+715 |         Transaction::Transfer(TransferTransaction {
+    |                               ^^^^^^^^^^^^^^^^^^^ missing `ai_risk_score`, `fee` and `hash`
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/high_risk_queue.rs:727:13
+    |
+727 |             risk_score,
+    |             ^^^^^^^^^^ expected `Option<f64>`, found `f64`
+    |
+    = note: expected enum `std::option::Option<f64>`
+               found type `f64`
+help: try wrapping the expression in `Some`
+    |
+727 |             risk_score: Some(risk_score),
+    |             +++++++++++++++++          +
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/high_risk_queue.rs:751:47
+    |
+751 |             .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+    |              -------------------              ^^^^^^^ expected `String`, found `[u8; 32]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:164:18
+    |
+164 |     pub async fn enqueue_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+167 |         transaction_hash: TxHash,
+    |         ------------------------
+
+Some errors have detailed explanations: E0119, E0412, E0432, E0433, E0599.
+For more information about an error, try `rustc --explain E0119`.
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/high_risk_queue.rs:783:39
+    |
+783 |             .enqueue_transaction(tx1, [1u8; 32], low_risk, risk_decision.clone())
+    |              -------------------      ^^^^^^^^^ expected `String`, found `[u8; 32]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:164:18
+    |
+164 |     pub async fn enqueue_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+167 |         transaction_hash: TxHash,
+    |         ------------------------
+
+warning: `dytallix-interoperability` (lib) generated 5 warnings (1 duplicate)
+error: could not compile `dytallix-interoperability` (lib) due to 6 previous errors; 5 warnings emitted
+warning: `dytallix-interoperability` (lib test) generated 6 warnings (4 duplicates)
+error: could not compile `dytallix-interoperability` (lib test) due to 7 previous errors; 6 warnings emitted
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/high_risk_queue.rs:787:39
+    |
+787 |             .enqueue_transaction(tx2, [2u8; 32], high_risk, risk_decision.clone())
+    |              -------------------      ^^^^^^^^^ expected `String`, found `[u8; 32]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:164:18
+    |
+164 |     pub async fn enqueue_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+167 |         transaction_hash: TxHash,
+    |         ------------------------
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/high_risk_queue.rs:791:39
+    |
+791 |             .enqueue_transaction(tx3, [3u8; 32], critical_risk, risk_decision)
+    |              -------------------      ^^^^^^^^^ expected `String`, found `[u8; 32]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:164:18
+    |
+164 |     pub async fn enqueue_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+167 |         transaction_hash: TxHash,
+    |         ------------------------
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/high_risk_queue.rs:817:47
+    |
+817 |             .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+    |              -------------------              ^^^^^^^ expected `String`, found `[u8; 32]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:164:18
+    |
+164 |     pub async fn enqueue_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+167 |         transaction_hash: TxHash,
+    |         ------------------------
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/high_risk_queue.rs:861:51
+    |
+861 |                 .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision.clone())
+    |                  -------------------              ^^^^^^^ expected `String`, found `[u8; 32]`
+    |                  |
+    |                  arguments to this method are incorrect
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:164:18
+    |
+164 |     pub async fn enqueue_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+167 |         transaction_hash: TxHash,
+    |         ------------------------
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `dilithium_signature`
+   --> blockchain-core/src/consensus/high_risk_queue.rs:908:21
+    |
+908 |                     dilithium_signature: vec![],
+    |                     ^^^^^^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `falcon_signature`
+   --> blockchain-core/src/consensus/high_risk_queue.rs:909:21
+    |
+909 |                     falcon_signature: vec![],
+    |                     ^^^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `sphincs_signature`
+   --> blockchain-core/src/consensus/high_risk_queue.rs:910:21
+    |
+910 |                     sphincs_signature: vec![],
+    |                     ^^^^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `algorithm_used`
+   --> blockchain-core/src/consensus/high_risk_queue.rs:911:21
+    |
+911 |                     algorithm_used: "dilithium".to_string(),
+    |                     ^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0061]: this method takes 0 arguments but 1 argument was supplied
+   --> blockchain-core/src/consensus/high_risk_queue.rs:943:18
+    |
+943 |                 .get_pending_transactions(Some(ReviewPriority::Critical))
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^ ------------------------------ unexpected argument of type `std::option::Option<consensus::high_risk_queue::ReviewPriority>`
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:375:18
+    |
+375 |     pub async fn get_pending_transactions(&self) -> Vec<QueuedTransaction> {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^
+help: remove the extra argument
+    |
+943 -                 .get_pending_transactions(Some(ReviewPriority::Critical))
+943 +                 .get_pending_transactions()
+    |
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/high_risk_queue.rs:953:21
+    |
+950 |                 .approve_transaction(
+    |                  ------------------- arguments to this method are incorrect
+...
+953 |                     "Approved after review".to_string(),
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<String>`, found `String`
+    |
+    = note: expected enum `std::option::Option<std::string::String>`
+             found struct `std::string::String`
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:313:18
+    |
+313 |     pub async fn approve_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+317 |         notes: Option<String>,
+    |         ---------------------
+help: try wrapping the expression in `Some`
+    |
+953 |                     Some("Approved after review".to_string()),
+    |                     +++++                                   +
+
+error[E0061]: this method takes 0 arguments but 1 argument was supplied
+   --> blockchain-core/src/consensus/high_risk_queue.rs:959:39
+    |
+959 |             let pending_after = queue.get_pending_transactions(None).await;
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^ ---- unexpected argument of type `std::option::Option<_>`
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:375:18
+    |
+375 |     pub async fn get_pending_transactions(&self) -> Vec<QueuedTransaction> {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^
+help: remove the extra argument
+    |
+959 -             let pending_after = queue.get_pending_transactions(None).await;
+959 +             let pending_after = queue.get_pending_transactions().await;
+    |
+
+error[E0599]: no method named `get_queue_statistics` found for struct `consensus::high_risk_queue::HighRiskQueue` in the current scope
+   --> blockchain-core/src/consensus/high_risk_queue.rs:963:31
+    |
+119 | pub struct HighRiskQueue {
+    | ------------------------ method `get_queue_statistics` not found for this struct
+...
+963 |             let stats = queue.get_queue_statistics().await;
+    |                               ^^^^^^^^^^^^^^^^^^^^
+    |
+help: there is a method `get_statistics` with a similar name
+    |
+963 -             let stats = queue.get_queue_statistics().await;
+963 +             let stats = queue.get_statistics().await;
+    |
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `dilithium_signature`
+   --> blockchain-core/src/consensus/high_risk_queue.rs:983:21
+    |
+983 |                     dilithium_signature: vec![],
+    |                     ^^^^^^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `falcon_signature`
+   --> blockchain-core/src/consensus/high_risk_queue.rs:984:21
+    |
+984 |                     falcon_signature: vec![],
+    |                     ^^^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `sphincs_signature`
+   --> blockchain-core/src/consensus/high_risk_queue.rs:985:21
+    |
+985 |                     sphincs_signature: vec![],
+    |                     ^^^^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `algorithm_used`
+   --> blockchain-core/src/consensus/high_risk_queue.rs:986:21
+    |
+986 |                     algorithm_used: "dilithium".to_string(),
+    |                     ^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0063]: missing fields `risk_score` and `transaction_hash` in initializer of `consensus::notification_types::NotificationType`
+   --> blockchain-core/src/consensus/notification_system.rs:535:33
+    |
+535 |         let notification_type = NotificationType::NewHighRiskTransaction {
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `risk_score` and `transaction_hash`
+
+error[E0063]: missing field `warning_level` in initializer of `consensus::notification_types::NotificationType`
+   --> blockchain-core/src/consensus/notification_system.rs:553:33
+    |
+553 |         let notification_type = NotificationType::QueueCapacityWarning {
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `warning_level`
+
+error[E0063]: missing fields `risk_score` and `transaction_hash` in initializer of `consensus::notification_types::NotificationType`
+   --> blockchain-core/src/consensus/notification_system.rs:581:37
+    |
+581 |             let notification_type = NotificationType::NewHighRiskTransaction {
+    |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `risk_score` and `transaction_hash`
+
+For more information about this error, try `rustc --explain E0615`.
+warning: `dytallix-node` (lib) generated 5 warnings
+error: could not compile `dytallix-node` (lib) due to 1 previous error; 5 warnings emitted
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `dilithium_signature`
+   --> blockchain-core/src/consensus/performance_optimizer.rs:728:17
+    |
+728 |                 dilithium_signature: vec![],
+    |                 ^^^^^^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `falcon_signature`
+   --> blockchain-core/src/consensus/performance_optimizer.rs:729:17
+    |
+729 |                 falcon_signature: vec![],
+    |                 ^^^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `sphincs_signature`
+   --> blockchain-core/src/consensus/performance_optimizer.rs:730:17
+    |
+730 |                 sphincs_signature: vec![],
+    |                 ^^^^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0560]: struct `types::PQCTransactionSignature` has no field named `algorithm_used`
+   --> blockchain-core/src/consensus/performance_optimizer.rs:731:17
+    |
+731 |                 algorithm_used: "dilithium".to_string(),
+    |                 ^^^^^^^^^^^^^^ `types::PQCTransactionSignature` does not have this field
+    |
+    = note: available fields are: `signature`, `public_key`
+
+error[E0063]: missing field `ai_risk_score` in initializer of `types::TransferTransaction`
+   --> blockchain-core/src/consensus/review_api.rs:438:31
+    |
+438 |         Transaction::Transfer(TransferTransaction {
+    |                               ^^^^^^^^^^^^^^^^^^^ missing `ai_risk_score`
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/review_api.rs:452:25
+    |
+452 |             risk_score: 0.85,
+    |                         ^^^^ expected `Option<f64>`, found floating-point number
+    |
+    = note: expected enum `std::option::Option<f64>`
+               found type `{float}`
+help: try wrapping the expression in `Some`
+    |
+452 |             risk_score: Some(0.85),
+    |                         +++++    +
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/review_api.rs:477:47
+    |
+477 |             .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+    |              -------------------              ^^^^^^^ expected `String`, found `[u8; 32]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:164:18
+    |
+164 |     pub async fn enqueue_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+167 |         transaction_hash: TxHash,
+    |         ------------------------
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/review_api.rs:502:47
+    |
+502 |             .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+    |              -------------------              ^^^^^^^ expected `String`, found `[u8; 32]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:164:18
+    |
+164 |     pub async fn enqueue_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+167 |         transaction_hash: TxHash,
+    |         ------------------------
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/review_api.rs:543:47
+    |
+543 |             .enqueue_transaction(transaction, tx_hash, ai_result, risk_decision)
+    |              -------------------              ^^^^^^^ expected `String`, found `[u8; 32]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> blockchain-core/src/consensus/high_risk_queue.rs:164:18
+    |
+164 |     pub async fn enqueue_transaction(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+167 |         transaction_hash: TxHash,
+    |         ------------------------
+
+error[E0560]: struct `consensus::ai_oracle_client::AIServiceConfig` has no field named `retry_attempts`
+  --> blockchain-core/src/consensus/mod.rs:88:13
+   |
+88 |             retry_attempts: 3,
+   |             ^^^^^^^^^^^^^^ `consensus::ai_oracle_client::AIServiceConfig` does not have this field
+   |
+   = note: available fields are: `api_key`, `max_retries`, `retry_delay_ms`
+
+error[E0599]: no method named `base_url` found for struct `consensus::ai_oracle_client::AIOracleClient` in the current scope
+  --> blockchain-core/src/consensus/mod.rs:93:27
+   |
+93 |         assert_eq!(client.base_url(), "http://localhost:8080");
+   |                           ^^^^^^^^ method not found in `AIOracleClient`
+   |
+  ::: blockchain-core/src/consensus/ai_oracle_client.rs:87:1
+   |
+87 | pub struct AIOracleClient {
+   | ------------------------- method `base_url` not found for this struct
+
+error[E0599]: no method named `timeout` found for struct `consensus::ai_oracle_client::AIOracleClient` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:94:27
+    |
+94  |         assert_eq!(client.timeout(), std::time::Duration::from_secs(30));
+    |                           ^^^^^^^
+    |
+   ::: blockchain-core/src/consensus/ai_oracle_client.rs:87:1
+    |
+87  | pub struct AIOracleClient {
+    | ------------------------- method `timeout` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `timeout`, perhaps you need to implement one of them:
+            candidate #1: `tokio_stream::StreamExt`
+            candidate #2: `trust_dns_proto::Time`
+help: there is a method `set_timeout` with a similar name, but with different arguments
+   --> blockchain-core/src/consensus/ai_oracle_client.rs:208:5
+    |
+208 |     pub fn set_timeout(&mut self, timeout_seconds: u64) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `is_timeout` found for struct `consensus::types::ai_types::AIResponsePayload` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:148:25
+    |
+148 |         assert!(payload.is_timeout());
+    |                         ^^^^^^^^^^ method not found in `AIResponsePayload`
+    |
+   ::: blockchain-core/src/consensus/types/ai_types.rs:66:1
+    |
+66  | pub struct AIResponsePayload {
+    | ---------------------------- method `is_timeout` not found for this struct
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/mod.rs:213:54
+    |
+213 |         let mut circuit = CircuitBreakerContext::new(3, 60000);
+    |                           -------------------------- ^ expected `f64`, found integer
+    |                           |
+    |                           arguments to this function are incorrect
+    |
+note: associated function defined here
+   --> blockchain-core/src/consensus/types/config_types.rs:220:12
+    |
+220 |     pub fn new(failure_threshold: f64, recovery_time_seconds: u64) -> Self {
+    |            ^^^ ----------------------
+help: use a float literal
+    |
+213 |         let mut circuit = CircuitBreakerContext::new(3.0, 60000);
+    |                                                       ++
+
+error[E0599]: no method named `is_closed` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:216:25
+    |
+216 |         assert!(circuit.is_closed());
+    |                         ^^^^^^^^^
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `is_closed` not found for this struct
+    |
+help: there is a method `clone` with a similar name
+    |
+216 -         assert!(circuit.is_closed());
+216 +         assert!(circuit.clone());
+    |
+
+error[E0599]: no method named `should_allow_request` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:217:25
+    |
+217 |         assert!(circuit.should_allow_request());
+    |                         ^^^^^^^^^^^^^^^^^^^^
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `should_allow_request` not found for this struct
+    |
+help: there is a method `should_close` with a similar name
+    |
+217 -         assert!(circuit.should_allow_request());
+217 +         assert!(circuit.should_close());
+    |
+
+error[E0599]: no method named `record_failure` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:220:17
+    |
+220 |         circuit.record_failure();
+    |                 ^^^^^^^^^^^^^^ method not found in `CircuitBreakerContext`
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `record_failure` not found for this struct
+    |
+help: one of the expressions' fields has a method of the same name
+    |
+220 |         circuit.stats.record_failure();
+    |                 ++++++
+
+error[E0599]: no method named `record_failure` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:221:17
+    |
+221 |         circuit.record_failure();
+    |                 ^^^^^^^^^^^^^^ method not found in `CircuitBreakerContext`
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `record_failure` not found for this struct
+    |
+help: one of the expressions' fields has a method of the same name
+    |
+221 |         circuit.stats.record_failure();
+    |                 ++++++
+
+error[E0599]: no method named `is_closed` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:222:25
+    |
+222 |         assert!(circuit.is_closed());
+    |                         ^^^^^^^^^
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `is_closed` not found for this struct
+    |
+help: there is a method `clone` with a similar name
+    |
+222 -         assert!(circuit.is_closed());
+222 +         assert!(circuit.clone());
+    |
+
+error[E0599]: no method named `record_failure` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:225:17
+    |
+225 |         circuit.record_failure();
+    |                 ^^^^^^^^^^^^^^ method not found in `CircuitBreakerContext`
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `record_failure` not found for this struct
+    |
+help: one of the expressions' fields has a method of the same name
+    |
+225 |         circuit.stats.record_failure();
+    |                 ++++++
+
+error[E0599]: no method named `is_open` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:226:25
+    |
+226 |         assert!(circuit.is_open());
+    |                         ^^^^^^^ method not found in `CircuitBreakerContext`
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `is_open` not found for this struct
+
+error[E0599]: no method named `should_allow_request` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:227:26
+    |
+227 |         assert!(!circuit.should_allow_request());
+    |                          ^^^^^^^^^^^^^^^^^^^^
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `should_allow_request` not found for this struct
+    |
+help: there is a method `should_close` with a similar name
+    |
+227 -         assert!(!circuit.should_allow_request());
+227 +         assert!(!circuit.should_close());
+    |
+
+error[E0599]: no method named `record_success` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:231:17
+    |
+231 |         circuit.record_success(100);
+    |                 ^^^^^^^^^^^^^^ method not found in `CircuitBreakerContext`
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `record_success` not found for this struct
+    |
+help: one of the expressions' fields has a method of the same name
+    |
+231 |         circuit.stats.record_success(100);
+    |                 ++++++
+
+error[E0599]: no method named `is_closed` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:232:25
+    |
+232 |         assert!(circuit.is_closed());
+    |                         ^^^^^^^^^
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- method `is_closed` not found for this struct
+    |
+help: there is a method `clone` with a similar name
+    |
+232 -         assert!(circuit.is_closed());
+232 +         assert!(circuit.clone());
+    |
+
+error[E0599]: no method named `model_version` found for struct `consensus::types::ai_types::AIResponsePayload` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:325:28
+    |
+325 |         assert_eq!(payload.model_version().unwrap(), "v1.0.0");
+    |                            ^^^^^^^^^^^^^ method not found in `AIResponsePayload`
+    |
+   ::: blockchain-core/src/consensus/types/ai_types.rs:66:1
+    |
+66  | pub struct AIResponsePayload {
+    | ---------------------------- method `model_version` not found for this struct
+
+error[E0599]: no method named `oracle_reputation` found for struct `consensus::types::ai_types::AIResponsePayload` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:327:28
+    |
+327 |         assert_eq!(payload.oracle_reputation().unwrap(), 0.8);
+    |                            ^^^^^^^^^^^^^^^^^ method not found in `AIResponsePayload`
+    |
+   ::: blockchain-core/src/consensus/types/ai_types.rs:66:1
+    |
+66  | pub struct AIResponsePayload {
+    | ---------------------------- method `oracle_reputation` not found for this struct
+
+error[E0369]: binary operation `>` cannot be applied to type `consensus::types::ai_types::RequestPriority`
+   --> blockchain-core/src/consensus/mod.rs:332:43
+    |
+332 |         assert!(RequestPriority::Critical > RequestPriority::High);
+    |                 ------------------------- ^ --------------------- consensus::types::ai_types::RequestPriority
+    |                 |
+    |                 consensus::types::ai_types::RequestPriority
+    |
+note: an implementation of `std::cmp::PartialOrd` might be missing for `consensus::types::ai_types::RequestPriority`
+   --> blockchain-core/src/consensus/types/ai_types.rs:28:1
+    |
+28  | pub enum RequestPriority {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^ must implement `std::cmp::PartialOrd`
+help: consider annotating `consensus::types::ai_types::RequestPriority` with `#[derive(PartialEq, PartialOrd)]`
+   --> blockchain-core/src/consensus/types/ai_types.rs:28:1
+    |
+28  + #[derive(PartialEq, PartialOrd)]
+29  | pub enum RequestPriority {
+    |
+
+error[E0369]: binary operation `>` cannot be applied to type `consensus::types::ai_types::RequestPriority`
+   --> blockchain-core/src/consensus/mod.rs:333:39
+    |
+333 |         assert!(RequestPriority::High > RequestPriority::Normal);
+    |                 --------------------- ^ ----------------------- consensus::types::ai_types::RequestPriority
+    |                 |
+    |                 consensus::types::ai_types::RequestPriority
+    |
+note: an implementation of `std::cmp::PartialOrd` might be missing for `consensus::types::ai_types::RequestPriority`
+   --> blockchain-core/src/consensus/types/ai_types.rs:28:1
+    |
+28  | pub enum RequestPriority {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^ must implement `std::cmp::PartialOrd`
+help: consider annotating `consensus::types::ai_types::RequestPriority` with `#[derive(PartialEq, PartialOrd)]`
+   --> blockchain-core/src/consensus/types/ai_types.rs:28:1
+    |
+28  + #[derive(PartialEq, PartialOrd)]
+29  | pub enum RequestPriority {
+    |
+
+error[E0369]: binary operation `>` cannot be applied to type `consensus::types::ai_types::RequestPriority`
+   --> blockchain-core/src/consensus/mod.rs:334:41
+    |
+334 |         assert!(RequestPriority::Normal > RequestPriority::Low);
+    |                 ----------------------- ^ -------------------- consensus::types::ai_types::RequestPriority
+    |                 |
+    |                 consensus::types::ai_types::RequestPriority
+    |
+note: an implementation of `std::cmp::PartialOrd` might be missing for `consensus::types::ai_types::RequestPriority`
+   --> blockchain-core/src/consensus/types/ai_types.rs:28:1
+    |
+28  | pub enum RequestPriority {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^ must implement `std::cmp::PartialOrd`
+help: consider annotating `consensus::types::ai_types::RequestPriority` with `#[derive(PartialEq, PartialOrd)]`
+   --> blockchain-core/src/consensus/types/ai_types.rs:28:1
+    |
+28  + #[derive(PartialEq, PartialOrd)]
+29  | pub enum RequestPriority {
+    |
+
+error[E0560]: struct `consensus::types::oracle_types::VerificationData` has no field named `verified_at`
+   --> blockchain-core/src/consensus/mod.rs:433:13
+    |
+433 |             verified_at: chrono::Utc::now().timestamp() as u64,
+    |             ^^^^^^^^^^^ `consensus::types::oracle_types::VerificationData` does not have this field
+    |
+    = note: available fields are: `request_hash`, `merkle_proof`, `timestamp_proof`
+
+error[E0560]: struct `consensus::types::oracle_types::VerificationData` has no field named `is_valid`
+   --> blockchain-core/src/consensus/mod.rs:434:13
+    |
+434 |             is_valid: true,
+    |             ^^^^^^^^ `consensus::types::oracle_types::VerificationData` does not have this field
+    |
+    = note: available fields are: `request_hash`, `merkle_proof`, `timestamp_proof`
+
+error[E0560]: struct `consensus::types::oracle_types::VerificationData` has no field named `errors`
+   --> blockchain-core/src/consensus/mod.rs:435:13
+    |
+435 |             errors: Vec::new(),
+    |             ^^^^^^ `consensus::types::oracle_types::VerificationData` does not have this field
+    |
+    = note: available fields are: `request_hash`, `merkle_proof`, `timestamp_proof`
+
+error[E0560]: struct `consensus::types::oracle_types::VerificationData` has no field named `warnings`
+   --> blockchain-core/src/consensus/mod.rs:436:13
+    |
+436 |             warnings: vec!["Low confidence score".to_string()],
+    |             ^^^^^^^^ `consensus::types::oracle_types::VerificationData` does not have this field
+    |
+    = note: available fields are: `request_hash`, `merkle_proof`, `timestamp_proof`
+
+error[E0609]: no field `is_valid` on type `consensus::types::oracle_types::VerificationData`
+   --> blockchain-core/src/consensus/mod.rs:440:35
+    |
+440 |         assert!(verification_data.is_valid);
+    |                                   ^^^^^^^^ unknown field
+    |
+    = note: available fields are: `request_hash`, `merkle_proof`, `timestamp_proof`, `metadata`
+
+error[E0609]: no field `errors` on type `consensus::types::oracle_types::VerificationData`
+   --> blockchain-core/src/consensus/mod.rs:441:38
+    |
+441 |         assert_eq!(verification_data.errors.len(), 0);
+    |                                      ^^^^^^ unknown field
+    |
+    = note: available fields are: `request_hash`, `merkle_proof`, `timestamp_proof`, `metadata`
+
+error[E0609]: no field `warnings` on type `consensus::types::oracle_types::VerificationData`
+   --> blockchain-core/src/consensus/mod.rs:442:38
+    |
+442 |         assert_eq!(verification_data.warnings.len(), 1);
+    |                                      ^^^^^^^^ unknown field
+    |
+    = note: available fields are: `request_hash`, `merkle_proof`, `timestamp_proof`, `metadata`
+
+error[E0599]: no function or associated item named `default` found for struct `consensus::types::config_types::CircuitBreakerContext` in the current scope
+   --> blockchain-core/src/consensus/mod.rs:447:50
+    |
+447 |         let mut circuit = CircuitBreakerContext::default();
+    |                                                  ^^^^^^^ function or associated item not found in `CircuitBreakerContext`
+    |
+   ::: blockchain-core/src/consensus/types/config_types.rs:206:1
+    |
+206 | pub struct CircuitBreakerContext {
+    | -------------------------------- function or associated item `default` not found for this struct
+    |
+note: if you're trying to build a new `consensus::types::config_types::CircuitBreakerContext`, consider using `consensus::types::config_types::CircuitBreakerContext::new` which returns `consensus::types::config_types::CircuitBreakerContext`
+   --> blockchain-core/src/consensus/types/config_types.rs:220:5
+    |
+220 |     pub fn new(failure_threshold: f64, recovery_time_seconds: u64) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `default`, perhaps you need to implement one of them:
+            candidate #1: `std::default::Default`
+            candidate #2: `tinyvec::Array`
+
+error[E0277]: the trait bound `blake3::Hash: std::convert::AsRef<[u8]>` is not satisfied
+   --> blockchain-core/src/state_commitment.rs:55:25
+    |
+55  |             hex::encode(blake3::hash(b"DYTALLIX/STATE/EMPTY"))
+    |             ----------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `std::convert::AsRef<[u8]>` is not implemented for `blake3::Hash`
+    |             |
+    |             required by a bound introduced by this call
+    |
+note: required by a bound in `hex::encode`
+   --> /Users/rickglenn/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hex-0.4.3/src/lib.rs:259:18
+    |
+259 | pub fn encode<T: AsRef<[u8]>>(data: T) -> String {
+    |                  ^^^^^^^^^^^ required by this bound in `encode`
+
+error[E0063]: missing fields `contract_address`, `logs` and `return_data` in initializer of `types::TxReceipt`
+   --> blockchain-core/src/storage/mod.rs:598:20
+    |
+598 |         let rcpt = TxReceipt {
+    |                    ^^^^^^^^^ missing `contract_address`, `logs` and `return_data`
+
+warning: unused variable: `consensus`
+   --> blockchain-core/src/consensus/transaction_validation_tests.rs:199:9
+    |
+199 |     let consensus = create_test_consensus_engine().await?;
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_consensus`
+
+error[E0308]: mismatched types
+  --> blockchain-core/src/consensus/integration_tests.rs:24:22
+   |
+24 |             api_key: Some("test_key".to_string()),
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `String`, found `Option<String>`
+   |
+   = note: expected struct `std::string::String`
+                found enum `std::option::Option<std::string::String>`
+
+error[E0308]: mismatched types
+   --> blockchain-core/src/consensus/review_api.rs:446:24
+    |
+446 |             signature: vec![0x01, 0x02, 0x03],
+    |                        ^^^^^^^^^^^^^^^^^^^^^^ expected `PQCTransactionSignature`, found `Vec<{integer}>`
+    |
+    = note: expected struct `types::PQCTransactionSignature`
+               found struct `std::vec::Vec<{integer}>`
+    = note: this error originates in the macro `vec` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+Some errors have detailed explanations: E0061, E0063, E0277, E0308, E0369, E0433, E0560, E0599, E0609...
+For more information about an error, try `rustc --explain E0061`.
+warning: `dytallix-node` (lib test) generated 11 warnings (5 duplicates)
+error: could not compile `dytallix-node` (lib test) due to 76 previous errors; 11 warnings emitted

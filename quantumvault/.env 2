@@ -1,0 +1,19 @@
+# Server Configuration
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8080
+
+# Database Configuration
+DATABASE_URL=postgresql://quantumvault:quantumvault_password@localhost:5432/quantumvault
+
+# Master Encryption Key (32 bytes hex - CHANGE IN PRODUCTION!)
+MASTER_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+# API Key for authentication (CHANGE IN PRODUCTION!)
+API_KEY=dev-api-key-change-in-production
+
+# Job Engine Configuration
+JOB_POLL_INTERVAL_SECS=5
+JOB_BATCH_SIZE=10
+
+# Logging
+RUST_LOG=quantumvault=info,sqlx=warn

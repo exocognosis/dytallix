@@ -1,0 +1,68 @@
+{
+  "name": "@dytallix/sdk",
+  "version": "0.2.0",
+  "description": "Official TypeScript SDK for the Dytallix blockchain with PQC wallet support",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "dytallix",
+    "blockchain",
+    "cryptocurrency",
+    "post-quantum",
+    "pqc",
+    "ml-dsa",
+    "dilithium",
+    "wallet",
+    "sdk"
+  ],
+  "author": "Dytallix Team",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DytallixHQ/Dytallix.git",
+    "directory": "sdk/typescript"
+  },
+  "bugs": {
+    "url": "https://github.com/DytallixHQ/Dytallix/issues"
+  },
+  "homepage": "https://github.com/DytallixHQ/Dytallix/tree/main/sdk/typescript#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.4.0"
+  },
+  "optionalDependencies": {
+    "pqc-wasm": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3"
+  }
+}

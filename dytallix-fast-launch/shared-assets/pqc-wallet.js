@@ -6,7 +6,7 @@
 // - Transaction history tracked locally and synced with blockchain
 // - Proper transaction structure matching Dytallix blockchain format
 //
-(function() {
+(function () {
   'use strict';
 
   let currentWallet = null;
@@ -15,15 +15,15 @@
   let blockchainReady = false;
   let blockchainRetryCount = 0;
   const MAX_BLOCKCHAIN_RETRIES = 5;
-  
+
   // Blockchain API endpoints
-  const BLOCKCHAIN_NODE = 'http://localhost:3003';
-  const BACKEND_API = 'http://localhost:3001';
-  const FAUCET_API = 'http://localhost:3004';
+  const BLOCKCHAIN_NODE = 'https://dytallix.com/api';
+  const BACKEND_API = 'https://dytallix.com';
+  const FAUCET_API = 'https://dytallix.com';
 
   // Wallet state management
   const WalletManager = {
-    createWallet: async function(algorithm) {
+    createWallet: async function (algorithm) {
       // Simulate wallet creation
       const algorithms = {
         'ml-dsa': 'ML-DSA (Dilithium)',
@@ -32,7 +32,7 @@
 
       // Generate a mock address (in production, this would use actual PQC library)
       const address = 'dyt' + this.generateRandomString(40);
-      
+
       currentWallet = {
         address: address,
         algorithm: algorithm,
@@ -54,28 +54,28 @@
       // Save to localStorage BEFORE auto-funding
       this.saveWallet();
       console.log('[WalletManager] Wallet saved to localStorage');
-      
+
       // Verify what was saved
       const savedWallet = localStorage.getItem('dytallix_wallet');
       console.log('[WalletManager] Saved wallet string:', savedWallet);
-      
+
       // Auto-fund the wallet via faucet
       await this.autoFundWallet(address);
-      
+
       console.log('[WalletManager] Final wallet state after funding:', {
         address: currentWallet.address,
         balances: currentWallet.balances,
         dgt: currentWallet.balances.dgt,
         drt: currentWallet.balances.drt
       });
-      
+
       return currentWallet;
     },
 
-    autoFundWallet: async function(address) {
+    autoFundWallet: async function (address) {
       try {
         console.log(`[Wallet] Auto-funding wallet ${address} with 100 DGT and 1000 DRT...`);
-        
+
         // Call the production faucet API
         const response = await fetch(`${FAUCET_API}/api/faucet/request`, {
           method: 'POST',
@@ -95,7 +95,7 @@
         if (response && response.ok) {
           const data = await response.json();
           console.log('[Wallet] ✅ Auto-funding successful:', data);
-          
+
           // Add funding transaction to history
           currentWallet.transactions.push({
             type: 'received',
@@ -105,25 +105,25 @@
             timestamp: new Date().toLocaleTimeString(),
             status: 'confirmed'
           });
-          
+
           // Wait a moment for blockchain to process, then fetch real balance
           console.log('[Wallet] Waiting for blockchain to process funding...');
           await new Promise(resolve => setTimeout(resolve, 2000));
-          
+
           // Fetch actual balance from blockchain
           await this.refreshBalances();
-          
+
           this.saveWallet();
           return true;
         } else if (response) {
           const errorData = await response.json();
           console.error('[Wallet] Faucet rejected request:', errorData);
-          
+
           // Show error to user if rate limited
           if (errorData.error === 'RATE_LIMIT_EXCEEDED') {
             alert(`⚠️ Faucet rate limit: Please wait ${errorData.timeUntilNext} minutes before requesting again.`);
           }
-          
+
           // Keep mock balances for display
           currentWallet.transactions.push({
             type: 'received',
@@ -137,7 +137,7 @@
           return false;
         } else {
           console.warn('[Wallet] Could not connect to faucet API, balances are local only');
-          
+
           // Mock funding for offline development
           currentWallet.transactions.push({
             type: 'received',
@@ -152,7 +152,7 @@
         }
       } catch (error) {
         console.error('[Wallet] Auto-funding error:', error);
-        
+
         // Keep the mock balances that were already set
         currentWallet.transactions.push({
           type: 'received',
@@ -167,7 +167,7 @@
       }
     },
 
-    generateRandomString: function(length) {
+    generateRandomString: function (length) {
       const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
       let result = '';
       for (let i = 0; i < length; i++) {
@@ -176,24 +176,24 @@
       return result;
     },
 
-    saveWallet: function() {
+    saveWallet: function () {
       if (currentWallet) {
         localStorage.setItem('dytallix_wallet', JSON.stringify(currentWallet));
       }
     },
 
-    loadWallet: function() {
+    loadWallet: function () {
       const saved = localStorage.getItem('dytallix_wallet');
       if (saved) {
         try {
           currentWallet = JSON.parse(saved);
-          
+
           // Validate and fix wallet structure
           if (!currentWallet.balances || typeof currentWallet.balances !== 'object') {
             console.warn('[WalletManager] Invalid balances in saved wallet, resetting to defaults');
             currentWallet.balances = { dgt: 100, drt: 1000 };
           }
-          
+
           // Ensure DGT and DRT exist
           if (currentWallet.balances.dgt === undefined || currentWallet.balances.dgt === null) {
             currentWallet.balances.dgt = 100;
@@ -201,17 +201,17 @@
           if (currentWallet.balances.drt === undefined || currentWallet.balances.drt === null) {
             currentWallet.balances.drt = 1000;
           }
-          
+
           // Ensure transactions array exists
           if (!Array.isArray(currentWallet.transactions)) {
             currentWallet.transactions = [];
           }
-          
+
           console.log('[WalletManager] Wallet loaded from localStorage:', currentWallet);
-          
+
           // Save the corrected wallet back
           this.saveWallet();
-          
+
           return currentWallet;
         } catch (error) {
           console.error('[WalletManager] Error parsing saved wallet:', error);
@@ -222,7 +222,7 @@
       return null;
     },
 
-    deleteWallet: function() {
+    deleteWallet: function () {
       if (confirm('Are you sure you want to delete your wallet? This action cannot be undone.')) {
         localStorage.removeItem('dytallix_wallet');
         currentWallet = null;
@@ -234,9 +234,9 @@
       }
     },
 
-    exportKeystore: function() {
+    exportKeystore: function () {
       if (!currentWallet) return;
-      
+
       const password = prompt('Enter a password to encrypt your keystore:');
       if (!password) return;
 
@@ -262,7 +262,7 @@
       alert('Keystore exported successfully! Keep this file safe and remember your password.');
     },
 
-    refreshBalances: async function(silent = false) {
+    refreshBalances: async function (silent = false) {
       if (!currentWallet) return;
 
       // Fetch balance from Dytallix blockchain node
@@ -270,11 +270,11 @@
         if (!silent) {
           console.log(`[Wallet] Refreshing balance for ${currentWallet.address}...`);
         }
-        
+
         // Set a timeout for the fetch
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
+
         const response = await fetch(`${BLOCKCHAIN_NODE}/balance/${currentWallet.address}`, {
           signal: controller.signal
         }).catch(err => {
@@ -283,16 +283,16 @@
           }
           return null;
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (response && response.ok) {
           const data = await response.json();
           blockchainReady = true;
           blockchainRetryCount = 0;
-          
+
           console.log('[Wallet] ✅ Balance fetched from blockchain:', data);
-          
+
           // The blockchain returns balances in micro-units (udgt/udrt)
           // Convert to regular units (divide by 1,000,000)
           if (data.udgt !== undefined) {
@@ -301,7 +301,7 @@
           if (data.udrt !== undefined) {
             currentWallet.balances.drt = parseInt(data.udrt) / 1000000;
           }
-          
+
           UI.updateBalances();
           this.saveWallet();
         } else {
@@ -321,9 +321,9 @@
 
   // UI Management
   const UI = {
-    init: function() {
+    init: function () {
       this.setupEventListeners();
-      
+
       // Load existing wallet if available
       const wallet = WalletManager.loadWallet();
       if (wallet) {
@@ -334,11 +334,11 @@
       }
     },
 
-    setupEventListeners: function() {
+    setupEventListeners: function () {
       // Algorithm selection buttons
       const mlDsaBtn = document.getElementById('ml-dsa-btn');
       const slhDsaBtn = document.getElementById('slh-dsa-btn');
-      
+
       if (mlDsaBtn) {
         mlDsaBtn.addEventListener('click', () => {
           selectedAlgorithm = 'ml-dsa';
@@ -468,7 +468,7 @@
       });
     },
 
-    updateAlgorithmButtons: function() {
+    updateAlgorithmButtons: function () {
       const mlDsaBtn = document.getElementById('ml-dsa-btn');
       const slhDsaBtn = document.getElementById('slh-dsa-btn');
 
@@ -495,7 +495,7 @@
       }
     },
 
-    handleWalletGeneration: async function() {
+    handleWalletGeneration: async function () {
       const generateBtn = document.getElementById('generate-wallet-btn');
       generateBtn.disabled = true;
       generateBtn.textContent = 'Generating wallet...';
@@ -503,53 +503,53 @@
       // Simulate generation delay (1-2 seconds as mentioned in UI)
       setTimeout(async () => {
         generateBtn.textContent = 'Funding wallet...';
-        
+
         console.log('[UI] Creating wallet...');
         const wallet = await WalletManager.createWallet(selectedAlgorithm);
-        
+
         console.log('[UI] Wallet created with balances:', wallet.balances);
-        
+
         // Show the created wallet UI
         console.log('[UI] Showing wallet created state...');
         this.showWalletCreated();
-        
+
         console.log('[UI] Showing wallet active state...');
         this.showWalletActiveState();
-        
+
         // Force multiple updates with delays to ensure balances show
         console.log('[UI] Forcing balance updates...');
         setTimeout(() => {
           console.log('[UI] Balance update attempt 1');
           this.updateBalances();
         }, 50);
-        
+
         setTimeout(() => {
           console.log('[UI] Balance update attempt 2');
           this.updateBalances();
         }, 200);
-        
+
         setTimeout(() => {
           console.log('[UI] Balance update attempt 3');
           this.updateBalances();
         }, 500);
-        
+
         this.startBalanceRefresh();
         generateBtn.disabled = false;
         generateBtn.textContent = 'Generate PQC Wallet';
       }, 1500);
     },
 
-    showCreationForm: function() {
+    showCreationForm: function () {
       const form = document.getElementById('wallet-creation-form');
       const created = document.getElementById('wallet-created-state');
       if (form) form.style.display = 'block';
       if (created) created.style.display = 'none';
     },
 
-    showWalletCreated: function() {
+    showWalletCreated: function () {
       const form = document.getElementById('wallet-creation-form');
       const created = document.getElementById('wallet-created-state');
-      
+
       if (form) form.style.display = 'none';
       if (created) {
         created.style.display = 'block';
@@ -573,7 +573,7 @@
       if (successMsg && currentWallet) {
         successMsg.textContent = `Wallet Created Successfully (${selectedAlgorithm.toUpperCase()})`;
       }
-      
+
       const successDesc = created.querySelector('p.card-content.mb-0');
       if (successDesc) {
         successDesc.textContent = 'Your PQC wallet is ready to use • Funded with 100 DGT + 1000 DRT';
@@ -584,14 +584,14 @@
       this.updateBalances();
     },
 
-    showNoWalletState: function() {
+    showNoWalletState: function () {
       const noWallet = document.getElementById('no-wallet-state');
       const active = document.getElementById('wallet-active-state');
       if (noWallet) noWallet.style.display = 'block';
       if (active) active.style.display = 'none';
     },
 
-    showWalletActiveState: function() {
+    showWalletActiveState: function () {
       const noWallet = document.getElementById('no-wallet-state');
       const active = document.getElementById('wallet-active-state');
       if (noWallet) noWallet.style.display = 'none';
@@ -599,7 +599,7 @@
       this.updateBalances();
     },
 
-    updateBalances: function() {
+    updateBalances: function () {
       if (!currentWallet) {
         console.warn('[UI] Cannot update balances - no wallet loaded');
         return;
@@ -630,14 +630,14 @@
       const updateAttempt = () => {
         const dgtBalance = document.getElementById('dgt-balance');
         const drtBalance = document.getElementById('drt-balance');
-        
+
         console.log('[UI] Balance elements found:', {
           dgtBalance: !!dgtBalance,
           drtBalance: !!drtBalance,
           dgtParent: dgtBalance?.parentElement?.style?.display,
           walletCreatedState: document.getElementById('wallet-created-state')?.style?.display
         });
-        
+
         if (dgtBalance) {
           const oldValue = dgtBalance.textContent;
           const newValue = String(currentWallet.balances.dgt);
@@ -646,7 +646,7 @@
         } else {
           console.error('[UI] DGT balance element (#dgt-balance) not found in DOM');
         }
-        
+
         if (drtBalance) {
           const oldValue = drtBalance.textContent;
           const newValue = String(currentWallet.balances.drt);
@@ -669,15 +669,15 @@
 
       // Try immediately
       updateAttempt();
-      
+
       // Try again after a short delay to ensure DOM is ready
       setTimeout(updateAttempt, 100);
       setTimeout(updateAttempt, 300);
     },
 
-    copyAddress: function() {
+    copyAddress: function () {
       if (!currentWallet) return;
-      
+
       navigator.clipboard.writeText(currentWallet.address).then(() => {
         alert('Address copied to clipboard!');
       }).catch(err => {
@@ -685,7 +685,7 @@
       });
     },
 
-    addGuardian: function() {
+    addGuardian: function () {
       const guardianAddress = prompt('Enter guardian address (must be a valid PQC address):');
       if (guardianAddress && guardianAddress.startsWith('dyt')) {
         alert('Guardian added successfully! Multi-sig protection is now active.');
@@ -695,7 +695,7 @@
       }
     },
 
-    createNewWallet: function() {
+    createNewWallet: function () {
       if (confirm('Creating a new wallet will replace your current wallet. Make sure you have exported your keystore. Continue?')) {
         WalletManager.deleteWallet();
         selectedAlgorithm = 'ml-dsa';
@@ -703,16 +703,16 @@
       }
     },
 
-    startBalanceRefresh: function() {
+    startBalanceRefresh: function () {
       if (balanceRefreshInterval) {
         clearInterval(balanceRefreshInterval);
       }
-      
+
       // Delay initial fetch to give blockchain time to start (3 seconds)
       setTimeout(() => {
         this.initialBalanceRefreshWithRetry();
       }, 3000);
-      
+
       // Refresh every 5 seconds (only after blockchain is ready)
       balanceRefreshInterval = setInterval(() => {
         if (blockchainReady) {
@@ -722,10 +722,10 @@
         }
       }, 5000);
     },
-    
-    initialBalanceRefreshWithRetry: async function() {
+
+    initialBalanceRefreshWithRetry: async function () {
       await WalletManager.refreshBalances(true); // Silent first attempt
-      
+
       // If blockchain is not ready and we haven't exceeded max retries, try again
       if (!blockchainReady && blockchainRetryCount < MAX_BLOCKCHAIN_RETRIES) {
         blockchainRetryCount++;
@@ -738,12 +738,12 @@
       }
     },
 
-    showSendForm: function() {
+    showSendForm: function () {
       const sendForm = document.getElementById('send-form-container');
       const requestForm = document.getElementById('request-form-container');
       if (sendForm) sendForm.style.display = 'block';
       if (requestForm) requestForm.style.display = 'none';
-      
+
       // Clear form
       const recipientInput = document.getElementById('send-recipient');
       const amountInput = document.getElementById('send-amount');
@@ -753,17 +753,17 @@
       if (tokenSelect) tokenSelect.value = 'DGT';
     },
 
-    hideSendForm: function() {
+    hideSendForm: function () {
       const sendForm = document.getElementById('send-form-container');
       if (sendForm) sendForm.style.display = 'none';
     },
 
-    showRequestForm: function() {
+    showRequestForm: function () {
       const sendForm = document.getElementById('send-form-container');
       const requestForm = document.getElementById('request-form-container');
       if (sendForm) sendForm.style.display = 'none';
       if (requestForm) requestForm.style.display = 'block';
-      
+
       // Clear form and hide result
       const amountInput = document.getElementById('request-amount');
       const tokenSelect = document.getElementById('request-token');
@@ -773,58 +773,58 @@
       if (paymentLinkResult) paymentLinkResult.style.display = 'none';
     },
 
-    hideRequestForm: function() {
+    hideRequestForm: function () {
       const requestForm = document.getElementById('request-form-container');
       if (requestForm) requestForm.style.display = 'none';
     },
 
-    confirmSend: async function() {
+    confirmSend: async function () {
       const recipientInput = document.getElementById('send-recipient');
       const amountInput = document.getElementById('send-amount');
       const tokenSelect = document.getElementById('send-token');
-      
+
       if (!recipientInput || !amountInput || !tokenSelect) return;
-      
+
       const recipient = recipientInput.value.trim();
       const amount = parseFloat(amountInput.value);
       const token = tokenSelect.value;
-      
+
       // Validation
       if (!recipient) {
         alert('Please enter a recipient address');
         return;
       }
-      
+
       if (!recipient.startsWith('dyt')) {
         alert('Invalid address. Addresses must start with "dyt"');
         return;
       }
-      
+
       if (isNaN(amount) || amount <= 0) {
         alert('Please enter a valid amount');
         return;
       }
-      
+
       const tokenKey = token.toLowerCase();
       if (currentWallet.balances[tokenKey] < amount) {
         alert(`Insufficient balance. You have ${currentWallet.balances[tokenKey]} ${token}`);
         return;
       }
-      
+
       // Disable button and show loading state
       const confirmBtn = document.getElementById('confirm-send-btn');
       if (confirmBtn) {
         confirmBtn.disabled = true;
         confirmBtn.textContent = 'Submitting to blockchain...';
       }
-      
+
       try {
         console.log(`[Wallet] Submitting transaction to Dytallix blockchain: ${amount} ${token} from ${currentWallet.address} to ${recipient}`);
-        
+
         // Submit transaction to Dytallix blockchain node
         // The blockchain expects a SignedTx with nested tx field
         const chainId = 'dytallix-testnet-1'; // Chain ID
-        
+
         // Fetch current nonce from blockchain
         let nonce = 0;
         try {
@@ -838,7 +838,7 @@
           console.warn('[Wallet] Could not fetch nonce, using 0:', err);
           nonce = 0;
         }
-        
+
         // Create the inner Tx object
         const tx = {
           chain_id: chainId,
@@ -855,7 +855,7 @@
           fee: '1000', // Fee is just a string number, not an object
           memo: ''
         };
-        
+
         // Wrap in SignedTx structure
         const signedTx = {
           tx: tx,
@@ -864,11 +864,11 @@
           algorithm: 'dilithium5', // PQC algorithm
           version: 1
         };
-        
+
         const submitBody = {
           signed_tx: signedTx
         };
-        
+
         const blockchainResponse = await fetch(`${BLOCKCHAIN_NODE}/submit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -877,11 +877,11 @@
           console.error('[Wallet] Blockchain node connection failed:', err);
           return null;
         });
-        
+
         let txSuccess = false;
         let txHash = null;
         let errorMessage = null;
-        
+
         if (blockchainResponse && blockchainResponse.ok) {
           const data = await blockchainResponse.json();
           txSuccess = true;
@@ -895,7 +895,7 @@
           errorMessage = 'Could not connect to blockchain node';
           console.error('[Wallet] Could not connect to blockchain node');
         }
-        
+
         if (txSuccess) {
           // Add to transaction history
           if (currentWallet) {
@@ -908,25 +908,25 @@
               status: 'confirmed',
               hash: txHash
             };
-            
+
             if (!currentWallet.transactions) {
               currentWallet.transactions = [];
             }
             currentWallet.transactions.unshift(tx);
-            
+
             // Update balance (optimistic update - will be corrected on next refresh)
             currentWallet.balances[tokenKey] = Math.max(0, currentWallet.balances[tokenKey] - amount);
-            
+
             WalletManager.saveWallet();
             this.updateBalances();
           }
-          
+
           // Show success message with blockchain confirmation
           alert(`✅ Transaction confirmed on Dytallix blockchain!\n\nSent: ${amount} ${token}\nTo: ${recipient.substring(0, 20)}...\nTx Hash: ${txHash.substring(0, 24)}...\n\nView on explorer: http://localhost:3000/build/network.html`);
-          
+
           // Hide form
           this.hideSendForm();
-          
+
           // Trigger balance refresh after 2 seconds to get updated balance from blockchain
           setTimeout(() => {
             WalletManager.refreshBalances();
@@ -946,38 +946,38 @@
       }
     },
 
-    generatePaymentLink: function() {
+    generatePaymentLink: function () {
       const amountInput = document.getElementById('request-amount');
       const tokenSelect = document.getElementById('request-token');
-      
+
       if (!amountInput || !tokenSelect) return;
-      
+
       const amount = parseFloat(amountInput.value);
       const token = tokenSelect.value;
-      
+
       // Validation
       if (isNaN(amount) || amount <= 0) {
         alert('Please enter a valid amount');
         return;
       }
-      
+
       const paymentLink = `https://dytallix.io/pay?address=${currentWallet.address}&amount=${amount}&token=${token}`;
-      
+
       // Show payment link
       const paymentLinkResult = document.getElementById('payment-link-result');
       const paymentLinkDisplay = document.getElementById('payment-link-display');
-      
+
       if (paymentLinkResult && paymentLinkDisplay) {
         paymentLinkDisplay.value = paymentLink;
         paymentLinkResult.style.display = 'block';
       }
     },
 
-    copyPaymentLink: function() {
+    copyPaymentLink: function () {
       const paymentLinkDisplay = document.getElementById('payment-link-display');
-      
+
       if (!paymentLinkDisplay) return;
-      
+
       paymentLinkDisplay.select();
       navigator.clipboard.writeText(paymentLinkDisplay.value).then(() => {
         alert('✓ Payment link copied to clipboard!');
@@ -986,7 +986,7 @@
       });
     },
 
-    openFaucet: function() {
+    openFaucet: function () {
       // Redirect to faucet page
       window.location.href = './faucet.html';
     }

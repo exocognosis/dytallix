@@ -13,7 +13,7 @@ members = [
     "benchmarks",
     "DytallixLiteLaunch/crates/pqc-wasm",
     "quantumvault"
-]
+, "Apps/QP-IAL/contract"]
 
 resolver = "2"
 

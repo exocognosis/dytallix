@@ -1,0 +1,11 @@
+{
+  "chain_id": "dytallix-mvp-1",
+  "governance": {
+    "deposit_period": 5,
+    "min_deposit_udgt": "1000000000",
+    "quorum_bps": "4000",
+    "threshold_bps": "5500",
+    "veto_threshold_bps": "3500",
+    "voting_period": 300
+  }
+}

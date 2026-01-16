@@ -87,7 +87,7 @@ export function Tokenomics() {
                                         <Tooltip
                                             contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
                                             itemStyle={{ color: '#fff' }}
-                                            formatter={(value: number, name: string) => [`${value}%`, name]}
+                                            formatter={(value, name) => [`${value ?? 0}%`, name ?? '']}
                                         />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -165,7 +165,7 @@ export function Tokenomics() {
                                     <Tooltip
                                         contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
                                         itemStyle={{ color: '#fff' }}
-                                        formatter={(value: number, name: string) => [`${value}%`, name]}
+                                        formatter={(value, name) => [`${value ?? 0}%`, name ?? '']}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>

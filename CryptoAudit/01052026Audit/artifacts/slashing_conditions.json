@@ -1,0 +1,38 @@
+[
+  {
+    "violation": "Double signing (equivocation)",
+    "detected": true,
+    "slash_amount_percent": 100.0,
+    "correct_severity": true
+  },
+  {
+    "violation": "Downtime (offline > threshold)",
+    "detected": true,
+    "slash_amount_percent": 1.0,
+    "correct_severity": true
+  },
+  {
+    "violation": "Invalid block proposal",
+    "detected": true,
+    "slash_amount_percent": 10.0,
+    "correct_severity": true
+  },
+  {
+    "violation": "Censorship (provable)",
+    "detected": true,
+    "slash_amount_percent": 50.0,
+    "correct_severity": true
+  },
+  {
+    "violation": "Oracle manipulation",
+    "detected": true,
+    "slash_amount_percent": 100.0,
+    "correct_severity": true
+  },
+  {
+    "violation": "False positive prevention",
+    "detected": true,
+    "slash_amount_percent": 0.0,
+    "correct_severity": true
+  }
+]

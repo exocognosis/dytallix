@@ -1,0 +1,350 @@
+/**
+ * Print-optimized styles for QuantumRiskReport
+ * Designed for crisp PDF output via headless Chromium
+ */
+
+/* Base report container */
+.quantum-risk-report {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  max-width: 8.5in;
+  margin: 0 auto;
+  padding: 0.5in;
+  background: #ffffff;
+  color: #1f2937;
+  line-height: 1.5;
+}
+
+/* Header - Dark background matching QuantumVault logo */
+.report-header {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background-color: #0f172a;
+  border-radius: 0;
+  margin: -0.5in -0.5in 32px -0.5in;
+  height: 140px;
+}
+
+.header-logo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background-color: #0f172a;
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  padding: 12px 20px;
+}
+
+.header-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+}
+
+.header-title h1 {
+  font-size: 36px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.5px;
+  text-align: center;
+}
+
+.report-date {
+  display: none;
+}
+
+/* Sections */
+.report-section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Risk Gauge */
+.summary-grid {
+  display: flex;
+  justify-content: space-around;
+  gap: 24px;
+  padding: 24px 0;
+}
+
+.risk-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gauge-svg {
+  display: block;
+}
+
+.gauge-score {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.gauge-level {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gauge-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 8px;
+}
+
+.gauge-sublabel {
+  font-size: 11px;
+  color: #6b7280;
+  text-align: center;
+  max-width: 120px;
+}
+
+/* Risk Bar */
+.risk-bar-container {
+  margin-bottom: 16px;
+}
+
+.risk-bar-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.risk-bar-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.risk-bar-score {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.risk-bar-track {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.risk-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Profile Table */
+.profile-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.profile-table tr {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.profile-table td {
+  padding: 10px 0;
+  font-size: 13px;
+}
+
+.profile-label {
+  width: 180px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.profile-value {
+  color: #1f2937;
+}
+
+/* Risk Detail Cards */
+.risk-detail-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.risk-detail-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 12px 0;
+}
+
+.risk-detail-description {
+  font-size: 13px;
+  color: #4b5563;
+  margin: 12px 0;
+  line-height: 1.6;
+}
+
+.affected-systems {
+  margin-top: 12px;
+}
+
+.affected-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.affected-systems ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.affected-systems li {
+  font-size: 12px;
+  color: #4b5563;
+  margin-bottom: 4px;
+}
+
+/* Recommendations */
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recommendation-item {
+  border-left: 3px solid #e5e7eb;
+  padding-left: 16px;
+}
+
+.recommendation-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.priority-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.recommendation-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.recommendation-description {
+  font-size: 13px;
+  color: #4b5563;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Footer */
+.report-footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.footer-brand {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0d9488;
+  margin: 0;
+}
+
+.footer-contact {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 4px 0 0 0;
+}
+
+/* Print Styles */
+@media print {
+  .quantum-risk-report {
+    padding: 0;
+    max-width: none;
+  }
+
+  .report-header {
+    page-break-inside: avoid;
+  }
+
+  .report-section {
+    page-break-inside: avoid;
+  }
+
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .risk-detail-card {
+    page-break-inside: avoid;
+  }
+
+  .recommendation-item {
+    page-break-inside: avoid;
+  }
+
+  /* Ensure SVG charts print correctly */
+  .gauge-svg {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .risk-bar-fill {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .priority-badge {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Hide any potential navigation or overlays */
+  nav,
+  .navbar,
+  .nav-overlay {
+    display: none !important;
+  }
+}
+
+/* Screen-only adjustments for report preview */
+@media screen {
+  .quantum-risk-report {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin: 20px auto;
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-09-25T15:18:46Z",
+  "operation": "pqc_runtime_check_simulation",
+  "status": "simulated",
+  "note": "CLI not available - this demonstrates the expected PQC workflow",
+  "expected_steps": [
+    "dcli pqc keygen --output-dir readiness_out --force",
+    "dcli pqc sign --private-key readiness_out/private.key --input pqc_test_data.txt --output signed_tx.json",
+    "dcli pqc verify --public-key readiness_out/public.key --signature signed_tx.json --input pqc_test_data.txt",
+    "curl -X POST NODE_URL/broadcast_tx -d signed_tx.json"
+  ],
+  "expected_outcome": "Node accepts PQC-signed transaction and includes it in a block"
+}
