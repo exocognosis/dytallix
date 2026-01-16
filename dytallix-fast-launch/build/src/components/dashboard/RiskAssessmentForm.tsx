@@ -98,7 +98,7 @@ const RiskAssessmentForm: React.FC<RiskAssessmentFormProps> = ({ data, onChange 
     const availableRegimes = data.region ? (REGIME_MAP[data.region] || []) : [];
 
     return (
-        <GlassPanel variant="card" hoverEffect={true} className="space-y-6 p-6">
+        <GlassPanel variant="card" hoverEffect={false} className="space-y-6 p-6">
             <h3 className="text-xl font-semibold text-foreground mb-4">Organization Profile</h3>
 
             {/* 1. Industry */}
@@ -136,7 +136,7 @@ const RiskAssessmentForm: React.FC<RiskAssessmentFormProps> = ({ data, onChange 
                 <label className="block text-sm font-medium text-muted-foreground mb-2">3. Data & Digital Assets</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {DATA_TYPES.map(type => (
-                        <label key={type} className="flex items-start space-x-3 p-3 rounded-lg border border-input bg-background hover:bg-accent/50 cursor-pointer transition-colors">
+                        <label key={type} className="flex items-start space-x-3 p-3 rounded-lg border border-input bg-background">
                             <input
                                 type="checkbox"
                                 checked={data.dataTypes.includes(type)}
@@ -154,7 +154,7 @@ const RiskAssessmentForm: React.FC<RiskAssessmentFormProps> = ({ data, onChange 
                 <label className="block text-sm font-medium text-muted-foreground mb-2">4. Current Cryptography</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {CRYPTO_OPTIONS.map(crypto => (
-                        <label key={crypto} className="flex items-start space-x-3 p-3 rounded-lg border border-input bg-background hover:bg-accent/50 cursor-pointer transition-colors">
+                        <label key={crypto} className="flex items-start space-x-3 p-3 rounded-lg border border-input bg-background">
                             <input
                                 type="checkbox"
                                 checked={data.cryptography.includes(crypto)}

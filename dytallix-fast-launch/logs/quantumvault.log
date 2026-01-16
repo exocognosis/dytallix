@@ -1,6 +1,6 @@
-[dotenv@17.2.3] injecting env (0) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
-[QuantumVault] Loaded 114 assets from metadata
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+[QuantumVault] Loaded 12 assets from metadata
 [QuantumVault] API server running on port 3002
-[QuantumVault] Storage directory: /Users/rickglenn/Desktop/dytallix-main/dytallix-fast-launch/services/quantumvault-api/storage
-[QuantumVault] Loaded 114 assets
+[QuantumVault] Storage directory: /Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/storage
+[QuantumVault] Loaded 12 assets
 [Crypto] PQC Libraries Loaded: Dilithium & Kyber

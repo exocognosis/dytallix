@@ -3,7 +3,18 @@
 > vite
 
 
-  VITE v7.2.4  ready in 146 ms
+  VITE v7.2.4  ready in 206 ms
 
   ➜  Local:   http://localhost:3000/
   ➜  Network: use --host to expose
+7:46:30 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+7:46:30 AM [vite] (client) hmr update /src/index.css, /src/components/layout/Navbar.tsx
+7:48:38 AM [vite] (client) hmr update /src/index.css, /src/components/dashboard/RiskAssessmentForm.tsx
+7:50:58 AM [vite] (client) hmr update /src/pages/QuantumRiskDashboard.tsx, /src/index.css
+7:52:10 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+7:52:10 AM [vite] (client) hmr update /src/pages/QuantumRiskDashboard.tsx, /src/index.css
+7:52:10 AM [vite] (client) hmr update /src/index.css, /src/components/layout/Navbar.tsx
+7:52:10 AM [vite] (client) hmr update /src/index.css, /src/components/dashboard/RiskAssessmentForm.tsx
+7:53:06 AM [vite] (client) hmr update /src/pages/QuantumRiskDashboard.tsx, /src/index.css
+7:54:11 AM [vite] (client) hmr update /src/pages/QuantumRiskDashboard.tsx, /src/index.css
+7:58:31 AM [vite] (client) hmr update /src/pages/QuantumRiskDashboard.tsx, /src/index.css
