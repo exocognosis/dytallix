@@ -1,6 +1,16 @@
+import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// IMPORTANT: Load .env from project root BEFORE any imports that depend on environment variables
+// (e.g., emailService.js needs SMTP_* vars when its transporter is created)
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') })
+
 import express from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
 import { requestLogger, logError, logInfo, logWarn } from './logger.js'
 import { WebSocketServer } from 'ws'
 import { assertNotLimited, markGranted, __testResetRateLimiter } from './rateLimit.js'
@@ -18,8 +28,6 @@ import os from 'os'
  * Dytallix Minimal Server / Faucet + Dashboard API (merged)
  * Contains security headers + dashboard endpoints + faucet logic.
  */
-
-dotenv.config()
 
 // Reset in-memory rate limiter between test runs to avoid cross-test interference
 if (process.env.NODE_ENV === 'test' || process.env.VITEST) {

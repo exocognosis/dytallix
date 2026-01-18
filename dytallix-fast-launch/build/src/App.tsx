@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, useSearchParams, useLocation } from "react-router-dom"
 import { ThemeProvider } from "./contexts/theme-provider"
 import { Layout } from "./components/layout/layout"
 
@@ -24,48 +24,67 @@ import { Investor } from "./pages/investor"
 import { Deploy } from "./pages/deploy"
 import { Resources } from "./pages/resources"
 
+// Inner component that can use hooks
+function AppRoutes() {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Check if we're in report mode - render without layout for clean PDF
+  const isReportMode = location.pathname === '/quantumrisk' && searchParams.get('mode') === 'report';
+
+  if (isReportMode) {
+    // Render report without Layout (no navbar/footer) for clean PDF export
+    return <QuantumRiskDashboard />;
+  }
+
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Home />} />
+
+        {/* Hidden Investor Route */}
+        <Route path="/investor" element={<Investor />} />
+        <Route path="/deploy" element={<Deploy />} />
+
+        {/* Developer Hub Routes */}
+        <Route path="/build" element={<DeveloperHub />} />
+        <Route path="/build/wallet" element={<WalletPage />} />
+        <Route path="/build/blockchain" element={<BlockchainPage />} />
+        <Route path="/build/faucet" element={<FaucetPage />} />
+
+        {/* Tools */}
+        <Route path="/quantumrisk" element={<QuantumRiskDashboard />} />
+        <Route path="/ai-oracle-network" element={<AIOracleNetwork />} />
+        <Route path="/smart-contract-auditor" element={<SmartContractAuditor />} />
+
+        {/* Enterprise Routes */}
+        <Route path="/enterprise" element={<EnterpriseHub />} />
+
+        {/* Info Routes */}
+        <Route path="/docs" element={<Docs />} />
+        <Route path="/tokenomics" element={<Tokenomics />} />
+        <Route path="/tech-stack" element={<TechStack />} />
+        <Route path="/roadmap" element={<Roadmap />} />
+        <Route path="/resources" element={<Resources />} />
+        <Route path="/contact" element={<Contact />} />
+
+        {/* Legal Routes */}
+        <Route path="/legal/privacy" element={<Privacy />} />
+        <Route path="/legal/terms" element={<Terms />} />
+      </Routes>
+    </Layout>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="dytallix-theme">
       <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-
-            {/* Hidden Investor Route */}
-            <Route path="/investor" element={<Investor />} />
-            <Route path="/deploy" element={<Deploy />} />
-
-            {/* Developer Hub Routes */}
-            <Route path="/build" element={<DeveloperHub />} />
-            <Route path="/build/wallet" element={<WalletPage />} />
-            <Route path="/build/blockchain" element={<BlockchainPage />} />
-            <Route path="/build/faucet" element={<FaucetPage />} />
-
-            {/* Tools */}
-            <Route path="/quantumrisk" element={<QuantumRiskDashboard />} />
-            <Route path="/ai-oracle-network" element={<AIOracleNetwork />} />
-            <Route path="/smart-contract-auditor" element={<SmartContractAuditor />} />
-
-            {/* Enterprise Routes */}
-            <Route path="/enterprise" element={<EnterpriseHub />} />
-
-            {/* Info Routes */}
-            <Route path="/docs" element={<Docs />} />
-            <Route path="/tokenomics" element={<Tokenomics />} />
-            <Route path="/tech-stack" element={<TechStack />} />
-            <Route path="/roadmap" element={<Roadmap />} />
-            <Route path="/resources" element={<Resources />} />
-            <Route path="/contact" element={<Contact />} />
-
-            {/* Legal Routes */}
-            <Route path="/legal/privacy" element={<Privacy />} />
-            <Route path="/legal/terms" element={<Terms />} />
-          </Routes>
-        </Layout>
+        <AppRoutes />
       </Router>
     </ThemeProvider>
   )
 }
 
 export default App
+

@@ -2,94 +2,242 @@
  * Print-optimized styles for QuantumRiskReport
  * Designed for crisp PDF output via headless Chromium
  */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap');
 
-/* Base report container */
 .quantum-risk-report {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  max-width: 8.5in;
-  margin: 0 auto;
-  padding: 0.5in;
-  background: #ffffff;
-  color: #1f2937;
-  line-height: 1.5;
+  --qr-bg: #071a33;
+  --qr-bg-deep: #051327;
+  --qr-accent: #2fe3d0;
+  --qr-accent-2: #4fb3ff;
+  --qr-text: #f8fbff;
+  --qr-muted: #b7c7e6;
+  --qr-card: rgba(255, 255, 255, 0.06);
+  --qr-border: rgba(255, 255, 255, 0.12);
+  --qr-shadow: rgba(3, 6, 15, 0.45);
+  font-family: 'Space Grotesk', 'Manrope', 'Segoe UI', sans-serif;
+  color: var(--qr-text);
+  background: var(--qr-bg);
+  padding: 24px 0;
 }
 
-/* Header - Dark background matching QuantumVault logo */
+.report-page {
+  width: min(8.5in, 92vw);
+  min-height: 11in;
+  margin: 0 auto 24px;
+  padding: 0.75in 0.75in 0.65in;
+  background: radial-gradient(1200px 700px at 12% -10%, #0e2a4c 0%, var(--qr-bg) 48%, var(--qr-bg-deep) 100%);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+}
+
 .report-header {
   display: flex;
-  align-items: stretch;
-  gap: 0;
-  background-color: #0f172a;
-  border-radius: 0;
-  margin: -0.5in -0.5in 32px -0.5in;
-  height: 140px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
 }
 
-.header-logo {
-  flex: 1;
+.header-left {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  background-color: #0f172a;
+  gap: 16px;
 }
 
 .logo-image {
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
-  padding: 12px 20px;
 }
 
-.header-title {
-  flex: 1;
+.brand-block {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px 24px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.header-title h1 {
-  font-size: 36px;
+.brand-title {
+  font-size: 22px;
   font-weight: 700;
-  color: #ffffff;
-  margin: 0;
-  letter-spacing: -0.5px;
-  text-align: center;
+  letter-spacing: -0.2px;
+}
+
+.brand-tagline {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--qr-muted);
+}
+
+.header-right {
+  text-align: right;
+}
+
+.report-title {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
 }
 
 .report-date {
-  display: none;
-}
-
-/* Sections */
-.report-section {
-  margin-bottom: 32px;
+  font-size: 11px;
+  color: var(--qr-muted);
+  margin-top: 6px;
 }
 
 .section-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0 0 16px 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--qr-accent);
+  margin: 0 0 12px 0;
 }
 
-/* Risk Gauge */
-.summary-grid {
+.org-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.org-item {
+  background: var(--qr-card);
+  border: 1px solid var(--qr-border);
+  border-radius: 12px;
+  padding: 12px 14px;
   display: flex;
-  justify-content: space-around;
-  gap: 24px;
-  padding: 24px 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.org-item.full {
+  grid-column: span 2;
+}
+
+.org-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--qr-muted);
+}
+
+.org-value {
+  font-size: 13px;
+  color: var(--qr-text);
+}
+
+.briefing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.briefing-card {
+  background: var(--qr-card);
+  border: 1px solid var(--qr-border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.briefing-card h3 {
+  font-size: 13px;
+  margin: 0;
+  color: var(--qr-accent-2);
+}
+
+.briefing-card p {
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.6;
+  color: var(--qr-muted);
+}
+
+.page-title h2 {
+  font-size: 22px;
+  margin: 0 0 6px 0;
+}
+
+.page-title p {
+  font-size: 12px;
+  color: var(--qr-muted);
+  margin: 0;
+  max-width: 420px;
+}
+
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.risk-card {
+  background: var(--qr-card);
+  border: 1px solid var(--qr-border);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+
+.risk-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--qr-muted);
+}
+
+.risk-card-title {
+  font-weight: 600;
+}
+
+.risk-card-score {
+  font-weight: 700;
+}
+
+.risk-card-meta {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.risk-level {
+  font-weight: 700;
+}
+
+.risk-sublabel {
+  color: var(--qr-muted);
+}
+
+.risk-card-description {
+  font-size: 12px;
+  color: var(--qr-muted);
+  margin: 0;
+  line-height: 1.5;
 }
 
 .risk-gauge {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 6px;
 }
 
 .gauge-svg {
@@ -97,254 +245,151 @@
 }
 
 .gauge-score {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
 }
 
 .gauge-level {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .gauge-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #1f2937;
-  margin-top: 8px;
+  color: var(--qr-text);
+  margin-top: 6px;
 }
 
 .gauge-sublabel {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--qr-muted);
   text-align: center;
-  max-width: 120px;
+  max-width: 140px;
 }
 
-/* Risk Bar */
-.risk-bar-container {
-  margin-bottom: 16px;
-}
-
-.risk-bar-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.risk-bar-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #374151;
-}
-
-.risk-bar-score {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.risk-bar-track {
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.risk-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-/* Profile Table */
-.profile-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.profile-table tr {
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.profile-table td {
-  padding: 10px 0;
-  font-size: 13px;
-}
-
-.profile-label {
-  width: 180px;
-  font-weight: 500;
-  color: #6b7280;
-}
-
-.profile-value {
-  color: #1f2937;
-}
-
-/* Risk Detail Cards */
-.risk-detail-card {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.risk-detail-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0 0 12px 0;
-}
-
-.risk-detail-description {
-  font-size: 13px;
-  color: #4b5563;
-  margin: 12px 0;
-  line-height: 1.6;
-}
-
-.affected-systems {
-  margin-top: 12px;
-}
-
-.affected-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.affected-systems ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.affected-systems li {
-  font-size: 12px;
-  color: #4b5563;
-  margin-bottom: 4px;
-}
-
-/* Recommendations */
-.recommendations-list {
+.strategy-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
-.recommendation-item {
-  border-left: 3px solid #e5e7eb;
-  padding-left: 16px;
+.strategy-item {
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--qr-card);
+  border: 1px solid var(--qr-border);
 }
 
-.recommendation-header {
+.strategy-index {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(47, 227, 208, 0.2);
+  color: var(--qr-accent);
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
-.priority-badge {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-}
-
-.recommendation-title {
+.strategy-title {
+  margin: 0;
   font-size: 14px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+  color: var(--qr-text);
 }
 
-.recommendation-description {
-  font-size: 13px;
-  color: #4b5563;
+.strategy-description {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--qr-muted);
+  line-height: 1.5;
+}
+
+.cta-panel {
+  margin-top: 8px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(79, 179, 255, 0.35);
+  background: linear-gradient(135deg, rgba(47, 227, 208, 0.18), rgba(79, 179, 255, 0.12));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cta-title {
   margin: 0;
+  font-size: 17px;
+}
+
+.cta-text {
+  margin: 0;
+  font-size: 12px;
+  color: var(--qr-muted);
   line-height: 1.6;
 }
 
-/* Footer */
-.report-footer {
-  margin-top: 40px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
-  text-align: center;
-}
-
-.footer-brand {
+.cta-actions {
+  display: flex;
+  gap: 16px;
   font-size: 12px;
   font-weight: 600;
-  color: #0d9488;
-  margin: 0;
+  color: var(--qr-text);
+  flex-wrap: wrap;
 }
 
-.footer-contact {
-  font-size: 11px;
-  color: #9ca3af;
-  margin: 4px 0 0 0;
+.page-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--qr-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
 }
 
-/* Print Styles */
+@media screen and (max-width: 900px) {
+  .report-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-right {
+    text-align: left;
+  }
+
+  .org-grid,
+  .briefing-grid,
+  .risk-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .org-item.full {
+    grid-column: span 1;
+  }
+}
+
 @media print {
+  @page {
+    size: Letter;
+    margin: 0;
+  }
+
   .quantum-risk-report {
     padding: 0;
-    max-width: none;
   }
 
-  .report-header {
-    page-break-inside: avoid;
+  .report-page {
+    width: 8.5in;
+    margin: 0;
+    box-shadow: none;
+    page-break-after: always;
   }
 
-  .report-section {
-    page-break-inside: avoid;
-  }
-
-  .page-break-before {
-    page-break-before: always;
-  }
-
-  .risk-detail-card {
-    page-break-inside: avoid;
-  }
-
-  .recommendation-item {
-    page-break-inside: avoid;
-  }
-
-  /* Ensure SVG charts print correctly */
-  .gauge-svg {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-
-  .risk-bar-fill {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-
-  .priority-badge {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-
-  /* Hide any potential navigation or overlays */
-  nav,
-  .navbar,
-  .nav-overlay {
-    display: none !important;
-  }
-}
-
-/* Screen-only adjustments for report preview */
-@media screen {
-  .quantum-risk-report {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    margin: 20px auto;
+  .report-page:last-child {
+    page-break-after: auto;
   }
 }

@@ -52,26 +52,30 @@ interface QuantumRiskReportProps {
     data: ReportData;
 }
 
+type RiskTone = 'light' | 'dark';
+
+const getRiskMeta = (score: number) => {
+    if (score >= 90) return { label: 'Critical', color: '#ff4d4d' };
+    if (score >= 70) return { label: 'High', color: '#f97316' };
+    if (score >= 40) return { label: 'Medium', color: '#fbbf24' };
+    return { label: 'Low', color: '#22c55e' };
+};
+
 // SVG Gauge Chart Component
-const RiskGauge: React.FC<{ score: number; label: string; sublabel?: string }> = ({ score, label, sublabel }) => {
+const RiskGauge: React.FC<{ score: number; label: string; sublabel?: string; tone?: RiskTone; showLabels?: boolean }> = ({
+    score,
+    label,
+    sublabel,
+    tone = 'light',
+    showLabels = true
+}) => {
     const radius = 60;
     const strokeWidth = 12;
     const normalizedRadius = radius - strokeWidth / 2;
     const circumference = normalizedRadius * 2 * Math.PI;
     const strokeDashoffset = circumference - (score / 100) * circumference;
-
-    const getColor = (score: number) => {
-        if (score >= 70) return '#dc2626'; // Critical - Red
-        if (score >= 40) return '#f59e0b'; // Medium - Amber
-        return '#22c55e'; // Low - Green
-    };
-
-    const getLevel = (score: number) => {
-        if (score >= 90) return 'Critical';
-        if (score >= 70) return 'High';
-        if (score >= 40) return 'Medium';
-        return 'Low';
-    };
+    const meta = getRiskMeta(score);
+    const levelColor = tone === 'dark' ? '#c7d6f1' : '#6b7280';
 
     return (
         <div className="risk-gauge">
@@ -87,7 +91,7 @@ const RiskGauge: React.FC<{ score: number; label: string; sublabel?: string }> =
                 />
                 {/* Progress circle */}
                 <circle
-                    stroke={getColor(score)}
+                    stroke={meta.color}
                     fill="transparent"
                     strokeWidth={strokeWidth}
                     strokeDasharray={circumference + ' ' + circumference}
@@ -104,7 +108,7 @@ const RiskGauge: React.FC<{ score: number; label: string; sublabel?: string }> =
                     y="45%"
                     textAnchor="middle"
                     className="gauge-score"
-                    fill={getColor(score)}
+                    fill={meta.color}
                 >
                     {score}
                 </text>
@@ -113,37 +117,13 @@ const RiskGauge: React.FC<{ score: number; label: string; sublabel?: string }> =
                     y="60%"
                     textAnchor="middle"
                     className="gauge-level"
-                    fill="#6b7280"
+                    fill={levelColor}
                 >
-                    {getLevel(score)}
+                    {meta.label}
                 </text>
             </svg>
-            <div className="gauge-label">{label}</div>
-            {sublabel && <div className="gauge-sublabel">{sublabel}</div>}
-        </div>
-    );
-};
-
-// Horizontal Risk Bar Component
-const RiskBar: React.FC<{ score: number; label: string }> = ({ score, label }) => {
-    const getColor = (score: number) => {
-        if (score >= 70) return '#dc2626';
-        if (score >= 40) return '#f59e0b';
-        return '#22c55e';
-    };
-
-    return (
-        <div className="risk-bar-container">
-            <div className="risk-bar-header">
-                <span className="risk-bar-label">{label}</span>
-                <span className="risk-bar-score" style={{ color: getColor(score) }}>{score}/100</span>
-            </div>
-            <div className="risk-bar-track">
-                <div
-                    className="risk-bar-fill"
-                    style={{ width: `${score}%`, backgroundColor: getColor(score) }}
-                />
-            </div>
+            {showLabels && <div className="gauge-label">{label}</div>}
+            {showLabels && sublabel && <div className="gauge-sublabel">{sublabel}</div>}
         </div>
     );
 };
@@ -157,135 +137,222 @@ const QuantumRiskReport: React.FC<QuantumRiskReportProps> = ({ data }) => {
         });
     };
 
-    const getPriorityColor = (priority: string) => {
-        switch (priority.toLowerCase()) {
-            case 'critical': return '#dc2626';
-            case 'high': return '#f59e0b';
-            case 'medium': return '#3b82f6';
-            default: return '#6b7280';
+    const threatBriefing = [
+        {
+            title: 'HNDL (Harvest Now, Decrypt Later)',
+            description: 'Adversaries can capture encrypted traffic today and decrypt it later once CRQCs are available. Long-lived data is already exposed.'
+        },
+        {
+            title: 'CRQC (Cryptographically Relevant Quantum Computer)',
+            description: 'A CRQC can break RSA and ECC, undermining TLS, PKI, and digital signatures across critical systems.'
+        },
+        {
+            title: "Shor's Algorithm",
+            description: 'Efficiently factors large integers and computes discrete logs, rendering RSA and ECC insecure.'
+        },
+        {
+            title: "Grover's Algorithm",
+            description: 'Quadratically speeds brute-force search, effectively halving symmetric key strength (AES-256 -> AES-128).'
         }
-    };
+    ];
+
+    const riskCards = [
+        {
+            key: 'hndl',
+            label: 'HNDL Risk',
+            sublabel: 'Harvest Now, Decrypt Later',
+            score: data.scores.hndl,
+            description: 'Measures the likelihood that encrypted data is being harvested now for future decryption.'
+        },
+        {
+            key: 'crqc',
+            label: 'CRQC Risk',
+            sublabel: 'Quantum Computer Threat',
+            score: data.scores.crqc,
+            description: 'Assesses exposure to a CRQC capable of breaking public-key cryptography.'
+        },
+        {
+            key: 'urgency',
+            label: 'Migration Urgency',
+            sublabel: 'Action Priority',
+            score: data.scores.urgency,
+            description: 'Indicates how quickly your organization should begin a PQC transition.'
+        }
+    ];
+
+    const strategySteps = [
+        {
+            title: 'Inventory Cryptography',
+            description: 'Catalog algorithms, certificates, keys, and protocols across infrastructure, apps, and vendors.'
+        },
+        {
+            title: 'Classify Data Longevity',
+            description: 'Identify data that must remain confidential for 5-15+ years and prioritize it for PQC.'
+        },
+        {
+            title: 'Prioritize High-Risk Systems',
+            description: 'Focus first on TLS, PKI, authentication, and signing pipelines with external exposure.'
+        },
+        {
+            title: 'Adopt NIST PQC + Hybrid',
+            description: 'Pilot Kyber and Dilithium alongside existing algorithms to preserve compatibility.'
+        },
+        {
+            title: 'Validate and Migrate',
+            description: 'Run controlled pilots, test interoperability, and phase production migrations by risk tier.'
+        },
+        {
+            title: 'Govern and Monitor',
+            description: 'Create ownership, timelines, and continuous monitoring as quantum capabilities advance.'
+        }
+    ];
 
     return (
         <div className="quantum-risk-report">
-            {/* Header */}
-            <header className="report-header">
-                <div className="header-logo">
-                    <img src="/QuantumVaultLogo.png" alt="QuantumVault" className="logo-image" />
-                </div>
-                <div className="header-title">
-                    <h1>Quantum Risk Report</h1>
-                    <p className="report-date">Generated: {formatDate(data.generatedAt)}</p>
-                </div>
-            </header>
-
-            {/* Executive Summary */}
-            <section className="report-section">
-                <h2 className="section-title">Executive Summary</h2>
-                <div className="summary-grid">
-                    <RiskGauge score={data.scores.hndl} label="HNDL Risk" sublabel="Harvest Now, Decrypt Later" />
-                    <RiskGauge score={data.scores.crqc} label="CRQC Risk" sublabel="Quantum Computer Threat" />
-                    <RiskGauge score={data.scores.urgency} label="Migration Urgency" sublabel="Action Required" />
-                </div>
-            </section>
-
-            {/* Organization Profile */}
-            <section className="report-section">
-                <h2 className="section-title">Organization Profile</h2>
-                <table className="profile-table">
-                    <tbody>
-                        <tr>
-                            <td className="profile-label">Industry</td>
-                            <td className="profile-value">{data.organization.industry}</td>
-                        </tr>
-                        <tr>
-                            <td className="profile-label">Region</td>
-                            <td className="profile-value">{data.organization.region}</td>
-                        </tr>
-                        <tr>
-                            <td className="profile-label">Organization Size</td>
-                            <td className="profile-value">{data.organization.orgSize}</td>
-                        </tr>
-                        <tr>
-                            <td className="profile-label">Regulatory Framework</td>
-                            <td className="profile-value">{data.organization.regulatoryRegime}</td>
-                        </tr>
-                        <tr>
-                            <td className="profile-label">Data Types</td>
-                            <td className="profile-value">{data.organization.dataTypes.join(', ')}</td>
-                        </tr>
-                        <tr>
-                            <td className="profile-label">Current Cryptography</td>
-                            <td className="profile-value">{data.organization.cryptography.join(', ')}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            {/* Risk Analysis */}
-            <section className="report-section page-break-before">
-                <h2 className="section-title">Detailed Risk Analysis</h2>
-
-                <div className="risk-detail-card">
-                    <h3 className="risk-detail-title">Harvest Now, Decrypt Later (HNDL)</h3>
-                    <RiskBar score={data.scores.hndl} label="HNDL Risk Score" />
-                    <p className="risk-detail-description">{data.exposure.harvestNowDecryptLater.description}</p>
-                    <div className="affected-systems">
-                        <span className="affected-label">Affected Systems:</span>
-                        <ul>
-                            {data.exposure.harvestNowDecryptLater.affectedSystems.map((system, i) => (
-                                <li key={i}>{system}</li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-
-                <div className="risk-detail-card">
-                    <h3 className="risk-detail-title">Cryptographically Relevant Quantum Computer (CRQC)</h3>
-                    <RiskBar score={data.scores.crqc} label="CRQC Risk Score" />
-                    <p className="risk-detail-description">{data.exposure.cryptographicallyRelevantQuantumComputer.description}</p>
-                    <div className="affected-systems">
-                        <span className="affected-label">Affected Systems:</span>
-                        <ul>
-                            {data.exposure.cryptographicallyRelevantQuantumComputer.affectedSystems.map((system, i) => (
-                                <li key={i}>{system}</li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-            {/* Recommendations */}
-            <section className="report-section">
-                <h2 className="section-title">Strategic Recommendations</h2>
-                <div className="recommendations-list">
-                    {data.recommendations.map((rec, index) => (
-                        <div key={index} className="recommendation-item">
-                            <div className="recommendation-header">
-                                <span
-                                    className="priority-badge"
-                                    style={{
-                                        backgroundColor: getPriorityColor(rec.priority),
-                                        color: '#fff'
-                                    }}
-                                >
-                                    {rec.priority}
-                                </span>
-                                <h4 className="recommendation-title">{rec.title}</h4>
-                            </div>
-                            <p className="recommendation-description">{rec.description}</p>
+            <section className="report-page page-one">
+                <header className="report-header">
+                    <div className="header-left">
+                        <img src="/QuantumVaultLogo.png" alt="QuantumVault" className="logo-image" />
+                        <div className="brand-block">
+                            <div className="brand-title">QuantumVault</div>
+                            <div className="brand-tagline">PQC Enterprise Security by Dytallix</div>
                         </div>
-                    ))}
+                    </div>
+                    <div className="header-right">
+                        <div className="report-title">Quantum Risk Report</div>
+                        <div className="report-date">Generated {formatDate(data.generatedAt)}</div>
+                    </div>
+                </header>
+
+                <div className="page-content">
+                    <div className="report-section">
+                        <h2 className="section-title">Organization Profile</h2>
+                        <div className="org-grid">
+                            <div className="org-item">
+                                <span className="org-label">Industry</span>
+                                <span className="org-value">{data.organization.industry}</span>
+                            </div>
+                            <div className="org-item">
+                                <span className="org-label">Region</span>
+                                <span className="org-value">{data.organization.region}</span>
+                            </div>
+                            <div className="org-item">
+                                <span className="org-label">Organization Size</span>
+                                <span className="org-value">{data.organization.orgSize}</span>
+                            </div>
+                            <div className="org-item">
+                                <span className="org-label">Regulatory Regime</span>
+                                <span className="org-value">{data.organization.regulatoryRegime}</span>
+                            </div>
+                            <div className="org-item full">
+                                <span className="org-label">Data Types</span>
+                                <span className="org-value">{data.organization.dataTypes.join(', ')}</span>
+                            </div>
+                            <div className="org-item full">
+                                <span className="org-label">Current Cryptography</span>
+                                <span className="org-value">{data.organization.cryptography.join(', ')}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="report-section">
+                        <h2 className="section-title">Quantum Threat Briefing</h2>
+                        <div className="briefing-grid">
+                            {threatBriefing.map((item) => (
+                                <div key={item.title} className="briefing-card">
+                                    <h3>{item.title}</h3>
+                                    <p>{item.description}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
+
+                <footer className="page-footer">
+                    <span>QuantumVault by Dytallix</span>
+                    <span>www.dytallix.com</span>
+                </footer>
             </section>
 
-            {/* Footer */}
-            <footer className="report-footer">
-                <div className="footer-content">
-                    <p className="footer-brand">QuantumVault by Dytallix</p>
-                    <p className="footer-contact">www.dytallix.com</p>
+            <section className="report-page page-two">
+                <div className="page-content">
+                    <div className="page-title">
+                        <h2>Risk Assessment Results</h2>
+                        <p>Scores reflect your exposure and migration urgency based on the submitted profile.</p>
+                    </div>
+
+                    <div className="risk-grid">
+                        {riskCards.map((risk) => {
+                            const meta = getRiskMeta(risk.score);
+                            return (
+                                <div key={risk.key} className="risk-card">
+                                    <div className="risk-card-header">
+                                        <span className="risk-card-title">{risk.label}</span>
+                                        <span className="risk-card-score" style={{ color: meta.color }}>
+                                            {risk.score}/100
+                                        </span>
+                                    </div>
+                                    <RiskGauge
+                                        score={risk.score}
+                                        label={risk.label}
+                                        sublabel={risk.sublabel}
+                                        tone="dark"
+                                        showLabels={false}
+                                    />
+                                    <div className="risk-card-meta">
+                                        <span className="risk-level" style={{ color: meta.color }}>{meta.label}</span>
+                                        <span className="risk-sublabel">{risk.sublabel}</span>
+                                    </div>
+                                    <p className="risk-card-description">{risk.description}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-            </footer>
+
+                <footer className="page-footer">
+                    <span>QuantumVault by Dytallix</span>
+                    <span>www.dytallix.com</span>
+                </footer>
+            </section>
+
+            <section className="report-page page-three">
+                <div className="page-content">
+                    <div className="page-title">
+                        <h2>Post-Quantum Migration Strategy</h2>
+                        <p>A generalized framework for moving to quantum-safe cryptography.</p>
+                    </div>
+
+                    <div className="strategy-list">
+                        {strategySteps.map((step, index) => (
+                            <div key={step.title} className="strategy-item">
+                                <div className="strategy-index">{index + 1}</div>
+                                <div>
+                                    <h3 className="strategy-title">{step.title}</h3>
+                                    <p className="strategy-description">{step.description}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="cta-panel">
+                        <h3 className="cta-title">Deploy QuantumVault to Secure Vulnerable Data and Systems</h3>
+                        <p className="cta-text">
+                            QuantumVault delivers enterprise-grade PQC readiness with visibility, migration tooling,
+                            and cryptographic policy enforcement across your stack.
+                        </p>
+                        <div className="cta-actions">
+                            <span>hello@dytallix.com</span>
+                            <span>dytallix.com/quantumvault</span>
+                        </div>
+                    </div>
+                </div>
+
+                <footer className="page-footer">
+                    <span>QuantumVault by Dytallix</span>
+                    <span>www.dytallix.com</span>
+                </footer>
+            </section>
         </div>
     );
 };
