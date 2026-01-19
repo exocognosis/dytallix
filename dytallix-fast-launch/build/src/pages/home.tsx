@@ -25,11 +25,11 @@ export function Home() {
                 {/* Two Column Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
                     {/* Left Column: Video */}
-                    <div
+                    <div 
                         className="w-full aspect-square rounded-2xl border border-white/10 bg-black/50 backdrop-blur-sm flex items-center justify-center animate-slide-up transition-all duration-300 hover:border-white/20 overflow-hidden"
                         style={{ animationDelay: "100ms" }}
                     >
-                        <video
+                        <video 
                             className="w-full h-full object-cover"
                             controls
                             poster="/dytallix-logo.png"

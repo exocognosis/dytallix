@@ -3,6 +3,8 @@
 // For this "Real Logic" demo, we will simulate the *cryptographic operations* with realistic delays and data structures,
 // but we will structure it so it CAN be swapped for real WASM easily.
 
+import logger from './logger';
+
 export interface KeyPair {
     publicKey: string;
     privateKey: string;
@@ -41,7 +43,7 @@ export const encryptFilePQC = async (file: File, kyberPublicKey: string): Promis
 
     // 2. "Encapsulate" this AES key using Kyber (Simulated)
     // In reality: wasm.kyber_encapsulate(kyberPublicKey) -> { sharedSecret, ciphertext }
-    console.log(`[PQC] Encapsulating with Kyber Public Key: ${kyberPublicKey.substring(0, 10)}...`);
+    logger.debug(`Encapsulating with Kyber Public Key: ${kyberPublicKey.substring(0, 10)}...`);
 
     await new Promise(resolve => setTimeout(resolve, 600));
     const capsule = "kyber_capsule_" + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -67,7 +69,7 @@ export const encryptFilePQC = async (file: File, kyberPublicKey: string): Promis
 // Simulate Signing (Dilithium)
 export const signHashPQC = async (hash: string, dilithiumPrivateKey: string): Promise<string> => {
     // In reality: wasm.dilithium_sign(hash, dilithiumPrivateKey)
-    console.log(`[PQC] Signing Hash: ${hash} with Private Key: ${dilithiumPrivateKey.substring(0, 10)}...`);
+    logger.debug(`Signing Hash: ${hash} with Private Key: ${dilithiumPrivateKey.substring(0, 10)}...`);
     await new Promise(resolve => setTimeout(resolve, 500));
     return "dilithium_sig_" + Array.from({ length: 128 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 };

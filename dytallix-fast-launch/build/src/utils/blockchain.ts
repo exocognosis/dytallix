@@ -1,10 +1,11 @@
 // Utility to interact with the Dytallix Blockchain Node
+import logger from './logger';
 
 export const anchorHashToBlockchain = async (hash: string, signature: string, owner: string): Promise<string> => {
     const BLOCKCHAIN_API_URL = 'http://localhost:3030'; // Port confirmed running
 
     try {
-        console.log(`[Blockchain] Anchoring Hash: ${hash}`);
+        logger.debug(`Anchoring Hash: ${hash}`);
 
         // Construct the transaction payload
         // This structure depends on what the blockchain node expects. 
@@ -38,9 +39,9 @@ export const anchorHashToBlockchain = async (hash: string, signature: string, ow
         return data.result || "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 
     } catch (error) {
-        console.error("Failed to anchor to blockchain:", error);
+        logger.error("Failed to anchor to blockchain:", error);
         // Fallback to mock for now if connection fails, to keep UI working
-        console.warn("Falling back to mock transaction hash due to error.");
+        logger.warn("Falling back to mock transaction hash due to error.");
         return "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
     }
 };

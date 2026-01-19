@@ -73,11 +73,12 @@ async function generatePDF() {
             path: OUTPUT_FILE,
             format: 'Letter',
             printBackground: true,
+            preferCSSPageSize: true,
             margin: {
-                top: '0.5in',
-                right: '0.5in',
-                bottom: '0.5in',
-                left: '0.5in'
+                top: '0in',
+                right: '0in',
+                bottom: '0in',
+                left: '0in'
             },
             displayHeaderFooter: false
         });

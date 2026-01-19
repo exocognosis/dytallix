@@ -1874,11 +1874,11 @@ pub async fn faucet(
     let address = body
         .get("address")
         .and_then(|v| v.as_str())
-        .ok_or(ApiError::InvalidParam("address is required".to_string()))?;
+        .ok_or(ApiError::BadRequest("address is required".to_string()))?;
     
     // Validate address format
     if !address.starts_with("dyt") && !address.starts_with("dytallix") {
-        return Err(ApiError::InvalidParam("Invalid address format".to_string()));
+        return Err(ApiError::BadRequest("Invalid address format".to_string()));
     }
     
     // Get amounts (default: 10 DGT, 100 DRT)

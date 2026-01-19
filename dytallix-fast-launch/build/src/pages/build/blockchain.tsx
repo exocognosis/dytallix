@@ -150,33 +150,15 @@ function Sparkline({ values, className }: { values: number[]; className?: string
 }
 
 export function BlockchainPage() {
-  console.log("Explorer Fix v2 (Production Mode)")
-  const nodeUrl = useMemo(() => {
-    // Check environment variable first
-    if (import.meta.env.VITE_BLOCKCHAIN_URL) {
-      return import.meta.env.VITE_BLOCKCHAIN_URL.replace(/\/$/, "");
-    }
-    // In production builds (including dytallix.com), use relative path
-    // Nginx proxies /status, /blocks, etc to the blockchain node
-    if (import.meta.env.PROD) {
-      return "";
-    }
-    // Default to localhost for local development
-    return "http://localhost:3003";
-  }, [])
+  const nodeUrl = useMemo(
+    () => (import.meta.env.VITE_BLOCKCHAIN_URL || "http://localhost:3003").replace(/\/$/, ""),
+    []
+  )
 
-  const quantumVaultUrl = useMemo(() => {
-    // Check environment variable first
-    if (import.meta.env.VITE_QUANTUMVAULT_API_URL) {
-      return import.meta.env.VITE_QUANTUMVAULT_API_URL.replace(/\/$/, "");
-    }
-    // In production, use the /quantumvault proxy
-    if (import.meta.env.PROD) {
-      return "/quantumvault";
-    }
-    // Default to localhost for local development
-    return "http://localhost:3002";
-  }, [])
+  const quantumVaultUrl = useMemo(
+    () => (import.meta.env.VITE_QUANTUMVAULT_API_URL || "http://localhost:3002").replace(/\/$/, ""),
+    []
+  )
 
   const [online, setOnline] = useState<boolean>(false)
   const [lastError, setLastError] = useState<string | null>(null)
@@ -528,18 +510,18 @@ export function BlockchainPage() {
                   const activity: Array<
                     | { kind: "tx"; ts: number; tx: TxSummary }
                     | {
-                      kind: "qv"
-                      ts: number
-                      a: {
-                        proofId?: string
-                        txHash?: string
-                        payloadHash?: string
-                        filename?: string
-                        blockHeight?: number
-                        anchoredAt?: string
-                        status?: string
+                        kind: "qv"
+                        ts: number
+                        a: {
+                          proofId?: string
+                          txHash?: string
+                          payloadHash?: string
+                          filename?: string
+                          blockHeight?: number
+                          anchoredAt?: string
+                          status?: string
+                        }
                       }
-                    }
                   > = []
 
                   for (const tx of transactions) {
@@ -596,10 +578,11 @@ export function BlockchainPage() {
                             </div>
                           </div>
                           <span
-                            className={`text-xs px-2 py-1 rounded-md border ${tx.status === "confirmed" || tx.status === "success"
-                              ? "bg-green-500/10 text-green-500 border-green-500/20"
-                              : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                              }`}
+                            className={`text-xs px-2 py-1 rounded-md border ${
+                              tx.status === "confirmed" || tx.status === "success"
+                                ? "bg-green-500/10 text-green-500 border-green-500/20"
+                                : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                            }`}
                           >
                             {tx.status || "confirmed"}
                           </span>

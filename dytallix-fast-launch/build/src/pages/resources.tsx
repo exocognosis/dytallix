@@ -33,13 +33,13 @@ export function Resources() {
             downloadUrl: "/whitepapers/dytallix-tokenomics-paper.pdf"
         },
         {
-            title: "QuantumVault Whitepaper",
+            title: "QuantumVault Marketing",
             description: "Overview of our enterprise security solution, specifically designed for decision-makers and CISOs.",
             icon: Megaphone,
             color: "text-green-500",
             bg: "bg-green-500/10",
-            status: "Available",
-            downloadUrl: "/whitepapers/QuantumVault_Technical_Whitepaper.pdf"
+            status: "Coming Soon",
+            downloadUrl: ""
         }
     ]
 

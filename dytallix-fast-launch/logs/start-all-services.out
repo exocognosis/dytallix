@@ -1,0 +1,70 @@
+Loading configuration from .env...
+[0;34m🚀 Dytallix Service Manager - Fixed Port Edition[0m
+==============================================
+Frontend:     [0;32mhttp://localhost:3000[0m
+Backend API:  [0;32mhttp://localhost:3001[0m
+Blockchain:   [0;32mhttp://localhost:3003[0m
+QuantumVault: [0;32mhttp://localhost:3002[0m
+Faucet API:   [0;32mhttp://localhost:3005[0m
+WebSocket:    [0;32mws://localhost:3004[0m
+==============================================
+[1;33m🛑 Stopping existing services...[0m
+[0;34mLoading port configuration from .env[0m
+[0;34m🛑 Stopping Dytallix Services[0m
+[0;34m==============================[0m
+[0;34mChecking Frontend on port 3000...[0m
+[0;33m  ℹ️  Frontend not running on port 3000[0m
+[0;34mChecking Backend API on port 3001...[0m
+[0;33m  ℹ️  Backend API not running on port 3001[0m
+[0;34mChecking Blockchain Node on port 3003...[0m
+[0;33m  ℹ️  Blockchain Node not running on port 3003[0m
+[0;34mChecking QuantumVault API on port 3002...[0m
+[0;33m  ℹ️  QuantumVault API not running on port 3002[0m
+[0;34mChecking Faucet API on port 3005...[0m
+[0;33m  ℹ️  Faucet API not running on port 3005[0m
+[0;34mChecking WebSocket on port 3004...[0m
+[0;33m  ℹ️  WebSocket not running on port 3004[0m
+
+[0;34m==============================[0m
+[0;34m📊 Stop Services Summary[0m
+[0;34m==============================[0m
+[0;32m✓ Stopped:      0[0m
+[0;33mℹ️  Not running:  6[0m
+[0;31m✗ Failed:       0[0m
+[0;34m==============================[0m
+
+[0;32m✅ All services stopped successfully[0m
+[0;34mRun ./start-all-services.sh to restart services[0m
+[0;34m🔧 Starting services...[0m
+[0;34mStarting Blockchain on port 3003...[0m
+[0;32m✅ Blockchain started successfully (PID: 2684)[0m
+[0;34mStarting QuantumVault on port 3002...[0m
+[0;32m✅ QuantumVault started successfully (PID: 2710)[0m
+[0;34mStarting Backend on port 3001...[0m
+[0;32m✅ Backend started successfully (PID: 2771)[0m
+[0;34mStarting Faucet on port 3005...[0m
+[0;32m✅ Faucet started successfully (PID: 2830)[0m
+[0;34mStarting Frontend on port 3000...[0m
+[0;32m✅ Frontend started successfully (PID: 2850)[0m
+
+[0;32m🎉 All services started successfully![0m
+==============================================
+Frontend:     [0;32mhttp://localhost:3000[0m
+  • Homepage: [0;32mhttp://localhost:3000/[0m
+  • Build:    [0;32mhttp://localhost:3000/build/[0m
+  • Shield:   [0;32mhttp://localhost:3000/quantumvault/[0m (alias, legacy /quantumshield redirects)
+Backend API:  [0;32mhttp://localhost:3001[0m
+Blockchain:   [0;32mhttp://localhost:3003[0m
+QuantumVault: [0;32mhttp://localhost:3002[0m
+Faucet API:   [0;32mhttp://localhost:3005[0m
+  • Status:   [0;32mhttp://localhost:3005/api/faucet/status[0m
+==============================================
+
+[0;34m📋 Service Management:[0m
+  • View logs: tail -f logs/[service].log
+  • Stop all:  ./stop-services.sh
+  • Check status: ps aux | grep -E '(node|cargo)'
+
+[1;33m🔗 No more random ports! All services now use fixed ports.[0m
+[1;33m✨ New web structure from PR #223 with dual-audience experience[0m
+Press Ctrl+C to stop all services...
