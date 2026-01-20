@@ -32,6 +32,8 @@ import blockchainRoutes from './routes/blockchain.js';
 import explorerRoutes from './routes/explorer.js';
 import aiOracleRoutes from './routes/ai-oracle.js';
 import apiStatusRoutes from './routes/api-status.js';
+import aegisRoutes from './routes/aegis.js';
+import { aegisWebSocket } from './services/aegis/websocket.js';
 
 // Metrics
 import { register } from './metrics.js';
@@ -125,6 +127,7 @@ app.use('/', blockchainRoutes); // Wallet compatibility routes at root
 app.use('/api', explorerRoutes); // Explorer routes
 app.use('/api/ai', aiOracleRoutes); // AI Oracle routes
 app.use('/api', apiStatusRoutes); // Status and node cluster routes
+app.use('/api/aegis', aegisRoutes); // Aegis AI routes
 
 // Prometheus metrics endpoint
 app.get('/metrics', async (req, res) => {
@@ -247,14 +250,10 @@ const server = app.listen(CONFIG.server.port, () => {
   });
 });
 
-// WebSocket server (if needed)
-const wss = new WebSocketServer({ server });
-wss.on('connection', (ws) => {
-  logInfo('WebSocket client connected');
-  ws.on('message', (message) => {
-    logInfo('WebSocket message received', { message: message.toString() });
-  });
-});
+// Initialize Aegis WebSocket server
+aegisWebSocket.initialize(server);
+logInfo('Aegis WebSocket server initialized');
+
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

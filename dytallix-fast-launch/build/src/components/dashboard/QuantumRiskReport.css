@@ -34,6 +34,13 @@
   overflow: hidden;
 }
 
+.report-page.page-one {
+  background: url('/QuantumRiskReport-Page1.png') no-repeat center center;
+  background-size: cover;
+  /* Use padding to align content below the static header area */
+  padding-top: 2.25in;
+}
+
 .page-content {
   display: flex;
   flex-direction: column;
@@ -308,6 +315,37 @@
   font-size: 12px;
   color: var(--qr-muted);
   line-height: 1.5;
+}
+
+.risk-explainer {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--qr-border);
+}
+
+.explainer-title {
+  font-size: 15px;
+  color: var(--qr-text);
+  margin: 0 0 16px 0;
+}
+
+.explainer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.explainer-item h4 {
+  font-size: 13px;
+  color: var(--qr-accent);
+  margin: 0 0 6px 0;
+}
+
+.explainer-item p {
+  font-size: 12px;
+  color: var(--qr-muted);
+  margin: 0;
+  line-height: 1.6;
 }
 
 .cta-panel {

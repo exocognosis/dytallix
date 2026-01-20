@@ -4,17 +4,17 @@ import { GlassPanel } from '../components/ui/GlassPanel';
 import { Brain, Shield, Activity, Lock, Zap, Map } from 'lucide-react';
 
 const AIOracleNetwork: React.FC = () => {
-    // Mock Data for Active Modules
-    const activeModules = [
+    // State for active modules
+    const [activeModules, setActiveModules] = React.useState([
         {
             id: 'aegis',
             name: 'Aegis',
             description: 'Quantum-resistant active defense system. Real-time assessment of transaction vulnerability using ML-DSA-87 signatures.',
             technicalDetails: 'Analyzes wallet age, interaction history, and cryptographic primitives using Lattice-based cryptography (Kyber-1024). Signs risk scores with NIST Level 5 ML-DSA-87 for on-chain verification.',
-            status: 'Active on TestNet',
+            status: 'Loading...',
             mainnetStatus: 'Planned for MainNet',
-            lastUpdate: '2 mins ago',
-            transactionsScored: '14,205',
+            lastUpdate: 'Loading...',
+            transactionsScored: '0',
             icon: Shield,
             color: 'text-blue-500',
             bg: 'bg-blue-500/10'
@@ -32,7 +32,64 @@ const AIOracleNetwork: React.FC = () => {
             color: 'text-teal-500',
             bg: 'bg-teal-500/10'
         }
-    ];
+    ]);
+
+    // Fetch Aegis stats on mount
+    React.useEffect(() => {
+        const fetchAegisStats = async () => {
+            try {
+                const response = await fetch('/api/aegis/stats');
+                const data = await response.json();
+
+                if (data.success && data.stats) {
+                    setActiveModules(prev => prev.map(module => {
+                        if (module.id === 'aegis') {
+                            // Calculate time since last analysis
+                            let lastUpdate = 'Never';
+                            if (data.stats.last_analysis) {
+                                const lastAnalysis = new Date(data.stats.last_analysis);
+                                const now = new Date();
+                                const diffMs = now.getTime() - lastAnalysis.getTime();
+                                const diffMins = Math.floor(diffMs / 60000);
+
+                                if (diffMins < 1) lastUpdate = 'Just now';
+                                else if (diffMins < 60) lastUpdate = `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+                                else if (diffMins < 1440) lastUpdate = `${Math.floor(diffMins / 60)} hour${Math.floor(diffMins / 60) > 1 ? 's' : ''} ago`;
+                                else lastUpdate = `${Math.floor(diffMins / 1440)} day${Math.floor(diffMins / 1440) > 1 ? 's' : ''} ago`;
+                            }
+
+                            return {
+                                ...module,
+                                status: 'Active on TestNet',
+                                lastUpdate,
+                                transactionsScored: data.stats.total_transactions.toLocaleString()
+                            };
+                        }
+                        return module;
+                    }));
+                }
+            } catch (error) {
+                console.error('Failed to fetch Aegis stats:', error);
+                setActiveModules(prev => prev.map(module => {
+                    if (module.id === 'aegis') {
+                        return {
+                            ...module,
+                            status: 'Service Unavailable',
+                            lastUpdate: 'Error',
+                            transactionsScored: 'N/A'
+                        };
+                    }
+                    return module;
+                }));
+            }
+        };
+
+        fetchAegisStats();
+
+        // Refresh stats every 30 seconds
+        const interval = setInterval(fetchAegisStats, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Unified Roadmap Modules
     const roadmapModules = [
@@ -138,6 +195,14 @@ const AIOracleNetwork: React.FC = () => {
                                         <p className="text-sm text-foreground/80 leading-relaxed mb-4">
                                             {module.technicalDetails}
                                         </p>
+                                        {module.id === 'aegis' && (
+                                            <a
+                                                href="/aegis-dashboard"
+                                                className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            >
+                                                Launch Aegis
+                                            </a>
+                                        )}
                                         {module.id === 'garrison' && (
                                             <a
                                                 href="/smart-contract-auditor"

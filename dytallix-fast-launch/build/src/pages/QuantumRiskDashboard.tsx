@@ -24,6 +24,15 @@ const QuantumRiskDashboard: React.FC = () => {
     const [reportLoading, setReportLoading] = useState(false);
     const [reportError, setReportError] = useState<string | null>(null);
 
+    // Check for injected data from Playwright
+    useEffect(() => {
+        if (typeof window !== 'undefined' && (window as any).__INJECTED_REPORT_DATA__) {
+            console.log('Found injected report data:', (window as any).__INJECTED_REPORT_DATA__);
+            setReportData((window as any).__INJECTED_REPORT_DATA__);
+            return;
+        }
+    }, []);
+
     const [formData, setFormData] = useState<RiskAssessmentData>({
         industry: '',
         region: '',
@@ -147,7 +156,7 @@ const QuantumRiskDashboard: React.FC = () => {
 
     // Load report data when in report mode
     useEffect(() => {
-        if (isReportMode) {
+        if (isReportMode && !reportData) {
             setReportLoading(true);
             fetch('/report.json')
                 .then(res => {
@@ -258,7 +267,7 @@ const QuantumRiskDashboard: React.FC = () => {
                                 const apiUrl = import.meta.env.VITE_API_URL ||
                                     (typeof window !== 'undefined' && window.location.origin) ||
                                     'https://dytallix.com';
-                                const response = await fetch(`${apiUrl}/api/quantum-risk/submit-email`, {
+                                const response = await fetch(`${apiUrl}/api/quantum-risk/email`, {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',

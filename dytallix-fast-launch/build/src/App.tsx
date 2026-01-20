@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useSearchParams, useLocation } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, useSearchParams, useLocation, Navigate } from "react-router-dom"
 import { ThemeProvider } from "./contexts/theme-provider"
 import { Layout } from "./components/layout/layout"
 
@@ -19,6 +19,8 @@ import { Terms } from "./pages/legal/terms"
 import QuantumRiskDashboard from './pages/QuantumRiskDashboard'
 import AIOracleNetwork from './pages/AIOracleNetwork'
 import SmartContractAuditor from './pages/SmartContractAuditor'
+import AegisDashboard from './pages/AegisDashboard'
+import AegisReviewQueue from './pages/AegisReviewQueue'
 
 import { Investor } from "./pages/investor"
 import { Deploy } from "./pages/deploy"
@@ -56,9 +58,12 @@ function AppRoutes() {
         <Route path="/quantumrisk" element={<QuantumRiskDashboard />} />
         <Route path="/ai-oracle-network" element={<AIOracleNetwork />} />
         <Route path="/smart-contract-auditor" element={<SmartContractAuditor />} />
+        <Route path="/aegis-dashboard" element={<AegisDashboard />} />
+        <Route path="/aegis-review-queue" element={<AegisReviewQueue />} />
 
         {/* Enterprise Routes */}
         <Route path="/enterprise" element={<EnterpriseHub />} />
+        <Route path="/quantumvault" element={<Navigate to="/enterprise" replace />} />
 
         {/* Info Routes */}
         <Route path="/docs" element={<Docs />} />

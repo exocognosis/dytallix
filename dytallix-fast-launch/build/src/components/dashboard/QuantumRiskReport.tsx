@@ -210,6 +210,7 @@ const QuantumRiskReport: React.FC<QuantumRiskReportProps> = ({ data }) => {
     return (
         <div className="quantum-risk-report">
             <section className="report-page page-one">
+                {/* Header is now part of the static background image on page one
                 <header className="report-header">
                     <div className="header-left">
                         <img src="/QuantumVaultLogo.png" alt="QuantumVault" className="logo-image" />
@@ -223,6 +224,10 @@ const QuantumRiskReport: React.FC<QuantumRiskReportProps> = ({ data }) => {
                         <div className="report-date">Generated {formatDate(data.generatedAt)}</div>
                     </div>
                 </header>
+                */}
+                <div className="report-date-overlay" style={{ position: 'absolute', top: '40px', right: '50px', fontSize: '11px', color: '#b7c7e6', textAlign: 'right' }}>
+                    Generated {formatDate(data.generatedAt)}
+                </div>
 
                 <div className="page-content">
                     <div className="report-section">
@@ -307,6 +312,20 @@ const QuantumRiskReport: React.FC<QuantumRiskReportProps> = ({ data }) => {
                                 </div>
                             );
                         })}
+                    </div>
+
+                    <div className="risk-explainer">
+                        <h3 className="explainer-title">Understanding Your Results</h3>
+                        <div className="explainer-grid">
+                            <div className="explainer-item">
+                                <h4>Harvest Now, Decrypt Later (HNDL)</h4>
+                                <p>Adversaries are actively collecting encrypted data today to decrypt it once quantum computers are available. A high HNDL score indicates your long-lived sensitive data is currently at risk.</p>
+                            </div>
+                            <div className="explainer-item">
+                                <h4>Risk Exposure & Timelines</h4>
+                                <p>While the transition to Post-Quantum Cryptography (PQC) can present challenges, with expertise, intention, and effort, your organization can be fully prepared for Y2Q. High scores indicate areas to prioritize first.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
