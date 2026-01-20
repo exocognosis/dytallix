@@ -361,15 +361,15 @@ const QuantumRiskReport: React.FC<QuantumRiskReportProps> = ({ data }) => {
                             and cryptographic policy enforcement across your stack.
                         </p>
                         <div className="cta-actions">
-                            <span>hello@dytallix.com</span>
-                            <span>dytallix.com/quantumvault</span>
+                            <a href="mailto:hello@dytallix.com" style={{ color: 'inherit', textDecoration: 'none' }}>hello@dytallix.com</a>
+                            <a href="https://dytallix.com/enterprise" style={{ color: 'inherit', textDecoration: 'none' }}>dytallix.com/quantumvault</a>
                         </div>
                     </div>
                 </div>
 
                 <footer className="page-footer">
                     <span>QuantumVault by Dytallix</span>
-                    <span>www.dytallix.com</span>
+                    <a href="https://www.dytallix.com" style={{ color: 'inherit', textDecoration: 'none' }}>www.dytallix.com</a>
                 </footer>
             </section>
         </div>
