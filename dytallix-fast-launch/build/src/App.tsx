@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useSearchParams, useLocation, Navigate } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import { ThemeProvider } from "./contexts/theme-provider"
 import { Layout } from "./components/layout/layout"
 
@@ -28,11 +28,11 @@ import { Resources } from "./pages/resources"
 
 // Inner component that can use hooks
 function AppRoutes() {
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
-
-  // Check if we're in report mode - render without layout for clean PDF
-  const isReportMode = location.pathname === '/quantumrisk' && searchParams.get('mode') === 'report';
+  // Check if we're in report mode - use window.location directly for reliability during initial render
+  // This must work synchronously before React Router fully initializes
+  const isReportMode = typeof window !== 'undefined' &&
+    window.location.pathname === '/quantumrisk' &&
+    window.location.search.includes('mode=report');
 
   if (isReportMode) {
     // Render report without Layout (no navbar/footer) for clean PDF export

@@ -260,6 +260,19 @@ main() {
             verify_deployment
             display_info
             ;;
+        logs)
+            check_ssh
+            echo -e "${YELLOW}Fetching remote node logs...${NC}"
+            ssh "$SERVER_USER@$SERVER_IP" "tail -n 50 $DEPLOY_DIR/logs/node.log"
+            echo -e "${YELLOW}Fetching remote api logs...${NC}"
+            ssh "$SERVER_USER@$SERVER_IP" "tail -n 50 $DEPLOY_DIR/logs/api.log"
+            ;;
+        reset)
+            check_ssh
+            echo -e "${YELLOW}Resetting chain data...${NC}"
+            ssh "$SERVER_USER@$SERVER_IP" "rm -rf $DEPLOY_DIR/data"
+            echo -e "${GREEN}✓ Chain data wiped${NC}"
+            ;;
         *)
             echo -e "${RED}Invalid mode: $MODE${NC}"
             echo "Usage: $0 [full|update|verify]"

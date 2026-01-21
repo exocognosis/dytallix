@@ -69,14 +69,19 @@ export const generateRiskPDF = async (formData, riskScores) => {
 
         const context = await browser.newContext({
             viewport: { width: 816, height: 1056 }, // Letter size at 96 DPI
-            deviceScaleFactor: 2 // Higher DPI for better quality
+            deviceScaleFactor: 2, // Higher DPI for better quality
+            bypassCSP: true
         });
+
+        // Disable caching
+        await context.route('**/*', route => route.continue());
 
         const page = await context.newPage();
 
         // Inject the data so the frontend picks it up immediately
         await page.addInitScript((data) => {
             window.__INJECTED_REPORT_DATA__ = data;
+            console.log('Injected report data:', data);
         }, reportData);
 
         logInfo('Navigating to report page...');
@@ -85,11 +90,21 @@ export const generateRiskPDF = async (formData, riskScores) => {
             timeout: 30000
         });
 
+        // Log the current URL for debugging
+        logInfo('Current URL after navigation:', { url: page.url() });
+
         // Wait for the report content to render
-        await page.waitForSelector('.quantum-risk-report', {
-            state: 'visible',
-            timeout: 10000
-        });
+        try {
+            await page.waitForSelector('.quantum-risk-report', {
+                state: 'visible',
+                timeout: 30000
+            });
+        } catch (selectorError) {
+            // Log page content for debugging
+            const bodyContent = await page.evaluate(() => document.body.innerHTML.substring(0, 500));
+            logError('Selector wait failed, page content:', { bodyContent });
+            throw selectorError;
+        }
 
         // Wait for fonts to load
         await page.evaluate(() => document.fonts.ready);

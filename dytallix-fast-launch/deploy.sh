@@ -170,11 +170,14 @@ export ALLOWED_ORIGIN="http://localhost:${FRONTEND_PORT}"
 export NODE_ENV="${NODE_ENV:-development}"
 
 # Load .env if exists
+# Load .env if exists
 if [ -f "$ROOT_DIR/.env" ]; then
   set -a
   source "$ROOT_DIR/.env"
   set +a
 fi
+
+export PORT="$API_PORT"
 
 node index.js >"$LOG_DIR/api.log" 2>&1 &
 echo $! > "$PID_DIR/api.pid"

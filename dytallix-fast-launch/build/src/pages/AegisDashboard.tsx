@@ -56,7 +56,7 @@ const AegisDashboard: React.FC = () => {
     const [activeAlerts, setActiveAlerts] = useState<AegisAlert[]>([]);
 
     // WebSocket connection for real-time alerts
-    const { isConnected, latestAlert, alerts: wsAlerts } = useAegisWebSocket();
+    const { isConnected, latestAlert } = useAegisWebSocket();
 
     // Handle new alerts
     useEffect(() => {

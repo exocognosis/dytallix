@@ -1,0 +1,154 @@
+server {
+    server_name dytallix.com www.dytallix.com;
+    
+    root /usr/share/nginx/html;
+    index index.html;
+    
+    # Proxy QuantumVault API requests (fixed port to 3031)
+    location /quantumvault/ {
+        proxy_pass http://127.0.0.1:3031/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    # Alternative route with /api/ prefix for quantumvault
+    location /api/quantumvault/ {
+        proxy_pass http://127.0.0.1:3031/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    # Quantum Risk API proxy
+    location /api/quantum-risk/ {
+        proxy_pass http://127.0.0.1:8787/api/quantum-risk/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    # Proxy RPC requests to blockchain node
+    location /rpc/ {
+        proxy_pass http://127.0.0.1:3030/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    # Direct blockchain endpoints for Explorer (frontend expects these without /api/ prefix)
+    location = /status {
+        proxy_pass http://127.0.0.1:3030/status;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    location /blocks {
+        proxy_pass http://127.0.0.1:3030/blocks;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    location /transactions {
+        proxy_pass http://127.0.0.1:3030/transactions;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    location /block/ {
+        proxy_pass http://127.0.0.1:3030/block/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    location /tx/ {
+        proxy_pass http://127.0.0.1:3030/tx/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    location /account/ {
+        proxy_pass http://127.0.0.1:3030/account/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    location /balance/ {
+        proxy_pass http://127.0.0.1:3030/balance/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    location /metrics {
+        proxy_pass http://127.0.0.1:3030/metrics;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    # Main API server (port 8787)
+    location /api/ {
+        proxy_pass http://127.0.0.1:8787/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        add_header Access-Control-Allow-Origin * always;
+    }
+    
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|wasm)$ {
+        expires 1y;
+        add_header Cache-Control 'public, immutable';
+    }
+    
+    # SPA routing - serve index.html for all routes
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    listen [::]:443 ssl ipv6only=on;
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/dytallix.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dytallix.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+# Redirect HTTP to HTTPS for domain requests ONLY
+server {
+    if ($host = www.dytallix.com) {
+        return 301 https://$host$request_uri;
+    }
+
+    if ($host = dytallix.com) {
+        return 301 https://$host$request_uri;
+    }
+
+    listen 80;
+    listen [::]:80;
+    server_name dytallix.com www.dytallix.com;
+}
+
+# Localhost server block for internal Playwright PDF generation
+# This is now the default server for IP-based or localhost requests
+server {
+    listen 80 default_server;
+    server_name localhost 127.0.0.1;
+    
+    root /usr/share/nginx/html;
+    index index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
