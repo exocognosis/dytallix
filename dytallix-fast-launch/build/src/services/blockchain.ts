@@ -6,7 +6,9 @@ export interface BlockchainStatus {
     nodeHealth: number
 }
 
-const NODE_URL = "http://localhost:3030";
+const NODE_URL = import.meta.env.VITE_BLOCKCHAIN_URL !== undefined
+    ? import.meta.env.VITE_BLOCKCHAIN_URL
+    : "http://localhost:3030";
 
 export const blockchainService = {
     getStatus: async (): Promise<BlockchainStatus> => {
