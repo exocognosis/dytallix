@@ -24,14 +24,7 @@ const QuantumRiskDashboard: React.FC = () => {
     const [reportLoading, setReportLoading] = useState(false);
     const [reportError, setReportError] = useState<string | null>(null);
 
-    // Check for injected data from Playwright
-    useEffect(() => {
-        if (typeof window !== 'undefined' && (window as any).__INJECTED_REPORT_DATA__) {
-            console.log('Found injected report data:', (window as any).__INJECTED_REPORT_DATA__);
-            setReportData((window as any).__INJECTED_REPORT_DATA__);
-            return;
-        }
-    }, []);
+    // Note: Injected data check is now handled in the report loading useEffect below
 
     const [formData, setFormData] = useState<RiskAssessmentData>({
         industry: '',
@@ -154,9 +147,19 @@ const QuantumRiskDashboard: React.FC = () => {
         });
     };
 
-    // Load report data when in report mode
+    // Load report data when in report mode - prioritize injected data from Playwright
     useEffect(() => {
-        if (isReportMode && !reportData) {
+        if (!isReportMode) return;
+
+        // Check for injected data from Playwright FIRST
+        if (typeof window !== 'undefined' && (window as any).__INJECTED_REPORT_DATA__) {
+            console.log('Found injected report data:', (window as any).__INJECTED_REPORT_DATA__);
+            setReportData((window as any).__INJECTED_REPORT_DATA__);
+            return; // Don't fetch from report.json if we have injected data
+        }
+
+        // Only fetch from report.json if no injected data
+        if (!reportData) {
             setReportLoading(true);
             fetch('/report.json')
                 .then(res => {

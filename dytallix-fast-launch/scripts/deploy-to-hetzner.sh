@@ -132,6 +132,11 @@ setup_environment() {
             sed -i "s|VITE_API_BASE_URL=.*|VITE_API_BASE_URL=http://178.156.187.81:8787|g" .env
             sed -i "s|VITE_RPC_URL=.*|VITE_RPC_URL=http://178.156.187.81:3030|g" .env
             
+            # Ensure VITE_FRONTEND_URL is set for Playwright (internal access)
+            if ! grep -q "VITE_FRONTEND_URL" .env; then
+                echo "VITE_FRONTEND_URL=http://127.0.0.1" >> .env
+            fi
+            
             echo "✓ Environment file created"
         else
             echo "✓ Environment file already exists"
@@ -165,8 +170,18 @@ deploy() {
     ssh "$SERVER_USER@$SERVER_IP" << ENDSSH
         cd $DEPLOY_DIR
         echo "Running deployment script..."
-        ./deploy.sh
-        echo "✓ Deployment complete"
+        
+        # Kill existing services to free ports
+        echo "Freeing up ports..."
+        for port in 3030 8787 5173 3000 3001 3002 3003 3004 3005; do
+             if lsof -ti:\$port >/dev/null; then
+                 echo "Killing process on port \$port"
+                 lsof -ti:\$port | xargs kill -9 || true
+             fi
+        done
+        
+        nohup ./deploy.sh > deployment.log 2>&1 &
+        echo "✓ Deployment started in background"
         # Reload nginx to pick up new frontend
         systemctl reload nginx
 ENDSSH
@@ -178,7 +193,7 @@ ENDSSH
 verify_deployment() {
     echo -e "\n${YELLOW}[6/7] Verifying deployment...${NC}"
     
-    sleep 5  # Give services time to start
+    sleep 15  # Give services time to start
     
     # Check Docker containers
     echo -e "\n${BLUE}Docker Containers:${NC}"

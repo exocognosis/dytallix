@@ -56,6 +56,11 @@ try {
   if (CONFIG.server.nodeEnv === 'production') {
     logInfo('Production environment validation passed');
   }
+  logInfo('Environment Variables Check', {
+    VITE_FRONTEND_URL: process.env.VITE_FRONTEND_URL,
+    FRONTEND_PORT: process.env.FRONTEND_PORT,
+    PWD: process.cwd()
+  });
 } catch (err) {
   logError(err.message);
   process.exit(1);

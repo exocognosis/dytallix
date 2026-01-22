@@ -2,7 +2,7 @@
 import logger from './logger';
 
 export const anchorHashToBlockchain = async (hash: string, signature: string, owner: string): Promise<string> => {
-    const BLOCKCHAIN_API_URL = 'http://localhost:3030'; // Port confirmed running
+    const BLOCKCHAIN_API_URL = (import.meta.env.VITE_BLOCKCHAIN_URL || 'http://localhost:3003').replace(/\/$/, "");
 
     try {
         logger.debug(`Anchoring Hash: ${hash}`);
