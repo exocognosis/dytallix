@@ -22,7 +22,8 @@ export const useAegisWebSocket = () => {
     const connect = useCallback(() => {
         try {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.hostname}:3001/api/aegis/ws`;
+            // Use same host/port as the page - Nginx or server handles routing
+            const wsUrl = `${protocol}//${window.location.host}/api/aegis/ws`;
 
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
