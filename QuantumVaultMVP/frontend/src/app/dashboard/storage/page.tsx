@@ -96,8 +96,11 @@ export default function StoragePage() {
                                             border: '1px solid rgba(0, 191, 255, 0.2)',
                                             borderRadius: '8px',
                                             fontSize: '12px',
+                                            color: '#ffffff',
                                         }}
-                                        formatter={(value) => [String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' objects', 'Count']}
+                                        itemStyle={{ color: '#ffffff' }}
+                                        labelStyle={{ color: '#ffffff' }}
+                                        formatter={(value, name) => [String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' objects', name]}
                                     />
                                     <Legend
                                         verticalAlign="bottom"

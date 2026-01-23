@@ -129,7 +129,9 @@ export default function TransportPage() {
                                             border: '1px solid rgba(0, 191, 255, 0.2)',
                                             borderRadius: '8px',
                                             fontSize: '12px',
+                                            color: '#ffffff',
                                         }}
+                                        cursor={{ fill: 'rgba(34, 211, 238, 0.1)' }}
                                         formatter={(value) => [`${value}%`]}
                                     />
                                     <Bar dataKey="protected" name="Protected" fill="#10B981" radius={[4, 4, 0, 0]} />

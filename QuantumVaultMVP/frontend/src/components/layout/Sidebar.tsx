@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -21,6 +20,7 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
+import { useSidebar } from './SidebarContext';
 
 const NAV_ITEMS = [
     { id: 'overview', label: 'Overview', href: '/dashboard', icon: Activity },
@@ -40,8 +40,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname();
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const { isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen } = useSidebar();
 
     const isActive = (href: string) => {
         if (href === '/dashboard') {
