@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-01-27T02:27:30Z",
+  "profile": "demo",
+  "count_scale": 0.001,
+  "size_scale": 0.02,
+  "total_files": 2,
+  "total_bytes": 5031,
+  "categories": {
+    "genomic_vcf": {
+      "files": 2,
+      "bytes": 5031,
+      "formats": {
+        "vcf": 1,
+        "vcf.gz": 1
+      }
+    }
+  }
+}
