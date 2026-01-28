@@ -3,7 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 
 @Injectable()
 export class PoliciesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getPolicies() {
     return this.prisma.policy.findMany({
@@ -24,14 +24,18 @@ export class PoliciesService {
     });
   }
 
-  async createPolicy(data: {
-    name: string;
-    description?: string;
-    ruleDefinition: any;
-    targetScope?: any;
-    priority?: number;
-  }) {
-    return this.prisma.policy.create({ data });
+  async createPolicy(data: any) {
+    // Map frontend 'rules' to schema 'ruleDefinition'
+    // Frontend sends { rules: [...] }, Schema expects ruleDefinition
+    const { rules, ruleDefinition, ...rest } = data;
+    const finalRuleDefinition = ruleDefinition || rules || {};
+
+    return this.prisma.policy.create({
+      data: {
+        ...rest,
+        ruleDefinition: finalRuleDefinition,
+      },
+    });
   }
 
   async updatePolicy(id: string, data: any) {
@@ -65,7 +69,7 @@ export class PoliciesService {
 
     // Get assets matching the target scope
     const assets = await this.prisma.asset.findMany();
-    
+
     const results = [];
     for (const asset of assets) {
       const result = this.evaluateAssetAgainstPolicy(asset, policy.ruleDefinition);

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
     FileCheck,
     CheckCircle,
@@ -10,9 +11,33 @@ import {
 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { complianceData, migrationProgress, type ComplianceItem } from '@/lib/mockData';
+import { complianceData as mockComplianceData, migrationProgress as mockMigrationProgress, type ComplianceItem } from '@/lib/mockData';
+import { complianceAPI } from '@/lib/api';
 
 export default function CompliancePage() {
+    const [complianceData, setComplianceData] = useState<ComplianceItem[]>(mockComplianceData);
+    const [migrationProgress, setMigrationProgress] = useState(mockMigrationProgress);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [standardsData, progressData] = await Promise.all([
+                    complianceAPI.getStandards(),
+                    complianceAPI.getMigrationProgress()
+                ]);
+                setComplianceData(standardsData);
+                setMigrationProgress(progressData);
+            } catch (error) {
+                console.error('Failed to fetch compliance data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
     const getStatusIcon = (status: ComplianceItem['status']) => {
         switch (status) {
             case 'compliant': return <CheckCircle className="w-5 h-5 text-green-400" />;

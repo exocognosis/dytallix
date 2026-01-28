@@ -50,61 +50,46 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-6xl">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left: Branding */}
-          <div className="hidden lg:flex flex-col items-center justify-center text-center">
-            <Image
-              src="/QuantumVault.png"
-              alt="QuantumVault"
-              width={400}
-              height={400}
-              priority
-              className="w-full max-w-[320px] h-auto mb-8 drop-shadow-2xl"
-            />
-            <h1 className="text-4xl font-bold text-white mb-4 gradient-text">
-              QuantumVault
-            </h1>
-            <p className="text-lg text-muted max-w-md">
-              Enterprise-grade post-quantum cryptographic key management and attestation platform.
-            </p>
-          </div>
+    <div className="relative min-h-screen w-full overflow-hidden bg-black text-white">
+      {/* Background Image Container */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: 'url(/login-bg-final.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
 
-          {/* Right: Login Form */}
-          <div className="flex justify-center lg:justify-end">
-            <GlassPanel variant="default" className="w-full max-w-md p-8">
-              {/* Mobile Logo */}
-              <div className="lg:hidden flex justify-center mb-6">
-                <Image
-                  src="/QuantumVault.png"
-                  alt="QuantumVault"
-                  width={120}
-                  height={120}
-                  priority
-                  className="drop-shadow-lg"
-                />
-              </div>
+      {/* Overlay Content Container */}
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 min-h-screen w-full">
+        {/* Left Column: Empty (Spacer for the background logo) */}
+        <div className="hidden lg:block" />
 
+        {/* Right Column: Login Form */}
+        <div className="flex items-center justify-center lg:justify-start lg:pl-12 px-6">
+          <div className="w-full max-w-md">
+            <GlassPanel variant="default" className="p-8 backdrop-blur-xl bg-black/40 border-white/10 shadow-2xl">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-white">{welcomeTitle}</h2>
-                <p className="mt-2 text-sm text-muted">Sign in to your account</p>
+                <p className="mt-2 text-sm text-gray-400">Sign in to your account</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-2">
+                  <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
                     Email Address
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                     <input
                       id="email"
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition"
+                      className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-medium"
                       placeholder="admin@quantumvault.local"
                       autoComplete="email"
                     />
@@ -112,18 +97,18 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-white/80 mb-2">
+                  <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
                     Password
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                     <input
                       id="password"
                       type="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition"
+                      className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-medium"
                       placeholder="••••••••"
                       autoComplete="current-password"
                     />
@@ -134,45 +119,38 @@ export default function LoginPage() {
                   <div
                     role="alert"
                     aria-live="polite"
-                    className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-sm"
+                    className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-sm flex items-center gap-2"
                   >
-                    {error}
+                    <span>⚠️</span> {error}
                   </div>
                 )}
 
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full"
+                  className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-semibold border border-white/10 hover:border-white/20 transition-all rounded-lg"
                   size="lg"
                 >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Signing in...
-                    </span>
-                  ) : (
-                    'Sign In'
-                  )}
+                  {loading ? 'Signing In...' : 'Sign In'}
                 </Button>
               </form>
 
               <div className="mt-8 pt-6 border-t border-white/10 text-center">
-                <p className="text-xs text-muted mb-2">Default credentials:</p>
-                <code className="text-xs bg-white/5 px-3 py-1.5 rounded border border-white/10 text-white/70">
+                <p className="text-xs text-gray-500 mb-2">Default credentials:</p>
+                <code className="text-[10px] bg-black/30 px-2 py-1 rounded text-gray-400 font-mono">
                   admin@quantumvault.local / QuantumVault2024!
                 </code>
               </div>
 
               <div className="mt-6 text-center">
-                <p className="text-xs text-muted">
-                  Powered by <span className="text-white/80">Dytallix</span> • Quantum-Safe Infrastructure
+                <p className="text-[10px] text-gray-600 tracking-wide uppercase">
+                  BUILT ON DYTALLIX
                 </p>
               </div>
             </GlassPanel>
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

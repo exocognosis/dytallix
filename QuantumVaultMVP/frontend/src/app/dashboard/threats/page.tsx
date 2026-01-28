@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     AlertTriangle,
     Shield,
@@ -11,11 +11,30 @@ import {
 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { threatMappings, type ThreatMapping } from '@/lib/mockData';
+import { threatMappings as mockThreatMappings, type ThreatMapping } from '@/lib/mockData';
+import { threatsAPI } from '@/lib/api';
 
 export default function ThreatsPage() {
+    const [threatMappings, setThreatMappings] = useState<ThreatMapping[]>(mockThreatMappings);
+    const [loading, setLoading] = useState(true);
     const [expandedThreat, setExpandedThreat] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const fetchThreats = async () => {
+            try {
+                setLoading(true);
+                const data = await threatsAPI.getMappings();
+                setThreatMappings(data);
+            } catch (error) {
+                console.error('Failed to fetch threats:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchThreats();
+    }, []);
+
 
     const getSeverityClass = (severity: ThreatMapping['severity']) => {
         switch (severity) {

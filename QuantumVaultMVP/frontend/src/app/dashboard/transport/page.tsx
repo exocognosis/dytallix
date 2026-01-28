@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
     Lock,
     Globe,
@@ -23,9 +24,41 @@ import {
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { transportMetrics, trafficData, tunnelProfiles } from '@/lib/mockData';
+import { transportMetrics as mockMetrics, trafficData as mockTraffic, tunnelProfiles as mockTunnels } from '@/lib/mockData';
+import { transportAPI } from '@/lib/api';
 
 export default function TransportPage() {
+    const [metrics, setMetrics] = useState(mockMetrics);
+    const [traffic, setTraffic] = useState(mockTraffic);
+    const [tunnels, setTunnels] = useState(mockTunnels);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [metricsData, trafficData, tunnelsData] = await Promise.all([
+                    transportAPI.getSessions(),
+                    transportAPI.getTraffic(),
+                    transportAPI.getTunnels()
+                ]);
+                setMetrics(metricsData);
+                setTraffic(trafficData);
+                setTunnels(tunnelsData);
+            } catch (error) {
+                console.error('Failed to fetch transport data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    // Helper mappings
+    const transportMetrics = metrics;
+    const trafficData = traffic;
+    const tunnelProfiles = tunnels;
+
     const getStatusClass = (status: string) => {
         switch (status) {
             case 'active': return 'status-success';

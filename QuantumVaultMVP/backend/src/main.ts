@@ -11,10 +11,10 @@ async function bootstrap() {
   );
 
   const configService = app.get(ConfigService);
-  
+
   // Enable CORS
   app.enableCors({
-    origin: configService.get('CORS_ORIGIN') || '*',
+    origin: true, // Reflects the request origin, allowing credentials with specific origin
     credentials: true,
   });
 
@@ -32,7 +32,7 @@ async function bootstrap() {
 
   const port = configService.get('PORT') || 3000;
   await app.listen(port, '0.0.0.0');
-  
+
   console.log(`🚀 QuantumVault Backend is running on: http://localhost:${port}/api/v1`);
 }
 

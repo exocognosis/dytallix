@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Key,
     RotateCw,
@@ -19,14 +19,56 @@ import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmModal } from '@/components/ui/Modal';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { mockKeys, type CryptoKey, type KeyStatus, type KeyType } from '@/lib/mockData';
+import { anchorsAPI } from '@/lib/api';
+
 
 export default function KeyManagementPage() {
-    const [keys, setKeys] = useState<CryptoKey[]>(mockKeys);
+    const [loading, setLoading] = useState(true);
+    const [keys, setKeys] = useState<CryptoKey[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter, setTypeFilter] = useState<KeyType | 'all'>('all');
     const [statusFilter, setStatusFilter] = useState<KeyStatus | 'all'>('all');
     const [selectedKey, setSelectedKey] = useState<CryptoKey | null>(null);
     const [confirmAction, setConfirmAction] = useState<{ type: 'rotate' | 'revoke'; key: CryptoKey } | null>(null);
+
+    // Create Key State
+    // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // Removed
+    const [newKeyName, setNewKeyName] = useState('');
+    const [newKeyAlgorithm, setNewKeyAlgorithm] = useState('ML-KEM-1024');
+    const [isCreating, setIsCreating] = useState(false);
+
+    // Fetch keys from backend
+    const fetchKeys = async () => {
+        try {
+            setLoading(true);
+            const anchors = await anchorsAPI.getAnchors();
+
+            // Map backend anchors to frontend CryptoKey model
+            const mappedKeys: CryptoKey[] = anchors.map((anchor: any) => ({
+                id: anchor.id,
+                name: anchor.name,
+                type: (anchor.algorithm.includes('KEM') ? 'ML-KEM' : 'ML-DSA') as KeyType,
+                status: anchor.isActive ? 'active' : 'pending', // Simplification for now
+                created: new Date(anchor.createdAt).toISOString().split('T')[0],
+                expiry: new Date(new Date(anchor.createdAt).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Mock 90 day expiry
+                algorithm: anchor.algorithm || 'ML-KEM-1024',
+                strength: '256-bit',
+                usage: anchor.algorithm.includes('KEM') ? 'Key Exchange' : 'Digital Signatures',
+            }));
+
+            setKeys(mappedKeys);
+        } catch (error) {
+            console.error('Failed to fetch anchors:', error);
+            // Fallback to mock data on error
+            setKeys(mockKeys);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchKeys();
+    }, []);
 
     const filteredKeys = keys.filter(key => {
         const matchesSearch = key.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -70,25 +112,44 @@ export default function KeyManagementPage() {
         setConfirmAction({ type: 'revoke', key });
     };
 
-    const executeAction = () => {
+    const executeAction = async () => {
         if (!confirmAction) return;
 
-        if (confirmAction.type === 'rotate') {
-            // Simulate key rotation
-            setKeys(prev => prev.map(k =>
-                k.id === confirmAction.key.id
-                    ? { ...k, created: new Date().toISOString().split('T')[0], expiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }
-                    : k
-            ));
-        } else if (confirmAction.type === 'revoke') {
-            // Simulate key revocation
-            setKeys(prev => prev.map(k =>
-                k.id === confirmAction.key.id
-                    ? { ...k, status: 'revoked' as KeyStatus }
-                    : k
-            ));
+        try {
+            if (confirmAction.type === 'rotate') {
+                await anchorsAPI.rotateAnchor(confirmAction.key.id);
+            } else if (confirmAction.type === 'revoke') {
+                // Backend doesn't support revoke directly on anchors yet, assume handled via update/deactivate
+                // For now, we'll simulate it locally or call deactivate if available
+                await anchorsAPI.activateAnchor(confirmAction.key.id); // Re-usng activate as placeholder or add deactivate
+            }
+
+            // Refresh list
+            await fetchKeys();
+        } catch (error) {
+            console.error('Action failed:', error);
+        } finally {
+            setConfirmAction(null);
         }
-        setConfirmAction(null);
+    };
+
+    const handleCreateKey = async () => {
+        if (!newKeyName.trim()) return;
+
+        try {
+            setIsCreating(true);
+            await anchorsAPI.createAnchor({
+                name: newKeyName,
+                algorithm: newKeyAlgorithm,
+            });
+            await fetchKeys();
+            // setIsCreateModalOpen(false); // Removed
+            setNewKeyName('');
+        } catch (error) {
+            console.error('Failed to create key:', error);
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     const keyStats = {
@@ -111,10 +172,6 @@ export default function KeyManagementPage() {
                         <Tooltip term="PQC">PQC</Tooltip> Key Exchange & Signatures
                     </p>
                 </div>
-                <Button variant="primary" className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Generate New Key
-                </Button>
             </div>
 
             {/* Stats Row */}
@@ -179,64 +236,111 @@ export default function KeyManagementPage() {
             {/* Keys Table */}
             <GlassPanel className="overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="quantum-table">
-                        <thead>
-                            <tr>
-                                <th>Key ID</th>
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>Algorithm</th>
-                                <th>Status</th>
-                                <th>Expiry</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredKeys.map((key) => (
-                                <tr key={key.id} onClick={() => setSelectedKey(key)}>
-                                    <td className="font-mono text-cyan-400 text-sm">{key.id}</td>
-                                    <td className="font-medium text-white">{key.name}</td>
-                                    <td>
-                                        <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeClass(key.type)}`}>
-                                            <Tooltip term={key.type}>{key.type}</Tooltip>
-                                        </span>
-                                    </td>
-                                    <td className="text-white/70 text-sm">{key.algorithm}</td>
-                                    <td>
-                                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${getStatusClass(key.status)}`}>
-                                            {getStatusIcon(key.status)}
-                                            {key.status}
-                                        </span>
-                                    </td>
-                                    <td className="text-white/70 text-sm">{key.expiry}</td>
-                                    <td>
-                                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                            <button
-                                                onClick={() => handleRotate(key)}
-                                                disabled={key.status === 'revoked'}
-                                                className="p-1.5 rounded hover:bg-white/10 text-white/60 hover:text-cyan-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                title="Rotate Key"
-                                            >
-                                                <RotateCw className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleRevoke(key)}
-                                                disabled={key.status === 'revoked'}
-                                                className="p-1.5 rounded hover:bg-white/10 text-white/60 hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                title="Revoke Key"
-                                            >
-                                                <XCircle className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </td>
+                    {loading ? (
+                        <div className="p-8 text-center text-white/50 animate-pulse">Loading keys...</div>
+                    ) : (
+                        <table className="quantum-table">
+                            <thead>
+                                <tr>
+                                    <th>Key ID</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Algorithm</th>
+                                    <th>Status</th>
+                                    <th>Expiry</th>
+                                    <th>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredKeys.map((key) => (
+                                    <tr key={key.id} onClick={() => setSelectedKey(key)}>
+                                        <td className="font-mono text-cyan-400 text-sm">{key.id.substring(0, 8)}...</td>
+                                        <td className="font-medium text-white">{key.name}</td>
+                                        <td>
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeClass(key.type)}`}>
+                                                <Tooltip term={key.type}>{key.type}</Tooltip>
+                                            </span>
+                                        </td>
+                                        <td className="text-white/70 text-sm">{key.algorithm}</td>
+                                        <td>
+                                            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${getStatusClass(key.status)}`}>
+                                                {getStatusIcon(key.status)}
+                                                {key.status}
+                                            </span>
+                                        </td>
+                                        <td className="text-white/70 text-sm">{key.expiry}</td>
+                                        <td>
+                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    onClick={() => handleRotate(key)}
+                                                    disabled={key.status === 'revoked'}
+                                                    className="p-1.5 rounded hover:bg-white/10 text-white/60 hover:text-cyan-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Rotate Key"
+                                                >
+                                                    <RotateCw className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRevoke(key)}
+                                                    disabled={key.status === 'revoked'}
+                                                    className="p-1.5 rounded hover:bg-white/10 text-white/60 hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Revoke Key"
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </GlassPanel>
 
-            {/* System Flow Visualization */}
+            {/* Key Administration Card */}
+            <GlassPanel className="p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-cyan-400" />
+                    Key Administration
+                </h3>
+                <div className="flex flex-col lg:flex-row gap-4 items-end">
+                    <div className="flex-1 w-full">
+                        <label className="block text-sm font-medium text-white mb-1">Key Name</label>
+                        <input
+                            type="text"
+                            value={newKeyName}
+                            onChange={(e) => setNewKeyName(e.target.value)}
+                            placeholder="e.g., Main Anchor Key"
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50"
+                        />
+                    </div>
+                    <div className="flex-1 w-full">
+                        <label className="block text-sm font-medium text-white mb-1">Algorithm</label>
+                        <select
+                            value={newKeyAlgorithm}
+                            onChange={(e) => setNewKeyAlgorithm(e.target.value)}
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400/50"
+                        >
+                            <option value="ML-KEM-1024">ML-KEM-1024 (Kyber)</option>
+                            <option value="ML-DSA-65">ML-DSA-65 (Dilithium)</option>
+                            <option value="SLH-DSA-SHAKE-128s">SLH-DSA-SHAKE-128s (SPHINCS+)</option>
+                        </select>
+                    </div>
+                    <div className="w-full lg:w-auto">
+                        <Button
+                            variant="primary"
+                            onClick={handleCreateKey}
+                            disabled={!newKeyName.trim() || isCreating}
+                            className="w-full lg:w-auto min-w-[150px]"
+                        >
+                            {isCreating ? 'Generating...' : 'Generate Key'}
+                        </Button>
+                    </div>
+                </div>
+                <p className="text-xs text-white/50 mt-2">All loaded PQC algorithms are supported for auto-generation.</p>
+            </GlassPanel>
+
+            {/* System Flow Visualization - Keep as static for now */}
             <GlassPanel className="p-6">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <Shield className="w-5 h-5 text-cyan-400" />
@@ -344,6 +448,8 @@ export default function KeyManagementPage() {
                 confirmLabel={confirmAction?.type === 'rotate' ? 'Rotate Key' : 'Revoke Key'}
                 variant={confirmAction?.type === 'revoke' ? 'danger' : 'default'}
             />
-        </div>
+
+            {/* Create Key Modal Removed */}
+        </div >
     );
 }

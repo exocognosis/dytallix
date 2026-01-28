@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:13000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '/api/v1' : 'http://localhost:13000/api/v1');
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -31,9 +31,14 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
+    // Don't redirect if we're already on the login page or if the error came from the login endpoint
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+
+    if (error.response?.status === 401 && typeof window !== 'undefined' && !isLoginRequest) {
+      console.warn('API 401 Unauthorized - Redirecting to login', error.config?.url);
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Ensure we redirect to the app login, not the root domain
+      window.location.href = '/QuantumVaultMVP/login';
     }
     return Promise.reject(error);
   }
@@ -122,12 +127,32 @@ export const policiesAPI = {
     const response = await apiClient.get('/policies');
     return response.data;
   },
+  getPolicy: async (id: string) => {
+    const response = await apiClient.get(`/policies/${id}`);
+    return response.data;
+  },
   createPolicy: async (policy: Policy) => {
     const response = await apiClient.post('/policies', policy);
     return response.data;
   },
+  updatePolicy: async (id: string, policy: Partial<Policy>) => {
+    const response = await apiClient.put(`/policies/${id}`, policy);
+    return response.data;
+  },
+  deletePolicy: async (id: string) => {
+    const response = await apiClient.delete(`/policies/${id}`);
+    return response.data;
+  },
   activatePolicy: async (id: string) => {
     const response = await apiClient.post(`/policies/${id}/activate`);
+    return response.data;
+  },
+  deactivatePolicy: async (id: string) => {
+    const response = await apiClient.post(`/policies/${id}/deactivate`);
+    return response.data;
+  },
+  evaluatePolicy: async (id: string) => {
+    const response = await apiClient.post(`/policies/${id}/evaluate`);
     return response.data;
   },
 };
@@ -138,8 +163,92 @@ export const anchorsAPI = {
     const response = await apiClient.get('/anchors');
     return response.data;
   },
+  getAnchor: async (id: string) => {
+    const response = await apiClient.get(`/anchors/${id}`);
+    return response.data;
+  },
   createAnchor: async (anchor: Anchor) => {
     const response = await apiClient.post('/anchors', anchor);
+    return response.data;
+  },
+  rotateAnchor: async (id: string) => {
+    const response = await apiClient.post(`/anchors/${id}/rotate`);
+    return response.data;
+  },
+  activateAnchor: async (id: string) => {
+    const response = await apiClient.post(`/anchors/${id}/activate`);
+    return response.data;
+  },
+};
+
+// Scans API
+export const scansAPI = {
+  getTargets: async () => {
+    const response = await apiClient.get('/scans/targets');
+    return response.data;
+  },
+  createTarget: async (target: { name: string; type: string; host: string; port: number }) => {
+    const response = await apiClient.post('/scans/targets', target);
+    return response.data;
+  },
+  triggerScan: async (targetId: string) => {
+    const response = await apiClient.post(`/scans/trigger/${targetId}`);
+    return response.data;
+  },
+  getScanStatus: async (scanId: string) => {
+    const response = await apiClient.get(`/scans/status/${scanId}`);
+    return response.data;
+  },
+  getScanHistory: async () => {
+    const response = await apiClient.get('/scans/history');
+    return response.data;
+  },
+};
+
+// Storage API
+export const storageAPI = {
+  getMetrics: async () => {
+    const response = await apiClient.get('/storage/metrics');
+    return response.data;
+  },
+  getTenants: async () => {
+    const response = await apiClient.get('/storage/tenants');
+    return response.data;
+  },
+};
+
+// Compliance API
+export const complianceAPI = {
+  getStandards: async () => {
+    const response = await apiClient.get('/compliance/standards');
+    return response.data;
+  },
+  getMigrationProgress: async () => {
+    const response = await apiClient.get('/compliance/migration-progress');
+    return response.data;
+  },
+};
+
+// Transport API
+export const transportAPI = {
+  getSessions: async () => {
+    const response = await apiClient.get('/transport/sessions');
+    return response.data;
+  },
+  getTunnels: async () => {
+    const response = await apiClient.get('/transport/tunnels');
+    return response.data;
+  },
+  getTraffic: async () => {
+    const response = await apiClient.get('/transport/traffic');
+    return response.data;
+  },
+};
+
+// Threats API
+export const threatsAPI = {
+  getMappings: async () => {
+    const response = await apiClient.get('/threats/mappings');
     return response.data;
   },
 };
@@ -172,6 +281,34 @@ export const attestationAPI = {
   },
   getAssetAttestations: async (assetId: string) => {
     const response = await apiClient.get(`/attestation/asset/${assetId}`);
+    return response.data;
+  },
+};
+
+// Admin API
+export const adminAPI = {
+  saveScanConfig: async (config: any) => {
+    const response = await apiClient.post('/admin/scan-config', config);
+    return response.data;
+  },
+  runDiscovery: async (config: any) => {
+    const response = await apiClient.post('/admin/scan', config);
+    return response.data;
+  },
+  getHealth: async () => {
+    const response = await apiClient.get('/admin/health');
+    return response.data;
+  },
+  getLogs: async () => {
+    const response = await apiClient.get('/admin/logs');
+    return response.data;
+  },
+  getAlgos: async () => {
+    const response = await apiClient.get('/admin/algos');
+    return response.data;
+  },
+  updateAlgo: async (id: string, enabled: boolean) => {
+    const response = await apiClient.post('/admin/algos/update', { id, enabled });
     return response.data;
   },
 };

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
     Database,
     Shield,
@@ -19,9 +20,37 @@ import {
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { storageMetrics, storageByTenant } from '@/lib/mockData';
+import { storageMetrics as mockStorageMetrics, storageByTenant as mockStorageByTenant } from '@/lib/mockData';
+import { storageAPI } from '@/lib/api';
 
 export default function StoragePage() {
+    const [metrics, setMetrics] = useState(mockStorageMetrics);
+    const [tenantData, setTenantData] = useState(mockStorageByTenant);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [metricsData, tenantsData] = await Promise.all([
+                    storageAPI.getMetrics(),
+                    storageAPI.getTenants()
+                ]);
+                setMetrics(metricsData);
+                setTenantData(tenantsData);
+            } catch (error) {
+                console.error('Failed to fetch storage data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    // Helper variables mapping to state
+    const storageMetrics = metrics;
+    const storageByTenant = tenantData;
+
     return (
         <div className="p-6 lg:p-8 space-y-6">
             {/* Header */}

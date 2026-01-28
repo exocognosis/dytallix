@@ -2,13 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { VaultService } from '../vault/vault.service';
 import { getMlKem1024, ML_KEM_1024_ALGORITHM } from '../crypto/mlkem';
+import { getMlDsa65, ML_DSA_65_ALGORITHM } from '../crypto/mldsa';
+import { getSlhDsaShake128s, SLH_DSA_SHAKE_128S_ALGORITHM } from '../crypto/slhdsa';
 
 @Injectable()
 export class AnchorsService {
   constructor(
     private prisma: PrismaService,
     private vaultService: VaultService,
-  ) {}
+  ) { }
 
   async getAnchors() {
     return this.prisma.anchor.findMany({
@@ -37,8 +39,27 @@ export class AnchorsService {
     const publicKeyPath = `quantumvault/anchors/${keyId}/public`;
     const privateKeyPath = `quantumvault/anchors/${keyId}/private`;
 
-    const kem = await getMlKem1024();
-    const { publicKey, secretKey } = await kem.generateKeyPair();
+    let publicKey: Uint8Array;
+    let secretKey: Uint8Array;
+
+    if (algorithm === ML_KEM_1024_ALGORITHM) {
+      const kem = await getMlKem1024();
+      const kp = await kem.generateKeyPair();
+      publicKey = kp.publicKey;
+      secretKey = kp.secretKey;
+    } else if (algorithm === ML_DSA_65_ALGORITHM) {
+      const sig = await getMlDsa65();
+      const kp = await sig.generateKeyPair();
+      publicKey = kp.publicKey;
+      secretKey = kp.secretKey;
+    } else if (algorithm === SLH_DSA_SHAKE_128S_ALGORITHM) {
+      const sig = await getSlhDsaShake128s();
+      const kp = await sig.generateKeyPair();
+      publicKey = kp.publicKey;
+      secretKey = kp.secretKey;
+    } else {
+      throw new Error(`Unsupported algorithm: ${algorithm}`);
+    }
 
     await this.vaultService.write(publicKeyPath, {
       key: Buffer.from(publicKey).toString('base64'),

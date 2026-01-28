@@ -13,7 +13,12 @@ import { QueueModule } from './queue/queue.module';
 import { VaultModule } from './vault/vault.module';
 import { BlockchainModule } from './blockchain/blockchain.module';
 import { RiskModule } from './risk/risk.module';
+import { StorageModule } from './storage/storage.module';
+import { ComplianceModule } from './compliance/compliance.module';
+import { TransportModule } from './transport/transport.module';
+import { ThreatsModule } from './threats/threats.module';
 import { TlsScannerModule } from './tls-scanner/tls-scanner.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -35,6 +40,11 @@ import { TlsScannerModule } from './tls-scanner/tls-scanner.module';
     DashboardModule,
     RiskModule,
     TlsScannerModule,
+    StorageModule,
+    ComplianceModule,
+    TransportModule,
+    ThreatsModule,
+    AdminModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

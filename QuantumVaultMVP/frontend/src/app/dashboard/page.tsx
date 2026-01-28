@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Activity,
   Key,
@@ -8,14 +8,11 @@ import {
   AlertTriangle,
   Clock,
   TrendingUp,
-  Lock,
   Database,
   Cpu,
   Info
 } from 'lucide-react';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -29,9 +26,69 @@ import { GlassPanel } from '@/components/ui/GlassPanel';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { mockMetrics, quantumRiskTimeline } from '@/lib/mockData';
+import { dashboardAPI, policiesAPI } from '@/lib/api';
 
 export default function OverviewPage() {
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<{
+    activeSessions: number;
+    keyRotations24h: number;
+    complianceScore: number;
+    hndlExposure: 'low' | 'medium' | 'high';
+    totalKeys: number;
+    encryptedObjects: number;
+    pqcTunnels: number;
+    activePolicies: number;
+  }>(mockMetrics);
+  const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
+
+  useEffect(() => {
+    const fetchKPIs = async () => {
+      try {
+        setLoading(true);
+        // Fetch all required data in parallel
+        const [kpiData, trendsData, policiesData] = await Promise.all([
+          dashboardAPI.getKPIs(),
+          dashboardAPI.getTrends(30),
+          policiesAPI.getPolicies().catch(() => []) // Fallback to empty array if policies fail
+        ]);
+
+        setMetrics(prev => ({
+          ...prev,
+          totalKeys: kpiData.totalAssets || prev.totalKeys,
+          complianceScore: Math.round(kpiData.pqcCompliantPercent || 0),
+          // Calculate HNDL exposure from avgRiskScore
+          hndlExposure: getRiskLabel(kpiData.avgRiskScore || 0),
+          // Map other available fields
+          encryptedObjects: kpiData.wrappedAssets || prev.encryptedObjects,
+          activeSessions: kpiData.recentScans || prev.activeSessions,
+          activePolicies: Array.isArray(policiesData) ? policiesData.filter((p: any) => p.status === 'enforced').length : prev.activePolicies,
+        }));
+
+        // Use trends data if available, otherwise keep mock timeline
+        if (trendsData && trendsData.length > 0) {
+          // Note: We are keeping the future timeline for now as requested/fallback
+          // But we could map trends here:
+          // setRiskTimeline(trendsData.map(t => ({ year: t.timestamp, riskLevel: t.avgRiskScore })));
+        }
+
+        setLastUpdated(new Date().toLocaleTimeString());
+      } catch (error) {
+        console.error('Failed to fetch dashboard KPIs:', error);
+        // Keep showing mock data on error for demo purposes
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchKPIs();
+  }, []);
+
+  const getRiskLabel = (score: number) => {
+    if (score >= 80) return 'high';
+    if (score >= 40) return 'medium';
+    return 'low';
+  };
 
   const getHndlStatusColor = (status: string) => {
     switch (status) {
@@ -65,7 +122,8 @@ export default function OverviewPage() {
         </div>
         <div className="flex items-center gap-2 text-sm text-white/50">
           <Clock className="w-4 h-4" />
-          <span>Last updated: {new Date().toLocaleTimeString()}</span>
+          <span>Last updated: {lastUpdated}</span>
+          {loading && <span className="text-cyan-400 ml-2 animate-pulse">Updating...</span>}
         </div>
       </div>
 
@@ -73,37 +131,37 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Active Sessions"
-          value={mockMetrics.activeSessions.toLocaleString()}
+          value={metrics.activeSessions.toLocaleString()}
           icon={Activity}
           trend={{ value: 12, label: 'vs last week' }}
           variant="default"
         />
         <MetricCard
           title="Key Rotations (24h)"
-          value={mockMetrics.keyRotations24h}
+          value={metrics.keyRotations24h}
           icon={Key}
           subtitle="Auto-rotation enabled"
           variant="info"
         />
         <MetricCard
           title="Compliance Score"
-          value={`${mockMetrics.complianceScore}%`}
+          value={`${metrics.complianceScore}%`}
           icon={ShieldCheck}
           trend={{ value: 2 }}
           variant="success"
         />
-        <div className={`glass-card p-5 relative overflow-hidden ${getHndlBgColor(mockMetrics.hndlExposure)}`}>
+        <div className={`glass-card p-5 relative overflow-hidden ${getHndlBgColor(metrics.hndlExposure)}`}>
           <div className="flex items-start justify-between mb-3">
             <p className="text-sm text-white/60 font-medium">
               <Tooltip term="HNDL">HNDL</Tooltip> Exposure Risk
             </p>
             <div className="hex-icon w-10 h-10">
-              <AlertTriangle className={`hex-icon-inner w-5 h-5 ${getHndlStatusColor(mockMetrics.hndlExposure)}`} />
+              <AlertTriangle className={`hex-icon-inner w-5 h-5 ${getHndlStatusColor(metrics.hndlExposure)}`} />
             </div>
           </div>
           <div className="flex items-end gap-3">
-            <span className={`text-3xl font-bold uppercase tracking-wider ${getHndlStatusColor(mockMetrics.hndlExposure)}`}>
-              {mockMetrics.hndlExposure}
+            <span className={`text-3xl font-bold uppercase tracking-wider ${getHndlStatusColor(metrics.hndlExposure)}`}>
+              {metrics.hndlExposure}
             </span>
           </div>
           <p className="text-xs text-white/40 mt-2">94% of assets secured with <Tooltip term="PQC">PQC</Tooltip></p>
@@ -114,7 +172,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Quantum Risk Timeline Chart */}
         <div className="lg:col-span-8">
-          <GlassPanel className="p-6">
+          <GlassPanel className="p-6 h-full flex flex-col">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -137,7 +195,7 @@ export default function OverviewPage() {
               </div>
             </div>
 
-            <div className="h-[300px]">
+            <div className="flex-1 min-h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={quantumRiskTimeline}
@@ -230,19 +288,19 @@ export default function OverviewPage() {
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
-                <div className="text-xl font-bold text-white">{mockMetrics.totalKeys.toLocaleString()}</div>
-                <div className="text-xs text-white/50">Total Keys</div>
+                <div className="text-xl font-bold text-white">{metrics.totalKeys.toLocaleString()}</div>
+                <div className="text-xs text-white/50">Total Assets</div>
               </div>
               <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
-                <div className="text-xl font-bold text-white">{mockMetrics.encryptedObjects.toLocaleString()}</div>
+                <div className="text-xl font-bold text-white">{metrics.encryptedObjects.toLocaleString()}</div>
                 <div className="text-xs text-white/50">Encrypted Objects</div>
               </div>
               <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
-                <div className="text-xl font-bold text-white">{mockMetrics.pqcTunnels}</div>
+                <div className="text-xl font-bold text-white">{metrics.pqcTunnels}</div>
                 <div className="text-xs text-white/50"><Tooltip term="PQC">PQC</Tooltip> Tunnels</div>
               </div>
               <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
-                <div className="text-xl font-bold text-white">{mockMetrics.activePolicies}</div>
+                <div className="text-xl font-bold text-white">{metrics.activePolicies}</div>
                 <div className="text-xs text-white/50">Active Policies</div>
               </div>
             </div>

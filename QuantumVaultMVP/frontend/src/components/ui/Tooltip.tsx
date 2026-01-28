@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/utils/cn';
 
 // Quantum terminology definitions
@@ -29,24 +30,29 @@ interface TooltipProps {
 
 export function Tooltip({ term, children, className }: TooltipProps) {
     const [isVisible, setIsVisible] = useState(false);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-    const triggerRef = React.useRef<HTMLSpanElement>(null);
+    const [coords, setCoords] = useState({ left: 0, top: 0 });
+    const triggerRef = useRef<HTMLSpanElement>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const definition = QUANTUM_TERMS[term] || term;
 
     const handleMouseEnter = () => {
         if (triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
-            setPosition({
-                x: rect.left + rect.width / 2,
-                y: rect.bottom + 8,
+            setCoords({
+                left: rect.left + rect.width / 2,
+                top: rect.bottom + 8,
             });
+            setIsVisible(true);
         }
-        setIsVisible(true);
     };
 
     return (
-        <span className="relative inline-block">
+        <>
             <span
                 ref={triggerRef}
                 onMouseEnter={handleMouseEnter}
@@ -58,21 +64,24 @@ export function Tooltip({ term, children, className }: TooltipProps) {
             >
                 {children}
             </span>
-            {isVisible && (
-                <div
-                    className="quantum-tooltip"
+            {mounted && isVisible && createPortal(
+                <span
+                    className="quantum-tooltip block text-left"
                     style={{
-                        left: '50%',
+                        position: 'fixed',
+                        left: `${coords.left}px`,
+                        top: `${coords.top}px`,
                         transform: 'translateX(-50%)',
-                        top: '100%',
-                        marginTop: '8px',
+                        marginTop: '0', // Reset global style margin
+                        zIndex: 100000,
                     }}
                 >
-                    <div className="font-semibold text-cyan-400 mb-1">{term}</div>
-                    <div className="text-white/80 leading-relaxed">{definition}</div>
-                </div>
+                    <span className="font-semibold text-cyan-400 mb-1 block">{term}</span>
+                    <span className="text-white/80 leading-relaxed block">{definition}</span>
+                </span>,
+                document.body
             )}
-        </span>
+        </>
     );
 }
 
@@ -85,29 +94,51 @@ interface SimpleTooltipProps {
 
 export function SimpleTooltip({ content, children, className }: SimpleTooltipProps) {
     const [isVisible, setIsVisible] = useState(false);
+    const [coords, setCoords] = useState({ left: 0, top: 0 });
+    const triggerRef = useRef<HTMLSpanElement>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const handleMouseEnter = () => {
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setCoords({
+                left: rect.left + rect.width / 2,
+                top: rect.bottom + 8,
+            });
+            setIsVisible(true);
+        }
+    };
 
     return (
-        <span className="relative inline-block">
+        <>
             <span
-                onMouseEnter={() => setIsVisible(true)}
+                ref={triggerRef}
+                onMouseEnter={handleMouseEnter}
                 onMouseLeave={() => setIsVisible(false)}
                 className={cn("cursor-help", className)}
             >
                 {children}
             </span>
-            {isVisible && (
-                <div
-                    className="quantum-tooltip"
+            {mounted && isVisible && createPortal(
+                <span
+                    className="quantum-tooltip block text-left"
                     style={{
-                        left: '50%',
+                        position: 'fixed',
+                        left: `${coords.left}px`,
+                        top: `${coords.top}px`,
                         transform: 'translateX(-50%)',
-                        top: '100%',
-                        marginTop: '8px',
+                        marginTop: '0',
+                        zIndex: 100000,
                     }}
                 >
                     {content}
-                </div>
+                </span>,
+                document.body
             )}
-        </span>
+        </>
     );
 }

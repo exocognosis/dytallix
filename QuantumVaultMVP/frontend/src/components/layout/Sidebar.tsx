@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
     Activity,
@@ -17,8 +17,12 @@ import {
     X,
     Lock,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    LogOut,
+    Settings,
+    Info
 } from 'lucide-react';
+import { authAPI } from '@/lib/api';
 import { cn } from '@/utils/cn';
 import { useSidebar } from './SidebarContext';
 
@@ -32,6 +36,8 @@ const NAV_ITEMS = [
     { id: 'threats', label: 'Threat Mapping', href: '/dashboard/threats', icon: AlertTriangle },
     { id: 'timeline', label: 'Implementation Timeline', href: '/dashboard/timeline', icon: Calendar },
     { id: 'use-cases', label: 'Use Cases', href: '/dashboard/use-cases', icon: Building2 },
+    { id: 'about', label: 'About QuantumVault', href: '/dashboard/about', icon: Info },
+    { id: 'admin', label: 'Administrator', href: '/dashboard/admin', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -40,7 +46,18 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname();
+    const router = useRouter();
     const { isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen } = useSidebar();
+
+    const handleLogout = async () => {
+        try {
+            await authAPI.logout();
+            router.push('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            router.push('/login');
+        }
+    };
 
     const isActive = (href: string) => {
         if (href === '/dashboard') {
@@ -56,12 +73,12 @@ export function Sidebar({ className }: SidebarProps) {
                 "flex items-center gap-3 px-4 py-5 border-b border-white/10",
                 isCollapsed && "justify-center px-2"
             )}>
-                <Image
-                    src="/QuantumVault.png"
+                <img
+                    src="/qv-logo-new.png"
                     alt="QuantumVault"
-                    width={isCollapsed ? 32 : 36}
-                    height={isCollapsed ? 32 : 36}
-                    className="shrink-0"
+                    width={isCollapsed ? 32 : 42}
+                    height={isCollapsed ? 32 : 42}
+                    className="shrink-0 object-contain"
                 />
                 {!isCollapsed && (
                     <div>
@@ -90,6 +107,21 @@ export function Sidebar({ className }: SidebarProps) {
                     </Link>
                 ))}
             </nav>
+
+            {/* Logout Button */}
+            <div className="p-3">
+                <button
+                    onClick={handleLogout}
+                    className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-sm font-medium",
+                        isCollapsed && "justify-center px-2"
+                    )}
+                    title={isCollapsed ? "Log Out" : undefined}
+                >
+                    <LogOut className={cn("w-5 h-5 shrink-0", isCollapsed && "w-6 h-6")} />
+                    {!isCollapsed && <span>Log Out</span>}
+                </button>
+            </div>
 
             {/* Collapse Toggle - Desktop Only */}
             <div className="hidden lg:block border-t border-white/10 p-3">
