@@ -22,13 +22,13 @@ export default function AdminPage() {
     const [statusMessage, setStatusMessage] = useState('');
 
     const [config, setConfig] = useState({
-        sourceDirectories: '/var/www/html\n/etc/ssl/private',
+        sourceDirectories: '/opt/quantumvault-test/QuantumVaultTestData\n/var/www/html',
         destinationDirectories: '/opt/quantumvault/encrypted\n/backup/secure',
-        fileTypes: '.pem, .crt, .key, .p12, .jks',
+        fileTypes: '.pem, .crt, .key, .p12, .jks, .json, .csv, .pdf',
         excludePatterns: 'node_modules, .git, temp',
         minDate: '',
         maxDate: '',
-        formats: 'PEM, DER, PKCS#12'
+        formats: 'PEM, DER, PKCS#12, CSV, JSON'
     });
     const [health, setHealth] = useState<any>(null);
     const [logs, setLogs] = useState<any[]>([]);
@@ -130,13 +130,13 @@ export default function AdminPage() {
     return (
         <div className="p-6 lg:p-8 space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <div className="p-2 bg-white/5 rounded-lg border border-white/10 shrink-0">
+                    <Settings className="w-6 h-6 text-blue-400" />
+                </div>
                 <div>
                     <h1 className="text-2xl font-bold text-white mb-2">Administrator Console</h1>
                     <p className="text-white/60">Manage system configurations and asset identification parameters.</p>
-                </div>
-                <div className="p-2 bg-white/5 rounded-lg border border-white/10">
-                    <Settings className="w-6 h-6 text-blue-400" />
                 </div>
             </div>
 
