@@ -79,10 +79,8 @@ export const generateRiskPDF = async (formData, riskScores) => {
         const context = await browser.newContext({
             viewport: { width: 1200, height: 1600 }, // Wide viewport to avoid mobile CSS breakpoints
             deviceScaleFactor: 2, // Higher DPI for better quality
-            bypassCSP: true,
-            extraHTTPHeaders: {
-                'Host': 'dytallix.com' // Required for nginx virtual host routing
-            }
+            bypassCSP: true
+            // No Host header needed - localhost server block handles 127.0.0.1 directly
         });
 
         // Disable caching
