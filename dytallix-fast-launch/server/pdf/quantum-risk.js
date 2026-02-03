@@ -11,10 +11,18 @@ import { logInfo, logError } from '../logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Construct report URL based on environment
-const PORT = process.env.FRONTEND_PORT || 3000;
-const REPORT_URL_BASE = process.env.VITE_FRONTEND_URL || `http://localhost:${PORT}`;
-const REPORT_URL = `${REPORT_URL_BASE}/quantumrisk?mode=report`;
+/**
+ * Get the report URL at runtime (not module load time)
+ * This ensures dotenv has loaded before we read env vars
+ */
+const getReportUrl = () => {
+    const frontendUrl = process.env.VITE_FRONTEND_URL || 'http://127.0.0.1';
+    const port = process.env.FRONTEND_PORT || '80';
+    // Only append port if not already in the URL and not standard HTTP port
+    const base = frontendUrl.includes(':') ? frontendUrl : 
+                 port === '80' ? frontendUrl : `${frontendUrl}:${port}`;
+    return `${base}/quantumrisk?mode=report`;
+};
 
 /**
  * Generate a PDF report for the quantum risk analysis using Playwright
@@ -23,6 +31,7 @@ const REPORT_URL = `${REPORT_URL_BASE}/quantumrisk?mode=report`;
  * @returns {Promise<Buffer>} PDF buffer
  */
 export const generateRiskPDF = async (formData, riskScores) => {
+    const REPORT_URL = getReportUrl();
     logInfo('Starting Playwright PDF generation', { url: REPORT_URL });
 
     // Construct the full report data object expected by the frontend
@@ -68,9 +77,12 @@ export const generateRiskPDF = async (formData, riskScores) => {
         });
 
         const context = await browser.newContext({
-            viewport: { width: 816, height: 1056 }, // Letter size at 96 DPI
+            viewport: { width: 1200, height: 1600 }, // Wide viewport to avoid mobile CSS breakpoints
             deviceScaleFactor: 2, // Higher DPI for better quality
-            bypassCSP: true
+            bypassCSP: true,
+            extraHTTPHeaders: {
+                'Host': 'dytallix.com' // Required for nginx virtual host routing
+            }
         });
 
         // Disable caching
