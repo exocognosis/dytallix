@@ -270,7 +270,9 @@ const QuantumRiskDashboard: React.FC = () => {
                                 const apiUrl = import.meta.env.VITE_API_URL ||
                                     (typeof window !== 'undefined' && window.location.origin) ||
                                     'https://dytallix.com';
-                                const response = await fetch(`${apiUrl}/api/quantum-risk/email`, {
+                                
+                                // Request PDF download (no email sent)
+                                const response = await fetch(`${apiUrl}/api/quantum-risk/report`, {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -282,19 +284,29 @@ const QuantumRiskDashboard: React.FC = () => {
                                     })
                                 });
 
-                                const data = await response.json();
-
-                                if (response.ok && data.success) {
-                                    setSubmitMessage({
-                                        type: 'success',
-                                        text: `Success! Your Quantum Risk Analysis has been sent to ${email}`
-                                    });
-                                    form.reset();
-                                } else {
-                                    throw new Error(data.message || 'Failed to send email');
+                                if (!response.ok) {
+                                    const errorData = await response.json();
+                                    throw new Error(errorData.message || 'Failed to generate report');
                                 }
+
+                                // Download the PDF
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = 'quantum-risk-analysis.pdf';
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+
+                                setSubmitMessage({
+                                    type: 'success',
+                                    text: `Success! Your Quantum Risk Analysis report is downloading.`
+                                });
+                                form.reset();
                             } catch (error) {
-                                const errorMessage = error instanceof Error ? error.message : 'Failed to send email. Please try again.';
+                                const errorMessage = error instanceof Error ? error.message : 'Failed to generate report. Please try again.';
                                 setSubmitMessage({
                                     type: 'error',
                                     text: errorMessage
@@ -319,7 +331,7 @@ const QuantumRiskDashboard: React.FC = () => {
                                 disabled={isSubmitting}
                                 className="px-6 py-3 rounded-lg bg-background text-foreground font-medium hover:bg-accent/10 transition-all whitespace-nowrap disabled:opacity-50"
                             >
-                                {isSubmitting ? 'Sending...' : 'Get My Analysis'}
+                                {isSubmitting ? 'Generating...' : 'Download My Report'}
                             </button>
                         </div>
                     </form>
