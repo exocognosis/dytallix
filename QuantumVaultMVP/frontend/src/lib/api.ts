@@ -108,6 +108,10 @@ export const assetsAPI = {
     const response = await apiClient.get(`/assets/${id}`);
     return response.data;
   },
+  createAsset: async (data: any) => {
+    const response = await apiClient.post('/assets', data);
+    return response.data;
+  },
   updateAssetMetadata: async (id: string, metadata: AssetMetadata) => {
     const response = await apiClient.put(`/assets/${id}/metadata`, metadata);
     return response.data;
@@ -285,14 +289,40 @@ export const attestationAPI = {
   },
 };
 
-// Admin API
+// Admin API - uses longer timeout for bulk operations
+const adminClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 300000, // 5 minutes for discovery/pipeline operations
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth interceptor to admin client too
+adminClient.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export const adminAPI = {
   saveScanConfig: async (config: any) => {
-    const response = await apiClient.post('/admin/scan-config', config);
+    const response = await adminClient.post('/admin/scan-config', config);
     return response.data;
   },
   runDiscovery: async (config: any) => {
-    const response = await apiClient.post('/admin/scan', config);
+    const response = await adminClient.post('/admin/scan', config);
+    return response.data;
+  },
+  runPqcPipeline: async (config: any) => {
+    const response = await adminClient.post('/admin/pqc-pipeline', config);
     return response.data;
   },
   getHealth: async () => {
@@ -309,6 +339,22 @@ export const adminAPI = {
   },
   updateAlgo: async (id: string, enabled: boolean) => {
     const response = await apiClient.post('/admin/algos/update', { id, enabled });
+    return response.data;
+  },
+};
+
+// Pipeline API
+export const pipelineAPI = {
+  getRuns: async () => {
+    const response = await apiClient.get('/pipeline/runs');
+    return response.data;
+  },
+  getRun: async (id: string) => {
+    const response = await apiClient.get(`/pipeline/runs/${id}`);
+    return response.data;
+  },
+  getAsset: async (id: string) => {
+    const response = await apiClient.get(`/pipeline/assets/${id}`);
     return response.data;
   },
 };
