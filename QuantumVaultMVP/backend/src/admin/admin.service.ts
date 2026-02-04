@@ -48,6 +48,7 @@ export class AdminService {
         }
 
         const results = [];
+        const manifestsGenerated: string[] = [];
 
         for (const dir of directories) {
             if (!fs.existsSync(dir)) {
@@ -57,6 +58,49 @@ export class AdminService {
 
             const files = await this.scanDir(dir, extensions);
             results.push(...files);
+
+            // Auto-generate manifest.jsonl for this directory
+            try {
+                const manifestEntries: string[] = [];
+                for (const filePath of files) {
+                    const relativePath = path.relative(dir, filePath);
+                    const stat = await fs.promises.stat(filePath);
+                    const fileBuffer = await fs.promises.readFile(filePath);
+                    const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+                    // Infer data domain from path/extension
+                    const dataDomain = this.inferDataDomain(relativePath);
+                    const cryptoDomain = this.inferCryptoDomain(relativePath);
+
+                    const entry = {
+                        object_id: crypto.randomUUID(),
+                        relative_path: relativePath,
+                        plaintext_sha256: sha256,
+                        file_size_bytes: stat.size,
+                        data_domain: dataDomain,
+                        crypto_domain: cryptoDomain,
+                        pqc_status: 'UNPROTECTED',
+                        pqc_protected: false,
+                        expected_policy_outcome: 'WRAP_PQC',
+                        discovered_at: new Date().toISOString(),
+                    };
+                    manifestEntries.push(JSON.stringify(entry));
+                }
+
+                if (manifestEntries.length > 0) {
+                    const manifestContent = manifestEntries.join('\n') + '\n';
+                    const manifestPath = path.join(dir, 'manifest.jsonl');
+                    const manifestSha = crypto.createHash('sha256').update(manifestContent).digest('hex');
+                    const shaPath = path.join(dir, 'manifest.sha256');
+
+                    await fs.promises.writeFile(manifestPath, manifestContent, 'utf8');
+                    await fs.promises.writeFile(shaPath, manifestSha, 'utf8');
+                    manifestsGenerated.push(dir);
+                    this.logger.log(`Generated manifest for ${dir} with ${manifestEntries.length} entries`);
+                }
+            } catch (err: any) {
+                this.logger.error(`Failed to generate manifest for ${dir}: ${err.message}`);
+            }
         }
 
         // Limit results for response
@@ -64,12 +108,36 @@ export class AdminService {
 
         this.logger.log(`Discovery complete. Found ${results.length} files.`);
 
+        const manifestMsg = manifestsGenerated.length > 0
+            ? ` Manifests generated for: ${manifestsGenerated.join(', ')}`
+            : '';
+
         return {
             success: true,
-            message: `Discovery complete. Found ${results.length} potential assets.`,
+            message: `Discovery complete. Found ${results.length} potential assets.${manifestMsg}`,
             totalFound: results.length,
+            manifestsGenerated,
             files: limitedResults
         };
+    }
+
+    private inferDataDomain(relativePath: string): string {
+        const lower = relativePath.toLowerCase();
+        if (lower.includes('genomic') || lower.includes('dna') || lower.includes('fasta') || lower.includes('vcf')) return 'GENOMIC';
+        if (lower.includes('patient') || lower.includes('phi') || lower.includes('medical')) return 'PHI';
+        if (lower.includes('imaging') || lower.includes('dicom') || lower.includes('scan')) return 'IMAGING';
+        if (lower.includes('derived') || lower.includes('analytics') || lower.includes('report')) return 'DERIVED';
+        if (lower.includes('audit') || lower.includes('log')) return 'AUDIT';
+        if (lower.includes('cert') || lower.includes('key') || lower.includes('pem') || lower.includes('crt')) return 'CRYPTO_MATERIAL';
+        if (lower.includes('config') || lower.includes('settings')) return 'CONFIGURATION';
+        return 'OPERATIONAL';
+    }
+
+    private inferCryptoDomain(relativePath: string): string {
+        const lower = relativePath.toLowerCase();
+        if (lower.includes('key') || lower.includes('secret') || lower.includes('private')) return 'HIGH';
+        if (lower.includes('cert') || lower.includes('pem') || lower.includes('crt')) return 'MEDIUM';
+        return 'STANDARD';
     }
 
     async runPqcPipeline(config: any) {
@@ -567,7 +635,7 @@ export class AdminService {
     ): Promise<{ entries: Map<string, any>; sha256: string }> {
         const manifestPath = path.join(sourceRoot, 'manifest.jsonl');
         if (!fs.existsSync(manifestPath)) {
-            throw new Error(`Manifest not found at ${manifestPath}`);
+            throw new Error(`Manifest not found at ${manifestPath}. Run "Discovery" first to auto-generate the manifest.`);
         }
 
         const data = await fs.promises.readFile(manifestPath, 'utf8');
@@ -575,7 +643,7 @@ export class AdminService {
         const manifestSha = await this.readManifestSha(sourceRoot);
 
         if (!manifestSha) {
-            throw new Error(`manifest.sha256 missing or invalid in ${sourceRoot}`);
+            throw new Error(`manifest.sha256 missing or invalid in ${sourceRoot}. Run "Discovery" to regenerate.`);
         }
 
         if (verifySha) {
