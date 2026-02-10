@@ -21,10 +21,12 @@ import AIOracleNetwork from './pages/AIOracleNetwork'
 import SmartContractAuditor from './pages/SmartContractAuditor'
 import AegisDashboard from './pages/AegisDashboard'
 import AegisReviewQueue from './pages/AegisReviewQueue'
+import QuantumVaultPricing from './pages/QuantumVaultPricing'
 
 import { Investor } from "./pages/investor"
 import { Deploy } from "./pages/deploy"
 import { Resources } from "./pages/resources"
+import { FAQ } from "./pages/faq"
 
 // Inner component that can use hooks
 function AppRoutes() {
@@ -60,6 +62,7 @@ function AppRoutes() {
         <Route path="/smart-contract-auditor" element={<SmartContractAuditor />} />
         <Route path="/aegis-dashboard" element={<AegisDashboard />} />
         <Route path="/aegis-review-queue" element={<AegisReviewQueue />} />
+        <Route path="/quantumvaultpricing" element={<QuantumVaultPricing />} />
 
         {/* Enterprise Routes */}
         <Route path="/enterprise" element={<EnterpriseHub />} />
@@ -72,6 +75,7 @@ function AppRoutes() {
         <Route path="/roadmap" element={<Roadmap />} />
         <Route path="/resources" element={<Resources />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/faq" element={<FAQ />} />
 
         {/* Legal Routes */}
         <Route path="/legal/privacy" element={<Privacy />} />
