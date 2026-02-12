@@ -1,22 +1,12 @@
 import { Section } from "../components/ui/Section"
+import { PageHero } from "../components/ui/PageHero"
 import { GlassPanel } from "../components/ui/GlassPanel"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts"
 import { ArrowRight, Vote, Coins, Activity, Lock, Users } from "lucide-react"
 
-export function Tokenomics() {
-    const initialDistributionData = [
-        { name: "Ecosystem Growth", value: 30, color: "#3b82f6" },
-        { name: "Team & Advisors", value: 20, color: "#8b5cf6" },
-        { name: "Public Sale", value: 15, color: "#10b981" },
-        { name: "Private Sale", value: 15, color: "#f59e0b" },
-        { name: "Reserve", value: 20, color: "#64748b" },
-    ]
+import { initialDistributionData, rewardDistributionData } from "../data/tokenomics"
 
-    const rewardDistributionData = [
-        { name: "Validator Rewards", value: 40, color: "#3b82f6" },
-        { name: "Staker Rewards", value: 30, color: "#10b981" },
-        { name: "Treasury", value: 30, color: "#f59e0b" },
-    ]
+export function Tokenomics() {
 
     // Simulate adaptive emission curve: higher utilization -> higher emission (up to a cap)
     const emissionData = Array.from({ length: 11 }, (_, i) => {
@@ -28,7 +18,8 @@ export function Tokenomics() {
 
     return (
         <>
-            <Section title="Tokenomics" subtitle="Dual-token economy designed for sustainability and governance.">
+            <PageHero title="Tokenomics" subtitle="Dual-token economy designed for sustainability and governance." />
+            <Section>
                 {/* Token Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
                     <GlassPanel hoverEffect={true} className="p-8 border-l-4 border-l-primary relative overflow-hidden">

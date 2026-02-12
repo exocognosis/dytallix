@@ -1,6 +1,7 @@
 import { Section } from "../components/ui/Section"
 import { GlassPanel } from "../components/ui/GlassPanel"
 import { FeatureListItem } from "../components/ui/FeatureListItem"
+import { PageHero } from "../components/ui/PageHero"
 import { Check, Shield, Server, Settings, Lock, Activity, FileCheck, Layers } from "lucide-react"
 
 
@@ -8,16 +9,10 @@ import { Check, Shield, Server, Settings, Lock, Activity, FileCheck, Layers } fr
 export function Deploy() {
     return (
         <>
-            <Section className="pt-32 pb-12">
-                <div className="max-w-4xl mx-auto text-center space-y-6">
-                    <h1 className="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-blue-500">
-                        QuantumVault Deployment
-                    </h1>
-                    <p className="text-xl text-muted-foreground">
-                        Secure your infrastructure with enterprise-grade post-quantum protection.
-                    </p>
-                </div>
-            </Section>
+            <PageHero
+                title="QuantumVault Deployment"
+                subtitle="Secure your infrastructure with enterprise-grade post-quantum protection."
+            />
 
             <Section>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
