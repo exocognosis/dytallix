@@ -1,5 +1,6 @@
 import { Section } from "../components/ui/Section"
 import { GlassPanel } from "../components/ui/GlassPanel"
+import { FeatureListItem } from "../components/ui/FeatureListItem"
 import { Check, Shield, Server, Settings, Lock, Activity, FileCheck, Layers } from "lucide-react"
 
 
@@ -33,51 +34,31 @@ export function Deploy() {
 
 
                         <div className="space-y-4 flex-grow">
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-blue-500/10 p-1 rounded text-blue-500">
-                                    <Server className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Environment Setup</span>
-                                    <p className="text-sm text-muted-foreground">Complete provisioning and configuration.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-blue-500/10 p-1 rounded text-blue-500">
-                                    <Settings className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Core Service Config</span>
-                                    <p className="text-sm text-muted-foreground">Standardized service orchestration.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-blue-500/10 p-1 rounded text-blue-500">
-                                    <Shield className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Security Hardening</span>
-                                    <p className="text-sm text-muted-foreground">Baseline security protocols applied.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-blue-500/10 p-1 rounded text-blue-500">
-                                    <Lock className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Access Control</span>
-                                    <p className="text-sm text-muted-foreground">Key-management initialization.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-blue-500/10 p-1 rounded text-blue-500">
-                                    <Activity className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Logging & Audit</span>
-                                    <p className="text-sm text-muted-foreground">Pipeline activation for compliance.</p>
-                                </div>
-                            </div>
+                            <FeatureListItem
+                                icon={Server}
+                                title="Environment Setup"
+                                description="Complete provisioning and configuration."
+                            />
+                            <FeatureListItem
+                                icon={Settings}
+                                title="Core Service Config"
+                                description="Standardized service orchestration."
+                            />
+                            <FeatureListItem
+                                icon={Shield}
+                                title="Security Hardening"
+                                description="Baseline security protocols applied."
+                            />
+                            <FeatureListItem
+                                icon={Lock}
+                                title="Access Control"
+                                description="Key-management initialization."
+                            />
+                            <FeatureListItem
+                                icon={Activity}
+                                title="Logging & Audit"
+                                description="Pipeline activation for compliance."
+                            />
                             <div className="flex items-start gap-3">
                                 <div className="mt-1 bg-blue-500/10 p-1 rounded text-blue-500">
                                     <Layers className="h-4 w-4" />
@@ -125,69 +106,48 @@ export function Deploy() {
                         </div>
 
                         <div className="space-y-4 flex-grow">
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-purple-500/10 p-1 rounded text-purple-500">
-                                    <Check className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Custom Architecture</span>
-                                    <p className="text-sm text-muted-foreground">Aligned specifically to client infrastructure.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-purple-500/10 p-1 rounded text-purple-500">
-                                    <Check className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Non-Standard Config</span>
-                                    <p className="text-sm text-muted-foreground">Custom vault services and storage layers.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-purple-500/10 p-1 rounded text-purple-500">
-                                    <Check className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Tailored Security</span>
-                                    <p className="text-sm text-muted-foreground">Specific controls, policies, and compliance mappings.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-purple-500/10 p-1 rounded text-purple-500">
-                                    <Check className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Deep Integration</span>
-                                    <p className="text-sm text-muted-foreground">Client systems, data pipelines, and IAM providers.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-purple-500/10 p-1 rounded text-purple-500">
-                                    <Check className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Advanced Automation</span>
-                                    <p className="text-sm text-muted-foreground">Custom key-management workflows.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-purple-500/10 p-1 rounded text-purple-500">
-                                    <Check className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Custom Monitoring</span>
-                                    <p className="text-sm text-muted-foreground">Bespoke logging and audit routing.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-purple-500/10 p-1 rounded text-purple-500">
-                                    <Check className="h-4 w-4" />
-                                </div>
-                                <div>
-                                    <span className="font-medium">Performance Tuning</span>
-                                    <p className="text-sm text-muted-foreground">Optimized for specific workload patterns.</p>
-                                </div>
-                            </div>
+                            <FeatureListItem
+                                icon={Check}
+                                title="Custom Architecture"
+                                description="Aligned specifically to client infrastructure."
+                                color="text-purple-500"
+                            />
+                            <FeatureListItem
+                                icon={Check}
+                                title="Non-Standard Config"
+                                description="Custom vault services and storage layers."
+                                color="text-purple-500"
+                            />
+                            <FeatureListItem
+                                icon={Check}
+                                title="Tailored Security"
+                                description="Specific controls, policies, and compliance mappings."
+                                color="text-purple-500"
+                            />
+                            <FeatureListItem
+                                icon={Check}
+                                title="Deep Integration"
+                                description="Client systems, data pipelines, and IAM providers."
+                                color="text-purple-500"
+                            />
+                            <FeatureListItem
+                                icon={Check}
+                                title="Advanced Automation"
+                                description="Custom key-management workflows."
+                                color="text-purple-500"
+                            />
+                            <FeatureListItem
+                                icon={Check}
+                                title="Custom Monitoring"
+                                description="Bespoke logging and audit routing."
+                                color="text-purple-500"
+                            />
+                            <FeatureListItem
+                                icon={Check}
+                                title="Performance Tuning"
+                                description="Optimized for specific workload patterns."
+                                color="text-purple-500"
+                            />
                             <div className="flex items-start gap-3">
                                 <div className="mt-1 bg-purple-500/10 p-1 rounded text-purple-500">
                                     <Check className="h-4 w-4" />

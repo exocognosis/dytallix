@@ -1,5 +1,5 @@
 import React from 'react';
-import { Section } from '../components/layout/section';
+import { Section } from '../components/ui/Section';
 import { GlassPanel } from '../components/ui/GlassPanel';
 import { Brain, Shield, Activity, Lock, Zap, Map } from 'lucide-react';
 

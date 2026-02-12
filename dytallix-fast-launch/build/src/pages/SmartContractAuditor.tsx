@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Section } from '../components/layout/section';
+import { Section } from '../components/ui/Section';
 import { GlassPanel } from '../components/ui/GlassPanel';
 import { Button } from '../components/ui/Button';
 import { Lock, Shield, AlertTriangle, CheckCircle, Play, Loader2, Scale, FileText, Zap } from 'lucide-react';

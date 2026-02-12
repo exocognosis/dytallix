@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Section } from '../components/layout/section';
+import { Section } from '../components/ui/Section';
 import { GlassPanel } from '../components/ui/GlassPanel';
 import {
     Shield, Info, Lock, Sparkles, Server

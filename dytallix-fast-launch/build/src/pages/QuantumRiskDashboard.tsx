@@ -4,7 +4,7 @@ import RiskAssessmentForm, { type RiskAssessmentData } from '../components/dashb
 import RiskVisualization from '../components/dashboard/RiskVisualization';
 import RiskExplanations from '../components/dashboard/RiskExplanations';
 import QuantumRiskReport, { type ReportData } from '../components/dashboard/QuantumRiskReport';
-import { Section } from '../components/layout/section';
+import { Section } from '../components/ui/Section';
 
 /**
  * QuantumRiskDashboard
