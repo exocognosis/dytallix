@@ -22,6 +22,8 @@ import SmartContractAuditor from './pages/SmartContractAuditor'
 import AegisDashboard from './pages/AegisDashboard'
 import AegisReviewQueue from './pages/AegisReviewQueue'
 import QuantumVaultPricing from './pages/QuantumVaultPricing'
+import C2QAssetMigration from './pages/C2QAssetMigration'
+import C2QDeepDive from './pages/C2QDeepDive'
 
 import { Investor } from "./pages/investor"
 import { Deploy } from "./pages/deploy"
@@ -63,6 +65,8 @@ function AppRoutes() {
         <Route path="/aegis-dashboard" element={<AegisDashboard />} />
         <Route path="/aegis-review-queue" element={<AegisReviewQueue />} />
         <Route path="/quantumvaultpricing" element={<QuantumVaultPricing />} />
+        <Route path="/C2QAssetMigration" element={<C2QAssetMigration />} />
+        <Route path="/C2QDeepDive" element={<C2QDeepDive />} />
 
         {/* Enterprise Routes */}
         <Route path="/enterprise" element={<EnterpriseHub />} />

@@ -6,8 +6,8 @@
 export const CONFIG = {
     // Server Configuration
     server: {
-        port: parseInt(process.env.PORT || '3001', 10),
-        allowedOrigin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
+        port: parseInt(process.env.PORT || '8787', 10),
+        allowedOrigin: process.env.ALLOWED_ORIGIN || 'https://dytallix.com',
         nodeEnv: process.env.NODE_ENV || 'development',
     },
 

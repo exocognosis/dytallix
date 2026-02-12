@@ -3,9 +3,7 @@
 > vite
 
 
-  VITE v7.3.1  ready in 149 ms
+  VITE v7.3.1  ready in 426 ms
 
   ➜  Local:   http://localhost:3000/
   ➜  Network: use --host to expose
-4:53:38 PM [vite] (client) hmr update /src/pages/QuantumRiskDashboard.tsx, /src/index.css
-4:53:58 PM [vite] (client) hmr update /src/pages/QuantumRiskDashboard.tsx, /src/index.css

@@ -38,14 +38,18 @@ export const generateRiskPDF = async (formData, riskScores) => {
     const reportData = {
         generatedAt: new Date().toISOString(),
         organization: {
-            industry: formData.industry,
-            region: formData.region,
-            orgSize: formData.orgSize,
-            regulatoryRegime: formData.regulatoryRegime,
-            dataTypes: formData.dataTypes,
-            cryptography: formData.cryptography
+            industry: formData.industry || 'Unknown',
+            region: formData.region || 'Unknown',
+            orgSize: formData.orgSize || 'Unknown',
+            regulatoryRegime: formData.regulatoryRegime || 'Unknown',
+            dataTypes: formData.dataTypes || [],
+            cryptography: formData.cryptography || []
         },
-        scores: riskScores,
+        scores: {
+            hndl: riskScores.hndl || 0,
+            crqc: riskScores.crqc || 0,
+            urgency: riskScores.migration || riskScores.urgency || 0  // Map migration to urgency
+        },
         // Default recommendations and exposure can be static or dynamic
         // For now, we'll let the frontend use its default logic or we can inject them if needed.
         // The current QuantumRiskReport component uses the properties of `data` directly.

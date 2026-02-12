@@ -156,7 +156,7 @@ const AegisDashboard: React.FC = () => {
 
             <Section className="relative z-10">
                 {/* Hero Section */}
-                <div className="text-center max-w-4xl mx-auto mb-12">
+                <div className="text-center max-w-4xl mx-auto mb-8">
                     <div className="flex items-center justify-center gap-3 mb-6">
                         <Shield className="w-12 h-12 text-accent-blue" />
                         <h1 className="text-4xl md:text-5xl font-bold text-foreground">
@@ -177,93 +177,93 @@ const AegisDashboard: React.FC = () => {
                             )}
                         </div>
                     </div>
-                    <p className="text-lg text-muted-foreground mb-6">
+                    <p className="text-lg text-muted-foreground">
                         Real-time transaction vulnerability assessment powered by quantum-resistant cryptography
                     </p>
-
-                    {/* What is Aegis */}
-                    <GlassPanel className="p-6 text-left">
-                        <div className="flex items-start gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                                <Info className="h-6 w-6 text-blue-500" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-xl font-bold mb-3">What is Aegis?</h3>
-                                <p className="text-muted-foreground mb-4 leading-relaxed">
-                                    Aegis is a quantum-resistant active defense system that provides real-time assessment of transaction vulnerability.
-                                    Using advanced multi-factor risk scoring and post-quantum cryptography, Aegis analyzes wallet behavior,
-                                    transaction patterns, and cryptographic primitives to identify potentially malicious activity before it impacts the network.
-                                </p>
-
-                                <button
-                                    onClick={() => setShowTechDetails(!showTechDetails)}
-                                    className="flex items-center gap-2 text-accent-blue hover:text-accent-blue/80 transition-colors"
-                                >
-                                    {showTechDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                    <span className="text-sm font-semibold">Technical Details</span>
-                                </button>
-
-                                {showTechDetails && (
-                                    <div className="mt-4 pt-4 border-t border-border/50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <div>
-                                            <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                                                <Lock className="h-4 w-4 text-purple-500" />
-                                                Quantum-Resistant Cryptography
-                                            </h4>
-                                            <ul className="text-sm text-muted-foreground space-y-2 ml-6">
-                                                <li className="flex items-start gap-2">
-                                                    <span className="text-accent-blue mt-1">•</span>
-                                                    <span><strong className="text-foreground">ML-DSA-87 (CRYSTALS-Dilithium):</strong> NIST-standardized post-quantum digital signatures with 2592-byte public keys, providing Level 5 security against quantum attacks</span>
-                                                </li>
-                                                <li className="flex items-start gap-2">
-                                                    <span className="text-accent-blue mt-1">•</span>
-                                                    <span><strong className="text-foreground">Kyber-1024:</strong> Lattice-based encryption (integration pending) for quantum-resistant data protection</span>
-                                                </li>
-                                            </ul>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                                                <Activity className="h-4 w-4 text-amber-500" />
-                                                Multi-Factor Risk Scoring
-                                            </h4>
-                                            <ul className="text-sm text-muted-foreground space-y-2 ml-6">
-                                                <li className="flex items-start gap-2">
-                                                    <span className="text-accent-blue mt-1">•</span>
-                                                    <span><strong className="text-foreground">Wallet Age (25%):</strong> Newer wallets receive higher risk scores</span>
-                                                </li>
-                                                <li className="flex items-start gap-2">
-                                                    <span className="text-accent-blue mt-1">•</span>
-                                                    <span><strong className="text-foreground">Transaction Patterns (30%):</strong> Detects bot-like behavior and anomalies</span>
-                                                </li>
-                                                <li className="flex items-start gap-2">
-                                                    <span className="text-accent-blue mt-1">•</span>
-                                                    <span><strong className="text-foreground">Amount Anomalies (25%):</strong> Statistical analysis of transaction amounts</span>
-                                                </li>
-                                                <li className="flex items-start gap-2">
-                                                    <span className="text-accent-blue mt-1">•</span>
-                                                    <span><strong className="text-foreground">Interaction Diversity (20%):</strong> Identifies wash trading patterns</span>
-                                                </li>
-                                            </ul>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                                                <Database className="h-4 w-4 text-green-500" />
-                                                Real-Time Monitoring
-                                            </h4>
-                                            <p className="text-sm text-muted-foreground ml-6">
-                                                All risk scores are signed with ML-DSA-87 quantum-resistant signatures and stored on-chain for
-                                                transparent verification. The system analyzes transactions in real-time, providing immediate
-                                                risk assessments with confidence scores based on available data.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </GlassPanel>
                 </div>
+
+                {/* What is Aegis */}
+                <GlassPanel className="p-6 text-left mb-12 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/10" hoverEffect>
+                    <div className="flex items-start gap-4">
+                        <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                            <Info className="h-6 w-6 text-blue-500" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-xl font-bold mb-3">What is Aegis?</h3>
+                            <p className="text-muted-foreground mb-4 leading-relaxed">
+                                Aegis is a quantum-resistant active defense system that provides real-time assessment of transaction vulnerability.
+                                Using advanced multi-factor risk scoring and post-quantum cryptography, Aegis analyzes wallet behavior,
+                                transaction patterns, and cryptographic primitives to identify potentially malicious activity before it impacts the network.
+                            </p>
+
+                            <button
+                                onClick={() => setShowTechDetails(!showTechDetails)}
+                                className="flex items-center gap-2 text-accent-blue hover:text-accent-blue/80 transition-colors"
+                            >
+                                {showTechDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                <span className="text-sm font-semibold">Technical Details</span>
+                            </button>
+
+                            {showTechDetails && (
+                                <div className="mt-4 pt-4 border-t border-border/50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                                            <Lock className="h-4 w-4 text-purple-500" />
+                                            Quantum-Resistant Cryptography
+                                        </h4>
+                                        <ul className="text-sm text-muted-foreground space-y-2 ml-6">
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">ML-DSA-87 (CRYSTALS-Dilithium):</strong> NIST-standardized post-quantum digital signatures with 2592-byte public keys, providing Level 5 security against quantum attacks</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">Kyber-1024:</strong> Lattice-based encryption (integration pending) for quantum-resistant data protection</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                                            <Activity className="h-4 w-4 text-amber-500" />
+                                            Multi-Factor Risk Scoring
+                                        </h4>
+                                        <ul className="text-sm text-muted-foreground space-y-2 ml-6">
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">Wallet Age (25%):</strong> Newer wallets receive higher risk scores</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">Transaction Patterns (30%):</strong> Detects bot-like behavior and anomalies</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">Amount Anomalies (25%):</strong> Statistical analysis of transaction amounts</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">Interaction Diversity (20%):</strong> Identifies wash trading patterns</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                                            <Database className="h-4 w-4 text-green-500" />
+                                            Real-Time Monitoring
+                                        </h4>
+                                        <p className="text-sm text-muted-foreground ml-6">
+                                            All risk scores are signed with ML-DSA-87 quantum-resistant signatures and stored on-chain for
+                                            transparent verification. The system analyzes transactions in real-time, providing immediate
+                                            risk assessments with confidence scores based on available data.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </GlassPanel>
 
                 {error && (
                     <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -369,46 +369,49 @@ const AegisDashboard: React.FC = () => {
                             </div>
                         </GlassPanel>
                     </div>
-                )}
+                )
+                }
 
                 {/* Risk Distribution */}
-                {stats && (
-                    <GlassPanel className="p-6 mb-12" hoverEffect>
-                        <h2 className="text-xl font-bold mb-6">Risk Distribution</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="text-center transition-all duration-300 hover:scale-105">
-                                <div className="h-24 w-24 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-3 transition-all duration-300 hover:bg-green-500/20 hover:shadow-lg hover:shadow-green-500/20">
-                                    <CheckCircle className="h-12 w-12 text-green-500" />
+                {
+                    stats && (
+                        <GlassPanel className="p-6 mb-12" hoverEffect>
+                            <h2 className="text-xl font-bold mb-6">Risk Distribution</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="text-center transition-all duration-300 hover:scale-105">
+                                    <div className="h-24 w-24 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-3 transition-all duration-300 hover:bg-green-500/20 hover:shadow-lg hover:shadow-green-500/20">
+                                        <CheckCircle className="h-12 w-12 text-green-500" />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mb-1">Low Risk</p>
+                                    <p className="text-3xl font-bold text-green-500">{stats.risk_distribution.low}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {stats.total_transactions > 0 ? Math.round((stats.risk_distribution.low / stats.total_transactions) * 100) : 0}%
+                                    </p>
                                 </div>
-                                <p className="text-sm text-muted-foreground mb-1">Low Risk</p>
-                                <p className="text-3xl font-bold text-green-500">{stats.risk_distribution.low}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {stats.total_transactions > 0 ? Math.round((stats.risk_distribution.low / stats.total_transactions) * 100) : 0}%
-                                </p>
-                            </div>
-                            <div className="text-center transition-all duration-300 hover:scale-105">
-                                <div className="h-24 w-24 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-3 transition-all duration-300 hover:bg-amber-500/20 hover:shadow-lg hover:shadow-amber-500/20">
-                                    <Clock className="h-12 w-12 text-amber-500" />
+                                <div className="text-center transition-all duration-300 hover:scale-105">
+                                    <div className="h-24 w-24 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-3 transition-all duration-300 hover:bg-amber-500/20 hover:shadow-lg hover:shadow-amber-500/20">
+                                        <Clock className="h-12 w-12 text-amber-500" />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mb-1">Medium Risk</p>
+                                    <p className="text-3xl font-bold text-amber-500">{stats.risk_distribution.medium}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {stats.total_transactions > 0 ? Math.round((stats.risk_distribution.medium / stats.total_transactions) * 100) : 0}%
+                                    </p>
                                 </div>
-                                <p className="text-sm text-muted-foreground mb-1">Medium Risk</p>
-                                <p className="text-3xl font-bold text-amber-500">{stats.risk_distribution.medium}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {stats.total_transactions > 0 ? Math.round((stats.risk_distribution.medium / stats.total_transactions) * 100) : 0}%
-                                </p>
-                            </div>
-                            <div className="text-center transition-all duration-300 hover:scale-105">
-                                <div className="h-24 w-24 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-3 transition-all duration-300 hover:bg-red-500/20 hover:shadow-lg hover:shadow-red-500/20">
-                                    <AlertTriangle className="h-12 w-12 text-red-500" />
+                                <div className="text-center transition-all duration-300 hover:scale-105">
+                                    <div className="h-24 w-24 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-3 transition-all duration-300 hover:bg-red-500/20 hover:shadow-lg hover:shadow-red-500/20">
+                                        <AlertTriangle className="h-12 w-12 text-red-500" />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mb-1">High Risk</p>
+                                    <p className="text-3xl font-bold text-red-500">{stats.risk_distribution.high}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {stats.total_transactions > 0 ? Math.round((stats.risk_distribution.high / stats.total_transactions) * 100) : 0}%
+                                    </p>
                                 </div>
-                                <p className="text-sm text-muted-foreground mb-1">High Risk</p>
-                                <p className="text-3xl font-bold text-red-500">{stats.risk_distribution.high}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {stats.total_transactions > 0 ? Math.round((stats.risk_distribution.high / stats.total_transactions) * 100) : 0}%
-                                </p>
                             </div>
-                        </div>
-                    </GlassPanel>
-                )}
+                        </GlassPanel>
+                    )
+                }
 
                 {/* Enhanced Transaction Table */}
                 <GlassPanel className="p-6" hoverEffect>
@@ -620,8 +623,8 @@ const AegisDashboard: React.FC = () => {
                         </div>
                     )}
                 </GlassPanel>
-            </Section>
-        </div>
+            </Section >
+        </div >
     );
 };
 

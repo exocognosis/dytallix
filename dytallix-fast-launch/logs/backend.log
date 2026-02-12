@@ -1,45 +1,15 @@
-[INFO] 2026-01-21T15:38:12.299Z Using in-memory rate limiter
-[INFO] 2026-01-21T15:38:12.503Z Leads database initialized {"path":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/data/leads.db"}
-[INFO] 2026-01-21T15:38:12.533Z Prometheus metrics initialized
-[INFO] 2026-01-21T15:38:12.534Z Generating Dilithium5 (ML-DSA-87) key pair...
-[INFO] 2026-01-21T15:38:12.534Z Aegis database initialized {"path":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/data/leads.db"}
-[INFO] 2026-01-21T15:38:12.535Z Aegis throttle table initialized
-[INFO] 2026-01-21T15:38:12.535Z Aegis review queue table initialized
-[INFO] 2026-01-21T15:38:12.535Z Aegis AI module initialized
-[INFO] 2026-01-21T15:38:12.536Z Environment Variables Check {"FRONTEND_PORT":"3000","PWD":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch"}
-[INFO] 2026-01-21T15:38:12.536Z Anomaly detection engine stubbed (fast-launch mode)
-[INFO] 2026-01-21T15:38:12.536Z Security headers enabled {"ENABLE_CSP":true}
-[INFO] 2026-01-21T15:38:12.537Z Aegis WebSocket server initialized {"path":"/api/aegis/ws"}
-[INFO] 2026-01-21T15:38:12.537Z Aegis WebSocket server initialized
-[INFO] 2026-01-21T15:38:12.538Z Server running on port 3001 {"nodeEnv":"development","demoMode":true}
-[INFO] 2026-01-21T15:38:12.539Z Quantum-resistant cryptographic keys initialized {"dilithiumPublicKeyLength":2592,"dilithiumPrivateKeyLength":"[REDACTED]","algorithm":"ML-DSA-87 (Dilithium5)"}
-[INFO] 2026-01-21T15:38:52.152Z Generating quantum risk PDF {"userEmail":"ricktglenn@gmail.com"}
-[INFO] 2026-01-21T15:38:52.152Z Starting Playwright PDF generation {"url":"http://localhost:3000/quantumrisk?mode=report"}
-[INFO] 2026-01-21T15:38:52.152Z Launching headless browser...
-[INFO] 2026-01-21T15:38:52.593Z Navigating to report page...
-[INFO] 2026-01-21T15:38:53.540Z Current URL after navigation: {"url":"http://localhost:3000/quantumrisk?mode=report"}
-[INFO] 2026-01-21T15:38:54.582Z Printing PDF...
-[INFO] 2026-01-21T15:38:54.694Z PDF generation complete {"size":480404}
-[INFO] 2026-01-21T15:38:54.711Z PDF generated successfully {"size":480404}
-[INFO] 2026-01-21T15:38:55.881Z Email sent successfully {"messageId":"<9573e94a-2208-070e-cb1c-b52f20010299@dytallix.com>","userEmail":"ricktglenn@gmail.com"}
-POST /api/quantum-risk/email 200 3731.739 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
-[INFO] 2026-01-21T23:00:34.213Z Generating quantum risk PDF {"userEmail":"ricktglenn@gmail.com"}
-[INFO] 2026-01-21T23:00:34.213Z Starting Playwright PDF generation {"url":"http://localhost:3000/quantumrisk?mode=report"}
-[INFO] 2026-01-21T23:00:34.213Z Launching headless browser...
-[INFO] 2026-01-21T23:00:34.609Z Navigating to report page...
-[INFO] 2026-01-21T23:00:35.519Z Current URL after navigation: {"url":"http://localhost:3000/quantumrisk?mode=report"}
-[INFO] 2026-01-21T23:00:36.552Z Printing PDF...
-[INFO] 2026-01-21T23:00:36.640Z PDF generation complete {"size":480404}
-[INFO] 2026-01-21T23:00:37.341Z PDF generated successfully {"size":480404}
-[INFO] 2026-01-21T23:00:38.213Z Email sent successfully {"messageId":"<4d557dac-c15e-8713-f856-f88d643be547@dytallix.com>","userEmail":"ricktglenn@gmail.com"}
-POST /api/quantum-risk/email 200 4002.089 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
-[INFO] 2026-01-21T23:27:42.120Z Generating quantum risk PDF {"userEmail":"ricktglenn@gmail.com"}
-[INFO] 2026-01-21T23:27:42.123Z Starting Playwright PDF generation {"url":"http://localhost:3000/quantumrisk?mode=report"}
-[INFO] 2026-01-21T23:27:42.123Z Launching headless browser...
-[INFO] 2026-01-21T23:27:42.580Z Navigating to report page...
-[INFO] 2026-01-21T23:27:43.410Z Current URL after navigation: {"url":"http://localhost:3000/quantumrisk?mode=report"}
-[INFO] 2026-01-21T23:27:44.447Z Printing PDF...
-[INFO] 2026-01-21T23:27:44.562Z PDF generation complete {"size":480404}
-[INFO] 2026-01-21T23:27:44.677Z PDF generated successfully {"size":480404}
-[INFO] 2026-01-21T23:27:45.522Z Email sent successfully {"messageId":"<1bf15c1e-2feb-a31f-3a85-f639ebd731a9@dytallix.com>","userEmail":"ricktglenn@gmail.com"}
-POST /api/quantum-risk/email 200 3403.107 ms - ::1 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15
+[INFO] 2026-02-12T21:49:07.618Z Using in-memory rate limiter
+[INFO] 2026-02-12T21:49:08.988Z Leads database initialized {"path":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/data/leads.db"}
+[INFO] 2026-02-12T21:49:10.090Z Prometheus metrics initialized
+[INFO] 2026-02-12T21:49:10.091Z Generating Dilithium5 (ML-DSA-87) key pair...
+[INFO] 2026-02-12T21:49:10.091Z Aegis database initialized {"path":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/data/leads.db"}
+[INFO] 2026-02-12T21:49:10.091Z Aegis throttle table initialized
+[INFO] 2026-02-12T21:49:10.092Z Aegis review queue table initialized
+[INFO] 2026-02-12T21:49:10.092Z Aegis AI module initialized
+[INFO] 2026-02-12T21:49:10.092Z Environment Variables Check {"FRONTEND_PORT":"3000","PWD":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch"}
+[INFO] 2026-02-12T21:49:10.093Z Anomaly detection engine stubbed (fast-launch mode)
+[INFO] 2026-02-12T21:49:10.093Z Security headers enabled {"ENABLE_CSP":true}
+[INFO] 2026-02-12T21:49:10.094Z Aegis WebSocket server initialized {"path":"/api/aegis/ws"}
+[INFO] 2026-02-12T21:49:10.094Z Aegis WebSocket server initialized
+[INFO] 2026-02-12T21:49:10.094Z Server running on port 3001 {"nodeEnv":"development","demoMode":true}
+[INFO] 2026-02-12T21:49:10.097Z Quantum-resistant cryptographic keys initialized {"dilithiumPublicKeyLength":2592,"dilithiumPrivateKeyLength":"[REDACTED]","algorithm":"ML-DSA-87 (Dilithium5)"}

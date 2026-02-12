@@ -25,6 +25,7 @@ import { __testResetRateLimiter } from './rateLimit.js';
 import { ContractScanner } from './src/scanner/index.js';
 import { sendQuantumRiskEmail } from './emailService.js';
 import { saveLead, saveContactLead } from './leadsDatabase.js';
+import { generatePDFReport } from './pdf/pdfkit-report.js';
 
 // Routes
 import faucetRoutes from './routes/faucet.js';
@@ -166,6 +167,49 @@ app.post('/api/quantum-risk/email', async (req, res) => {
     logError('Quantum risk email failed', err);
     res.status(500).json({
       error: 'Failed to send report',
+      message: err.message,
+    });
+  }
+});
+
+// Quantum Risk PDF Download endpoint (new - no email, direct download)
+app.post('/api/quantum-risk/report', async (req, res) => {
+  try {
+    const { email, formData, riskScores } = req.body;
+
+    if (!email || !formData || !riskScores) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['email', 'formData', 'riskScores'],
+      });
+    }
+
+    // Save lead to database
+    const leadResult = saveLead({
+      email,
+      formData,
+      riskScores,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    logInfo('Quantum risk lead captured', { email, leadId: leadResult.id });
+
+    // Generate PDF
+    const pdfBuffer = await generatePDFReport(formData, riskScores);
+
+    logInfo('PDF report generated', { email, size: pdfBuffer.length });
+
+    // Send PDF as download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="quantum-risk-analysis.pdf"');
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+
+  } catch (err) {
+    logError('Quantum risk report generation failed', err);
+    res.status(500).json({
+      error: 'Failed to generate report',
       message: err.message,
     });
   }
