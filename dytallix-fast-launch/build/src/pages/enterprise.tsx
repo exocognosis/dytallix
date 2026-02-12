@@ -1,9 +1,10 @@
 import { Section } from "../components/ui/Section"
 import { GlassPanel } from "../components/ui/GlassPanel"
 import { Button } from "../components/ui/Button"
-import { Shield, Lock, ArrowRight, Building2, Stethoscope, Briefcase, Cpu, Palette, FlaskConical, FileText, Landmark } from "lucide-react"
+import { Shield, Lock, ArrowRight, FileText, Landmark, Cpu } from "lucide-react"
 import { Link } from "react-router-dom"
 import { QuantumVaultDemo } from "../components/QuantumVaultDemo"
+import { industryUseCases } from "../data/enterprise"
 
 export function EnterpriseHub() {
     return (
@@ -97,74 +98,7 @@ export function EnterpriseHub() {
             {/* Solutions Grid */}
             <Section title="Industry Use Cases" subtitle="Tailored QuantumVault solutions for high-stakes sectors.">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[
-                        {
-                            icon: Building2,
-                            color: "text-amber-500",
-                            title: "Government & Defense",
-                            cases: [
-                                "Classified Document Storage: Secure intelligence reports and sensitive communications.",
-                                "Digital Evidence Chain: Immutable proof of evidence integrity for legal proceedings.",
-                                "Treaty & Policy Archives: Long-term preservation of critical agreements.",
-                                "Secure Communications: Diplomatic cables protected against quantum decryption."
-                            ]
-                        },
-                        {
-                            icon: Stethoscope,
-                            color: "text-emerald-500",
-                            title: "Healthcare & Life Sciences",
-                            cases: [
-                                "Patient Records (PHI): HIPAA-compliant storage of medical histories and genomic data.",
-                                "Clinical Trial Data: Tamper-proof research data with verifiable integrity.",
-                                "Medical Imaging: Secure storage of MRI, CT, and X-ray images.",
-                                "Drug Development: Protect proprietary research and formulations."
-                            ]
-                        },
-                        {
-                            icon: Briefcase,
-                            color: "text-blue-500",
-                            title: "Financial Services",
-                            cases: [
-                                "Transaction Records: Immutable audit trails for regulatory compliance.",
-                                "Customer Data (KYC/AML): Secure storage of identity verification documents.",
-                                "Trading Algorithms: Protect proprietary quantitative models and strategies.",
-                                "Risk Assessment Models: Secure AI models used for credit scoring."
-                            ]
-                        },
-                        {
-                            icon: Cpu,
-                            color: "text-indigo-500",
-                            title: "Technology & Software",
-                            cases: [
-                                "Source Code Protection: Secure proprietary algorithms and IP.",
-                                "Software Releases: Cryptographic proof of software integrity and authenticity.",
-                                "API Keys & Secrets: Quantum-safe storage of sensitive credentials.",
-                                "User Data: Privacy-preserving storage of customer information."
-                            ]
-                        },
-                        {
-                            icon: Palette,
-                            color: "text-pink-500",
-                            title: "Design & Creative Industries",
-                            cases: [
-                                "Digital Art & NFTs: Provable ownership and authenticity of digital works.",
-                                "Design Files: Protect CAD models and architectural blueprints.",
-                                "Media Assets: Secure storage of high-value video and audio content.",
-                                "Brand Assets: Immutable proof of trademark and logo ownership."
-                            ]
-                        },
-                        {
-                            icon: FlaskConical,
-                            color: "text-cyan-500",
-                            title: "Pharmaceutical & Research",
-                            cases: [
-                                "Drug Formulations: Protect billion-dollar research investments.",
-                                "Laboratory Data: Secure experimental results and peer review materials.",
-                                "Patent Documentation: Immutable proof of invention dates and prior art.",
-                                "Regulatory Submissions: Tamper-proof data packages for FDA/EMA."
-                            ]
-                        }
-                    ].map((vertical, i) => (
+                    {industryUseCases.map((vertical, i) => (
                         <GlassPanel key={i} variant="card" hoverEffect={true} className="p-8 space-y-6">
                             <div className="flex items-center gap-4 mb-2">
                                 <div className={`p-3 rounded-lg bg-white/5 ${vertical.color}`}>

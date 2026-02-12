@@ -27,16 +27,18 @@ import { sendQuantumRiskEmail } from './emailService.js';
 import { saveLead, saveContactLead } from './leadsDatabase.js';
 import { generatePDFReport } from './pdf/pdfkit-report.js';
 
-// Routes
-import faucetRoutes from './routes/faucet.js';
-import blockchainRoutes from './routes/blockchain.js';
-import explorerRoutes from './routes/explorer.js';
-import aiOracleRoutes from './routes/ai-oracle.js';
-import apiStatusRoutes from './routes/api-status.js';
-import aegisRoutes from './routes/aegis.js';
-import { aegisWebSocket } from './services/aegis/websocket.js';
+import quantumRiskRoutes from './routes/quantum-risk.js';
 
-// Metrics
+// ... (other imports)
+
+// Mount route modules
+app.use('/api/faucet', faucetRoutes);
+app.use('/', blockchainRoutes); // Wallet compatibility routes at root
+app.use('/api', explorerRoutes); // Explorer routes
+app.use('/api/ai', aiOracleRoutes); // AI Oracle routes
+app.use('/api', apiStatusRoutes); // Status and node cluster routes
+app.use('/api/aegis', aegisRoutes); // Aegis AI routes
+app.use('/api/quantum-risk', quantumRiskRoutes); // Quantum Risk routes
 import { register } from './metrics.js';
 
 /*
@@ -145,75 +147,9 @@ app.get('/metrics', async (req, res) => {
   }
 });
 
-// Quantum Risk Email endpoint
-app.post('/api/quantum-risk/email', async (req, res) => {
-  try {
-    const { email, formData, riskScores } = req.body;
+// Quantum Risk Routes are now handled by /api/quantum-risk router
 
-    if (!email || !formData || !riskScores) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        required: ['email', 'formData', 'riskScores'],
-      });
-    }
 
-    await sendQuantumRiskEmail(email, formData, riskScores);
-
-    res.json({
-      success: true,
-      message: 'Quantum risk analysis report sent successfully',
-    });
-  } catch (err) {
-    logError('Quantum risk email failed', err);
-    res.status(500).json({
-      error: 'Failed to send report',
-      message: err.message,
-    });
-  }
-});
-
-// Quantum Risk PDF Download endpoint (new - no email, direct download)
-app.post('/api/quantum-risk/report', async (req, res) => {
-  try {
-    const { email, formData, riskScores } = req.body;
-
-    if (!email || !formData || !riskScores) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        required: ['email', 'formData', 'riskScores'],
-      });
-    }
-
-    // Save lead to database
-    const leadResult = saveLead({
-      email,
-      formData,
-      riskScores,
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
-    });
-
-    logInfo('Quantum risk lead captured', { email, leadId: leadResult.id });
-
-    // Generate PDF
-    const pdfBuffer = await generatePDFReport(formData, riskScores);
-
-    logInfo('PDF report generated', { email, size: pdfBuffer.length });
-
-    // Send PDF as download
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="quantum-risk-analysis.pdf"');
-    res.setHeader('Content-Length', pdfBuffer.length);
-    res.send(pdfBuffer);
-
-  } catch (err) {
-    logError('Quantum risk report generation failed', err);
-    res.status(500).json({
-      error: 'Failed to generate report',
-      message: err.message,
-    });
-  }
-});
 
 // Lead capture endpoints
 app.post('/api/leads/submit', async (req, res) => {
