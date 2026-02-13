@@ -45,4 +45,45 @@ export class AdminController {
     async updateAlgo(@Body() body: { id: string; enabled: boolean }) {
         return this.adminService.updateAlgoConfig(body.id, body.enabled);
     }
+
+    @Get('keys/status')
+    async getKeyGovernanceStatus() {
+        return this.adminService.getKeyGovernanceStatus();
+    }
+
+    @Post('keys/attestation/rotate')
+    async rotateAttestationSigner(
+        @Body()
+        body: {
+            reason?: string;
+            changeTicket?: string;
+            requestedBy?: string;
+            expectedPriorKeyId?: string;
+            runRecoveryTest?: boolean;
+        },
+    ) {
+        return this.adminService.rotateAttestationSigner(body);
+    }
+
+    @Post('keys/transport/rotate')
+    async rotateTransportKeys(
+        @Body()
+        body: {
+            reason?: string;
+            changeTicket?: string;
+            requestedBy?: string;
+            expectedPriorKemKeyId?: string;
+            expectedPriorIdentityKeyId?: string;
+            runRecoveryTest?: boolean;
+        },
+    ) {
+        return this.adminService.rotateTransportKeys(body);
+    }
+
+    @Post('keys/recovery-test')
+    async runKeyRecoveryTests(
+        @Body() body: { scope?: 'attestation' | 'transport' | 'all'; requestedBy?: string },
+    ) {
+        return this.adminService.runKeyRecoveryTests(body);
+    }
 }

@@ -109,6 +109,19 @@ const tenantId = sanitizePathSegment(String(assetMeta.tenantId || ''));
 2. Add cryptographic integration tests (negative signature tests, replay tests, nonce misuse tests).
 3. Perform external red-team validation of attestation trust model and vault boundary enforcement.
 
+### 90-Day Implementation Notes (2026-02-13)
+1. Key lifecycle governance implemented in backend services and admin APIs:
+   - `backend/src/attestation/attestation.service.ts`
+   - `backend/src/transport/transport.service.ts`
+   - `backend/src/admin/admin.controller.ts`
+2. Ceremony automation and operational guidance added:
+   - `scripts/rollout/key_rotation_ceremony.sh`
+   - `docs/KEY_GOVERNANCE_RUNBOOK.md`
+3. Cryptographic integration test suite added:
+   - `backend/test/crypto-integration.ts`
+4. External validation package prepared:
+   - `docs/RED_TEAM_VALIDATION_PLAN.md`
+
 ## Confidence and Remaining Uncertainty
 Confidence: **High** for code/config findings (static line-level evidence).
 

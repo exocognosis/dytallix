@@ -12,7 +12,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "node prisma/seed.js",
     "openapi:generate": "ts-node src/generate-openapi.ts",
-    "test": "echo \"Tests not yet implemented\" && exit 0"
+    "test:crypto-integration": "ts-node test/crypto-integration.ts",
+    "test": "npm run test:crypto-integration"
   },
   "keywords": [
     "quantumvault",

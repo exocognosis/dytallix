@@ -1,9 +1,10 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { VaultService } from '../vault/vault.service';
 import { getMlDsa65, ML_DSA_65_ALGORITHM, MlDsa65, MlDsaKeyPair } from '../crypto/mldsa';
 import { getMlKem1024, ML_KEM_1024_ALGORITHM, MlKem1024, MlKemKeyPair } from '../crypto/mlkem';
 import { canonicalJsonBuffer, canonicalJsonSha256Hex } from '../crypto/canonical-json';
+import { ConfigService } from '@nestjs/config';
 
 const TRANSPORT_PROTOCOL_VERSION = 'qv.transport.v1';
 const NONCE_REPLAY_WINDOW_LIMIT = 2048;
@@ -13,6 +14,12 @@ type TransportKemKeyRecord = {
     publicKey: string; // base64
     secretKey: string; // base64
     createdAt: string;
+    rotatedAt?: string;
+    rotatedFromKeyId?: string;
+    rotationCeremonyId?: string;
+    rotationReason?: string;
+    changeTicket?: string;
+    rotatedBy?: string;
 };
 
 type TransportIdentityKeyRecord = {
@@ -20,6 +27,12 @@ type TransportIdentityKeyRecord = {
     publicKey: string; // base64
     secretKey: string; // base64
     createdAt: string;
+    rotatedAt?: string;
+    rotatedFromKeyId?: string;
+    rotationCeremonyId?: string;
+    rotationReason?: string;
+    changeTicket?: string;
+    rotatedBy?: string;
 };
 
 type TransportSessionRecord = {
@@ -44,6 +57,7 @@ type TransportSessionRecord = {
 
 @Injectable()
 export class TransportService implements OnModuleInit {
+    private readonly logger = new Logger(TransportService.name);
     private kem: MlKem1024;
     private sig: MlDsa65;
 
@@ -54,12 +68,99 @@ export class TransportService implements OnModuleInit {
     private readonly identityVaultPath = 'quantumvault/system/transport-identity';
     private readonly sessionsVaultPrefix = 'quantumvault/transport/sessions';
 
-    constructor(private vaultService: VaultService) { }
+    constructor(
+        private vaultService: VaultService,
+        private configService: ConfigService,
+    ) { }
 
     async onModuleInit() {
         this.kem = await getMlKem1024();
         this.sig = await getMlDsa65();
         await this.ensureTransportKeys();
+    }
+
+    private boolEnv(name: string, defaultValue: boolean): boolean {
+        const value = this.configService.get<string>(name);
+        if (value === undefined) {
+            return defaultValue;
+        }
+        return value.trim().toLowerCase() === 'true';
+    }
+
+    private normalizeHex(value?: string): string {
+        if (!value) return '';
+        const normalized = value.toLowerCase();
+        return normalized.startsWith('0x') ? normalized : `0x${normalized}`;
+    }
+
+    private isVaultNotFoundError(error: unknown): boolean {
+        const message =
+            (error as { message?: string })?.message ||
+            (error as { response?: { body?: { errors?: string[] } } })?.response?.body?.errors?.join(' ') ||
+            '';
+        const lower = String(message).toLowerCase();
+        return lower.includes('404') || lower.includes('not found') || lower.includes('no value found');
+    }
+
+    private ensureReady() {
+        if (!this.kem || !this.sig) {
+            throw new Error('Transport crypto providers not initialized');
+        }
+        if (!this.kemKeys || !this.identityKeys) {
+            throw new Error('Transport key material not initialized');
+        }
+    }
+
+    private keyHashHex(publicKey: Uint8Array): string {
+        return `0x${crypto.createHash('sha256').update(Buffer.from(publicKey)).digest('hex')}`;
+    }
+
+    private kemKeyId(publicKey: Uint8Array): string {
+        const digest = this.keyHashHex(publicKey).slice(2);
+        return `mlkem1024:${digest.slice(0, 16)}`;
+    }
+
+    private identityKeyId(publicKey: Uint8Array): string {
+        const digest = this.keyHashHex(publicKey).slice(2);
+        return `mldsa65:${digest.slice(0, 16)}`;
+    }
+
+    private enforceKeyPinning(): void {
+        this.ensureReady();
+        const currentKemHash = this.keyHashHex(this.kemKeys!.publicKey);
+        const currentIdentityHash = this.keyHashHex(this.identityKeys!.publicKey);
+        const currentKemId = this.kemKeyId(this.kemKeys!.publicKey);
+        const currentIdentityId = this.identityKeyId(this.identityKeys!.publicKey);
+
+        const pinnedKemHash = this.normalizeHex(this.configService.get<string>('TRANSPORT_KEM_KEY_HASH_PIN'));
+        if (pinnedKemHash && pinnedKemHash !== this.normalizeHex(currentKemHash)) {
+            throw new Error(
+                `Transport KEM key-hash pin mismatch. Expected ${pinnedKemHash}, got ${this.normalizeHex(currentKemHash)}`,
+            );
+        }
+
+        const pinnedIdentityHash = this.normalizeHex(
+            this.configService.get<string>('TRANSPORT_IDENTITY_KEY_HASH_PIN'),
+        );
+        if (pinnedIdentityHash && pinnedIdentityHash !== this.normalizeHex(currentIdentityHash)) {
+            throw new Error(
+                `Transport identity key-hash pin mismatch. Expected ${pinnedIdentityHash}, got ${this.normalizeHex(
+                    currentIdentityHash,
+                )}`,
+            );
+        }
+
+        const pinnedKemId = this.configService.get<string>('TRANSPORT_KEM_KEY_ID_PIN');
+        if (pinnedKemId && pinnedKemId.trim() !== currentKemId) {
+            throw new Error(`Transport KEM key-id pin mismatch. Expected ${pinnedKemId.trim()}, got ${currentKemId}`);
+        }
+
+        const pinnedIdentityId = this.configService.get<string>('TRANSPORT_IDENTITY_KEY_ID_PIN');
+        if (pinnedIdentityId && pinnedIdentityId.trim() !== currentIdentityId) {
+            throw new Error(
+                `Transport identity key-id pin mismatch. Expected ${pinnedIdentityId.trim()}, got ${currentIdentityId}`,
+            );
+        }
     }
 
     private async ensureTransportKeys() {
@@ -74,15 +175,27 @@ export class TransportService implements OnModuleInit {
             } else {
                 throw new Error('missing_transport_kem_keys');
             }
-        } catch {
+        } catch (error) {
+            if (!this.isVaultNotFoundError(error)) {
+                throw error;
+            }
+            const bootstrapDefault = this.configService.get<string>('NODE_ENV') !== 'production';
+            const allowBootstrap = this.boolEnv('TRANSPORT_KEYS_BOOTSTRAP_ALLOWED', bootstrapDefault);
+            if (!allowBootstrap) {
+                throw new Error(
+                    'Transport KEM key missing in Vault and bootstrapping is disabled. Run explicit key ceremony.',
+                );
+            }
             const kp = await this.kem.generateKeyPair();
             await this.vaultService.write(this.kemVaultPath, {
                 algorithm: ML_KEM_1024_ALGORITHM,
                 publicKey: Buffer.from(kp.publicKey).toString('base64'),
                 secretKey: Buffer.from(kp.secretKey).toString('base64'),
                 createdAt: new Date().toISOString(),
+                rotationReason: 'bootstrap',
             } satisfies TransportKemKeyRecord);
             this.kemKeys = kp;
+            this.logger.warn(`⚠️  Bootstrapped transport KEM key (${this.kemKeyId(kp.publicKey)})`);
         }
 
         // Identity keys (for signing server info / handshakes)
@@ -96,19 +209,73 @@ export class TransportService implements OnModuleInit {
             } else {
                 throw new Error('missing_transport_identity_keys');
             }
-        } catch {
+        } catch (error) {
+            if (!this.isVaultNotFoundError(error)) {
+                throw error;
+            }
+            const bootstrapDefault = this.configService.get<string>('NODE_ENV') !== 'production';
+            const allowBootstrap = this.boolEnv('TRANSPORT_KEYS_BOOTSTRAP_ALLOWED', bootstrapDefault);
+            if (!allowBootstrap) {
+                throw new Error(
+                    'Transport identity key missing in Vault and bootstrapping is disabled. Run explicit key ceremony.',
+                );
+            }
             const kp = await this.sig.generateKeyPair();
             await this.vaultService.write(this.identityVaultPath, {
                 algorithm: ML_DSA_65_ALGORITHM,
                 publicKey: Buffer.from(kp.publicKey).toString('base64'),
                 secretKey: Buffer.from(kp.secretKey).toString('base64'),
                 createdAt: new Date().toISOString(),
+                rotationReason: 'bootstrap',
             } satisfies TransportIdentityKeyRecord);
             this.identityKeys = kp;
+            this.logger.warn(`⚠️  Bootstrapped transport identity key (${this.identityKeyId(kp.publicKey)})`);
         }
+
+        this.enforceKeyPinning();
     }
 
-    async rotateTransportKeys(): Promise<{ kemAlgorithm: string; identityAlgorithm: string; rotatedAt: string }> {
+    async rotateTransportKeys(options?: {
+        reason?: string;
+        changeTicket?: string;
+        requestedBy?: string;
+        expectedPriorKemKeyId?: string;
+        expectedPriorIdentityKeyId?: string;
+        runRecoveryTest?: boolean;
+    }): Promise<{
+        ceremonyId: string;
+        kemAlgorithm: string;
+        identityAlgorithm: string;
+        rotatedAt: string;
+        previousKemKeyId: string;
+        previousIdentityKeyId: string;
+        currentKemKeyId: string;
+        currentIdentityKeyId: string;
+        recoveryTest?: {
+            passed: boolean;
+            kemDecapsulationMatch: boolean;
+            identitySignatureValid: boolean;
+            kemKeyId: string;
+            identityKeyId: string;
+            challengeHash: string;
+        } | { passed: true; skipped: true };
+    }> {
+        this.ensureReady();
+        const priorKemKeyId = this.kemKeyId(this.kemKeys!.publicKey);
+        const priorIdentityKeyId = this.identityKeyId(this.identityKeys!.publicKey);
+        const expectedKem = options?.expectedPriorKemKeyId?.trim();
+        const expectedIdentity = options?.expectedPriorIdentityKeyId?.trim();
+
+        if (expectedKem && expectedKem !== priorKemKeyId) {
+            throw new Error(`Refusing transport rotation: expected prior KEM key ${expectedKem}, got ${priorKemKeyId}`);
+        }
+        if (expectedIdentity && expectedIdentity !== priorIdentityKeyId) {
+            throw new Error(
+                `Refusing transport rotation: expected prior identity key ${expectedIdentity}, got ${priorIdentityKeyId}`,
+            );
+        }
+
+        const ceremonyId = crypto.randomUUID();
         const kemKp = await this.kem.generateKeyPair();
         const sigKp = await this.sig.generateKeyPair();
         const rotatedAt = new Date().toISOString();
@@ -118,6 +285,12 @@ export class TransportService implements OnModuleInit {
             publicKey: Buffer.from(kemKp.publicKey).toString('base64'),
             secretKey: Buffer.from(kemKp.secretKey).toString('base64'),
             createdAt: rotatedAt,
+            rotatedAt,
+            rotatedFromKeyId: priorKemKeyId,
+            rotationCeremonyId: ceremonyId,
+            rotationReason: options?.reason || 'scheduled_rotation',
+            changeTicket: options?.changeTicket || null,
+            rotatedBy: options?.requestedBy || 'system',
         } satisfies TransportKemKeyRecord);
 
         await this.vaultService.write(this.identityVaultPath, {
@@ -125,12 +298,108 @@ export class TransportService implements OnModuleInit {
             publicKey: Buffer.from(sigKp.publicKey).toString('base64'),
             secretKey: Buffer.from(sigKp.secretKey).toString('base64'),
             createdAt: rotatedAt,
+            rotatedAt,
+            rotatedFromKeyId: priorIdentityKeyId,
+            rotationCeremonyId: ceremonyId,
+            rotationReason: options?.reason || 'scheduled_rotation',
+            changeTicket: options?.changeTicket || null,
+            rotatedBy: options?.requestedBy || 'system',
         } satisfies TransportIdentityKeyRecord);
 
         this.kemKeys = kemKp;
         this.identityKeys = sigKp;
+        this.enforceKeyPinning();
 
-        return { kemAlgorithm: ML_KEM_1024_ALGORITHM, identityAlgorithm: ML_DSA_65_ALGORITHM, rotatedAt };
+        const recoveryTest =
+            options?.runRecoveryTest === false
+                ? ({ passed: true, skipped: true } as const)
+                : await this.runTransportRecoveryTest();
+
+        return {
+            ceremonyId,
+            kemAlgorithm: ML_KEM_1024_ALGORITHM,
+            identityAlgorithm: ML_DSA_65_ALGORITHM,
+            rotatedAt,
+            previousKemKeyId: priorKemKeyId,
+            previousIdentityKeyId: priorIdentityKeyId,
+            currentKemKeyId: this.kemKeyId(kemKp.publicKey),
+            currentIdentityKeyId: this.identityKeyId(sigKp.publicKey),
+            recoveryTest,
+        };
+    }
+
+    async getTransportKeyGovernanceStatus() {
+        this.ensureReady();
+        const kemRecord = (await this.vaultService.read(this.kemVaultPath)) as TransportKemKeyRecord;
+        const identityRecord = (await this.vaultService.read(this.identityVaultPath)) as TransportIdentityKeyRecord;
+        const kemHash = this.keyHashHex(this.kemKeys!.publicKey);
+        const identityHash = this.keyHashHex(this.identityKeys!.publicKey);
+
+        return {
+            protocolVersion: TRANSPORT_PROTOCOL_VERSION,
+            kem: {
+                keyId: this.kemKeyId(this.kemKeys!.publicKey),
+                keyHash: kemHash,
+                createdAt: kemRecord?.createdAt || null,
+                rotatedAt: kemRecord?.rotatedAt || null,
+                rotatedFromKeyId: kemRecord?.rotatedFromKeyId || null,
+                rotationCeremonyId: kemRecord?.rotationCeremonyId || null,
+            },
+            identity: {
+                keyId: this.identityKeyId(this.identityKeys!.publicKey),
+                keyHash: identityHash,
+                createdAt: identityRecord?.createdAt || null,
+                rotatedAt: identityRecord?.rotatedAt || null,
+                rotatedFromKeyId: identityRecord?.rotatedFromKeyId || null,
+                rotationCeremonyId: identityRecord?.rotationCeremonyId || null,
+            },
+            pins: {
+                kemKeyId: this.configService.get<string>('TRANSPORT_KEM_KEY_ID_PIN') || null,
+                kemKeyHash: this.normalizeHex(this.configService.get<string>('TRANSPORT_KEM_KEY_HASH_PIN')) || null,
+                identityKeyId: this.configService.get<string>('TRANSPORT_IDENTITY_KEY_ID_PIN') || null,
+                identityKeyHash:
+                    this.normalizeHex(this.configService.get<string>('TRANSPORT_IDENTITY_KEY_HASH_PIN')) || null,
+            },
+        };
+    }
+
+    async runTransportRecoveryTest(): Promise<{
+        passed: boolean;
+        kemDecapsulationMatch: boolean;
+        identitySignatureValid: boolean;
+        kemKeyId: string;
+        identityKeyId: string;
+        challengeHash: string;
+    }> {
+        this.ensureReady();
+        const challengeEnvelope = {
+            protocolVersion: `${TRANSPORT_PROTOCOL_VERSION}.recovery`,
+            issuedAt: new Date().toISOString(),
+            nonce: crypto.randomUUID(),
+        };
+        const challengeHash = canonicalJsonSha256Hex(challengeEnvelope);
+        const challengeMessage = new Uint8Array(Buffer.from(challengeHash, 'hex'));
+
+        const signature = await this.sig.sign(challengeMessage, this.identityKeys!.secretKey);
+        const identitySignatureValid = await this.sig.verify(
+            challengeMessage,
+            signature,
+            this.identityKeys!.publicKey,
+        );
+
+        const encapsulated = await this.kem.encapsulate(this.kemKeys!.publicKey);
+        const decapsulated = await this.kem.decapsulate(encapsulated.ciphertext, this.kemKeys!.secretKey);
+        const kemDecapsulationMatch =
+            Buffer.from(encapsulated.sharedSecret).equals(Buffer.from(decapsulated));
+
+        return {
+            passed: identitySignatureValid && kemDecapsulationMatch,
+            kemDecapsulationMatch,
+            identitySignatureValid,
+            kemKeyId: this.kemKeyId(this.kemKeys!.publicKey),
+            identityKeyId: this.identityKeyId(this.identityKeys!.publicKey),
+            challengeHash: `0x${challengeHash}`,
+        };
     }
 
     private deriveSessionKey(sharedSecret: Uint8Array, salt: Uint8Array): Buffer {

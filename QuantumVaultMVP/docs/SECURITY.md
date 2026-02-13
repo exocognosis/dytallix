@@ -84,6 +84,21 @@ QuantumVault **requires** HashiCorp Vault for secrets storage:
 - Root token should be stored securely offline
 - Service tokens should have minimal permissions
 
+### Key Lifecycle Governance (90-day hardening)
+
+QuantumVault now enforces operational controls for attestation and transport keys:
+
+1. Explicit rotation ceremonies via admin APIs and rollout script
+2. Key continuity pinning (`*_KEY_ID_PIN`, `*_KEY_HASH_PIN`)
+3. Post-rotation recovery testing
+4. Bootstrap gating (`ATTESTATION_KEY_BOOTSTRAP_ALLOWED`, `TRANSPORT_KEYS_BOOTSTRAP_ALLOWED`)
+
+Operator references:
+
+- `docs/KEY_GOVERNANCE_RUNBOOK.md`
+- `scripts/rollout/key_rotation_ceremony.sh`
+- `docs/RED_TEAM_VALIDATION_PLAN.md`
+
 ## Network Security
 
 ### TLS/SSL
@@ -158,7 +173,7 @@ Recommended firewall configuration:
 
 ### Algorithm Selection
 
-**KEM**: Kyber1024
+**KEM**: ML-KEM-1024 (NIST FIPS 203)
 - Security Level: NIST Level 5
 - Public key: 1568 bytes
 - Ciphertext: 1568 bytes
@@ -177,7 +192,7 @@ Recommended firewall configuration:
 ### Envelope Encryption
 
 ```
-1. Generate random Kyber1024 keypair (anchor)
+1. Generate random ML-KEM-1024 keypair (anchor)
 2. For each asset:
    a. Encapsulate to derive shared secret
    b. HKDF-SHA256 to derive AES key
@@ -234,6 +249,7 @@ Recommended firewall configuration:
 - [ ] Review audit log retention policy
 - [ ] Perform security audit
 - [ ] Run penetration testing
+- [ ] Run external red-team validation against attestation trust model and Vault boundaries
 - [ ] Document incident response plan
 - [ ] Set up rate limiting
 - [ ] Configure CORS properly

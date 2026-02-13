@@ -6,10 +6,11 @@ A production-ready Post-Quantum Cryptography (PQC) asset management platform tha
 
 - **Real TLS Scanning**: Automated discovery of TLS endpoints, certificate chain extraction, and PQC compliance assessment
 - **Risk Scoring**: Deterministic 0-100 risk scores with intelligent classification based on exposure, sensitivity, and cryptographic algorithms
-- **PQC Wrapping**: Envelope encryption using Kyber KEM + HKDF-SHA256 + AES-256-GCM
+- **PQC Wrapping**: Envelope encryption using **ML-KEM (NIST FIPS 203)** + HKDF-SHA256 + AES-256-GCM
+- **PQC Secure Transport**: Application-layer PQC session establishment (ML-KEM) with PQC-signed server identity (ML-DSA)
 - **HashiCorp Vault Integration**: Secure storage of sensitive key material with fail-fast validation
 - **Blockchain Attestation**: Immutable proof of remediation on EVM-compatible blockchain
-- **Policy Engine**: Rule-based asset evaluation and bulk remediation workflows
+- **Policy Orchestrator**: Policy-driven evaluation + enforcement (wrap matched assets; optional anchor rotation/revocation; tenant/geo/regulatory constraints)
 - **Dashboard & Analytics**: Real-time KPIs, trends, and migration timeline visualization
 - **RBAC**: Role-based access control (ADMIN, SECURITY_ENGINEER, VIEWER) with comprehensive audit logging
 
@@ -116,15 +117,15 @@ npm install
 npm run dev
 ```
 
-## Default Credentials
+## Development Seed Users
 
-**Admin User** (created via seed):
-- Email: `admin@quantumvault.local`
-- Password: `QuantumVault2024!`
+Development users are only created when all of the following are set:
+- `ENABLE_DEV_SEED_USERS=true`
+- `SEED_ADMIN_PASSWORD`
+- `SEED_ENGINEER_PASSWORD`
+- `SEED_VIEWER_PASSWORD`
 
-**Security Engineer** (for testing):
-- Email: `engineer@quantumvault.local`
-- Password: `Engineer2024!`
+Without those variables, the seed script skips credentialed user creation.
 
 ## API Documentation
 
@@ -170,6 +171,12 @@ The backend exposes a RESTful API under `/api/v1`:
 - `GET /api/v1/attestation/job-status/:jobId` - Get attestation job status
 - `GET /api/v1/attestation/asset/:assetId` - Get asset attestations
 
+### Admin Key Governance
+- `GET /api/v1/admin/keys/status` - Retrieve attestation/transport key governance status
+- `POST /api/v1/admin/keys/attestation/rotate` - Run attestation signer rotation ceremony
+- `POST /api/v1/admin/keys/transport/rotate` - Run transport key rotation ceremony
+- `POST /api/v1/admin/keys/recovery-test` - Run key recovery validation tests
+
 ### Dashboard
 - `GET /api/v1/dashboard/kpis` - Get KPI aggregates
 - `GET /api/v1/dashboard/trends?days=30` - Get trend data
@@ -187,25 +194,68 @@ See `.env.example` files in `backend/` and `frontend/` directories for all confi
 **Backend:**
 - `DATABASE_URL`: PostgreSQL connection string (required)
 - `VAULT_ADDR`: HashiCorp Vault address (required)
-- `VAULT_TOKEN`: Vault authentication token (required)
+- `VAULT_AUTH_METHOD`: Vault auth mode (`approle`, `kubernetes`, or `token`)
+- `VAULT_ROLE_ID` / `VAULT_SECRET_ID`: Required for AppRole auth
+- `VAULT_TOKEN`: Optional fallback for local token auth
+- `ATTESTATION_KEY_BOOTSTRAP_ALLOWED` / `TRANSPORT_KEYS_BOOTSTRAP_ALLOWED`: Bootstrap guardrails for key provisioning
+- `ATTESTATION_SIGNER_KEY_ID_PIN` / `ATTESTATION_SIGNER_KEY_HASH_PIN`: Attestation signer continuity pinning
+- `TRANSPORT_KEM_KEY_ID_PIN` / `TRANSPORT_KEM_KEY_HASH_PIN`: Transport KEM key pinning
+- `TRANSPORT_IDENTITY_KEY_ID_PIN` / `TRANSPORT_IDENTITY_KEY_HASH_PIN`: Transport identity key pinning
 - `BLOCKCHAIN_RPC_URL`: Ethereum RPC endpoint
 - `ATTESTATION_CONTRACT_ADDRESS`: Deployed contract address
-- `JWT_SECRET`: Secret for JWT signing (change in production!)
+- `JWT_SECRET`: Secret for JWT signing (must be strong and non-default)
 
 **Frontend:**
 - `VITE_API_URL`: Backend API URL
 
 ## Security Notes
 
-⚠️ **IMPORTANT**: This MVP includes default credentials and tokens for development purposes. **DO NOT USE IN PRODUCTION** without changing:
+⚠️ **IMPORTANT**: This MVP requires runtime secret injection for production. Ensure all secrets and service credentials are set securely before deployment:
 
 1. Database passwords
 2. JWT secrets
-3. Vault tokens
+3. Vault AppRole/Kubernetes credentials (or non-root token for local-only fallback)
 4. Blockchain private keys
-5. Admin user credentials
+5. Dytallix service authentication token
 
 See [docs/SECURITY.md](docs/SECURITY.md) for comprehensive security guidance.
+
+### Important Follow-Ups (Automated)
+
+Run the rollout script to rotate runtime secrets, redeploy the attestation contract, and update runtime env files:
+
+```bash
+# terminal 1
+cd contracts
+npx hardhat node
+
+# terminal 2
+cd ..
+./scripts/rollout/prepare_runtime_rollout.sh
+```
+
+Bootstrap Vault scoped AppRole credentials (replace one-time bootstrap token):
+
+```bash
+VAULT_ADDR=http://127.0.0.1:8200 \
+VAULT_BOOTSTRAP_TOKEN=<one-time-operator-token> \
+OUTPUT_ENV_FILE=infra/.env.vault \
+./scripts/rollout/bootstrap_vault_approle.sh
+```
+
+Run explicit key rotation ceremony with recovery tests and evidence output:
+
+```bash
+QVC_API_BASE=http://localhost:13000/api/v1 \
+QVC_ADMIN_EMAIL=admin@quantumvault.local \
+QVC_ADMIN_PASSWORD='QuantumVault2024!' \
+QVC_REASON='scheduled_rotation' \
+QVC_CHANGE_TICKET='SEC-1234' \
+QVC_REQUESTED_BY='security-admin' \
+./scripts/rollout/key_rotation_ceremony.sh all
+```
+
+After rotation, update key pin env vars from `GET /api/v1/admin/keys/status` and set bootstrap flags to `false`.
 
 ## Testing
 
@@ -228,13 +278,27 @@ This will:
 9. Query dashboard KPIs
 10. Report pass/fail
 
+### Run Cryptographic Integration Tests (90-day hardening)
+
+```bash
+cd backend
+npm run test:crypto-integration
+```
+
+This suite validates:
+1. Negative ML-DSA signature verification paths
+2. Transport replay rejection
+3. Transport nonce misuse rejection
+
 ## Documentation
 
 - [INSTALL.md](docs/INSTALL.md) - Detailed installation instructions
 - [RUNBOOK.md](docs/RUNBOOK.md) - Operations runbook
+- [KEY_GOVERNANCE_RUNBOOK.md](docs/KEY_GOVERNANCE_RUNBOOK.md) - Key rotation ceremonies, pinning, and recovery testing
 - [ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) - Administrator guide
 - [SECURITY.md](docs/SECURITY.md) - Security considerations
 - [API.md](docs/API.md) - Complete API reference
+- [RED_TEAM_VALIDATION_PLAN.md](docs/RED_TEAM_VALIDATION_PLAN.md) - External validation plan for attestation trust and Vault boundaries
 
 ## Project Structure
 

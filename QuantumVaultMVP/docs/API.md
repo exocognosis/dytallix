@@ -8,11 +8,13 @@ http://localhost:3000/api/v1
 
 ## Authentication
 
-All endpoints (except `/auth/login`) require JWT authentication via Bearer token:
+All endpoints (except `/auth/login`) require authentication.
 
-```
-Authorization: Bearer <your_jwt_token>
-```
+Primary mode is secure HttpOnly cookie (`qv_access_token`) set by `/auth/login`.
+
+Optional compatibility mode (for service clients) supports bearer token headers:
+
+- `Authorization: Bearer <jwt>`
 
 ## Authentication Endpoints
 
@@ -30,19 +32,22 @@ Login with email and password.
 **Response:**
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": "uuid",
     "email": "admin@quantumvault.local",
     "role": "ADMIN"
-  }
+  },
+  "expiresAt": "2026-02-13T19:30:00.000Z"
 }
 ```
+
+**Response Headers:**
+- `Set-Cookie: qv_access_token=<jwt>; HttpOnly; SameSite=Strict; Path=/; ...`
 
 ### GET /auth/me
 Get current user profile.
 
-**Headers:** `Authorization: Bearer <token>`
+**Headers:** `Cookie: qv_access_token=<jwt>` or `Authorization: Bearer <token>`
 
 **Response:**
 ```json
@@ -58,7 +63,7 @@ Get current user profile.
 ### POST /auth/logout
 Invalidate current session.
 
-**Headers:** `Authorization: Bearer <token>`
+**Headers:** `Cookie: qv_access_token=<jwt>` or `Authorization: Bearer <token>`
 
 **Response:**
 ```json
@@ -252,6 +257,17 @@ Evaluate a policy against current assets.
 }
 ```
 
+### POST /policies/:id/enforce
+Evaluate **and enforce** a policy (whitepaper-aligned orchestration).
+
+By default this:
+- Evaluates the policy and updates `PolicyAsset` links/results
+- Wraps **matched** assets (unless `ruleDefinition.actions.wrapMatchedAssets=false`)
+
+Optional actions can also be driven from `ruleDefinition.actions`:
+- `revokeAnchors`: `{ "ids": ["anchor-uuid"], "reason": "..." }`
+- `rotateAnchors`: `{ "enabled": true, "algorithm": "ML-KEM-1024", "maxAgeDays": 30, "force": false, "scope": { "cryptoDomain": "...", "region": "...", "regulatoryDomain": "..." } }`
+
 ## PQC Anchor Management
 
 ### GET /anchors
@@ -266,7 +282,12 @@ Create a new PQC anchor.
 ```json
 {
   "name": "Production Anchor",
-  "algorithm": "Kyber1024"
+  "algorithm": "ML-KEM-1024",
+  "metadata": {
+    "tenantId": "tenant-a",
+    "region": "us-east-1",
+    "regulatoryDomain": "HIPAA"
+  }
 }
 ```
 
@@ -275,7 +296,7 @@ Create a new PQC anchor.
 {
   "id": "anchor-uuid",
   "name": "Production Anchor",
-  "algorithm": "Kyber1024",
+  "algorithm": "ML-KEM-1024",
   "isActive": true,
   "vaultKeyPath": "quantumvault/anchors/...",
   "createdAt": "2024-12-16T14:00:00.000Z"
@@ -287,6 +308,9 @@ Rotate anchor keys (creates new keypair, preserves old for decryption).
 
 ### POST /anchors/:id/activate
 Activate an anchor.
+
+### POST /anchors/:id/revoke
+Revoke an anchor (deactivates it and records revocation metadata).
 
 ## PQC Wrapping
 
@@ -316,6 +340,10 @@ Wrap all assets matching a policy.
 **Parameters:**
 - `policyId` (path): UUID of the policy
 
+**Notes:**
+- Requires that the policy has been evaluated (use `POST /policies/:id/evaluate`) so `PolicyAsset` matches exist.
+- Or use `POST /policies/:id/enforce` to evaluate + wrap in one call.
+
 **Response:**
 ```json
 {
@@ -342,6 +370,91 @@ Get wrapping job status.
   "wrappingResults": [...]
 }
 ```
+
+## Secure Transport (PQC)
+
+These endpoints implement **application-layer PQC encryption** (ML‑KEM → HKDF → AES‑256‑GCM) to protect in-transit data against HNDL, even if the underlying TLS handshake is classical.
+
+### GET /transport/pqc/server-info
+Fetch the current ML‑KEM public key and an ML‑DSA-signed server identity package.
+
+### POST /transport/pqc/handshake
+Start a PQC transport session. Client submits ML‑KEM ciphertext + salt; server derives a session key and stores it in Vault.
+
+### POST /transport/pqc/secure-echo
+Send an AES‑256‑GCM encrypted message using an active PQC session and receive an encrypted response.
+
+### POST /transport/pqc/close
+Close a PQC session and delete its key material from Vault.
+
+## Admin Key Governance (ADMIN only)
+
+These endpoints support explicit key rotation ceremonies, pinning continuity checks, and recovery validation.
+
+### GET /admin/keys/status
+
+Return current attestation and transport key governance status.
+
+**Response:**
+```json
+{
+  "collectedAt": "2026-02-13T20:00:00.000Z",
+  "attestation": {
+    "signerKeyId": "mldsa65:abcd1234ef567890",
+    "signerKeyHashHex": "0x...",
+    "rotationCeremonyId": "uuid"
+  },
+  "transport": {
+    "kem": { "keyId": "mlkem1024:..." },
+    "identity": { "keyId": "mldsa65:..." },
+    "pins": { "kemKeyId": "mlkem1024:..." }
+  }
+}
+```
+
+### POST /admin/keys/attestation/rotate
+
+Rotate attestation signer key with optional expected prior key-id guard.
+
+**Request:**
+```json
+{
+  "reason": "scheduled_rotation",
+  "changeTicket": "SEC-1234",
+  "requestedBy": "security-admin",
+  "expectedPriorKeyId": "mldsa65:abcd1234ef567890",
+  "runRecoveryTest": true
+}
+```
+
+### POST /admin/keys/transport/rotate
+
+Rotate transport KEM and identity keys with optional expected prior key-id guards.
+
+**Request:**
+```json
+{
+  "reason": "scheduled_rotation",
+  "changeTicket": "SEC-1234",
+  "requestedBy": "security-admin",
+  "expectedPriorKemKeyId": "mlkem1024:abcd1234ef567890",
+  "expectedPriorIdentityKeyId": "mldsa65:abcd1234ef567890",
+  "runRecoveryTest": true
+}
+```
+
+### POST /admin/keys/recovery-test
+
+Run key recovery tests.
+
+**Request:**
+```json
+{
+  "scope": "all",
+  "requestedBy": "security-admin"
+}
+```
+
 
 ## Blockchain Attestation
 

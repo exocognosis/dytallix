@@ -6,7 +6,9 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { deriveAes256Key, getMlKem1024, ML_KEM_1024_WRAP_SUITE } from '../crypto/mlkem';
 import { canonicalJsonBuffer, canonicalJsonSha256Hex } from '../crypto/canonical-json';
-import { PipelineAssetStatus, PipelineRunStatus } from '@prisma/client';
+import { PipelineAssetStatus, PipelineRunStatus, Prisma } from '@prisma/client';
+import { AttestationService } from '../attestation/attestation.service';
+import { TransportService } from '../transport/transport.service';
 
 const PQC_PIPELINE_VERSION = 'qv-pqc-v1';
 const DEFAULT_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -23,12 +25,105 @@ export class AdminService {
     constructor(
         private prisma: PrismaService,
         private vaultService: VaultService,
+        private attestationService: AttestationService,
+        private transportService: TransportService,
     ) { }
 
     async saveScanConfig(config: any) {
         // Ideally update a SystemConfig table. For MVP, we simply log.
         this.logger.log('Saving scan config:', config);
         return { success: true, message: 'Configuration saved' };
+    }
+
+    private async writeGovernanceAudit(action: string, details: Record<string, unknown>) {
+        const serializedDetails = JSON.parse(JSON.stringify(details)) as Prisma.InputJsonValue;
+        await this.prisma.auditLog.create({
+            data: {
+                action,
+                resource: 'KEY_GOVERNANCE',
+                details: serializedDetails,
+            },
+        });
+    }
+
+    async getKeyGovernanceStatus() {
+        const [attestation, transport] = await Promise.all([
+            this.attestationService.getSignerGovernanceStatus(),
+            this.transportService.getTransportKeyGovernanceStatus(),
+        ]);
+
+        return {
+            collectedAt: new Date().toISOString(),
+            attestation,
+            transport,
+        };
+    }
+
+    async rotateAttestationSigner(input?: {
+        reason?: string;
+        changeTicket?: string;
+        requestedBy?: string;
+        expectedPriorKeyId?: string;
+        runRecoveryTest?: boolean;
+    }) {
+        const result = await this.attestationService.rotateSignerKey(input);
+        await this.writeGovernanceAudit('ATTESTATION_KEY_ROTATION', {
+            ceremonyId: result.ceremonyId,
+            rotatedAt: result.rotatedAt,
+            previousKeyId: result.previous.signerKeyId,
+            newKeyId: result.current.signerKeyId,
+            reason: result.reason,
+            changeTicket: result.changeTicket,
+            requestedBy: input?.requestedBy || 'admin',
+            recoveryPassed: result.recoveryTest?.passed ?? false,
+        });
+        return result;
+    }
+
+    async rotateTransportKeys(input?: {
+        reason?: string;
+        changeTicket?: string;
+        requestedBy?: string;
+        expectedPriorKemKeyId?: string;
+        expectedPriorIdentityKeyId?: string;
+        runRecoveryTest?: boolean;
+    }) {
+        const result = await this.transportService.rotateTransportKeys(input);
+        await this.writeGovernanceAudit('TRANSPORT_KEY_ROTATION', {
+            ceremonyId: result.ceremonyId,
+            rotatedAt: result.rotatedAt,
+            previousKemKeyId: result.previousKemKeyId,
+            previousIdentityKeyId: result.previousIdentityKeyId,
+            newKemKeyId: result.currentKemKeyId,
+            newIdentityKeyId: result.currentIdentityKeyId,
+            reason: input?.reason || 'scheduled_rotation',
+            changeTicket: input?.changeTicket || null,
+            requestedBy: input?.requestedBy || 'admin',
+            recoveryPassed: result.recoveryTest?.passed ?? false,
+        });
+        return result;
+    }
+
+    async runKeyRecoveryTests(input?: { scope?: 'attestation' | 'transport' | 'all'; requestedBy?: string }) {
+        const scope = input?.scope || 'all';
+        const output: Record<string, unknown> = {
+            scope,
+            executedAt: new Date().toISOString(),
+        };
+
+        if (scope === 'all' || scope === 'attestation') {
+            output.attestation = await this.attestationService.runSignerRecoveryTest();
+        }
+        if (scope === 'all' || scope === 'transport') {
+            output.transport = await this.transportService.runTransportRecoveryTest();
+        }
+
+        await this.writeGovernanceAudit('KEY_RECOVERY_TEST', {
+            ...output,
+            requestedBy: input?.requestedBy || 'admin',
+        });
+
+        return output;
     }
 
     async runDiscovery(config: any) {
