@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { deriveAes256Key, getMlKem1024, ML_KEM_1024_WRAP_SUITE } from '../crypto/mlkem';
+import { canonicalJsonBuffer, canonicalJsonSha256Hex } from '../crypto/canonical-json';
 import { PipelineAssetStatus, PipelineRunStatus } from '@prisma/client';
 
 const PQC_PIPELINE_VERSION = 'qv-pqc-v1';
@@ -385,7 +386,20 @@ export class AdminService {
                         continue;
                     }
 
-                    const envelope = await this.encryptBuffer(fileBuffer, kem, anchorPublicKey);
+                    const aadContext = {
+                        protocolVersion: PQC_PIPELINE_VERSION,
+                        wrapSuite: ML_KEM_1024_WRAP_SUITE,
+                        anchorId: activeAnchor.id,
+                        anchorAlgorithm: activeAnchor.algorithm,
+                        objectId: mergedMetadata.object_id || metadata.object_id || null,
+                        relativePath: mergedMetadata.relative_path || metadata.relative_path || relativePath,
+                        plaintextSha256: mergedMetadata.plaintext_sha256 || metadata.plaintext_sha256 || sha256,
+                        manifestSha256: manifest?.sha256 || null,
+                        dataDomain: mergedMetadata.data_domain || metadata.data_domain || null,
+                        cryptoDomain: mergedMetadata.crypto_domain || metadata.crypto_domain || null,
+                    };
+
+                    const envelope = await this.encryptBuffer(fileBuffer, kem, anchorPublicKey, aadContext);
 
                     const payload = {
                         version: PQC_PIPELINE_VERSION,
@@ -413,6 +427,8 @@ export class AdminService {
                             salt: envelope.salt.toString('base64'),
                             nonce: envelope.nonce.toString('base64'),
                             aeadTag: envelope.aeadTag.toString('base64'),
+                            aadSha256: envelope.aadSha256,
+                            aadContext,
                         },
                         ciphertext: envelope.aeadCiphertext.toString('base64'),
                         wrappedAt: new Date().toISOString(),
@@ -423,8 +439,8 @@ export class AdminService {
                         where: { id: pipelineAsset.id },
                         data: {
                             status: PipelineAssetStatus.WRAPPED_PQC,
-                            pqcStatus: pqcStatus || 'UNPROTECTED',
-                            pqcProtected,
+                            pqcStatus: 'PQC_PROTECTED', // Successfully wrapped = protected
+                            pqcProtected: true,
                             stageTimestamps,
                         },
                     });
@@ -589,14 +605,19 @@ export class AdminService {
     }
 
     private resolvePipelineExtensions(config: any): string[] {
+        // Combine file types and format-derived extensions
+        const fileTypes = this.normalizeExtensions(this.parseCommaList(config.fileTypes || ''));
+        
         const formatValue = typeof config?.formats === 'string' ? config.formats : '';
         const formats = this.parseCommaList(formatValue).map((f) => f.toLowerCase());
-        const formatExtensions = this.extensionsFromFormats(formats);
-        if (formatExtensions.length > 0) {
-            return this.normalizeExtensions(formatExtensions);
-        }
-
-        return this.normalizeExtensions(this.parseCommaList(config.fileTypes || ''));
+        const formatExtensions = this.normalizeExtensions(this.extensionsFromFormats(formats));
+        
+        // Merge both lists, removing duplicates
+        const combined = Array.from(new Set([...fileTypes, ...formatExtensions]));
+        
+        this.logger.log(`Pipeline extensions resolved: ${combined.join(', ')} (from fileTypes: ${fileTypes.join(', ')}, formats: ${formatExtensions.join(', ')})`);
+        
+        return combined;
     }
 
     private extensionsFromFormats(formats: string[]): string[] {
@@ -836,16 +857,27 @@ export class AdminService {
     private async encryptBuffer(
         buffer: Buffer,
         kem: Awaited<ReturnType<typeof getMlKem1024>>,
-        anchorPublicKey: Buffer
+        anchorPublicKey: Buffer,
+        aadContext: Record<string, unknown>
     ) {
-        const { ciphertext: kemCiphertext, sharedSecret } = await kem.encapsulate(anchorPublicKey);
+        // Convert Buffer to Uint8Array for liboqs compatibility
+        const publicKeyArray = new Uint8Array(anchorPublicKey);
+        const { ciphertext: kemCiphertext, sharedSecret } = await kem.encapsulate(publicKeyArray);
         const salt = crypto.randomBytes(32);
         const symmetricKey = deriveAes256Key(sharedSecret, salt);
         const nonce = crypto.randomBytes(12);
         const cipher = crypto.createCipheriv('aes-256-gcm', symmetricKey, nonce);
+        cipher.setAAD(canonicalJsonBuffer(aadContext));
         const aeadCiphertext = Buffer.concat([cipher.update(buffer), cipher.final()]);
         const aeadTag = cipher.getAuthTag();
-        return { kemCiphertext, salt, nonce, aeadCiphertext, aeadTag };
+        return {
+            kemCiphertext,
+            salt,
+            nonce,
+            aeadCiphertext,
+            aeadTag,
+            aadSha256: canonicalJsonSha256Hex(aadContext),
+        };
     }
 
     async getSystemHealth() {
@@ -854,7 +886,7 @@ export class AdminService {
             vault: { status: 'online', latency: '4ms', version: '1.14.2' },
             blockchain: { status: 'online', peers: 12, height: 145023, sync: '99.9%' },
             database: { status: 'online', pool: '5/20', latency: '1ms' },
-            aiEngine: { status: 'online', model: 'Kyber-Detector-v2', load: '12%' }
+            aiEngine: { status: 'online', model: 'PQC-Detector-v2 (ML-KEM/ML-DSA)', load: '12%' }
         };
     }
 
@@ -870,9 +902,9 @@ export class AdminService {
 
     async getAlgoConfig() {
         return [
-            { id: 'kyber', name: 'Kyber-1024', type: 'KEM', status: 'enabled', securityLevel: 5 },
-            { id: 'dilithium', name: 'Dilithium3', type: 'Signature', status: 'enabled', securityLevel: 3 },
-            { id: 'sphincs', name: 'SPHINCS+', type: 'Signature', status: 'warning', securityLevel: 5 },
+            { id: 'ml-kem-1024', name: 'ML-KEM-1024 (FIPS 203)', type: 'KEM', status: 'enabled', securityLevel: 5 },
+            { id: 'ml-dsa-65', name: 'ML-DSA-65 (FIPS 204)', type: 'Signature', status: 'enabled', securityLevel: 3 },
+            { id: 'slh-dsa-shake-128s', name: 'SLH-DSA-SHAKE-128s (FIPS 205)', type: 'Signature', status: 'warning', securityLevel: 5 },
             { id: 'rsa', name: 'RSA-2048', type: 'Legacy', status: 'disabled', securityLevel: 0 },
             { id: 'ecc', name: 'ECC-256', type: 'Legacy', status: 'warning', securityLevel: 1 },
         ];

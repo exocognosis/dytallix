@@ -14,9 +14,10 @@ export class BlockchainService implements OnModuleInit {
   private contract: ethers.Contract;
 
   private dytallixApiUrl?: string;
+  private dytallixApiToken?: string;
   private isAvailable = false;
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   async onModuleInit() {
     try {
@@ -25,9 +26,20 @@ export class BlockchainService implements OnModuleInit {
 
       if (this.backend === 'dytallix') {
         const apiUrl = this.configService.get<string>('DYTALLIX_API_URL');
+        const nodeEnv = this.configService.get<string>('NODE_ENV');
+        const isProduction = nodeEnv === 'production';
         if (!apiUrl) {
           this.logger.warn('⚠️  DYTALLIX_API_URL not set; Dytallix anchoring will be unavailable');
           return;
+        }
+
+        if (isProduction && !apiUrl.startsWith('https://')) {
+          throw new Error('DYTALLIX_API_URL must use HTTPS in production');
+        }
+
+        this.dytallixApiToken = this.configService.get<string>('DYTALLIX_API_TOKEN');
+        if (isProduction && !this.dytallixApiToken) {
+          throw new Error('DYTALLIX_API_TOKEN is required in production');
         }
 
         this.dytallixApiUrl = apiUrl.replace(/\/$/, '');
@@ -50,8 +62,8 @@ export class BlockchainService implements OnModuleInit {
 
       // Simple attestation contract ABI
       const contractABI = [
-        'function recordAttestation(bytes32 attestationHash, string memory assetFingerprint, string memory anchorId) public returns (uint256)',
-        'function getAttestation(uint256 attestationId) public view returns (bytes32, string memory, string memory, uint256, address)',
+        'function recordAttestation(bytes32 attestationHash, string memory assetFingerprint, string memory anchorId, bytes memory mldsaSignature, bytes32 signerKeyHash) public returns (uint256)',
+        'function getAttestation(uint256 attestationId) public view returns (bytes32, string memory, string memory, uint256, address, bytes memory, bytes32)',
         'event AttestationRecorded(uint256 indexed attestationId, bytes32 attestationHash, address indexed recorder)',
       ];
 
@@ -70,6 +82,8 @@ export class BlockchainService implements OnModuleInit {
     attestationHash: string,
     assetFingerprint: string,
     anchorId: string,
+    mldsaSignature: string,
+    signerKeyHash: string,
   ): Promise<{ txHash: string; blockNumber: number; chainId?: number }> {
     if (!this.isAvailable) {
       throw new Error('Blockchain service not available');
@@ -85,12 +99,21 @@ export class BlockchainService implements OnModuleInit {
         attestationHash,
         assetFingerprint,
         anchorId,
+        mldsaSignature,
+        signerKeyHash,
         createdAt: new Date().toISOString(),
       };
 
+      const headers: Record<string, string> = {
+        'content-type': 'application/json',
+      };
+      if (this.dytallixApiToken) {
+        headers.authorization = `Bearer ${this.dytallixApiToken}`;
+      }
+
       const response = await fetch(`${this.dytallixApiUrl}/asset/register`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers,
         body: JSON.stringify({
           params: [attestationHash, JSON.stringify(metadata)],
         }),
@@ -122,6 +145,8 @@ export class BlockchainService implements OnModuleInit {
         attestationHash,
         assetFingerprint,
         anchorId,
+        mldsaSignature,
+        signerKeyHash,
       );
 
       const receipt = await tx.wait();
@@ -164,5 +189,48 @@ export class BlockchainService implements OnModuleInit {
 
   getStatus(): { available: boolean } {
     return { available: this.isAvailable };
+  }
+
+  async getAttestationContext(): Promise<{
+    backend: AnchoringBackend;
+    chainId: number | null;
+    contractAddress: string | null;
+    endpoint: string | null;
+  }> {
+    if (this.backend === 'dytallix') {
+      return {
+        backend: 'dytallix',
+        chainId: null,
+        contractAddress: null,
+        endpoint: this.dytallixApiUrl || this.configService.get<string>('DYTALLIX_API_URL') || null,
+      };
+    }
+
+    let chainId: number | null = null;
+    try {
+      if (this.provider) {
+        const network = await this.provider.getNetwork();
+        chainId = Number(network.chainId);
+      }
+    } catch {
+      chainId = null;
+    }
+
+    if (!chainId) {
+      const configured = this.configService.get<string>('BLOCKCHAIN_CHAIN_ID');
+      if (configured) {
+        const parsed = Number.parseInt(configured, 10);
+        if (Number.isFinite(parsed)) {
+          chainId = parsed;
+        }
+      }
+    }
+
+    return {
+      backend: 'evm',
+      chainId,
+      contractAddress: this.configService.get<string>('ATTESTATION_CONTRACT_ADDRESS') || null,
+      endpoint: this.configService.get<string>('BLOCKCHAIN_RPC_URL') || null,
+    };
   }
 }

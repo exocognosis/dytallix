@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { authAPI } from '@/lib/api';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Button } from '@/components/ui/Button';
 import { Lock, Mail } from 'lucide-react';
 
 const LOGIN_SESSION_KEY = 'qv_login_seen_session';
+const SHOW_DEV_CREDENTIALS = process.env.NEXT_PUBLIC_SHOW_DEV_CREDENTIALS === 'true';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,7 +55,7 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: 'url(/login-bg-final.png)',
+          backgroundImage: 'url(/QuantumVaultMVP/login-bg-final.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -135,12 +135,20 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              <div className="mt-8 pt-6 border-t border-white/10 text-center">
-                <p className="text-xs text-gray-500 mb-2">Default credentials:</p>
-                <code className="text-[10px] bg-black/30 px-2 py-1 rounded text-gray-400 font-mono">
-                  admin@quantumvault.local / QuantumVault2024!
-                </code>
-              </div>
+              {SHOW_DEV_CREDENTIALS && (
+                <div className="mt-8 pt-6 border-t border-white/10 text-center">
+                  <p className="text-xs text-gray-400 mb-2">Development credentials:</p>
+                  <code className="block text-[10px] bg-black/30 px-2 py-1 rounded text-gray-400 font-mono">
+                    Admin: admin@quantumvault.local / QuantumVault2024!
+                  </code>
+                  <code className="block mt-2 text-[10px] bg-black/30 px-2 py-1 rounded text-gray-400 font-mono">
+                    Engineer: engineer@quantumvault.local / Engineer2024!
+                  </code>
+                  <code className="block mt-2 text-[10px] bg-black/30 px-2 py-1 rounded text-gray-400 font-mono">
+                    Viewer: viewer@quantumvault.local / Viewer2024!
+                  </code>
+                </div>
+              )}
 
               <div className="mt-6 text-center">
                 <p className="text-[10px] text-gray-600 tracking-wide uppercase">

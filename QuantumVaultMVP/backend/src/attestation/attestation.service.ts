@@ -7,13 +7,29 @@ import { JobStatus, AttestationStatus, AssetStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 import { getMlDsa65, MlDsaKeyPair, MlDsa65 } from '../crypto/mldsa';
 import { OnModuleInit } from '@nestjs/common';
+import { canonicalJsonSha256Hex, canonicalJsonStringify } from '../crypto/canonical-json';
 
 import { VaultService } from '../vault/vault.service';
+
+const ATTESTATION_PROTOCOL_VERSION = 'qv.attestation.v1';
 
 @Injectable()
 export class AttestationService implements OnModuleInit {
   private dsa: MlDsa65;
   private keys: MlDsaKeyPair;
+
+  private getSignerIdentity() {
+    const signerKeyFingerprint = crypto
+      .createHash('sha256')
+      .update(Buffer.from(this.keys.publicKey))
+      .digest('hex');
+
+    return {
+      signerKeyFingerprint,
+      signerKeyId: `mldsa65:${signerKeyFingerprint.slice(0, 16)}`,
+      signerKeyHashHex: `0x${signerKeyFingerprint}`,
+    };
+  }
 
   constructor(
     private prisma: PrismaService,
@@ -102,18 +118,42 @@ export class AttestationService implements OnModuleInit {
       throw new Error('Asset must be wrapped before attestation');
     }
 
-    // Create attestation hash
-    const attestationData = {
-      assetFingerprint: asset.fingerprint,
-      anchorId: wrappingResult.anchorId,
-      wrapperAlgorithm: wrappingResult.algorithm,
-      timestamp: Date.now(),
-    };
+    const signerIdentity = this.getSignerIdentity();
+    const anchoringContext = await this.blockchainService.getAttestationContext();
+    const attestedAt = new Date().toISOString();
 
-    const attestationHash = crypto
-      .createHash('sha256')
-      .update(JSON.stringify(attestationData))
-      .digest('hex');
+    // Deterministic attestation payload with explicit context/domain binding.
+    const attestationEnvelope = {
+      context: {
+        protocolVersion: ATTESTATION_PROTOCOL_VERSION,
+        anchoringBackend: anchoringContext.backend,
+        chainId: anchoringContext.chainId,
+        contractAddress: anchoringContext.contractAddress,
+        endpoint: anchoringContext.endpoint,
+        signerKeyId: signerIdentity.signerKeyId,
+        signerKeyHash: signerIdentity.signerKeyHashHex,
+      },
+      payload: {
+        assetFingerprint: asset.fingerprint,
+        anchorId: wrappingResult.anchorId,
+        wrapperAlgorithm: wrappingResult.algorithm,
+        wrappedAt: wrappingResult.wrappedAt.toISOString(),
+        attestedAt,
+      },
+    };
+    const canonicalEnvelope = canonicalJsonStringify(attestationEnvelope);
+    const attestationHash = canonicalJsonSha256Hex(attestationEnvelope);
+
+    const metadataBase = {
+      protocolVersion: ATTESTATION_PROTOCOL_VERSION,
+      signerKeyId: signerIdentity.signerKeyId,
+      signerKeyFingerprint: signerIdentity.signerKeyFingerprint,
+      signerKeyHash: signerIdentity.signerKeyHashHex,
+      attestationContext: attestationEnvelope.context,
+      attestationPayload: attestationEnvelope.payload,
+      canonicalPayload: canonicalEnvelope,
+      canonicalPayloadSha256: `0x${attestationHash}`,
+    };
 
     // Create attestation record
     const attestation = await this.prisma.attestation.create({
@@ -123,6 +163,7 @@ export class AttestationService implements OnModuleInit {
         anchorId: wrappingResult.anchorId,
         attestationHash: `0x${attestationHash}`,
         status: AttestationStatus.PENDING,
+        metadata: metadataBase,
       },
     });
 
@@ -142,6 +183,7 @@ export class AttestationService implements OnModuleInit {
         asset.fingerprint,
         wrappingResult.anchorId,
         signatureHex,
+        signerIdentity.signerKeyHashHex,
       );
 
       // Update attestation with transaction details
@@ -150,6 +192,12 @@ export class AttestationService implements OnModuleInit {
         blockNumber: BigInt(result.blockNumber),
         status: AttestationStatus.SUBMITTED,
         submittedAt: new Date(),
+        metadata: {
+          ...metadataBase,
+          txHash: result.txHash,
+          submittedAt: new Date().toISOString(),
+          chainId: result.chainId ?? anchoringContext.chainId,
+        },
       };
 
       if (result.chainId !== undefined) {
@@ -171,12 +219,17 @@ export class AttestationService implements OnModuleInit {
 
       return attestation;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'attestation_failed';
+
       // Mark as failed
       await this.prisma.attestation.update({
         where: { id: attestation.id },
         data: {
           status: AttestationStatus.FAILED,
-          metadata: { error: error.message },
+          metadata: {
+            ...metadataBase,
+            error: errorMessage,
+          },
         },
       });
       throw error;

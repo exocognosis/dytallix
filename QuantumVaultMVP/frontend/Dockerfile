@@ -5,6 +5,8 @@ WORKDIR /app
 # Public env vars must be present at build time for Next.js client bundles
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_SHOW_DEV_CREDENTIALS=false
+ENV NEXT_PUBLIC_SHOW_DEV_CREDENTIALS=${NEXT_PUBLIC_SHOW_DEV_CREDENTIALS}
 
 # Copy package files
 COPY package*.json ./
@@ -32,6 +34,7 @@ RUN npm install --omit=dev
 # Copy built app from builder
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
 
 # Expose port
 EXPOSE 3000

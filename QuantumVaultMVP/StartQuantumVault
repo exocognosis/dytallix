@@ -54,9 +54,10 @@ echo "Service status:"
 
 echo ""
 echo "Endpoints:"
-echo "- Frontend:  http://localhost:3001"
+echo "- Frontend:  http://localhost:3001/QuantumVaultMVP/login"
+echo "  (root http://localhost:3001 returns 404 because basePath=/QuantumVaultMVP)"
 echo "- Backend:   http://localhost:13000/api/v1"
-echo "- Vault UI:  http://localhost:8200 (token: root)"
+echo "- Vault UI:  http://localhost:8200 (token: set via VAULT_DEV_ROOT_TOKEN_ID in infra/.env)"
 echo "- Geth RPC:  http://localhost:8545"
 
 test "$DEPLOY_CONTRACTS" -eq 1 || exit 0
