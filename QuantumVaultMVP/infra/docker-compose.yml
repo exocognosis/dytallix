@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U quantumvault"]
+      test: [ "CMD-SHELL", "pg_isready -U quantumvault" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,7 +27,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -45,14 +45,14 @@ services:
     volumes:
       - vault-data:/vault/data
     healthcheck:
-      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      test: [ "CMD", "vault", "status", "-address=http://127.0.0.1:8200" ]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 10s
 
   blockchain:
-    profiles: ["evm"]
+    profiles: [ "evm" ]
     image: ethereum/client-go:latest
     container_name: quantumvault-blockchain
     command:
@@ -61,25 +61,15 @@ services:
       - --http
       - --http.addr=0.0.0.0
       - --http.port=8545
-      - --http.api=eth,net,web3,personal,debug
-      - --http.corsdomain=*
-      - --ws
-      - --ws.addr=0.0.0.0
-      - --ws.port=8546
-      - --ws.api=eth,net,web3,personal,debug
-      - --ws.origins=*
-      - --graphql
-      - --graphql.corsdomain=*
-      - --allow-insecure-unlock
+      - --http.api=eth,net,web3
       - --nodiscover
       - --maxpeers=0
     ports:
-      - "8545:8545"
-      - "18546:8546"
+      - "127.0.0.1:8545:8545"
     volumes:
       - blockchain-data:/root/.ethereum
     healthcheck:
-      test: ["CMD", "geth", "attach", "--exec", "eth.blockNumber", "http://127.0.0.1:8545"]
+      test: [ "CMD", "geth", "attach", "--exec", "eth.blockNumber", "http://127.0.0.1:8545" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -103,7 +93,7 @@ services:
       DYTALLIX_API_URL: "http://host.docker.internal:3030"
       # For ANCHORING_BACKEND=evm (run compose with --profile evm)
       BLOCKCHAIN_RPC_URL: http://blockchain:8545
-      BLOCKCHAIN_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+      BLOCKCHAIN_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff81"
       BLOCKCHAIN_CHAIN_ID: 1337
       JWT_SECRET: production_secure_jwt_secret_change_me
       PORT: 3000
@@ -120,7 +110,7 @@ services:
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/blockchain/status',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1));"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/blockchain/status',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1));" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -141,7 +131,7 @@ services:
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000',(r)=>process.exit(r.statusCode>=200 && r.statusCode<500?0:1)).on('error',()=>process.exit(1));"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000',(r)=>process.exit(r.statusCode>=200 && r.statusCode<500?0:1)).on('error',()=>process.exit(1));" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -152,6 +142,7 @@ volumes:
   redis-data:
   vault-data:
   blockchain-data:
+
 
 networks:
   default:

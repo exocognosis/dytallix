@@ -1,9 +1,13 @@
 import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class AdminController {
     constructor(private readonly adminService: AdminService) { }
 
@@ -15,6 +19,11 @@ export class AdminController {
     @Post('scan')
     async triggerDiscovery(@Body() config: any) {
         return this.adminService.runDiscovery(config);
+    }
+
+    @Post('pqc-pipeline')
+    async runPqcPipeline(@Body() config: any) {
+        return this.adminService.runPqcPipeline(config);
     }
 
     @Get('health')

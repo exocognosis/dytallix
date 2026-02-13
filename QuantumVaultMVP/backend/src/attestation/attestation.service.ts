@@ -5,14 +5,51 @@ import { PrismaService } from '../database/prisma.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { JobStatus, AttestationStatus, AssetStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+import { getMlDsa65, MlDsaKeyPair, MlDsa65 } from '../crypto/mldsa';
+import { OnModuleInit } from '@nestjs/common';
+
+import { VaultService } from '../vault/vault.service';
 
 @Injectable()
-export class AttestationService {
+export class AttestationService implements OnModuleInit {
+  private dsa: MlDsa65;
+  private keys: MlDsaKeyPair;
+
   constructor(
     private prisma: PrismaService,
     private blockchainService: BlockchainService,
+    private vaultService: VaultService,
     @InjectQueue('attestation') private attestationQueue: Queue,
-  ) {}
+  ) { }
+
+  async onModuleInit() {
+    this.dsa = await getMlDsa65();
+
+    // Check if keys exist in Vault
+    try {
+      const storedKeys = await this.vaultService.read('quantumvault/system/attestation-key');
+      if (storedKeys && storedKeys.publicKey && storedKeys.secretKey) {
+        this.keys = {
+          publicKey: Buffer.from(storedKeys.publicKey, 'base64'),
+          secretKey: Buffer.from(storedKeys.secretKey, 'base64'),
+        };
+        console.log('✅ Loaded persistent ML-DSA identity from Vault');
+      } else {
+        throw new Error('No keys found');
+      }
+    } catch (error) {
+      console.log('⚠️  No persistent identity found, generating new system keys...');
+      this.keys = await this.dsa.generateKeyPair();
+
+      // Persist to Vault
+      await this.vaultService.write('quantumvault/system/attestation-key', {
+        publicKey: Buffer.from(this.keys.publicKey).toString('base64'),
+        secretKey: Buffer.from(this.keys.secretKey).toString('base64'),
+        createdAt: new Date().toISOString(),
+      });
+      console.log('✅ New ML-DSA identity persisted to Vault');
+    }
+  }
 
   async createAttestationJob(assetIds: string[]) {
     const job = await this.prisma.attestationJob.create({
@@ -90,11 +127,21 @@ export class AttestationService {
     });
 
     try {
+      // Sign with ML-DSA
+      const messageBytes = new Uint8Array(Buffer.from(attestationHash, 'hex'));
+      const signature = await this.dsa.sign(messageBytes, this.keys.secretKey);
+      const isValid = await this.dsa.verify(messageBytes, signature, this.keys.publicKey);
+      if (!isValid) {
+        throw new Error('ML-DSA signature self-verification failed');
+      }
+      const signatureHex = `0x${Buffer.from(signature).toString('hex')}`;
+
       // Submit to blockchain
       const result = await this.blockchainService.recordAttestation(
         `0x${attestationHash}`,
         asset.fingerprint,
         wrappingResult.anchorId,
+        signatureHex,
       );
 
       // Update attestation with transaction details
