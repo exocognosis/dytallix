@@ -7,18 +7,18 @@
     "ws": "^8.18.3"
   },
   "scripts": {
-    "start:faucet:dev": "npm --prefix dytallix-lean-launch run dev:full",
-    "build:faucet": "npm --prefix dytallix-lean-launch run build",
+    "start:faucet:dev": "npm --prefix dytallix-fast-launch/build run dev",
+    "build:faucet": "npm --prefix dytallix-fast-launch/build run build",
     "self-test": "bash scripts/test-pqc.sh",
     "gen:pqclean-manifest": "node scripts/gen-pqclean-manifest.js",
     "test": "jest --runInBand",
     "proxy:dev": "node api-proxy.js",
-    "frontend:dev": "npm --prefix dytallix-lean-launch run dev",
+    "frontend:dev": "npm --prefix dytallix-fast-launch/build run dev",
     "dev:proxy": "npm run proxy:dev",
     "dev:ui": "npm run frontend:dev",
     "dev:all": "concurrently -k -r -s first \"npm:proxy:dev\" \"npm:frontend:dev\"",
-    "test:ui": "npm --prefix dytallix-lean-launch run test",
-    "ws:capture": "node dytallix-lean-launch/scripts/ws_capture.js"
+    "test:ui": "npm --prefix dytallix-fast-launch/build run build",
+    "ws:capture": "echo \"ws:capture removed (legacy dytallix-lean-launch deleted)\""
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

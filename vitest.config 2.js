@@ -9,10 +9,9 @@ export default defineConfig({
     environmentOptions: {
       jsdom: { url: 'http://localhost' }
     },
-    setupFiles: ['./dytallix-lean-launch/vitest.setup.js'],
     include: [
-      'dytallix-lean-launch/src/__tests__/**/*.{test,spec}.{js,jsx,ts,tsx}',
-      'dytallix-lean-launch/src/**/*.{test,spec}.{js,jsx,ts,tsx}'
+      'dytallix-fast-launch/build/src/__tests__/**/*.{test,spec}.{js,jsx,ts,tsx}',
+      'dytallix-fast-launch/build/src/**/*.{test,spec}.{js,jsx,ts,tsx}'
     ],
     exclude: [
       '**/node_modules/**',

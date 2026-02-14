@@ -18,24 +18,24 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 # Create non-root user with UID 1000
 RUN groupadd -r appuser && useradd -r -g appuser -u 1000 appuser
 
-# Copy workspace Cargo.toml first for better layer caching
-COPY Cargo.toml ./
+# Copy workspace Cargo manifest(s) first for better layer caching
+COPY Cargo.toml Cargo.lock ./
 
-# Copy all project directories (core crates + lean launch)
-# Existing copies
+# Copy workspace crates (keep in sync with `Cargo.toml` workspace members)
+COPY src/ src/
 COPY blockchain-core/ blockchain-core/
 COPY developer-tools/ developer-tools/
 COPY pqc-crypto/ pqc-crypto/
 COPY smart-contracts/ smart-contracts/
 COPY governance/ governance/
 COPY interoperability/ interoperability/
-COPY dytallix-lean-launch/node/ dytallix-lean-launch/node/
 COPY cli/ cli/
 COPY sdk/ sdk/
 COPY explorer/indexer/ explorer/indexer/
 COPY explorer/api/ explorer/api/
-# Added: full lean launch workspace so web build & scripts are available
-COPY dytallix-lean-launch/ dytallix-lean-launch/
+COPY benchmarks/ benchmarks/
+COPY quantumvault/ quantumvault/
+COPY Apps/QP-IAL/contract/ Apps/QP-IAL/contract/
 
 # Generate lock file and build the workspace
 RUN RUSTFLAGS="--cfg tokio_unstable" cargo generate-lockfile && \
@@ -53,8 +53,5 @@ USER appuser
 # Expose the default ports (RPC + P2P)
 EXPOSE 3030 8545 30303
 
-# Set default working directory for node runtime
-WORKDIR /app/dytallix-lean-launch
-
-# Start the lean launch node binary (adjust path)
-CMD ["/app/target/release/dytallix-lean-node"]
+# Start the node binary built from `blockchain-core`
+CMD ["/app/target/release/dytallix-node"]

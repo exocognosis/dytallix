@@ -1,7 +1,0 @@
-[workspace]
-members = [
-    "dytallixd",
-    "node",
-    "services/pulseguard-infer",
-]
-resolver = "2"

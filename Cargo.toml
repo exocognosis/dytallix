@@ -6,14 +6,13 @@ members = [
     "smart-contracts",
     "governance",
     "interoperability",
-    "dytallix-lean-launch/node",
     "cli",
     "explorer/indexer",
     "explorer/api",
     "benchmarks",
-    "DytallixLiteLaunch/crates/pqc-wasm",
-    "quantumvault"
-, "Apps/QP-IAL/contract"]
+    "quantumvault",
+    "Apps/QP-IAL/contract",
+]
 
 resolver = "2"
 
@@ -79,7 +78,7 @@ time = "0.3"
 opt-level = 3
 lto = true
 
-[patch.crates-io]
-pqcrypto-dilithium = { path = "DytallixLiteLaunch/vendor/pqcrypto-dilithium" }
-pqcrypto-traits = { path = "DytallixLiteLaunch/vendor/pqcrypto-traits" }
-pqcrypto-internals = { path = "DytallixLiteLaunch/vendor/pqcrypto-internals" }
+## NOTE:
+## `dytallix-lean-launch` and `DytallixLiteLaunch` have been removed from this repo.
+## If you need to vendor/patch pqcrypto crates again, reintroduce the vendored crates
+## under a stable path (e.g. `vendor/`) and add `[patch.crates-io]` entries back here.
