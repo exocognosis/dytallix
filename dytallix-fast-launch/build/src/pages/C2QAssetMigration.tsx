@@ -1,37 +1,44 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Section } from '../components/ui/Section';
 import { GlassPanel } from '../components/ui/GlassPanel';
 import {
-    Shield, Activity, TrendingUp, AlertTriangle, CheckCircle,
-    ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Lock, Unlock, Play,
+    Shield, Activity, TrendingUp, AlertTriangle,
+    Info, Lock, Unlock, Play,
     FileCheck, Layers, Anchor, RefreshCw, BookOpen,
-    Globe, Landmark, Coins
+    Globe, Landmark, Coins, Copy, Download
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    Area, AreaChart, Cell
+    Area, AreaChart, LabelList, Cell
 } from 'recharts';
+import {
+    type AssetType,
+    type Liquidity,
+    type Volatility,
+    type Jurisdiction,
+    type C2QModelInputs,
+    type ScenarioType,
+    type ScenarioOutputs,
+    type SensitivityDriver,
+    DEFAULT_MODEL_INPUTS,
+    buildExecutiveBrief,
+    computeExecutiveRiskSummary,
+    computeSensitivity,
+    formatAssetType,
+    getJurisdictionBaseMultiplier,
+    modelConfig,
+    quantumDecay,
+    runAllScenarios,
+} from '../lib/c2qModel';
+import { C2QDeepDiveContent } from './C2QDeepDive';
+import './C2QAssetMigration.css';
 
-// --- Types ---
-type AssetType = 'real_estate' | 'invoice' | 'commodity' | 'nft' | 'data_vault' | 'bank_account' | 'tokenized_security' | 'fiat' | 'crypto_btc' | 'crypto_eth';
 type AssetCategory = 'Real' | 'Digital' | 'Account-based' | 'Currency';
-type Liquidity = 'high' | 'low';
-type Volatility = 'stable' | 'volatile';
-type Jurisdiction = 'US' | 'EU' | 'Global';
 type StepStatus = 'pending' | 'running' | 'complete' | 'error';
+type C2QTab = 'simulation' | 'explanation' | 'executive' | 'historical' | 'math';
+type SimulationSubtab = 'pre' | 'post';
 
-interface SimConfig {
-    assetType: AssetType;
-    assetValue: number;
-    riskHorizon: number;
-    haircutPct: number;
-    demurrageRate: number;
-    hasEncumbrances: boolean;
-    liquidity: Liquidity;
-    volatility: Volatility;
-    jurisdiction: Jurisdiction;
-}
+type SimConfig = C2QModelInputs;
 
 interface StepResult {
     name: string;
@@ -48,25 +55,44 @@ const ASSET_OPTIONS: { category: AssetCategory; items: { value: AssetType; label
 ];
 
 const STEP_NAMES = ['Asset Verification', 'Classification', 'Classical Valuation', 'Cryptographic Lineage Severance', 'PQC Re-Issuance', 'Anchoring & Attestation'];
-const STEP_ICONS = [<FileCheck className="h-5 w-5" />, <Layers className="h-5 w-5" />, <TrendingUp className="h-5 w-5" />, <Unlock className="h-5 w-5" />, <Lock className="h-5 w-5" />, <Anchor className="h-5 w-5" />];
+const STEP_ICONS = [
+    <FileCheck className="h-5 w-5" key="s0" />,
+    <Layers className="h-5 w-5" key="s1" />,
+    <TrendingUp className="h-5 w-5" key="s2" />,
+    <Unlock className="h-5 w-5" key="s3" />,
+    <Lock className="h-5 w-5" key="s4" />,
+    <Anchor className="h-5 w-5" key="s5" />,
+];
 
-// Sigmoid quantum decay
-function quantumDecay(t: number, alpha = 1, zEst = 5): number {
-    return 1 / (1 + Math.exp(alpha * (t - zEst)));
-}
+const STRATEGY_OPTIONS: { value: ScenarioType; label: string }[] = [
+    { value: 'classic', label: 'Do Nothing' },
+    { value: 'hybrid', label: 'Hybrid Retrofit' },
+    { value: 'clean_break', label: 'Clean Break' },
+];
 
-// Simulated SHA-256 stub
+const TAB_OPTIONS: { value: C2QTab; label: string }[] = [
+    { value: 'simulation', label: 'Simulation' },
+    { value: 'explanation', label: 'Explanation' },
+    { value: 'executive', label: 'Executive Briefing' },
+    { value: 'historical', label: 'Historical & Economic Context' },
+    { value: 'math', label: 'Mathematical Deep Dive' },
+];
+
 function pseudoHash(input: string): string {
     let h = 0x811c9dc5;
-    for (let i = 0; i < input.length; i++) { h ^= input.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    for (let i = 0; i < input.length; i++) {
+        h ^= input.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+    }
     const hex = (h >>> 0).toString(16).padStart(8, '0');
     return `0x${hex}${hex}${hex}${hex}`.slice(0, 66);
 }
 
-// Shamir secret sharing stub (k-of-n threshold)
 function shamirStub(secret: string, n: number, k: number): string[] {
     const shares: string[] = [];
-    for (let i = 1; i <= n; i++) { shares.push(`share_${i}_of_${n}[t=${k}]:${pseudoHash(secret + i).slice(0, 20)}`); }
+    for (let i = 1; i <= n; i++) {
+        shares.push(`share_${i}_of_${n}[t=${k}]:${pseudoHash(secret + i).slice(0, 20)}`);
+    }
     return shares;
 }
 
@@ -87,53 +113,59 @@ function simulateStep(stepIdx: number, config: SimConfig): string[] {
     const decay = quantumDecay(riskHorizon).toFixed(4);
 
     switch (stepIdx) {
-        case 0: return [
-            `✓ Asset identified: ${assetType.replace(/_/g, ' ')} (${cat})`,
-            `✓ Ownership chain verified via oracle attestation`,
-            `✓ Classical signature: ECDSA-secp256k1 — ${classicalHash.slice(0, 22)}...`,
-            hasEncumbrances ? `⚠ Encumbrances detected: lien/smart-contract dependency flagged` : `✓ No encumbrances detected`,
-            `✓ Jurisdiction: ${jurisdiction} — legal novation pathway ${jurisdiction === 'US' ? 'SEC/FinCEN compliant' : jurisdiction === 'EU' ? 'MiCA compliant' : 'multi-jurisdictional'}`
-        ];
-        case 1: return [
-            `✓ Category: ${cat}`,
-            `✓ Liquidity profile: ${liquidity} — ${liquidity === 'high' ? 'fast settlement' : 'extended settlement window'}`,
-            `✓ Volatility: ${volatility} — ${volatility === 'volatile' ? 'dynamic repricing enabled' : 'fixed-rate settlement'}`,
-            `✓ Quantum vulnerability score: ${(100 - quantumDecay(riskHorizon) * 100).toFixed(1)}%`,
-            `✓ Risk horizon: ${riskHorizon} years to CRQC — decay factor D(t)=${decay}`
-        ];
-        case 2: return [
-            `✓ Classical nominal value: $${assetValue.toLocaleString()}`,
-            `✓ Migration haircut applied: ${haircutPct}% → post-haircut value: $${postHaircutValue.toLocaleString()}`,
-            `✓ Demurrage rate: ${demurrageRate}%/period → adjusted value: $${demurrageAdjusted.toLocaleString()}`,
-            `✓ Risk-adjusted quantum premium: ${((1 - quantumDecay(riskHorizon)) * 100).toFixed(1)}%`,
-            `✓ MPC custody valuation (Shamir 3-of-5): ${shamirStub(classicalHash, 5, 3)[0]}`
-        ];
-        case 3: return [
-            `⚡ Initiating classical key termination...`,
-            `✓ ECDSA private key binding revoked for ${classicalHash.slice(0, 22)}...`,
-            `✓ Classical chain anchor: block #${Math.floor(Math.random() * 1000000 + 18000000)} (finalized)`,
-            `✓ Cryptographic lineage severed — no backward-compatible key paths remain`,
-            `✓ Termination receipt: ${pseudoHash('termination-' + classicalHash).slice(0, 34)}...`
-        ];
-        case 4: return [
-            `🔒 Generating PQC keypair (ML-DSA-87 / CRYSTALS-Dilithium5)...`,
-            `✓ Public key (2592 bytes): ${pqcHash.slice(0, 30)}...`,
-            `✓ Asset re-issued under PQC framework — new token ID: ${pseudoHash('pqc-token-' + assetType).slice(0, 26)}`,
-            `✓ ML-KEM-1024 encapsulation for custody transfer: VERIFIED`,
-            `✓ Post-quantum value locked: $${demurrageAdjusted.toLocaleString()}`
-        ];
-        case 5: return [
-            `⚓ Broadcasting to Dytallix chain...`,
-            `✓ Anchored in Dytallix block #${Math.floor(Math.random() * 50000 + 1000)}`,
-            `✓ On-chain attestation hash: ${pseudoHash('dytallix-attest-' + pqcHash).slice(0, 42)}...`,
-            `✓ Governance staking: operator bond verified (slash conditions active)`,
-            `✓ Migration complete — asset fully quantum-resistant on Dytallix`
-        ];
-        default: return [];
+        case 0:
+            return [
+                `✓ Asset identified: ${formatAssetType(assetType)} (${cat})`,
+                '✓ Ownership chain verified via oracle attestation',
+                `✓ Classical signature: ECDSA-secp256k1 — ${classicalHash.slice(0, 22)}...`,
+                hasEncumbrances ? '⚠ Encumbrances detected: lien/smart-contract dependency flagged' : '✓ No encumbrances detected',
+                `✓ Jurisdiction: ${jurisdiction} — legal novation pathway ${jurisdiction === 'US' ? 'SEC/FinCEN compliant' : jurisdiction === 'EU' ? 'MiCA compliant' : 'multi-jurisdictional'}`,
+            ];
+        case 1:
+            return [
+                `✓ Category: ${cat}`,
+                `✓ Liquidity profile: ${liquidity} — ${liquidity === 'high' ? 'fast settlement' : 'extended settlement window'}`,
+                `✓ Volatility: ${volatility} — ${volatility === 'volatile' ? 'dynamic repricing enabled' : 'fixed-rate settlement'}`,
+                `✓ Quantum vulnerability score: ${(100 - quantumDecay(riskHorizon) * 100).toFixed(1)}%`,
+                `✓ Risk horizon: ${riskHorizon} years to CRQC — decay factor D(t)=${decay}`,
+            ];
+        case 2:
+            return [
+                `✓ Classical nominal value: $${assetValue.toLocaleString()}`,
+                `✓ Migration haircut applied: ${haircutPct.toFixed(2)}% -> post-haircut value: $${postHaircutValue.toLocaleString()}`,
+                `✓ Demurrage rate: ${demurrageRate.toFixed(2)}%/period -> adjusted value: $${demurrageAdjusted.toLocaleString()}`,
+                `✓ Risk-adjusted quantum premium: ${((1 - quantumDecay(riskHorizon)) * 100).toFixed(1)}%`,
+                `✓ MPC custody valuation (Shamir 3-of-5): ${shamirStub(classicalHash, 5, 3)[0]}`,
+            ];
+        case 3:
+            return [
+                '⚡ Initiating classical key termination...',
+                `✓ ECDSA private key binding revoked for ${classicalHash.slice(0, 22)}...`,
+                `✓ Classical chain anchor: block #${Math.floor(Math.random() * 1000000 + 18000000)} (finalized)`,
+                '✓ Cryptographic lineage severed — no backward-compatible key paths remain',
+                `✓ Termination receipt: ${pseudoHash(`termination-${classicalHash}`).slice(0, 34)}...`,
+            ];
+        case 4:
+            return [
+                '🔒 Generating PQC keypair (ML-DSA-87 / CRYSTALS-Dilithium5)...',
+                `✓ Public key (2592 bytes): ${pqcHash.slice(0, 30)}...`,
+                `✓ Asset re-issued under PQC framework — new token ID: ${pseudoHash(`pqc-token-${assetType}`).slice(0, 26)}`,
+                '✓ ML-KEM-1024 encapsulation for custody transfer: VERIFIED',
+                `✓ Post-quantum value locked: $${demurrageAdjusted.toLocaleString()}`,
+            ];
+        case 5:
+            return [
+                '⚓ Broadcasting to Dytallix chain...',
+                `✓ Anchored in Dytallix block #${Math.floor(Math.random() * 50000 + 1000)}`,
+                `✓ On-chain attestation hash: ${pseudoHash(`dytallix-attest-${pqcHash}`).slice(0, 42)}...`,
+                '✓ Governance staking: operator bond verified (slash conditions active)',
+                '✓ Migration complete — asset fully quantum-resistant on Dytallix',
+            ];
+        default:
+            return [];
     }
 }
 
-// --- Educational Content ---
 const EDUCATION_SECTIONS = [
     {
         title: 'Economic Functions',
@@ -148,7 +180,7 @@ const EDUCATION_SECTIONS = [
     {
         title: 'Classical vs PQC Encryption',
         icon: <Lock className="h-5 w-5 text-blue-400" />,
-        content: `**Classical (RSA/ECC):** Relies on the difficulty of factoring large primes (RSA) or solving elliptic curve discrete logarithms (ECC). Shor's algorithm on a quantum computer breaks both in polynomial time.\n\n**Post-Quantum (Lattice/Hash-based):** Algorithms like ML-DSA (CRYSTALS-Dilithium) and ML-KEM (CRYSTALS-Kyber) are built on lattice problems that remain hard even for quantum computers. These survived NIST's multi-year adversarial selection process.\n\n**Key Differences:**\n• Classical signatures: ~64 bytes (ECDSA) → PQC signatures: ~2,420–4,627 bytes (ML-DSA)\n• Classical key exchange: ~32 bytes → PQC encapsulation: ~1,568 bytes (ML-KEM-1024)\n• Security: Classical = broken by Shor's; PQC = no known quantum attack`
+        content: `**Classical (RSA/ECC):** Relies on the difficulty of factoring large primes (RSA) or solving elliptic curve discrete logarithms (ECC). Shor's algorithm on a quantum computer breaks both in polynomial time.\n\n**Post-Quantum (Lattice/Hash-based):** Algorithms like ML-DSA (CRYSTALS-Dilithium) and ML-KEM (CRYSTALS-Kyber) are built on lattice problems that remain hard even for quantum computers. These survived NIST's multi-year adversarial selection process.\n\n**Key Differences:**\n• Classical signatures: ~64 bytes (ECDSA) -> PQC signatures: ~2,420-4,627 bytes (ML-DSA)\n• Classical key exchange: ~32 bytes -> PQC encapsulation: ~1,568 bytes (ML-KEM-1024)\n• Security: Classical = broken by Shor's; PQC = no known quantum attack`
     },
     {
         title: 'Why This Matters — In Plain Language',
@@ -157,48 +189,99 @@ const EDUCATION_SECTIONS = [
     }
 ];
 
-// --- Main Component ---
+const formatCurrency = (value: number): string => `$${Math.round(value).toLocaleString()}`;
+
+const formatBreakEven = (months: number | null): string => {
+    if (months === null || !Number.isFinite(months)) return 'No break-even in modeled horizon';
+    if (months >= 24) return `${(months / 12).toFixed(1)} years`;
+    return `${months.toFixed(1)} months`;
+};
+
+const formatBreakEvenRange = (range: [number | null, number | null]): string => {
+    if (range[0] === null && range[1] === null) return 'No break-even in either bound';
+    if (range[0] !== null && range[1] === null) return `${range[0].toFixed(1)} months to no break-even`;
+    if (range[0] !== null && range[1] !== null) return `${range[0].toFixed(1)} to ${range[1].toFixed(1)} months`;
+    return 'No break-even in either bound';
+};
+
+const formatPct = (value: number, digits = 1): string => `${value.toFixed(digits)}%`;
+
 const C2QAssetMigration: React.FC = () => {
-    const [config, setConfig] = useState<SimConfig>({
-        assetType: 'real_estate', assetValue: 500000, riskHorizon: 5,
-        haircutPct: 10, demurrageRate: 2, hasEncumbrances: false,
-        liquidity: 'high', volatility: 'stable', jurisdiction: 'US'
-    });
+    const [config, setConfig] = useState<SimConfig>(DEFAULT_MODEL_INPUTS);
     const [steps, setSteps] = useState<StepResult[]>(
         STEP_NAMES.map((name, i) => ({ name, status: 'pending', log: [], icon: STEP_ICONS[i] }))
     );
     const [, setCurrentStep] = useState(-1);
     const [isRunning, setIsRunning] = useState(false);
-    const [expandedEdu, setExpandedEdu] = useState<number | null>(null);
     const [showReport, setShowReport] = useState(false);
-    const [viewedStep, setViewedStep] = useState(0);
+    const [simulationSubtab, setSimulationSubtab] = useState<SimulationSubtab>('pre');
+    const [selectedStrategy, setSelectedStrategy] = useState<ScenarioType>('hybrid');
+    const [activeTab, setActiveTab] = useState<C2QTab>('simulation');
+    const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
 
     const postHaircutValue = config.assetValue * (1 - config.haircutPct / 100);
     const finalValue = postHaircutValue * (1 - config.demurrageRate / 100);
 
-    // Quantum decay curve data
+    const scenarioResults = useMemo(() => runAllScenarios(config), [config]);
+    const executiveSummary = useMemo(
+        () => computeExecutiveRiskSummary(config, scenarioResults),
+        [config, scenarioResults]
+    );
+    const sensitivityDrivers = useMemo(() => computeSensitivity(config), [config]);
+
+    const selectedScenarioResult = useMemo((): ScenarioOutputs => {
+        if (selectedStrategy === 'clean_break') return scenarioResults.cleanBreak;
+        return scenarioResults[selectedStrategy];
+    }, [selectedStrategy, scenarioResults]);
+
     const decayCurveData = useMemo(() => {
-        const pts = [];
+        const pts: { year: number; security: number; risk: number }[] = [];
         for (let t = 0; t <= 10; t += 0.5) {
-            pts.push({ year: t, security: +(quantumDecay(t) * 100).toFixed(1), risk: +((1 - quantumDecay(t)) * 100).toFixed(1) });
+            pts.push({
+                year: t,
+                security: +(quantumDecay(t) * 100).toFixed(1),
+                risk: +((1 - quantumDecay(t)) * 100).toFixed(1),
+            });
         }
         return pts;
     }, []);
 
-    const valueComparisonData = useMemo(() => [
-        { name: 'Classical Value', value: config.assetValue, fill: '#ef4444' },
-        { name: 'Post-Haircut', value: postHaircutValue, fill: '#f59e0b' },
-        { name: 'PQC Final Value', value: finalValue, fill: '#10b981' },
-    ], [config.assetValue, postHaircutValue, finalValue]);
+    const npvComparisonData = useMemo(() => [
+        { name: 'Do Nothing', value: scenarioResults.classic.npv, fill: '#ef4444' },
+        { name: 'Hybrid', value: scenarioResults.hybrid.npv, fill: '#f59e0b' },
+        { name: 'Clean Break', value: scenarioResults.cleanBreak.npv, fill: '#10b981' },
+    ], [scenarioResults]);
 
-    const runStep = useCallback((idx: number) => {
-        const logs = simulateStep(idx, config);
-        setSteps(prev => prev.map((s, i) =>
-            i === idx ? { ...s, status: 'complete', log: logs } :
-                i < idx ? { ...s, status: s.status === 'complete' ? 'complete' : s.status } : s
-        ));
-        setCurrentStep(idx);
-    }, [config]);
+    const topDriverPreview = useMemo(() => sensitivityDrivers.slice(0, 3), [sensitivityDrivers]);
+    const topDrivers = useMemo(() => sensitivityDrivers.slice(0, 5), [sensitivityDrivers]);
+    const selectedStrategyLabel = useMemo(() => {
+        const selected = STRATEGY_OPTIONS.find(option => option.value === selectedStrategy);
+        return selected?.label ?? 'Hybrid Retrofit';
+    }, [selectedStrategy]);
+    const anchoringPreviewLines = useMemo(() => {
+        const fromSimulation = steps[STEP_NAMES.length - 1]?.log ?? [];
+        const source = fromSimulation.length > 0 ? fromSimulation : simulateStep(STEP_NAMES.length - 1, config);
+        return source.slice(0, 4);
+    }, [config, steps]);
+
+    const maxDriverImpact = useMemo(() => {
+        if (sensitivityDrivers.length === 0) return 1;
+        return Math.max(...sensitivityDrivers.map(driver => driver.impactScore), 1);
+    }, [sensitivityDrivers]);
+
+    const recommendationTone = useMemo(() => {
+        if (executiveSummary.recommendation === 'clean_break') return 'text-red-400';
+        if (executiveSummary.recommendation === 'hybrid') return 'text-amber-400';
+        return 'text-sky-400';
+    }, [executiveSummary.recommendation]);
+
+    const tailRiskLabel = modelConfig.tailRisk.confidence >= 0.99 ? 'P99' : 'P95';
+
+    useEffect(() => {
+        if (copyState === 'idle') return undefined;
+        const timer = window.setTimeout(() => setCopyState('idle'), 2400);
+        return () => window.clearTimeout(timer);
+    }, [copyState]);
 
     const runFullSimulation = useCallback(async () => {
         setIsRunning(true);
@@ -207,375 +290,878 @@ const C2QAssetMigration: React.FC = () => {
         for (let i = 0; i < 6; i++) {
             setSteps(prev => prev.map((s, j) => j === i ? { ...s, status: 'running' } : s));
             setCurrentStep(i);
-            setViewedStep(i);
-            await new Promise(r => setTimeout(r, 800 + Math.random() * 400));
+            await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
             const logs = simulateStep(i, config);
             setSteps(prev => prev.map((s, j) => j === i ? { ...s, status: 'complete', log: logs } : s));
         }
         setIsRunning(false);
         setShowReport(true);
+        setSimulationSubtab('post');
     }, [config]);
 
     const resetSimulation = useCallback(() => {
         setSteps(STEP_NAMES.map((name, i) => ({ name, status: 'pending', log: [], icon: STEP_ICONS[i] })));
         setCurrentStep(-1);
         setShowReport(false);
+        setSimulationSubtab('pre');
+    }, []);
+
+    const copySummary = useCallback(async () => {
+        try {
+            const summaryText = buildExecutiveBrief(config, executiveSummary, topDriverPreview);
+            await navigator.clipboard.writeText(summaryText);
+            setCopyState('copied');
+        } catch {
+            setCopyState('error');
+        }
+    }, [config, executiveSummary, topDriverPreview]);
+
+    const exportPdf = useCallback(() => {
+        window.print();
     }, []);
 
     const completedSteps = steps.filter(s => s.status === 'complete').length;
-    const progressPct = (completedSteps / 6) * 100;
+    const progressPct = (completedSteps / STEP_NAMES.length) * 100;
+    const preMigrationVulnerabilityPct = (1 - quantumDecay(config.riskHorizon)) * 100;
+    const assetValueBase = Math.max(config.assetValue, 1);
+    const classicalLossPct = (executiveSummary.expectedLossClassical / assetValueBase) * 100;
+    const tailLossPct = (executiveSummary.tailRiskLoss / assetValueBase) * 100;
+    const tailToExpectedMultiple = executiveSummary.expectedLossClassical > 0
+        ? executiveSummary.tailRiskLoss / executiveSummary.expectedLossClassical
+        : 0;
+    const annualizedExpectedLoss = executiveSummary.expectedLossClassical / Math.max(config.riskHorizon, 1);
+    const selectedFrictionPct = (selectedScenarioResult.frictionCost / assetValueBase) * 100;
+    const selectedNpvUpliftVsClassic = selectedScenarioResult.npv - scenarioResults.classic.npv;
+    const selectedNetEconomicBenefit = selectedScenarioResult.expectedLossAvoided - selectedScenarioResult.frictionCost;
+    const selectedBenefitCostRatio = selectedScenarioResult.frictionCost > 0
+        ? selectedScenarioResult.expectedLossAvoided / selectedScenarioResult.frictionCost
+        : null;
+    const recommendedScenarioResult = executiveSummary.recommendedScenario === 'clean_break'
+        ? scenarioResults.cleanBreak
+        : scenarioResults[executiveSummary.recommendedScenario];
 
     return (
-        <div className="min-h-screen bg-background pt-24 pb-20">
-            <Section className="relative z-10">
-                {/* Hero */}
-                <div className="text-center max-w-4xl mx-auto mb-8">
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                        <Shield className="w-12 h-12 text-emerald-400" />
-                        <h1 className="text-4xl md:text-5xl font-bold text-foreground">
-                            C2Q <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500">Asset Migration</span>
-                        </h1>
+        <div className="c2q-page min-h-screen bg-background pt-24 pb-20">
+            <Section className={`relative z-10 ${activeTab === 'historical' ? 'pb-4 md:pb-6' : ''}`} fullWidth>
+                <div className="container mx-auto px-4">
+                    <div className="text-center max-w-4xl mx-auto mb-8">
+                        <div className="flex items-center justify-center gap-3 mb-6">
+                            <Shield className="w-12 h-12 text-emerald-400" />
+                            <h1 className="text-4xl md:text-5xl font-bold text-foreground">
+                                C2Q <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500">Asset Migration</span>
+                            </h1>
+                        </div>
+                        <p className="text-lg text-muted-foreground">
+                            Quantify expected loss under classical cryptographic failure and compare migration survival paths.
+                        </p>
                     </div>
-                    <p className="text-lg text-muted-foreground">
-                        Simulate the end-to-end migration of classical assets to the Dytallix post-quantum cryptography native chain
-                    </p>
-                </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Sidebar Controls */}
-                    <div className="lg:col-span-4 space-y-4">
-                        <GlassPanel className="p-6" hoverEffect>
-                            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                <Activity className="h-5 w-5 text-emerald-400" /> Configuration
-                            </h2>
-
-                            {/* Asset Type */}
-                            <div className="mb-4">
-                                <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">Asset Type</label>
-                                <select
-                                    value={config.assetType}
-                                    onChange={e => setConfig(c => ({ ...c, assetType: e.target.value as AssetType }))}
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-emerald-400/50"
+                    <div className="mb-8">
+                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+                            {TAB_OPTIONS.map(tab => (
+                                <button
+                                    key={tab.value}
+                                    onClick={() => setActiveTab(tab.value)}
+                                    className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${activeTab === tab.value
+                                        ? 'border-emerald-400/60 bg-emerald-500/15 text-emerald-300'
+                                        : 'border-white/10 text-muted-foreground hover:border-white/30 hover:text-foreground'
+                                        }`}
                                 >
-                                    {ASSET_OPTIONS.map(g => (
-                                        <optgroup key={g.category} label={g.category}>
-                                            {g.items.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
-                                        </optgroup>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Asset Value */}
-                            <div className="mb-4">
-                                <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                                    Asset Value: <span className="text-emerald-400">${config.assetValue.toLocaleString()}</span>
-                                </label>
-                                <input type="range" min={0} max={1000000} step={1000} value={config.assetValue}
-                                    onChange={e => setConfig(c => ({ ...c, assetValue: +e.target.value }))}
-                                    className="w-full accent-emerald-400" />
-                                <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>$0</span><span>$1,000,000</span></div>
-                            </div>
-
-                            {/* Risk Horizon */}
-                            <div className="mb-4">
-                                <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                                    Quantum Risk Horizon: <span className="text-amber-400">{config.riskHorizon} years</span>
-                                </label>
-                                <input type="range" min={1} max={10} value={config.riskHorizon}
-                                    onChange={e => setConfig(c => ({ ...c, riskHorizon: +e.target.value }))}
-                                    className="w-full accent-amber-400" />
-                                <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>1 yr</span><span>10 yrs</span></div>
-                            </div>
-
-                            {/* Haircut */}
-                            <div className="mb-4">
-                                <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                                    Haircut: <span className="text-red-400">{config.haircutPct}%</span>
-                                </label>
-                                <input type="range" min={0} max={50} value={config.haircutPct}
-                                    onChange={e => setConfig(c => ({ ...c, haircutPct: +e.target.value }))}
-                                    className="w-full accent-red-400" />
-                            </div>
-
-                            {/* Demurrage */}
-                            <div className="mb-4">
-                                <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                                    Demurrage Rate: <span className="text-orange-400">{config.demurrageRate}%</span>/period
-                                </label>
-                                <input type="range" min={0} max={5} step={0.1} value={config.demurrageRate}
-                                    onChange={e => setConfig(c => ({ ...c, demurrageRate: +e.target.value }))}
-                                    className="w-full accent-orange-400" />
-                            </div>
-
-                            {/* Toggles */}
-                            <div className="space-y-3 mb-4">
-                                {([['Encumbrances', 'hasEncumbrances', config.hasEncumbrances]] as const).map(([label, key]) => (
-                                    <div key={key} className="flex items-center justify-between">
-                                        <span className="text-sm text-muted-foreground">{label}</span>
-                                        <button onClick={() => setConfig(c => ({ ...c, [key]: !c[key as keyof SimConfig] }))}
-                                            className={`w-12 h-6 rounded-full transition-colors ${config[key as keyof SimConfig] ? 'bg-emerald-500' : 'bg-white/10'} relative`}>
-                                            <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${config[key as keyof SimConfig] ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Selects row */}
-                            <div className="grid grid-cols-3 gap-2 mb-4">
-                                {([
-                                    ['Liquidity', 'liquidity', ['high', 'low']],
-                                    ['Volatility', 'volatility', ['stable', 'volatile']],
-                                    ['Jurisdiction', 'jurisdiction', ['US', 'EU', 'Global']]
-                                ] as const).map(([label, key, opts]) => (
-                                    <div key={key}>
-                                        <label className="block text-xs text-muted-foreground mb-1">{label}</label>
-                                        <select value={config[key]}
-                                            onChange={e => setConfig(c => ({ ...c, [key]: e.target.value }))}
-                                            className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:border-emerald-400/50">
-                                            {opts.map(o => <option key={o} value={o}>{o}</option>)}
-                                        </select>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="space-y-2">
-                                <button onClick={runFullSimulation} disabled={isRunning}
-                                    className="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2">
-                                    {isRunning ? <><RefreshCw className="h-4 w-4 animate-spin" /> Running...</> : <><Play className="h-4 w-4" /> Run Full Simulation</>}
+                                    {tab.label}
                                 </button>
-                                <button onClick={resetSimulation} className="w-full py-2 rounded-lg border border-white/10 text-sm text-muted-foreground hover:text-foreground hover:border-white/20 transition-colors">
-                                    Reset
-                                </button>
-                            </div>
-                        </GlassPanel>
-
-                        {/* Educational Sections */}
-                        <GlassPanel className="p-6" hoverEffect>
-                            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                <Info className="h-5 w-5 text-blue-400" /> Understanding the Migration
-                            </h2>
-                            <div className="space-y-2">
-                                {EDUCATION_SECTIONS.map((sec, i) => (
-                                    <div key={i} className="border border-white/5 rounded-lg overflow-hidden">
-                                        <button onClick={() => setExpandedEdu(expandedEdu === i ? null : i)}
-                                            className="w-full p-4 text-left flex items-center justify-between hover:bg-white/5 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                {sec.icon}
-                                                <span className="font-semibold text-sm">{sec.title}</span>
-                                            </div>
-                                            {expandedEdu === i ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                                        </button>
-                                        {expandedEdu === i && (
-                                            <div className="px-4 pb-4 pl-12 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                {sec.content.split('\n\n').map((para, pi) => (
-                                                    <p key={pi} className="text-sm text-muted-foreground leading-relaxed mb-2"
-                                                        dangerouslySetInnerHTML={{ __html: para.replace(/\*\*(.*?)\*\*/g, '<strong class="text-foreground">$1</strong>') }} />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                            <Link to="/C2QDeepDive"
-                                className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-blue-400/30 text-sm text-blue-400 hover:bg-blue-400/10 hover:border-blue-400/50 transition-all">
-                                <BookOpen className="h-4 w-4" /> Mathematical Deep Dive
-                            </Link>
-                        </GlassPanel>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* Main Content */}
-                    <div className="lg:col-span-8 space-y-6">
-                        {/* Progress Bar */}
-                        <GlassPanel className="p-6" hoverEffect>
-                            <div className="flex items-center justify-between mb-3">
-                                <h2 className="text-lg font-bold">Migration Progress</h2>
-                                <span className="text-sm text-emerald-400 font-mono">{completedSteps}/6 steps</span>
-                            </div>
-                            <div className="h-3 bg-black/40 rounded-full overflow-hidden mb-4">
-                                <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
-                            </div>
-                            <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-1">
-                                {steps.map((step, i) => (
-                                    <div key={i} className="text-center">
-                                        <div className={`mx-auto w-8 h-8 rounded-full flex items-center justify-center text-xs mb-1 transition-all duration-300 ${step.status === 'complete' ? 'bg-emerald-500/20 text-emerald-400' :
-                                            step.status === 'running' ? 'bg-amber-500/20 text-amber-400 animate-pulse' :
-                                                'bg-white/5 text-muted-foreground'
-                                            }`}>
-                                            {step.status === 'complete' ? <CheckCircle className="h-4 w-4" /> :
-                                                step.status === 'running' ? <RefreshCw className="h-4 w-4 animate-spin" /> :
-                                                    <span>{i + 1}</span>}
-                                        </div>
-                                        <p className="text-[10px] text-muted-foreground leading-tight">{step.name.split(' ')[0]}</p>
+                    {activeTab === 'simulation' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <div className="lg:col-span-4 space-y-4 c2q-print-exclude">
+                            <GlassPanel className="p-6" hoverEffect>
+                                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <Activity className="h-5 w-5 text-emerald-400" /> Configuration
+                                </h2>
+
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">Asset Type</label>
+                                    <select
+                                        value={config.assetType}
+                                        onChange={event => setConfig(current => ({ ...current, assetType: event.target.value as AssetType }))}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-emerald-400/50"
+                                    >
+                                        {ASSET_OPTIONS.map(group => (
+                                            <optgroup key={group.category} label={group.category}>
+                                                {group.items.map(item => (
+                                                    <option key={item.value} value={item.value}>{item.label}</option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">Strategy</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {STRATEGY_OPTIONS.map(option => (
+                                            <button
+                                                key={option.value}
+                                                onClick={() => setSelectedStrategy(option.value)}
+                                                className={`rounded-lg border px-2 py-2 text-[11px] font-semibold transition-colors ${selectedStrategy === option.value
+                                                    ? 'border-emerald-400/60 bg-emerald-500/15 text-emerald-300'
+                                                    : 'border-white/10 text-muted-foreground hover:border-white/30 hover:text-foreground'
+                                                    }`}
+                                            >
+                                                {option.label}
+                                            </button>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </GlassPanel>
+                                </div>
 
-                        {/* Step Card Carousel */}
-                        <div className="relative">
-                            {/* Left Arrow */}
-                            <button
-                                onClick={() => setViewedStep(v => Math.max(0, v - 1))}
-                                disabled={viewedStep === 0}
-                                className="absolute -left-3 md:-left-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-white/30 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
-                            >
-                                <ChevronLeft className="h-5 w-5" />
-                            </button>
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                                        Asset Value: <span className="text-emerald-400">{formatCurrency(config.assetValue)}</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={1000000}
+                                        step={1000}
+                                        value={config.assetValue}
+                                        onChange={event => setConfig(current => ({ ...current, assetValue: Number(event.target.value) }))}
+                                        className="w-full accent-emerald-400"
+                                    />
+                                    <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>$0</span><span>$1,000,000</span></div>
+                                </div>
 
-                            {/* Right Arrow */}
-                            <button
-                                onClick={() => setViewedStep(v => Math.min(5, v + 1))}
-                                disabled={viewedStep === 5}
-                                className="absolute -right-3 md:-right-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-white/30 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
-                            >
-                                <ChevronRight className="h-5 w-5" />
-                            </button>
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                                        Quantum Risk Horizon: <span className="text-amber-400">{config.riskHorizon.toFixed(1)} years</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={1}
+                                        max={10}
+                                        step={0.1}
+                                        value={config.riskHorizon}
+                                        onChange={event => setConfig(current => ({ ...current, riskHorizon: Number(event.target.value) }))}
+                                        className="w-full accent-amber-400"
+                                    />
+                                    <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>1 yr</span><span>10 yrs</span></div>
+                                </div>
 
-                            {/* Single Step Card */}
-                            {(() => {
-                                const step = steps[viewedStep];
-                                return (
-                                    <GlassPanel className={`p-5 transition-all duration-300 min-h-[180px] ${step.status === 'complete' ? 'border-emerald-500/20' : step.status === 'running' ? 'border-amber-500/20' : ''}`} hoverEffect>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${step.status === 'complete' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                    step.status === 'running' ? 'bg-amber-500/10 text-amber-400' :
-                                                        'bg-white/5 text-muted-foreground'
-                                                    }`}>{step.icon}</div>
-                                                <div>
-                                                    <h3 className="font-semibold text-sm">{step.name}</h3>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {step.status === 'complete' ? 'Completed' : step.status === 'running' ? 'Processing...' : 'Pending'}
-                                                    </p>
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                                        Haircut: <span className="text-red-400">{config.haircutPct.toFixed(2)}%</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={50}
+                                        step={0.1}
+                                        value={config.haircutPct}
+                                        onChange={event => setConfig(current => ({ ...current, haircutPct: Number(event.target.value) }))}
+                                        className="w-full accent-red-400"
+                                    />
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                                        Demurrage Rate: <span className="text-orange-400">{config.demurrageRate.toFixed(2)}%</span>/period
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={8}
+                                        step={0.05}
+                                        value={config.demurrageRate}
+                                        onChange={event => setConfig(current => ({ ...current, demurrageRate: Number(event.target.value) }))}
+                                        className="w-full accent-orange-400"
+                                    />
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                                        Operational Friction: <span className="text-cyan-400">{config.operationalFrictionPct.toFixed(2)}%</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={15}
+                                        step={0.05}
+                                        value={config.operationalFrictionPct}
+                                        onChange={event => setConfig(current => ({ ...current, operationalFrictionPct: Number(event.target.value) }))}
+                                        className="w-full accent-cyan-400"
+                                    />
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                                        Hybrid residual factor: <span className="text-yellow-400">{config.hybridResidualFactor.toFixed(2)}</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={0.1}
+                                        max={0.9}
+                                        step={0.01}
+                                        value={config.hybridResidualFactor}
+                                        onChange={event => setConfig(current => ({ ...current, hybridResidualFactor: Number(event.target.value) }))}
+                                        className="w-full accent-yellow-400"
+                                    />
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                                        Clean break residual floor: <span className="text-lime-400">{config.cleanBreakResidualFloor.toFixed(3)}</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={0.005}
+                                        max={0.2}
+                                        step={0.005}
+                                        value={config.cleanBreakResidualFloor}
+                                        onChange={event => setConfig(current => ({ ...current, cleanBreakResidualFloor: Number(event.target.value) }))}
+                                        className="w-full accent-lime-400"
+                                    />
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                                        Discount rate: <span className="text-violet-400">{config.discountRate.toFixed(2)}%</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={1}
+                                        max={20}
+                                        step={0.1}
+                                        value={config.discountRate}
+                                        onChange={event => setConfig(current => ({ ...current, discountRate: Number(event.target.value) }))}
+                                        className="w-full accent-violet-400"
+                                    />
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                                        Jurisdiction risk multiplier: <span className="text-pink-400">{config.jurisdictionRiskMultiplier.toFixed(2)}</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={0.8}
+                                        max={1.8}
+                                        step={0.01}
+                                        value={config.jurisdictionRiskMultiplier}
+                                        onChange={event => setConfig(current => ({ ...current, jurisdictionRiskMultiplier: Number(event.target.value) }))}
+                                        className="w-full accent-pink-400"
+                                    />
+                                </div>
+
+                                <div className="space-y-3 mb-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Encumbrances</span>
+                                        <button
+                                            onClick={() => setConfig(current => ({ ...current, hasEncumbrances: !current.hasEncumbrances }))}
+                                            className={`w-12 h-6 rounded-full transition-colors ${config.hasEncumbrances ? 'bg-emerald-500' : 'bg-white/10'} relative`}
+                                        >
+                                            <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${config.hasEncumbrances ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2 mb-4">
+                                    {([
+                                        ['Liquidity', 'liquidity', ['high', 'low']],
+                                        ['Volatility', 'volatility', ['stable', 'volatile']],
+                                        ['Jurisdiction', 'jurisdiction', ['US', 'EU', 'Global']]
+                                    ] as const).map(([label, key, options]) => (
+                                        <div key={key}>
+                                            <label className="block text-xs text-muted-foreground mb-1">{label}</label>
+                                            <select
+                                                value={config[key]}
+                                                onChange={event => {
+                                                    if (key === 'jurisdiction') {
+                                                        const nextJurisdiction = event.target.value as Jurisdiction;
+                                                        setConfig(current => ({
+                                                            ...current,
+                                                            jurisdiction: nextJurisdiction,
+                                                            jurisdictionRiskMultiplier: getJurisdictionBaseMultiplier(nextJurisdiction),
+                                                        }));
+                                                        return;
+                                                    }
+
+                                                    if (key === 'liquidity') {
+                                                        setConfig(current => ({ ...current, liquidity: event.target.value as Liquidity }));
+                                                        return;
+                                                    }
+
+                                                    setConfig(current => ({ ...current, volatility: event.target.value as Volatility }));
+                                                }}
+                                                className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:border-emerald-400/50"
+                                            >
+                                                {options.map(option => (
+                                                    <option key={option} value={option}>{option}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <button
+                                        onClick={runFullSimulation}
+                                        disabled={isRunning}
+                                        className="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {isRunning ? (
+                                            <>
+                                                <RefreshCw className="h-4 w-4 animate-spin" /> Running...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Play className="h-4 w-4" /> Run Full Simulation
+                                            </>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={resetSimulation}
+                                        className="w-full py-2 rounded-lg border border-white/10 text-sm text-muted-foreground hover:text-foreground hover:border-white/20 transition-colors"
+                                    >
+                                        Reset
+                                    </button>
+                                </div>
+                            </GlassPanel>
+
+                        </div>
+
+                        <div className="lg:col-span-8 space-y-6">
+                            <GlassPanel className="p-6 border-emerald-500/20 c2q-print-include" hoverEffect>
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                                    <div>
+                                        <h2 className="text-lg font-bold flex items-center gap-2">
+                                            <Shield className="h-5 w-5 text-emerald-400" /> Executive Risk Summary
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground mt-1">Decision-grade view for board and treasury posture.</p>
+                                    </div>
+                                    <div className="flex gap-2 c2q-print-exclude">
+                                        <button
+                                            onClick={copySummary}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs hover:border-emerald-400/50 hover:text-emerald-300 transition-colors"
+                                        >
+                                            <Copy className="h-3.5 w-3.5" /> Copy Summary
+                                        </button>
+                                        <button
+                                            onClick={exportPdf}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs hover:border-blue-400/50 hover:text-blue-300 transition-colors"
+                                        >
+                                            <Download className="h-3.5 w-3.5" /> Export PDF
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {copyState !== 'idle' && (
+                                    <p className={`text-xs mb-3 ${copyState === 'copied' ? 'text-emerald-300' : 'text-red-400'}`}>
+                                        {copyState === 'copied' ? 'Executive summary copied to clipboard.' : 'Clipboard copy failed. Please use browser permissions and retry.'}
+                                    </p>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Expected Loss (Classical)</p>
+                                        <p className="text-xl font-semibold text-red-400">{formatCurrency(executiveSummary.expectedLossClassical)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Tail Risk ({tailRiskLabel}) Loss</p>
+                                        <p className="text-xl font-semibold text-orange-400">{formatCurrency(executiveSummary.tailRiskLoss)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Break-even</p>
+                                        <p className="text-xl font-semibold text-blue-300">{formatBreakEven(executiveSummary.breakEvenMonths)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Residual Exposure</p>
+                                        <p className="text-xl font-semibold text-amber-300">{executiveSummary.residualExposurePct.toFixed(1)}%</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Recommendation</p>
+                                        <p className={`text-xl font-semibold ${recommendationTone}`}>{executiveSummary.recommendationLabel}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Migration Friction Baseline</p>
+                                        <p className="text-xl font-semibold text-slate-300">{formatCurrency(executiveSummary.migrationFrictionCost)}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 border-t border-white/10 pt-3 text-sm text-muted-foreground">
+                                    <span className="font-semibold text-foreground">Rationale:</span> {executiveSummary.rationale}
+                                </div>
+                            </GlassPanel>
+
+                            <GlassPanel className="p-6 c2q-print-include" hoverEffect>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
+                                    <div>
+                                        <h3 className="text-lg font-bold flex items-center gap-2">
+                                            <Activity className="h-5 w-5 text-blue-400" /> Simulation Workspace
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {showReport
+                                                ? 'Simulation complete. Switch between pre-migration planning and post-migration outcomes.'
+                                                : 'Pre-migration planning view. Configure assumptions and run the full simulation to unlock post-migration outcomes.'}
+                                        </p>
+                                    </div>
+                                    {showReport ? (
+                                        <div className="inline-flex items-center rounded-lg border border-white/10 p-1 bg-black/30">
+                                            <button
+                                                onClick={() => setSimulationSubtab('pre')}
+                                                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${simulationSubtab === 'pre'
+                                                    ? 'bg-emerald-500/20 text-emerald-300'
+                                                    : 'text-muted-foreground hover:text-foreground'
+                                                    }`}
+                                            >
+                                                Pre-Migration
+                                            </button>
+                                            <button
+                                                onClick={() => setSimulationSubtab('post')}
+                                                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${simulationSubtab === 'post'
+                                                    ? 'bg-blue-500/20 text-blue-300'
+                                                    : 'text-muted-foreground hover:text-foreground'
+                                                    }`}
+                                            >
+                                                Post-Migration
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground border border-white/10 rounded-md px-3 py-1.5 bg-black/20">
+                                            Post-Migration subtab unlocks after "Run Full Simulation".
+                                        </span>
+                                    )}
+                                </div>
+
+                                {(!showReport || simulationSubtab === 'pre') && (
+                                    <div className="space-y-5">
+                                        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                            <h4 className="text-sm font-bold text-foreground mb-2">Pre-Migration Briefing</h4>
+                                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                                Select strategy and risk inputs on the left, then run the full six-step migration workflow. This briefing combines
+                                                process staging, anchoring expectations, path economics, and quantum decay context so leadership can review assumptions
+                                                before executing the simulation.
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                                <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Current Input Snapshot</h4>
+                                                <div className="space-y-1 text-xs text-muted-foreground">
+                                                    <p><span className="text-foreground">Asset:</span> {formatAssetType(config.assetType)} ({formatCurrency(config.assetValue)})</p>
+                                                    <p><span className="text-foreground">Selected strategy:</span> {selectedStrategyLabel}</p>
+                                                    <p><span className="text-foreground">Risk horizon:</span> {config.riskHorizon.toFixed(1)} years</p>
+                                                    <p><span className="text-foreground">Classical vulnerability pressure:</span> {preMigrationVulnerabilityPct.toFixed(1)}%</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                {step.status === 'pending' && !isRunning && (
-                                                    <button onClick={() => runStep(viewedStep)}
-                                                        className="px-3 py-1 text-xs rounded border border-white/10 hover:border-emerald-400/30 hover:text-emerald-400 transition-colors">
-                                                        Run Step
-                                                    </button>
-                                                )}
-                                                <span className="text-xs text-muted-foreground font-mono">{viewedStep + 1}/6</span>
+
+                                            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-xs uppercase tracking-wide text-muted-foreground">Migration Process Status</h4>
+                                                    <span className="text-xs text-emerald-300 font-mono">{completedSteps}/{STEP_NAMES.length} steps</span>
+                                                </div>
+                                                <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-3">
+                                                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-blue-500 transition-all duration-500" style={{ width: `${progressPct}%` }} />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                                    {steps.map((step, index) => (
+                                                        <div key={step.name} className="rounded border border-white/10 px-2 py-1 text-muted-foreground flex items-center gap-2">
+                                                            <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${step.status === 'complete' ? 'bg-emerald-500/20 text-emerald-300' : step.status === 'running' ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-muted-foreground'}`}>
+                                                                {index + 1}
+                                                            </span>
+                                                            <span className="truncate">{step.name}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
-                                        {step.log.length > 0 ? (
-                                            <div className="pt-3 border-t border-white/5 space-y-1">
-                                                {step.log.map((l, li) => (
-                                                    <p key={li} className="text-xs font-mono text-muted-foreground leading-relaxed">{l}</p>
+
+                                        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="text-sm font-semibold text-foreground">Anchoring &amp; Attestation Preview</h4>
+                                                <span className="text-[11px] text-muted-foreground">Step 6 / 6</span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                {anchoringPreviewLines.map((line, index) => (
+                                                    <p key={`${line}-${index}`} className="text-xs font-mono text-muted-foreground">{line}</p>
                                                 ))}
                                             </div>
-                                        ) : (
-                                            <div className="pt-3 border-t border-white/5">
-                                                <p className="text-xs text-muted-foreground italic">
-                                                    {step.status === 'running' ? 'Processing step...' : 'Step not yet executed. Click "Run Step" or "Run Full Simulation" to begin.'}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </GlassPanel>
-                                );
-                            })()}
+                                        </div>
 
-                            {/* Dot Indicators */}
-                            <div className="flex items-center justify-center gap-2 mt-3">
-                                {steps.map((step, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setViewedStep(i)}
-                                        className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === viewedStep
-                                            ? step.status === 'complete' ? 'bg-emerald-400 scale-125' : step.status === 'running' ? 'bg-amber-400 scale-125 animate-pulse' : 'bg-white/60 scale-125'
-                                            : step.status === 'complete' ? 'bg-emerald-500/40' : step.status === 'running' ? 'bg-amber-500/40 animate-pulse' : 'bg-white/10'
-                                            }`}
-                                    />
+                                        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                            <h4 className="text-sm font-semibold text-foreground mb-3">3-Path Comparison Snapshot</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                {[scenarioResults.classic, scenarioResults.hybrid, scenarioResults.cleanBreak].map(result => (
+                                                    <div key={result.scenario} className="rounded border border-white/10 p-3 text-xs bg-black/20">
+                                                        <p className="font-semibold text-foreground mb-2">{result.label}</p>
+                                                        <div className="space-y-1 text-muted-foreground">
+                                                            <p><span className="text-foreground">NPV:</span> {formatCurrency(result.npv)}</p>
+                                                            <p><span className="text-foreground">Loss avoided:</span> {formatCurrency(result.expectedLossAvoided)}</p>
+                                                            <p><span className="text-foreground">Friction:</span> {formatCurrency(result.frictionCost)}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                                <h4 className="text-sm font-semibold text-foreground mb-3">Strategy NPV Comparison</h4>
+                                                <ResponsiveContainer width="100%" height={180}>
+                                                    <BarChart data={npvComparisonData} margin={{ top: 12, right: 8, left: 6, bottom: 6 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                                        <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={value => `$${(value / 1000).toFixed(0)}k`} />
+                                                        <Tooltip
+                                                            cursor={{ fill: 'transparent' }}
+                                                            contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 }}
+                                                            formatter={(value: number | string | undefined) => [formatCurrency(Number(value ?? 0)), 'NPV']}
+                                                        />
+                                                        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                                                            {npvComparisonData.map((entry, index) => (
+                                                                <Cell key={`pre-npv-cell-${index}`} fill={entry.fill} />
+                                                            ))}
+                                                            <LabelList
+                                                                dataKey="value"
+                                                                position="top"
+                                                                fill="#cbd5e1"
+                                                                fontSize={10}
+                                                                formatter={(value: unknown) => `$${(Number(value ?? 0) / 1000).toFixed(0)}k`}
+                                                            />
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+
+                                            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                                <h4 className="text-sm font-semibold text-foreground mb-3">Quantum Decay Function</h4>
+                                                <ResponsiveContainer width="100%" height={180}>
+                                                    <AreaChart data={decayCurveData}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                                        <XAxis dataKey="year" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                                        <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                                        <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
+                                                        <defs>
+                                                            <linearGradient id="preSecGrad" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                                            </linearGradient>
+                                                            <linearGradient id="preRiskGrad" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <Area type="monotone" dataKey="security" stroke="#10b981" fill="url(#preSecGrad)" name="Classical Security %" />
+                                                        <Area type="monotone" dataKey="risk" stroke="#ef4444" fill="url(#preRiskGrad)" name="Quantum Risk %" />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                                <p className="text-[10px] text-muted-foreground mt-2 text-center font-mono">D(t) = 1 / (1 + e^(α·(t − Z_est))) | α=1, Z_est=5</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {showReport && simulationSubtab === 'post' && (
+                                    <div className="space-y-5">
+                                        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+                                            <h4 className="text-sm font-bold text-emerald-300 mb-1">Post-Migration Outcomes</h4>
+                                            <p className="text-xs text-muted-foreground">
+                                                Full simulation completed. This view replaces pre-migration planning context with asset deltas and top sensitivity drivers.
+                                            </p>
+                                        </div>
+
+                                        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                            <h4 className="text-sm font-semibold text-foreground mb-3">Asset Delta: Pre vs Post Migration</h4>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-xs">
+                                                    <thead>
+                                                        <tr className="border-b border-white/10 text-muted-foreground">
+                                                            <th className="text-left py-2 pr-3">Metric</th>
+                                                            <th className="text-left py-2 pr-3">Pre-Migration</th>
+                                                            <th className="text-left py-2 pr-3">Post-Migration ({selectedStrategyLabel})</th>
+                                                            <th className="text-left py-2">Delta</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr className="border-b border-white/5">
+                                                            <td className="py-2 pr-3 text-foreground">Asset value</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(config.assetValue)}</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(finalValue)}</td>
+                                                            <td className="py-2 text-muted-foreground">{formatCurrency(finalValue - config.assetValue)}</td>
+                                                        </tr>
+                                                        <tr className="border-b border-white/5">
+                                                            <td className="py-2 pr-3 text-foreground">Expected loss</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(scenarioResults.classic.expectedLoss)}</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(selectedScenarioResult.expectedLoss)}</td>
+                                                            <td className="py-2 text-emerald-300">-{formatCurrency(selectedScenarioResult.expectedLossAvoided)}</td>
+                                                        </tr>
+                                                        <tr className="border-b border-white/5">
+                                                            <td className="py-2 pr-3 text-foreground">Tail-risk loss</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(scenarioResults.classic.tailRiskLoss)}</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(selectedScenarioResult.tailRiskLoss)}</td>
+                                                            <td className="py-2 text-emerald-300">-{formatCurrency(selectedScenarioResult.tailRiskAvoided)}</td>
+                                                        </tr>
+                                                        <tr className="border-b border-white/5">
+                                                            <td className="py-2 pr-3 text-foreground">Residual exposure</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{preMigrationVulnerabilityPct.toFixed(1)}% quantum pressure</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{selectedScenarioResult.residualExposurePct.toFixed(1)}%</td>
+                                                            <td className="py-2 text-muted-foreground">{(selectedScenarioResult.residualExposurePct - preMigrationVulnerabilityPct).toFixed(1)} pts</td>
+                                                        </tr>
+                                                        <tr className="border-b border-white/5">
+                                                            <td className="py-2 pr-3 text-foreground">Migration friction</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">$0</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(selectedScenarioResult.frictionCost)}</td>
+                                                            <td className="py-2 text-muted-foreground">~{selectedScenarioResult.timeToMigrateMonths} months</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="py-2 pr-3 text-foreground">NPV</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(scenarioResults.classic.npv)}</td>
+                                                            <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(selectedScenarioResult.npv)}</td>
+                                                            <td className={`py-2 ${selectedScenarioResult.npv >= scenarioResults.classic.npv ? 'text-emerald-300' : 'text-red-300'}`}>
+                                                                {formatCurrency(selectedScenarioResult.npv - scenarioResults.classic.npv)}
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                            <h4 className="text-sm font-semibold text-foreground mb-2">Top Drivers</h4>
+                                            <p className="text-xs text-muted-foreground mb-3">
+                                                Sensitivity computed by varying each key input +/-20% and ranking impact on expected loss and break-even.
+                                            </p>
+                                            <div className="space-y-3">
+                                                {topDrivers.map((driver: SensitivityDriver, index: number) => {
+                                                    const width = `${Math.max(8, (driver.impactScore / maxDriverImpact) * 100)}%`;
+                                                    return (
+                                                        <div key={driver.key} className="rounded-lg border border-white/10 p-3 bg-black/20">
+                                                            <div className="flex items-center justify-between text-xs mb-2">
+                                                                <span className="font-semibold text-foreground">{index + 1}. {driver.label}</span>
+                                                                <span className="text-muted-foreground">impact {driver.impactScore.toFixed(1)}%</span>
+                                                            </div>
+                                                            <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-2">
+                                                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-blue-500" style={{ width }} />
+                                                            </div>
+                                                            <div className="text-[11px] text-muted-foreground space-y-1">
+                                                                <p>Input range: <span className="text-foreground">{driver.inputRangeLabel}</span></p>
+                                                                <p>Expected loss delta: <span className="text-amber-300">{formatCurrency(driver.expectedLossDelta)}</span></p>
+                                                                <p>Break-even delta: <span className="text-sky-300">{driver.breakEvenDeltaMonths.toFixed(1)} months</span> (range {formatBreakEvenRange(driver.breakEvenRangeMonths)})</p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </GlassPanel>
+                        </div>
+                    </div>
+                    )}
+
+                    {activeTab === 'explanation' && (
+                        <div className="space-y-6">
+                            <GlassPanel className="p-6" hoverEffect>
+                                <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
+                                    <Info className="h-5 w-5 text-blue-400" /> What This Simulation Is, Does, and Proposes
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">What it is</p>
+                                        <p className="text-muted-foreground">A strategic model for C-level planning that quantifies classical cryptographic failure exposure and compares migration paths.</p>
+                                    </div>
+                                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">What it does</p>
+                                        <p className="text-muted-foreground">Runs scenario economics, tracks risk-adjusted outcomes, and estimates break-even, friction, residual exposure, and tail loss.</p>
+                                    </div>
+                                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">What it proposes</p>
+                                        <p className="text-muted-foreground">A decision posture ({executiveSummary.recommendationLabel}) using configurable thresholds and top sensitivity drivers.</p>
+                                    </div>
+                                </div>
+                            </GlassPanel>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {EDUCATION_SECTIONS.map((section, index) => (
+                                    <GlassPanel key={index} className="p-6" hoverEffect>
+                                        <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                                            {section.icon} {section.title}
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {section.content.split('\n\n').map((paragraph, paragraphIndex) => (
+                                                <p
+                                                    key={paragraphIndex}
+                                                    className="text-sm text-muted-foreground leading-relaxed"
+                                                    dangerouslySetInnerHTML={{ __html: paragraph.replace(/\*\*(.*?)\*\*/g, '<strong class="text-foreground">$1</strong>') }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </GlassPanel>
                                 ))}
                             </div>
                         </div>
+                    )}
 
-                        {/* Charts */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <GlassPanel className="p-6" hoverEffect>
-                                <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-                                    <TrendingUp className="h-4 w-4 text-emerald-400" /> Value Comparison
-                                </h3>
-                                <ResponsiveContainer width="100%" height={220}>
-                                    <BarChart data={valueComparisonData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
-                                            formatter={(v: number | undefined) => [`$${(v ?? 0).toLocaleString()}`, 'Value']} />
-                                        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                                            {valueComparisonData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
+                    {activeTab === 'executive' && (
+                        <div className="space-y-6 c2q-print-include">
+                            <GlassPanel className="p-6 border-emerald-500/20" hoverEffect>
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                                    <div>
+                                        <h2 className="text-lg font-bold flex items-center gap-2">
+                                            <Shield className="h-5 w-5 text-emerald-400" /> Executive Briefing
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground mt-1">Forwardable decision summary for leadership and treasury teams.</p>
+                                    </div>
+                                    <div className="flex gap-2 c2q-print-exclude">
+                                        <button
+                                            onClick={copySummary}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs hover:border-emerald-400/50 hover:text-emerald-300 transition-colors"
+                                        >
+                                            <Copy className="h-3.5 w-3.5" /> Copy Summary
+                                        </button>
+                                        <button
+                                            onClick={exportPdf}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs hover:border-blue-400/50 hover:text-blue-300 transition-colors"
+                                        >
+                                            <Download className="h-3.5 w-3.5" /> Export PDF
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Expected Loss (Classical)</p>
+                                        <p className="text-xl font-semibold text-red-400">{formatCurrency(executiveSummary.expectedLossClassical)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Tail Risk ({tailRiskLabel}) Loss</p>
+                                        <p className="text-xl font-semibold text-orange-400">{formatCurrency(executiveSummary.tailRiskLoss)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Break-even</p>
+                                        <p className="text-xl font-semibold text-blue-300">{formatBreakEven(executiveSummary.breakEvenMonths)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Residual Exposure</p>
+                                        <p className="text-xl font-semibold text-amber-300">{executiveSummary.residualExposurePct.toFixed(1)}%</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Recommendation</p>
+                                        <p className={`text-xl font-semibold ${recommendationTone}`}>{executiveSummary.recommendationLabel}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Migration Friction Baseline</p>
+                                        <p className="text-xl font-semibold text-slate-300">{formatCurrency(executiveSummary.migrationFrictionCost)}</p>
+                                    </div>
+                                </div>
                             </GlassPanel>
 
                             <GlassPanel className="p-6" hoverEffect>
                                 <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-                                    <AlertTriangle className="h-4 w-4 text-amber-400" /> Quantum Decay Timeline
+                                    <Activity className="h-4 w-4 text-blue-400" /> Financial & Economic Context
                                 </h3>
-                                <ResponsiveContainer width="100%" height={220}>
-                                    <AreaChart data={decayCurveData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                        <XAxis dataKey="year" tick={{ fontSize: 10, fill: '#94a3b8' }} label={{ value: 'Years to CRQC', position: 'insideBottom', offset: -5, style: { fontSize: 10, fill: '#64748b' } }} />
-                                        <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
-                                        <defs>
-                                            <linearGradient id="secGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                            </linearGradient>
-                                            <linearGradient id="riskGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <Area type="monotone" dataKey="security" stroke="#10b981" fill="url(#secGrad)" name="Classical Security %" />
-                                        <Area type="monotone" dataKey="risk" stroke="#ef4444" fill="url(#riskGrad)" name="Quantum Risk %" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                                <p className="text-[10px] text-muted-foreground mt-2 text-center font-mono">D(t) = 1 / (1 + e^(α·(t − Z_est))) | α=1, Z_est=5</p>
-                            </GlassPanel>
-                        </div>
-
-                        {/* Simulation Report */}
-                        {showReport && (
-                            <GlassPanel className="p-6 border-emerald-500/20 animate-fade-in" hoverEffect>
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <CheckCircle className="h-5 w-5 text-emerald-400" /> Migration Report
-                                </h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                    {[
-                                        ['Asset', config.assetType.replace(/_/g, ' '), 'text-foreground'],
-                                        ['Original', `$${config.assetValue.toLocaleString()}`, 'text-red-400'],
-                                        ['Final PQC Value', `$${finalValue.toLocaleString()}`, 'text-emerald-400'],
-                                        ['Decay Factor', quantumDecay(config.riskHorizon).toFixed(4), 'text-amber-400'],
-                                    ].map(([label, val, color]) => (
-                                        <div key={label as string} className="text-center">
-                                            <p className="text-xs text-muted-foreground">{label}</p>
-                                            <p className={`text-lg font-bold ${color}`}>{val}</p>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Loss Geometry (Classical Baseline)</p>
+                                        <div className="space-y-2 text-xs text-muted-foreground">
+                                            <p><span className="text-foreground">Expected loss rate:</span> {formatPct(classicalLossPct)} of asset value ({formatCurrency(executiveSummary.expectedLossClassical)})</p>
+                                            <p><span className="text-foreground">Tail loss rate ({tailRiskLabel}):</span> {formatPct(tailLossPct)} of asset value ({formatCurrency(executiveSummary.tailRiskLoss)})</p>
+                                            <p><span className="text-foreground">Tail amplification:</span> {tailToExpectedMultiple.toFixed(2)}x expected loss</p>
+                                            <p><span className="text-foreground">Annualized expected loss pressure:</span> {formatCurrency(annualizedExpectedLoss)} / year</p>
                                         </div>
+                                    </div>
+
+                                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Decision Economics (Selected Strategy)</p>
+                                        <div className="space-y-2 text-xs text-muted-foreground">
+                                            <p><span className="text-foreground">Selected strategy:</span> {selectedStrategyLabel}</p>
+                                            <p><span className="text-foreground">NPV uplift vs do nothing:</span> {formatCurrency(selectedNpvUpliftVsClassic)}</p>
+                                            <p><span className="text-foreground">Net economic benefit (undiscounted):</span> {formatCurrency(selectedNetEconomicBenefit)}</p>
+                                            <p><span className="text-foreground">Migration friction load:</span> {formatPct(selectedFrictionPct, 2)} of asset value ({formatCurrency(selectedScenarioResult.frictionCost)})</p>
+                                            <p><span className="text-foreground">Benefit / friction ratio:</span> {selectedBenefitCostRatio === null ? 'N/A' : `${selectedBenefitCostRatio.toFixed(2)}x`}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 border-t border-white/10 pt-3 text-xs text-muted-foreground leading-relaxed">
+                                    <span className="text-foreground font-semibold">Interpretation:</span> At the current inputs, the model prices classical exposure at {formatPct(classicalLossPct)}
+                                    with a {tailToExpectedMultiple.toFixed(2)}x tail multiplier. Recommended posture is <span className="text-foreground">{executiveSummary.recommendationLabel}</span>,
+                                    which leaves {formatPct(recommendedScenarioResult.residualExposurePct)} residual exposure and implies break-even of {formatBreakEven(recommendedScenarioResult.breakEvenMonths)}.
+                                </div>
+                            </GlassPanel>
+
+                            <GlassPanel className="p-6" hoverEffect>
+                                <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
+                                    <TrendingUp className="h-4 w-4 text-emerald-400" /> 3-Path Comparison Snapshot
+                                </h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                        <thead>
+                                            <tr className="text-left text-muted-foreground border-b border-white/10">
+                                                <th className="py-2 pr-3">Strategy</th>
+                                                <th className="py-2 pr-3">NPV</th>
+                                                <th className="py-2 pr-3">Expected Loss Avoided</th>
+                                                <th className="py-2 pr-3">Tail-risk Avoided</th>
+                                                <th className="py-2 pr-3">Friction Cost</th>
+                                                <th className="py-2 pr-3">Friction % Asset</th>
+                                                <th className="py-2 pr-3">Benefit / Cost</th>
+                                                <th className="py-2 pr-3">Break-even</th>
+                                                <th className="py-2">Time-to-migrate</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[scenarioResults.classic, scenarioResults.hybrid, scenarioResults.cleanBreak].map(result => {
+                                                const frictionPctOfAsset = (result.frictionCost / assetValueBase) * 100;
+                                                const benefitCostRatio = result.frictionCost > 0 ? result.expectedLossAvoided / result.frictionCost : null;
+                                                return (
+                                                    <tr key={result.scenario} className="border-b border-white/5">
+                                                        <td className="py-2 pr-3 text-foreground">{result.label}</td>
+                                                        <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(result.npv)}</td>
+                                                        <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(result.expectedLossAvoided)}</td>
+                                                        <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(result.tailRiskAvoided)}</td>
+                                                        <td className="py-2 pr-3 text-muted-foreground">{formatCurrency(result.frictionCost)}</td>
+                                                        <td className="py-2 pr-3 text-muted-foreground">{formatPct(frictionPctOfAsset, 2)}</td>
+                                                        <td className="py-2 pr-3 text-muted-foreground">{benefitCostRatio === null ? 'N/A' : `${benefitCostRatio.toFixed(2)}x`}</td>
+                                                        <td className="py-2 pr-3 text-muted-foreground">{formatBreakEven(result.breakEvenMonths)}</td>
+                                                        <td className="py-2 text-muted-foreground">{result.timeToMigrateMonths} months</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </GlassPanel>
+
+                            <GlassPanel className="p-6" hoverEffect>
+                                <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                                    <Activity className="h-4 w-4 text-blue-400" /> Key Assumption Drivers
+                                </h3>
+                                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                                    Sensitivity ranking uses +/-20% shocks. These are the variables most likely to move board-level outcomes (expected loss and break-even timing).
+                                </p>
+                                <div className="space-y-2 text-sm text-muted-foreground">
+                                    {topDriverPreview.map(driver => (
+                                        <p key={driver.key}>
+                                            <span className="text-foreground font-semibold">{driver.label}:</span> range {driver.inputRangeLabel}, expected loss delta {formatCurrency(driver.expectedLossDelta)}, break-even delta {driver.breakEvenDeltaMonths.toFixed(1)} months
+                                        </p>
                                     ))}
                                 </div>
-                                <div className="text-xs text-muted-foreground space-y-1 border-t border-white/5 pt-3">
-                                    <p>✓ All 6 migration steps completed successfully</p>
-                                    <p>✓ PQC Framework: ML-DSA-87 (CRYSTALS-Dilithium5) + ML-KEM-1024</p>
-                                    <p>✓ Anchored and attested on Dytallix chain</p>
-                                    <p>✓ Classical cryptographic lineage fully severed — zero backward compatibility</p>
-                                </div>
                             </GlassPanel>
-                        )}
+                        </div>
+                    )}
 
-
-                    </div>
+                    {activeTab === 'math' && (
+                        <div className="space-y-6">
+                            <C2QDeepDiveContent embedded />
+                        </div>
+                    )}
                 </div>
             </Section>
 
             {/* Historical & Economic Context */}
-            <Section className="relative z-10 mt-0">
-                <div>
+            {activeTab === 'historical' && (
+            <Section className="relative z-10 mt-0 pt-4 md:pt-6 c2q-print-exclude" fullWidth>
+                <div className="container mx-auto px-4 space-y-6">
                     <div className="text-center mb-10">
                         <h2 className="text-3xl md:text-4xl font-bold mb-4">
                             <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
@@ -725,6 +1311,7 @@ const C2QAssetMigration: React.FC = () => {
                     </div>
                 </div>
             </Section>
+            )}
         </div>
     );
 };

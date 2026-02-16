@@ -52,19 +52,20 @@ const ParamTable: React.FC<{ headers: string[]; rows: string[][] }> = ({ headers
     </div>
 );
 
-// --- Main Component ---
-const C2QDeepDive: React.FC = () => {
+// --- Reusable Deep Dive Content ---
+export const C2QDeepDiveContent: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
     return (
-        <div className="min-h-screen bg-background pt-24 pb-20">
-            <Section className="relative z-10">
+        <>
                 {/* Back Link */}
-                <Link to="/C2QAssetMigration" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-emerald-400 transition-colors mb-8 group">
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                    Back to Migration Dashboard
-                </Link>
+                {!embedded && (
+                    <Link to="/C2QAssetMigration" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-emerald-400 transition-colors mb-8 group">
+                        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                        Back to Migration Dashboard
+                    </Link>
+                )}
 
                 {/* Hero */}
-                <div className="text-center max-w-4xl mx-auto mb-16">
+                <div className={`text-center max-w-4xl mx-auto ${embedded ? 'mb-10' : 'mb-16'}`}>
                     <div className="flex items-center justify-center gap-3 mb-6">
                         <BookOpen className="w-10 h-10 text-emerald-400" />
                         <h1 className="text-3xl md:text-5xl font-bold">
@@ -544,13 +545,25 @@ const C2QDeepDive: React.FC = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-16 text-center">
-                    <Link to="/C2QAssetMigration"
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 text-white font-semibold hover:opacity-90 transition-opacity">
-                        <ArrowLeft className="h-4 w-4" />
-                        Return to Migration Dashboard
-                    </Link>
-                </div>
+                {!embedded && (
+                    <div className="mt-16 text-center">
+                        <Link to="/C2QAssetMigration"
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 text-white font-semibold hover:opacity-90 transition-opacity">
+                            <ArrowLeft className="h-4 w-4" />
+                            Return to Migration Dashboard
+                        </Link>
+                    </div>
+                )}
+        </>
+    );
+};
+
+// --- Main Component ---
+const C2QDeepDive: React.FC = () => {
+    return (
+        <div className="min-h-screen bg-background pt-24 pb-20">
+            <Section className="relative z-10">
+                <C2QDeepDiveContent />
             </Section>
         </div>
     );
