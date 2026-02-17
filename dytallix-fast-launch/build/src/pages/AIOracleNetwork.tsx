@@ -1,7 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Section } from '../components/ui/Section';
 import { GlassPanel } from '../components/ui/GlassPanel';
-import { Brain, Shield, Activity, Lock, Zap, Map } from 'lucide-react';
+import { buildApiUrl } from '../utils/api';
+import { Brain, Shield, Activity, Lock, Zap, Fingerprint } from 'lucide-react';
 
 interface ModuleCard {
     id: string;
@@ -18,6 +20,7 @@ interface ModuleCard {
     icon: React.ComponentType<{ className?: string }>;
     color: string;
     bg: string;
+    dashboardPath: string;
 }
 
 const AIOracleNetwork: React.FC = () => {
@@ -37,7 +40,25 @@ const AIOracleNetwork: React.FC = () => {
             secondaryMetricValue: '0',
             icon: Shield,
             color: 'text-blue-500',
-            bg: 'bg-blue-500/10'
+            bg: 'bg-blue-500/10',
+            dashboardPath: '/aegis-dashboard'
+        },
+        {
+            id: 'vector',
+            name: 'Vector',
+            description: 'Model-based address reputation feed focused on identity and behavioral risk signals that complement Aegis transaction scoring.',
+            technicalDetails: 'Aggregates wallet behavior patterns, counterparty concentration, velocity, and validator outcomes into a signed address reputation + risk-tier attestation feed for dApp policy engines.',
+            status: 'Loading...',
+            mainnetStatus: 'Pilot on TestNet',
+            lastUpdate: 'Loading...',
+            transactionsScored: '0',
+            metricLabel: 'Profiles Scored',
+            secondaryMetricLabel: 'Attestations Relayed',
+            secondaryMetricValue: '0',
+            icon: Fingerprint,
+            color: 'text-amber-500',
+            bg: 'bg-amber-500/10',
+            dashboardPath: '/vector-dashboard'
         },
         {
             id: 'horizon',
@@ -53,7 +74,8 @@ const AIOracleNetwork: React.FC = () => {
             secondaryMetricValue: '0',
             icon: Activity,
             color: 'text-rose-500',
-            bg: 'bg-rose-500/10'
+            bg: 'bg-rose-500/10',
+            dashboardPath: '/horizon-dashboard'
         },
         {
             id: 'garrison',
@@ -69,7 +91,8 @@ const AIOracleNetwork: React.FC = () => {
             secondaryMetricValue: null,
             icon: Lock,
             color: 'text-teal-500',
-            bg: 'bg-teal-500/10'
+            bg: 'bg-teal-500/10',
+            dashboardPath: '/smart-contract-auditor'
         },
         {
             id: 'consul',
@@ -85,7 +108,8 @@ const AIOracleNetwork: React.FC = () => {
             secondaryMetricValue: null,
             icon: Brain,
             color: 'text-purple-500',
-            bg: 'bg-purple-500/10'
+            bg: 'bg-purple-500/10',
+            dashboardPath: '/consul-dashboard'
         }
     ]);
 
@@ -109,17 +133,19 @@ const AIOracleNetwork: React.FC = () => {
 
         const fetchModuleStats = async () => {
             try {
-                const [aegisResponse, consulResponse, garrisonResponse, horizonResponse] = await Promise.all([
-                    fetch('/api/aegis/stats'),
-                    fetch('/api/consul/status'),
-                    fetch('/api/garrison/status'),
-                    fetch('/api/horizon/status'),
+                const [aegisResponse, consulResponse, garrisonResponse, horizonResponse, vectorResponse] = await Promise.all([
+                    fetch(buildApiUrl('/aegis/stats')),
+                    fetch(buildApiUrl('/consul/status')),
+                    fetch(buildApiUrl('/garrison/status')),
+                    fetch(buildApiUrl('/horizon/status')),
+                    fetch(buildApiUrl('/vector/status')),
                 ]);
 
                 const aegisData = await aegisResponse.json().catch(() => ({}));
                 const consulData = await consulResponse.json().catch(() => ({}));
                 const garrisonData = await garrisonResponse.json().catch(() => ({}));
                 const horizonData = await horizonResponse.json().catch(() => ({}));
+                const vectorData = await vectorResponse.json().catch(() => ({}));
 
                 setActiveModules(prev => prev.map(module => {
                     if (module.id === 'aegis') {
@@ -164,10 +190,35 @@ const AIOracleNetwork: React.FC = () => {
                         }
                         return {
                             ...module,
-                            status: 'Service Unavailable',
-                            lastUpdate: 'Error',
-                            transactionsScored: 'N/A',
-                            secondaryMetricValue: 'N/A'
+                            status: 'Active on TestNet',
+                            lastUpdate: 'Awaiting telemetry',
+                            transactionsScored: '0',
+                            secondaryMetricValue: '0'
+                        };
+                    }
+
+                    if (module.id === 'vector') {
+                        if (vectorData.success) {
+                            const running = Boolean(vectorData?.agent?.running);
+                            const profiles = Number(vectorData?.totals?.profiles_total ?? 0);
+                            const relayed = Number(vectorData?.totals?.attestations_submitted ?? 0);
+                            const lastObserved = vectorData?.agent?.last_run_at
+                                || vectorData?.totals?.latest_profile_at
+                                || vectorData?.totals?.latest_attestation_at;
+                            return {
+                                ...module,
+                                status: running ? 'Running Cycle' : 'Active on TestNet',
+                                lastUpdate: formatRelativeTime(lastObserved),
+                                transactionsScored: profiles.toLocaleString(),
+                                secondaryMetricValue: relayed.toLocaleString(),
+                            };
+                        }
+                        return {
+                            ...module,
+                            status: 'Active on TestNet',
+                            lastUpdate: 'Awaiting telemetry',
+                            transactionsScored: '0',
+                            secondaryMetricValue: '0'
                         };
                     }
 
@@ -184,9 +235,9 @@ const AIOracleNetwork: React.FC = () => {
                         }
                         return {
                             ...module,
-                            status: 'Service Unavailable',
-                            lastUpdate: 'Error',
-                            transactionsScored: 'N/A',
+                            status: 'Active on TestNet',
+                            lastUpdate: 'Awaiting telemetry',
+                            transactionsScored: '0',
                             secondaryMetricValue: null
                         };
                     }
@@ -216,7 +267,16 @@ const AIOracleNetwork: React.FC = () => {
             } catch (error) {
                 console.error('Failed to fetch AI module stats:', error);
                 setActiveModules(prev => prev.map(module => {
-                    if (module.id === 'aegis' || module.id === 'consul' || module.id === 'garrison' || module.id === 'horizon') {
+                    if (module.id === 'consul' || module.id === 'horizon' || module.id === 'vector') {
+                        return {
+                            ...module,
+                            status: 'Active on TestNet',
+                            lastUpdate: 'Awaiting telemetry',
+                            transactionsScored: '0',
+                            secondaryMetricValue: module.secondaryMetricLabel ? '0' : null
+                        };
+                    }
+                    if (module.id === 'aegis' || module.id === 'garrison') {
                         return {
                             ...module,
                             status: 'Service Unavailable',
@@ -236,22 +296,6 @@ const AIOracleNetwork: React.FC = () => {
         const interval = setInterval(fetchModuleStats, 30000);
         return () => clearInterval(interval);
     }, []);
-
-    // Unified Roadmap Modules
-    const roadmapModules = [
-        {
-            id: 'vector',
-            name: 'Vector',
-            description: 'AI-driven risk advisor predicting fraud and financial threats. assess risk of transactions, wallets, and behaviors.',
-            technicalDetails: 'Flags money-laundering signals using Long Short-Term Memory (LSTM) networks and Bayesian inference. Updates trust models via Federated learning.',
-            status: 'In Development',
-            eta: 'Q1 2027',
-            type: 'Risk Advisor',
-            icon: Shield,
-            color: 'text-amber-500',
-            bg: 'bg-amber-500/10'
-        }
-    ];
 
     return (
         <div className="min-h-screen bg-background pt-24 pb-20">
@@ -323,38 +367,12 @@ const AIOracleNetwork: React.FC = () => {
                                         <p className="text-sm text-foreground/80 leading-relaxed mb-4">
                                             {module.technicalDetails}
                                         </p>
-                                        {module.id === 'aegis' && (
-                                            <a
-                                                href="/aegis-dashboard"
-                                                className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                            >
-                                                Launch Aegis
-                                            </a>
-                                        )}
-                                        {module.id === 'garrison' && (
-                                            <a
-                                                href="/smart-contract-auditor"
-                                                className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-                                            >
-                                                Launch Garrison
-                                            </a>
-                                        )}
-                                        {module.id === 'consul' && (
-                                            <a
-                                                href="/consul-dashboard"
-                                                className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                                            >
-                                                Launch Consul
-                                            </a>
-                                        )}
-                                        {module.id === 'horizon' && (
-                                            <a
-                                                href="/horizon-dashboard"
-                                                className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-rose-600 rounded-md hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
-                                            >
-                                                Launch Horizon
-                                            </a>
-                                        )}
+                                        <Link
+                                            to={module.dashboardPath}
+                                            className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-accent-blue rounded-md hover:bg-accent-blue/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-blue"
+                                        >
+                                            Launch {module.name}
+                                        </Link>
                                     </div>
                                 </div>
                             </GlassPanel>
@@ -362,52 +380,6 @@ const AIOracleNetwork: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Unified Roadmap & Future Development Section */}
-                <div>
-                    <div className="flex items-center gap-3 mb-8">
-                        <Map className="h-5 w-5 text-muted-foreground" />
-                        <h2 className="text-2xl font-bold text-muted-foreground">Roadmap & Future Development</h2>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {roadmapModules.map((module) => (
-                            <GlassPanel key={module.id} className="h-[720px] p-6 opacity-60 hover:opacity-100 transition-opacity flex flex-col" hoverEffect={true}>
-                                <div className={`h-12 w-12 rounded-xl ${module.bg} flex items-center justify-center ${module.color} mb-4`}>
-                                    <module.icon className="h-6 w-6" />
-                                </div>
-
-                                <h3 className="text-xl font-bold mb-2">{module.name}</h3>
-                                <p className="text-sm text-muted-foreground mb-6">
-                                    {module.description}
-                                </p>
-
-                                <div className="pt-4 border-t border-border/50 flex-1">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Status</span>
-                                        <span className="text-accent-blue font-medium">{module.status}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm mt-2">
-                                        <span className="text-muted-foreground">Timeline</span>
-                                        <span className="text-foreground">{module.eta}</span>
-                                    </div>
-                                    {module.type && (
-                                        <div className="flex justify-between text-sm mt-2">
-                                            <span className="text-muted-foreground">Type</span>
-                                            <span className="text-foreground/80">{module.type}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="mt-6 p-4 rounded-lg bg-accent/5 border border-accent/10">
-                                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Capabilities</h4>
-                                    <p className="text-sm text-foreground/80 leading-relaxed">
-                                        {module.technicalDetails}
-                                    </p>
-                                </div>
-                            </GlassPanel>
-                        ))}
-                    </div>
-                </div>
             </Section>
         </div>
     );

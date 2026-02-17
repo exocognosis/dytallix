@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { renderToString } from 'react-dom/server'

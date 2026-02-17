@@ -10,8 +10,12 @@ export default defineConfig({
         environment: 'node',
 
         // Test patterns
-        include: ['tests/**/*.test.js'],
-        exclude: ['node_modules', 'dist', 'build'],
+        include: [
+            'tests/**/*.test.js',
+            'build/src/**/*.test.{js,jsx,ts,tsx}',
+            'build/src/**/*.smoke.test.{js,jsx,ts,tsx}',
+        ],
+        exclude: ['node_modules', 'dist'],
 
         // Coverage configuration
         coverage: {
