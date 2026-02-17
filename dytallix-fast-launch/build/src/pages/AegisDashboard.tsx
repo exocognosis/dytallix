@@ -3,10 +3,13 @@ import { Section } from '../components/ui/Section';
 import { GlassPanel } from '../components/ui/GlassPanel';
 import {
     Shield, Activity, TrendingUp, AlertTriangle, CheckCircle, Clock,
-    ChevronDown, ChevronUp, Copy, Check, Info, Zap, Database, Lock, Wifi, WifiOff
+    ChevronDown, ChevronUp, Copy, Check, Info, Zap, Database, Lock, Wifi, WifiOff, Bot, Search
 } from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { useAegisWebSocket, type AegisAlert } from '../hooks/useAegisWebSocket';
 import { AlertContainer } from '../components/aegis/AlertToast';
+import { buildApiUrl } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
 
 interface AegisStats {
     total_transactions: number;
@@ -45,15 +48,137 @@ interface RecentAnalysis {
     };
 }
 
+interface AegisQueueStats {
+    pending: number;
+    approved: number;
+    rejected: number;
+    expired: number;
+    critical: number;
+    high: number;
+    normal: number;
+    oldest_pending?: { created_at: string; expires_at: string } | null;
+}
+
+interface AegisInsightsBucket {
+    t: string;
+    total: number;
+    high: number;
+    medium: number;
+    low: number;
+    avg_risk: number;
+}
+
+interface AegisRecommendation {
+    id: string;
+    severity: 'info' | 'warn' | 'critical';
+    title: string;
+    message: string;
+    action?: string;
+}
+
+interface AegisTopWallet {
+    address: string;
+    tx_count: number;
+    avg_risk_score: number;
+    max_risk_score: number;
+    last_seen: string;
+}
+
+interface AegisInsights {
+    generated_at: string;
+    window: { hours: number; bucket_minutes: number };
+    series: AegisInsightsBucket[];
+    forecast: {
+        next_bucket: {
+            t: string;
+            bucket_minutes: number;
+            total: number;
+            high: number;
+            medium: number;
+            low: number;
+            high_ratio: number;
+            confidence: number;
+            method: string;
+            total_ci?: { lower: number; upper: number };
+            high_ratio_ci?: { lower: number; upper: number };
+        };
+    };
+    queue?: AegisQueueStats;
+    throttled_wallets?: number;
+    top_wallets?: AegisTopWallet[];
+    recommendations: AegisRecommendation[];
+}
+
+interface AegisPosture {
+    generated_at: string;
+    window: { days: number };
+    sla: {
+        critical: {
+            minutes: number;
+            pending_breached: number;
+            pending_due_soon: number;
+            decided_total: number;
+            decided_within_sla: number;
+            compliance_rate: number;
+        };
+        high: {
+            minutes: number;
+            pending_breached: number;
+            pending_due_soon: number;
+            decided_total: number;
+            decided_within_sla: number;
+            compliance_rate: number;
+        };
+    };
+    time_to_decision_minutes: {
+        overall: { count: number; avg_minutes: number; p50_minutes: number; p90_minutes: number; p95_minutes: number };
+        critical: { count: number; avg_minutes: number; p50_minutes: number; p90_minutes: number; p95_minutes: number };
+        high: { count: number; avg_minutes: number; p50_minutes: number; p90_minutes: number; p95_minutes: number };
+    };
+    outcomes: {
+        overall: { approved: number; rejected: number; expired: number; false_positive_rate: number };
+        critical: { approved: number; rejected: number; expired: number; false_positive_rate: number };
+        high: { approved: number; rejected: number; expired: number; false_positive_rate: number };
+    };
+    notes?: string[];
+}
+
+type AegisLookupType = 'auto' | 'wallet' | 'transaction' | 'block' | 'attestation' | 'anchoring';
+
+interface AegisSearchRisk {
+    risk_score: number;
+    risk_level: string;
+    confidence?: number | null;
+    recommendation?: string;
+}
+
+interface AegisSearchResult {
+    success: boolean;
+    type: string;
+    query: string;
+    source?: string;
+    risk?: AegisSearchRisk | null;
+    timestamp?: string;
+    [key: string]: unknown;
+}
+
 const AegisDashboard: React.FC = () => {
+    const navigate = useNavigate();
     const [stats, setStats] = useState<AegisStats | null>(null);
     const [recentAnalyses, setRecentAnalyses] = useState<RecentAnalysis[]>([]);
+    const [insights, setInsights] = useState<AegisInsights | null>(null);
+    const [posture, setPosture] = useState<AegisPosture | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [copiedHash, setCopiedHash] = useState<string | null>(null);
     const [showTechDetails, setShowTechDetails] = useState(false);
     const [activeAlerts, setActiveAlerts] = useState<AegisAlert[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchType, setSearchType] = useState<AegisLookupType>('auto');
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [searchResult, setSearchResult] = useState<AegisSearchResult | null>(null);
 
     // WebSocket connection for real-time alerts
     const { isConnected, latestAlert } = useAegisWebSocket();
@@ -75,8 +200,8 @@ const AegisDashboard: React.FC = () => {
                 setLoading(true);
 
                 const [statsRes, recentRes] = await Promise.all([
-                    fetch('/api/aegis/stats'),
-                    fetch('/api/aegis/recent?limit=20')
+                    fetch(buildApiUrl('/aegis/stats')),
+                    fetch(buildApiUrl('/aegis/recent?limit=20'))
                 ]);
 
                 const statsData = await statsRes.json();
@@ -88,6 +213,32 @@ const AegisDashboard: React.FC = () => {
 
                 if (recentData.success) {
                     setRecentAnalyses(recentData.analyses);
+                }
+
+                // Insights are optional; keep dashboard usable even if the endpoint is unavailable.
+                try {
+                    const insightsRes = await fetch(buildApiUrl('/aegis/insights?hours=24&bucket_minutes=60&top_wallets=5'));
+                    if (insightsRes.ok) {
+                        const insightsData = await insightsRes.json();
+                        if (insightsData.success) {
+                            setInsights(insightsData.insights);
+                        }
+                    }
+                } catch (e) {
+                    // Non-fatal
+                }
+
+                // Posture KPIs are optional; keep dashboard usable even if unavailable.
+                try {
+                    const postureRes = await fetch(buildApiUrl('/aegis/posture?days=7'));
+                    if (postureRes.ok) {
+                        const postureData = await postureRes.json();
+                        if (postureData.success) {
+                            setPosture(postureData.posture);
+                        }
+                    }
+                } catch (e) {
+                    // Non-fatal
                 }
 
                 setError(null);
@@ -136,6 +287,63 @@ const AegisDashboard: React.FC = () => {
 
     const toggleRow = (hash: string) => {
         setExpandedRow(expandedRow === hash ? null : hash);
+    };
+
+    const formatBucketLabel = (iso: string) => {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return iso;
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const getSearchPlaceholder = (lookupType: AegisLookupType) => {
+        switch (lookupType) {
+            case 'wallet':
+                return 'dytallix1... wallet address';
+            case 'transaction':
+                return '0x... transaction hash';
+            case 'block':
+                return 'Block height or hash';
+            case 'attestation':
+                return 'Transaction hash tied to oracle attestation';
+            case 'anchoring':
+                return 'anchor:<hash>, block height, or anchored asset hash';
+            default:
+                return 'Auto-detect wallet, transaction, block, attestation, or anchoring';
+        }
+    };
+
+    const handleAegisSearch = async () => {
+        const query = searchQuery.trim();
+        if (!query) {
+            setSearchError('Enter a wallet, transaction hash, block, attestation, or anchoring reference.');
+            return;
+        }
+
+        setSearchLoading(true);
+        setSearchError(null);
+
+        try {
+            const params = new URLSearchParams({
+                q: query,
+                type: searchType
+            });
+            const response = await fetch(buildApiUrl(`/aegis/search?${params.toString()}`));
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok || !payload?.success) {
+                setSearchResult(null);
+                setSearchError(payload?.error || 'Lookup failed');
+                return;
+            }
+
+            setSearchResult(payload as AegisSearchResult);
+        } catch (err) {
+            setSearchResult(null);
+            setSearchError('Failed to query Aegis search API');
+            console.error('Aegis search failed', err);
+        } finally {
+            setSearchLoading(false);
+        }
     };
 
     if (loading && !stats) {
@@ -191,9 +399,10 @@ const AegisDashboard: React.FC = () => {
                         <div className="flex-1">
                             <h3 className="text-xl font-bold mb-3">What is Aegis?</h3>
                             <p className="text-muted-foreground mb-4 leading-relaxed">
-                                Aegis is a quantum-resistant active defense system that provides real-time assessment of transaction vulnerability.
-                                Using advanced multi-factor risk scoring and post-quantum cryptography, Aegis analyzes wallet behavior,
-                                transaction patterns, and cryptographic primitives to identify potentially malicious activity before it impacts the network.
+                                Aegis is Dytallix's transaction and wallet defense layer. It scores risk in real time, signs oracle attestations
+                                with post-quantum cryptography, and coordinates automated actions such as review queueing, throttling, and
+                                governance escalation when confidence is high. It also provides predictive risk insights and posture metrics
+                                so operators can act before threats spread.
                             </p>
 
                             <button
@@ -209,16 +418,20 @@ const AegisDashboard: React.FC = () => {
                                     <div>
                                         <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
                                             <Lock className="h-4 w-4 text-purple-500" />
-                                            Quantum-Resistant Cryptography
+                                            Oracle Attestations and Cryptography
                                         </h4>
                                         <ul className="text-sm text-muted-foreground space-y-2 ml-6">
                                             <li className="flex items-start gap-2">
                                                 <span className="text-accent-blue mt-1">•</span>
-                                                <span><strong className="text-foreground">ML-DSA-87 (CRYSTALS-Dilithium):</strong> NIST-standardized post-quantum digital signatures with 2592-byte public keys, providing Level 5 security against quantum attacks</span>
+                                                <span><strong className="text-foreground">ML-DSA-87 signatures:</strong> Canonical risk payloads are signed with context-aware PQC signatures for verifiable oracle provenance</span>
                                             </li>
                                             <li className="flex items-start gap-2">
                                                 <span className="text-accent-blue mt-1">•</span>
-                                                <span><strong className="text-foreground">Kyber-1024:</strong> Lattice-based encryption (integration pending) for quantum-resistant data protection</span>
+                                                <span><strong className="text-foreground">Structured attestation schema:</strong> Includes tx hash, model id, score (0-1), confidence, nonce, expiry, signature, and oracle public key</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">On-chain relay path:</strong> Attestations are relayed to oracle batch ingest endpoints and relay outcomes are tracked per analysis</span>
                                             </li>
                                         </ul>
                                     </div>
@@ -226,24 +439,24 @@ const AegisDashboard: React.FC = () => {
                                     <div>
                                         <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
                                             <Activity className="h-4 w-4 text-amber-500" />
-                                            Multi-Factor Risk Scoring
+                                            Agentic Risk Controls
                                         </h4>
                                         <ul className="text-sm text-muted-foreground space-y-2 ml-6">
                                             <li className="flex items-start gap-2">
                                                 <span className="text-accent-blue mt-1">•</span>
-                                                <span><strong className="text-foreground">Wallet Age (25%):</strong> Newer wallets receive higher risk scores</span>
+                                                <span><strong className="text-foreground">Heuristic multi-factor scoring:</strong> Wallet age, transaction patterns, amount anomalies, and interaction diversity produce risk + confidence</span>
                                             </li>
                                             <li className="flex items-start gap-2">
                                                 <span className="text-accent-blue mt-1">•</span>
-                                                <span><strong className="text-foreground">Transaction Patterns (30%):</strong> Detects bot-like behavior and anomalies</span>
+                                                <span><strong className="text-foreground">Automated actions:</strong> High-risk flows can trigger review queueing, dynamic throttles, and real-time alert broadcasts</span>
                                             </li>
                                             <li className="flex items-start gap-2">
                                                 <span className="text-accent-blue mt-1">•</span>
-                                                <span><strong className="text-foreground">Amount Anomalies (25%):</strong> Statistical analysis of transaction amounts</span>
+                                                <span><strong className="text-foreground">Escalation logic:</strong> Critical high-confidence events can open governance/slashing escalation records for operator review</span>
                                             </li>
                                             <li className="flex items-start gap-2">
                                                 <span className="text-accent-blue mt-1">•</span>
-                                                <span><strong className="text-foreground">Interaction Diversity (20%):</strong> Identifies wash trading patterns</span>
+                                                <span><strong className="text-foreground">Human-in-the-loop controls:</strong> Analysts can approve/reject queued cases while preserving a full audit trail</span>
                                             </li>
                                         </ul>
                                     </div>
@@ -251,18 +464,121 @@ const AegisDashboard: React.FC = () => {
                                     <div>
                                         <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
                                             <Database className="h-4 w-4 text-green-500" />
-                                            Real-Time Monitoring
+                                            Predictive and Feedback Intelligence
                                         </h4>
-                                        <p className="text-sm text-muted-foreground ml-6">
-                                            All risk scores are signed with ML-DSA-87 quantum-resistant signatures and stored on-chain for
-                                            transparent verification. The system analyzes transactions in real-time, providing immediate
-                                            risk assessments with confidence scores based on available data.
-                                        </p>
+                                        <ul className="text-sm text-muted-foreground space-y-2 ml-6">
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">Predictive insights:</strong> Forecasts near-term high-risk activity, queue pressure, and top risky wallets from recent telemetry</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">Security posture metrics:</strong> Tracks review SLA compliance, time-to-decision, and approximate false-positive rates</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-accent-blue mt-1">•</span>
+                                                <span><strong className="text-foreground">Validator feedback loop:</strong> Captures outcome reports and computes oracle accuracy/reputation over configurable windows</span>
+                                            </li>
+                                        </ul>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
+                </GlassPanel>
+
+                <GlassPanel className="p-6 mb-12" hoverEffect>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <Search className="h-5 w-5 text-blue-500" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold">Search And Analyze</h2>
+                            <p className="text-sm text-muted-foreground">
+                                Query wallet, transaction, block, attestation, or anchoring records and return a live risk posture.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_auto] gap-3">
+                        <select
+                            value={searchType}
+                            onChange={(event) => setSearchType(event.target.value as AegisLookupType)}
+                            className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        >
+                            <option value="auto">Auto Detect</option>
+                            <option value="wallet">Wallet</option>
+                            <option value="transaction">Transaction</option>
+                            <option value="block">Block</option>
+                            <option value="attestation">Attestation</option>
+                            <option value="anchoring">Anchoring</option>
+                        </select>
+
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    handleAegisSearch();
+                                }
+                            }}
+                            placeholder={getSearchPlaceholder(searchType)}
+                            className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+
+                        <button
+                            onClick={handleAegisSearch}
+                            disabled={searchLoading}
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <Search className="h-4 w-4" />
+                            {searchLoading ? 'Analyzing...' : 'Analyze'}
+                        </button>
+                    </div>
+
+                    {searchError && (
+                        <div className="mt-4 p-3 rounded-lg border border-red-500/30 bg-red-500/10">
+                            <p className="text-sm text-red-400">{searchError}</p>
+                        </div>
+                    )}
+
+                    {searchResult && (
+                        <div className="mt-4 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div className="p-3 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Type</p>
+                                    <p className="text-sm font-semibold capitalize">{searchResult.type}</p>
+                                </div>
+                                <div className="p-3 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Source</p>
+                                    <p className="text-sm font-semibold">{searchResult.source || 'Aegis'}</p>
+                                </div>
+                                <div className="p-3 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Risk</p>
+                                    {searchResult.risk ? (
+                                        <p className={`text-sm font-semibold ${getRiskColor(searchResult.risk.risk_score)}`}>
+                                            {searchResult.risk.risk_level} ({searchResult.risk.risk_score})
+                                        </p>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">Not available</p>
+                                    )}
+                                </div>
+                                <div className="p-3 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Recommendation</p>
+                                    <p className="text-sm font-semibold">{searchResult.risk?.recommendation || 'N/A'}</p>
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-lg border border-border/30 bg-black/20">
+                                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Result Payload</p>
+                                <pre className="text-xs md:text-sm font-mono whitespace-pre-wrap break-all max-h-[360px] overflow-auto text-foreground/90">
+                                    {JSON.stringify(searchResult, null, 2)}
+                                </pre>
+                            </div>
+                        </div>
+                    )}
                 </GlassPanel>
 
                 {error && (
@@ -371,6 +687,258 @@ const AegisDashboard: React.FC = () => {
                     </div>
                 )
                 }
+
+                {/* Security Posture KPIs */}
+                {posture && (
+                    <GlassPanel className="p-6 mb-12" hoverEffect>
+                        <div className="flex items-center justify-between gap-4 mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                                    <Shield className="h-5 w-5 text-green-500" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold">Security Posture</h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        Last {posture.window.days}d • updated {new Date(posture.generated_at).toLocaleTimeString()}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => navigate('/aegis-review-queue')}
+                                className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 transition-colors"
+                            >
+                                Review Queue
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className={`p-4 rounded-lg border ${posture.sla.critical.pending_breached > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-border/30 bg-accent/5'}`}>
+                                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">CRITICAL SLA</p>
+                                <p className="text-2xl font-bold text-red-500">{Math.round(posture.sla.critical.compliance_rate * 100)}%</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {posture.sla.critical.decided_within_sla}/{posture.sla.critical.decided_total} within {posture.sla.critical.minutes}m
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Breaches: {posture.sla.critical.pending_breached} • Due soon: {posture.sla.critical.pending_due_soon}
+                                </p>
+                            </div>
+
+                            <div className={`p-4 rounded-lg border ${posture.sla.high.pending_breached > 0 ? 'border-amber-500/30 bg-amber-500/5' : 'border-border/30 bg-accent/5'}`}>
+                                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">HIGH SLA</p>
+                                <p className="text-2xl font-bold text-amber-500">{Math.round(posture.sla.high.compliance_rate * 100)}%</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {posture.sla.high.decided_within_sla}/{posture.sla.high.decided_total} within {Math.round(posture.sla.high.minutes / 60)}h
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Breaches: {posture.sla.high.pending_breached} • Due soon: {posture.sla.high.pending_due_soon}
+                                </p>
+                            </div>
+
+                            <div className="p-4 rounded-lg border border-border/30 bg-accent/5">
+                                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Time To Decision</p>
+                                <p className="text-2xl font-bold">{posture.time_to_decision_minutes.overall.p50_minutes}m</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    P95: {posture.time_to_decision_minutes.overall.p95_minutes}m • n={posture.time_to_decision_minutes.overall.count}
+                                </p>
+                            </div>
+
+                            <div className="p-4 rounded-lg border border-border/30 bg-accent/5">
+                                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">False Positives (Approx)</p>
+                                <p className="text-2xl font-bold">{Math.round(posture.outcomes.overall.false_positive_rate * 100)}%</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Approved {posture.outcomes.overall.approved} • Rejected {posture.outcomes.overall.rejected}
+                                </p>
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground mt-4">
+                            Containment is proxied by time-to-review-decision; FP rate is approximated from approve/reject outcomes.
+                        </p>
+                    </GlassPanel>
+                )}
+
+                {/* Predictive + Agentic Insights */}
+                {insights && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+                        {/* Predictive Outlook */}
+                        <GlassPanel className="p-6" hoverEffect>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                                    <TrendingUp className="h-5 w-5 text-amber-500" />
+                                </div>
+                                <div className="flex-1">
+                                    <h2 className="text-xl font-bold">Predictive Outlook</h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        Next bucket forecast ({insights.window.bucket_minutes}m) • confidence {(insights.forecast.next_bucket.confidence * 100).toFixed(0)}%
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className="p-4 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total</p>
+                                    <p className="text-2xl font-bold">{insights.forecast.next_bucket.total}</p>
+                                    {insights.forecast.next_bucket.total_ci && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            CI: {insights.forecast.next_bucket.total_ci.lower}–{insights.forecast.next_bucket.total_ci.upper}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="p-4 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">High Risk</p>
+                                    <p className="text-2xl font-bold text-red-500">{insights.forecast.next_bucket.high}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Share: {(insights.forecast.next_bucket.high_ratio * 100).toFixed(0)}%
+                                    </p>
+                                </div>
+                                <div className="p-4 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Medium Risk</p>
+                                    <p className="text-2xl font-bold text-amber-500">{insights.forecast.next_bucket.medium}</p>
+                                </div>
+                                <div className="p-4 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Low Risk</p>
+                                    <p className="text-2xl font-bold text-green-500">{insights.forecast.next_bucket.low}</p>
+                                </div>
+                            </div>
+
+                            <div className="h-56">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart
+                                        data={(insights.series || []).map(p => ({
+                                            ...p,
+                                            label: formatBucketLabel(p.t)
+                                        }))}
+                                        margin={{ top: 10, right: 10, bottom: 0, left: 0 }}
+                                    >
+                                        <defs>
+                                            <linearGradient id="aegisHigh" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.35} />
+                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05} />
+                                            </linearGradient>
+                                            <linearGradient id="aegisMedium" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.30} />
+                                                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05} />
+                                            </linearGradient>
+                                            <linearGradient id="aegisLow" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                        <XAxis dataKey="label" tick={{ fontSize: 12 }} axisLine={{ stroke: 'rgba(255,255,255,0.15)' }} tickLine={{ stroke: 'rgba(255,255,255,0.15)' }} />
+                                        <YAxis tick={{ fontSize: 12 }} axisLine={{ stroke: 'rgba(255,255,255,0.15)' }} tickLine={{ stroke: 'rgba(255,255,255,0.15)' }} />
+                                        <Tooltip
+                                            contentStyle={{
+                                                background: 'rgba(0,0,0,0.75)',
+                                                border: '1px solid rgba(255,255,255,0.12)',
+                                                borderRadius: '0.75rem'
+                                            }}
+                                            labelStyle={{ color: 'rgba(255,255,255,0.85)' }}
+                                        />
+                                        <Area type="monotone" dataKey="low" stackId="1" stroke="#10b981" fill="url(#aegisLow)" />
+                                        <Area type="monotone" dataKey="medium" stackId="1" stroke="#f59e0b" fill="url(#aegisMedium)" />
+                                        <Area type="monotone" dataKey="high" stackId="1" stroke="#ef4444" fill="url(#aegisHigh)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            <p className="text-xs text-muted-foreground mt-4">
+                                Method: {insights.forecast.next_bucket.method} • Updated {new Date(insights.generated_at).toLocaleTimeString()}
+                            </p>
+                        </GlassPanel>
+
+                        {/* Aegis Agent */}
+                        <GlassPanel className="p-6" hoverEffect>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                    <Bot className="h-5 w-5 text-blue-500" />
+                                </div>
+                                <div className="flex-1">
+                                    <h2 className="text-xl font-bold">Aegis Agent</h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        Recommendations from live telemetry + forecasts
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-3 mb-6">
+                                <div className="p-3 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs text-muted-foreground mb-1">Queue</p>
+                                    <p className="text-lg font-bold">{insights.queue?.pending ?? 0}</p>
+                                    <p className="text-xs text-muted-foreground">pending</p>
+                                </div>
+                                <div className="p-3 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs text-muted-foreground mb-1">Critical</p>
+                                    <p className="text-lg font-bold text-red-500">{insights.queue?.critical ?? 0}</p>
+                                    <p className="text-xs text-muted-foreground">pending</p>
+                                </div>
+                                <div className="p-3 rounded-lg border border-border/30 bg-accent/5">
+                                    <p className="text-xs text-muted-foreground mb-1">Throttled</p>
+                                    <p className="text-lg font-bold">{insights.throttled_wallets ?? 0}</p>
+                                    <p className="text-xs text-muted-foreground">wallets</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {(insights.recommendations || []).length === 0 ? (
+                                    <div className="p-4 rounded-lg border border-border/30 bg-accent/5">
+                                        <p className="text-sm text-muted-foreground">No urgent actions recommended.</p>
+                                    </div>
+                                ) : (
+                                    insights.recommendations.map((rec) => {
+                                        const style =
+                                            rec.severity === 'critical' ? 'border-red-500/30 bg-red-500/5' :
+                                                rec.severity === 'warn' ? 'border-amber-500/30 bg-amber-500/5' :
+                                                    'border-blue-500/30 bg-blue-500/5';
+                                        const iconColor =
+                                            rec.severity === 'critical' ? 'text-red-500' :
+                                                rec.severity === 'warn' ? 'text-amber-500' :
+                                                    'text-blue-500';
+                                        const Icon = rec.severity === 'info' ? Info : AlertTriangle;
+
+                                        return (
+                                            <div key={rec.id} className={`p-4 rounded-lg border ${style}`}>
+                                                <div className="flex items-start gap-3">
+                                                    <div className={`mt-0.5 ${iconColor}`}>
+                                                        <Icon className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="font-semibold">{rec.title}</p>
+                                                        <p className="text-sm text-muted-foreground mt-1">{rec.message}</p>
+                                                        {rec.action === 'open_review_queue' && (
+                                                            <button
+                                                                onClick={() => navigate('/aegis-review-queue')}
+                                                                className="mt-3 inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 transition-colors"
+                                                            >
+                                                                Open Review Queue
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+
+                            {insights.top_wallets && insights.top_wallets.length > 0 && (
+                                <div className="mt-6 pt-6 border-t border-border/30">
+                                    <h3 className="text-sm font-semibold mb-3">Top Risky Wallets (window)</h3>
+                                    <div className="space-y-2">
+                                        {insights.top_wallets.slice(0, 5).map(w => (
+                                            <div key={w.address} className="flex items-center justify-between text-sm">
+                                                <code className="text-xs font-mono">{w.address.slice(0, 14)}...</code>
+                                                <span className="text-xs text-muted-foreground">
+                                                    max {w.max_risk_score} • {w.tx_count} tx
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </GlassPanel>
+                    </div>
+                )}
 
                 {/* Risk Distribution */}
                 {

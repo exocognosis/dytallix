@@ -15,6 +15,7 @@ const AIOracleNetwork: React.FC = () => {
             mainnetStatus: 'Planned for MainNet',
             lastUpdate: 'Loading...',
             transactionsScored: '0',
+            walletsTracked: '0',
             icon: Shield,
             color: 'text-blue-500',
             bg: 'bg-blue-500/10'
@@ -22,61 +23,143 @@ const AIOracleNetwork: React.FC = () => {
         {
             id: 'garrison',
             name: 'Garrison',
-            description: 'Complete smart contract assurance. Combines regulatory compliance checks with deep-scanning AI safety inspection.',
-            technicalDetails: 'Maps requirements to code via Abstract Syntax Tree (AST) parsing and Control Flow Graph (CFG) analysis. Performs Formal Verification to prove adherence to compliance frameworks.',
-            status: 'Active on TestNet',
+            description: 'Smart-contract compliance oracle with PQC attestations and optional on-chain publication.',
+            technicalDetails: 'Current engine runs heuristic static checks (selfdestruct, tx.origin, delegatecall), signs canonical attestations, and can publish audit records to oracle:audit:* for deployment gating.',
+            status: 'Loading...',
             mainnetStatus: 'Planned for MainNet',
-            lastUpdate: '1 hour ago',
-            transactionsScored: '842',
+            lastUpdate: 'Loading...',
+            transactionsScored: '0',
+            walletsTracked: '-',
             icon: Lock,
             color: 'text-teal-500',
             bg: 'bg-teal-500/10'
+        },
+        {
+            id: 'consul',
+            name: 'Consul',
+            description: 'Governance diplomat agent that watches proposals, simulates downside, and posts signed risk attestations on-chain.',
+            technicalDetails: 'Runs event-driven proposal simulations, emits ML-DSA-signed governance risk attestations, computes quorum snapshots, and opens disputes when oracle recommendations diverge.',
+            status: 'Loading...',
+            mainnetStatus: 'Pilot on TestNet',
+            lastUpdate: 'Loading...',
+            transactionsScored: '0',
+            walletsTracked: '-',
+            icon: Brain,
+            color: 'text-purple-500',
+            bg: 'bg-purple-500/10'
         }
     ]);
 
-    // Fetch Aegis stats on mount
+    // Fetch module stats on mount
     React.useEffect(() => {
-        const fetchAegisStats = async () => {
+        const formatRelativeTime = (dateValue?: string | null) => {
+            if (!dateValue) return 'Never';
+            const ts = new Date(dateValue);
+            if (Number.isNaN(ts.getTime())) return 'Unknown';
+            const diffMs = Date.now() - ts.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+            if (diffMins < 1440) {
+                const hours = Math.floor(diffMins / 60);
+                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            }
+            const days = Math.floor(diffMins / 1440);
+            return `${days} day${days > 1 ? 's' : ''} ago`;
+        };
+
+        const fetchModuleStats = async () => {
             try {
-                const response = await fetch('/api/aegis/stats');
-                const data = await response.json();
+                const [aegisResponse, consulResponse, garrisonResponse] = await Promise.all([
+                    fetch('/api/aegis/stats'),
+                    fetch('/api/consul/status'),
+                    fetch('/api/garrison/status'),
+                ]);
 
-                if (data.success && data.stats) {
-                    setActiveModules(prev => prev.map(module => {
-                        if (module.id === 'aegis') {
-                            // Calculate time since last analysis
-                            let lastUpdate = 'Never';
-                            if (data.stats.last_analysis) {
-                                const lastAnalysis = new Date(data.stats.last_analysis);
-                                const now = new Date();
-                                const diffMs = now.getTime() - lastAnalysis.getTime();
-                                const diffMins = Math.floor(diffMs / 60000);
+                const aegisData = await aegisResponse.json().catch(() => ({}));
+                const consulData = await consulResponse.json().catch(() => ({}));
+                const garrisonData = await garrisonResponse.json().catch(() => ({}));
 
-                                if (diffMins < 1) lastUpdate = 'Just now';
-                                else if (diffMins < 60) lastUpdate = `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
-                                else if (diffMins < 1440) lastUpdate = `${Math.floor(diffMins / 60)} hour${Math.floor(diffMins / 60) > 1 ? 's' : ''} ago`;
-                                else lastUpdate = `${Math.floor(diffMins / 1440)} day${Math.floor(diffMins / 1440) > 1 ? 's' : ''} ago`;
-                            }
-
+                setActiveModules(prev => prev.map(module => {
+                    if (module.id === 'aegis') {
+                        if (aegisData.success && aegisData.stats) {
+                            const scoredTransactions = Number(aegisData.stats.total_transactions ?? 0);
+                            const modelWallets = Number(aegisData.stats.total_wallets ?? 0);
+                            const chainWallets = Number(aegisData.stats.chain_observed_wallets ?? 0);
+                            const walletsTracked = Math.max(modelWallets, chainWallets);
+                            const lastObserved = aegisData.stats.last_update
+                                || aegisData.stats.last_chain_activity
+                                || aegisData.stats.last_wallet_analysis
+                                || aegisData.stats.last_analysis;
                             return {
                                 ...module,
                                 status: 'Active on TestNet',
-                                lastUpdate,
-                                transactionsScored: data.stats.total_transactions.toLocaleString()
+                                lastUpdate: formatRelativeTime(lastObserved),
+                                transactionsScored: scoredTransactions.toLocaleString(),
+                                walletsTracked: walletsTracked.toLocaleString()
                             };
                         }
-                        return module;
-                    }));
-                }
-            } catch (error) {
-                console.error('Failed to fetch Aegis stats:', error);
-                setActiveModules(prev => prev.map(module => {
-                    if (module.id === 'aegis') {
                         return {
                             ...module,
                             status: 'Service Unavailable',
                             lastUpdate: 'Error',
-                            transactionsScored: 'N/A'
+                            transactionsScored: 'N/A',
+                            walletsTracked: 'N/A'
+                        };
+                    }
+
+                    if (module.id === 'consul') {
+                        if (consulData.success) {
+                            const attestationsPosted = consulData?.totals?.attestations_posted ?? 0;
+                            const running = Boolean(consulData?.agent?.running);
+                            return {
+                                ...module,
+                                status: running ? 'Running Cycle' : 'Active on TestNet',
+                                lastUpdate: formatRelativeTime(consulData?.agent?.last_run_at),
+                                transactionsScored: Number(attestationsPosted).toLocaleString()
+                            };
+                        }
+                        return {
+                            ...module,
+                            status: 'Service Unavailable',
+                            lastUpdate: 'Error',
+                            transactionsScored: 'N/A',
+                            walletsTracked: 'N/A'
+                        };
+                    }
+
+                    if (module.id === 'garrison') {
+                        if (garrisonData.success) {
+                            const audits = Number(garrisonData?.totals?.auditCalls ?? 0);
+                            const running = Boolean(garrisonData?.agent?.running);
+                            return {
+                                ...module,
+                                status: running ? 'Running Cycle' : 'Active on TestNet',
+                                lastUpdate: formatRelativeTime(garrisonData?.agent?.last_run_at || garrisonData?.agent?.started_at),
+                                transactionsScored: audits.toLocaleString()
+                            };
+                        }
+                        return {
+                            ...module,
+                            status: 'Service Unavailable',
+                            lastUpdate: 'Error',
+                            transactionsScored: 'N/A',
+                            walletsTracked: 'N/A'
+                        };
+                    }
+
+                    return module;
+                }));
+            } catch (error) {
+                console.error('Failed to fetch AI module stats:', error);
+                setActiveModules(prev => prev.map(module => {
+                    if (module.id === 'aegis' || module.id === 'consul' || module.id === 'garrison') {
+                        return {
+                            ...module,
+                            status: 'Service Unavailable',
+                            lastUpdate: 'Error',
+                            transactionsScored: 'N/A',
+                            walletsTracked: 'N/A'
                         };
                     }
                     return module;
@@ -84,27 +167,15 @@ const AIOracleNetwork: React.FC = () => {
             }
         };
 
-        fetchAegisStats();
+        fetchModuleStats();
 
         // Refresh stats every 30 seconds
-        const interval = setInterval(fetchAegisStats, 30000);
+        const interval = setInterval(fetchModuleStats, 30000);
         return () => clearInterval(interval);
     }, []);
 
     // Unified Roadmap Modules
     const roadmapModules = [
-        {
-            id: 'consul',
-            name: 'Consul',
-            description: 'Automated governance diplomat. Proposal analysis and economic impact simulation for DAO voting.',
-            technicalDetails: 'Simulates proposal execution using Agent-Based Modeling (ABM) and Game Theoretic Equilibrium analysis to predict economic impact and identify governance attacks.',
-            status: 'Testing',
-            eta: 'Q3 2026',
-            type: 'Governance',
-            icon: Brain,
-            color: 'text-purple-500',
-            bg: 'bg-purple-500/10'
-        },
         {
             id: 'horizon',
             name: 'Horizon',
@@ -151,9 +222,9 @@ const AIOracleNetwork: React.FC = () => {
                         <h2 className="text-2xl font-bold">Active Modules</h2>
                     </div>
 
-                    <div className="flex flex-wrap justify-center gap-6 items-stretch">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
                         {activeModules.map((module) => (
-                            <GlassPanel key={module.id} className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] h-[720px] p-6 relative overflow-hidden group flex flex-col" hoverEffect={true}>
+                            <GlassPanel key={module.id} className="h-[720px] p-6 relative overflow-hidden group flex flex-col" hoverEffect={true}>
                                 <div className="absolute top-0 right-0 p-4 opacity-50">
                                     <Zap className="w-24 h-24 text-accent-blue/5 -rotate-12 transform translate-x-8 -translate-y-8" />
                                 </div>
@@ -188,6 +259,12 @@ const AIOracleNetwork: React.FC = () => {
                                             <span className="text-muted-foreground">Tx Scored</span>
                                             <span className="text-foreground font-mono">{module.transactionsScored}</span>
                                         </div>
+                                        {module.id === 'aegis' && (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Wallets Tracked</span>
+                                                <span className="text-foreground font-mono">{module.walletsTracked}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="mt-6 p-4 rounded-lg bg-accent/5 border border-accent/10">
@@ -209,6 +286,14 @@ const AIOracleNetwork: React.FC = () => {
                                                 className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
                                             >
                                                 Launch Garrison
+                                            </a>
+                                        )}
+                                        {module.id === 'consul' && (
+                                            <a
+                                                href="/consul-dashboard"
+                                                className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                            >
+                                                Launch Consul
                                             </a>
                                         )}
                                     </div>

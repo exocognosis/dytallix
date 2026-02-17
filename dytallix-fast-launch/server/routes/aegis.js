@@ -3,7 +3,7 @@
  * REST endpoints for transaction risk analysis
  */
 
-import express from 'express';
+import express from 'express/lib/express.js';
 import {
     analyzeTransaction,
     analyzeWallet,
@@ -12,7 +12,14 @@ import {
     getPublicKeys,
     verifySignature
 } from '../services/aegis/index.js';
-import { getTransactionAnalysis, getWalletScore } from '../services/aegis/database.js';
+import { getAegisInsights } from '../services/aegis/insights.js';
+import {
+    getTransactionAnalysis,
+    getWalletScore,
+    saveValidatorFeedback,
+    getOracleReputation
+} from '../services/aegis/database.js';
+import { getRiskLevel } from '../services/aegis/risk-scoring.js';
 import { getThrottleStatus, getThrottledWallets, clearThrottle } from '../services/aegis/throttle.js';
 import {
     getQueuedTransactions,
@@ -21,10 +28,187 @@ import {
     rejectTransaction,
     getQueueStats
 } from '../services/aegis/review-queue.js';
+import { nodeGet, getNodeBase } from '../services/blockchain-client.js';
 import { aegisWebSocket } from '../services/aegis/websocket.js';
 import { logInfo, logError } from '../logger.js';
+import { getAegisSecurityPosture } from '../services/aegis/posture.js';
 
 const router = express.Router();
+
+const VALID_SEARCH_TYPES = new Set(['auto', 'wallet', 'transaction', 'block', 'attestation', 'anchoring']);
+
+const normalizeSearchType = (value) => {
+    const normalized = String(value || 'auto').trim().toLowerCase();
+    if (normalized === 'tx') return 'transaction';
+    if (normalized === 'anchor') return 'anchoring';
+    if (normalized === 'attest') return 'attestation';
+    return VALID_SEARCH_TYPES.has(normalized) ? normalized : 'auto';
+};
+
+const looksLikeWalletAddress = (value) => (
+    /^(dytallix1[0-9a-z]{20,}|dytallix[0-9a-f]{40}|[a-z]{2,}1[0-9a-z]{20,})$/i.test(value)
+);
+
+const looksLikeTxHash = (value) => /^(0x)?[a-f0-9]{64}$/i.test(value);
+
+const stripSearchPrefix = (query) => String(query || '')
+    .replace(/^(attestation|attest|anchor|anchoring)\s*:\s*/i, '')
+    .replace(/^oracle:ai:/i, '')
+    .trim();
+
+const detectSearchType = (query, hint = 'auto') => {
+    const typeHint = normalizeSearchType(hint);
+    if (typeHint !== 'auto') return typeHint;
+
+    const raw = String(query || '').trim();
+    if (!raw) return 'auto';
+
+    if (/^(attestation|attest)\s*:/i.test(raw) || /^oracle:ai:/i.test(raw)) {
+        return 'attestation';
+    }
+    if (/^(anchor|anchoring)\s*:/i.test(raw)) {
+        return 'anchoring';
+    }
+    if (/^\d+$/.test(raw)) {
+        return 'block';
+    }
+    if (looksLikeWalletAddress(raw)) {
+        return 'wallet';
+    }
+    if (looksLikeTxHash(raw)) {
+        return 'transaction';
+    }
+    return 'wallet';
+};
+
+const normalizeRiskScore = (rawScore) => {
+    const score = Number(rawScore);
+    if (!Number.isFinite(score)) return null;
+    const normalized = score <= 1 ? score * 100 : score;
+    return Math.max(0, Math.min(100, Math.round(normalized)));
+};
+
+const deriveRecommendation = (riskScore) => {
+    if (!Number.isFinite(riskScore)) return 'UNKNOWN';
+    if (riskScore >= 90) return 'REVIEW';
+    if (riskScore >= 70) return 'DELAY';
+    if (riskScore >= 40) return 'CAUTION';
+    return 'APPROVE';
+};
+
+const buildRiskSummary = (riskScore, confidence = null) => {
+    const normalizedScore = normalizeRiskScore(riskScore);
+    if (normalizedScore === null) return null;
+    return {
+        risk_score: normalizedScore,
+        risk_level: getRiskLevel(normalizedScore),
+        confidence: Number.isFinite(Number(confidence)) ? Number(confidence) : null,
+        recommendation: deriveRecommendation(normalizedScore)
+    };
+};
+
+const toIso = (value) => {
+    if (!value) return null;
+    const epoch = new Date(value).getTime();
+    return Number.isFinite(epoch) ? new Date(epoch).toISOString() : null;
+};
+
+const txHashCandidates = (txHash) => {
+    const raw = String(txHash || '').trim();
+    if (!raw) return [];
+    if (raw.startsWith('0x')) return [raw];
+    return [raw, `0x${raw}`];
+};
+
+const findTransactionAnalysis = (txHash) => {
+    for (const candidate of txHashCandidates(txHash)) {
+        const cached = getTransactionAnalysis(candidate);
+        if (cached) {
+            return { analysis: cached, tx_hash: candidate };
+        }
+    }
+    return null;
+};
+
+const fetchNodeTx = async (txHash) => {
+    for (const candidate of txHashCandidates(txHash)) {
+        try {
+            const tx = await nodeGet(`/tx/${encodeURIComponent(candidate)}`);
+            return { tx, tx_hash: candidate };
+        } catch {
+            // keep trying candidates
+        }
+    }
+    return null;
+};
+
+const fetchAiRiskAttestation = async (txHash) => {
+    const candidates = txHashCandidates(txHash);
+    if (candidates.length === 0) return null;
+
+    try {
+        const response = await fetch(`${getNodeBase()}/oracle/ai_risk_query_batch`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(candidates)
+        });
+        if (!response.ok) return null;
+        const payload = await response.json().catch(() => ({}));
+        const found = Array.isArray(payload?.found) ? payload.found : [];
+        return found[0] || null;
+    } catch {
+        return null;
+    }
+};
+
+const evaluateBlockRisk = async (block) => {
+    const txs = Array.isArray(block?.txs) ? block.txs : [];
+    if (txs.length === 0) {
+        return {
+            risk: null,
+            sampled_transactions: 0,
+            analyzed_transactions: 0,
+            high_risk_transactions: 0,
+            max_risk_score: null
+        };
+    }
+
+    const sampled = txs.slice(0, 25);
+    const scoreSamples = await Promise.all(sampled.map(async (tx) => {
+        if (!tx?.hash) return null;
+
+        const cached = findTransactionAnalysis(tx.hash);
+        if (cached?.analysis) {
+            return normalizeRiskScore(cached.analysis.risk_score);
+        }
+
+        const nodeTx = await fetchNodeTx(tx.hash);
+        return normalizeRiskScore(nodeTx?.tx?.ai_risk_score);
+    }));
+
+    const scores = scoreSamples.filter((value) => Number.isFinite(value));
+    if (scores.length === 0) {
+        return {
+            risk: null,
+            sampled_transactions: sampled.length,
+            analyzed_transactions: 0,
+            high_risk_transactions: 0,
+            max_risk_score: null
+        };
+    }
+
+    const averageScore = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+    const maxScore = Math.max(...scores);
+    const highRiskTransactions = scores.filter((score) => score >= 70).length;
+
+    return {
+        risk: buildRiskSummary(averageScore),
+        sampled_transactions: sampled.length,
+        analyzed_transactions: scores.length,
+        high_risk_transactions: highRiskTransactions,
+        max_risk_score: maxScore
+    };
+};
 
 /**
  * POST /api/aegis/analyze
@@ -123,12 +307,299 @@ router.get('/score/:address', async (req, res, next) => {
 });
 
 /**
+ * GET /api/aegis/search?q=...&type=auto|wallet|transaction|block|attestation|anchoring
+ * Unified lookup with risk analysis enrichment for wallets, txs, blocks, and attestations.
+ */
+router.get('/search', async (req, res) => {
+    try {
+        const rawQuery = String(req.query.q || '').trim();
+        if (!rawQuery) {
+            return res.status(400).json({
+                error: 'Missing required query parameter: q'
+            });
+        }
+
+        const typeHint = normalizeSearchType(req.query.type);
+        const detectedType = detectSearchType(rawQuery, typeHint);
+        const searchValue = stripSearchPrefix(rawQuery);
+
+        if (!searchValue) {
+            return res.status(400).json({
+                error: 'Invalid query value'
+            });
+        }
+
+        if (detectedType === 'wallet') {
+            let walletScore = getWalletScore(searchValue);
+            let walletPayload = null;
+
+            if (!walletScore) {
+                const analysis = await analyzeWallet(searchValue);
+                walletScore = getWalletScore(searchValue);
+                walletPayload = {
+                    address: searchValue,
+                    risk_score: analysis.risk_score,
+                    confidence: analysis.confidence,
+                    risk_level: analysis.risk_level,
+                    breakdown: analysis.breakdown,
+                    metadata: analysis.wallet_metadata,
+                    freshly_analyzed: true
+                };
+            } else {
+                walletPayload = {
+                    address: walletScore.address,
+                    risk_score: walletScore.current_score,
+                    confidence: null,
+                    risk_level: getRiskLevel(walletScore.current_score),
+                    breakdown: null,
+                    metadata: walletScore.metadata,
+                    total_transactions: walletScore.total_transactions,
+                    first_seen: toIso(walletScore.first_seen),
+                    last_analyzed: toIso(walletScore.last_analyzed),
+                    freshly_analyzed: false
+                };
+            }
+
+            const throttle = getThrottleStatus(searchValue);
+            return res.json({
+                success: true,
+                type: 'wallet',
+                query: searchValue,
+                risk: buildRiskSummary(walletPayload.risk_score, walletPayload.confidence),
+                wallet: walletPayload,
+                throttle,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        if (detectedType === 'transaction') {
+            const cached = findTransactionAnalysis(searchValue);
+            const cachedAnalysis = cached?.analysis || null;
+            const nodeTxLookup = cachedAnalysis ? null : await fetchNodeTx(searchValue);
+            const nodeTx = nodeTxLookup?.tx || null;
+            const txHash = cached?.tx_hash || nodeTxLookup?.tx_hash || txHashCandidates(searchValue)[0] || searchValue;
+            let source = cachedAnalysis ? 'aegis-database' : 'node';
+
+            let risk = null;
+            if (cachedAnalysis) {
+                risk = buildRiskSummary(cachedAnalysis.risk_score, cachedAnalysis.confidence);
+            } else {
+                const nodeRisk = buildRiskSummary(nodeTx?.ai_risk_score, nodeTx?.ai_confidence);
+                if (nodeRisk) {
+                    source = 'node-attestation';
+                    risk = nodeRisk;
+                } else if (nodeTx?.from) {
+                    // On-demand risk pass for historical txs that do not yet have a local Aegis score.
+                    const txAmount = Number.parseFloat(nodeTx?.amount ?? nodeTx?.value ?? '0') || 0;
+                    const analyzed = await analyzeTransaction({
+                        tx_hash: txHash,
+                        from: nodeTx.from,
+                        to: nodeTx.to || null,
+                        amount: txAmount
+                    });
+                    source = 'aegis-on-demand';
+                    risk = buildRiskSummary(analyzed?.analysis?.risk_score, analyzed?.analysis?.confidence);
+                }
+            }
+
+            const attestation = await fetchAiRiskAttestation(txHash);
+            if (!cachedAnalysis && !nodeTx && !attestation) {
+                return res.status(404).json({
+                    error: 'Transaction not found',
+                    tx_hash: searchValue
+                });
+            }
+
+            return res.json({
+                success: true,
+                type: 'transaction',
+                query: searchValue,
+                source,
+                risk,
+                transaction: {
+                    tx_hash: cachedAnalysis?.tx_hash || txHash,
+                    from_address: cachedAnalysis?.from_address || nodeTx?.from || null,
+                    to_address: cachedAnalysis?.to_address || nodeTx?.to || null,
+                    amount: cachedAnalysis?.amount ?? (Number.parseFloat(nodeTx?.amount ?? nodeTx?.value ?? '0') || 0),
+                    status: nodeTx?.status || 'analyzed',
+                    block_height: nodeTx?.block_height ?? nodeTx?.height ?? null,
+                    created_at: toIso(cachedAnalysis?.created_at || nodeTx?.timestamp || nodeTx?.time)
+                },
+                attestation,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        if (detectedType === 'block') {
+            const block = await nodeGet(`/block/${encodeURIComponent(searchValue)}`);
+            const blockRisk = await evaluateBlockRisk(block);
+
+            return res.json({
+                success: true,
+                type: 'block',
+                query: searchValue,
+                risk: blockRisk.risk,
+                block_risk: blockRisk,
+                block: {
+                    height: block?.height ?? null,
+                    hash: block?.hash ?? null,
+                    timestamp: toIso(block?.timestamp),
+                    tx_count: Array.isArray(block?.txs) ? block.txs.length : 0,
+                    asset_hashes: Array.isArray(block?.asset_hashes) ? block.asset_hashes : []
+                },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        if (detectedType === 'attestation') {
+            const attestation = await fetchAiRiskAttestation(searchValue);
+            if (!attestation) {
+                return res.status(404).json({
+                    error: 'Attestation not found for transaction hash',
+                    tx_hash: searchValue
+                });
+            }
+
+            return res.json({
+                success: true,
+                type: 'attestation',
+                query: searchValue,
+                risk: buildRiskSummary(attestation.risk_score, attestation.confidence),
+                attestation,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        if (detectedType === 'anchoring') {
+            const anchorLookupValue = searchValue.toLowerCase();
+            let anchorBlock = null;
+            let fullBlock = null;
+
+            if (/^\d+$/.test(searchValue) || looksLikeTxHash(searchValue)) {
+                try {
+                    const block = await nodeGet(`/block/${encodeURIComponent(searchValue)}`);
+                    if (Array.isArray(block?.asset_hashes) && block.asset_hashes.length > 0) {
+                        fullBlock = block;
+                        anchorBlock = {
+                            height: block.height,
+                            hash: block.hash,
+                            timestamp: block.timestamp,
+                            asset_hashes: block.asset_hashes,
+                            txs: Array.isArray(block.txs) ? block.txs.length : 0
+                        };
+                    }
+                } catch {
+                    // fallback to anchored-assets list below
+                }
+            }
+
+            if (!anchorBlock) {
+                const anchoredAssets = await nodeGet('/api/anchored-assets');
+                const blocks = Array.isArray(anchoredAssets?.blocks) ? anchoredAssets.blocks : [];
+                anchorBlock = blocks.find((block) => {
+                    const matchesHeight = String(block?.height) === searchValue;
+                    const matchesHash = String(block?.hash || '').toLowerCase() === anchorLookupValue;
+                    const matchesAssetHash = Array.isArray(block?.asset_hashes)
+                        && block.asset_hashes.some((assetHash) => String(assetHash).toLowerCase().includes(anchorLookupValue));
+                    return matchesHeight || matchesHash || matchesAssetHash;
+                }) || null;
+
+                if (anchorBlock) {
+                    try {
+                        fullBlock = await nodeGet(`/block/${encodeURIComponent(anchorBlock.height)}`);
+                    } catch {
+                        fullBlock = null;
+                    }
+                }
+            }
+
+            if (!anchorBlock) {
+                return res.status(404).json({
+                    error: 'Anchoring record not found',
+                    query: searchValue
+                });
+            }
+
+            const blockRisk = await evaluateBlockRisk(fullBlock || anchorBlock);
+            const txCount = fullBlock
+                ? (Array.isArray(fullBlock?.txs) ? fullBlock.txs.length : 0)
+                : Number(anchorBlock?.txs || 0);
+
+            return res.json({
+                success: true,
+                type: 'anchoring',
+                query: searchValue,
+                risk: blockRisk.risk,
+                anchor_risk: blockRisk,
+                anchor: {
+                    height: anchorBlock.height ?? null,
+                    hash: anchorBlock.hash ?? null,
+                    timestamp: toIso(anchorBlock.timestamp),
+                    tx_count: txCount,
+                    asset_hashes: Array.isArray(anchorBlock.asset_hashes) ? anchorBlock.asset_hashes : []
+                },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        return res.status(400).json({
+            error: 'Unsupported search type',
+            type: detectedType
+        });
+    } catch (error) {
+        logError('Aegis search failed', { error: error.message, query: req.query?.q, type: req.query?.type });
+        return res.status(500).json({
+            error: 'Aegis search failed',
+            message: error.message
+        });
+    }
+});
+
+/**
  * GET /api/aegis/stats
  * Get system-wide statistics
  */
 router.get('/stats', async (req, res, next) => {
     try {
         const stats = getAegisStats();
+        let chainObservedWallets = null;
+        let lastChainActivity = null;
+
+        // Pull light on-chain telemetry so module cards reflect fresh network activity
+        // even when no local Aegis analysis has been triggered yet.
+        try {
+            const txPayload = await nodeGet('/transactions?limit=200');
+            const txs = Array.isArray(txPayload?.transactions) ? txPayload.transactions : [];
+            const walletSet = new Set();
+            let latestActivityEpoch = null;
+
+            for (const tx of txs) {
+                if (tx?.from) walletSet.add(String(tx.from));
+                if (tx?.to) walletSet.add(String(tx.to));
+                const txEpoch = new Date(tx?.timestamp || tx?.time || tx?.created_at || 0).getTime();
+                if (Number.isFinite(txEpoch)) {
+                    latestActivityEpoch = latestActivityEpoch === null ? txEpoch : Math.max(latestActivityEpoch, txEpoch);
+                }
+            }
+
+            chainObservedWallets = walletSet.size;
+            lastChainActivity = latestActivityEpoch ? new Date(latestActivityEpoch).toISOString() : null;
+        } catch {
+            // Keep stats endpoint available even when node telemetry is temporarily unavailable.
+        }
+
+        const lastUpdateCandidates = [
+            stats.lastUpdate,
+            stats.lastAnalysis,
+            stats.lastWalletAnalysis,
+            lastChainActivity
+        ]
+            .filter(Boolean)
+            .map((value) => new Date(value).getTime())
+            .filter((value) => Number.isFinite(value));
+        const lastUpdate = lastUpdateCandidates.length > 0
+            ? new Date(Math.max(...lastUpdateCandidates)).toISOString()
+            : null;
 
         res.json({
             success: true,
@@ -140,6 +611,10 @@ router.get('/stats', async (req, res, next) => {
                 transactions_today: stats.today,
                 transactions_this_hour: stats.thisHour,
                 last_analysis: stats.lastAnalysis,
+                last_wallet_analysis: stats.lastWalletAnalysis,
+                last_chain_activity: lastChainActivity,
+                last_update: lastUpdate,
+                chain_observed_wallets: chainObservedWallets,
                 risk_distribution: stats.riskDistribution,
                 status: 'Active on TestNet',
                 uptime: process.uptime(),
@@ -150,6 +625,55 @@ router.get('/stats', async (req, res, next) => {
         logError('Stats endpoint failed', { error: error.message });
         res.status(500).json({
             error: 'Failed to get statistics',
+            message: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/aegis/insights
+ * Predictive outlook + agent recommendations
+ */
+router.get('/insights', async (req, res) => {
+    try {
+        const hoursBack = req.query.hours ? parseInt(req.query.hours) : 24;
+        const bucketMinutes = req.query.bucket_minutes ? parseInt(req.query.bucket_minutes) : 60;
+        const topWalletsLimit = req.query.top_wallets ? parseInt(req.query.top_wallets) : 5;
+
+        const insights = getAegisInsights({ hoursBack, bucketMinutes, topWalletsLimit });
+
+        res.json({
+            success: true,
+            insights,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        logError('Insights endpoint failed', { error: error.message });
+        res.status(500).json({
+            error: 'Failed to generate insights',
+            message: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/aegis/posture
+ * Security posture KPIs (SLA compliance, time-to-decision, FP rate approximation)
+ */
+router.get('/posture', async (req, res) => {
+    try {
+        const windowDays = req.query.days ? parseInt(req.query.days) : 7;
+        const posture = getAegisSecurityPosture({ windowDays });
+
+        res.json({
+            success: true,
+            posture,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        logError('Posture endpoint failed', { error: error.message });
+        res.status(500).json({
+            error: 'Failed to generate posture metrics',
             message: error.message
         });
     }
@@ -248,7 +772,7 @@ router.post('/verify', async (req, res, next) => {
             });
         }
 
-        const verification = verifySignature(data, signature, publicKey);
+        const verification = await verifySignature(data, signature, publicKey);
 
         res.json({
             success: true,
@@ -389,7 +913,16 @@ router.get('/validator/check/:address', async (req, res) => {
  */
 router.post('/validator/report', async (req, res) => {
     try {
-        const { tx_hash, address, outcome, validator_id, notes } = req.body;
+        const {
+            tx_hash,
+            address,
+            outcome,
+            validator_id,
+            notes,
+            model_id,
+            risk_score,
+            predicted_action
+        } = req.body;
 
         if (!tx_hash || !address || !outcome) {
             return res.status(400).json({
@@ -398,25 +931,65 @@ router.post('/validator/report', async (req, res) => {
             });
         }
 
-        // Log the validator report
+        const feedbackResult = saveValidatorFeedback({
+            tx_hash,
+            address,
+            outcome,
+            validator_id,
+            notes,
+            model_id: model_id || process.env.AEGIS_MODEL_ID || 'aegis-heuristic-v1',
+            risk_score,
+            predicted_action
+        });
+
+        const reputation = getOracleReputation({
+            modelId: model_id || process.env.AEGIS_MODEL_ID || 'aegis-heuristic-v1',
+            daysBack: req.query.days ? parseInt(req.query.days) : 30
+        });
+
         logInfo('Validator report received', {
             tx_hash,
             address,
             outcome,
-            validator_id: validator_id || 'unknown'
+            validator_id: validator_id || 'unknown',
+            model_id: model_id || process.env.AEGIS_MODEL_ID || 'aegis-heuristic-v1'
         });
-
-        // TODO: Store validator feedback for ML improvement
 
         res.json({
             success: true,
             message: 'Report received',
-            tx_hash
+            tx_hash,
+            feedback_id: feedbackResult.id,
+            reputation
         });
     } catch (error) {
         logError('Validator report endpoint failed', { error: error.message });
         res.status(500).json({
             error: 'Failed to process report',
+            message: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/aegis/validator/reputation
+ * Compute oracle accuracy/reputation from validator outcomes
+ */
+router.get('/validator/reputation', async (req, res) => {
+    try {
+        const modelId = req.query.model_id || process.env.AEGIS_MODEL_ID || 'aegis-heuristic-v1';
+        const daysBack = req.query.days ? parseInt(req.query.days) : 30;
+        const reputation = getOracleReputation({ modelId, daysBack });
+
+        res.json({
+            success: true,
+            reputation,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        logError('Validator reputation endpoint failed', { error: error.message });
+        res.status(500).json({
+            error: 'Failed to compute reputation',
             message: error.message
         });
     }
@@ -706,5 +1279,12 @@ router.get('/ws/stats', async (req, res) => {
     }
 });
 
-export default router;
+export const __testables = {
+    normalizeSearchType,
+    detectSearchType,
+    stripSearchPrefix,
+    normalizeRiskScore,
+    buildRiskSummary
+};
 
+export default router;
