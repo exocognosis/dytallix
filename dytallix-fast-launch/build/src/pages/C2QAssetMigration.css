@@ -1,0 +1,59 @@
+@media print {
+  header,
+  footer {
+    display: none !important;
+  }
+
+  main {
+    padding-top: 0 !important;
+  }
+
+  .c2q-page {
+    background: #ffffff !important;
+    color: #111827 !important;
+    min-height: auto !important;
+    padding: 0 !important;
+  }
+
+  .c2q-print-exclude {
+    display: none !important;
+  }
+
+  .c2q-print-include {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #d1d5db !important;
+    background: #ffffff !important;
+  }
+
+  .c2q-print-include,
+  .c2q-print-include * {
+    color: #111827 !important;
+  }
+
+  .c2q-print-include .text-muted-foreground {
+    color: #4b5563 !important;
+  }
+
+  .c2q-page .glass-panel {
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+  }
+
+  .recharts-cartesian-grid line {
+    stroke: #e5e7eb !important;
+  }
+
+  .recharts-cartesian-axis-tick-value,
+  .recharts-text {
+    fill: #111827 !important;
+  }
+
+  @page {
+    size: letter;
+    margin: 0.5in;
+  }
+}
