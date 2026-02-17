@@ -25,6 +25,8 @@ import QuantumVaultPricing from './pages/QuantumVaultPricing'
 import QuantumVaultClientOnboarding from './pages/QuantumVaultClientOnboarding'
 import C2QAssetMigration from './pages/C2QAssetMigration'
 import C2QDeepDive from './pages/C2QDeepDive'
+import ConsulGovernanceDiplomat from './pages/ConsulGovernanceDiplomat'
+import HorizonNetworkMonitor from './pages/HorizonNetworkMonitor'
 
 import { Investor } from "./pages/investor"
 import { Deploy } from "./pages/deploy"
@@ -69,6 +71,8 @@ function AppRoutes() {
         <Route path="/quantumvault-client-onboarding" element={<QuantumVaultClientOnboarding />} />
         <Route path="/C2QAssetMigration" element={<C2QAssetMigration />} />
         <Route path="/C2QDeepDive" element={<C2QDeepDive />} />
+        <Route path="/consul-dashboard" element={<ConsulGovernanceDiplomat />} />
+        <Route path="/horizon-dashboard" element={<HorizonNetworkMonitor />} />
 
         {/* Enterprise Routes */}
         <Route path="/enterprise" element={<EnterpriseHub />} />

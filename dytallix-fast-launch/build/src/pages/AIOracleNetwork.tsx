@@ -3,9 +3,26 @@ import { Section } from '../components/ui/Section';
 import { GlassPanel } from '../components/ui/GlassPanel';
 import { Brain, Shield, Activity, Lock, Zap, Map } from 'lucide-react';
 
+interface ModuleCard {
+    id: string;
+    name: string;
+    description: string;
+    technicalDetails: string;
+    status: string;
+    mainnetStatus: string;
+    lastUpdate: string;
+    transactionsScored: string;
+    metricLabel: string;
+    secondaryMetricLabel: string | null;
+    secondaryMetricValue: string | null;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+    bg: string;
+}
+
 const AIOracleNetwork: React.FC = () => {
     // State for active modules
-    const [activeModules, setActiveModules] = React.useState([
+    const [activeModules, setActiveModules] = React.useState<ModuleCard[]>([
         {
             id: 'aegis',
             name: 'Aegis',
@@ -15,10 +32,28 @@ const AIOracleNetwork: React.FC = () => {
             mainnetStatus: 'Planned for MainNet',
             lastUpdate: 'Loading...',
             transactionsScored: '0',
-            walletsTracked: '0',
+            metricLabel: 'Tx Scored',
+            secondaryMetricLabel: 'Wallets Tracked',
+            secondaryMetricValue: '0',
             icon: Shield,
             color: 'text-blue-500',
             bg: 'bg-blue-500/10'
+        },
+        {
+            id: 'horizon',
+            name: 'Horizon',
+            description: 'Agentic network + DeFi monitor that indexes bridge, pool, and mempool telemetry and emits signed incident attestations.',
+            technicalDetails: 'Indexes bridge state, emission pools, and pending mempool flow. Detects bridge anomalies, pool drains, and concentration patterns, signs incident attestations, relays them on-chain, and triggers policy circuit breakers.',
+            status: 'Loading...',
+            mainnetStatus: 'Pilot on TestNet',
+            lastUpdate: 'Loading...',
+            transactionsScored: '0',
+            metricLabel: 'Incidents',
+            secondaryMetricLabel: 'Active Breakers',
+            secondaryMetricValue: '0',
+            icon: Activity,
+            color: 'text-rose-500',
+            bg: 'bg-rose-500/10'
         },
         {
             id: 'garrison',
@@ -29,7 +64,9 @@ const AIOracleNetwork: React.FC = () => {
             mainnetStatus: 'Planned for MainNet',
             lastUpdate: 'Loading...',
             transactionsScored: '0',
-            walletsTracked: '-',
+            metricLabel: 'Audits',
+            secondaryMetricLabel: null,
+            secondaryMetricValue: null,
             icon: Lock,
             color: 'text-teal-500',
             bg: 'bg-teal-500/10'
@@ -43,7 +80,9 @@ const AIOracleNetwork: React.FC = () => {
             mainnetStatus: 'Pilot on TestNet',
             lastUpdate: 'Loading...',
             transactionsScored: '0',
-            walletsTracked: '-',
+            metricLabel: 'Attestations',
+            secondaryMetricLabel: null,
+            secondaryMetricValue: null,
             icon: Brain,
             color: 'text-purple-500',
             bg: 'bg-purple-500/10'
@@ -70,15 +109,17 @@ const AIOracleNetwork: React.FC = () => {
 
         const fetchModuleStats = async () => {
             try {
-                const [aegisResponse, consulResponse, garrisonResponse] = await Promise.all([
+                const [aegisResponse, consulResponse, garrisonResponse, horizonResponse] = await Promise.all([
                     fetch('/api/aegis/stats'),
                     fetch('/api/consul/status'),
                     fetch('/api/garrison/status'),
+                    fetch('/api/horizon/status'),
                 ]);
 
                 const aegisData = await aegisResponse.json().catch(() => ({}));
                 const consulData = await consulResponse.json().catch(() => ({}));
                 const garrisonData = await garrisonResponse.json().catch(() => ({}));
+                const horizonData = await horizonResponse.json().catch(() => ({}));
 
                 setActiveModules(prev => prev.map(module => {
                     if (module.id === 'aegis') {
@@ -96,7 +137,7 @@ const AIOracleNetwork: React.FC = () => {
                                 status: 'Active on TestNet',
                                 lastUpdate: formatRelativeTime(lastObserved),
                                 transactionsScored: scoredTransactions.toLocaleString(),
-                                walletsTracked: walletsTracked.toLocaleString()
+                                secondaryMetricValue: walletsTracked.toLocaleString()
                             };
                         }
                         return {
@@ -104,7 +145,29 @@ const AIOracleNetwork: React.FC = () => {
                             status: 'Service Unavailable',
                             lastUpdate: 'Error',
                             transactionsScored: 'N/A',
-                            walletsTracked: 'N/A'
+                            secondaryMetricValue: 'N/A'
+                        };
+                    }
+
+                    if (module.id === 'horizon') {
+                        if (horizonData.success) {
+                            const running = Boolean(horizonData?.agent?.running);
+                            const incidents = Number(horizonData?.totals?.incidents_detected ?? horizonData?.totals?.incidents_total ?? 0);
+                            const activeBreakers = Number(horizonData?.totals?.circuit_breakers_active ?? 0);
+                            return {
+                                ...module,
+                                status: running ? 'Running Cycle' : 'Active on TestNet',
+                                lastUpdate: formatRelativeTime(horizonData?.agent?.last_run_at),
+                                transactionsScored: incidents.toLocaleString(),
+                                secondaryMetricValue: activeBreakers.toLocaleString()
+                            };
+                        }
+                        return {
+                            ...module,
+                            status: 'Service Unavailable',
+                            lastUpdate: 'Error',
+                            transactionsScored: 'N/A',
+                            secondaryMetricValue: 'N/A'
                         };
                     }
 
@@ -124,7 +187,7 @@ const AIOracleNetwork: React.FC = () => {
                             status: 'Service Unavailable',
                             lastUpdate: 'Error',
                             transactionsScored: 'N/A',
-                            walletsTracked: 'N/A'
+                            secondaryMetricValue: null
                         };
                     }
 
@@ -144,7 +207,7 @@ const AIOracleNetwork: React.FC = () => {
                             status: 'Service Unavailable',
                             lastUpdate: 'Error',
                             transactionsScored: 'N/A',
-                            walletsTracked: 'N/A'
+                            secondaryMetricValue: null
                         };
                     }
 
@@ -153,13 +216,13 @@ const AIOracleNetwork: React.FC = () => {
             } catch (error) {
                 console.error('Failed to fetch AI module stats:', error);
                 setActiveModules(prev => prev.map(module => {
-                    if (module.id === 'aegis' || module.id === 'consul' || module.id === 'garrison') {
+                    if (module.id === 'aegis' || module.id === 'consul' || module.id === 'garrison' || module.id === 'horizon') {
                         return {
                             ...module,
                             status: 'Service Unavailable',
                             lastUpdate: 'Error',
                             transactionsScored: 'N/A',
-                            walletsTracked: 'N/A'
+                            secondaryMetricValue: module.secondaryMetricLabel ? 'N/A' : null
                         };
                     }
                     return module;
@@ -176,18 +239,6 @@ const AIOracleNetwork: React.FC = () => {
 
     // Unified Roadmap Modules
     const roadmapModules = [
-        {
-            id: 'horizon',
-            name: 'Horizon',
-            description: 'Unified digital security center. Monitors network traffic, liquidity pools, and bridge transactions in real-time.',
-            technicalDetails: 'Detects anomalies using Graph Neural Networks (GNN) and Time-series decomposition. Identifies DeFi exploits via heuristic vectors and real-time flow analysis.',
-            status: 'In Development',
-            eta: 'Q4 2026',
-            type: 'Network Monitor',
-            icon: Activity,
-            color: 'text-rose-500',
-            bg: 'bg-rose-500/10'
-        },
         {
             id: 'vector',
             name: 'Vector',
@@ -256,13 +307,13 @@ const AIOracleNetwork: React.FC = () => {
                                             <span className="text-foreground">{module.lastUpdate}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Tx Scored</span>
+                                            <span className="text-muted-foreground">{module.metricLabel}</span>
                                             <span className="text-foreground font-mono">{module.transactionsScored}</span>
                                         </div>
-                                        {module.id === 'aegis' && (
+                                        {module.secondaryMetricLabel && (
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">Wallets Tracked</span>
-                                                <span className="text-foreground font-mono">{module.walletsTracked}</span>
+                                                <span className="text-muted-foreground">{module.secondaryMetricLabel}</span>
+                                                <span className="text-foreground font-mono">{module.secondaryMetricValue}</span>
                                             </div>
                                         )}
                                     </div>
@@ -294,6 +345,14 @@ const AIOracleNetwork: React.FC = () => {
                                                 className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                                             >
                                                 Launch Consul
+                                            </a>
+                                        )}
+                                        {module.id === 'horizon' && (
+                                            <a
+                                                href="/horizon-dashboard"
+                                                className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white transition-colors bg-rose-600 rounded-md hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
+                                            >
+                                                Launch Horizon
                                             </a>
                                         )}
                                     </div>
