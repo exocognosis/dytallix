@@ -27,6 +27,7 @@ import C2QAssetMigration from './pages/C2QAssetMigration'
 import C2QDeepDive from './pages/C2QDeepDive'
 import ConsulGovernanceDiplomat from './pages/ConsulGovernanceDiplomat'
 import HorizonNetworkMonitor from './pages/HorizonNetworkMonitor'
+import VectorIdentityDashboard from './pages/VectorIdentityDashboard'
 
 import { Investor } from "./pages/investor"
 import { Deploy } from "./pages/deploy"
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="/C2QDeepDive" element={<C2QDeepDive />} />
         <Route path="/consul-dashboard" element={<ConsulGovernanceDiplomat />} />
         <Route path="/horizon-dashboard" element={<HorizonNetworkMonitor />} />
+        <Route path="/vector-dashboard" element={<VectorIdentityDashboard />} />
 
         {/* Enterprise Routes */}
         <Route path="/enterprise" element={<EnterpriseHub />} />
@@ -86,6 +88,7 @@ function AppRoutes() {
         <Route path="/resources" element={<Resources />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/faq" element={<FAQ />} />
+        <Route path="/.faq" element={<FAQ />} />
 
         {/* Legal Routes */}
         <Route path="/legal/privacy" element={<Privacy />} />
