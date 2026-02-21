@@ -653,3 +653,16 @@ The script is idempotent and will not overwrite existing evidence files, making 
 
 ## Changelog
 See `CHANGELOG.md` for unified history (mv-testnet + releases).
+
+
+## 🤖 Autonomous Agent Development
+
+Dytallix includes an autonomous-agent framework in the SDK so AI agents can:
+- create PQC wallets,
+- request faucet funding,
+- execute transactions,
+- and persist value snapshots for accounting.
+
+See:
+- `sdk/examples/autonomous-agent.ts` for a runnable flow
+- `docs/developers/autonomous-agents.md` for full setup and operational guidance
