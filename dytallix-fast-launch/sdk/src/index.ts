@@ -13,10 +13,21 @@ export type {
 export { PQCWallet } from './wallet';
 export type {
   PQCAlgorithm,
-  KeyPair
+  KeyPair,
+  IPQCProvider
 } from './wallet';
 
 export { DytallixError, ErrorCode } from './errors';
 
 // Version
 export const VERSION = '0.1.0';
+
+
+export { AutonomousAgentKit, InMemoryAgentValueStore } from './agent';
+export type {
+  AgentKitConfig,
+  FaucetRequest,
+  AgentIdentity,
+  AgentSnapshot,
+  AgentValueStore
+} from './agent';

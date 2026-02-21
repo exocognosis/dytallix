@@ -357,3 +357,71 @@ Apache 2.0 - See [LICENSE](../LICENSE) for details.
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+## Autonomous Agent Framework
+
+The SDK now includes an `AutonomousAgentKit` that lets agents execute the complete lifecycle:
+
+1. Generate a wallet identity.
+2. Request testnet funding from the faucet.
+3. Transfer DGT/DRT to other wallets.
+4. Persist portfolio snapshots to a pluggable value store.
+
+### Agent Quickstart
+
+```typescript
+import {
+  AutonomousAgentKit,
+  InMemoryAgentValueStore,
+  PQCWallet
+} from '@dytallix/sdk';
+
+// Use @dytallix/pqc-wasm in production. This is your wallet implementation entrypoint.
+PQCWallet.setProvider(yourPqcProvider);
+
+const kit = new AutonomousAgentKit({
+  rpcUrl: 'http://localhost:3001/blockchain',
+  faucetUrl: 'http://localhost:3001/faucet',
+  chainId: 'dyt-local-1'
+});
+
+const valueStore = new InMemoryAgentValueStore();
+const treasury = await kit.createAgent('treasury-agent');
+const worker = await kit.createAgent('worker-agent', 'SLH-DSA');
+
+await kit.requestTokens(treasury, { dgtAmount: 2, drtAmount: 50 });
+
+const tx = await kit.transferValue(treasury, worker.wallet.address, 5, 'DRT', 'agent-budget');
+await kit.waitForSettlement(tx.hash, 45000);
+
+await kit.snapshot(treasury, valueStore);
+await kit.snapshot(worker, valueStore);
+```
+
+A complete runnable sample is available at `sdk/examples/autonomous-agent.ts`.
+
+## Running a Local Node + Agent App
+
+```bash
+# from dytallix-fast-launch/
+npm install
+./scripts/build-node.sh
+./scripts/start-node.sh
+./start-all-services.sh
+```
+
+Then run your agent app:
+
+```bash
+cd sdk
+npm install
+npm run build
+npx tsx examples/autonomous-agent.ts
+```
+
+## Building Production Agent Apps
+
+- Keep key material in an HSM/KMS-backed provider implementation for `PQCWallet.setProvider(...)`.
+- Use a durable `AgentValueStore` implementation (PostgreSQL, Redis, S3, etc.).
+- Add retry logic around faucet and transfer operations for long-running autonomous workflows.
+- Use `waitForSettlement` plus post-settlement snapshots to enforce accounting consistency.

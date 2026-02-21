@@ -40,6 +40,7 @@ const sidebars = {
         'developers/dev-walkthrough',
         'developers/smart-contracts',
         'developers/sdk',
+        'developers/autonomous-agents',
         'developers/api-reference',
         'developers/openapi',
         'developers/websockets-grpc',
