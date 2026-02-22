@@ -63,6 +63,7 @@ export class AuthController {
     res.header('Set-Cookie', buildAuthCookie(result.access_token, result.expiresAt, secureCookie));
 
     return {
+      access_token: result.access_token,
       user: result.user,
       expiresAt: result.expiresAt,
     };

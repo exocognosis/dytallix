@@ -66,6 +66,7 @@ export class AuthService {
     return {
       access_token: token,
       token,
+      expiresAt,
       user: {
         id: user.id,
         email: user.email,
