@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'fs';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,8 +11,6 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 import express from 'express';
 import cors from 'cors';
-import { WebSocketServer } from 'ws';
-import fs from 'fs';
 
 // Configuration
 import { CONFIG, validateProductionConfig } from './config/environment.js';
@@ -19,27 +18,36 @@ import { CONFIG, validateProductionConfig } from './config/environment.js';
 // Middleware
 import { requestLogger, logError, logInfo } from './logger.js';
 import { securityHeaders, logSecurityInit } from './middleware/security.js';
-import { __testResetRateLimiter } from './rateLimit.js';
+import { __testResetRateLimiter, shutdownRateLimiter } from './rateLimit.js';
 
 // Services
 import { ContractScanner } from './src/scanner/index.js';
-import { sendQuantumRiskEmail } from './emailService.js';
 import { saveLead, saveContactLead } from './leadsDatabase.js';
-import { generatePDFReport } from './pdf/pdfkit-report.js';
-
-import quantumRiskRoutes from './routes/quantum-risk.js';
-
-// ... (other imports)
-
-// Mount route modules
-app.use('/api/faucet', faucetRoutes);
-app.use('/', blockchainRoutes); // Wallet compatibility routes at root
-app.use('/api', explorerRoutes); // Explorer routes
-app.use('/api/ai', aiOracleRoutes); // AI Oracle routes
-app.use('/api', apiStatusRoutes); // Status and node cluster routes
-app.use('/api/aegis', aegisRoutes); // Aegis AI routes
-app.use('/api/quantum-risk', quantumRiskRoutes); // Quantum Risk routes
 import { register } from './metrics.js';
+
+// Routes
+import faucetRoutes from './routes/faucet.js';
+import blockchainRoutes from './routes/blockchain.js';
+import explorerRoutes from './routes/explorer.js';
+import aiOracleRoutes from './routes/ai-oracle.js';
+import apiStatusRoutes from './routes/api-status.js';
+import aegisRoutes from './routes/aegis.js';
+import quantumRiskRoutes from './routes/quantum-risk.js';
+import consulRoutes from './routes/consul.js';
+import garrisonRoutes from './routes/garrison.js';
+import horizonRoutes from './routes/horizon.js';
+
+// WebSocket services
+import { aegisWebSocket } from './services/aegis/websocket.js';
+import { initializeKeys as initializeAegisKeys } from './services/aegis/crypto.js';
+import { startExpirationWorker, closeReviewQueueDb } from './services/aegis/review-queue.js';
+import { closeThrottleDb } from './services/aegis/throttle.js';
+import { closeAegisDatabase } from './services/aegis/database.js';
+import { closeAegisPostureDb } from './services/aegis/posture.js';
+import { startConsulAgent, stopConsulAgent } from './services/consul/agent.js';
+import { startGarrisonAgent, stopGarrisonAgent } from './services/garrison/agent.js';
+import { startHorizonAgent, shutdownHorizonAgent } from './services/horizon/agent.js';
+import { createRuntimeSupervisor } from './runtime.js';
 
 /*
  * Dytallix Unified Server
@@ -50,7 +58,9 @@ import { register } from './metrics.js';
 if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
   try {
     __testResetRateLimiter();
-  } catch { }
+  } catch {
+    // best-effort for tests
+  }
 }
 
 // Production environment validation
@@ -62,10 +72,10 @@ try {
   logInfo('Environment Variables Check', {
     VITE_FRONTEND_URL: process.env.VITE_FRONTEND_URL,
     FRONTEND_PORT: process.env.FRONTEND_PORT,
-    PWD: process.cwd()
+    PWD: process.cwd(),
   });
 } catch (err) {
-  logError(err.message);
+  logError(err?.message || String(err));
   process.exit(1);
 }
 
@@ -97,25 +107,29 @@ const anomalyEngine = {
       validator: { enabled: false },
     },
   }),
-  testAlerting: () => Promise.resolve({
-    success: true,
-    message: 'Anomaly detection stubbed in fast-launch mode',
-  }),
-  sendTestAlert: () => Promise.resolve({
-    success: true,
-    message: 'Alert system stubbed in fast-launch mode',
-  }),
+  testAlerting: () =>
+    Promise.resolve({
+      success: true,
+      message: 'Anomaly detection stubbed in fast-launch mode',
+    }),
+  sendTestAlert: () =>
+    Promise.resolve({
+      success: true,
+      message: 'Alert system stubbed in fast-launch mode',
+    }),
 };
 
 // Start anomaly detection engine
-anomalyEngine.start().catch(err => {
+anomalyEngine.start().catch((err) => {
   logError('Failed to start anomaly detection engine', err);
 });
 
 // Load tokenomics metadata (non-fatal if missing)
 let tokenomicsMeta = null;
 try {
-  tokenomicsMeta = JSON.parse(fs.readFileSync(new URL('./tokenomics.json', import.meta.url), 'utf8'));
+  tokenomicsMeta = JSON.parse(
+    fs.readFileSync(new URL('./tokenomics.json', import.meta.url), 'utf8'),
+  );
 } catch {
   /* optional */
 }
@@ -131,14 +145,20 @@ logSecurityInit();
 
 // Mount route modules
 app.use('/api/faucet', faucetRoutes);
+// Canonical blockchain proxy namespace (used by the Build wallet UI).
+app.use('/api/blockchain', blockchainRoutes);
 app.use('/', blockchainRoutes); // Wallet compatibility routes at root
 app.use('/api', explorerRoutes); // Explorer routes
 app.use('/api/ai', aiOracleRoutes); // AI Oracle routes
 app.use('/api', apiStatusRoutes); // Status and node cluster routes
 app.use('/api/aegis', aegisRoutes); // Aegis AI routes
+app.use('/api/quantum-risk', quantumRiskRoutes); // Quantum Risk routes
+app.use('/api/consul', consulRoutes); // Consul governance diplomat routes
+app.use('/api', garrisonRoutes); // Garrison contract compliance + agentic routes
+app.use('/api/horizon', horizonRoutes); // Horizon network/DeFi monitor routes
 
 // Prometheus metrics endpoint
-app.get('/metrics', async (req, res) => {
+app.get('/metrics', async (_req, res) => {
   try {
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
@@ -146,10 +166,6 @@ app.get('/metrics', async (req, res) => {
     res.status(500).end(err);
   }
 });
-
-// Quantum Risk Routes are now handled by /api/quantum-risk router
-
-
 
 // Lead capture endpoints
 app.post('/api/leads/submit', async (req, res) => {
@@ -196,21 +212,21 @@ app.post('/api/scan/contract', async (req, res) => {
 });
 
 // Anomaly detection endpoints
-app.get('/api/anomalies/recent', (req, res) => {
+app.get('/api/anomalies/recent', (_req, res) => {
   res.json({ anomalies: anomalyEngine.getRecentAnomalies() });
 });
 
-app.post('/api/anomalies/detect', (req, res) => {
+app.post('/api/anomalies/detect', (_req, res) => {
   anomalyEngine.forceDetection();
   res.json({ success: true, message: 'Detection triggered' });
 });
 
-app.get('/api/anomalies/stats', (req, res) => {
+app.get('/api/anomalies/stats', (_req, res) => {
   res.json(anomalyEngine.getStats());
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   const statusCode = err.status || 500;
   const message = err.message || 'Internal Server Error';
 
@@ -227,26 +243,138 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-const server = app.listen(CONFIG.server.port, () => {
-  logInfo(`Server running on port ${CONFIG.server.port}`, {
-    nodeEnv: CONFIG.server.nodeEnv,
-    demoMode: CONFIG.demoMode,
+let server = null;
+let serverRuntime = null;
+let signalHandlersInstalled = false;
+
+export function startServer() {
+  if (server) return server;
+  if (serverRuntime) {
+    serverRuntime = null;
+  }
+
+  serverRuntime = createRuntimeSupervisor('dytallix-server');
+
+  server = app.listen(CONFIG.server.port, CONFIG.server.host, () => {
+    logInfo(`Server running on port ${CONFIG.server.port}`, {
+      nodeEnv: CONFIG.server.nodeEnv,
+      demoMode: CONFIG.demoMode,
+      host: CONFIG.server.host,
+    });
   });
-});
 
-// Initialize Aegis WebSocket server
-aegisWebSocket.initialize(server);
-logInfo('Aegis WebSocket server initialized');
+  // Initialize Aegis WebSocket server
+  aegisWebSocket.initialize(server);
+  logInfo('Aegis WebSocket server initialized');
 
+  // Start review queue expiration worker only when the server runtime is active
+  startExpirationWorker();
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logInfo('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logInfo('Server closed');
-    process.exit(0);
+  // Runtime cleanups (reverse-order execution on stop).
+  serverRuntime.addCleanup('aegis_posture_db', () => closeAegisPostureDb());
+  serverRuntime.addCleanup('aegis_throttle_db', () => closeThrottleDb());
+  serverRuntime.addCleanup('aegis_review_queue_db', () => closeReviewQueueDb());
+  serverRuntime.addCleanup('aegis_database', () => closeAegisDatabase());
+  serverRuntime.addCleanup('rate_limiter', () => shutdownRateLimiter());
+  serverRuntime.addCleanup('aegis_websocket', () => aegisWebSocket.close?.());
+  serverRuntime.addCleanup(
+    'http_server',
+    () =>
+      new Promise((resolve) => {
+        if (!server) return resolve();
+        const srv = server;
+        server = null;
+        try {
+          srv.close(() => resolve());
+        } catch {
+          resolve();
+        }
+      }),
+  );
+
+  initializeAegisKeys().catch((err) => {
+    logError('Failed to initialize Aegis cryptography', {
+      error: err?.message || String(err),
+    });
   });
-});
+
+  startConsulAgent();
+  serverRuntime.addCleanup('consul_agent', () => stopConsulAgent());
+
+  startGarrisonAgent();
+  serverRuntime.addCleanup('garrison_agent', () => stopGarrisonAgent());
+
+  startHorizonAgent();
+  serverRuntime.addCleanup('horizon_agent', () => shutdownHorizonAgent());
+
+  const shutdown = (signal) => {
+    logInfo(`${signal} received, shutting down gracefully`);
+    stopServer({ reason: signal })
+      .then(() => process.exit(0))
+      .catch((error) => {
+        logError('Server shutdown failed', {
+          signal,
+          error: error?.message || String(error),
+        });
+        process.exit(1);
+      });
+  };
+
+  if (!signalHandlersInstalled) {
+    signalHandlersInstalled = true;
+    process.once('SIGTERM', () => shutdown('SIGTERM'));
+    process.once('SIGINT', () => shutdown('SIGINT'));
+  }
+
+  return server;
+}
+
+export async function stopServer({ reason = 'manual_stop' } = {}) {
+  if (!serverRuntime) {
+    if (!server) return;
+    const srv = server;
+    server = null;
+    await new Promise((resolve) => srv.close(() => resolve()));
+    return;
+  }
+
+  const runtime = serverRuntime;
+  serverRuntime = null;
+  const result = await runtime.stop({ reason });
+  if (!result.ok) {
+    logError('Server runtime stopped with cleanup errors', {
+      errors: result.errors,
+    });
+  } else {
+    logInfo('Server runtime stopped cleanly', { reason });
+  }
+}
+
+// Only listen when this file is the entrypoint.
+const isMain = (() => {
+  try {
+    if (
+      !!process.argv[1] &&
+      import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+    ) {
+      return true;
+    }
+
+    // PM2 executes apps through its own wrapper, so process.argv[1] points to PM2 internals.
+    // In that case, compare pm_exec_path to this file path.
+    if (process.env.pm_exec_path) {
+      const thisFile = fileURLToPath(import.meta.url);
+      return path.resolve(process.env.pm_exec_path) === path.resolve(thisFile);
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+})();
+
+if (isMain) {
+  startServer();
+}
 
 export default app;

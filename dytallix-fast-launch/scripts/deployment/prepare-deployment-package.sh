@@ -66,6 +66,13 @@ chmod +x "${PACKAGE_DIR}/scripts/"*.sh 2>/dev/null || true
 chmod +x "${PACKAGE_DIR}/scripts/deployment/"*.sh 2>/dev/null || true
 chmod +x "${PACKAGE_DIR}/scripts/evidence/"*.sh 2>/dev/null || true
 
+# Copy deployment configuration (nginx and related infra files)
+if [ -d "${ROOT_DIR}/deployment" ]; then
+  log "Copying deployment configuration..."
+  mkdir -p "${PACKAGE_DIR}/deployment"
+  rsync -av "${ROOT_DIR}/deployment/" "${PACKAGE_DIR}/deployment/"
+fi
+
 # Copy node source
 log "Copying node source code..."
 mkdir -p "${PACKAGE_DIR}/node"

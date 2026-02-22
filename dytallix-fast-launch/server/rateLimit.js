@@ -219,3 +219,17 @@ export function __testResetRateLimiter() {
     }
   } catch {/* ignore */}
 }
+
+export async function shutdownRateLimiter() {
+  try {
+    recentGrants.clear()
+  } catch {/* ignore */}
+
+  try {
+    if (rateLimiter instanceof RedisRateLimiter && typeof rateLimiter.disconnect === 'function') {
+      await rateLimiter.disconnect()
+    }
+  } catch (err) {
+    logError('Rate limiter shutdown failed', err)
+  }
+}

@@ -162,6 +162,22 @@ deploy() {
     echo -e "${YELLOW}Building frontend...${NC}"
     cd "$LOCAL_DIR/build" && npm install && npm run build && cd -
 
+    # Stamp build for cache visibility/debugging
+    BUILD_STAMP="$(date -u +%Y%m%dT%H%M%SZ)-$(git -C "$LOCAL_DIR" rev-parse --short HEAD 2>/dev/null || echo local)"
+    echo -e "${YELLOW}Stamping frontend build: ${BUILD_STAMP}${NC}"
+    cat > "$LOCAL_DIR/build/dist/version.json" << EOF
+{"build":"$BUILD_STAMP","generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+EOF
+
+    if [ -f "$LOCAL_DIR/build/dist/index.html" ]; then
+        tmp_index="$(mktemp)"
+        {
+            echo "<!-- dytallix-build:${BUILD_STAMP} -->"
+            cat "$LOCAL_DIR/build/dist/index.html"
+        } > "$tmp_index"
+        mv "$tmp_index" "$LOCAL_DIR/build/dist/index.html"
+    fi
+
     # Sync frontend build to server's nginx html directory
     echo -e "${YELLOW}Syncing frontend build to /usr/share/nginx/html on server...${NC}"
     rsync -av --delete "$LOCAL_DIR/build/dist/" "$SERVER_USER@$SERVER_IP:/usr/share/nginx/html/"
@@ -184,6 +200,13 @@ deploy() {
         echo "✓ Deployment started in background"
         # Reload nginx to pick up new frontend
         systemctl reload nginx
+
+        if [ -x scripts/deployment/safe-backend-reload.sh ]; then
+            echo "Running safe backend reload with QuantumVault health gates..."
+            bash scripts/deployment/safe-backend-reload.sh
+        else
+            echo "⚠ safe-backend-reload.sh not found; skipping guarded reload"
+        fi
 ENDSSH
 
     echo -e "${GREEN}✓ Services and frontend deployed${NC}"
@@ -222,6 +245,22 @@ verify_deployment() {
         echo -e "${GREEN}✓ Frontend is responding${NC}"
     else
         echo -e "${YELLOW}⚠ Frontend not responding yet${NC}"
+    fi
+
+    # Check QuantumVault API via nginx route
+    echo -e "\n${BLUE}QuantumVault Health Check:${NC}"
+    if curl -s https://dytallix.com/api/quantumvault/health > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ QuantumVault API is responding${NC}"
+    else
+        echo -e "${YELLOW}⚠ QuantumVault API not responding yet${NC}"
+    fi
+
+    # Check build stamp endpoint
+    echo -e "\n${BLUE}Frontend Build Stamp:${NC}"
+    if curl -s https://dytallix.com/version.json | jq . > /dev/null 2>&1; then
+        curl -s https://dytallix.com/version.json | jq .
+    else
+        echo -e "${YELLOW}⚠ version.json not reachable${NC}"
     fi
     
     echo -e "${GREEN}✓ Verification complete${NC}"

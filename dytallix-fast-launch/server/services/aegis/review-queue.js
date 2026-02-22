@@ -13,6 +13,7 @@ const __dirname = path.dirname(__filename);
 const dbPath = path.join(__dirname, '../../..', 'data', 'leads.db');
 
 let db = null;
+let expirationWorker = null;
 
 /**
  * Initialize review queue database table
@@ -375,11 +376,28 @@ export const cleanupOldReviews = (daysOld = 30) => {
     }
 };
 
+export const closeReviewQueueDb = () => {
+    if (!db) return;
+    try {
+        db.close();
+        db = null;
+        logInfo('Aegis review queue DB closed');
+    } catch (error) {
+        logWarn('Failed to close Aegis review queue DB cleanly', { error: error.message });
+    }
+};
+
+export const startExpirationWorker = (intervalMs = 5 * 60 * 1000) => {
+    if (expirationWorker) return expirationWorker;
+    expirationWorker = setInterval(checkExpired, intervalMs);
+    return expirationWorker;
+};
+
 // Initialize on module load
 initializeReviewQueueTable();
 
 // Run expiration check every 5 minutes
-setInterval(checkExpired, 5 * 60 * 1000);
+startExpirationWorker();
 
 export default {
     shouldQueue,
@@ -390,5 +408,6 @@ export default {
     rejectTransaction,
     checkExpired,
     getQueueStats,
-    cleanupOldReviews
+    cleanupOldReviews,
+    closeReviewQueueDb
 };

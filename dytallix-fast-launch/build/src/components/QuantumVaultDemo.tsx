@@ -5,6 +5,39 @@ import { LiveLogPanel } from "./ui/LiveLogPanel"
 import { Lock, Upload, ShieldCheck, FileKey, Activity, CheckCircle, Loader2, Info, Copy, ExternalLink, FileText } from "lucide-react"
 import { Link } from "react-router-dom"
 
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "")
+
+const resolveQuantumVaultBase = () => {
+    const isBrowser = typeof window !== "undefined"
+
+    if (isBrowser) {
+        const host = window.location.hostname
+        const isDytallixHost = host === "dytallix.com" || host.endsWith(".dytallix.com")
+        if (isDytallixHost) {
+            return "/api/quantumvault"
+        }
+    }
+
+    const rawBase = (import.meta.env.VITE_QUANTUMVAULT_API_URL || "").trim()
+    if (!rawBase) {
+        return isBrowser ? "/api/quantumvault" : "http://localhost:3002"
+    }
+
+    if (/^dytallix1[0-9a-f]+$/i.test(rawBase)) {
+        return isBrowser ? "/api/quantumvault" : "http://localhost:3002"
+    }
+
+    if (!isBrowser) {
+        return trimTrailingSlash(rawBase)
+    }
+
+    try {
+        return trimTrailingSlash(new URL(rawBase, window.location.origin).toString())
+    } catch {
+        return "/api/quantumvault"
+    }
+}
+
 
 export function QuantumVaultDemo() {
     const [file, setFile] = useState<File | null>(null)
@@ -22,10 +55,33 @@ export function QuantumVaultDemo() {
     const verifyFileInputRef = useRef<HTMLInputElement>(null)
     const verifyReceiptInputRef = useRef<HTMLInputElement>(null)
 
-    const quantumVaultUrl = useMemo(
-        () => (import.meta.env.VITE_QUANTUMVAULT_API_URL || "http://localhost:3002").replace(/\/$/, ""),
-        []
-    )
+    const quantumVaultUrl = useMemo(() => trimTrailingSlash(resolveQuantumVaultBase()), [])
+
+    const requestQuantumVault = async (path: string, init?: RequestInit) => {
+        const normalizedPath = path.startsWith("/") ? path : `/${path}`
+        const primaryUrl = `${quantumVaultUrl}${normalizedPath}`
+        const sameOriginFallback = typeof window !== "undefined"
+            ? trimTrailingSlash(new URL("/api/quantumvault", window.location.origin).toString())
+            : "http://localhost:3002"
+        const canFallback = sameOriginFallback !== quantumVaultUrl
+
+        try {
+            const response = await fetch(primaryUrl, init)
+
+            if (response.status >= 500 && canFallback) {
+                addLog(`WARN: QuantumVault upstream ${response.status}. Retrying via platform gateway...`)
+                return await fetch(`${sameOriginFallback}${normalizedPath}`, init)
+            }
+
+            return response
+        } catch (error) {
+            if (canFallback) {
+                addLog("WARN: Primary QuantumVault endpoint unreachable. Retrying via platform gateway...")
+                return await fetch(`${sameOriginFallback}${normalizedPath}`, init)
+            }
+            throw error
+        }
+    }
 
     const addLog = (message: string) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`])
@@ -57,13 +113,20 @@ export function QuantumVaultDemo() {
             const formData = new FormData()
             formData.append('file', file)
 
-            const response = await fetch(`${quantumVaultUrl}/encrypt`, {
+            const response = await requestQuantumVault('/encrypt', {
                 method: 'POST',
                 body: formData
             })
 
             if (!response.ok) {
-                throw new Error(`Encryption failed: ${response.statusText}`)
+                let details = response.statusText || 'Unknown server error'
+                try {
+                    const payload = await response.json()
+                    details = payload?.details || payload?.error || details
+                } catch {
+                    // Keep status text fallback
+                }
+                throw new Error(`Encryption failed (${response.status}): ${details}`)
             }
 
             const result = await response.json()
@@ -82,7 +145,7 @@ export function QuantumVaultDemo() {
 
             // Store encrypted blob for download (Fetch it back from backend)
             // For this demo, we'll fetch the .enc file we just created
-            const encFileResponse = await fetch(`${quantumVaultUrl}/download/${result.encryptedFilename}`)
+            const encFileResponse = await requestQuantumVault(`/download/${result.encryptedFilename}`)
             const encBlob = await encFileResponse.blob()
             setEncryptedBlob(encBlob)
 
@@ -99,7 +162,7 @@ export function QuantumVaultDemo() {
             // Let's call /anchor on the backend to be sure.
 
             // First generate a proof object to anchor
-            const proofRes = await fetch(`${quantumVaultUrl}/proof/generate`, {
+            const proofRes = await requestQuantumVault('/proof/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -115,7 +178,7 @@ export function QuantumVaultDemo() {
             addLog("Connecting to Dytallix Node...")
             addLog("Anchoring Hash & Signature to Blockchain...")
 
-            const anchorRes = await fetch(`${quantumVaultUrl}/anchor`, {
+            const anchorRes = await requestQuantumVault('/anchor', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ proofId: proofData.proofId })
@@ -206,7 +269,7 @@ export function QuantumVaultDemo() {
             addLog(`Querying Dytallix Ledger for Tx: ${verifyReceipt.txHash}...`)
 
             // REAL BLOCKCHAIN VERIFICATION
-            const verifyRes = await fetch(`${quantumVaultUrl}/verify/transaction`, {
+            const verifyRes = await requestQuantumVault('/verify/transaction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

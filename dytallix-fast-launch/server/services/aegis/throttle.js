@@ -286,6 +286,17 @@ export const clearThrottle = (address) => {
     }
 };
 
+export const closeThrottleDb = () => {
+    if (!db) return;
+    try {
+        db.close();
+        db = null;
+        logInfo('Aegis throttle DB closed');
+    } catch (error) {
+        logWarn('Failed to close Aegis throttle DB cleanly', { error: error.message });
+    }
+};
+
 // Initialize on module load
 initializeThrottleTable();
 
@@ -297,5 +308,6 @@ export default {
     getThrottleStatus,
     getThrottledWallets,
     clearThrottle,
-    recordViolation
+    recordViolation,
+    closeThrottleDb
 };
