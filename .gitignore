@@ -1,5 +1,10 @@
 # Dytallix - Post-Quantum AI-Enhanced Cryptocurrency
 
+# Local caches / environments (never commit)
+.cargo-home/
+.venv/
+.local/
+
 # Rust build artifacts
 target/
 Cargo.lock
@@ -55,9 +60,23 @@ data/
 # Configuration files with sensitive data
 config/secrets.toml
 config/production.toml
-# .env
-# .env.local
+# Local env files (keep examples tracked)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production.local
+!.env.example
+!.env.*.example
 .env.production
+
+# Process/runtime artifacts
+*.log
+*.pid
+
+# Embedded DB / temporary storage dumps
+**/:memory:/**
 
 # IDE files
 .vscode/
@@ -79,6 +98,18 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+
+# Common editor/OS duplicates with numeric suffixes
+.gitignore [0-9]*
+.dockerignore [0-9]*
+.gitleaks [0-9]*.toml
+Dockerfile [0-9]*
+Cargo [0-9]*.toml
+package [0-9]*.json
+package-lock [0-9]*.json
+postcss.config [0-9]*.js
+tailwind.config [0-9]*.js
+vite.config [0-9]*.js
 
 # Blockchain data
 blockchain-data/
