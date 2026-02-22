@@ -33,13 +33,13 @@ check_port() {
 wait_for_service() {
     local url=$1
     local name=$2
-    local max_attempts=30
+    local max_attempts=${SERVICE_WAIT_MAX_ATTEMPTS:-180}
     local attempt=1
     
     echo -e "${YELLOW}⏳ Waiting for $name to be ready...${NC}"
     
     while [ $attempt -le $max_attempts ]; do
-        if curl -s $url >/dev/null 2>&1; then
+        if curl -fsS --max-time 1 "$url" >/dev/null 2>&1; then
             echo -e "${GREEN}✅ $name is ready${NC}"
             return 0
         fi
@@ -90,7 +90,8 @@ if [ ! -d "target" ]; then
 fi
 
 # Start blockchain core in background
-cargo run --features api > ../blockchain-core.log 2>&1 &
+# NOTE: This workspace defines multiple binaries; we must specify which one.
+PORT=$BLOCKCHAIN_PORT cargo run --bin dytallix-node > ../blockchain-core.log 2>&1 &
 BLOCKCHAIN_PID=$!
 echo -e "${GREEN}✅ Blockchain Core started (PID: $BLOCKCHAIN_PID)${NC}"
 cd ..
