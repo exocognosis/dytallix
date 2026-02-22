@@ -1,0 +1,18 @@
+{
+  "name": "dytallixpay",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "contracts/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build"
+  },
+  "devDependencies": {
+    "turbo": "^1.11.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}
