@@ -1,0 +1,62 @@
+[package]
+name = "dytallix-sdk"
+version = "0.2.0"
+edition = "2021"
+authors = ["Dytallix Team"]
+description = "Official Rust SDK for the Dytallix blockchain with PQC support"
+license = "Apache-2.0"
+repository = "https://github.com/DytallixHQ/Dytallix"
+documentation = "https://github.com/DytallixHQ/Dytallix/tree/main/sdk/rust"
+keywords = ["dytallix", "blockchain", "post-quantum", "pqc", "cryptocurrency"]
+categories = ["cryptography", "api-bindings"]
+
+# Exclude from parent workspace
+[workspace]
+
+[lib]
+name = "dytallix_sdk"
+path = "src/lib.rs"
+
+[dependencies]
+# Post-quantum cryptography (FIPS 204 ML-DSA)
+pqcrypto-dilithium = "0.5"
+pqcrypto-traits = "0.3"
+
+# Cryptographic utilities
+blake3 = "1.5"
+sha2 = "0.10"
+hex = "0.4"
+
+# HTTP client for RPC
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Date/time
+chrono = "0.4"
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Random number generation
+rand = "0.8"
+
+# Memory safety
+zeroize = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full", "test-util", "macros"] }
+
+[[example]]
+name = "wallet"
+path = "examples/wallet.rs"
+
+[[example]]
+name = "query_status"
+path = "examples/query_status.rs"
