@@ -4,7 +4,18 @@ import { VaultService } from '../vault/vault.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { deriveAes256Key, getMlKem1024, ML_KEM_1024_WRAP_SUITE } from '../crypto/mlkem';
+import {
+    deriveAes256Key,
+    getMlKemByAlgorithm,
+    ML_KEM_1024_ALGORITHM,
+    ML_KEM_512_ALGORITHM,
+    ML_KEM_768_ALGORITHM,
+    MlKem,
+    normalizeKemAlgorithmName,
+    wrapSuiteForKemAlgorithm,
+} from '../crypto/mlkem';
+import { getMlDsa65, ML_DSA_65_ALGORITHM } from '../crypto/mldsa';
+import { getSlhDsaShake128s, SLH_DSA_SHAKE_128S_ALGORITHM } from '../crypto/slhdsa';
 import { canonicalJsonBuffer, canonicalJsonSha256Hex } from '../crypto/canonical-json';
 import { PipelineAssetStatus, PipelineRunStatus, Prisma } from '@prisma/client';
 import { AttestationService } from '../attestation/attestation.service';
@@ -13,6 +24,14 @@ import { TransportService } from '../transport/transport.service';
 const PQC_PIPELINE_VERSION = 'qv-pqc-v1';
 const DEFAULT_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const DEFAULT_MAX_FILES = 2000;
+
+type PipelineWrapLevel = 'baseline' | 'enhanced' | 'maximum';
+
+type PipelinePolicy = {
+    level: PipelineWrapLevel;
+    kemAlgorithm: string;
+    signatureAlgorithms: string[];
+};
 
 @Injectable()
 export class AdminService {
@@ -135,7 +154,7 @@ export class AdminService {
         }
 
         // Parse config
-        const directorySource = config.sourceDirectories || config.directories || '';
+        const directorySource = config.originDatabase || config.sourceDirectories || config.directories || '';
         const directories = (directorySource || '').split('\n').map(d => d.trim()).filter(Boolean);
         const extensions = (config.fileTypes || '').split(',').map(e => e.trim().replace(/^\*/, '')); // e.g., ".pem"
 
@@ -217,6 +236,60 @@ export class AdminService {
         };
     }
 
+    private async generateManifestForPipeline(sourceDir: string, extensions: string[]): Promise<boolean> {
+        try {
+            if (!fs.existsSync(sourceDir)) {
+                return false;
+            }
+
+            const files = await this.scanDirForPipeline(sourceDir, {
+                extensions,
+                excludePatterns: ['node_modules', '.git'],
+            });
+
+            const manifestEntries: string[] = [];
+
+            for (const filePath of files) {
+                if (filePath.toLowerCase().endsWith('.pqc.json') || filePath.toLowerCase().endsWith('.meta.json')) {
+                    continue;
+                }
+
+                const relativePath = path.relative(sourceDir, filePath);
+                const stat = await fs.promises.stat(filePath);
+                const fileBuffer = await fs.promises.readFile(filePath);
+                const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+                const entry = {
+                    object_id: crypto.randomUUID(),
+                    relative_path: relativePath,
+                    plaintext_sha256: sha256,
+                    file_size_bytes: stat.size,
+                    data_domain: this.inferDataDomain(relativePath),
+                    crypto_domain: this.inferCryptoDomain(relativePath),
+                    pqc_status: 'UNPROTECTED',
+                    pqc_protected: false,
+                    expected_policy_outcome: 'WRAP_PQC',
+                    discovered_at: new Date().toISOString(),
+                };
+
+                manifestEntries.push(JSON.stringify(entry));
+            }
+
+            const manifestContent = manifestEntries.join('\n') + (manifestEntries.length ? '\n' : '');
+            const manifestPath = path.join(sourceDir, 'manifest.jsonl');
+            const manifestSha = crypto.createHash('sha256').update(manifestContent).digest('hex');
+            const shaPath = path.join(sourceDir, 'manifest.sha256');
+
+            await fs.promises.writeFile(manifestPath, manifestContent, 'utf8');
+            await fs.promises.writeFile(shaPath, manifestSha, 'utf8');
+            this.logger.log(`Auto-generated manifest for ${sourceDir} with ${manifestEntries.length} entries`);
+            return true;
+        } catch (error: any) {
+            this.logger.error(`Failed to auto-generate manifest for ${sourceDir}: ${error?.message || error}`);
+            return false;
+        }
+    }
+
     private inferDataDomain(relativePath: string): string {
         const lower = relativePath.toLowerCase();
         if (lower.includes('genomic') || lower.includes('dna') || lower.includes('fasta') || lower.includes('vcf')) return 'GENOMIC';
@@ -239,8 +312,8 @@ export class AdminService {
     async runPqcPipeline(config: any) {
         this.logger.log('Starting PQC pipeline with config:', config);
         try {
-            const sourceDirectories = this.parseLineList(config.sourceDirectories || config.directories || '');
-            const destinationDirectories = this.parseLineList(config.destinationDirectories || '');
+            const sourceDirectories = this.parseLineList(config.originDatabase || config.sourceDirectories || config.directories || '');
+            const destinationDirectories = this.parseLineList(config.destinationDatabase || config.destinationDirectories || '');
 
             if (sourceDirectories.length === 0) {
                 return { success: false, message: 'No source directories specified' };
@@ -257,6 +330,9 @@ export class AdminService {
 
             const extensions = this.resolvePipelineExtensions(config);
             const excludePatterns = this.parseCommaList(config.excludePatterns || '').concat(['node_modules', '.git']);
+            const defaultPolicy = this.resolvePipelinePolicy(config);
+            const fileTypePolicies = this.resolveFileTypePolicies(config);
+            const requiredSignatureAlgorithms = this.collectRequiredSignatureAlgorithms(defaultPolicy, fileTypePolicies);
 
             const minDate = this.parseDate(config.minDate);
             const maxDate = this.parseDate(config.maxDate);
@@ -264,26 +340,24 @@ export class AdminService {
             const maxFiles = this.parsePositiveInt(config.maxFiles, DEFAULT_MAX_FILES);
             const maxFileSizeBytes = this.parsePositiveInt(config.maxFileSizeBytes, DEFAULT_MAX_FILE_SIZE_BYTES);
 
-            // PQC pipeline requires ML-KEM-1024 for encryption (not ML-DSA for signing)
-            const activeAnchor = await this.prisma.anchor.findFirst({
-                where: { isActive: true, algorithm: 'ML-KEM-1024' },
-                orderBy: { createdAt: 'desc' },
-            });
+            const activeAnchor = await this.resolveActiveKemAnchor(defaultPolicy.kemAlgorithm);
 
             if (!activeAnchor) {
-                return { success: false, message: 'No active ML-KEM-1024 anchor found. Create an ML-KEM-1024 encryption anchor first (not ML-DSA signing key).' };
+                return { success: false, message: `No active ${defaultPolicy.kemAlgorithm} anchor found. Create an active KEM anchor before running pipeline.` };
             }
 
-            let anchorPublic: any;
-            try {
-                anchorPublic = await this.vaultService.read(activeAnchor.vaultKeyPath);
-            } catch (error: any) {
-                this.logger.error(`Vault read failed for ${activeAnchor.vaultKeyPath}: ${error?.message || error}`);
-                return { success: false, message: 'Vault read failed for active anchor. Check Vault connectivity and key path.' };
+            const signatureAnchors = await this.resolveSignatureAnchors(requiredSignatureAlgorithms);
+
+            const missingSigners = requiredSignatureAlgorithms.filter((algorithm) => !signatureAnchors.has(algorithm));
+            if (missingSigners.length > 0) {
+                return {
+                    success: false,
+                    message: `Missing active signature anchors for: ${missingSigners.join(', ')}. Create and activate signer anchors before running selected policy levels.`,
+                };
             }
 
-            const anchorPublicKey = Buffer.from(anchorPublic.data?.key || anchorPublic.key, 'base64');
-            const kem = await getMlKem1024();
+            const kemPublicKeyCache = new Map<string, Buffer>();
+            const kemByAlgorithmCache = new Map<string, MlKem>();
 
         const run = await this.prisma.pipelineRun.create({
             data: {
@@ -325,20 +399,41 @@ export class AdminService {
                 continue;
             }
 
+            let manifest: { entries: Map<string, any>; sha256: string } | null = null;
             try {
-                const manifest = await this.loadManifest(sourceDir, verifyManifestSha);
-                manifestBySource.set(sourceDir, manifest);
-                manifestShaBySource[sourceDir] = manifest.sha256;
-                await this.prisma.pipelineRun.update({
-                    where: { id: run.id },
-                    data: { manifestSha: manifestShaBySource },
-                });
+                manifest = await this.loadManifest(sourceDir, verifyManifestSha);
             } catch (error: any) {
-                this.logger.error(`Manifest load failed for ${sourceDir}: ${error?.message || error}`);
+                this.logger.warn(`Manifest load failed for ${sourceDir}: ${error?.message || error}. Attempting auto-generation.`);
+                const generated = await this.generateManifestForPipeline(sourceDir, extensions);
+                if (!generated) {
+                    this.logger.error(`Manifest auto-generation failed for ${sourceDir}`);
+                    results.push({ source: sourceDir, status: 'failed', reason: 'manifest_load_failed' });
+                    failed += 1;
+                    continue;
+                }
+
+                try {
+                    manifest = await this.loadManifest(sourceDir, verifyManifestSha);
+                } catch (retryError: any) {
+                    this.logger.error(`Manifest reload failed for ${sourceDir}: ${retryError?.message || retryError}`);
+                    results.push({ source: sourceDir, status: 'failed', reason: 'manifest_load_failed' });
+                    failed += 1;
+                    continue;
+                }
+            }
+
+            if (!manifest) {
                 results.push({ source: sourceDir, status: 'failed', reason: 'manifest_load_failed' });
                 failed += 1;
                 continue;
             }
+
+            manifestBySource.set(sourceDir, manifest);
+            manifestShaBySource[sourceDir] = manifest.sha256;
+            await this.prisma.pipelineRun.update({
+                where: { id: run.id },
+                data: { manifestSha: manifestShaBySource },
+            });
 
             const files = await this.scanDirForPipeline(sourceDir, {
                 extensions,
@@ -410,6 +505,35 @@ export class AdminService {
 
                     const sidecar = await this.loadSidecarMetadata(filePath);
                     const mergedMetadata = { ...metadata, ...sidecar };
+                    const effectivePolicy = this.getPolicyForFile(filePath, defaultPolicy, fileTypePolicies);
+                    const effectiveKemAlgorithm = this.normalizeKemAlgorithm(effectivePolicy.kemAlgorithm, this.kemAlgorithmForLevel(effectivePolicy.level));
+                    const selectedKemAnchor = this.isKemCompatible(effectivePolicy.kemAlgorithm, activeAnchor.algorithm)
+                        ? activeAnchor
+                        : await this.resolveActiveKemAnchor(effectiveKemAlgorithm);
+
+                    if (!selectedKemAnchor) {
+                        throw new Error(`No active KEM anchor available for ${effectiveKemAlgorithm}`);
+                    }
+
+                    const selectedAnchorAlgorithm = this.normalizeKemAlgorithm(selectedKemAnchor.algorithm, effectiveKemAlgorithm);
+                    const selectedKemAlgorithm = this.normalizeKemAlgorithm(effectiveKemAlgorithm, selectedAnchorAlgorithm);
+
+                    let selectedAnchorPublicKey = kemPublicKeyCache.get(selectedKemAnchor.id);
+                    if (!selectedAnchorPublicKey) {
+                        const selectedAnchorPublicRecord: any = await this.vaultService.read(selectedKemAnchor.vaultKeyPath);
+                        const selectedAnchorPublicKeyB64 = selectedAnchorPublicRecord?.data?.key || selectedAnchorPublicRecord?.key;
+                        if (!selectedAnchorPublicKeyB64) {
+                            throw new Error(`Invalid public key payload at ${selectedKemAnchor.vaultKeyPath}`);
+                        }
+                        selectedAnchorPublicKey = Buffer.from(selectedAnchorPublicKeyB64, 'base64');
+                        kemPublicKeyCache.set(selectedKemAnchor.id, selectedAnchorPublicKey);
+                    }
+
+                    let selectedKem = kemByAlgorithmCache.get(selectedKemAlgorithm);
+                    if (!selectedKem) {
+                        selectedKem = await getMlKemByAlgorithm(selectedKemAlgorithm);
+                        kemByAlgorithmCache.set(selectedKemAlgorithm, selectedKem);
+                    }
 
                     const pipelineAsset = await this.prisma.pipelineAsset.create({
                         data: {
@@ -426,7 +550,14 @@ export class AdminService {
                             plaintextSha256: mergedMetadata.plaintext_sha256 || metadata.plaintext_sha256 || sha256,
                             manifestSha256: manifest?.sha256,
                             fileSizeBytes: stat.size,
-                            metadata: mergedMetadata,
+                            metadata: {
+                                ...mergedMetadata,
+                                pipeline_pqc_policy: {
+                                    level: effectivePolicy.level,
+                                    kemAlgorithm: selectedKemAlgorithm,
+                                    signatureAlgorithms: effectivePolicy.signatureAlgorithms,
+                                },
+                            },
                             stageTimestamps,
                         },
                     });
@@ -483,9 +614,11 @@ export class AdminService {
 
                     const aadContext = {
                         protocolVersion: PQC_PIPELINE_VERSION,
-                        wrapSuite: ML_KEM_1024_WRAP_SUITE,
-                        anchorId: activeAnchor.id,
-                        anchorAlgorithm: activeAnchor.algorithm,
+                        wrapSuite: wrapSuiteForKemAlgorithm(selectedKemAlgorithm),
+                        kemAlgorithm: selectedKemAlgorithm,
+                        wrapLevel: effectivePolicy.level,
+                        anchorId: selectedKemAnchor.id,
+                        anchorAlgorithm: selectedKemAnchor.algorithm,
                         objectId: mergedMetadata.object_id || metadata.object_id || null,
                         relativePath: mergedMetadata.relative_path || metadata.relative_path || relativePath,
                         plaintextSha256: mergedMetadata.plaintext_sha256 || metadata.plaintext_sha256 || sha256,
@@ -494,13 +627,21 @@ export class AdminService {
                         cryptoDomain: mergedMetadata.crypto_domain || metadata.crypto_domain || null,
                     };
 
-                    const envelope = await this.encryptBuffer(fileBuffer, kem, anchorPublicKey, aadContext);
+                    const envelope = await this.encryptBuffer(
+                        fileBuffer,
+                        selectedKem,
+                        selectedAnchorPublicKey,
+                        aadContext,
+                        selectedKemAlgorithm,
+                    );
 
                     const payload = {
                         version: PQC_PIPELINE_VERSION,
-                        algorithm: ML_KEM_1024_WRAP_SUITE,
-                        anchorId: activeAnchor.id,
-                        anchorAlgorithm: activeAnchor.algorithm,
+                        algorithm: wrapSuiteForKemAlgorithm(selectedKemAlgorithm),
+                        kemAlgorithm: selectedKemAlgorithm,
+                        wrapLevel: effectivePolicy.level,
+                        anchorId: selectedKemAnchor.id,
+                        anchorAlgorithm: selectedKemAnchor.algorithm,
                         object_id: mergedMetadata.object_id || metadata.object_id,
                         relative_path: mergedMetadata.relative_path || metadata.relative_path || relativePath,
                         plaintext_sha256: mergedMetadata.plaintext_sha256 || metadata.plaintext_sha256 || sha256,
@@ -526,10 +667,38 @@ export class AdminService {
                             aadContext,
                         },
                         ciphertext: envelope.aeadCiphertext.toString('base64'),
+                        attestation: {
+                            payloadDigestSha256: '',
+                            signatures: [] as Array<{
+                                algorithm: string;
+                                anchorId: string;
+                                anchorName: string;
+                                signature: string;
+                            }>,
+                        },
                         wrappedAt: new Date().toISOString(),
                     };
 
+                    const payloadDigestSha256 = canonicalJsonSha256Hex({
+                        ...payload,
+                        attestation: undefined,
+                    });
+
+                    const attestationSignatures = await this.signDigestForPolicy(
+                        payloadDigestSha256,
+                        effectivePolicy.signatureAlgorithms,
+                        signatureAnchors,
+                    );
+
+                    payload.attestation = {
+                        payloadDigestSha256: `0x${payloadDigestSha256}`,
+                        signatures: attestationSignatures,
+                    };
+
                     stageTimestamps.WRAPPED_PQC = new Date().toISOString();
+                    if (attestationSignatures.length > 0) {
+                        stageTimestamps.ATTESTED = new Date().toISOString();
+                    }
                     await this.prisma.pipelineAsset.update({
                         where: { id: pipelineAsset.id },
                         data: {
@@ -590,6 +759,10 @@ export class AdminService {
             failed,
             anchorId: activeAnchor.id,
             anchorAlgorithm: activeAnchor.algorithm,
+            pipelinePolicy: {
+                default: defaultPolicy,
+                byFileType: Object.fromEntries(fileTypePolicies.entries()),
+            },
             runId: run.id,
             results: results.slice(0, 100),
         };
@@ -836,6 +1009,282 @@ export class AdminService {
         return 3;
     }
 
+    private parseJsonObject(value: unknown): Record<string, any> {
+        if (!value) return {};
+        if (typeof value === 'string') {
+            try {
+                const parsed = JSON.parse(value);
+                return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+                    ? parsed as Record<string, any>
+                    : {};
+            } catch {
+                return {};
+            }
+        }
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            return value as Record<string, any>;
+        }
+        return {};
+    }
+
+    private parsePipelineLevel(value: unknown): PipelineWrapLevel {
+        const normalized = String(value || '').trim().toLowerCase();
+        if (normalized === 'baseline' || normalized === 'low' || normalized === 'level1') return 'baseline';
+        if (normalized === 'maximum' || normalized === 'max' || normalized === 'high' || normalized === 'level3') return 'maximum';
+        return 'enhanced';
+    }
+
+    private kemAlgorithmForLevel(level: PipelineWrapLevel): string {
+        if (level === 'baseline') return ML_KEM_512_ALGORITHM;
+        if (level === 'maximum') return ML_KEM_1024_ALGORITHM;
+        return ML_KEM_768_ALGORITHM;
+    }
+
+    private normalizeKemAlgorithm(value: unknown, fallback: string = ML_KEM_1024_ALGORITHM): string {
+        return normalizeKemAlgorithmName(value, fallback);
+    }
+
+    private normalizeSignatureAlgorithm(value: unknown): string {
+        const normalized = String(value || '').trim().toUpperCase();
+        if (!normalized) return '';
+        if (normalized.includes('DILITHIUM') || normalized.includes('ML-DSA') || normalized.includes('MLDSA')) {
+            return ML_DSA_65_ALGORITHM;
+        }
+        if (normalized.includes('SPHINCS') || normalized.includes('SLH-DSA') || normalized.includes('SLHDSA')) {
+            return SLH_DSA_SHAKE_128S_ALGORITHM;
+        }
+        return '';
+    }
+
+    private signatureAlgorithmsForLevel(level: PipelineWrapLevel): string[] {
+        if (level === 'baseline') return [];
+        if (level === 'maximum') return [ML_DSA_65_ALGORITHM, SLH_DSA_SHAKE_128S_ALGORITHM];
+        return [ML_DSA_65_ALGORITHM];
+    }
+
+    private resolvePipelinePolicy(config: any): PipelinePolicy {
+        const level = this.parsePipelineLevel(config?.defaultPqcLevel || config?.pqcLevel || 'enhanced');
+        const kemAlgorithm = this.normalizeKemAlgorithm(
+            config?.kemAlgorithm || config?.defaultKemAlgorithm,
+            this.kemAlgorithmForLevel(level),
+        );
+
+        let signatureAlgorithms = this.signatureAlgorithmsForLevel(level);
+        const customSignatures = this.parseCommaList(String(config?.signatureAlgorithms || config?.defaultSignatureAlgorithms || ''));
+        if (customSignatures.length > 0) {
+            signatureAlgorithms = customSignatures
+                .map((entry) => this.normalizeSignatureAlgorithm(entry))
+                .filter(Boolean);
+        }
+
+        return {
+            level,
+            kemAlgorithm,
+            signatureAlgorithms: Array.from(new Set(signatureAlgorithms)),
+        };
+    }
+
+    private normalizePolicyExtension(extension: string): string {
+        const trimmed = extension.trim().toLowerCase();
+        if (!trimmed) return '';
+        if (trimmed.startsWith('.')) return trimmed;
+        return `.${trimmed}`;
+    }
+
+    private normalizePolicyExtensions(extensionList: string): string[] {
+        return extensionList
+            .split(',')
+            .map((entry) => this.normalizePolicyExtension(entry))
+            .filter(Boolean);
+    }
+
+    private resolveFileTypePolicies(config: any): Map<string, PipelinePolicy> {
+        const policyMap = new Map<string, PipelinePolicy>();
+
+        const rawLevelMap = this.parseJsonObject(config?.fileTypePqcLevels || config?.pqcLevelByFileType || config?.pipelineLevelByFileType);
+        for (const [ext, rawLevel] of Object.entries(rawLevelMap)) {
+            const level = this.parsePipelineLevel(rawLevel);
+            const normalizedExts = this.normalizePolicyExtensions(ext);
+            for (const normalizedExt of normalizedExts) {
+                policyMap.set(normalizedExt, {
+                    level,
+                    kemAlgorithm: this.kemAlgorithmForLevel(level),
+                    signatureAlgorithms: this.signatureAlgorithmsForLevel(level),
+                });
+            }
+        }
+
+        const rawPolicyMap = this.parseJsonObject(config?.fileTypePqcPolicies || config?.pqcPolicyByFileType || config?.pipelinePqcPolicyByFileType);
+        for (const [ext, rawPolicy] of Object.entries(rawPolicyMap)) {
+            const normalizedExts = this.normalizePolicyExtensions(ext);
+            if (normalizedExts.length === 0) continue;
+
+            if (typeof rawPolicy === 'string') {
+                const level = this.parsePipelineLevel(rawPolicy);
+                for (const normalizedExt of normalizedExts) {
+                    policyMap.set(normalizedExt, {
+                        level,
+                        kemAlgorithm: this.kemAlgorithmForLevel(level),
+                        signatureAlgorithms: this.signatureAlgorithmsForLevel(level),
+                    });
+                }
+                continue;
+            }
+
+            if (!rawPolicy || typeof rawPolicy !== 'object' || Array.isArray(rawPolicy)) {
+                continue;
+            }
+
+            const parsedPolicy = rawPolicy as Record<string, any>;
+            const level = this.parsePipelineLevel(parsedPolicy.level || parsedPolicy.wrapLevel);
+            const kemAlgorithm = this.normalizeKemAlgorithm(
+                parsedPolicy.kemAlgorithm || parsedPolicy.kem,
+                this.kemAlgorithmForLevel(level),
+            );
+            const signatureAlgorithms = Array.isArray(parsedPolicy.signatureAlgorithms)
+                ? parsedPolicy.signatureAlgorithms.map((entry) => this.normalizeSignatureAlgorithm(entry)).filter(Boolean)
+                : this.signatureAlgorithmsForLevel(level);
+
+            for (const normalizedExt of normalizedExts) {
+                policyMap.set(normalizedExt, {
+                    level,
+                    kemAlgorithm,
+                    signatureAlgorithms: Array.from(new Set(signatureAlgorithms)),
+                });
+            }
+        }
+
+        return policyMap;
+    }
+
+    private getPolicyForFile(filePath: string, defaultPolicy: PipelinePolicy, fileTypePolicies: Map<string, PipelinePolicy>): PipelinePolicy {
+        const lower = filePath.toLowerCase();
+        const orderedExtensions = Array.from(fileTypePolicies.keys()).sort((a, b) => b.length - a.length);
+
+        for (const extension of orderedExtensions) {
+            if (lower.endsWith(extension)) {
+                return fileTypePolicies.get(extension) || defaultPolicy;
+            }
+        }
+
+        return defaultPolicy;
+    }
+
+    private collectRequiredSignatureAlgorithms(defaultPolicy: PipelinePolicy, fileTypePolicies: Map<string, PipelinePolicy>): string[] {
+        const combined = new Set<string>(defaultPolicy.signatureAlgorithms);
+        for (const policy of fileTypePolicies.values()) {
+            for (const algorithm of policy.signatureAlgorithms) {
+                combined.add(algorithm);
+            }
+        }
+        return Array.from(combined.values());
+    }
+
+    private isKemCompatible(requestedAlgorithm: string, activeAlgorithm: string): boolean {
+        const normalizedActive = this.normalizeKemAlgorithm(activeAlgorithm);
+        return this.normalizeKemAlgorithm(requestedAlgorithm, normalizedActive) === normalizedActive;
+    }
+
+    private kemAlgorithmAliases(kemAlgorithm: string): string[] {
+        const normalized = this.normalizeKemAlgorithm(kemAlgorithm);
+        if (normalized === ML_KEM_512_ALGORITHM) {
+            return [ML_KEM_512_ALGORITHM, 'KYBER-512', 'KYBER512'];
+        }
+        if (normalized === ML_KEM_768_ALGORITHM) {
+            return [ML_KEM_768_ALGORITHM, 'KYBER-768', 'KYBER768'];
+        }
+        return [ML_KEM_1024_ALGORITHM, 'KYBER-1024', 'KYBER1024'];
+    }
+
+    private async resolveActiveKemAnchor(kemAlgorithm: string) {
+        const normalized = this.normalizeKemAlgorithm(kemAlgorithm);
+        return this.prisma.anchor.findFirst({
+            where: {
+                isActive: true,
+                algorithm: {
+                    in: this.kemAlgorithmAliases(normalized),
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    private async resolveSignatureAnchors(algorithms: string[]): Promise<Map<string, { id: string; name: string; algorithm: string; vaultPrivKeyPath: string }>> {
+        const anchors = new Map<string, { id: string; name: string; algorithm: string; vaultPrivKeyPath: string }>();
+        for (const algorithm of algorithms) {
+            const anchor = await this.prisma.anchor.findFirst({
+                where: {
+                    isActive: true,
+                    algorithm,
+                },
+                orderBy: { createdAt: 'desc' },
+            });
+            if (anchor) {
+                anchors.set(algorithm, {
+                    id: anchor.id,
+                    name: anchor.name,
+                    algorithm: anchor.algorithm,
+                    vaultPrivKeyPath: anchor.vaultPrivKeyPath,
+                });
+            }
+        }
+        return anchors;
+    }
+
+    private async signDigestWithAlgorithm(digestHex: string, algorithm: string, privateKeyBytes: Uint8Array): Promise<string> {
+        const messageBytes = new Uint8Array(Buffer.from(digestHex, 'hex'));
+
+        if (algorithm === ML_DSA_65_ALGORITHM) {
+            const signer = await getMlDsa65();
+            const signature = await signer.sign(messageBytes, privateKeyBytes);
+            return Buffer.from(signature).toString('base64');
+        }
+
+        if (algorithm === SLH_DSA_SHAKE_128S_ALGORITHM) {
+            const signer = await getSlhDsaShake128s();
+            const signature = await signer.sign(messageBytes, privateKeyBytes);
+            return Buffer.from(signature).toString('base64');
+        }
+
+        throw new Error(`Unsupported signature algorithm: ${algorithm}`);
+    }
+
+    private async signDigestForPolicy(
+        digestHex: string,
+        signatureAlgorithms: string[],
+        signatureAnchors: Map<string, { id: string; name: string; algorithm: string; vaultPrivKeyPath: string }>,
+    ): Promise<Array<{ algorithm: string; anchorId: string; anchorName: string; signature: string }>> {
+        const signatures: Array<{ algorithm: string; anchorId: string; anchorName: string; signature: string }> = [];
+
+        for (const algorithm of signatureAlgorithms) {
+            const anchor = signatureAnchors.get(algorithm);
+            if (!anchor) {
+                throw new Error(`Missing active anchor for signature algorithm ${algorithm}`);
+            }
+
+            const privateKeyRecord: any = await this.vaultService.read(anchor.vaultPrivKeyPath);
+            const privateKeyB64 = privateKeyRecord?.data?.key || privateKeyRecord?.key;
+            if (!privateKeyB64) {
+                throw new Error(`Invalid private key payload at ${anchor.vaultPrivKeyPath}`);
+            }
+
+            const signature = await this.signDigestWithAlgorithm(
+                digestHex,
+                algorithm,
+                new Uint8Array(Buffer.from(privateKeyB64, 'base64')),
+            );
+
+            signatures.push({
+                algorithm,
+                anchorId: anchor.id,
+                anchorName: anchor.name,
+                signature,
+            });
+        }
+
+        return signatures;
+    }
+
     private parseDate(value: any): Date | undefined {
         if (!value) return undefined;
         const date = new Date(value);
@@ -951,15 +1400,16 @@ export class AdminService {
 
     private async encryptBuffer(
         buffer: Buffer,
-        kem: Awaited<ReturnType<typeof getMlKem1024>>,
+        kem: MlKem,
         anchorPublicKey: Buffer,
-        aadContext: Record<string, unknown>
+        aadContext: Record<string, unknown>,
+        kemAlgorithm: string,
     ) {
         // Convert Buffer to Uint8Array for liboqs compatibility
         const publicKeyArray = new Uint8Array(anchorPublicKey);
         const { ciphertext: kemCiphertext, sharedSecret } = await kem.encapsulate(publicKeyArray);
         const salt = crypto.randomBytes(32);
-        const symmetricKey = deriveAes256Key(sharedSecret, salt);
+        const symmetricKey = deriveAes256Key(sharedSecret, salt, kemAlgorithm);
         const nonce = crypto.randomBytes(12);
         const cipher = crypto.createCipheriv('aes-256-gcm', symmetricKey, nonce);
         cipher.setAAD(canonicalJsonBuffer(aadContext));
@@ -997,6 +1447,8 @@ export class AdminService {
 
     async getAlgoConfig() {
         return [
+            { id: 'ml-kem-512', name: 'ML-KEM-512 (FIPS 203)', type: 'KEM', status: 'enabled', securityLevel: 1 },
+            { id: 'ml-kem-768', name: 'ML-KEM-768 (FIPS 203)', type: 'KEM', status: 'enabled', securityLevel: 3 },
             { id: 'ml-kem-1024', name: 'ML-KEM-1024 (FIPS 203)', type: 'KEM', status: 'enabled', securityLevel: 5 },
             { id: 'ml-dsa-65', name: 'ML-DSA-65 (FIPS 204)', type: 'Signature', status: 'enabled', securityLevel: 3 },
             { id: 'slh-dsa-shake-128s', name: 'SLH-DSA-SHAKE-128s (FIPS 205)', type: 'Signature', status: 'warning', securityLevel: 5 },
