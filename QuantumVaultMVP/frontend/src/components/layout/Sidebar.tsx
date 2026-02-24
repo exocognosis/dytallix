@@ -44,6 +44,11 @@ interface SidebarProps {
     className?: string;
 }
 
+function resolveBrowserBasePath() {
+    const configuredBasePath = process.env.NEXT_PUBLIC_BASE_PATH || '/QuantumVaultMVP';
+    return configuredBasePath === '/' ? '' : configuredBasePath.replace(/\/$/, '');
+}
+
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
@@ -73,12 +78,14 @@ export function Sidebar({ className }: SidebarProps) {
                 "flex items-center gap-3 px-4 py-5 border-b border-white/10",
                 isCollapsed && "justify-center px-2"
             )}>
-                <img
-                    src="/qv-logo-new.png"
-                    alt="QuantumVault"
+                <Image
+                    src={`${resolveBrowserBasePath()}/DytallixLogo.png`}
+                    alt="Dytallix"
                     width={isCollapsed ? 32 : 42}
                     height={isCollapsed ? 32 : 42}
                     className="shrink-0 object-contain"
+                    unoptimized
+                    priority
                 />
                 {!isCollapsed && (
                     <div>
