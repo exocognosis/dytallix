@@ -12,10 +12,10 @@ module.exports = {
         {
             name: "qv-frontend",
             script: "npm",
-            args: "start",
+            args: "run dev",
             cwd: "./frontend",
             env: {
-                NODE_ENV: "production",
+                NODE_ENV: "development",
                 // Use 13002 to avoid conflict with other apps on port 3000
                 PORT: 13002
             }

@@ -11,7 +11,6 @@ const nextConfig: NextConfig = {
         destination: 'http://localhost:13000/api/v1/:path*', // Proxy to backend
       },
     ];
-  },
-};
+  };
 
-export default nextConfig;
+  export default nextConfig;
