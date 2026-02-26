@@ -49,6 +49,8 @@ ssh $SERVER_USER@$SERVER_IP bash -s -- "$REMOTE_DIR" "$LOCAL_ARCHIVE" << 'EOF'
     echo "Installing Frontend dependencies..."
     cd frontend
     npm install --production
+    echo "Building Frontend..."
+    npm run build
     cd ..
 
     # Install production dependencies for Main Frontend
