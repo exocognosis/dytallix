@@ -1,0 +1,50 @@
+name: Deploy QuantumVault to Hetzner
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Ensure SSH Key is setup
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add Server to Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 178.156.187.81 >> ~/.ssh/known_hosts
+
+      - name: Package Application
+        run: |
+          cd QuantumVaultMVP
+          bash package-quantumvault.sh
+
+      - name: Deploy Application
+        run: |
+          cd QuantumVaultMVP
+          bash deploy-quantumvault.sh
+        env:
+          SERVER_USER: root
+          SERVER_IP: 178.156.187.81
