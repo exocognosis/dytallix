@@ -119,14 +119,17 @@ export default function UseCasesPage() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="tab-list overflow-x-auto">
+            <div className="flex flex-row overflow-x-auto p-1.5 mb-6 gap-2 bg-black/20 rounded-xl border border-white/5 max-w-full w-fit custom-scrollbar">
                 {useCases.map((useCase) => {
                     const Icon = INDUSTRY_ICONS[useCase.industry];
+                    const isActive = activeTab === useCase.id;
                     return (
                         <button
                             key={useCase.id}
                             onClick={() => setActiveTab(useCase.id)}
-                            className={`tab-button flex items-center gap-2 whitespace-nowrap ${activeTab === useCase.id ? 'active' : ''
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg whitespace-nowrap transition-all text-sm font-medium ${isActive
+                                    ? 'bg-white/10 text-white shadow-sm border border-white/10'
+                                    : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
                                 }`}
                         >
                             <Icon className="w-4 h-4" />
