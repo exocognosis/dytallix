@@ -2,10 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Deploy app under a subpath
-  // Deploy app under a subpath
-  // basePath: '/QuantumVaultMVP',
-  // Ensure assets load correctly
-  // Ensure assets load correctly
+  basePath: '/QuantumVaultMVP',
 
   async rewrites() {
     return [

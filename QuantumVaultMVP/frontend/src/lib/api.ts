@@ -51,6 +51,7 @@ interface Policy {
   name: string;
   description?: string;
   rules?: unknown[];
+  metadata?: Record<string, any>;
   isActive?: boolean;
 }
 
@@ -110,6 +111,10 @@ export const assetsAPI = {
   },
   createAsset: async (data: any) => {
     const response = await apiClient.post('/assets', data);
+    return response.data;
+  },
+  intakeAsset: async (data: any) => {
+    const response = await apiClient.post('/assets/intake', data);
     return response.data;
   },
   updateAssetMetadata: async (id: string, metadata: AssetMetadata) => {

@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 dytallix-contracts = { path = "../../../smart-contracts" }
-pqc-crypto = { path = "../../../pqc-crypto" }
+pqc-crypto = { package = "dytallix-pqc", path = "../../../pqc-crypto" }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
 hex = "0.4"

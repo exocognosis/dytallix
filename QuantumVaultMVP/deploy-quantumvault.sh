@@ -94,7 +94,7 @@ ssh $SERVER_USER@$SERVER_IP bash -s -- "$REMOTE_DIR" << 'EOF'
     # NGINX CONFIGURATION RECONSTRUCTION
     CONFFILE="/etc/nginx/sites-enabled/dytallix"
     SNIPPET="/etc/nginx/snippets/quantumvault.conf"
-    BACKUP="/etc/nginx/sites-enabled/dytallix.bak.$(date +%s)"
+    BACKUP="/etc/nginx/dytallix.bak.$(date +%s)"
     
     echo "--- DEPLOYING NGINX SNIPPET ---"
     sudo mkdir -p /etc/nginx/snippets
@@ -138,7 +138,7 @@ ssh $SERVER_USER@$SERVER_IP bash -s -- "$REMOTE_DIR" << 'EOF'
         
         echo "Reconstructing Nginx Config..."
         
-        sudo bash -c "cat > $CONFFILE << NGINXCONF
+        cat > /tmp/dytallix_nginx.conf << NGINXCONF
 $BLOCK_HTTP_REDIRECT
 
 server {
@@ -155,12 +155,13 @@ server {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host \$host;
         proxy_cache_bypass \$http_upgrade;
     }
 }
-NGINXCONF"
+NGINXCONF
+        sudo cp /tmp/dytallix_nginx.conf $CONFFILE
 
         # Verify and Reload
         echo "--- NEW NGINX CONFIG ---"

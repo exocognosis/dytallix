@@ -66,7 +66,7 @@ export function Tooltip({ term, children, className }: TooltipProps) {
             </span>
             {mounted && isVisible && createPortal(
                 <span
-                    className="quantum-tooltip block text-left"
+                    className="quantum-tooltip block text-left bg-[#0a0f1e]/95 border border-cyan-500/20 p-3 rounded-lg text-sm text-white shadow-xl w-64 md:w-80"
                     style={{
                         position: 'fixed',
                         left: `${coords.left}px`,
@@ -125,7 +125,7 @@ export function SimpleTooltip({ content, children, className }: SimpleTooltipPro
             </span>
             {mounted && isVisible && createPortal(
                 <span
-                    className="quantum-tooltip block text-left"
+                    className="quantum-tooltip block text-left bg-[#0a0f1e]/95 border border-cyan-500/20 p-3 rounded-lg text-sm text-white shadow-xl max-w-xs"
                     style={{
                         position: 'fixed',
                         left: `${coords.left}px`,

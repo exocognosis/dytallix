@@ -50,8 +50,8 @@ export function WizardStep1DefineRun({ config, onChange }: Props) {
                                 type="button"
                                 onClick={() => onChange({ originDatabase: p.path })}
                                 className={`px-2 py-0.5 rounded text-xs transition-colors ${config.originDatabase === p.path
-                                        ? 'bg-cyan-500/30 border border-cyan-400/60 text-cyan-300'
-                                        : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10'
+                                    ? 'bg-cyan-500/30 border border-cyan-400/60 text-cyan-300'
+                                    : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10'
                                     }`}
                             >
                                 {p.label}
@@ -84,8 +84,8 @@ export function WizardStep1DefineRun({ config, onChange }: Props) {
                                 type="button"
                                 onClick={() => onChange({ destinationDatabase: p.path })}
                                 className={`px-2 py-0.5 rounded text-xs transition-colors ${config.destinationDatabase === p.path
-                                        ? 'bg-green-500/30 border border-green-400/60 text-green-300'
-                                        : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10'
+                                    ? 'bg-green-500/30 border border-green-400/60 text-green-300'
+                                    : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10'
                                     }`}
                             >
                                 {p.label}
@@ -97,6 +97,27 @@ export function WizardStep1DefineRun({ config, onChange }: Props) {
                             ↳ {config.destinationDatabase}
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* Pipeline Context Area */}
+            <div className="mt-8 p-5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <div className="flex items-start gap-4">
+                    <div className="bg-blue-500/20 p-2 rounded-lg shrink-0 mt-1">
+                        <FolderSearch className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="space-y-3">
+                        <h3 className="text-white font-medium">How the PQC Pipeline Works</h3>
+                        <p className="text-sm text-white/70 leading-relaxed">
+                            The QuantumVault Pipeline is an automated engine designed to migrate your classical cryptographic assets to quantum-safe standards. By defining the origin and destination directories, you initiate a multi-step process:
+                        </p>
+                        <ul className="text-sm text-white/60 space-y-2 list-disc list-inside ml-2">
+                            <li><strong className="text-white/80">Asset Discovery:</strong> Scans the origin directory for vulnerable keys, certificates, and operational data.</li>
+                            <li><strong className="text-white/80">Policy Application:</strong> Automatically applies the appropriate Post-Quantum Cryptography (PQC) wrapping level based on file type and domain.</li>
+                            <li><strong className="text-white/80">Quantum Wrapping:</strong> Re-encrypts assets using NIST-approved algorithms like ML-KEM and ML-DSA before moving them to the destination.</li>
+                            <li><strong className="text-white/80">Attestation & Anchoring:</strong> Anchors the newly wrapped assets to the blockchain to guarantee cryptographic lineage and integrity.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>

@@ -180,3 +180,7 @@ ModuleTests/PulseGuard/artifacts/gan/model_checkpoint/*
 # Local build backups / hung build artifacts (can be extremely large)
 target_backup_hung/
 deployment/gcp/terraform/terraform.tfstate.d/
+target-qv/
+QuantumVaultMVP/quantumvault-deploy.tar.gz
+QuantumVaultMVP/quantumvault-deploy 2.tar.gz
+QuantumVaultMVPtest1/

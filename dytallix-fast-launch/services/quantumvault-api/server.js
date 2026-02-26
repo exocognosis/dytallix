@@ -21,8 +21,14 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Use built-in fetch (Node.js 18+) or import from node-fetch
-const fetch = globalThis.fetch || (await import('node-fetch')).default;
+console.log('[QuantumVault] Booting QuantumVault API...');
+
+// Require Node.js 18+ (global fetch)
+if (!globalThis.fetch) {
+  throw new Error('[QuantumVault] Node.js 18+ required (global fetch is missing)');
+}
+
+const fetch = globalThis.fetch;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -54,22 +60,27 @@ app.use(express.json());
 const STORAGE_DIR = join(__dirname, 'storage');
 const METADATA_FILE = join(__dirname, 'metadata.json');
 
-// Ensure storage directory exists
-await fs.mkdir(STORAGE_DIR, { recursive: true });
-
 // In-memory storage for POC (use database in production)
 let metadata = {};
 let onChainRegistry = {}; // Mock on-chain storage
 let assetIdCounter = 1;
 
-// Load metadata if exists
-try {
-  const data = await fs.readFile(METADATA_FILE, 'utf-8');
-  metadata = JSON.parse(data);
-  console.log(`[QuantumVault] Loaded ${Object.keys(metadata).length} assets from metadata`);
-} catch (err) {
-  console.log('[QuantumVault] No existing metadata, starting fresh');
+// Initialize filesystem-backed storage asynchronously to avoid startup hangs
+async function initStorage() {
+  await fs.mkdir(STORAGE_DIR, { recursive: true });
+
+  try {
+    const data = await fs.readFile(METADATA_FILE, 'utf-8');
+    metadata = JSON.parse(data);
+    console.log(`[QuantumVault] Loaded ${Object.keys(metadata).length} assets from metadata`);
+  } catch (err) {
+    console.log('[QuantumVault] No existing metadata, starting fresh');
+  }
 }
+
+initStorage().catch((err) => {
+  console.error('[QuantumVault] Storage initialization failed:', err);
+});
 
 // Save metadata helper
 async function saveMetadata() {
@@ -982,7 +993,8 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+console.log(`[QuantumVault] Starting HTTP listener on port ${PORT}...`);
+const server = app.listen(PORT, () => {
   console.log(`[QuantumVault] API server running on port ${PORT}`);
   console.log(`[QuantumVault] Storage directory: ${STORAGE_DIR}`);
   console.log(`[QuantumVault] Loaded ${Object.keys(metadata).length} assets`);

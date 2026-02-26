@@ -13,4 +13,7 @@ export default defineConfig({
       }
     }
   },
+  preview: {
+    allowedHosts: ['dytallix.com', 'www.dytallix.com']
+  }
 })

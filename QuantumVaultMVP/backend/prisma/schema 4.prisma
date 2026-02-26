@@ -1,0 +1,415 @@
+// This is your Prisma schema file for QuantumVault MVP
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User management and authentication
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  role          UserRole  @default(VIEWER)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  
+  sessions      Session[]
+  auditLogs     AuditLog[]
+}
+
+enum UserRole {
+  ADMIN
+  SECURITY_ENGINEER
+  VIEWER
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  userId       String
+  token        String    @unique
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([token])
+}
+
+model AuditLog {
+  id           String    @id @default(uuid())
+  userId       String?
+  action       String
+  resource     String?
+  resourceId   String?
+  details      Json?
+  ipAddress    String?
+  userAgent    String?
+  timestamp    DateTime  @default(now())
+  
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([timestamp])
+  @@index([action])
+}
+
+// Scan targets and scans
+model Target {
+  id              String       @id @default(uuid())
+  name            String
+  type            TargetType
+  host            String
+  port            Int?
+  protocol        String       @default("https")
+  credentials     String?      // Vault reference
+  metadata        Json?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  scans           Scan[]
+  
+  @@index([type])
+  @@index([isActive])
+}
+
+enum TargetType {
+  TLS_ENDPOINT
+  DATABASE
+  API_ENDPOINT
+  FILE_STORAGE
+}
+
+model Scan {
+  id              String       @id @default(uuid())
+  targetId        String
+  status          ScanStatus   @default(PENDING)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  errorMessage    String?
+  metadata        Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  target          Target       @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  scanAssets      ScanAsset[]
+  
+  @@index([targetId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ScanStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model ScanAsset {
+  id                    String    @id @default(uuid())
+  scanId                String
+  assetId               String?
+  discoveryDetails      Json      // TLS handshake data, cert chain, etc.
+  certificateChain      String?   // PEM encoded
+  tlsVersion            String?
+  cipherSuite           String?
+  signatureAlgorithm    String?
+  publicKeyAlgorithm    String?
+  publicKeySize         Int?
+  validFrom             DateTime?
+  validUntil            DateTime?
+  subjectAltNames       String[]
+  commonName            String?
+  isPqcCompliant        Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  
+  scan                  Scan      @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  asset                 Asset?    @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  
+  @@index([scanId])
+  @@index([assetId])
+  @@index([isPqcCompliant])
+}
+
+// Asset management
+model Asset {
+  id                  String          @id @default(uuid())
+  name                String
+  type                AssetType
+  fingerprint         String          @unique
+  status              AssetStatus     @default(DISCOVERED)
+  exposure            ExposureLevel   @default(INTERNAL)
+  sensitivity         SensitivityLevel @default(MEDIUM)
+  criticality         CriticalityLevel @default(MEDIUM)
+  riskScore           Int             @default(0)
+  riskLevel           RiskLevel       @default(UNKNOWN)
+  metadata            Json?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  lastScannedAt       DateTime?
+  
+  scanAssets          ScanAsset[]
+  assetKeyMaterial    AssetKeyMaterial?
+  policyAssets        PolicyAsset[]
+  wrappingResults     WrappingResult[]
+  attestations        Attestation[]
+  
+  @@index([status])
+  @@index([riskLevel])
+  @@index([type])
+  @@index([fingerprint])
+}
+
+enum AssetType {
+  TLS_CERTIFICATE
+  API_KEY
+  DATABASE_CREDENTIAL
+  ENCRYPTION_KEY
+  SIGNING_KEY
+  SSH_KEY
+  GENERIC_SECRET
+}
+
+enum AssetStatus {
+  DISCOVERED
+  ASSESSED
+  WRAPPED_PQC
+  ATTESTED
+  ROTATED
+  DECOMMISSIONED
+}
+
+enum ExposureLevel {
+  PUBLIC
+  INTERNAL
+  RESTRICTED
+  CONFIDENTIAL
+}
+
+enum SensitivityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CriticalityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RiskLevel {
+  UNKNOWN
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Asset key material storage
+model AssetKeyMaterial {
+  id                String    @id @default(uuid())
+  assetId           String    @unique
+  vaultPath         String    // HashiCorp Vault path
+  vaultVersion      Int       @default(1)
+  keyType           String
+  sizeBytes         Int?
+  uploadedAt        DateTime  @default(now())
+  metadata          Json?
+  
+  asset             Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@index([vaultPath])
+}
+
+// Policy management
+model Policy {
+  id                String          @id @default(uuid())
+  name              String
+  description       String?
+  ruleDefinition    Json            // Policy rules and criteria
+  targetScope       Json?           // Which assets this applies to
+  isActive          Boolean         @default(false)
+  priority          Int             @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  activatedAt       DateTime?
+  
+  policyAssets      PolicyAsset[]
+  wrappingJobs      WrappingJob[]
+  
+  @@index([isActive])
+  @@index([priority])
+}
+
+model PolicyAsset {
+  id                String    @id @default(uuid())
+  policyId          String
+  assetId           String
+  evaluatedAt       DateTime  @default(now())
+  result            Json?
+  
+  policy            Policy    @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  asset             Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@unique([policyId, assetId])
+  @@index([policyId])
+  @@index([assetId])
+}
+
+// Anchor key management
+model Anchor {
+  id                String      @id @default(uuid())
+  name              String
+  algorithm         String      // e.g., "Kyber1024"
+  vaultKeyPath      String      // Path to public key in Vault
+  vaultPrivKeyPath  String      // Path to private key in Vault
+  isActive          Boolean     @default(true)
+  rotatedAt         DateTime?
+  createdAt         DateTime    @default(now())
+  metadata          Json?
+  
+  wrappingResults   WrappingResult[]
+  attestations      Attestation[]
+  
+  @@index([isActive])
+  @@index([algorithm])
+}
+
+// Wrapping jobs and results
+model WrappingJob {
+  id                String          @id @default(uuid())
+  policyId          String?
+  status            JobStatus       @default(PENDING)
+  totalAssets       Int             @default(0)
+  processedAssets   Int             @default(0)
+  failedAssets      Int             @default(0)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  errorMessage      String?
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  policy            Policy?         @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  wrappingResults   WrappingResult[]
+  
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum JobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model WrappingResult {
+  id                String      @id @default(uuid())
+  jobId             String?
+  assetId           String
+  anchorId          String
+  kemCiphertext     String      // Base64 encoded
+  nonce             String      // Base64 encoded
+  aeadCiphertext    String      // Base64 encoded
+  aeadTag           String      // Base64 encoded
+  algorithm         String      // Full algorithm description
+  vaultPath         String      // Where the wrapped result is stored
+  wrappedAt         DateTime    @default(now())
+  metadata          Json?
+  
+  job               WrappingJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  asset             Asset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  anchor            Anchor      @relation(fields: [anchorId], references: [id], onDelete: Restrict)
+  
+  @@index([jobId])
+  @@index([assetId])
+  @@index([anchorId])
+}
+
+// Attestation management
+model AttestationJob {
+  id                String          @id @default(uuid())
+  status            JobStatus       @default(PENDING)
+  totalAssets       Int             @default(0)
+  processedAssets   Int             @default(0)
+  failedAssets      Int             @default(0)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  errorMessage      String?
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  attestations      Attestation[]
+  
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Attestation {
+  id                String          @id @default(uuid())
+  jobId             String?
+  assetId           String
+  anchorId          String
+  attestationHash   String          // Hash submitted to blockchain
+  txHash            String?         // Blockchain transaction hash
+  blockNumber       BigInt?
+  confirmations     Int             @default(0)
+  chainId           Int?
+  status            AttestationStatus @default(PENDING)
+  submittedAt       DateTime?
+  confirmedAt       DateTime?
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  job               AttestationJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  asset             Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  anchor            Anchor          @relation(fields: [anchorId], references: [id], onDelete: Restrict)
+  
+  @@index([jobId])
+  @@index([assetId])
+  @@index([txHash])
+  @@index([status])
+}
+
+enum AttestationStatus {
+  PENDING
+  SUBMITTED
+  CONFIRMED
+  FAILED
+}
+
+// Organization snapshots for dashboard trends
+model OrgSnapshot {
+  id                    String    @id @default(uuid())
+  timestamp             DateTime  @default(now())
+  totalAssets           Int       @default(0)
+  discoveredAssets      Int       @default(0)
+  wrappedAssets         Int       @default(0)
+  attestedAssets        Int       @default(0)
+  criticalRiskAssets    Int       @default(0)
+  highRiskAssets        Int       @default(0)
+  mediumRiskAssets      Int       @default(0)
+  lowRiskAssets         Int       @default(0)
+  pqcCompliantPercent   Float     @default(0)
+  avgRiskScore          Float     @default(0)
+  metadata              Json?
+  
+  @@index([timestamp])
+}

@@ -1,24 +1,10 @@
-[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
-[Crypto] PQC Libraries Loaded: Dilithium & Kyber
-[QuantumVault] Loaded 28 assets from metadata
-[QuantumVault] API server running on port 3002
-[QuantumVault] Storage directory: /Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/storage
-[QuantumVault] Loaded 28 assets
-[QuantumVault] Encrypting dytallix_appendices_security_threats_parameters.md...
-[QuantumVault] Download request for: 72f0e4d624d60d11d459d687a1a05c6cf2c466c573b54236e9c17b4f084b367e.enc.enc
-[QuantumVault] Serving file: /Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/storage/72f0e4d624d60d11d459d687a1a05c6cf2c466c573b54236e9c17b4f084b367e.enc.enc (6752 bytes)
-[QuantumVault] Generated proof for 72f0e4d624d60d11d459d687a1a05c6cf2c466c573b54236e9c17b4f084b367e.enc.enc (3551f672d349d515...)
-[QuantumVault] Anchoring proof c05d418f22ec2704 to blockchain at http://localhost:3003
-[QuantumVault] ✅ Asset registered on blockchain: qv_anchor_93bf04c5cfcc2685dbd28f8f4333874ecee2e1b078c8f5d7d80994bd5dafecb6
-[QuantumVault] ✅ Verified asset on-chain: {
-  asset_hash: '3551f672d349d515ae2a91c15d99a1880f7ac6207026bdc4256ec50e16ef5e4b',
-  block_height: 15591,
-  message: 'Asset found on chain',
-  verified: true
-}
-[QuantumVault] ✅ Proof c05d418f22ec2704 anchored at block 15592, tx: qv_anchor_93bf04c5cfcc2685dbd28f8f4333874ecee2e1b078c8f5d7d80994bd5dafecb6
-[QuantumVault] Verifying transaction qv_anchor_93bf04c5cfcc2685dbd28f8f4333874ecee2e1b078c8f5d7d80994bd5dafecb6 for payload 3551f672d349d515ae2a91c15d99a1880f7ac6207026bdc4256ec50e16ef5e4b
-[QuantumVault] Detected Asset Registry transaction: qv_anchor_93bf04c5cfcc2685dbd28f8f4333874ecee2e1b078c8f5d7d80994bd5dafecb6
-[QuantumVault] Asset verified via registry
-[QuantumVault] Verifying Dilithium signature...
-[QuantumVault] Signature result: true
+file:///Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/node_modules/crystals-kyber-js/esm/mod.js:4
+export { MlKem1024 } from "./src/mlKem1024.js";
+         ^^^^^^^^^
+SyntaxError: The requested module './src/mlKem1024.js' does not provide an export named 'MlKem1024'
+    at #_instantiate (node:internal/modules/esm/module_job:254:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:363:5)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:669:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.5.0

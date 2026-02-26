@@ -11,18 +11,33 @@ import {
 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { complianceData as mockComplianceData, migrationProgress as mockMigrationProgress, type ComplianceItem } from '@/lib/mockData';
 import { complianceAPI } from '@/lib/api';
 
+export interface ComplianceItem {
+    id: string;
+    standard: string;
+    requirement: string;
+    status: 'compliant' | 'partial' | 'non-compliant' | 'in-progress';
+    lastAudit: string;
+}
+
 export default function CompliancePage() {
-    const [complianceData, setComplianceData] = useState<ComplianceItem[]>(mockComplianceData);
-    const [migrationProgress, setMigrationProgress] = useState(mockMigrationProgress);
+    const [complianceData, setComplianceData] = useState<ComplianceItem[]>([]);
+    const [migrationProgress, setMigrationProgress] = useState({
+        overall: 0,
+        discovery: 0,
+        assessment: 0,
+        migration: 0,
+        validation: 0
+    });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                setError(null);
                 const [standardsData, progressData] = await Promise.all([
                     complianceAPI.getStandards(),
                     complianceAPI.getMigrationProgress()
@@ -31,6 +46,7 @@ export default function CompliancePage() {
                 setMigrationProgress(progressData);
             } catch (error) {
                 console.error('Failed to fetch compliance data:', error);
+                setError('Failed to load compliance standards and migration progress from server.');
             } finally {
                 setLoading(false);
             }
@@ -78,149 +94,162 @@ export default function CompliancePage() {
                 </p>
             </div>
 
-            {/* Summary Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <GlassPanel className="p-4 text-center">
-                    <div className="text-2xl font-bold text-white">{complianceData.length}</div>
-                    <div className="text-xs text-white/50">Total Standards</div>
-                </GlassPanel>
-                <GlassPanel className="p-4 text-center">
-                    <div className="text-2xl font-bold text-green-400">{complianceStats.compliant}</div>
-                    <div className="text-xs text-white/50">Compliant</div>
-                </GlassPanel>
-                <GlassPanel className="p-4 text-center">
-                    <div className="text-2xl font-bold text-amber-400">{complianceStats.partial}</div>
-                    <div className="text-xs text-white/50">Partial</div>
-                </GlassPanel>
-                <GlassPanel className="p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-400">{complianceStats.inProgress}</div>
-                    <div className="text-xs text-white/50">In Progress</div>
-                </GlassPanel>
-            </div>
-
-            {/* NIST PQC Standards */}
-            <GlassPanel className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-cyan-400" />
-                    <Tooltip term="NIST">NIST</Tooltip> PQC Standards
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {nistStandards.map((item) => (
-                        <div
-                            key={item.id}
-                            className={`p-4 rounded-lg border ${getStatusClass(item.status)}`}
-                        >
-                            <div className="flex items-start justify-between mb-3">
-                                {getStatusIcon(item.status)}
-                                <span className="text-xs opacity-70">{item.lastAudit}</span>
-                            </div>
-                            <h4 className="font-semibold text-white mb-1">{item.standard}</h4>
-                            <p className="text-sm opacity-80">{item.requirement}</p>
-                        </div>
-                    ))}
+            {error && (
+                <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3">
+                    <AlertTriangle className="w-5 h-5 shrink-0" />
+                    <p>{error}</p>
                 </div>
-            </GlassPanel>
+            )}
 
-            {/* Migration Progress */}
-            <GlassPanel className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-cyan-400" />
-                        <Tooltip term="NIST">NIST</Tooltip> SP 800-208 Migration Progress
-                    </h3>
-                    <span className="text-2xl font-bold quantum-gradient-text">{migrationProgress.overall}%</span>
-                </div>
+            {loading ? (
+                <div className="text-white/40 text-center animate-pulse p-12">Loading compliance details...</div>
+            ) : (
+                <>
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <GlassPanel className="p-4 text-center">
+                            <div className="text-2xl font-bold text-white">{complianceData.length}</div>
+                            <div className="text-xs text-white/50">Total Standards</div>
+                        </GlassPanel>
+                        <GlassPanel className="p-4 text-center">
+                            <div className="text-2xl font-bold text-green-400">{complianceStats.compliant}</div>
+                            <div className="text-xs text-white/50">Compliant</div>
+                        </GlassPanel>
+                        <GlassPanel className="p-4 text-center">
+                            <div className="text-2xl font-bold text-amber-400">{complianceStats.partial}</div>
+                            <div className="text-xs text-white/50">Partial</div>
+                        </GlassPanel>
+                        <GlassPanel className="p-4 text-center">
+                            <div className="text-2xl font-bold text-blue-400">{complianceStats.inProgress}</div>
+                            <div className="text-xs text-white/50">In Progress</div>
+                        </GlassPanel>
+                    </div>
 
-                {/* Overall Progress Bar */}
-                <div className="mb-6">
-                    <div className="progress-bar h-3">
-                        <div
-                            className="progress-bar-fill"
-                            style={{ width: `${migrationProgress.overall}%` }}
-                        />
-                    </div>
-                </div>
-
-                {/* Phase Progress */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-white/60">Discovery</span>
-                            <span className="text-sm font-bold text-green-400">{migrationProgress.discovery}%</span>
-                        </div>
-                        <div className="progress-bar">
-                            <div className="progress-bar-fill" style={{ width: `${migrationProgress.discovery}%` }} />
-                        </div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-white/60">Assessment</span>
-                            <span className="text-sm font-bold text-green-400">{migrationProgress.assessment}%</span>
-                        </div>
-                        <div className="progress-bar">
-                            <div className="progress-bar-fill" style={{ width: `${migrationProgress.assessment}%` }} />
-                        </div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-white/60">Migration</span>
-                            <span className="text-sm font-bold text-cyan-400">{migrationProgress.migration}%</span>
-                        </div>
-                        <div className="progress-bar">
-                            <div className="progress-bar-fill" style={{ width: `${migrationProgress.migration}%` }} />
-                        </div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-white/60">Validation</span>
-                            <span className="text-sm font-bold text-amber-400">{migrationProgress.validation}%</span>
-                        </div>
-                        <div className="progress-bar">
-                            <div className="progress-bar-fill" style={{ width: `${migrationProgress.validation}%` }} />
-                        </div>
-                    </div>
-                </div>
-            </GlassPanel>
-
-            {/* Regulatory Compliance */}
-            <GlassPanel className="overflow-hidden">
-                <div className="p-4 border-b border-white/10">
-                    <h3 className="text-lg font-semibold text-white">Regulatory Compliance</h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="quantum-table">
-                        <thead>
-                            <tr>
-                                <th>Standard</th>
-                                <th>Requirement</th>
-                                <th>Status</th>
-                                <th>Last Audit</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {regulatoryCompliance.map((item) => (
-                                <tr key={item.id}>
-                                    <td className="font-medium text-white">{item.standard}</td>
-                                    <td className="text-white/70 text-sm">{item.requirement}</td>
-                                    <td>
-                                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${getStatusClass(item.status)}`}>
-                                            {getStatusIcon(item.status)}
-                                            {item.status}
-                                        </span>
-                                    </td>
-                                    <td className="text-white/50 text-sm">{item.lastAudit}</td>
-                                    <td>
-                                        <button className="p-1.5 rounded hover:bg-white/10 text-white/60 hover:text-cyan-400 transition-colors">
-                                            <ExternalLink className="w-4 h-4" />
-                                        </button>
-                                    </td>
-                                </tr>
+                    {/* NIST PQC Standards */}
+                    <GlassPanel className="p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <Shield className="w-5 h-5 text-cyan-400" />
+                            <Tooltip term="NIST">NIST</Tooltip> PQC Standards
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {nistStandards.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className={`p-4 rounded-lg border ${getStatusClass(item.status)}`}
+                                >
+                                    <div className="flex items-start justify-between mb-3">
+                                        {getStatusIcon(item.status)}
+                                        <span className="text-xs opacity-70">{item.lastAudit}</span>
+                                    </div>
+                                    <h4 className="font-semibold text-white mb-1">{item.standard}</h4>
+                                    <p className="text-sm opacity-80">{item.requirement}</p>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
-            </GlassPanel>
+                        </div>
+                    </GlassPanel>
+
+                    {/* Migration Progress */}
+                    <GlassPanel className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-cyan-400" />
+                                <Tooltip term="NIST">NIST</Tooltip> SP 800-208 Migration Progress
+                            </h3>
+                            <span className="text-2xl font-bold quantum-gradient-text">{migrationProgress.overall}%</span>
+                        </div>
+
+                        {/* Overall Progress Bar */}
+                        <div className="mb-6">
+                            <div className="progress-bar h-3">
+                                <div
+                                    className="progress-bar-fill"
+                                    style={{ width: `${migrationProgress.overall}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Phase Progress */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm text-white/60">Discovery</span>
+                                    <span className="text-sm font-bold text-green-400">{migrationProgress.discovery}%</span>
+                                </div>
+                                <div className="progress-bar">
+                                    <div className="progress-bar-fill" style={{ width: `${migrationProgress.discovery}%` }} />
+                                </div>
+                            </div>
+                            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm text-white/60">Assessment</span>
+                                    <span className="text-sm font-bold text-green-400">{migrationProgress.assessment}%</span>
+                                </div>
+                                <div className="progress-bar">
+                                    <div className="progress-bar-fill" style={{ width: `${migrationProgress.assessment}%` }} />
+                                </div>
+                            </div>
+                            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm text-white/60">Migration</span>
+                                    <span className="text-sm font-bold text-cyan-400">{migrationProgress.migration}%</span>
+                                </div>
+                                <div className="progress-bar">
+                                    <div className="progress-bar-fill" style={{ width: `${migrationProgress.migration}%` }} />
+                                </div>
+                            </div>
+                            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm text-white/60">Validation</span>
+                                    <span className="text-sm font-bold text-amber-400">{migrationProgress.validation}%</span>
+                                </div>
+                                <div className="progress-bar">
+                                    <div className="progress-bar-fill" style={{ width: `${migrationProgress.validation}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                    </GlassPanel>
+
+                    {/* Regulatory Compliance */}
+                    <GlassPanel className="overflow-hidden">
+                        <div className="p-4 border-b border-white/10">
+                            <h3 className="text-lg font-semibold text-white">Regulatory Compliance</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="quantum-table">
+                                <thead>
+                                    <tr>
+                                        <th>Standard</th>
+                                        <th>Requirement</th>
+                                        <th>Status</th>
+                                        <th>Last Audit</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {regulatoryCompliance.map((item) => (
+                                        <tr key={item.id}>
+                                            <td className="font-medium text-white">{item.standard}</td>
+                                            <td className="text-white/70 text-sm">{item.requirement}</td>
+                                            <td>
+                                                <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${getStatusClass(item.status)}`}>
+                                                    {getStatusIcon(item.status)}
+                                                    {item.status}
+                                                </span>
+                                            </td>
+                                            <td className="text-white/50 text-sm">{item.lastAudit}</td>
+                                            <td>
+                                                <button className="p-1.5 rounded hover:bg-white/10 text-white/60 hover:text-cyan-400 transition-colors">
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </GlassPanel>
+                </>
+            )}
         </div>
     );
 }

@@ -11,12 +11,21 @@ import {
 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { threatMappings as mockThreatMappings, type ThreatMapping } from '@/lib/mockData';
 import { threatsAPI } from '@/lib/api';
 
+export interface ThreatMapping {
+    id: string;
+    threatVector: string;
+    failureWithoutControl: string;
+    quantumVaultControl: string;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    highlighted?: boolean;
+}
+
 export default function ThreatsPage() {
-    const [threatMappings, setThreatMappings] = useState<ThreatMapping[]>(mockThreatMappings);
+    const [threatMappings, setThreatMappings] = useState<ThreatMapping[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [expandedThreat, setExpandedThreat] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -24,10 +33,12 @@ export default function ThreatsPage() {
         const fetchThreats = async () => {
             try {
                 setLoading(true);
+                setError(null);
                 const data = await threatsAPI.getMappings();
                 setThreatMappings(data);
             } catch (error) {
                 console.error('Failed to fetch threats:', error);
+                setError('Failed to load threat mappings from the server.');
             } finally {
                 setLoading(false);
             }
@@ -100,107 +111,120 @@ export default function ThreatsPage() {
                 </div>
             </GlassPanel>
 
-            {/* Threat Matrix */}
-            <GlassPanel className="overflow-hidden">
-                <div className="p-4 border-b border-white/10">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-cyan-400" />
-                        Threat-to-Control Matrix
-                    </h3>
+            {error && (
+                <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3">
+                    <AlertTriangle className="w-5 h-5 shrink-0" />
+                    <p>{error}</p>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="quantum-table">
-                        <thead>
-                            <tr>
-                                <th className="w-1/6">Threat Vector</th>
-                                <th className="w-1/6">Severity</th>
-                                <th className="w-2/6">Failure Without Control</th>
-                                <th className="w-2/6">QuantumVault Control</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredThreats.map((threat) => (
-                                <tr
-                                    key={threat.id}
-                                    className={threat.highlighted ? 'bg-cyan-500/5' : ''}
-                                    onClick={() => setExpandedThreat(expandedThreat === threat.id ? null : threat.id)}
-                                >
-                                    <td className="font-medium text-white">
-                                        <div className="flex items-center gap-2">
-                                            {threat.highlighted && (
-                                                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                                            )}
+            )}
+
+            {loading ? (
+                <div className="text-white/40 text-center animate-pulse p-12">Loading threat mappings...</div>
+            ) : (
+                <>
+                    {/* Threat Matrix */}
+                    <GlassPanel className="overflow-hidden">
+                        <div className="p-4 border-b border-white/10">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Shield className="w-5 h-5 text-cyan-400" />
+                                Threat-to-Control Matrix
+                            </h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="quantum-table">
+                                <thead>
+                                    <tr>
+                                        <th className="w-1/6">Threat Vector</th>
+                                        <th className="w-1/6">Severity</th>
+                                        <th className="w-2/6">Failure Without Control</th>
+                                        <th className="w-2/6">QuantumVault Control</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredThreats.map((threat) => (
+                                        <tr
+                                            key={threat.id}
+                                            className={threat.highlighted ? 'bg-cyan-500/5' : ''}
+                                            onClick={() => setExpandedThreat(expandedThreat === threat.id ? null : threat.id)}
+                                        >
+                                            <td className="font-medium text-white">
+                                                <div className="flex items-center gap-2">
+                                                    {threat.highlighted && (
+                                                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                                                    )}
+                                                    {threat.threatVector === 'HNDL Attack' ? (
+                                                        <Tooltip term="HNDL">{threat.threatVector}</Tooltip>
+                                                    ) : threat.threatVector === 'PKI Collapse' ? (
+                                                        <span>{threat.threatVector}</span>
+                                                    ) : (
+                                                        threat.threatVector
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${getSeverityClass(threat.severity)}`}>
+                                                    {threat.severity}
+                                                </span>
+                                            </td>
+                                            <td className="text-red-300/80 text-sm">{threat.failureWithoutControl}</td>
+                                            <td className="text-green-300/80 text-sm">{threat.quantumVaultControl}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </GlassPanel>
+
+                    {/* Key Threat Highlights */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {threatMappings.filter(t => t.highlighted).map((threat) => (
+                            <GlassPanel
+                                key={threat.id}
+                                className={`p-5 border-l-4 ${threat.severity === 'critical' ? 'border-l-red-500' : 'border-l-amber-500'
+                                    }`}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className={`w-5 h-5 shrink-0 ${threat.severity === 'critical' ? 'text-red-400' : 'text-amber-400'
+                                        }`} />
+                                    <div>
+                                        <h4 className="font-semibold text-white mb-2">
                                             {threat.threatVector === 'HNDL Attack' ? (
                                                 <Tooltip term="HNDL">{threat.threatVector}</Tooltip>
-                                            ) : threat.threatVector === 'PKI Collapse' ? (
-                                                <span>{threat.threatVector}</span>
                                             ) : (
                                                 threat.threatVector
                                             )}
+                                        </h4>
+                                        <p className="text-sm text-white/60 mb-3">{threat.failureWithoutControl}</p>
+                                        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Shield className="w-4 h-4 text-green-400" />
+                                                <span className="text-xs font-medium text-green-400">Protected By</span>
+                                            </div>
+                                            <p className="text-sm text-green-300/80">{threat.quantumVaultControl}</p>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${getSeverityClass(threat.severity)}`}>
-                                            {threat.severity}
-                                        </span>
-                                    </td>
-                                    <td className="text-red-300/80 text-sm">{threat.failureWithoutControl}</td>
-                                    <td className="text-green-300/80 text-sm">{threat.quantumVaultControl}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </GlassPanel>
-
-            {/* Key Threat Highlights */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {threatMappings.filter(t => t.highlighted).map((threat) => (
-                    <GlassPanel
-                        key={threat.id}
-                        className={`p-5 border-l-4 ${threat.severity === 'critical' ? 'border-l-red-500' : 'border-l-amber-500'
-                            }`}
-                    >
-                        <div className="flex items-start gap-3">
-                            <AlertTriangle className={`w-5 h-5 shrink-0 ${threat.severity === 'critical' ? 'text-red-400' : 'text-amber-400'
-                                }`} />
-                            <div>
-                                <h4 className="font-semibold text-white mb-2">
-                                    {threat.threatVector === 'HNDL Attack' ? (
-                                        <Tooltip term="HNDL">{threat.threatVector}</Tooltip>
-                                    ) : (
-                                        threat.threatVector
-                                    )}
-                                </h4>
-                                <p className="text-sm text-white/60 mb-3">{threat.failureWithoutControl}</p>
-                                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Shield className="w-4 h-4 text-green-400" />
-                                        <span className="text-xs font-medium text-green-400">Protected By</span>
                                     </div>
-                                    <p className="text-sm text-green-300/80">{threat.quantumVaultControl}</p>
                                 </div>
+                            </GlassPanel>
+                        ))}
+                    </div>
+
+                    {/* Info Box */}
+                    <GlassPanel className="p-5 quantum-border">
+                        <div className="flex gap-3">
+                            <Info className="w-5 h-5 text-cyan-400 shrink-0" />
+                            <div>
+                                <h4 className="text-sm font-semibold text-white mb-1">Understanding Quantum Threats</h4>
+                                <p className="text-xs text-white/60 leading-relaxed">
+                                    <Tooltip term="CRQC">CRQC</Tooltip> (Cryptographically Relevant Quantum Computer) threats
+                                    are expected to materialize between 2030-2035. The <Tooltip term="HNDL">HNDL</Tooltip> attack
+                                    strategy means adversaries are already collecting encrypted data for future decryption.
+                                    QuantumVault's <Tooltip term="PQC">PQC</Tooltip> implementation provides protection today.
+                                </p>
                             </div>
                         </div>
                     </GlassPanel>
-                ))}
-            </div>
-
-            {/* Info Box */}
-            <GlassPanel className="p-5 quantum-border">
-                <div className="flex gap-3">
-                    <Info className="w-5 h-5 text-cyan-400 shrink-0" />
-                    <div>
-                        <h4 className="text-sm font-semibold text-white mb-1">Understanding Quantum Threats</h4>
-                        <p className="text-xs text-white/60 leading-relaxed">
-                            <Tooltip term="CRQC">CRQC</Tooltip> (Cryptographically Relevant Quantum Computer) threats
-                            are expected to materialize between 2030-2035. The <Tooltip term="HNDL">HNDL</Tooltip> attack
-                            strategy means adversaries are already collecting encrypted data for future decryption.
-                            QuantumVault's <Tooltip term="PQC">PQC</Tooltip> implementation provides protection today.
-                        </p>
-                    </div>
-                </div>
-            </GlassPanel>
+                </>
+            )}
         </div>
     );
 }

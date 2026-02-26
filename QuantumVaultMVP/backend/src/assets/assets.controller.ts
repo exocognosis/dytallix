@@ -3,12 +3,12 @@ import { AssetsService } from './assets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { UserRole, AssetStatus, RiskLevel, AssetType } from '@prisma/client';
+import { UserRole, AssetStatus, RiskLevel, AssetType, ExposureLevel, SensitivityLevel, CriticalityLevel } from '@prisma/client';
 
 @Controller('assets')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AssetsController {
-  constructor(private assetsService: AssetsService) {}
+  constructor(private assetsService: AssetsService) { }
 
   @Get()
   async getAssets(
@@ -40,6 +40,22 @@ export class AssetsController {
     const buffer = Buffer.from(body.keyMaterial, 'base64');
     await this.assetsService.ingestKeyMaterial(id, buffer, body.keyType);
     return { message: 'Key material ingested successfully' };
+  }
+
+  @Post('intake')
+  @Roles(UserRole.ADMIN, UserRole.SECURITY_ENGINEER)
+  async intakeAsset(@Body() body: {
+    name: string;
+    type: AssetType;
+    exposure?: ExposureLevel;
+    sensitivity?: SensitivityLevel;
+    criticality?: CriticalityLevel;
+    metadata?: any;
+    keyMaterial?: string;
+    keyType?: string;
+    targetAlgorithm?: string;
+  }) {
+    return this.assetsService.intakeAsset(body);
   }
 
   @Post('bulk-action')

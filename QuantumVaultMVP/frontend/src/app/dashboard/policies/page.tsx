@@ -27,7 +27,6 @@ import {
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmModal } from '@/components/ui/Modal';
-import { mockPolicies } from '@/lib/mockData';
 import { policiesAPI } from '@/lib/api';
 
 // Frontend Policy Interface matching the UI needs
@@ -82,7 +81,7 @@ export default function PoliciesPage() {
                 id: p.id,
                 name: p.name,
                 description: p.description || '',
-                type: 'access', // Default as backend doesn't store type explicitly yet
+                type: p.metadata?.type || 'access', // Dynamically read type from metadata
                 status: p.isActive ? 'enforced' : 'disabled',
                 lastUpdated: p.updatedAt ? new Date(p.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 isActive: p.isActive
@@ -139,6 +138,7 @@ export default function PoliciesPage() {
     const [comprehensiveFormData, setComprehensiveFormData] = useState({
         name: '',
         description: '',
+        type: 'access',
         isActive: false
     });
 
@@ -156,6 +156,7 @@ export default function PoliciesPage() {
                 name: formData.name || 'New Policy',
                 description: formData.description || 'Created via dashboard',
                 rules: [defaultAdvancedConfig], // Use default config for quick create
+                metadata: { type: formData.type },
                 isActive: formData.isActive
             });
             // Reset form and refresh
@@ -174,10 +175,11 @@ export default function PoliciesPage() {
                 name: comprehensiveFormData.name || 'New Policy',
                 description: comprehensiveFormData.description || 'Comprehensive Policy',
                 rules: [advancedConfig], // Use selected advanced config
+                metadata: { type: comprehensiveFormData.type },
                 isActive: comprehensiveFormData.isActive
             });
             // Reset form and refresh
-            setComprehensiveFormData({ name: '', description: '', isActive: false });
+            setComprehensiveFormData({ name: '', description: '', type: 'access', isActive: false });
             setAdvancedConfig(defaultAdvancedConfig);
             fetchPolicies();
             alert('Comprehensive Policy created successfully!');
@@ -353,6 +355,19 @@ export default function PoliciesPage() {
                             placeholder="Detailed policy description..."
                             className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400/50"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-white/60 mb-2">Policy Type</label>
+                        <select
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400/50"
+                            value={comprehensiveFormData.type}
+                            onChange={(e) => setComprehensiveFormData({ ...comprehensiveFormData, type: e.target.value })}
+                        >
+                            <option value="rotation">Key Rotation</option>
+                            <option value="revocation">Revocation</option>
+                            <option value="geo-fencing">Geo-Fencing</option>
+                            <option value="access">Access Control</option>
+                        </select>
                     </div>
                     <div>
                         <label className="block text-sm text-white/60 mb-2">Initial Status</label>

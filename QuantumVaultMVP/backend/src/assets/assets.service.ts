@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { VaultService } from '../vault/vault.service';
 import { RiskService } from '../risk/risk.service';
+import { WrappingService } from '../wrapping/wrapping.service';
 import { Asset, AssetType, AssetStatus, ExposureLevel, SensitivityLevel, CriticalityLevel, RiskLevel } from '@prisma/client';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AssetsService {
@@ -10,7 +12,8 @@ export class AssetsService {
     private prisma: PrismaService,
     private vaultService: VaultService,
     private riskService: RiskService,
-  ) {}
+    private wrappingService: WrappingService,
+  ) { }
 
   async getAssets(filters?: {
     status?: AssetStatus;
@@ -144,5 +147,63 @@ export class AssetsService {
       assetIds,
       action,
     };
+  }
+
+  async intakeAsset(data: {
+    name: string;
+    type: AssetType;
+    exposure?: ExposureLevel;
+    sensitivity?: SensitivityLevel;
+    criticality?: CriticalityLevel;
+    metadata?: any;
+    keyMaterial?: string;
+    keyType?: string;
+    targetAlgorithm?: string;
+  }) {
+    const fingerprint = crypto.createHash('sha256')
+      .update(`${data.name}-${Date.now()}-${Math.random()}`)
+      .digest('hex');
+
+    const asset = await this.prisma.asset.create({
+      data: {
+        name: data.name,
+        type: data.type || AssetType.GENERIC_SECRET,
+        fingerprint,
+        exposure: data.exposure || ExposureLevel.INTERNAL,
+        sensitivity: data.sensitivity || SensitivityLevel.MEDIUM,
+        criticality: data.criticality || CriticalityLevel.MEDIUM,
+        metadata: data.metadata || {},
+        status: AssetStatus.DISCOVERED,
+      },
+    });
+
+    // Recalculate risk score
+    const riskScore = await this.riskService.calculateRiskScore(asset.id);
+    await this.prisma.asset.update({
+      where: { id: asset.id },
+      data: {
+        riskScore: riskScore.score,
+        riskLevel: riskScore.level,
+      },
+    });
+
+    if (data.keyMaterial && data.keyType) {
+      const buffer = Buffer.from(data.keyMaterial, 'base64');
+      await this.ingestKeyMaterial(asset.id, buffer, data.keyType);
+    }
+
+    if (data.targetAlgorithm) {
+      // Find an active anchor (for MVP we'll pick the first active one, effectively hardcoding logic to assume anchor selection is handled per target algo mapping in a real prod system)
+      const activeAnchor = await this.prisma.anchor.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (activeAnchor) {
+        await this.wrappingService.wrapAsset(asset.id, activeAnchor.id);
+      }
+    }
+
+    return this.getAsset(asset.id);
   }
 }

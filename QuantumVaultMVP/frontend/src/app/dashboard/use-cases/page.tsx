@@ -10,7 +10,77 @@ import {
     Zap
 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
-import { useCases } from '@/lib/mockData';
+export interface UseCaseMetric {
+    label: string;
+    value: string | number;
+    description: string;
+}
+
+export interface UseCase {
+    id: string;
+    industry: string;
+    title: string;
+    description: string;
+    metrics: UseCaseMetric[];
+}
+
+export const useCases: UseCase[] = [
+    {
+        id: 'financial',
+        industry: 'Financial',
+        title: 'Financial Services',
+        description: 'Protect transaction records, trading algorithms, and customer data with quantum-resistant encryption that exceeds regulatory requirements.',
+        metrics: [
+            { label: 'Audit Records Protected', value: '2.4M', description: 'Transaction records secured with PQC' },
+            { label: 'Trading Algorithms', value: 156, description: 'Proprietary models encrypted' },
+            { label: 'Compliance Score', value: '98%', description: 'SOX, PCI-DSS alignment' },
+        ],
+    },
+    {
+        id: 'healthcare',
+        industry: 'Healthcare',
+        title: 'Healthcare & Life Sciences',
+        description: 'HIPAA-compliant protection for PHI, genomic data, and clinical trial information with long-term data security.',
+        metrics: [
+            { label: 'PHI Records', value: '850K', description: 'Patient records protected' },
+            { label: 'Retention Period', value: '50+ years', description: 'Long-term quantum safety' },
+            { label: 'Genomic Datasets', value: 234, description: 'Research data secured' },
+        ],
+    },
+    {
+        id: 'government',
+        industry: 'Government',
+        title: 'Government & Defense',
+        description: 'Classified document protection and secure communications that meet federal PQC mandates ahead of deadlines.',
+        metrics: [
+            { label: 'Classified Docs', value: '125K', description: 'Documents secured' },
+            { label: 'Secure Channels', value: 89, description: 'PQC communication channels' },
+            { label: 'FedRAMP Status', value: 'Authorized', description: 'Federal compliance' },
+        ],
+    },
+    {
+        id: 'energy',
+        industry: 'Energy',
+        title: 'Energy & Utilities',
+        description: 'Critical infrastructure protection for SCADA systems, grid operations, and long-lived operational technology.',
+        metrics: [
+            { label: 'SCADA Nodes', value: 2847, description: 'Protected endpoints' },
+            { label: 'OT Systems', value: 156, description: 'Secured infrastructure' },
+            { label: 'Uptime', value: '99.99%', description: 'Availability maintained' },
+        ],
+    },
+    {
+        id: 'high-tech',
+        industry: 'High-Tech',
+        title: 'Technology & IP',
+        description: 'Intellectual property protection for source code, trade secrets, and R&D data against future quantum threats.',
+        metrics: [
+            { label: 'Code Repos', value: 1247, description: 'Repositories encrypted' },
+            { label: 'Patent Docs', value: '45K', description: 'IP documents secured' },
+            { label: 'R&D Projects', value: 89, description: 'Research protected' },
+        ],
+    },
+];
 
 const INDUSTRY_ICONS: Record<string, React.ElementType> = {
     'Financial': Briefcase,

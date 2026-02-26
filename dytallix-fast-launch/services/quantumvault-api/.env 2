@@ -1,0 +1,3 @@
+# QuantumVault API Configuration
+PORT=3031
+BLOCKCHAIN_API_URL=http://localhost:3030

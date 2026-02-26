@@ -108,11 +108,24 @@ export default function TimelinePage() {
         ] as any[]
     });
 
+    useEffect(() => {
+        const saved = localStorage.getItem('qv_timeline_config');
+        if (saved) {
+            try {
+                setTimelineConfig(JSON.parse(saved));
+            } catch (e) {
+                console.error('Failed to parse timeline config', e);
+            }
+        }
+    }, []);
+
     const handleSaveConfig = (newPhases: any[], newTarget: string | null) => {
-        setTimelineConfig({
+        const config = {
             targetCompletionDate: newTarget,
             phases: newPhases
-        });
+        };
+        setTimelineConfig(config);
+        localStorage.setItem('qv_timeline_config', JSON.stringify(config));
     };
 
     return (

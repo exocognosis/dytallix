@@ -1154,6 +1154,41 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         })
         .boxed();
 
+    // REST alias to match integration tests: POST /api/quantum/register
+    // Accepts { assetHash|asset_hash, uri, metadata }
+    let api_quantum_register_runtime = _runtime.clone();
+    let api_quantum_register = warp::path!("api" / "quantum" / "register")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(warp::any().map(move || api_quantum_register_runtime.clone()))
+        .and_then(|request: serde_json::Value, runtime: Arc<crate::runtime::DytallixRuntime>| async move {
+            let asset_hash = request
+                .get("assetHash")
+                .or_else(|| request.get("asset_hash"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            let uri = request.get("uri").and_then(|v| v.as_str()).map(|s| s.to_string());
+            let metadata = request.get("metadata").cloned().unwrap_or_else(|| serde_json::json!({}));
+
+            match (asset_hash, uri) {
+                (Some(asset_hash), Some(uri)) => {
+                    let params = vec![serde_json::json!(asset_hash), serde_json::json!(uri), metadata];
+                    let result = handle_asset_register(&params, runtime.clone()).await;
+                    Ok::<_, warp::Rejection>(warp::reply::json(&result).into_response())
+                }
+                _ => {
+                    let error = serde_json::json!({"error": "Missing required fields: assetHash/asset_hash and uri"});
+                    Ok::<_, warp::Rejection>(warp::reply::with_status(
+                        warp::reply::json(&error),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    )
+                    .into_response())
+                }
+            }
+        })
+        .boxed();
+
     let asset_verify_runtime = _runtime.clone();
     let asset_verify = warp::path!("asset" / "verify")
         .and(warp::post())
@@ -1224,6 +1259,7 @@ pub async fn start_api_server() -> Result<(), Box<dyn std::error::Error>> {
         .or(staking_claim)
         .or(contract_rpc)
         .or(asset_register)
+        .or(api_quantum_register)
         .or(asset_verify)
         .or(asset_get)
         .with(cors)
@@ -1880,29 +1916,49 @@ async fn handle_asset_register(
     runtime: Arc<crate::runtime::DytallixRuntime>,
 ) -> serde_json::Value {
     if params.len() < 2 {
-        return serde_json::json!({"error": "Invalid parameters - expected [asset_hash, metadata]"});
+        return serde_json::json!({"error": "Invalid parameters - expected [asset_hash, metadata] or [asset_hash, uri, metadata]"});
     }
     
     let asset_hash = match params[0].as_str() {
         Some(h) => h,
         None => return serde_json::json!({"error": "Invalid asset_hash parameter"})
     };
-    
-    let metadata_str = match params[1].as_str() {
-        Some(m) => m,
-        None => return serde_json::json!({"error": "Invalid metadata parameter"})
-    };
-    
-    info!("[AssetRegistry] Registering asset: {} with metadata: {}", asset_hash, metadata_str);
-    
-    // Parse the metadata JSON
-    let metadata: serde_json::Value = match serde_json::from_str(metadata_str) {
-        Ok(m) => m,
-        Err(e) => {
-            error!("[AssetRegistry] Failed to parse metadata JSON: {}", e);
-            return serde_json::json!({"error": format!("Invalid metadata JSON: {}", e)});
+
+    // Support both legacy and current forms:
+    // - [asset_hash, metadata] (metadata can be JSON string or JSON value)
+    // - [asset_hash, uri, metadata]
+    let (uri, metadata) = if params.len() >= 3 {
+        let uri = match params[1].as_str() {
+            Some(u) => u.to_string(),
+            None => "".to_string(),
+        };
+
+        let metadata_value = match &params[2] {
+            serde_json::Value::String(s) => serde_json::from_str::<serde_json::Value>(s)
+                .unwrap_or_else(|_| serde_json::json!({})),
+            other => other.clone(),
+        };
+
+        (Some(uri), metadata_value)
+    } else {
+        match &params[1] {
+            serde_json::Value::String(s) => {
+                // If it isn't JSON, treat it as a URI and use empty metadata.
+                match serde_json::from_str::<serde_json::Value>(s) {
+                    Ok(m) => (None, m),
+                    Err(_) => (Some(s.to_string()), serde_json::json!({})),
+                }
+            }
+            other => (None, other.clone()),
         }
     };
+
+    info!(
+        "[AssetRegistry] Registering asset: {} uri={:?} metadata={}",
+        asset_hash,
+        uri,
+        metadata
+    );
     
     // Generate a unique asset ID based on the hash (handle short hashes)
     let hash_len = asset_hash.len().min(16);
@@ -1916,6 +1972,7 @@ async fn handle_asset_register(
     let asset_record = serde_json::json!({
         "asset_id": asset_id,
         "asset_hash": asset_hash,
+        "uri": uri,
         "metadata": metadata,
         "block_height": block_height,
         "timestamp": timestamp,
@@ -1931,7 +1988,7 @@ async fn handle_asset_register(
     }
     
     // Generate transaction hash for the registration
-    let tx_content = format!("{}:{}:{}", asset_hash, metadata_str, timestamp);
+    let tx_content = format!("{}:{:?}:{}:{}", asset_hash, uri, metadata, timestamp);
     let tx_hash = format!("0x{}", blake3::hash(tx_content.as_bytes()).to_hex());
     
     info!("[AssetRegistry] ✅ Asset registered on-chain: {} at block {}, tx: {}", asset_id, block_height, tx_hash);

@@ -14,8 +14,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 BLOCKCHAIN_PORT=3030
-QUANTUMVAULT_API_PORT=3031
-FRONTEND_PORT=5173
+QUANTUMVAULT_API_PORT=3002
+FRONTEND_PORT=3000
 
 echo -e "${BLUE}🚀 Starting QuantumVault Integration Services${NC}"
 echo ""
@@ -90,8 +90,9 @@ if [ ! -d "target" ]; then
 fi
 
 # Start blockchain core in background
+# NOTE: Use an isolated target dir to avoid stale artifacts in the default `target/`.
 # NOTE: This workspace defines multiple binaries; we must specify which one.
-PORT=$BLOCKCHAIN_PORT cargo run --bin dytallix-node > ../blockchain-core.log 2>&1 &
+CARGO_TARGET_DIR="../target-qv" PORT=$BLOCKCHAIN_PORT cargo run --bin dytallix-node > ../blockchain-core.log 2>&1 &
 BLOCKCHAIN_PID=$!
 echo -e "${GREEN}✅ Blockchain Core started (PID: $BLOCKCHAIN_PID)${NC}"
 cd ..
@@ -115,6 +116,9 @@ fi
 
 # Set environment variables
 export BLOCKCHAIN_API_URL="http://localhost:$BLOCKCHAIN_PORT"
+export QUANTUMVAULT_API_PORT="$QUANTUMVAULT_API_PORT"
+export PORT="$QUANTUMVAULT_API_PORT"
+export VITE_QUANTUMVAULT_API_URL="http://localhost:$QUANTUMVAULT_API_PORT"
 
 # Start QuantumVault API in background
 npm start > ../../../quantumvault-api.log 2>&1 &
@@ -131,7 +135,7 @@ wait_for_service "http://localhost:$QUANTUMVAULT_API_PORT/health" "QuantumVault 
 
 # Start Frontend
 echo -e "${BLUE}🌐 Starting Frontend...${NC}"
-cd dytallix-fast-launch/frontend
+cd quantumvault/frontend
 
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
@@ -140,10 +144,12 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Set environment variables
+export VITE_API_BASE="http://localhost:$QUANTUMVAULT_API_PORT"
+export VITE_BLOCKCHAIN_API="http://localhost:$BLOCKCHAIN_PORT"
 export VITE_QUANTUMVAULT_API_URL="http://localhost:$QUANTUMVAULT_API_PORT"
 
 # Start frontend in background
-npm run dev > ../../frontend.log 2>&1 &
+npm run dev -- --port "$FRONTEND_PORT" --host > ../../frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo -e "${GREEN}✅ Frontend started (PID: $FRONTEND_PID)${NC}"
 cd ../..
@@ -176,7 +182,7 @@ echo -e "   🔐 QuantumVault API:   http://localhost:$QUANTUMVAULT_API_PORT (PI
 echo -e "   🌐 Frontend:           http://localhost:$FRONTEND_PORT (PID: $FRONTEND_PID)"
 echo ""
 echo -e "${BLUE}📖 Usage:${NC}"
-echo -e "   • Visit http://localhost:$FRONTEND_PORT/#/quantumvault to use QuantumVault"
+echo -e "   • Visit http://localhost:$FRONTEND_PORT to use QuantumVault"
 echo -e "   • View logs: tail -f *.log"
 echo -e "   • Stop services: kill $BLOCKCHAIN_PID $QUANTUMVAULT_PID $FRONTEND_PID"
 echo ""

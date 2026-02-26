@@ -18,8 +18,22 @@ import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmModal } from '@/components/ui/Modal';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { mockKeys, type CryptoKey, type KeyStatus, type KeyType } from '@/lib/mockData';
 import { anchorsAPI } from '@/lib/api';
+
+export type KeyType = 'ML-KEM' | 'ML-DSA' | 'SLH-DSA';
+export type KeyStatus = 'active' | 'pending' | 'expired' | 'revoked';
+
+export interface CryptoKey {
+    id: string;
+    name: string;
+    type: KeyType;
+    status: KeyStatus;
+    created: string;
+    expiry: string;
+    algorithm: string;
+    strength: string;
+    usage: string;
+}
 
 
 export default function KeyManagementPage() {
@@ -48,9 +62,10 @@ export default function KeyManagementPage() {
                 id: anchor.id,
                 name: anchor.name,
                 type: (anchor.algorithm.includes('KEM') ? 'ML-KEM' : 'ML-DSA') as KeyType,
-                status: anchor.isActive ? 'active' : 'pending', // Simplification for now
+                status: anchor.isActive ? 'active' : 'pending',
                 created: new Date(anchor.createdAt).toISOString().split('T')[0],
-                expiry: new Date(new Date(anchor.createdAt).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Mock 90 day expiry
+                expiry: anchor.expiresAt ? new Date(anchor.expiresAt).toISOString().split('T')[0] :
+                    anchor.metadata?.validityDays ? new Date(new Date(anchor.createdAt).getTime() + (anchor.metadata.validityDays * 24 * 60 * 60 * 1000)).toISOString().split('T')[0] : 'Indefinite',
                 algorithm: anchor.algorithm || 'ML-KEM-1024',
                 strength: '256-bit',
                 usage: anchor.algorithm.includes('KEM') ? 'Key Exchange' : 'Digital Signatures',
@@ -59,8 +74,7 @@ export default function KeyManagementPage() {
             setKeys(mappedKeys);
         } catch (error) {
             console.error('Failed to fetch anchors:', error);
-            // Fallback to mock data on error
-            setKeys(mockKeys);
+            setKeys([]); // Failed to fetch anchors, initialize with empty array
         } finally {
             setLoading(false);
         }

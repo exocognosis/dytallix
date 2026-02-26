@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Button } from '@/components/ui/Button';
+import { assetsAPI, adminAPI } from '@/lib/api';
+import { useEffect } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type WizardStep = 1 | 2 | 3 | 4 | 5;
@@ -112,8 +114,16 @@ export default function AssetIntakePage() {
     const [state, setState] = useState<IntakeState>(DEFAULT_STATE);
     const [dragOver, setDragOver] = useState(false);
     const [submitted, setSubmitted] = useState(false);
-    const [assetId] = useState(genAssetId);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [assetId, setAssetId] = useState(genAssetId);
     const fileRef = useRef<HTMLInputElement>(null);
+
+    const [algos, setAlgos] = useState<any[]>([]);
+
+    useEffect(() => {
+        adminAPI.getAlgos().then(setAlgos).catch(() => console.warn('Failed to fetch algos'));
+    }, []);
 
     const set = <K extends keyof IntakeState>(k: K, v: IntakeState[K]) => setState(p => ({ ...p, [k]: v }));
     const toggleArr = (k: 'sensitivityTags' | 'complianceFrameworks' | 'accessRoles', v: string) =>
@@ -153,6 +163,46 @@ export default function AssetIntakePage() {
         a.href = url; a.download = `asset-intake-${assetId}.json`;
         document.body.appendChild(a); a.click();
         URL.revokeObjectURL(url); document.body.removeChild(a);
+    };
+
+    const submitIntake = async () => {
+        setIsSubmitting(true);
+        setSubmitError(null);
+        try {
+            const payload = {
+                name: state.assetName,
+                type: state.assetType === 'file' ? 'GENERIC_SECRET' : state.assetType === 'directory' ? 'FILE_STORAGE' : 'DATABASE_CREDENTIAL',
+                exposure: state.classification === 'Public' ? 'PUBLIC' : state.classification === 'Restricted' ? 'RESTRICTED' : state.classification === 'Confidential' ? 'CONFIDENTIAL' : 'INTERNAL',
+                sensitivity: state.sensitivityTags.length > 3 ? 'CRITICAL' : state.sensitivityTags.length > 1 ? 'HIGH' : 'MEDIUM',
+                criticality: 'MEDIUM',
+                metadata: {
+                    owner: state.owner,
+                    fileName: state.fileName,
+                    fileSize: state.fileSize,
+                    mimeType: state.fileMimeType,
+                    directoryPath: state.directoryPath,
+                    retentionPolicy: state.retentionPolicy,
+                    tags: state.sensitivityTags,
+                    compliance: state.complianceFrameworks,
+                    custom: state.customMetadata,
+                    destination: state.destination,
+                    region: state.region,
+                    accessRoles: state.accessRoles,
+                    blockchainAnchor: state.blockchainAnchor,
+                    chainTarget: state.chainTarget,
+                },
+                targetAlgorithm: state.pqcAlgorithm,
+            };
+
+            const response = await assetsAPI.intakeAsset(payload);
+            setAssetId(response.id);
+            setSubmitted(true);
+        } catch (error: any) {
+            console.error('Submission failed', error);
+            setSubmitError(error.response?.data?.message || error.message || 'Failed to submit intake.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const selectedAlgo = PQC_ALGORITHMS.find(a => a.id === state.pqcAlgorithm);
@@ -470,6 +520,12 @@ export default function AssetIntakePage() {
                     <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0" />
                     <span className="text-white">All required fields are complete. Ready for submission.</span>
                 </div>
+
+                {submitError && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-sm text-center">
+                        {submitError}
+                    </div>
+                )}
             </GlassPanel>
         );
     };
@@ -523,9 +579,9 @@ export default function AssetIntakePage() {
                     </Button>
                     {step < 5
                         ? <Button onClick={next} disabled={!canProceed(step)}>Next <ChevronRight className="h-4 w-4 ml-1" /></Button>
-                        : <Button onClick={() => setSubmitted(true)}
-                            className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white border-0 hover:opacity-90">
-                            <Send className="h-4 w-4 mr-2" /> Submit Intake
+                        : <Button onClick={submitIntake} disabled={isSubmitting}
+                            className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white border-0 hover:opacity-90 disabled:opacity-50">
+                            <Send className="h-4 w-4 mr-2" /> {isSubmitting ? 'Submitting...' : 'Submit Intake'}
                         </Button>}
                 </div>
             </div>

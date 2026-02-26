@@ -20,7 +20,8 @@ import {
     ChevronRight,
     LogOut,
     Settings,
-    Info
+    Info,
+    Route
 } from 'lucide-react';
 import { authAPI } from '@/lib/api';
 import { cn } from '@/utils/cn';
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
     { id: 'storage', label: 'Storage Encryption', href: '/dashboard/storage', icon: Database },
     { id: 'transport', label: 'Secure Transport', href: '/dashboard/transport', icon: Lock },
     { id: 'policies', label: 'Policy Orchestrator', href: '/dashboard/policies', icon: Shield },
+    { id: 'pipeline', label: 'PQC Pipeline', href: '/dashboard/pipeline', icon: Route },
     { id: 'compliance', label: 'Compliance & Standards', href: '/dashboard/compliance', icon: FileCheck },
     { id: 'threats', label: 'Threat Mapping', href: '/dashboard/threats', icon: AlertTriangle },
     { id: 'timeline', label: 'Implementation Timeline', href: '/dashboard/timeline', icon: Calendar },

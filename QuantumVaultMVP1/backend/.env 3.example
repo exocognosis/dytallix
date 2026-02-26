@@ -1,0 +1,58 @@
+# Database
+DATABASE_URL="postgresql://quantumvault:changeme@localhost:5432/quantumvault?schema=public"
+
+# Server
+PORT=3000
+NODE_ENV=development
+CORS_ORIGIN=http://localhost:5173
+
+# JWT
+JWT_SECRET=replace-with-strong-jwt-secret
+JWT_EXPIRES_IN=24h
+
+# Redis (for BullMQ)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# HashiCorp Vault (REQUIRED)
+VAULT_ADDR=http://localhost:8200
+VAULT_AUTH_METHOD=approle
+VAULT_ROLE_ID=
+VAULT_SECRET_ID=
+# Optional fallback for local development only when VAULT_AUTH_METHOD=token
+VAULT_TOKEN=
+VAULT_NAMESPACE=quantumvault
+
+# Blockchain
+ANCHORING_BACKEND=evm
+# For ANCHORING_BACKEND=dytallix
+DYTALLIX_API_URL=https://dytallix.example.com
+DYTALLIX_API_TOKEN=
+BLOCKCHAIN_RPC_URL=http://localhost:8545
+BLOCKCHAIN_PRIVATE_KEY=replace-with-non-default-private-key
+BLOCKCHAIN_CHAIN_ID=31337
+ATTESTATION_CONTRACT_ADDRESS=
+
+# TLS Scanner
+TLS_SCAN_TIMEOUT=30000
+TLS_SCAN_CONCURRENT_LIMIT=5
+
+# PQC Wrapping
+PQC_ALGORITHM=ML-KEM-1024
+PQC_SYMMETRIC_CIPHER=AES-256-GCM
+
+# Key Governance (90-day hardening)
+# Set these to false after initial key provisioning in production.
+ATTESTATION_KEY_BOOTSTRAP_ALLOWED=true
+TRANSPORT_KEYS_BOOTSTRAP_ALLOWED=true
+# Optional key pinning controls (recommended in production).
+ATTESTATION_SIGNER_KEY_ID_PIN=
+ATTESTATION_SIGNER_KEY_HASH_PIN=
+TRANSPORT_KEM_KEY_ID_PIN=
+TRANSPORT_KEM_KEY_HASH_PIN=
+TRANSPORT_IDENTITY_KEY_ID_PIN=
+TRANSPORT_IDENTITY_KEY_HASH_PIN=
+
+# Logging
+LOG_LEVEL=info
