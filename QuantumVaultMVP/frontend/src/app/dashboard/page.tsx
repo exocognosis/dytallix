@@ -40,7 +40,7 @@ export default function OverviewPage() {
     pqcTunnels: number;
     activePolicies: number;
   }>(mockMetrics);
-  const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
   useEffect(() => {
     const fetchKPIs = async () => {
@@ -122,7 +122,7 @@ export default function OverviewPage() {
         </div>
         <div className="flex items-center gap-2 text-sm text-white/50">
           <Clock className="w-4 h-4" />
-          <span>Last updated: {lastUpdated}</span>
+          <span>Last updated: {lastUpdated || 'Loading...'}</span>
           {loading && <span className="text-cyan-400 ml-2 animate-pulse">Updating...</span>}
         </div>
       </div>

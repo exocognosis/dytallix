@@ -20,6 +20,7 @@ build/
 # Exception: allow dytallix-fast-launch/build directory for web pages
 !dytallix-fast-launch/build/
 !dytallix-fast-launch/build/src/lib/
+!QuantumVaultMVP/frontend/src/lib/
 develop-eggs/
 dist/
 downloads/
@@ -181,6 +182,5 @@ ModuleTests/PulseGuard/artifacts/gan/model_checkpoint/*
 target_backup_hung/
 deployment/gcp/terraform/terraform.tfstate.d/
 target-qv/
-QuantumVaultMVP/quantumvault-deploy.tar.gz
-QuantumVaultMVP/quantumvault-deploy 2.tar.gz
+QuantumVaultMVP/quantumvault-deploy*.tar.gz
 QuantumVaultMVPtest1/
