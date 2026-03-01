@@ -25,7 +25,7 @@ rsync -av --exclude node_modules --exclude dist backend/ temp_deploy/backend/
 # Copy Frontend
 echo "Copying Frontend..."
 mkdir -p temp_deploy/frontend
-rsync -av --exclude node_modules --exclude .next frontend/ temp_deploy/frontend/
+rsync -av --exclude node_modules --exclude .next --exclude .env.local frontend/ temp_deploy/frontend/
 
 # Copy Blockchain Core (Dependency)
 echo "Copying Blockchain Core..."
@@ -47,6 +47,11 @@ rsync -av --exclude target --exclude .git ../smart-contracts/ temp_deploy/smart-
 echo "Copying Fast Launch Node..."
 mkdir -p temp_deploy/dytallix-fast-launch/node
 rsync -av --exclude target --exclude .git ../dytallix-fast-launch/node/ temp_deploy/dytallix-fast-launch/node/
+
+# Copy Fast Launch Server (API)
+echo "Copying Fast Launch API Server..."
+mkdir -p temp_deploy/dytallix-fast-launch/server
+rsync -av --exclude node_modules --exclude .env --exclude .venv ../dytallix-fast-launch/server/ temp_deploy/dytallix-fast-launch/server/
 
 # Copy Main Frontend (Wallet/Explorer)
 echo "Copying Main Frontend..."

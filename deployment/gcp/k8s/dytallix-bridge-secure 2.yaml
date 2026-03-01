@@ -1,0 +1,334 @@
+# Dytallix Bridge Secure Deployment
+# Enhanced deployment with comprehensive security contexts and RBAC
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dytallix
+  labels:
+    name: dytallix
+    environment: testnet
+    project: dytallix-bridge
+    security.dytallix.io/security-level: "high"
+    security.dytallix.io/compliance: "cis-kubernetes"
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dytallix-bridge-node
+  namespace: dytallix
+  labels:
+    app: dytallix-bridge
+    component: node
+    environment: testnet
+    security.dytallix.io/security-profile: "restricted"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: dytallix-bridge
+      component: node
+      environment: testnet
+  template:
+    metadata:
+      labels:
+        app: dytallix-bridge
+        component: node
+        environment: testnet
+        security.dytallix.io/security-profile: "restricted"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+        security.dytallix.io/last-security-scan: "$(date +%Y-%m-%d)"
+        container.apparmor.security.beta.kubernetes.io/dytallix-bridge: "runtime/default"
+    spec:
+      serviceAccountName: dytallix-bridge-sa
+      automountServiceAccountToken: true
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
+        seccompProfile:
+          type: RuntimeDefault
+        supplementalGroups: [1000]
+      containers:
+      - name: dytallix-bridge
+        image: gcr.io/PROJECT_ID/dytallix-bridge:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3030
+          name: api
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: health
+          protocol: TCP
+        - containerPort: 30303
+          name: p2p
+          protocol: TCP
+        # Container-level security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        env:
+        - name: DYTALLIX_ENVIRONMENT
+          value: "testnet"
+        - name: DYTALLIX_LOG_LEVEL
+          value: "info"
+        - name: DYTALLIX_REQUIRE_TLS
+          value: "true"
+        - name: DYTALLIX_AUDIT_LOGGING
+          value: "true"
+        - name: DYTALLIX_METRICS_ENABLED
+          value: "true"
+        - name: DYTALLIX_CLOUD_PROVIDER
+          value: "gcp"
+        - name: DYTALLIX_SECURITY_PROFILE
+          value: "restricted"
+        - name: DYTALLIX_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: DYTALLIX_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: dytallix-bridge-secrets
+              key: database-url
+        - name: ETHEREUM_RPC_URL
+          valueFrom:
+            secretKeyRef:
+              name: dytallix-bridge-secrets
+              key: ethereum-rpc-url
+        - name: COSMOS_RPC_URL
+          valueFrom:
+            secretKeyRef:
+              name: dytallix-bridge-secrets
+              key: cosmos-rpc-url
+        volumeMounts:
+        - name: pqc-keys
+          mountPath: /etc/dytallix/keys
+          readOnly: true
+        - name: bridge-config
+          mountPath: /etc/dytallix/config
+          readOnly: true
+        - name: data-volume
+          mountPath: /var/lib/dytallix
+        - name: logs-volume
+          mountPath: /var/log/dytallix
+        - name: tmp-volume
+          mountPath: /tmp
+        - name: var-run-volume
+          mountPath: /var/run
+        - name: home-volume
+          mountPath: /home/dytallix
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+            ephemeral-storage: 1Gi
+          limits:
+            cpu: 4000m
+            memory: 8Gi
+            ephemeral-storage: 5Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 30
+      volumes:
+      - name: pqc-keys
+        secret:
+          secretName: dytallix-pqc-keys
+          defaultMode: 0400
+          optional: false
+      - name: bridge-config
+        configMap:
+          name: dytallix-bridge-config
+          defaultMode: 0444
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: dytallix-bridge-data
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: dytallix-bridge-logs
+      # Writable volumes for read-only root filesystem
+      - name: tmp-volume
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: var-run-volume
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: home-volume
+        emptyDir:
+          sizeLimit: 100Mi
+      nodeSelector:
+        kubernetes.io/os: linux
+        security.dytallix.io/node-class: "secure"
+      tolerations:
+      - key: "dytallix.io/bridge-node"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: dytallix-bridge
+                  component: node
+              topologyKey: kubernetes.io/hostname
+      priorityClassName: system-node-critical
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dytallix-bridge-service
+  namespace: dytallix
+  labels:
+    app: dytallix-bridge
+    component: service
+    security.dytallix.io/service-type: "internal"
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+    service.beta.kubernetes.io/gce-internal-type: "Internal"
+    security.dytallix.io/tls-required: "true"
+spec:
+  type: LoadBalancer
+  loadBalancerClass: gce
+  selector:
+    app: dytallix-bridge
+    component: node
+    environment: testnet
+  ports:
+  - name: api
+    port: 3030
+    targetPort: 3030
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  - name: health
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dytallix-bridge-p2p
+  namespace: dytallix
+  labels:
+    app: dytallix-bridge
+    component: p2p
+    security.dytallix.io/service-type: "external"
+spec:
+  type: NodePort
+  selector:
+    app: dytallix-bridge
+    component: node
+    environment: testnet
+  ports:
+  - name: p2p
+    port: 30303
+    targetPort: 30303
+    protocol: TCP
+---
+# PodDisruptionBudget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dytallix-bridge-pdb
+  namespace: dytallix
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: dytallix-bridge
+      component: node
+---
+# PodSecurityPolicy for additional enforcement (if PSP is enabled)
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: dytallix-bridge-psp
+  labels:
+    security.dytallix.io/policy-type: "restricted"
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: true
+  seccompProfile:
+    type: RuntimeDefault

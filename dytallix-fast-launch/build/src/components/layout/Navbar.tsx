@@ -27,6 +27,7 @@ export function Navbar() {
         { name: "AI Network", path: "/ai-oracle-network" },
         { name: "Technology", path: "/tech-stack" },
         { name: "Risk Analysis", path: "/quantumrisk" },
+        { name: "Security", path: "/security" },
         { name: "Resources", path: "/resources" },
     ]
 

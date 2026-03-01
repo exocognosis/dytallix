@@ -1,0 +1,75 @@
+{
+  "export_timestamp": "2025-07-08T14:38:32.162254Z",
+  "export_type": "compliance_report",
+  "total_entries": 3,
+  "date_range": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2025-07-08T14:38:32.162255Z"
+  },
+  "summary": {
+    "auto_approved": 1,
+    "manual_review_required": 2,
+    "high_risk_count": 1,
+    "average_risk_score": 0.55
+  },
+  "entries": [
+    {
+      "audit_id": "550e8400-e29b-41d4-a716-446655440000",
+      "transaction_hash": "tx_hash_001",
+      "timestamp": "2025-07-08T14:38:32.162096Z",
+      "ai_result": {
+        "type": "Verified",
+        "risk_score": 0.85,
+        "fraud_probability": 0.75,
+        "processing_decision": "RequireReview",
+        "oracle_id": "ai_oracle_001",
+        "response_id": "response_001"
+      },
+      "risk_priority": "High",
+      "compliance_status": "ManualReviewRequired",
+      "retention_info": {
+        "classification": "HighRisk",
+        "retention_days": 3653,
+        "legal_hold": false
+      }
+    },
+    {
+      "audit_id": "550e8400-e29b-41d4-a716-446655440001",
+      "transaction_hash": "tx_hash_002",
+      "timestamp": "2025-07-08T14:38:32.162229Z",
+      "ai_result": {
+        "type": "Verified",
+        "risk_score": 0.25,
+        "fraud_probability": 0.15,
+        "processing_decision": "AutoApprove",
+        "oracle_id": "ai_oracle_001",
+        "response_id": "response_002"
+      },
+      "risk_priority": "Low",
+      "compliance_status": "AutoApproved",
+      "retention_info": {
+        "classification": "Standard",
+        "retention_days": 2557,
+        "legal_hold": false
+      }
+    },
+    {
+      "audit_id": "550e8400-e29b-41d4-a716-446655440002",
+      "transaction_hash": "tx_hash_003",
+      "timestamp": "2025-07-08T14:38:32.162231Z",
+      "ai_result": {
+        "type": "Failed",
+        "error": "AI service unavailable",
+        "oracle_id": null,
+        "response_id": null
+      },
+      "risk_priority": "Medium",
+      "compliance_status": "ManualReviewRequired",
+      "retention_info": {
+        "classification": "Standard",
+        "retention_days": 2557,
+        "legal_hold": false
+      }
+    }
+  ]
+}

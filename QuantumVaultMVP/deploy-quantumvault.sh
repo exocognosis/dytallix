@@ -45,10 +45,11 @@ ssh $SERVER_USER@$SERVER_IP bash -s -- "$REMOTE_DIR" "$LOCAL_ARCHIVE" << 'EOF'
     npm install --production --legacy-peer-deps
     cd ..
     
-    # Install production dependencies for Frontend
+    # Install dependencies for Frontend
     echo "Installing Frontend dependencies..."
     cd frontend
-    npm install --production
+    npm install
+    rm -f .env.local  # Ensure we don't use local overrides in production
     echo "Building Frontend..."
     npm run build
     cd ..
@@ -60,6 +61,12 @@ ssh $SERVER_USER@$SERVER_IP bash -s -- "$REMOTE_DIR" "$LOCAL_ARCHIVE" << 'EOF'
     echo "Building Main Frontend..."
     npm run build
     cd ..
+    
+    # Install dependencies for Fast Launch API Server
+    echo "Installing Fast Launch API dependencies..."
+    cd dytallix-fast-launch/server
+    npm install --production
+    cd ../..
     
     # Build Blockchain Node
     echo "Building Blockchain Node (This may take a while)..."
@@ -151,6 +158,16 @@ server {
 
     # QuantumVault App
     include $SNIPPET;
+
+    # API Server (Aegis Dashboard, Faucet, etc)
+    location /api/ {
+        proxy_pass http://localhost:8787;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+    }
 
     # Default App (Wallet)
     location / {

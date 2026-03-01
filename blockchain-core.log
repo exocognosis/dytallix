@@ -11,5 +11,5 @@ warning: unused variable: `status`
 
 warning: `dytallix-node` (lib) generated 1 warning
 warning: `dytallix-node` (bin "dytallix-node") generated 1 warning (1 duplicate)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.92s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.16s
      Running `../target-qv/debug/dytallix-node`

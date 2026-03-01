@@ -1,0 +1,14 @@
+{
+  "1": [
+    {
+      "option": "Yes",
+      "voter": "voterA",
+      "weight": "600000000"
+    },
+    {
+      "option": "Yes",
+      "voter": "voterB",
+      "weight": "500000000"
+    }
+  ]
+}

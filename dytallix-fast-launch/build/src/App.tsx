@@ -24,6 +24,7 @@ import AegisReviewQueue from './pages/AegisReviewQueue'
 import QuantumVaultPricing from './pages/QuantumVaultPricing'
 import C2QAssetMigration from './pages/C2QAssetMigration'
 import C2QDeepDive from './pages/C2QDeepDive'
+import { SecurityPage } from './pages/security'
 
 import { Investor } from "./pages/investor"
 import { Deploy } from "./pages/deploy"
@@ -78,6 +79,7 @@ function AppRoutes() {
         <Route path="/tech-stack" element={<TechStack />} />
         <Route path="/roadmap" element={<Roadmap />} />
         <Route path="/resources" element={<Resources />} />
+        <Route path="/security" element={<SecurityPage />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/faq" element={<FAQ />} />
 
