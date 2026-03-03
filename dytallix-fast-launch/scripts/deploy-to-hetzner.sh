@@ -28,6 +28,7 @@ SERVER_IP="178.156.187.81"
 SERVER_USER="root"
 DEPLOY_DIR="/opt/dytallix-fast-launch"
 LOCAL_DIR="/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch"
+NGINX_LOCAL_CONF="$LOCAL_DIR/nginx-dytallix.conf.fixed"
 
 # Deployment mode (full, update, verify)
 MODE="${1:-full}"
@@ -95,7 +96,9 @@ ENDSSH
 sync_files() {
     echo -e "\n${YELLOW}[3/7] Syncing files to server...${NC}"
     
-    rsync -av --progress \
+    echo "Creating deployment archive..."
+    cd "$LOCAL_DIR"
+    tar -czf /tmp/dytallix-deploy.tar.gz \
         --exclude='node_modules' \
         --exclude='target' \
         --exclude='*.log' \
@@ -108,10 +111,16 @@ sync_files() {
         --exclude='*.swp' \
         --exclude='*.swo' \
         --exclude='.DS_Store' \
-        "$LOCAL_DIR/" \
-        "$SERVER_USER@$SERVER_IP:$DEPLOY_DIR/"
+        .
+        
+    echo "Uploading archive to server..."
+    scp /tmp/dytallix-deploy.tar.gz "$SERVER_USER@$SERVER_IP:/tmp/"
     
-    echo -e "${GREEN}✓ Files synced successfully${NC}"
+    echo "Extracting archive on server..."
+    ssh "$SERVER_USER@$SERVER_IP" "mkdir -p $DEPLOY_DIR && cd $DEPLOY_DIR && tar -xzf /tmp/dytallix-deploy.tar.gz && rm /tmp/dytallix-deploy.tar.gz"
+    
+    rm /tmp/dytallix-deploy.tar.gz
+    echo -e "${GREEN}✓ Files synced successfully via SCP${NC}"
 }
 
 # Function to setup environment
@@ -180,25 +189,56 @@ EOF
 
     # Sync frontend build to server's nginx html directory
     echo -e "${YELLOW}Syncing frontend build to /usr/share/nginx/html on server...${NC}"
-    rsync -av --delete "$LOCAL_DIR/build/dist/" "$SERVER_USER@$SERVER_IP:/usr/share/nginx/html/"
+    rsync -av --delete --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$LOCAL_DIR/build/dist/" "$SERVER_USER@$SERVER_IP:/usr/share/nginx/html/"
 
-    # Deploy backend/services as before
+    # Sync nginx config so /api routes always point at 8787 backend
+    if [ -f "$NGINX_LOCAL_CONF" ]; then
+        echo -e "${YELLOW}Syncing nginx site config...${NC}"
+        scp "$NGINX_LOCAL_CONF" "$SERVER_USER@$SERVER_IP:/etc/nginx/sites-available/dytallix"
+    else
+        echo -e "${YELLOW}⚠ Nginx config file not found at $NGINX_LOCAL_CONF${NC}"
+    fi
+
+    # Deploy backend with deterministic PM2 startup
     ssh "$SERVER_USER@$SERVER_IP" << ENDSSH
         cd $DEPLOY_DIR
-        echo "Running deployment script..."
-        
-        # Kill existing services to free ports
-        echo "Freeing up ports..."
-        for port in 3030 8787 5173 3000 3001 3002 3003 3004 3005; do
-             if lsof -ti:\$port >/dev/null; then
-                 echo "Killing process on port \$port"
-                 lsof -ti:\$port | xargs kill -9 || true
-             fi
-        done
-        
-        nohup ./deploy.sh > deployment.log 2>&1 &
-        echo "✓ Deployment started in background"
-        # Reload nginx to pick up new frontend
+        echo "Installing backend dependencies..."
+        if [ -f server/package.json ]; then
+            if [ -f server/package-lock.json ]; then
+                npm --prefix server ci
+            else
+                npm --prefix server install
+            fi
+        elif [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+                npm ci
+            else
+                npm install
+            fi
+        else
+            echo "No package.json found for backend dependency install; skipping npm install"
+        fi
+
+        if ! command -v pm2 >/dev/null 2>&1; then
+            echo "Installing pm2 globally..."
+            npm install -g pm2
+        fi
+
+        echo "Starting/reloading dytallix-api via PM2 on port 8787..."
+        API_PORT=8787 PORT=8787 pm2 startOrReload ecosystem.config.cjs --only dytallix-api --update-env
+        pm2 save
+
+        echo "Local backend health probe..."
+        curl -fsS http://127.0.0.1:8787/api/status >/dev/null
+
+        # Ensure nginx can read static files (prevents 403 from restrictive local file modes)
+        chown -R root:root /usr/share/nginx/html
+        find /usr/share/nginx/html -type d -exec chmod 755 {} \;
+        find /usr/share/nginx/html -type f -exec chmod 644 {} \;
+
+        # Activate nginx vhost and reload
+        ln -sf /etc/nginx/sites-available/dytallix /etc/nginx/sites-enabled/dytallix
+        nginx -t
         systemctl reload nginx
 
         if [ -x scripts/deployment/safe-backend-reload.sh ]; then
@@ -231,21 +271,23 @@ verify_deployment() {
         echo -e "${YELLOW}⚠ Node not responding yet (may still be starting)${NC}"
     fi
     
-    # Check faucet/API health
+    # Check backend API health
     echo -e "\n${BLUE}Faucet/API Health Check:${NC}"
-    if curl -s http://$SERVER_IP:8787/health > /dev/null 2>&1; then
+    if curl -s https://dytallix.com/api/status > /dev/null 2>&1; then
         echo -e "${GREEN}✓ Faucet/API is responding${NC}"
     else
         echo -e "${YELLOW}⚠ Faucet/API not responding yet${NC}"
     fi
-    
-    # Check frontend
-    echo -e "\n${BLUE}Frontend Health Check:${NC}"
-    if curl -s http://$SERVER_IP:5173/ > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Frontend is responding${NC}"
-    else
-        echo -e "${YELLOW}⚠ Frontend not responding yet${NC}"
-    fi
+
+    # Check AI module endpoints through public nginx path
+    echo -e "\n${BLUE}AI Module API Health Checks:${NC}"
+    for endpoint in /api/aegis/stats /api/vector/status /api/horizon/status /api/consul/status; do
+        if curl -s "https://dytallix.com${endpoint}" > /dev/null 2>&1; then
+            echo -e "${GREEN}✓ ${endpoint}${NC}"
+        else
+            echo -e "${YELLOW}⚠ ${endpoint}${NC}"
+        fi
+    done
 
     # Check QuantumVault API via nginx route
     echo -e "\n${BLUE}QuantumVault Health Check:${NC}"

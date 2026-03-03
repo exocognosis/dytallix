@@ -28,7 +28,7 @@ export function Navbar() {
         { name: "Technology", path: "/tech-stack" },
         { name: "Risk Analysis", path: "/quantumrisk" },
         { name: "Security", path: "/security" },
-        { name: "Resources", path: "/resources" },
+        { name: "Whitepapers", path: "/whitepaper" },
     ]
 
     return (
@@ -41,9 +41,9 @@ export function Navbar() {
                 }
             )}
         >
-            <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <div className="container mx-auto px-4 h-16 flex items-center justify-between md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-4">
                 {/* Logo */}
-                <Link to="/" className="flex items-center gap-2 group">
+                <Link to="/" className="flex items-center gap-2 group shrink-0 relative z-10">
                     <img src="/Logo2.png" alt="Dytallix Logo" className="w-8 h-8 rounded-lg shadow-lg group-hover:shadow-primary/20 transition-all" />
                     <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
                         Dytallix
@@ -51,30 +51,32 @@ export function Navbar() {
                 </Link>
 
                 {/* Desktop Nav */}
-                <nav className="hidden md:flex items-center justify-between flex-1 mx-6 gap-1">
-                    {navLinks.map((link) => (
-                        <Link
-                            key={link.path}
-                            to={link.path}
-                            className={cn(
-                                "text-sm font-medium transition-colors hover:text-primary relative py-1 whitespace-nowrap",
-                                location.pathname === link.path
-                                    ? "text-primary after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full"
-                                    : "text-muted-foreground"
-                            )}
-                        >
-                            {link.name}
-                        </Link>
-                    ))}
+                <nav className="hidden md:flex min-w-0 overflow-hidden">
+                    <div className="flex w-full min-w-max items-center justify-center gap-2 lg:gap-3 px-2">
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.path}
+                                to={link.path}
+                                className={cn(
+                                    "text-[12px] lg:text-sm font-medium transition-colors hover:text-primary relative py-1 px-1 lg:px-1.5 whitespace-nowrap shrink-0",
+                                    location.pathname === link.path
+                                        ? "text-primary after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full"
+                                        : "text-muted-foreground"
+                                )}
+                            >
+                                {link.name}
+                            </Link>
+                        ))}
+                    </div>
                 </nav>
 
                 {/* Actions */}
-                <div className="hidden md:flex items-center gap-4">
+                <div className="hidden md:flex items-center gap-1.5 lg:gap-2 shrink-0 relative z-10">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                        className="rounded-full hover:bg-white/10 dark:hover:bg-white/5"
+                        className="h-8 w-8 p-1 rounded-full hover:bg-white/10 dark:hover:bg-white/5"
                     >
                         <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                         <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -82,7 +84,7 @@ export function Navbar() {
                     </Button>
 
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" asChild>
+                        <Button variant="ghost" size="sm" className="hidden lg:inline-flex" asChild>
                             <Link to="/build">Build on Dytallix</Link>
                         </Button>
                         <Button size="sm" className="shadow-lg shadow-primary/20" asChild>

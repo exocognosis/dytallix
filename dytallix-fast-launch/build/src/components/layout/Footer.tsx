@@ -32,7 +32,7 @@ export function Footer() {
                             <li><Link to="/docs" className="hover:text-foreground transition-colors">Documentation</Link></li>
                             <li><Link to="/tech-stack" className="hover:text-foreground transition-colors">Tech Stack</Link></li>
                             <li><Link to="/security" className="hover:text-foreground transition-colors">Security</Link></li>
-                            <li><a href="#" className="hover:text-foreground transition-colors">Whitepaper</a></li>
+                            <li><Link to="/whitepaper" className="hover:text-foreground transition-colors">Whitepaper</Link></li>
                             <li><Link to="/build/blockchain" className="hover:text-foreground transition-colors">Network Explorer</Link></li>
                         </ul>
                     </div>

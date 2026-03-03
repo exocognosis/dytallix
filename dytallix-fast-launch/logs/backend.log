@@ -1,17 +1,20 @@
-node:internal/modules/esm/resolve:274
-    throw new ERR_MODULE_NOT_FOUND(
-          ^
-
-Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/server/routes/consul.js' imported from /Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/server/index.js
-    at finalizeResolution (node:internal/modules/esm/resolve:274:11)
-    at moduleResolve (node:internal/modules/esm/resolve:864:10)
-    at defaultResolve (node:internal/modules/esm/resolve:990:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:735:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:712:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
-    at #link (node:internal/modules/esm/module_job:208:49) {
-  code: 'ERR_MODULE_NOT_FOUND',
-  url: 'file:///Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/server/routes/consul.js'
-}
-
-Node.js v24.5.0
+[INFO] 2026-03-01T19:50:37.664Z Using in-memory rate limiter
+[INFO] 2026-03-01T19:50:40.206Z Leads database initialized {"path":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/data/leads.db"}
+[INFO] 2026-03-01T19:51:12.676Z Prometheus metrics initialized
+[INFO] 2026-03-01T19:51:12.680Z Generating Dilithium5 (ML-DSA-87) key pair...
+[INFO] 2026-03-01T19:51:12.680Z Aegis database initialized {"path":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/data/leads.db"}
+[INFO] 2026-03-01T19:51:16.163Z Aegis throttle table initialized
+[INFO] 2026-03-01T19:51:16.164Z Aegis review queue table initialized
+[INFO] 2026-03-01T19:51:16.165Z Aegis AI module initialized
+[INFO] 2026-03-01T19:53:46.725Z Environment Variables Check {"FRONTEND_PORT":"3000","PWD":"/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch"}
+[INFO] 2026-03-01T19:53:46.726Z Anomaly detection engine stubbed (fast-launch mode)
+[INFO] 2026-03-01T19:53:46.727Z Security headers enabled {"ENABLE_CSP":true}
+[INFO] 2026-03-01T19:53:46.728Z Aegis WebSocket server initialized {"path":"/api/aegis/ws"}
+[INFO] 2026-03-01T19:53:46.728Z Aegis WebSocket server initialized
+[INFO] 2026-03-01T19:53:46.728Z Generating Dilithium5 (ML-DSA-87) key pair...
+[INFO] 2026-03-01T19:53:46.728Z Consul agent started (fast-launch stub)
+[INFO] 2026-03-01T19:53:46.728Z Garrison agent started (fast-launch stub)
+[INFO] 2026-03-01T19:53:46.728Z Horizon agent started (fast-launch stub)
+[INFO] 2026-03-01T19:53:46.729Z Server running on port 3001 {"nodeEnv":"development","demoMode":true}
+[INFO] 2026-03-01T19:53:46.739Z Quantum-resistant cryptographic keys initialized {"dilithiumPublicKeyLength":2592,"dilithiumPrivateKeyLength":"[REDACTED]","algorithm":"ML-DSA-87 (Dilithium5)"}
+[INFO] 2026-03-01T19:53:46.739Z Quantum-resistant cryptographic keys initialized {"dilithiumPublicKeyLength":2592,"dilithiumPrivateKeyLength":"[REDACTED]","algorithm":"ML-DSA-87 (Dilithium5)"}

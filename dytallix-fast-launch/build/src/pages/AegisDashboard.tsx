@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAegisWebSocket, type AegisAlert } from '../hooks/useAegisWebSocket';
 import { AlertContainer } from '../components/aegis/AlertToast';
+import { buildApiUrl } from '../utils/api';
 
 interface AegisStats {
     total_transactions: number;
@@ -75,8 +76,8 @@ const AegisDashboard: React.FC = () => {
                 setLoading(true);
 
                 const [statsRes, recentRes] = await Promise.all([
-                    fetch('/api/aegis/stats'),
-                    fetch('/api/aegis/recent?limit=20')
+                    fetch(buildApiUrl('/aegis/stats')),
+                    fetch(buildApiUrl('/aegis/recent?limit=20'))
                 ]);
 
                 const statsData = await statsRes.json();

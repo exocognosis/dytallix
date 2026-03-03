@@ -25,6 +25,7 @@ import {
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { mockMetrics, quantumRiskTimeline } from '@/lib/mockData';
 import { dashboardAPI, policiesAPI } from '@/lib/api';
 
 export default function OverviewPage() {
@@ -38,17 +39,7 @@ export default function OverviewPage() {
     encryptedObjects: number;
     pqcTunnels: number;
     activePolicies: number;
-  }>({
-    activeSessions: 0,
-    keyRotations24h: 0,
-    complianceScore: 0,
-    hndlExposure: 'low',
-    totalKeys: 0,
-    encryptedObjects: 0,
-    pqcTunnels: 0,
-    activePolicies: 0,
-  });
-  const [riskTimeline, setRiskTimeline] = useState<Array<{ year: string | number, riskLevel: number }>>([]);
+  }>(mockMetrics);
   const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -74,11 +65,11 @@ export default function OverviewPage() {
           activePolicies: Array.isArray(policiesData) ? policiesData.filter((p: any) => p.status === 'enforced').length : prev.activePolicies,
         }));
 
+        // Use trends data if available, otherwise keep mock timeline
         if (trendsData && trendsData.length > 0) {
-          setRiskTimeline(trendsData.map((t: any) => ({
-            year: new Date(t.timestamp).toLocaleDateString(),
-            riskLevel: t.avgRiskScore || 0
-          })));
+          // Note: We are keeping the future timeline for now as requested/fallback
+          // But we could map trends here:
+          // setRiskTimeline(trendsData.map(t => ({ year: t.timestamp, riskLevel: t.avgRiskScore })));
         }
 
         setLastUpdated(new Date().toLocaleTimeString());
@@ -207,7 +198,7 @@ export default function OverviewPage() {
             <div className="flex-1 min-h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={riskTimeline}
+                  data={quantumRiskTimeline}
                   margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                 >
                   <defs>

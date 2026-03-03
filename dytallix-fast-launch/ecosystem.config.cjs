@@ -22,6 +22,7 @@ module.exports = {
       interpreter_args: '--experimental-modules',
       env: {
         NODE_ENV: 'development',
+        API_PORT: 8787,
         PORT: 8787,
       },
       env_file: '/opt/dytallix-fast-launch/.env',

@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { buildAegisWsUrl } from '../utils/api';
 
 export interface AegisAlert {
     type: 'high_risk' | 'critical_risk' | 'wallet_flagged' | 'pattern_detected' | 'throttle_violation' | 'review_required' | 'connected' | 'pong';
@@ -21,9 +22,7 @@ export const useAegisWebSocket = () => {
 
     const connect = useCallback(() => {
         try {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // Use same host/port as the page - Nginx or server handles routing
-            const wsUrl = `${protocol}//${window.location.host}/api/aegis/ws`;
+            const wsUrl = buildAegisWsUrl();
 
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;

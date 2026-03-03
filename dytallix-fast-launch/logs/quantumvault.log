@@ -1,10 +1,8 @@
-file:///Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/node_modules/crystals-kyber-js/esm/mod.js:4
-export { MlKem1024 } from "./src/mlKem1024.js";
-         ^^^^^^^^^
-SyntaxError: The requested module './src/mlKem1024.js' does not provide an export named 'MlKem1024'
-    at #_instantiate (node:internal/modules/esm/module_job:254:21)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:363:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:669:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
-
-Node.js v24.5.0
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[QuantumVault] Booting QuantumVault API...
+[QuantumVault] Starting HTTP listener on port 3002...
+[QuantumVault] API server running on port 3002
+[QuantumVault] Storage directory: /Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/storage
+[QuantumVault] Loaded 0 assets
+[Crypto] PQC Libraries Loaded: Dilithium & Kyber
+[QuantumVault] Loaded 34 assets from metadata

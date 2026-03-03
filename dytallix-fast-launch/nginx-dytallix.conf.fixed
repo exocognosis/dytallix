@@ -4,15 +4,9 @@ server {
     root /usr/share/nginx/html;
     index index.html;
     
-    # Proxy QuantumVault API requests (fixed port to 3031)
+    # Legacy public QuantumVault path now maps to Enterprise frontend route.
     location /quantumvault/ {
-        proxy_pass http://127.0.0.1:3031/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        add_header Access-Control-Allow-Origin * always;
+        return 301 /enterprise;
     }
     
     # Alternative route with /api/ prefix for quantumvault
@@ -110,7 +104,7 @@ server {
     # Main API server (port 8787)
     # Faucet endpoints are isolated to reduce 502 spikes during main API restarts.
     location /api/faucet/ {
-        proxy_pass http://127.0.0.1:3004/api/faucet/;
+        proxy_pass http://127.0.0.1:8787/api/faucet/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -126,7 +120,7 @@ server {
 
     # Legacy faucet path compatibility (/faucet/request, /faucet/status).
     location /faucet/ {
-        proxy_pass http://127.0.0.1:3004/api/faucet/;
+        proxy_pass http://127.0.0.1:8787/api/faucet/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -192,7 +186,7 @@ server {
     
     # SPA routing - serve index.html for all routes
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri /index.html;
     }
 
     listen [::]:443 ssl ipv6only=on;
@@ -228,6 +222,6 @@ server {
     index index.html;
     
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri /index.html;
     }
 }

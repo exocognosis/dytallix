@@ -6,24 +6,41 @@
 export const CONFIG = {
     // Server Configuration
     server: {
-        port: parseInt(process.env.PORT || '8787', 10),
+        port: parseInt(
+            process.env.API_PORT || process.env.BACKEND_API_PORT || process.env.PORT || '8787',
+            10
+        ),
         allowedOrigin: process.env.ALLOWED_ORIGIN || 'https://dytallix.com',
         nodeEnv: process.env.NODE_ENV || 'development',
     },
 
     // Chain Configuration
     chain: {
-        prefix: process.env.CHAIN_PREFIX || process.env.BECH32_PREFIX || 'dytallix',
-        rpcHttp: process.env.VITE_RPC_HTTP_URL || process.env.RPC_HTTP_URL,
-        blockchainNode: process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_URL || 'http://localhost:3003',
+        get prefix() {
+            return process.env.CHAIN_PREFIX || process.env.BECH32_PREFIX || 'dytallix';
+        },
+        get rpcHttp() {
+            return process.env.VITE_RPC_HTTP_URL || process.env.RPC_HTTP_URL;
+        },
+        get blockchainNode() {
+            return process.env.NODE_RPC_URL || process.env.BLOCKCHAIN_NODE_URL || 'http://localhost:3003';
+        },
     },
 
     // Faucet Configuration
     faucet: {
-        url: (process.env.FAUCET_URL || 'http://localhost:3004').replace(/\/$/, ''),
-        cooldownMinutes: parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10),
-        maxDGT: parseInt(process.env.FAUCET_MAX_PER_REQUEST_DGT || '2', 10),
-        maxDRT: parseInt(process.env.FAUCET_MAX_PER_REQUEST_DRT || '50', 10),
+        get url() {
+            return (process.env.FAUCET_URL || 'http://localhost:3004').replace(/\/$/, '');
+        },
+        get cooldownMinutes() {
+            return parseInt(process.env.FAUCET_COOLDOWN_MINUTES || '60', 10);
+        },
+        get maxDGT() {
+            return parseInt(process.env.FAUCET_MAX_PER_REQUEST_DGT || '2', 10);
+        },
+        get maxDRT() {
+            return parseInt(process.env.FAUCET_MAX_PER_REQUEST_DRT || '50', 10);
+        },
     },
 
     // Security Configuration

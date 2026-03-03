@@ -36,6 +36,7 @@ import quantumRiskRoutes from './routes/quantum-risk.js';
 import consulRoutes from './routes/consul.js';
 import garrisonRoutes from './routes/garrison.js';
 import horizonRoutes from './routes/horizon.js';
+import vectorRoutes from './routes/vector.js';
 
 // WebSocket services
 import { aegisWebSocket } from './services/aegis/websocket.js';
@@ -47,6 +48,7 @@ import { closeAegisPostureDb } from './services/aegis/posture.js';
 import { startConsulAgent, stopConsulAgent } from './services/consul/agent.js';
 import { startGarrisonAgent, stopGarrisonAgent } from './services/garrison/agent.js';
 import { startHorizonAgent, shutdownHorizonAgent } from './services/horizon/agent.js';
+import { startVectorAgent, shutdownVectorAgent } from './services/vector/agent.js';
 import { createRuntimeSupervisor } from './runtime.js';
 
 /*
@@ -156,6 +158,7 @@ app.use('/api/quantum-risk', quantumRiskRoutes); // Quantum Risk routes
 app.use('/api/consul', consulRoutes); // Consul governance diplomat routes
 app.use('/api', garrisonRoutes); // Garrison contract compliance + agentic routes
 app.use('/api/horizon', horizonRoutes); // Horizon network/DeFi monitor routes
+app.use('/api/vector', vectorRoutes); // Vector identity/reputation routes
 
 // Prometheus metrics endpoint
 app.get('/metrics', async (_req, res) => {
@@ -292,12 +295,6 @@ export function startServer() {
       }),
   );
 
-  initializeAegisKeys().catch((err) => {
-    logError('Failed to initialize Aegis cryptography', {
-      error: err?.message || String(err),
-    });
-  });
-
   startConsulAgent();
   serverRuntime.addCleanup('consul_agent', () => stopConsulAgent());
 
@@ -306,6 +303,19 @@ export function startServer() {
 
   startHorizonAgent();
   serverRuntime.addCleanup('horizon_agent', () => shutdownHorizonAgent());
+
+  initializeAegisKeys()
+    .then(() => {
+      startVectorAgent();
+    })
+    .catch((err) => {
+      logError('Failed to initialize Aegis cryptography', {
+        error: err?.message || String(err),
+      });
+      startVectorAgent();
+    });
+
+  serverRuntime.addCleanup('vector_agent', () => shutdownVectorAgent());
 
   const shutdown = (signal) => {
     logInfo(`${signal} received, shutting down gracefully`);

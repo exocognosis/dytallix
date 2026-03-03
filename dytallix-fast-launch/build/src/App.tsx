@@ -24,6 +24,9 @@ import AegisReviewQueue from './pages/AegisReviewQueue'
 import QuantumVaultPricing from './pages/QuantumVaultPricing'
 import C2QAssetMigration from './pages/C2QAssetMigration'
 import C2QDeepDive from './pages/C2QDeepDive'
+import ConsulGovernanceDiplomat from './pages/ConsulGovernanceDiplomat'
+import HorizonNetworkMonitor from './pages/HorizonNetworkMonitor'
+import VectorIdentityDashboard from './pages/VectorIdentityDashboard'
 import { SecurityPage } from './pages/security'
 
 import { Investor } from "./pages/investor"
@@ -65,6 +68,9 @@ function AppRoutes() {
         <Route path="/smart-contract-auditor" element={<SmartContractAuditor />} />
         <Route path="/aegis-dashboard" element={<AegisDashboard />} />
         <Route path="/aegis-review-queue" element={<AegisReviewQueue />} />
+        <Route path="/consul-dashboard" element={<ConsulGovernanceDiplomat />} />
+        <Route path="/horizon-dashboard" element={<HorizonNetworkMonitor />} />
+        <Route path="/vector-dashboard" element={<VectorIdentityDashboard />} />
         <Route path="/quantumvaultpricing" element={<QuantumVaultPricing />} />
         <Route path="/C2QAssetMigration" element={<C2QAssetMigration />} />
         <Route path="/C2QDeepDive" element={<C2QDeepDive />} />
@@ -78,7 +84,9 @@ function AppRoutes() {
         <Route path="/tokenomics" element={<Tokenomics />} />
         <Route path="/tech-stack" element={<TechStack />} />
         <Route path="/roadmap" element={<Roadmap />} />
-        <Route path="/resources" element={<Resources />} />
+        <Route path="/whitepaper" element={<Resources />} />
+        <Route path="/whitepapers" element={<Navigate to="/whitepaper" replace />} />
+        <Route path="/resources" element={<Navigate to="/whitepaper" replace />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/faq" element={<FAQ />} />
