@@ -1,8 +1,0 @@
-[dotenv@17.3.1] injecting env (0) from .env -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
-[QuantumVault] Booting QuantumVault API...
-[QuantumVault] Starting HTTP listener on port 3002...
-[QuantumVault] API server running on port 3002
-[QuantumVault] Storage directory: /Users/rickglenn/Desktop/dytallix/dytallix-fast-launch/services/quantumvault-api/storage
-[QuantumVault] Loaded 0 assets
-[Crypto] PQC Libraries Loaded: Dilithium & Kyber
-[QuantumVault] Loaded 34 assets from metadata
