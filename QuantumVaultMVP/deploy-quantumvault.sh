@@ -141,6 +141,23 @@ ssh $SERVER_USER@$SERVER_IP bash -s -- "$REMOTE_DIR" << 'EOF'
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;"
         fi
 
+        # Determine if snippet already handles /api to avoid duplicate locations
+        if grep -Eq "location[[:space:]]+/api/" "$SNIPPET"; then
+            API_SERVER_BLOCK=""
+            echo "Snippet already defines /api location. Skipping inline /api block generation."
+        else
+            API_SERVER_BLOCK="
+    # API Server (Aegis Dashboard, Faucet, etc)
+    location /api/ {
+        proxy_pass http://localhost:8787;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \"upgrade\";
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+    }"
+        fi
+
         # GENERATE NEW CONFIG
         # Note: We hardcode dytallix.com because we saw it in logs.
         # We assume root -> 3000 (Wallet) and QuantumVault -> 13002 (Via snippet)
@@ -159,15 +176,7 @@ server {
     # QuantumVault App
     include $SNIPPET;
 
-    # API Server (Aegis Dashboard, Faucet, etc)
-    location /api/ {
-        proxy_pass http://localhost:8787;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-    }
+    $API_SERVER_BLOCK
 
     # Default App (Wallet)
     location / {
