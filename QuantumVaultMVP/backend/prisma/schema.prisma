@@ -23,6 +23,11 @@ model User {
   
   sessions      Session[]
   auditLogs     AuditLog[]
+  systemControlUpdates SystemControl[]
+  frozenAssets  Asset[]   @relation("AssetFrozenByUser")
+  requestedApprovals AdminApproval[] @relation("ApprovalRequestedByUser")
+  reviewedApprovals AdminApproval[] @relation("ApprovalReviewedByUser")
+  updatedRiskRules AdminRiskRule[]
 }
 
 enum UserRole {
@@ -60,6 +65,25 @@ model AuditLog {
   @@index([userId])
   @@index([timestamp])
   @@index([action])
+}
+
+model SystemControl {
+  id              String    @id @default(uuid())
+  controlKey      String    @unique
+  label           String
+  description     String?
+  isEnabled       Boolean   @default(false)
+  reason          String?
+  metadata        Json?
+  updatedByUserId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  updatedByUser   User?     @relation(fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([controlKey])
+  @@index([isEnabled])
+  @@index([updatedAt])
 }
 
 // Scan targets and scans
@@ -154,6 +178,10 @@ model Asset {
   riskScore           Int             @default(0)
   riskLevel           RiskLevel       @default(UNKNOWN)
   metadata            Json?
+  isFrozen            Boolean         @default(false)
+  freezeReason        String?
+  frozenAt            DateTime?
+  frozenByUserId      String?
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
   lastScannedAt       DateTime?
@@ -163,11 +191,63 @@ model Asset {
   policyAssets        PolicyAsset[]
   wrappingResults     WrappingResult[]
   attestations        Attestation[]
+  frozenByUser        User?           @relation("AssetFrozenByUser", fields: [frozenByUserId], references: [id], onDelete: SetNull)
   
   @@index([status])
   @@index([riskLevel])
   @@index([type])
   @@index([fingerprint])
+  @@index([isFrozen])
+  @@index([frozenByUserId])
+}
+
+model AdminApproval {
+  id                String                 @id @default(uuid())
+  operationType     AdminApprovalOperation
+  resourceType      String
+  resourceId        String?
+  status            AdminApprovalStatus    @default(PENDING)
+  reason            String?
+  requestContext    Json?
+  requestedByUserId String?
+  reviewedByUserId  String?
+  reviewedAt        DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  requestedByUser   User?                  @relation("ApprovalRequestedByUser", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  reviewedByUser    User?                  @relation("ApprovalReviewedByUser", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([operationType, resourceType, resourceId])
+}
+
+enum AdminApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AdminApprovalOperation {
+  PIPELINE_TRANSFER
+  WRAPPING_JOB
+  ATTESTATION_SUBMISSION
+}
+
+model AdminRiskRule {
+  id                         String     @id @default(uuid())
+  ruleKey                    String     @unique @default("default")
+  maxRiskScoreAutoApprove    Int        @default(70)
+  requireApprovalAtRiskLevel RiskLevel  @default(HIGH)
+  maxAssetsPerRun            Int        @default(1000)
+  isActive                   Boolean    @default(true)
+  updatedByUserId            String?
+  createdAt                  DateTime   @default(now())
+  updatedAt                  DateTime   @updatedAt
+
+  updatedByUser              User?      @relation(fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
 }
 
 enum AssetType {

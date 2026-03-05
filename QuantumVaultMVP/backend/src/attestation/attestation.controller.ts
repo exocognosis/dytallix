@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Request, UseGuards } from '@nestjs/common';
 import { AttestationService } from './attestation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -12,8 +12,10 @@ export class AttestationController {
 
   @Post('create-job')
   @Roles(UserRole.ADMIN, UserRole.SECURITY_ENGINEER)
-  async createAttestationJob(@Body() body: { assetIds: string[] }) {
-    return this.attestationService.createAttestationJob(body.assetIds);
+  async createAttestationJob(@Body() body: { assetIds: string[] }, @Request() req: any) {
+    return this.attestationService.createAttestationJob(body.assetIds, {
+      id: req?.user?.id,
+    });
   }
 
   @Get('job-status/:jobId')

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { VaultService } from '../vault/vault.service';
 import { RiskService } from '../risk/risk.service';
@@ -73,6 +73,27 @@ export class AssetsService {
     });
   }
 
+  private async assertAssetNotFrozen(assetId: string, operation: string) {
+    const asset = await this.prisma.asset.findUnique({
+      where: { id: assetId },
+      select: {
+        id: true,
+        isFrozen: true,
+        freezeReason: true,
+      },
+    });
+
+    if (!asset) {
+      throw new BadRequestException('Asset not found');
+    }
+
+    if (asset.isFrozen) {
+      throw new BadRequestException(
+        `Asset is frozen. Cannot ${operation}.${asset.freezeReason ? ` Reason: ${asset.freezeReason}` : ''}`,
+      );
+    }
+  }
+
   async updateAssetMetadata(id: string, data: {
     name?: string;
     exposure?: ExposureLevel;
@@ -80,6 +101,8 @@ export class AssetsService {
     criticality?: CriticalityLevel;
     metadata?: any;
   }) {
+    await this.assertAssetNotFrozen(id, 'update metadata');
+
     const asset = await this.prisma.asset.update({
       where: { id },
       data,
@@ -101,6 +124,8 @@ export class AssetsService {
     keyMaterial: Buffer,
     keyType: string,
   ): Promise<void> {
+    await this.assertAssetNotFrozen(assetId, 'ingest key material');
+
     // Validate size (max 10MB for MVP)
     const maxSize = 10 * 1024 * 1024;
     if (keyMaterial.length > maxSize) {

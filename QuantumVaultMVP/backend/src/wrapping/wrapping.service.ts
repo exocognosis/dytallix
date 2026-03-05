@@ -3,10 +3,24 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../database/prisma.service';
 import { VaultService } from '../vault/vault.service';
-import { JobStatus, AssetStatus } from '@prisma/client';
+import {
+  AdminApprovalOperation,
+  AssetStatus,
+  JobStatus,
+  Prisma,
+  RiskLevel,
+} from '@prisma/client';
 import * as crypto from 'crypto';
 import { deriveAes256Key, getMlKem1024, ML_KEM_1024_ALGORITHM, ML_KEM_1024_WRAP_SUITE } from '../crypto/mlkem';
 import { canonicalJsonBuffer, canonicalJsonSha256Hex } from '../crypto/canonical-json';
+
+const RISK_LEVEL_RANK: Record<RiskLevel, number> = {
+  UNKNOWN: 0,
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  CRITICAL: 4,
+};
 
 @Injectable()
 export class WrappingService {
@@ -16,11 +30,178 @@ export class WrappingService {
     @InjectQueue('wrapping') private wrappingQueue: Queue,
   ) {}
 
-  async wrapAsset(assetId: string, anchorId: string) {
+  private async assertWrappingNotPaused() {
+    const control = await this.prisma.systemControl.findUnique({
+      where: { controlKey: 'pauseWrappingJobs' },
+      select: { isEnabled: true },
+    });
+
+    if (control?.isEnabled) {
+      throw new Error('Wrapping jobs are currently paused by administrator control.');
+    }
+  }
+
+  private deriveRiskLevelFromScore(score: number): RiskLevel {
+    if (score >= 85) return 'CRITICAL';
+    if (score >= 70) return 'HIGH';
+    if (score >= 40) return 'MEDIUM';
+    if (score > 0) return 'LOW';
+    return 'UNKNOWN';
+  }
+
+  private shouldRequireApproval(
+    rule: { maxRiskScoreAutoApprove: number; requireApprovalAtRiskLevel: RiskLevel },
+    riskScore: number,
+    riskLevel: RiskLevel,
+  ) {
+    if (riskScore > rule.maxRiskScoreAutoApprove) {
+      return true;
+    }
+    return (RISK_LEVEL_RANK[riskLevel] ?? 0) >= (RISK_LEVEL_RANK[rule.requireApprovalAtRiskLevel] ?? 0);
+  }
+
+  private async ensureAdminRiskRuleRecord() {
+    return this.prisma.adminRiskRule.upsert({
+      where: { ruleKey: 'default' },
+      create: {
+        ruleKey: 'default',
+        maxRiskScoreAutoApprove: 70,
+        requireApprovalAtRiskLevel: 'HIGH',
+        maxAssetsPerRun: 1000,
+        isActive: true,
+      },
+      update: {
+        isActive: true,
+      },
+    });
+  }
+
+  private async createOrRequireApproval(params: {
+    operationType: AdminApprovalOperation;
+    resourceType: string;
+    resourceId?: string | null;
+    riskScore: number;
+    riskLevel: RiskLevel;
+    reason: string;
+    requestedByUserId?: string | null;
+    requestContext?: Record<string, unknown>;
+  }): Promise<{ allowed: boolean; message?: string; approvalId?: string }> {
+    const rule = await this.ensureAdminRiskRuleRecord();
+    if (!this.shouldRequireApproval(rule, params.riskScore, params.riskLevel)) {
+      return { allowed: true };
+    }
+
+    const baseWhere: Prisma.AdminApprovalWhereInput = {
+      operationType: params.operationType,
+      resourceType: params.resourceType,
+      resourceId: params.resourceId || null,
+    };
+
+    const approved = await this.prisma.adminApproval.findFirst({
+      where: { ...baseWhere, status: 'APPROVED' },
+      orderBy: { reviewedAt: 'desc' },
+    });
+    if (approved) {
+      return { allowed: true, approvalId: approved.id };
+    }
+
+    const pending = await this.prisma.adminApproval.findFirst({
+      where: { ...baseWhere, status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (pending) {
+      return {
+        allowed: false,
+        approvalId: pending.id,
+        message: `Wrapping requires approval and is already pending (approval: ${pending.id}).`,
+      };
+    }
+
+    const created = await this.prisma.adminApproval.create({
+      data: {
+        operationType: params.operationType,
+        resourceType: params.resourceType,
+        resourceId: params.resourceId || null,
+        status: 'PENDING',
+        reason: params.reason,
+        requestContext: JSON.parse(
+          JSON.stringify({
+            riskScore: params.riskScore,
+            riskLevel: params.riskLevel,
+            ...(params.requestContext || {}),
+          }),
+        ) as Prisma.InputJsonValue,
+        requestedByUserId: params.requestedByUserId || null,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: params.requestedByUserId || null,
+        action: 'ADMIN_APPROVAL_REQUESTED',
+        resource: 'ADMIN_APPROVAL',
+        resourceId: created.id,
+        details: JSON.parse(
+          JSON.stringify({
+            operationType: params.operationType,
+            resourceType: params.resourceType,
+            resourceId: params.resourceId || null,
+            reason: params.reason,
+          }),
+        ) as Prisma.InputJsonValue,
+      },
+    });
+
+    return {
+      allowed: false,
+      approvalId: created.id,
+      message: `Wrapping requires approval. Approval request ${created.id} is pending.`,
+    };
+  }
+
+  private async assertAssetsNotFrozen(assetIds: string[], operation: string) {
+    const frozenAssets = await this.prisma.asset.findMany({
+      where: {
+        id: { in: assetIds },
+        isFrozen: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        freezeReason: true,
+      },
+    });
+
+    if (frozenAssets.length > 0) {
+      const sample = frozenAssets[0];
+      throw new Error(
+        `Cannot ${operation}. Asset ${sample.name || sample.id} is frozen.${sample.freezeReason ? ` Reason: ${sample.freezeReason}` : ''}`,
+      );
+    }
+  }
+
+  async wrapAsset(assetId: string, anchorId: string, actor?: { id?: string }) {
+    await this.assertWrappingNotPaused();
+
     const asset = await this.prisma.asset.findUnique({ where: { id: assetId } });
     const anchor = await this.prisma.anchor.findUnique({ where: { id: anchorId } });
 
     if (!asset || !anchor) throw new Error('Asset or anchor not found');
+
+    await this.assertAssetsNotFrozen([assetId], 'wrap asset');
+
+    const approvalGate = await this.createOrRequireApproval({
+      operationType: 'WRAPPING_JOB',
+      resourceType: 'ASSET',
+      resourceId: asset.id,
+      riskScore: asset.riskScore || 0,
+      riskLevel: asset.riskLevel || this.deriveRiskLevelFromScore(asset.riskScore || 0),
+      reason: `Wrapping requested for asset ${asset.id} at riskScore=${asset.riskScore}, riskLevel=${asset.riskLevel}.`,
+      requestedByUserId: actor?.id || null,
+    });
+    if (!approvalGate.allowed) {
+      throw new Error(approvalGate.message || 'Wrapping requires admin approval.');
+    }
 
     const job = await this.prisma.wrappingJob.create({
       data: {
@@ -38,7 +219,9 @@ export class WrappingService {
     return job;
   }
 
-  async bulkWrapByPolicy(policyId: string) {
+  async bulkWrapByPolicy(policyId: string, actor?: { id?: string }) {
+    await this.assertWrappingNotPaused();
+
     const policy = await this.prisma.policy.findUnique({
       where: { id: policyId },
       include: { policyAssets: true },
@@ -52,6 +235,35 @@ export class WrappingService {
 
     if (assetIds.length === 0) {
       throw new Error('No matching assets for policy (run policy evaluation first)');
+    }
+
+    await this.assertAssetsNotFrozen(assetIds, 'bulk wrap by policy');
+
+    const assets = await this.prisma.asset.findMany({
+      where: { id: { in: assetIds } },
+      select: { id: true, riskScore: true, riskLevel: true },
+    });
+    const maxRiskScore = assets.reduce((max, asset) => Math.max(max, asset.riskScore || 0), 0);
+    const highestRiskLevel = assets.reduce<RiskLevel>(
+      (current, asset) => ((RISK_LEVEL_RANK[asset.riskLevel] ?? 0) > (RISK_LEVEL_RANK[current] ?? 0) ? asset.riskLevel : current),
+      'UNKNOWN',
+    );
+
+    const approvalGate = await this.createOrRequireApproval({
+      operationType: 'WRAPPING_JOB',
+      resourceType: 'POLICY',
+      resourceId: policy.id,
+      riskScore: maxRiskScore,
+      riskLevel: highestRiskLevel,
+      reason: `Bulk wrapping requested for policy ${policy.id} with ${assetIds.length} assets at maxRiskScore=${maxRiskScore}, highestRiskLevel=${highestRiskLevel}.`,
+      requestedByUserId: actor?.id || null,
+      requestContext: {
+        policyId: policy.id,
+        assetCount: assetIds.length,
+      },
+    });
+    if (!approvalGate.allowed) {
+      throw new Error(approvalGate.message || 'Bulk wrapping requires admin approval.');
     }
 
     const activeAnchor = await this.prisma.anchor.findFirst({
@@ -94,6 +306,9 @@ export class WrappingService {
     const asset = await this.prisma.asset.findUnique({ where: { id: assetId } });
     if (!asset) {
       throw new Error('Asset not found');
+    }
+    if (asset.isFrozen) {
+      throw new Error(`Asset is frozen and cannot be wrapped.${asset.freezeReason ? ` Reason: ${asset.freezeReason}` : ''}`);
     }
 
     // Get asset key material from Vault
@@ -159,7 +374,7 @@ export class WrappingService {
     if (!anchorKeyB64) {
       throw new Error('Invalid anchor public key payload in Vault');
     }
-    const anchorPublicKey = Buffer.from(anchorKeyB64, 'base64');
+    const anchorPublicKey = Uint8Array.from(Buffer.from(anchorKeyB64, 'base64'));
 
     const kem = await getMlKem1024();
     const { ciphertext: kemCiphertext, sharedSecret } = await kem.encapsulate(anchorPublicKey);

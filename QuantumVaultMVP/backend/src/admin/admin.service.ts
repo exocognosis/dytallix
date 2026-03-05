@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { VaultService } from '../vault/vault.service';
+import { BlockchainService } from '../blockchain/blockchain.service';
+import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -17,13 +19,20 @@ import {
 import { getMlDsa65, ML_DSA_65_ALGORITHM } from '../crypto/mldsa';
 import { getSlhDsaShake128s, SLH_DSA_SHAKE_128S_ALGORITHM } from '../crypto/slhdsa';
 import { canonicalJsonBuffer, canonicalJsonSha256Hex } from '../crypto/canonical-json';
-import { PipelineAssetStatus, PipelineRunStatus, Prisma } from '@prisma/client';
+import {
+    AdminApprovalOperation,
+    AdminApprovalStatus,
+    JobStatus,
+    PipelineAssetStatus,
+    PipelineRunStatus,
+    Prisma,
+    RiskLevel,
+    ScanStatus,
+} from '@prisma/client';
 import { AttestationService } from '../attestation/attestation.service';
 import { TransportService } from '../transport/transport.service';
 
 const PQC_PIPELINE_VERSION = 'qv-pqc-v1';
-const DEFAULT_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-const DEFAULT_MAX_FILES = 2000;
 
 type PipelineWrapLevel = 'baseline' | 'enhanced' | 'maximum';
 
@@ -33,17 +42,67 @@ type PipelinePolicy = {
     signatureAlgorithms: string[];
 };
 
+type PipelineMetadataOverride = {
+    dataDomain?: string;
+    retentionTag?: string;
+    owner?: string;
+};
+
+type AdminActor = {
+    id?: string;
+    email?: string;
+};
+
+type AdminSystemControlKey =
+    | 'pausePipelineWrites'
+    | 'pauseAttestationSubmissions'
+    | 'pauseWrappingJobs';
+
+type AdminSystemControlDefinition = {
+    controlKey: AdminSystemControlKey;
+    label: string;
+    description: string;
+};
+
+const ADMIN_SYSTEM_CONTROLS: AdminSystemControlDefinition[] = [
+    {
+        controlKey: 'pausePipelineWrites',
+        label: 'Pause Pipeline Writes',
+        description: 'Blocks discovery/pipeline write operations and bulk file transformation jobs.',
+    },
+    {
+        controlKey: 'pauseAttestationSubmissions',
+        label: 'Pause Attestation Submissions',
+        description: 'Blocks creation of new attestation queue jobs while enabled.',
+    },
+    {
+        controlKey: 'pauseWrappingJobs',
+        label: 'Pause Wrapping Jobs',
+        description: 'Blocks creation of new PQC wrapping jobs while enabled.',
+    },
+];
+
+const ADMIN_SYSTEM_CONTROL_LOOKUP = new Map<string, AdminSystemControlDefinition>(
+    ADMIN_SYSTEM_CONTROLS.map((control) => [control.controlKey, control]),
+);
+
+const RISK_LEVEL_RANK: Record<RiskLevel, number> = {
+    UNKNOWN: 0,
+    LOW: 1,
+    MEDIUM: 2,
+    HIGH: 3,
+    CRITICAL: 4,
+};
+
 @Injectable()
 export class AdminService {
     private readonly logger = new Logger(AdminService.name);
-    private readonly qvAdminBase =
-        process.env.QUANTUMVAULT_ADMIN_URL ||
-        process.env.QUANTUMVAULT_API_URL ||
-        'http://localhost:3031';
 
     constructor(
         private prisma: PrismaService,
         private vaultService: VaultService,
+        private blockchainService: BlockchainService,
+        private configService: ConfigService,
         private attestationService: AttestationService,
         private transportService: TransportService,
     ) { }
@@ -52,6 +111,661 @@ export class AdminService {
         // Ideally update a SystemConfig table. For MVP, we simply log.
         this.logger.log('Saving scan config:', config);
         return { success: true, message: 'Configuration saved' };
+    }
+
+    private async ensureSystemControlRecords() {
+        await Promise.all(
+            ADMIN_SYSTEM_CONTROLS.map((control) =>
+                this.prisma.systemControl.upsert({
+                    where: { controlKey: control.controlKey },
+                    create: {
+                        controlKey: control.controlKey,
+                        label: control.label,
+                        description: control.description,
+                        metadata: {
+                            source: 'admin_console',
+                            seededBy: 'admin_service',
+                        },
+                    },
+                    update: {
+                        label: control.label,
+                        description: control.description,
+                    },
+                }),
+            ),
+        );
+    }
+
+    private async assertSystemControlDisabled(controlKey: AdminSystemControlKey, blockedMessage: string) {
+        const control = await this.prisma.systemControl.findUnique({
+            where: { controlKey },
+            select: { isEnabled: true },
+        });
+
+        if (control?.isEnabled) {
+            throw new Error(blockedMessage);
+        }
+    }
+
+    async getSystemControls() {
+        await this.ensureSystemControlRecords();
+
+        const rows = await this.prisma.systemControl.findMany({
+            where: {
+                controlKey: {
+                    in: ADMIN_SYSTEM_CONTROLS.map((control) => control.controlKey),
+                },
+            },
+            include: {
+                updatedByUser: {
+                    select: {
+                        id: true,
+                        email: true,
+                    },
+                },
+            },
+            orderBy: { controlKey: 'asc' },
+        });
+
+        const byKey = new Map(rows.map((row) => [row.controlKey, row]));
+
+        return ADMIN_SYSTEM_CONTROLS.map((definition) => {
+            const row = byKey.get(definition.controlKey);
+            return {
+                controlKey: definition.controlKey,
+                label: row?.label || definition.label,
+                description: row?.description || definition.description,
+                isEnabled: Boolean(row?.isEnabled),
+                reason: row?.reason || null,
+                updatedAt: row?.updatedAt?.toISOString() || null,
+                updatedBy: row?.updatedByUser?.email || null,
+            };
+        });
+    }
+
+    async setSystemControl(
+        input: {
+            controlKey: string;
+            enabled: boolean;
+            reason?: string;
+        },
+        actor?: {
+            id?: string;
+            email?: string;
+        },
+    ) {
+        if (typeof input?.enabled !== 'boolean') {
+            throw new BadRequestException('enabled must be a boolean');
+        }
+
+        const definition = ADMIN_SYSTEM_CONTROL_LOOKUP.get(input?.controlKey);
+        if (!definition) {
+            throw new BadRequestException(`Unknown control key: ${input?.controlKey || 'n/a'}`);
+        }
+
+        await this.ensureSystemControlRecords();
+
+        const previous = await this.prisma.systemControl.findUnique({
+            where: { controlKey: definition.controlKey },
+            select: { isEnabled: true, reason: true },
+        });
+
+        const normalizedReason =
+            input.reason?.trim()
+            || (input.enabled ? 'Paused via Administrator Console' : 'Resumed via Administrator Console');
+
+        const updated = await this.prisma.systemControl.update({
+            where: { controlKey: definition.controlKey },
+            data: {
+                isEnabled: input.enabled,
+                reason: normalizedReason,
+                updatedByUserId: actor?.id || null,
+                label: definition.label,
+                description: definition.description,
+            },
+            include: {
+                updatedByUser: {
+                    select: {
+                        email: true,
+                    },
+                },
+            },
+        });
+
+        const details = JSON.parse(
+            JSON.stringify({
+                controlKey: definition.controlKey,
+                label: definition.label,
+                previousEnabled: previous?.isEnabled ?? false,
+                nextEnabled: updated.isEnabled,
+                previousReason: previous?.reason || null,
+                nextReason: updated.reason || null,
+                requestedBy: actor?.email || 'admin',
+                changedAt: updated.updatedAt.toISOString(),
+            }),
+        ) as Prisma.InputJsonValue;
+
+        await this.prisma.auditLog.create({
+            data: {
+                userId: actor?.id || null,
+                action: 'SYSTEM_CONTROL_UPDATED',
+                resource: 'SYSTEM_CONTROL',
+                resourceId: definition.controlKey,
+                details,
+            },
+        });
+
+        return {
+            controlKey: definition.controlKey,
+            label: updated.label,
+            description: updated.description,
+            isEnabled: updated.isEnabled,
+            reason: updated.reason,
+            updatedAt: updated.updatedAt.toISOString(),
+            updatedBy: updated.updatedByUser?.email || actor?.email || null,
+        };
+    }
+
+    private parseRiskLevelInput(value: unknown): RiskLevel {
+        const normalized = String(value || '').trim().toUpperCase();
+        if (normalized === 'LOW') return 'LOW';
+        if (normalized === 'MEDIUM') return 'MEDIUM';
+        if (normalized === 'HIGH') return 'HIGH';
+        if (normalized === 'CRITICAL') return 'CRITICAL';
+        return 'HIGH';
+    }
+
+    private deriveRiskLevelFromScore(score: number): RiskLevel {
+        if (score >= 85) return 'CRITICAL';
+        if (score >= 70) return 'HIGH';
+        if (score >= 40) return 'MEDIUM';
+        if (score > 0) return 'LOW';
+        return 'UNKNOWN';
+    }
+
+    private shouldRequireApproval(
+        rule: {
+            maxRiskScoreAutoApprove: number;
+            requireApprovalAtRiskLevel: RiskLevel;
+        },
+        riskScore: number,
+        riskLevel: RiskLevel,
+    ): boolean {
+        const levelRank = RISK_LEVEL_RANK[riskLevel] ?? 0;
+        const requiredLevelRank = RISK_LEVEL_RANK[rule.requireApprovalAtRiskLevel] ?? 0;
+        if (riskScore > rule.maxRiskScoreAutoApprove) {
+            return true;
+        }
+        return levelRank >= requiredLevelRank;
+    }
+
+    private async ensureAdminRiskRuleRecord() {
+        return this.prisma.adminRiskRule.upsert({
+            where: { ruleKey: 'default' },
+            create: {
+                ruleKey: 'default',
+                maxRiskScoreAutoApprove: 70,
+                requireApprovalAtRiskLevel: 'HIGH',
+                maxAssetsPerRun: 1000,
+                isActive: true,
+            },
+            update: {
+                isActive: true,
+            },
+        });
+    }
+
+    async getRiskRules() {
+        const rule = await this.ensureAdminRiskRuleRecord();
+        return {
+            id: rule.id,
+            maxRiskScoreAutoApprove: rule.maxRiskScoreAutoApprove,
+            requireApprovalAtRiskLevel: rule.requireApprovalAtRiskLevel,
+            maxAssetsPerRun: rule.maxAssetsPerRun,
+            updatedAt: rule.updatedAt.toISOString(),
+        };
+    }
+
+    async setRiskRules(
+        input: {
+            maxRiskScoreAutoApprove: number;
+            requireApprovalAtRiskLevel: string;
+            maxAssetsPerRun: number;
+        },
+        actor?: AdminActor,
+    ) {
+        const maxRiskScoreAutoApprove = Number(input?.maxRiskScoreAutoApprove);
+        if (!Number.isFinite(maxRiskScoreAutoApprove) || maxRiskScoreAutoApprove < 0 || maxRiskScoreAutoApprove > 100) {
+            throw new BadRequestException('maxRiskScoreAutoApprove must be between 0 and 100');
+        }
+
+        const maxAssetsPerRun = Number(input?.maxAssetsPerRun);
+        if (!Number.isFinite(maxAssetsPerRun) || maxAssetsPerRun <= 0) {
+            throw new BadRequestException('maxAssetsPerRun must be greater than 0');
+        }
+
+        const requireApprovalAtRiskLevel = this.parseRiskLevelInput(input?.requireApprovalAtRiskLevel);
+
+        const existing = await this.ensureAdminRiskRuleRecord();
+        const updated = await this.prisma.adminRiskRule.update({
+            where: { id: existing.id },
+            data: {
+                maxRiskScoreAutoApprove: Math.round(maxRiskScoreAutoApprove),
+                requireApprovalAtRiskLevel,
+                maxAssetsPerRun: Math.round(maxAssetsPerRun),
+                updatedByUserId: actor?.id || null,
+                isActive: true,
+            },
+        });
+
+        const details = JSON.parse(
+            JSON.stringify({
+                previous: {
+                    maxRiskScoreAutoApprove: existing.maxRiskScoreAutoApprove,
+                    requireApprovalAtRiskLevel: existing.requireApprovalAtRiskLevel,
+                    maxAssetsPerRun: existing.maxAssetsPerRun,
+                },
+                current: {
+                    maxRiskScoreAutoApprove: updated.maxRiskScoreAutoApprove,
+                    requireApprovalAtRiskLevel: updated.requireApprovalAtRiskLevel,
+                    maxAssetsPerRun: updated.maxAssetsPerRun,
+                },
+                updatedBy: actor?.email || 'admin',
+            }),
+        ) as Prisma.InputJsonValue;
+
+        await this.prisma.auditLog.create({
+            data: {
+                userId: actor?.id || null,
+                action: 'ADMIN_RISK_RULE_UPDATED',
+                resource: 'ADMIN_RISK_RULE',
+                resourceId: updated.id,
+                details,
+            },
+        });
+
+        return {
+            id: updated.id,
+            maxRiskScoreAutoApprove: updated.maxRiskScoreAutoApprove,
+            requireApprovalAtRiskLevel: updated.requireApprovalAtRiskLevel,
+            maxAssetsPerRun: updated.maxAssetsPerRun,
+            updatedAt: updated.updatedAt.toISOString(),
+        };
+    }
+
+    async getUsers(search?: string) {
+        const normalizedSearch = String(search || '').trim();
+        const users = await this.prisma.user.findMany({
+            where: normalizedSearch
+                ? {
+                    OR: [
+                        { email: { contains: normalizedSearch, mode: 'insensitive' } },
+                        { id: { contains: normalizedSearch, mode: 'insensitive' } },
+                    ],
+                }
+                : undefined,
+            select: {
+                id: true,
+                email: true,
+                role: true,
+                isActive: true,
+                createdAt: true,
+                lastLoginAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+        });
+
+        return users.map((user) => ({
+            ...user,
+            createdAt: user.createdAt.toISOString(),
+            lastLoginAt: user.lastLoginAt?.toISOString() || null,
+        }));
+    }
+
+    async getAssetsForFreeze(search?: string) {
+        const normalizedSearch = String(search || '').trim();
+        const assets = await this.prisma.asset.findMany({
+            where: normalizedSearch
+                ? {
+                    OR: [
+                        { name: { contains: normalizedSearch, mode: 'insensitive' } },
+                        { fingerprint: { contains: normalizedSearch, mode: 'insensitive' } },
+                        { id: { contains: normalizedSearch, mode: 'insensitive' } },
+                    ],
+                }
+                : undefined,
+            select: {
+                id: true,
+                name: true,
+                fingerprint: true,
+                type: true,
+                status: true,
+                riskScore: true,
+                riskLevel: true,
+                isFrozen: true,
+                freezeReason: true,
+                frozenAt: true,
+                frozenByUser: {
+                    select: {
+                        email: true,
+                    },
+                },
+            },
+            orderBy: [{ isFrozen: 'desc' }, { updatedAt: 'desc' }],
+            take: 75,
+        });
+
+        return assets.map((asset) => ({
+            ...asset,
+            frozenAt: asset.frozenAt?.toISOString() || null,
+            frozenBy: asset.frozenByUser?.email || null,
+        }));
+    }
+
+    async setUserActive(id: string, isActive: boolean, reason?: string, actor?: AdminActor) {
+        if (typeof isActive !== 'boolean') {
+            throw new BadRequestException('isActive must be a boolean');
+        }
+
+        const updated = await this.prisma.user.update({
+            where: { id },
+            data: { isActive },
+            select: {
+                id: true,
+                email: true,
+                role: true,
+                isActive: true,
+                updatedAt: true,
+            },
+        });
+
+        const details = JSON.parse(
+            JSON.stringify({
+                userId: updated.id,
+                userEmail: updated.email,
+                isActive: updated.isActive,
+                reason: reason || null,
+                updatedBy: actor?.email || 'admin',
+            }),
+        ) as Prisma.InputJsonValue;
+
+        await this.prisma.auditLog.create({
+            data: {
+                userId: actor?.id || null,
+                action: 'USER_ACTIVE_STATUS_UPDATED',
+                resource: 'USER',
+                resourceId: updated.id,
+                details,
+            },
+        });
+
+        return {
+            ...updated,
+            updatedAt: updated.updatedAt.toISOString(),
+        };
+    }
+
+    async setAssetFrozen(id: string, isFrozen: boolean, reason?: string, actor?: AdminActor) {
+        if (typeof isFrozen !== 'boolean') {
+            throw new BadRequestException('isFrozen must be a boolean');
+        }
+
+        const freezeReason = reason?.trim() || (isFrozen ? 'Frozen via Administrator Console' : null);
+
+        const updated = await this.prisma.asset.update({
+            where: { id },
+            data: {
+                isFrozen,
+                freezeReason: isFrozen ? freezeReason : null,
+                frozenAt: isFrozen ? new Date() : null,
+                frozenByUserId: isFrozen ? actor?.id || null : null,
+            },
+            include: {
+                frozenByUser: {
+                    select: {
+                        email: true,
+                    },
+                },
+            },
+        });
+
+        const details = JSON.parse(
+            JSON.stringify({
+                assetId: updated.id,
+                assetName: updated.name,
+                isFrozen: updated.isFrozen,
+                reason: updated.freezeReason || null,
+                updatedBy: actor?.email || 'admin',
+            }),
+        ) as Prisma.InputJsonValue;
+
+        await this.prisma.auditLog.create({
+            data: {
+                userId: actor?.id || null,
+                action: 'ASSET_FREEZE_STATUS_UPDATED',
+                resource: 'ASSET',
+                resourceId: updated.id,
+                details,
+            },
+        });
+
+        return {
+            id: updated.id,
+            name: updated.name,
+            isFrozen: updated.isFrozen,
+            freezeReason: updated.freezeReason,
+            frozenAt: updated.frozenAt?.toISOString() || null,
+            frozenBy: updated.frozenByUser?.email || null,
+        };
+    }
+
+    async getApprovals(status?: string) {
+        const normalizedStatus = String(status || 'PENDING').trim().toUpperCase();
+        const allowedStatuses = new Set<AdminApprovalStatus>(['PENDING', 'APPROVED', 'REJECTED']);
+        if (!allowedStatuses.has(normalizedStatus as AdminApprovalStatus)) {
+            throw new BadRequestException('status must be one of PENDING, APPROVED, REJECTED');
+        }
+
+        const approvals = await this.prisma.adminApproval.findMany({
+            where: {
+                status: normalizedStatus as AdminApprovalStatus,
+            },
+            include: {
+                requestedByUser: {
+                    select: {
+                        email: true,
+                    },
+                },
+                reviewedByUser: {
+                    select: {
+                        email: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 150,
+        });
+
+        return approvals.map((approval) => ({
+            id: approval.id,
+            operationType: approval.operationType,
+            resourceType: approval.resourceType,
+            resourceId: approval.resourceId,
+            status: approval.status,
+            reason: approval.reason,
+            requestContext: approval.requestContext,
+            requestedBy: approval.requestedByUser?.email || null,
+            reviewedBy: approval.reviewedByUser?.email || null,
+            reviewedAt: approval.reviewedAt?.toISOString() || null,
+            createdAt: approval.createdAt.toISOString(),
+            updatedAt: approval.updatedAt.toISOString(),
+        }));
+    }
+
+    async approveApproval(id: string, reason?: string, actor?: AdminActor) {
+        const updated = await this.prisma.adminApproval.update({
+            where: { id },
+            data: {
+                status: 'APPROVED',
+                reason: reason?.trim() || undefined,
+                reviewedByUserId: actor?.id || null,
+                reviewedAt: new Date(),
+            },
+        });
+
+        await this.prisma.auditLog.create({
+            data: {
+                userId: actor?.id || null,
+                action: 'ADMIN_APPROVAL_APPROVED',
+                resource: 'ADMIN_APPROVAL',
+                resourceId: updated.id,
+                details: JSON.parse(
+                    JSON.stringify({
+                        operationType: updated.operationType,
+                        resourceType: updated.resourceType,
+                        resourceId: updated.resourceId,
+                        reviewedBy: actor?.email || 'admin',
+                        reason: updated.reason || null,
+                    }),
+                ) as Prisma.InputJsonValue,
+            },
+        });
+
+        return {
+            id: updated.id,
+            status: updated.status,
+            reason: updated.reason,
+            reviewedAt: updated.reviewedAt?.toISOString() || null,
+        };
+    }
+
+    async rejectApproval(id: string, reason?: string, actor?: AdminActor) {
+        const updated = await this.prisma.adminApproval.update({
+            where: { id },
+            data: {
+                status: 'REJECTED',
+                reason: reason?.trim() || 'Rejected from Administrator Console',
+                reviewedByUserId: actor?.id || null,
+                reviewedAt: new Date(),
+            },
+        });
+
+        await this.prisma.auditLog.create({
+            data: {
+                userId: actor?.id || null,
+                action: 'ADMIN_APPROVAL_REJECTED',
+                resource: 'ADMIN_APPROVAL',
+                resourceId: updated.id,
+                details: JSON.parse(
+                    JSON.stringify({
+                        operationType: updated.operationType,
+                        resourceType: updated.resourceType,
+                        resourceId: updated.resourceId,
+                        reviewedBy: actor?.email || 'admin',
+                        reason: updated.reason || null,
+                    }),
+                ) as Prisma.InputJsonValue,
+            },
+        });
+
+        return {
+            id: updated.id,
+            status: updated.status,
+            reason: updated.reason,
+            reviewedAt: updated.reviewedAt?.toISOString() || null,
+        };
+    }
+
+    private async createOrRequireApproval(params: {
+        operationType: AdminApprovalOperation;
+        resourceType: string;
+        resourceId?: string | null;
+        riskScore: number;
+        riskLevel: RiskLevel;
+        reason: string;
+        requestContext?: Record<string, unknown>;
+        actor?: AdminActor;
+    }): Promise<{ allowed: boolean; message?: string; approvalId?: string }> {
+        const rule = await this.ensureAdminRiskRuleRecord();
+        if (!this.shouldRequireApproval(rule, params.riskScore, params.riskLevel)) {
+            return { allowed: true };
+        }
+
+        const baseWhere: Prisma.AdminApprovalWhereInput = {
+            operationType: params.operationType,
+            resourceType: params.resourceType,
+            resourceId: params.resourceId || null,
+        };
+
+        const existingApproved = await this.prisma.adminApproval.findFirst({
+            where: {
+                ...baseWhere,
+                status: 'APPROVED',
+            },
+            orderBy: { reviewedAt: 'desc' },
+        });
+        if (existingApproved) {
+            return { allowed: true, approvalId: existingApproved.id };
+        }
+
+        const existingPending = await this.prisma.adminApproval.findFirst({
+            where: {
+                ...baseWhere,
+                status: 'PENDING',
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        if (existingPending) {
+            return {
+                allowed: false,
+                approvalId: existingPending.id,
+                message: `Operation requires approval and is already pending (approval: ${existingPending.id}).`,
+            };
+        }
+
+        const created = await this.prisma.adminApproval.create({
+            data: {
+                operationType: params.operationType,
+                resourceType: params.resourceType,
+                resourceId: params.resourceId || null,
+                status: 'PENDING',
+                reason: params.reason,
+                requestContext: JSON.parse(
+                    JSON.stringify({
+                        riskScore: params.riskScore,
+                        riskLevel: params.riskLevel,
+                        ...(params.requestContext || {}),
+                    }),
+                ) as Prisma.InputJsonValue,
+                requestedByUserId: params.actor?.id || null,
+            },
+        });
+
+        await this.prisma.auditLog.create({
+            data: {
+                userId: params.actor?.id || null,
+                action: 'ADMIN_APPROVAL_REQUESTED',
+                resource: 'ADMIN_APPROVAL',
+                resourceId: created.id,
+                details: JSON.parse(
+                    JSON.stringify({
+                        operationType: params.operationType,
+                        resourceType: params.resourceType,
+                        resourceId: params.resourceId || null,
+                        reason: params.reason,
+                        requestedBy: params.actor?.email || 'system',
+                    }),
+                ) as Prisma.InputJsonValue,
+            },
+        });
+
+        return {
+            allowed: false,
+            approvalId: created.id,
+            message: `Operation requires approval. Approval request ${created.id} is pending.`,
+        };
     }
 
     private async writeGovernanceAudit(action: string, details: Record<string, unknown>) {
@@ -145,95 +859,128 @@ export class AdminService {
         return output;
     }
 
-    async runDiscovery(config: any) {
+    async runDiscovery(config: any, actor?: AdminActor) {
         this.logger.log('Starting discovery with config:', config);
+        try {
+            await this.assertSystemControlDisabled(
+                'pausePipelineWrites',
+                'Pipeline write operations are currently paused by administrator control.',
+            );
 
-        const remoteResult = await this.tryRemoteScan();
-        if (remoteResult) {
-            return remoteResult;
-        }
+            const directories = this.parseLineList(config.originDatabase || config.sourceDirectories || config.directories || '');
+            const extensions = this.resolvePipelineExtensions(config);
+            const minDate = this.parseDate(config.minDate);
+            const maxDate = this.parseDate(config.maxDate);
+            const maxFiles = this.parseRequiredPositiveInt(config.maxFiles, 'Max files');
+            const maxFileSizeBytes = this.parseRequiredPositiveInt(config.maxFileSizeBytes, 'Max file size');
+            const excludePatterns = this.parseCommaList(config.excludePatterns || '').concat(['node_modules', '.git']);
+            const riskRule = await this.ensureAdminRiskRuleRecord();
 
-        // Parse config
-        const directorySource = config.originDatabase || config.sourceDirectories || config.directories || '';
-        const directories = (directorySource || '').split('\n').map(d => d.trim()).filter(Boolean);
-        const extensions = (config.fileTypes || '').split(',').map(e => e.trim().replace(/^\*/, '')); // e.g., ".pem"
-
-        if (directories.length === 0) {
-            return { success: false, message: 'No directories specified' };
-        }
-
-        const results = [];
-        const manifestsGenerated: string[] = [];
-
-        for (const dir of directories) {
-            if (!fs.existsSync(dir)) {
-                this.logger.warn(`Directory not found: ${dir}`);
-                continue;
+            if (maxFiles > riskRule.maxAssetsPerRun) {
+                return {
+                    success: false,
+                    message: `maxFiles (${maxFiles}) exceeds configured maxAssetsPerRun (${riskRule.maxAssetsPerRun}). Update Admin Risk Rules or lower run size.`,
+                };
             }
 
-            const files = await this.scanDir(dir, extensions);
-            results.push(...files);
-
-            // Auto-generate manifest.jsonl for this directory
-            try {
-                const manifestEntries: string[] = [];
-                for (const filePath of files) {
-                    const relativePath = path.relative(dir, filePath);
-                    const stat = await fs.promises.stat(filePath);
-                    const fileBuffer = await fs.promises.readFile(filePath);
-                    const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-
-                    // Infer data domain from path/extension
-                    const dataDomain = this.inferDataDomain(relativePath);
-                    const cryptoDomain = this.inferCryptoDomain(relativePath);
-
-                    const entry = {
-                        object_id: crypto.randomUUID(),
-                        relative_path: relativePath,
-                        plaintext_sha256: sha256,
-                        file_size_bytes: stat.size,
-                        data_domain: dataDomain,
-                        crypto_domain: cryptoDomain,
-                        pqc_status: 'UNPROTECTED',
-                        pqc_protected: false,
-                        expected_policy_outcome: 'WRAP_PQC',
-                        discovered_at: new Date().toISOString(),
-                    };
-                    manifestEntries.push(JSON.stringify(entry));
-                }
-
-                if (manifestEntries.length > 0) {
-                    const manifestContent = manifestEntries.join('\n') + '\n';
-                    const manifestPath = path.join(dir, 'manifest.jsonl');
-                    const manifestSha = crypto.createHash('sha256').update(manifestContent).digest('hex');
-                    const shaPath = path.join(dir, 'manifest.sha256');
-
-                    await fs.promises.writeFile(manifestPath, manifestContent, 'utf8');
-                    await fs.promises.writeFile(shaPath, manifestSha, 'utf8');
-                    manifestsGenerated.push(dir);
-                    this.logger.log(`Generated manifest for ${dir} with ${manifestEntries.length} entries`);
-                }
-            } catch (err: any) {
-                this.logger.error(`Failed to generate manifest for ${dir}: ${err.message}`);
+            if (directories.length === 0) {
+                return { success: false, message: 'No directories specified' };
             }
+
+            if (minDate && maxDate && minDate.getTime() > maxDate.getTime()) {
+                return { success: false, message: 'Creation date range is invalid. Start date must be before end date.' };
+            }
+
+            const results = [];
+            const manifestsGenerated: string[] = [];
+
+            for (const dir of directories) {
+                if (results.length >= maxFiles) {
+                    break;
+                }
+
+                if (!fs.existsSync(dir)) {
+                    this.logger.warn(`Directory not found: ${dir}`);
+                    continue;
+                }
+
+                const remaining = Math.max(maxFiles - results.length, 0);
+                const files = await this.scanDirForPipeline(dir, {
+                    extensions,
+                    excludePatterns,
+                    minDate,
+                    maxDate,
+                    maxFiles: remaining,
+                    maxFileSizeBytes,
+                });
+                results.push(...files);
+
+                try {
+                    const manifestEntries: string[] = [];
+                    for (const filePath of files) {
+                        const relativePath = path.relative(dir, filePath);
+                        const stat = await fs.promises.stat(filePath);
+                        const fileBuffer = await fs.promises.readFile(filePath);
+                        const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+                        const dataDomain = this.inferDataDomain(relativePath);
+                        const cryptoDomain = this.inferCryptoDomain(relativePath);
+
+                        const entry = {
+                            object_id: crypto.randomUUID(),
+                            relative_path: relativePath,
+                            plaintext_sha256: sha256,
+                            file_size_bytes: stat.size,
+                            data_domain: dataDomain,
+                            crypto_domain: cryptoDomain,
+                            pqc_status: 'UNPROTECTED',
+                            pqc_protected: false,
+                            expected_policy_outcome: 'WRAP_PQC',
+                            discovered_at: new Date().toISOString(),
+                        };
+                        manifestEntries.push(JSON.stringify(entry));
+                    }
+
+                    if (manifestEntries.length > 0) {
+                        const manifestContent = manifestEntries.join('\n') + '\n';
+                        const manifestPath = path.join(dir, 'manifest.jsonl');
+                        const manifestSha = crypto.createHash('sha256').update(manifestContent).digest('hex');
+                        const shaPath = path.join(dir, 'manifest.sha256');
+
+                        await fs.promises.writeFile(manifestPath, manifestContent, 'utf8');
+                        await fs.promises.writeFile(shaPath, manifestSha, 'utf8');
+                        manifestsGenerated.push(dir);
+                        this.logger.log(`Generated manifest for ${dir} with ${manifestEntries.length} entries`);
+                    }
+                } catch (err: any) {
+                    this.logger.error(`Failed to generate manifest for ${dir}: ${err.message}`);
+                }
+            }
+
+            const limitedResults = results.slice(0, 100);
+
+            this.logger.log(`Discovery complete. Found ${results.length} files.`);
+
+            const manifestMsg = manifestsGenerated.length > 0
+                ? ` Manifests generated for: ${manifestsGenerated.join(', ')}`
+                : '';
+
+            return {
+                success: true,
+                message: `Discovery complete. Found ${results.length} potential assets.${manifestMsg}`,
+                totalFound: results.length,
+                manifestsGenerated,
+                files: limitedResults,
+                evaluatedBy: actor?.email || null,
+            };
+        } catch (error: any) {
+            this.logger.error(`Discovery failed: ${error?.message || error}`);
+            return {
+                success: false,
+                message: error?.message || 'Discovery failed. Check server logs for details.',
+                error: error?.message || 'discovery_error',
+            };
         }
-
-        // Limit results for response
-        const limitedResults = results.slice(0, 100);
-
-        this.logger.log(`Discovery complete. Found ${results.length} files.`);
-
-        const manifestMsg = manifestsGenerated.length > 0
-            ? ` Manifests generated for: ${manifestsGenerated.join(', ')}`
-            : '';
-
-        return {
-            success: true,
-            message: `Discovery complete. Found ${results.length} potential assets.${manifestMsg}`,
-            totalFound: results.length,
-            manifestsGenerated,
-            files: limitedResults
-        };
     }
 
     private async generateManifestForPipeline(sourceDir: string, extensions: string[]): Promise<boolean> {
@@ -309,9 +1056,14 @@ export class AdminService {
         return 'STANDARD';
     }
 
-    async runPqcPipeline(config: any) {
+    async runPqcPipeline(config: any, actor?: AdminActor) {
         this.logger.log('Starting PQC pipeline with config:', config);
         try {
+            await this.assertSystemControlDisabled(
+                'pausePipelineWrites',
+                'Pipeline write operations are currently paused by administrator control.',
+            );
+
             const sourceDirectories = this.parseLineList(config.originDatabase || config.sourceDirectories || config.directories || '');
             const destinationDirectories = this.parseLineList(config.destinationDatabase || config.destinationDirectories || '');
 
@@ -332,13 +1084,54 @@ export class AdminService {
             const excludePatterns = this.parseCommaList(config.excludePatterns || '').concat(['node_modules', '.git']);
             const defaultPolicy = this.resolvePipelinePolicy(config);
             const fileTypePolicies = this.resolveFileTypePolicies(config);
+            const metadataOverrides = this.resolveAssetTypeMetadata(config);
             const requiredSignatureAlgorithms = this.collectRequiredSignatureAlgorithms(defaultPolicy, fileTypePolicies);
 
             const minDate = this.parseDate(config.minDate);
             const maxDate = this.parseDate(config.maxDate);
 
-            const maxFiles = this.parsePositiveInt(config.maxFiles, DEFAULT_MAX_FILES);
-            const maxFileSizeBytes = this.parsePositiveInt(config.maxFileSizeBytes, DEFAULT_MAX_FILE_SIZE_BYTES);
+            const maxFiles = this.parseRequiredPositiveInt(config.maxFiles, 'Max files');
+            const maxFileSizeBytes = this.parseRequiredPositiveInt(config.maxFileSizeBytes, 'Max file size');
+            const riskRule = await this.ensureAdminRiskRuleRecord();
+
+            if (maxFiles > riskRule.maxAssetsPerRun) {
+                return {
+                    success: false,
+                    message: `maxFiles (${maxFiles}) exceeds configured maxAssetsPerRun (${riskRule.maxAssetsPerRun}). Update Admin Risk Rules or lower run size.`,
+                };
+            }
+
+            const operationRiskScore = Math.min(
+                100,
+                Math.round((maxFiles / Math.max(riskRule.maxAssetsPerRun, 1)) * 100),
+            );
+            const operationRiskLevel = this.deriveRiskLevelFromScore(operationRiskScore);
+            const approvalGate = await this.createOrRequireApproval({
+                operationType: 'PIPELINE_TRANSFER',
+                resourceType: 'PIPELINE_RUN',
+                resourceId: null,
+                riskScore: operationRiskScore,
+                riskLevel: operationRiskLevel,
+                reason: `Pipeline transfer requested with maxFiles=${maxFiles}, riskScore=${operationRiskScore}, riskLevel=${operationRiskLevel}.`,
+                requestContext: {
+                    maxFiles,
+                    maxAssetsPerRun: riskRule.maxAssetsPerRun,
+                    sourceDirectories,
+                    destinationDirectories,
+                },
+                actor,
+            });
+            if (!approvalGate.allowed) {
+                return {
+                    success: false,
+                    message: approvalGate.message,
+                    approvalId: approvalGate.approvalId,
+                };
+            }
+
+            if (minDate && maxDate && minDate.getTime() > maxDate.getTime()) {
+                return { success: false, message: 'Creation date range is invalid. Start date must be before end date.' };
+            }
 
             const activeAnchor = await this.resolveActiveKemAnchor(defaultPolicy.kemAlgorithm);
 
@@ -505,6 +1298,21 @@ export class AdminService {
 
                     const sidecar = await this.loadSidecarMetadata(filePath);
                     const mergedMetadata = { ...metadata, ...sidecar };
+                    const metadataOverride = this.resolveMetadataOverrideForFile(relativePath, metadataOverrides);
+                    if (metadataOverride) {
+                        if (metadataOverride.dataDomain) {
+                            mergedMetadata.data_domain = metadataOverride.dataDomain;
+                            mergedMetadata.dataDomain = metadataOverride.dataDomain;
+                        }
+                        if (metadataOverride.retentionTag) {
+                            mergedMetadata.retention_tag = metadataOverride.retentionTag;
+                            mergedMetadata.retentionTag = metadataOverride.retentionTag;
+                        }
+                        if (metadataOverride.owner) {
+                            mergedMetadata.owner = metadataOverride.owner;
+                            mergedMetadata.business_owner = metadataOverride.owner;
+                        }
+                    }
                     const effectivePolicy = this.getPolicyForFile(filePath, defaultPolicy, fileTypePolicies);
                     const effectiveKemAlgorithm = this.normalizeKemAlgorithm(effectivePolicy.kemAlgorithm, this.kemAlgorithmForLevel(effectivePolicy.level));
                     const selectedKemAnchor = this.isKemCompatible(effectivePolicy.kemAlgorithm, activeAnchor.algorithm)
@@ -763,6 +1571,11 @@ export class AdminService {
                 default: defaultPolicy,
                 byFileType: Object.fromEntries(fileTypePolicies.entries()),
             },
+            evaluatedRisk: {
+                score: operationRiskScore,
+                level: operationRiskLevel,
+                maxAssetsPerRun: riskRule.maxAssetsPerRun,
+            },
             runId: run.id,
             results: results.slice(0, 100),
         };
@@ -785,64 +1598,10 @@ export class AdminService {
             this.logger.error(`PQC pipeline failed: ${error?.message || error}`);
             return {
                 success: false,
-                message: 'PQC pipeline failed. Check server logs for details.',
+                message: error?.message || 'PQC pipeline failed. Check server logs for details.',
                 error: error?.message || 'pipeline_error',
             };
         }
-    }
-
-    private async tryRemoteScan() {
-        const url = `${this.qvAdminBase.replace(/\/$/, '')}/admin/scan`;
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-
-        try {
-            const response = await fetch(url, { method: 'GET', signal: controller.signal });
-            if (!response.ok) {
-                this.logger.warn(`QuantumVault admin scan failed: ${response.status}`);
-                return null;
-            }
-            const data = await response.json();
-            if (data && typeof data === 'object') {
-                return data;
-            }
-        } catch (error: any) {
-            this.logger.warn(`QuantumVault admin scan unreachable: ${error?.message || error}`);
-            return null;
-        } finally {
-            clearTimeout(timeout);
-        }
-
-        return null;
-    }
-
-    private async scanDir(dir: string, extensions: string[]): Promise<string[]> {
-        let results: string[] = [];
-        try {
-            const list = await fs.promises.readdir(dir);
-            for (const file of list) {
-                const filePath = path.join(dir, file);
-
-                try {
-                    const stat = await fs.promises.stat(filePath);
-                    if (stat && stat.isDirectory()) {
-                        // Avoid hidden folders and node_modules
-                        if (!file.startsWith('.') && file !== 'node_modules') {
-                            results = results.concat(await this.scanDir(filePath, extensions));
-                        }
-                    } else {
-                        if (extensions.some(ext => file.toLowerCase().endsWith(ext.toLowerCase()))) {
-                            results.push(filePath);
-                        }
-                    }
-                } catch (err) {
-                    // Ignore access errors
-                }
-            }
-        } catch (e) {
-            this.logger.error(`Error scanning ${dir}: ${e.message}`);
-        }
-        return results;
     }
 
     private parseLineList(value: string): string[] {
@@ -1034,6 +1793,101 @@ export class AdminService {
         return 'enhanced';
     }
 
+    private canonicalAlgorithm(value: unknown): string {
+        const signature = this.normalizeSignatureAlgorithm(value);
+        if (signature) {
+            return signature;
+        }
+
+        const raw = String(value || '').trim();
+        return this.normalizeKemAlgorithm(raw, raw || ML_KEM_1024_ALGORITHM);
+    }
+
+    private algorithmToId(algorithm: string): string {
+        return algorithm
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    private algorithmMeta(algorithm: string): {
+        canonical: string;
+        name: string;
+        type: 'KEM' | 'Signature' | 'Legacy';
+        securityLevel: number;
+    } {
+        const canonical = this.canonicalAlgorithm(algorithm);
+        switch (canonical) {
+            case ML_KEM_512_ALGORITHM:
+                return {
+                    canonical,
+                    name: 'ML-KEM-512 (FIPS 203)',
+                    type: 'KEM',
+                    securityLevel: 1,
+                };
+            case ML_KEM_768_ALGORITHM:
+                return {
+                    canonical,
+                    name: 'ML-KEM-768 (FIPS 203)',
+                    type: 'KEM',
+                    securityLevel: 3,
+                };
+            case ML_KEM_1024_ALGORITHM:
+                return {
+                    canonical,
+                    name: 'ML-KEM-1024 (FIPS 203)',
+                    type: 'KEM',
+                    securityLevel: 5,
+                };
+            case ML_DSA_65_ALGORITHM:
+                return {
+                    canonical,
+                    name: 'ML-DSA-65 (FIPS 204)',
+                    type: 'Signature',
+                    securityLevel: 3,
+                };
+            case SLH_DSA_SHAKE_128S_ALGORITHM:
+                return {
+                    canonical,
+                    name: 'SLH-DSA-SHAKE-128s (FIPS 205)',
+                    type: 'Signature',
+                    securityLevel: 5,
+                };
+            default:
+                return {
+                    canonical,
+                    name: canonical,
+                    type: 'Legacy',
+                    securityLevel: 0,
+                };
+        }
+    }
+
+    private summarizeAuditDetails(details: Prisma.JsonValue | null): string {
+        const detailObj = this.parseJsonObject(details);
+        const explicitMessage = typeof detailObj.message === 'string' ? detailObj.message.trim() : '';
+        if (explicitMessage) {
+            return explicitMessage;
+        }
+
+        const compactFields = ['reason', 'changeTicket', 'ceremonyId', 'resourceId', 'scope']
+            .map((field) => ({ field, value: detailObj[field] }))
+            .filter(({ value }) => value !== undefined && value !== null && String(value).trim() !== '')
+            .slice(0, 3)
+            .map(({ field, value }) => `${field}: ${String(value)}`);
+
+        if (compactFields.length > 0) {
+            return compactFields.join(' • ');
+        }
+
+        if (Object.keys(detailObj).length === 0) {
+            return 'No additional details';
+        }
+
+        const serialized = JSON.stringify(detailObj);
+        return serialized.length > 180 ? `${serialized.slice(0, 177)}...` : serialized;
+    }
+
     private kemAlgorithmForLevel(level: PipelineWrapLevel): string {
         if (level === 'baseline') return ML_KEM_512_ALGORITHM;
         if (level === 'maximum') return ML_KEM_1024_ALGORITHM;
@@ -1041,7 +1895,20 @@ export class AdminService {
     }
 
     private normalizeKemAlgorithm(value: unknown, fallback: string = ML_KEM_1024_ALGORITHM): string {
-        return normalizeKemAlgorithmName(value, fallback);
+        const normalized = normalizeKemAlgorithmName(value, fallback);
+        const compact = normalized.replace(/[^A-Z0-9]/g, '');
+
+        if (compact.includes('MLKEM512') || compact.includes('KYBER512')) {
+            return ML_KEM_512_ALGORITHM;
+        }
+        if (compact.includes('MLKEM768') || compact.includes('KYBER768')) {
+            return ML_KEM_768_ALGORITHM;
+        }
+        if (compact.includes('MLKEM1024') || compact.includes('KYBER1024')) {
+            return ML_KEM_1024_ALGORITHM;
+        }
+
+        return normalized;
     }
 
     private normalizeSignatureAlgorithm(value: unknown): string {
@@ -1157,6 +2024,58 @@ export class AdminService {
         return policyMap;
     }
 
+    private normalizeMetadataValue(value: unknown): string | undefined {
+        if (typeof value !== 'string') return undefined;
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+    }
+
+    private resolveAssetTypeMetadata(config: any): Map<string, PipelineMetadataOverride> {
+        const metadataMap = new Map<string, PipelineMetadataOverride>();
+        const rawMetadataByExtension = this.parseJsonObject(config?.assetTypeMetadata || config?.metadataByExtension);
+
+        for (const [extension, rawValue] of Object.entries(rawMetadataByExtension)) {
+            if (!rawValue || typeof rawValue !== 'object' || Array.isArray(rawValue)) {
+                continue;
+            }
+
+            const parsed = rawValue as Record<string, unknown>;
+            const override: PipelineMetadataOverride = {
+                dataDomain: this.normalizeMetadataValue(parsed.dataDomain) || this.normalizeMetadataValue(parsed.data_domain),
+                retentionTag: this.normalizeMetadataValue(parsed.retentionTag) || this.normalizeMetadataValue(parsed.retention_tag),
+                owner: this.normalizeMetadataValue(parsed.owner) || this.normalizeMetadataValue(parsed.businessOwner) || this.normalizeMetadataValue(parsed.business_owner),
+            };
+
+            if (!override.dataDomain && !override.retentionTag && !override.owner) {
+                continue;
+            }
+
+            const normalizedExts = this.normalizePolicyExtensions(extension);
+            for (const normalizedExt of normalizedExts) {
+                metadataMap.set(normalizedExt, override);
+            }
+        }
+
+        return metadataMap;
+    }
+
+    private resolveMetadataOverrideForFile(filePath: string, metadataOverrides: Map<string, PipelineMetadataOverride>): PipelineMetadataOverride | null {
+        if (metadataOverrides.size === 0) {
+            return null;
+        }
+
+        const lower = filePath.toLowerCase();
+        const orderedExtensions = Array.from(metadataOverrides.keys()).sort((a, b) => b.length - a.length);
+
+        for (const extension of orderedExtensions) {
+            if (lower.endsWith(extension)) {
+                return metadataOverrides.get(extension) || null;
+            }
+        }
+
+        return null;
+    }
+
     private getPolicyForFile(filePath: string, defaultPolicy: PipelinePolicy, fileTypePolicies: Map<string, PipelinePolicy>): PipelinePolicy {
         const lower = filePath.toLowerCase();
         const orderedExtensions = Array.from(fileTypePolicies.keys()).sort((a, b) => b.length - a.length);
@@ -1185,40 +2104,36 @@ export class AdminService {
         return this.normalizeKemAlgorithm(requestedAlgorithm, normalizedActive) === normalizedActive;
     }
 
-    private kemAlgorithmAliases(kemAlgorithm: string): string[] {
-        const normalized = this.normalizeKemAlgorithm(kemAlgorithm);
-        if (normalized === ML_KEM_512_ALGORITHM) {
-            return [ML_KEM_512_ALGORITHM, 'KYBER-512', 'KYBER512'];
-        }
-        if (normalized === ML_KEM_768_ALGORITHM) {
-            return [ML_KEM_768_ALGORITHM, 'KYBER-768', 'KYBER768'];
-        }
-        return [ML_KEM_1024_ALGORITHM, 'KYBER-1024', 'KYBER1024'];
-    }
-
     private async resolveActiveKemAnchor(kemAlgorithm: string) {
         const normalized = this.normalizeKemAlgorithm(kemAlgorithm);
-        return this.prisma.anchor.findFirst({
-            where: {
-                isActive: true,
-                algorithm: {
-                    in: this.kemAlgorithmAliases(normalized),
-                },
-            },
+        const activeAnchors = await this.prisma.anchor.findMany({
+            where: { isActive: true },
             orderBy: { createdAt: 'desc' },
         });
+
+        return activeAnchors.find((anchor) => {
+            const anchorAlgorithm = this.normalizeKemAlgorithm(anchor.algorithm, normalized);
+            return anchorAlgorithm === normalized;
+        }) || null;
     }
 
     private async resolveSignatureAnchors(algorithms: string[]): Promise<Map<string, { id: string; name: string; algorithm: string; vaultPrivKeyPath: string }>> {
         const anchors = new Map<string, { id: string; name: string; algorithm: string; vaultPrivKeyPath: string }>();
+        const activeAnchors = await this.prisma.anchor.findMany({
+            where: { isActive: true },
+            orderBy: { createdAt: 'desc' },
+        });
+
         for (const algorithm of algorithms) {
-            const anchor = await this.prisma.anchor.findFirst({
-                where: {
-                    isActive: true,
-                    algorithm,
-                },
-                orderBy: { createdAt: 'desc' },
+            const normalizedAlgorithm = this.normalizeSignatureAlgorithm(algorithm) || String(algorithm || '').trim().toUpperCase();
+            const anchor = activeAnchors.find((candidate) => {
+                const normalizedCandidate = this.normalizeSignatureAlgorithm(candidate.algorithm);
+                if (normalizedCandidate) {
+                    return normalizedCandidate === normalizedAlgorithm;
+                }
+                return String(candidate.algorithm || '').trim().toUpperCase() === normalizedAlgorithm;
             });
+
             if (anchor) {
                 anchors.set(algorithm, {
                     id: anchor.id,
@@ -1292,9 +2207,11 @@ export class AdminService {
         return date;
     }
 
-    private parsePositiveInt(value: any, fallback: number): number {
+    private parseRequiredPositiveInt(value: any, fieldName: string): number {
         const parsed = Number(value);
-        if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            throw new Error(`${fieldName} must be a positive number.`);
+        }
         return Math.floor(parsed);
     }
 
@@ -1352,6 +2269,7 @@ export class AdminService {
             minDate?: Date;
             maxDate?: Date;
             maxFiles?: number;
+            maxFileSizeBytes?: number;
         }
     ): Promise<string[]> {
         let results: string[] = [];
@@ -1384,6 +2302,9 @@ export class AdminService {
                             continue;
                         }
                         if (!this.fileWithinDateRange(stat, options.minDate, options.maxDate)) {
+                            continue;
+                        }
+                        if (options.maxFileSizeBytes && stat.size > options.maxFileSizeBytes) {
                             continue;
                         }
                         results.push(filePath);
@@ -1425,40 +2346,282 @@ export class AdminService {
         };
     }
 
+    private async getDatabaseHealth() {
+        const startedAt = Date.now();
+        try {
+            await this.prisma.$queryRaw`SELECT 1`;
+            const latencyMs = Date.now() - startedAt;
+
+            let pool = '?/?';
+            try {
+                const rows = await this.prisma.$queryRawUnsafe<Array<{ active_connections: number | bigint }>>(
+                    'SELECT COUNT(*)::int AS active_connections FROM pg_stat_activity WHERE datname = current_database()'
+                );
+                const activeConnections = Number(rows?.[0]?.active_connections ?? 0);
+                pool = `${activeConnections}/?`;
+            } catch {
+                pool = '?/?';
+            }
+
+            const [wrappingActive, attestationActive] = await Promise.all([
+                this.prisma.wrappingJob.count({ where: { status: { in: [JobStatus.PENDING, JobStatus.IN_PROGRESS] } } }),
+                this.prisma.attestationJob.count({ where: { status: { in: [JobStatus.PENDING, JobStatus.IN_PROGRESS] } } }),
+            ]);
+
+            return {
+                status: 'online',
+                pool,
+                jobs: wrappingActive + attestationActive,
+                latency: `${latencyMs}ms`,
+            };
+        } catch {
+            return {
+                status: 'offline',
+                pool: '-/-',
+                jobs: '-',
+                latency: '-',
+            };
+        }
+    }
+
+    private async getAiEngineHealth() {
+        const model =
+            this.configService.get<string>('AI_MODEL_NAME') ||
+            this.configService.get<string>('PQC_MODEL_NAME') ||
+            this.configService.get<string>('AI_ENGINE_MODEL') ||
+            null;
+
+        try {
+            const [activeScans, queuedScans] = await Promise.all([
+                this.prisma.scan.count({ where: { status: ScanStatus.IN_PROGRESS } }),
+                this.prisma.scan.count({ where: { status: ScanStatus.PENDING } }),
+            ]);
+
+            const syntheticLoad = Math.min(100, activeScans * 25 + queuedScans * 10);
+            const status = model ? (activeScans > 0 ? 'online' : 'degraded') : 'offline';
+
+            return {
+                status,
+                model: model || 'unconfigured',
+                load: model ? `${syntheticLoad}%` : '-',
+                activeScans,
+                queuedScans,
+            };
+        } catch {
+            return {
+                status: model ? 'degraded' : 'offline',
+                model: model || 'unconfigured',
+                load: '-',
+                activeScans: '-',
+                queuedScans: '-',
+            };
+        }
+    }
+
     async getSystemHealth() {
-        // In a real app, we'd check actual connections.
+        const [vault, blockchain, database, aiEngine] = await Promise.all([
+            this.vaultService.getHealth(),
+            this.blockchainService.getHealth(),
+            this.getDatabaseHealth(),
+            this.getAiEngineHealth(),
+        ]);
+
+        const hasExtendedChainTelemetry =
+            blockchain.tps != null
+            || blockchain.blockTimeSec != null
+            || blockchain.validators != null
+            || blockchain.finalitySec != null;
+
+        const blockchainStatus = !blockchain.available
+            ? 'offline'
+            : (blockchain.blockHeight == null && !hasExtendedChainTelemetry ? 'degraded' : 'online');
+
         return {
-            vault: { status: 'online', latency: '4ms', version: '1.14.2' },
-            blockchain: { status: 'online', peers: 12, height: 145023, sync: '99.9%' },
-            database: { status: 'online', pool: '5/20', latency: '1ms' },
-            aiEngine: { status: 'online', model: 'PQC-Detector-v2 (ML-KEM/ML-DSA)', load: '12%' }
+            vault: {
+                status: vault.available ? 'online' : 'offline',
+                latency: vault.latencyMs != null ? `${vault.latencyMs}ms` : '-',
+                version: vault.version || '-',
+                sealed: vault.sealed == null ? '-' : String(vault.sealed),
+            },
+            blockchain: {
+                status: blockchainStatus,
+                backend: blockchain.backend,
+                dataSource: blockchain.endpoint
+                    ? ((blockchain.endpoint.includes('/status') || hasExtendedChainTelemetry) ? 'live status feed' : 'rpc node')
+                    : '-',
+                network: blockchain.network ?? '-',
+                endpoint: blockchain.endpoint || '-',
+                peers: blockchain.peers ?? '-',
+                height: blockchain.blockHeight ?? '-',
+                sync: blockchain.sync ?? '-',
+                tps: blockchain.tps != null ? Number(blockchain.tps.toFixed(2)) : '-',
+                blockTime: blockchain.blockTimeSec != null ? `${Number(blockchain.blockTimeSec.toFixed(2))}s` : '-',
+                validators: blockchain.validators ?? '-',
+                finality: blockchain.finalitySec != null ? `${Number(blockchain.finalitySec.toFixed(2))}s` : '-',
+                chainId: blockchain.chainId ?? '-',
+                latency: blockchain.latencyMs != null ? `${blockchain.latencyMs}ms` : '-',
+                updatedAt: blockchain.updatedAt ?? '-',
+            },
+            database,
+            aiEngine,
         };
     }
 
     async getSystemLogs() {
-        return [
-            { id: 1, timestamp: new Date().toISOString(), action: 'LOGIN_SUCCESS', user: 'admin@dytallix.com', ip: '192.168.1.42', details: 'User logged in successfully' },
-            { id: 2, timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), action: 'CONFIG_UPDATE', user: 'admin@dytallix.com', ip: '192.168.1.42', details: 'Updated scan directory configuration' },
-            { id: 3, timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(), action: 'SCAN_COMPLETED', user: 'SYSTEM', ip: 'localhost', details: 'Scheduled scan completed. 24 assets found.' },
-            { id: 4, timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), action: 'KEY_ROTATION', user: 'SYSTEM', ip: 'localhost', details: 'Automated rotation for Policy #POL-882' },
-            { id: 5, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), action: 'LOGIN_FAILED', user: 'unknown', ip: '45.32.11.2', details: 'Invalid credentials provided' },
-        ];
+        const logs = await this.prisma.auditLog.findMany({
+            take: 50,
+            orderBy: { timestamp: 'desc' },
+            include: {
+                user: {
+                    select: { email: true },
+                },
+            },
+        });
+
+        return logs.map((entry) => {
+            const detailObj = this.parseJsonObject(entry.details);
+            const actor =
+                entry.user?.email ||
+                (typeof detailObj.requestedBy === 'string' ? detailObj.requestedBy : '') ||
+                (typeof detailObj.user === 'string' ? detailObj.user : '') ||
+                'SYSTEM';
+
+            return {
+                id: entry.id,
+                timestamp: entry.timestamp.toISOString(),
+                action: entry.action,
+                user: actor,
+                ip: entry.ipAddress || 'n/a',
+                details: this.summarizeAuditDetails(entry.details),
+            };
+        });
     }
 
     async getAlgoConfig() {
-        return [
-            { id: 'ml-kem-512', name: 'ML-KEM-512 (FIPS 203)', type: 'KEM', status: 'enabled', securityLevel: 1 },
-            { id: 'ml-kem-768', name: 'ML-KEM-768 (FIPS 203)', type: 'KEM', status: 'enabled', securityLevel: 3 },
-            { id: 'ml-kem-1024', name: 'ML-KEM-1024 (FIPS 203)', type: 'KEM', status: 'enabled', securityLevel: 5 },
-            { id: 'ml-dsa-65', name: 'ML-DSA-65 (FIPS 204)', type: 'Signature', status: 'enabled', securityLevel: 3 },
-            { id: 'slh-dsa-shake-128s', name: 'SLH-DSA-SHAKE-128s (FIPS 205)', type: 'Signature', status: 'warning', securityLevel: 5 },
-            { id: 'rsa', name: 'RSA-2048', type: 'Legacy', status: 'disabled', securityLevel: 0 },
-            { id: 'ecc', name: 'ECC-256', type: 'Legacy', status: 'warning', securityLevel: 1 },
-        ];
+        const [keyGovernanceStatus, anchors] = await Promise.all([
+            this.getKeyGovernanceStatus(),
+            this.prisma.anchor.findMany({
+                select: {
+                    id: true,
+                    algorithm: true,
+                    isActive: true,
+                },
+                orderBy: { createdAt: 'desc' },
+            }),
+        ]);
+
+        const byAlgorithm = new Map<string, {
+            governanceActive: boolean;
+            activeAnchors: number;
+            totalAnchors: number;
+        }>();
+
+        const markGovernance = (algorithm: string, isActive: boolean) => {
+            const meta = this.algorithmMeta(algorithm);
+            const current = byAlgorithm.get(meta.canonical) || { governanceActive: false, activeAnchors: 0, totalAnchors: 0 };
+            current.governanceActive = current.governanceActive || isActive;
+            byAlgorithm.set(meta.canonical, current);
+        };
+
+        markGovernance(ML_DSA_65_ALGORITHM, Boolean(keyGovernanceStatus?.attestation?.signerKeyId));
+        markGovernance(ML_KEM_1024_ALGORITHM, Boolean(keyGovernanceStatus?.transport?.kem?.keyId));
+        markGovernance(ML_DSA_65_ALGORITHM, Boolean(keyGovernanceStatus?.transport?.identity?.keyId));
+
+        for (const anchor of anchors) {
+            const meta = this.algorithmMeta(anchor.algorithm);
+            const current = byAlgorithm.get(meta.canonical) || { governanceActive: false, activeAnchors: 0, totalAnchors: 0 };
+            current.totalAnchors += 1;
+            if (anchor.isActive) {
+                current.activeAnchors += 1;
+            }
+            byAlgorithm.set(meta.canonical, current);
+        }
+
+        return Array.from(byAlgorithm.entries())
+            .map(([algorithm, signal]) => {
+                const meta = this.algorithmMeta(algorithm);
+                const status = signal.governanceActive || signal.activeAnchors > 0
+                    ? 'enabled'
+                    : signal.totalAnchors > 0
+                        ? 'disabled'
+                        : 'warning';
+
+                return {
+                    id: this.algorithmToId(meta.canonical),
+                    name: meta.name,
+                    type: meta.type,
+                    status,
+                    securityLevel: meta.securityLevel,
+                    activeAnchors: signal.activeAnchors,
+                    totalAnchors: signal.totalAnchors,
+                    manageable: signal.totalAnchors > 0,
+                };
+            })
+            .sort((a, b) => {
+                if (b.securityLevel !== a.securityLevel) {
+                    return b.securityLevel - a.securityLevel;
+                }
+                return a.name.localeCompare(b.name);
+            });
     }
 
     async updateAlgoConfig(id: string, enabled: boolean) {
-        this.logger.log(`Updating algo ${id} to ${enabled}`);
-        return { success: true, id, status: enabled ? 'enabled' : 'disabled' };
+        const anchors = await this.prisma.anchor.findMany({
+            select: {
+                id: true,
+                algorithm: true,
+                isActive: true,
+                createdAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        const matchingAnchors = anchors.filter((anchor) => {
+            const canonical = this.algorithmMeta(anchor.algorithm).canonical;
+            return this.algorithmToId(canonical) === id;
+        });
+
+        if (matchingAnchors.length === 0) {
+            return {
+                success: false,
+                id,
+                status: 'warning',
+                message: 'Algorithm is governance-managed and not directly toggleable from anchor state.',
+            };
+        }
+
+        if (enabled) {
+            const firstInactive = matchingAnchors.find((anchor) => !anchor.isActive);
+            if (firstInactive) {
+                await this.prisma.anchor.update({
+                    where: { id: firstInactive.id },
+                    data: { isActive: true },
+                });
+            }
+        } else {
+            const activeIds = matchingAnchors.filter((anchor) => anchor.isActive).map((anchor) => anchor.id);
+            if (activeIds.length > 0) {
+                await this.prisma.anchor.updateMany({
+                    where: { id: { in: activeIds } },
+                    data: { isActive: false },
+                });
+            }
+        }
+
+        await this.writeGovernanceAudit('ALGORITHM_STATUS_UPDATE', {
+            algorithmId: id,
+            enabled,
+            affectedAnchors: matchingAnchors.length,
+            performedAt: new Date().toISOString(),
+        });
+
+        const refreshed = await this.getAlgoConfig();
+        const updated = refreshed.find((algo) => algo.id === id);
+
+        return {
+            success: true,
+            id,
+            status: updated?.status || (enabled ? 'enabled' : 'disabled'),
+        };
     }
 }

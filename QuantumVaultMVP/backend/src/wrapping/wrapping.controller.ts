@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Request, UseGuards } from '@nestjs/common';
 import { WrappingService } from './wrapping.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -12,14 +12,18 @@ export class WrappingController {
 
   @Post('wrap')
   @Roles(UserRole.ADMIN, UserRole.SECURITY_ENGINEER)
-  async wrapAsset(@Body() body: { assetId: string; anchorId: string }) {
-    return this.wrappingService.wrapAsset(body.assetId, body.anchorId);
+  async wrapAsset(@Body() body: { assetId: string; anchorId: string }, @Request() req: any) {
+    return this.wrappingService.wrapAsset(body.assetId, body.anchorId, {
+      id: req?.user?.id,
+    });
   }
 
   @Post('bulk-wrap-by-policy/:policyId')
   @Roles(UserRole.ADMIN, UserRole.SECURITY_ENGINEER)
-  async bulkWrapByPolicy(@Param('policyId') policyId: string) {
-    return this.wrappingService.bulkWrapByPolicy(policyId);
+  async bulkWrapByPolicy(@Param('policyId') policyId: string, @Request() req: any) {
+    return this.wrappingService.bulkWrapByPolicy(policyId, {
+      id: req?.user?.id,
+    });
   }
 
   @Get('job-status/:jobId')

@@ -97,6 +97,10 @@ export const dashboardAPI = {
     const response = await apiClient.get('/dashboard/migration-timeline');
     return response.data;
   },
+  getImplementationRoadmap: async () => {
+    const response = await apiClient.get('/dashboard/implementation-roadmap');
+    return response.data;
+  },
 };
 
 // Assets API
@@ -149,19 +153,19 @@ export const policiesAPI = {
     return response.data;
   },
   deletePolicy: async (id: string) => {
-    const response = await apiClient.delete(`/policies/${id}`);
+    const response = await apiClient.delete(`/policies/${id}`, { data: {} });
     return response.data;
   },
   activatePolicy: async (id: string) => {
-    const response = await apiClient.post(`/policies/${id}/activate`);
+    const response = await apiClient.post(`/policies/${id}/activate`, {});
     return response.data;
   },
   deactivatePolicy: async (id: string) => {
-    const response = await apiClient.post(`/policies/${id}/deactivate`);
+    const response = await apiClient.post(`/policies/${id}/deactivate`, {});
     return response.data;
   },
   evaluatePolicy: async (id: string) => {
-    const response = await apiClient.post(`/policies/${id}/evaluate`);
+    const response = await apiClient.post(`/policies/${id}/evaluate`, {});
     return response.data;
   },
 };
@@ -186,6 +190,10 @@ export const anchorsAPI = {
   },
   activateAnchor: async (id: string) => {
     const response = await apiClient.post(`/anchors/${id}/activate`);
+    return response.data;
+  },
+  deactivateAnchor: async (id: string) => {
+    const response = await apiClient.post(`/anchors/${id}/deactivate`);
     return response.data;
   },
 };
@@ -332,6 +340,70 @@ export const adminAPI = {
   },
   getHealth: async () => {
     const response = await apiClient.get('/admin/health');
+    return response.data;
+  },
+  getSystemControls: async () => {
+    const response = await apiClient.get('/admin/controls');
+    return response.data;
+  },
+  updateSystemControl: async (controlKey: string, enabled: boolean, reason?: string) => {
+    const response = await apiClient.post('/admin/controls', {
+      controlKey,
+      enabled,
+      reason,
+    });
+    return response.data;
+  },
+  getUsers: async (search?: string) => {
+    const response = await apiClient.get('/admin/users', {
+      params: search ? { search } : undefined,
+    });
+    return response.data;
+  },
+  getAssetsForFreeze: async (search?: string) => {
+    const response = await apiClient.get('/admin/assets', {
+      params: search ? { search } : undefined,
+    });
+    return response.data;
+  },
+  setUserActive: async (userId: string, isActive: boolean, reason?: string) => {
+    const response = await apiClient.patch(`/admin/users/${userId}/active`, {
+      isActive,
+      reason,
+    });
+    return response.data;
+  },
+  setAssetFrozen: async (assetId: string, isFrozen: boolean, reason?: string) => {
+    const response = await apiClient.patch(`/admin/assets/${assetId}/freeze`, {
+      isFrozen,
+      reason,
+    });
+    return response.data;
+  },
+  getApprovals: async (status: 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING') => {
+    const response = await apiClient.get('/admin/approvals', {
+      params: { status },
+    });
+    return response.data;
+  },
+  approveApproval: async (approvalId: string, reason?: string) => {
+    const response = await apiClient.post(`/admin/approvals/${approvalId}/approve`, { reason });
+    return response.data;
+  },
+  rejectApproval: async (approvalId: string, reason?: string) => {
+    const response = await apiClient.post(`/admin/approvals/${approvalId}/reject`, { reason });
+    return response.data;
+  },
+  getRiskRules: async () => {
+    const response = await apiClient.get('/admin/risk-rules');
+    return response.data;
+  },
+  updateRiskRules: async (payload: {
+    maxRiskScoreAutoApprove: number;
+    requireApprovalAtRiskLevel: string;
+    maxAssetsPerRun: number;
+  }) => {
+    const response = await apiClient.post('/admin/risk-rules', payload);
     return response.data;
   },
   getLogs: async () => {
