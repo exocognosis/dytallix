@@ -20,7 +20,7 @@ export function Navbar() {
     }, [])
 
     const navLinks = [
-        { name: "Home", path: "/" },
+        { name: "About", path: "/about" },
         { name: "Build", path: "/build" },
         { name: "Enterprise", path: "/enterprise" },
         { name: "Explorer", path: "/build/blockchain" },

@@ -14,6 +14,7 @@ import { Tokenomics } from "./pages/tokenomics"
 import { TechStack } from "./pages/tech-stack"
 import { Roadmap } from "./pages/roadmap"
 import { Contact } from "./pages/contact"
+import { About } from "./pages/about"
 import { Privacy } from "./pages/legal/privacy"
 import { Terms } from "./pages/legal/terms"
 import QuantumRiskDashboard from './pages/QuantumRiskDashboard'
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path="/quantumvault" element={<Navigate to="/enterprise" replace />} />
 
         {/* Info Routes */}
+        <Route path="/about" element={<About />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/tokenomics" element={<Tokenomics />} />
         <Route path="/tech-stack" element={<TechStack />} />
