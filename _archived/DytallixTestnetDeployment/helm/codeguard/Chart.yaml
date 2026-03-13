@@ -1,0 +1,15 @@
+apiVersion: v2
+name: codeguard
+description: CodeGuard Smart Contract Security Scanner
+version: 0.1.0
+appVersion: 0.1.0
+keywords:
+  - blockchain
+  - security
+  - smart-contracts
+home: https://github.com/HisMadRealm/dytallix
+sources:
+  - https://github.com/HisMadRealm/dytallix
+maintainers:
+  - name: Dytallix Team
+    email: team@dytallix.com

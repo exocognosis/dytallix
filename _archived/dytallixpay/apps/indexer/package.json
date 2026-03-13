@@ -1,0 +1,17 @@
+{
+    "name": "indexer",
+    "version": "1.0.0",
+    "main": "src/indexer.ts",
+    "scripts": {
+        "dev": "ts-node-dev --respawn src/indexer.ts",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@dytallixpay/db": "*",
+        "@dytallixpay/contracts": "*"
+    },
+    "devDependencies": {
+        "ts-node-dev": "^2.0.0",
+        "typescript": "^5.0.0"
+    }
+}

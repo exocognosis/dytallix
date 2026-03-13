@@ -1,0 +1,35 @@
+# Dockerfile for Dytallix AI Services API
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user with UID 1000
+RUN groupadd -r appuser && useradd -r -g appuser -u 1000 appuser
+
+# Copy requirements first for better layer caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code
+COPY . .
+
+# Change ownership to non-root user
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose the ports
+EXPOSE 8000
+EXPOSE 9103
+
+# Run the application
+CMD ["python", "src/main.py"]

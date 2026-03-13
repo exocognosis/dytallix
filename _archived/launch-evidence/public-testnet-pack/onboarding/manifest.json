@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "phase": "2",
+  "phase_name": "onboarding",
+  "generated_at": "2025-08-29T01:11:06Z",
+  "generator": "scripts/gen_manifest.sh",
+  "git_info": {
+    "commit": "dfe1dee324e05d3bd872890234a980e916835766",
+    "branch": "copilot/fix-dafe84e3-81ab-426d-9a30-86cbbfb75c46"
+  },
+  "pqc_algorithm": "dilithium3",
+  "artifacts": {
+    "ONBOARDING.md": {
+      "sha256": "59cf567995abb891db8eb35ab19642ca2471d7e86c190fa0d465e447e146366f",
+      "size": 7664,
+      "modified": "2025-08-29T00:49:36Z",
+      "content_type": "text/markdown"
+    },
+    "sample_hashes.json": {
+      "sha256": "747416bbdecd1ac20afdf0b4ae601b3abca2ba775b5d07d2c55494f22796f0e7",
+      "size": 1834,
+      "modified": "2025-08-29T00:49:43Z",
+      "content_type": "application/json"
+    }
+  },
+  "verification": {
+    "cargo_check": "required",
+    "cargo_test": "required", 
+    "cargo_clippy": "required_with_warnings_as_errors",
+    "integrity_hash": "72c1a3cee538830c0f677b434d72eb871b9eec0be807ab99fd16d56409cf912f"
+  },
+  "notes": "Generated for Public Testnet Launch Pack - Phase 2"
+}

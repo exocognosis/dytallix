@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dytallix Public Testnet - Quantum-Resistant Blockchain with Post-Quantum Cryptography">
+    <meta name="keywords" content="blockchain, post-quantum cryptography, dilithium, testnet, cosmos, tendermint">
+    <meta name="author" content="Dytallix Team">
+    
+    <title>Dytallix Public Testnet - Quantum-Resistant Blockchain</title>
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Dytallix Public Testnet">
+    <meta property="og:description" content="Join the future of quantum-resistant blockchain technology">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://testnet.dytallix.com">
+    <meta property="og:image" content="https://testnet.dytallix.com/assets/dytallix-og-image.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Dytallix Public Testnet">
+    <meta name="twitter:description" content="Join the future of quantum-resistant blockchain technology">
+    <meta name="twitter:image" content="https://testnet.dytallix.com/assets/dytallix-twitter-card.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="/assets/dytallix-logo.svg" alt="Dytallix" class="logo">
+                <span class="logo-text">Dytallix</span>
+                <span class="testnet-badge">Testnet</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#overview" class="nav-link">Overview</a>
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#validators" class="nav-link">Validators</a>
+                <a href="#developers" class="nav-link">Developers</a>
+                <a href="#explorer" class="nav-link" target="_blank">Explorer</a>
+                <a href="#faucet" class="nav-link">Faucet</a>
+            </div>
+            <div class="nav-actions">
+                <a href="#get-started" class="btn btn-primary">Get Started</a>
+                <button class="mobile-menu-toggle" aria-label="Toggle mobile menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    The Future of
+                    <span class="gradient-text">Quantum-Resistant</span>
+                    Blockchain
+                </h1>
+                <p class="hero-description">
+                    Dytallix Public Testnet features post-quantum cryptography with Dilithium3 signatures, 
+                    providing unparalleled security for the quantum computing era.
+                </p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="block-height">182,457</div>
+                        <div class="stat-label">Current Block</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="validators">3</div>
+                        <div class="stat-label">Active Validators</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="uptime">99.97%</div>
+                        <div class="stat-label">Network Uptime</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">6.2s</div>
+                        <div class="stat-label">Block Time</div>
+                    </div>
+                </div>
+                <div class="hero-actions">
+                    <a href="#get-started" class="btn btn-primary btn-large">Join Testnet</a>
+                    <a href="#docs" class="btn btn-secondary btn-large">Documentation</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="quantum-animation">
+                    <div class="quantum-particle"></div>
+                    <div class="quantum-particle"></div>
+                    <div class="quantum-particle"></div>
+                    <div class="quantum-wave"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Network Status -->
+    <section class="network-status">
+        <div class="container">
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="status-icon status-online"></div>
+                    <div class="status-info">
+                        <div class="status-title">Network Status</div>
+                        <div class="status-value">Online</div>
+                    </div>
+                </div>
+                <div class="status-card">
+                    <div class="status-icon">⚡</div>
+                    <div class="status-info">
+                        <div class="status-title">TPS</div>
+                        <div class="status-value" id="current-tps">13.9</div>
+                    </div>
+                </div>
+                <div class="status-card">
+                    <div class="status-icon">🔒</div>
+                    <div class="status-info">
+                        <div class="status-title">PQC Signatures</div>
+                        <div class="status-value">1,205,467</div>
+                    </div>
+                </div>
+                <div class="status-card">
+                    <div class="status-icon">🌐</div>
+                    <div class="status-info">
+                        <div class="status-title">Connected Peers</div>
+                        <div class="status-value">47</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Quantum-Ready Features</h2>
+                <p class="section-description">
+                    Built with cutting-edge post-quantum cryptography and modern blockchain architecture
+                </p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h3 class="feature-title">Post-Quantum Security</h3>
+                    <p class="feature-description">
+                        Dilithium3 signatures provide quantum-resistant security, future-proofing against quantum computing threats.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">High Performance</h3>
+                    <p class="feature-description">
+                        6-second block times with 13.9 TPS sustained throughput, optimized for real-world applications.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3 class="feature-title">Cosmos Ecosystem</h3>
+                    <p class="feature-description">
+                        Built on Cosmos SDK with IBC interoperability, connecting to the broader Cosmos ecosystem.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏛️</div>
+                    <h3 class="feature-title">On-Chain Governance</h3>
+                    <p class="feature-description">
+                        Decentralized governance with proposal voting and parameter changes managed on-chain.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3 class="feature-title">Smart Contracts</h3>
+                    <p class="feature-description">
+                        CosmWasm smart contracts with quantum-resistant signature verification and execution.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔗</div>
+                    <h3 class="feature-title">Cross-Chain Bridges</h3>
+                    <p class="feature-description">
+                        Secure bridges to Ethereum and other chains with post-quantum cryptographic protection.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Validators Section -->
+    <section id="validators" class="validators">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Network Validators</h2>
+                <p class="section-description">
+                    Secure, distributed validation with post-quantum cryptography
+                </p>
+            </div>
+            <div class="validators-grid">
+                <div class="validator-card">
+                    <div class="validator-header">
+                        <div class="validator-avatar">V1</div>
+                        <div class="validator-info">
+                            <h3 class="validator-name">Validator 01</h3>
+                            <div class="validator-address">dytallix...abc123</div>
+                        </div>
+                        <div class="validator-status status-active">Active</div>
+                    </div>
+                    <div class="validator-stats">
+                        <div class="validator-stat">
+                            <div class="stat-label">Voting Power</div>
+                            <div class="stat-value">33.33%</div>
+                        </div>
+                        <div class="validator-stat">
+                            <div class="stat-label">Uptime</div>
+                            <div class="stat-value">99.95%</div>
+                        </div>
+                        <div class="validator-stat">
+                            <div class="stat-label">Commission</div>
+                            <div class="stat-value">5%</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="validator-card">
+                    <div class="validator-header">
+                        <div class="validator-avatar">V2</div>
+                        <div class="validator-info">
+                            <h3 class="validator-name">Validator 02</h3>
+                            <div class="validator-address">dytallix...def456</div>
+                        </div>
+                        <div class="validator-status status-active">Active</div>
+                    </div>
+                    <div class="validator-stats">
+                        <div class="validator-stat">
+                            <div class="stat-label">Voting Power</div>
+                            <div class="stat-value">33.33%</div>
+                        </div>
+                        <div class="validator-stat">
+                            <div class="stat-label">Uptime</div>
+                            <div class="stat-value">99.93%</div>
+                        </div>
+                        <div class="validator-stat">
+                            <div class="stat-label">Commission</div>
+                            <div class="stat-value">5%</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="validator-card">
+                    <div class="validator-header">
+                        <div class="validator-avatar">V3</div>
+                        <div class="validator-info">
+                            <h3 class="validator-name">Validator 03</h3>
+                            <div class="validator-address">dytallix...ghi789</div>
+                        </div>
+                        <div class="validator-status status-active">Active</div>
+                    </div>
+                    <div class="validator-stats">
+                        <div class="validator-stat">
+                            <div class="stat-label">Voting Power</div>
+                            <div class="stat-value">33.34%</div>
+                        </div>
+                        <div class="validator-stat">
+                            <div class="stat-label">Uptime</div>
+                            <div class="stat-value">99.96%</div>
+                        </div>
+                        <div class="validator-stat">
+                            <div class="stat-label">Commission</div>
+                            <div class="stat-value">5%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="validators-footer">
+                <a href="#become-validator" class="btn btn-primary">Become a Validator</a>
+                <a href="#validator-docs" class="btn btn-secondary">Validator Documentation</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Get Started Section -->
+    <section id="get-started" class="get-started">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Get Started</h2>
+                <p class="section-description">
+                    Choose your path to join the Dytallix testnet
+                </p>
+            </div>
+            <div class="get-started-grid">
+                <div class="get-started-card">
+                    <div class="card-header">
+                        <h3 class="card-title">👨‍💻 Developer</h3>
+                        <p class="card-description">Build applications and smart contracts</p>
+                    </div>
+                    <div class="card-content">
+                        <ul class="feature-list">
+                            <li>✅ Access RPC endpoints</li>
+                            <li>✅ Deploy smart contracts</li>
+                            <li>✅ Use developer tools</li>
+                            <li>✅ Test PQC integration</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <a href="#dev-docs" class="btn btn-primary">Start Building</a>
+                    </div>
+                </div>
+                <div class="get-started-card">
+                    <div class="card-header">
+                        <h3 class="card-title">🏛️ Validator</h3>
+                        <p class="card-description">Secure the network and earn rewards</p>
+                    </div>
+                    <div class="card-content">
+                        <ul class="feature-list">
+                            <li>✅ Run validator node</li>
+                            <li>✅ Participate in consensus</li>
+                            <li>✅ Earn staking rewards</li>
+                            <li>✅ Secure the network</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <a href="#validator-setup" class="btn btn-primary">Setup Validator</a>
+                    </div>
+                </div>
+                <div class="get-started-card">
+                    <div class="card-header">
+                        <h3 class="card-title">👤 User</h3>
+                        <p class="card-description">Test transactions and features</p>
+                    </div>
+                    <div class="card-content">
+                        <ul class="feature-list">
+                            <li>✅ Create wallet</li>
+                            <li>✅ Get test tokens</li>
+                            <li>✅ Send transactions</li>
+                            <li>✅ Stake and delegate</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <a href="#wallet-setup" class="btn btn-primary">Create Wallet</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <img src="/assets/dytallix-logo.svg" alt="Dytallix" class="logo">
+                        <span class="logo-text">Dytallix</span>
+                    </div>
+                    <p class="footer-description">
+                        Quantum-resistant blockchain technology for the future of decentralized applications.
+                    </p>
+                    <div class="social-links">
+                        <a href="https://twitter.com/dytallix" class="social-link" aria-label="Twitter">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                            </svg>
+                        </a>
+                        <a href="https://github.com/dytallix" class="social-link" aria-label="GitHub">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                        </a>
+                        <a href="https://discord.gg/dytallix" class="social-link" aria-label="Discord">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.0189 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1568 2.4189Z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Network</h4>
+                    <ul class="footer-links">
+                        <li><a href="#explorer">Block Explorer</a></li>
+                        <li><a href="#faucet">Testnet Faucet</a></li>
+                        <li><a href="#status">Network Status</a></li>
+                        <li><a href="#validators">Validators</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Developers</h4>
+                    <ul class="footer-links">
+                        <li><a href="#docs">Documentation</a></li>
+                        <li><a href="#api">API Reference</a></li>
+                        <li><a href="#sdk">SDK Downloads</a></li>
+                        <li><a href="#tutorials">Tutorials</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Community</h4>
+                    <ul class="footer-links">
+                        <li><a href="#governance">Governance</a></li>
+                        <li><a href="#forum">Forum</a></li>
+                        <li><a href="#support">Support</a></li>
+                        <li><a href="#newsletter">Newsletter</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="footer-bottom-content">
+                    <p class="copyright">© 2025 Dytallix. All rights reserved.</p>
+                    <div class="footer-bottom-links">
+                        <a href="/privacy">Privacy Policy</a>
+                        <a href="/terms">Terms of Service</a>
+                        <a href="/security">Security Policy</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Mobile menu toggle
+        const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+        const navMenu = document.querySelector('.nav-menu');
+        
+        mobileMenuToggle.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+            mobileMenuToggle.classList.toggle('active');
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Real-time network stats (simulated)
+        function updateNetworkStats() {
+            // Simulate real-time updates
+            const blockHeight = document.getElementById('block-height');
+            const currentTps = document.getElementById('current-tps');
+            
+            if (blockHeight) {
+                const currentBlock = parseInt(blockHeight.textContent.replace(/,/g, ''));
+                blockHeight.textContent = (currentBlock + Math.floor(Math.random() * 3)).toLocaleString();
+            }
+            
+            if (currentTps) {
+                const baseTps = 13.9;
+                const variation = (Math.random() - 0.5) * 2; // ±1 TPS variation
+                currentTps.textContent = (baseTps + variation).toFixed(1);
+            }
+        }
+
+        // Update stats every 6 seconds (approximate block time)
+        setInterval(updateNetworkStats, 6000);
+
+        // Animate quantum particles
+        function animateQuantumParticles() {
+            const particles = document.querySelectorAll('.quantum-particle');
+            particles.forEach((particle, index) => {
+                const delay = index * 1000;
+                const duration = 3000 + Math.random() * 2000;
+                
+                particle.style.animationDelay = `${delay}ms`;
+                particle.style.animationDuration = `${duration}ms`;
+            });
+        }
+
+        // Initialize animations on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            animateQuantumParticles();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+    "name": "@dytallix/leash-sdk",
+    "version": "1.0.0",
+    "description": "Agent Delegation SDK for Dytallix",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest"
+    },
+    "dependencies": {
+        "@noble/hashes": "^1.3.3",
+        "@openforge-sh/liboqs": "^0.14.3"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "vitest": "^1.0.0"
+    }
+}

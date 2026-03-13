@@ -1,0 +1,59 @@
+# Dytallix Node Configuration Template
+# This file will be used by the future Cosmos SDK implementation
+
+[base]
+minimum_gas_prices = "0.001udyt"
+pruning = "default"
+pruning_keep_recent = "100"
+pruning_keep_every = "0"
+pruning_interval = "10"
+halt_height = 0
+halt_time = 0
+min_retain_blocks = 0
+inter_block_cache = true
+index_events = []
+
+[pqc]
+# Post-quantum cryptography settings
+enabled_algorithms = ["dilithium5", "kyber1024"]
+key_rotation_blocks = 2160000  # ~1 year at 6s blocks
+quantum_safe_random = true
+secure_enclave_integration = false
+
+[rpc]
+laddr = "tcp://127.0.0.1:26657"
+cors_allowed_origins = []
+cors_allowed_methods = ["HEAD", "GET", "POST"]
+cors_allowed_headers = ["Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"]
+grpc_laddr = ""
+grpc_max_open_connections = 900
+unsafe = false
+max_open_connections = 900
+max_subscription_clients = 100
+max_subscriptions_per_client = 5
+timeout_broadcast_tx_commit = "10s"
+max_body_bytes = 1000000
+max_header_bytes = 1048576
+
+[p2p]
+laddr = "tcp://0.0.0.0:26656"
+external_address = ""
+seeds = ""
+persistent_peers = ""
+upnp = false
+addr_book_file = "config/addrbook.json"
+addr_book_strict = true
+max_num_inbound_peers = 40
+max_num_outbound_peers = 10
+unconditional_peer_ids = ""
+persistent_peers_max_dial_period = "0s"
+flush_throttle_timeout = "100ms"
+max_packet_msg_payload_size = 1024
+send_rate = 5120000
+recv_rate = 5120000
+pex = true
+seed_mode = false
+private_peer_ids = ""
+allow_duplicate_ip = false
+handshake_timeout = "20s"
+dial_timeout = "3s"

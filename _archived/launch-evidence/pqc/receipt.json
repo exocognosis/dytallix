@@ -1,0 +1,17 @@
+{
+  "tx_hash": "0xf3bc094b49abb9fdb2dd8d7c2d9b59ffec93d50a22dc7346afb9579981de651e",
+  "status": "success",
+  "height": 2,
+  "gas_used": 21000,
+  "gas_limit": 50000,
+  "gas_price": 1000,
+  "fee": "750000",
+  "from": "dyt1pqcuser",
+  "to": "dyt1receiver",
+  "amount": "5000000",
+  "nonce": 0,
+  "error": null,
+  "pqc_verified": true,
+  "signature_algorithm": "dilithium5",
+  "signature_verification_time_ms": 2.4
+}

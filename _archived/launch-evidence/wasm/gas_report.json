@@ -1,0 +1,25 @@
+{
+  "contract_address": "dyt1contract4d3f24f0c51943bff79db653ca559d50",
+  "deployment": {
+    "gas_used": 45000,
+    "gas_limit": 100000,
+    "efficiency": "45.0%"
+  },
+  "method_calls": {
+    "increment": {
+      "total_calls": 2,
+      "total_gas_used": 47000,
+      "average_gas_per_call": 23500,
+      "min_gas": 22000,
+      "max_gas": 25000
+    }
+  },
+  "totals": {
+    "total_operations": 3,
+    "total_gas_used": 92000,
+    "total_gas_limit": 200000,
+    "overall_efficiency": "46.0%"
+  },
+  "gas_price": 1000,
+  "total_fees_paid": "92000000"
+}

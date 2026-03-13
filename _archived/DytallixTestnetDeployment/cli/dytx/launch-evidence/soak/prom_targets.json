@@ -1,0 +1,45 @@
+{
+  "timestamp": "2025-09-28T17:13:39Z",
+  "soak_test_config": {
+    "duration_hours": 1,
+    "validators": 3,
+    "sentries": 2
+  },
+  "prometheus_targets": [
+    {
+      "job": "dytallix-validators",
+      "targets": [
+        "validator-1:9090",
+        "validator-2:9091", 
+        "validator-3:9092"
+      ]
+    },
+    {
+      "job": "dytallix-sentries",
+      "targets": [
+        "sentry-1:9093",
+        "sentry-2:9094"
+      ]
+    },
+    {
+      "job": "dytallix-health",
+      "targets": [
+        "validator-1:3030",
+        "validator-2:3030",
+        "validator-3:3030",
+        "sentry-1:3030",
+        "sentry-2:3030"
+      ]
+    }
+  ],
+  "metrics_collected": [
+    "block_height",
+    "missed_blocks",
+    "validator_health",
+    "consensus_rounds",
+    "peer_connections",
+    "transaction_throughput",
+    "memory_usage",
+    "cpu_usage"
+  ]
+}

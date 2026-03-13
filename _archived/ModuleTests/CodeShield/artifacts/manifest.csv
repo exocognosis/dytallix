@@ -1,0 +1,91 @@
+id,category,file,pragma,inheritance_depth
+vulnerable/StorageCollision.sol:8727f64e0b,vulnerable,artifacts/corpus/vulnerable/StorageCollision__8727f64e0b.sol,^0.8.17,0
+vulnerable/StorageCollision.sol:0c69f97d81,vulnerable,artifacts/corpus/vulnerable/StorageCollision__0c69f97d81.sol,^0.8.17,1
+vulnerable/StorageCollision.sol:7174b0340c,vulnerable,artifacts/corpus/vulnerable/StorageCollision__7174b0340c.sol,^0.8.17,2
+vulnerable/StorageCollision.sol:1b46df639b,vulnerable,artifacts/corpus/vulnerable/StorageCollision__1b46df639b.sol,^0.8.19,0
+vulnerable/StorageCollision.sol:e98b2544cc,vulnerable,artifacts/corpus/vulnerable/StorageCollision__e98b2544cc.sol,^0.8.19,1
+vulnerable/StorageCollision.sol:0c09592f58,vulnerable,artifacts/corpus/vulnerable/StorageCollision__0c09592f58.sol,^0.8.19,2
+vulnerable/StorageCollision.sol:cf53384e0d,vulnerable,artifacts/corpus/vulnerable/StorageCollision__cf53384e0d.sol,>=0.8.20 <0.9.0,0
+vulnerable/StorageCollision.sol:6f7071ddc5,vulnerable,artifacts/corpus/vulnerable/StorageCollision__6f7071ddc5.sol,>=0.8.20 <0.9.0,1
+vulnerable/StorageCollision.sol:f123457e90,vulnerable,artifacts/corpus/vulnerable/StorageCollision__f123457e90.sol,>=0.8.20 <0.9.0,2
+vulnerable/UncheckedCall.sol:e7da2712bc,vulnerable,artifacts/corpus/vulnerable/UncheckedCall__e7da2712bc.sol,^0.8.17,0
+vulnerable/UncheckedCall.sol:8dbe24ff77,vulnerable,artifacts/corpus/vulnerable/UncheckedCall__8dbe24ff77.sol,^0.8.17,1
+vulnerable/UncheckedCall.sol:bd5f799bf3,vulnerable,artifacts/corpus/vulnerable/UncheckedCall__bd5f799bf3.sol,^0.8.17,2
+vulnerable/UncheckedCall.sol:e541552ecd,vulnerable,artifacts/corpus/vulnerable/UncheckedCall__e541552ecd.sol,^0.8.19,0
+vulnerable/UncheckedCall.sol:12d21adb1e,vulnerable,artifacts/corpus/vulnerable/UncheckedCall__12d21adb1e.sol,^0.8.19,1
+vulnerable/UncheckedCall.sol:3d2a5550ff,vulnerable,artifacts/corpus/vulnerable/UncheckedCall__3d2a5550ff.sol,^0.8.19,2
+vulnerable/UncheckedCall.sol:58faaa3cf0,vulnerable,artifacts/corpus/vulnerable/UncheckedCall__58faaa3cf0.sol,>=0.8.20 <0.9.0,0
+vulnerable/UncheckedCall.sol:4cf19370cd,vulnerable,artifacts/corpus/vulnerable/UncheckedCall__4cf19370cd.sol,>=0.8.20 <0.9.0,1
+vulnerable/UncheckedCall.sol:59a6f66fe5,vulnerable,artifacts/corpus/vulnerable/UncheckedCall__59a6f66fe5.sol,>=0.8.20 <0.9.0,2
+vulnerable/TxOrigin.sol:b1c9989ce6,vulnerable,artifacts/corpus/vulnerable/TxOrigin__b1c9989ce6.sol,^0.8.17,0
+vulnerable/TxOrigin.sol:d7bd4d2163,vulnerable,artifacts/corpus/vulnerable/TxOrigin__d7bd4d2163.sol,^0.8.17,1
+vulnerable/TxOrigin.sol:377f0330bb,vulnerable,artifacts/corpus/vulnerable/TxOrigin__377f0330bb.sol,^0.8.17,2
+vulnerable/TxOrigin.sol:42d5913228,vulnerable,artifacts/corpus/vulnerable/TxOrigin__42d5913228.sol,^0.8.19,0
+vulnerable/TxOrigin.sol:2426d57040,vulnerable,artifacts/corpus/vulnerable/TxOrigin__2426d57040.sol,^0.8.19,1
+vulnerable/TxOrigin.sol:8dccef7e5c,vulnerable,artifacts/corpus/vulnerable/TxOrigin__8dccef7e5c.sol,^0.8.19,2
+vulnerable/TxOrigin.sol:2222dfbaad,vulnerable,artifacts/corpus/vulnerable/TxOrigin__2222dfbaad.sol,>=0.8.20 <0.9.0,0
+vulnerable/TxOrigin.sol:f8805bff73,vulnerable,artifacts/corpus/vulnerable/TxOrigin__f8805bff73.sol,>=0.8.20 <0.9.0,1
+vulnerable/TxOrigin.sol:d1358921f6,vulnerable,artifacts/corpus/vulnerable/TxOrigin__d1358921f6.sol,>=0.8.20 <0.9.0,2
+vulnerable/IntegerIssues.sol:cdce121707,vulnerable,artifacts/corpus/vulnerable/IntegerIssues__cdce121707.sol,^0.8.17,0
+vulnerable/IntegerIssues.sol:e22863881f,vulnerable,artifacts/corpus/vulnerable/IntegerIssues__e22863881f.sol,^0.8.17,1
+vulnerable/IntegerIssues.sol:4d88c9744c,vulnerable,artifacts/corpus/vulnerable/IntegerIssues__4d88c9744c.sol,^0.8.17,2
+vulnerable/IntegerIssues.sol:2d5a6ead7f,vulnerable,artifacts/corpus/vulnerable/IntegerIssues__2d5a6ead7f.sol,^0.8.19,0
+vulnerable/IntegerIssues.sol:469b3370f3,vulnerable,artifacts/corpus/vulnerable/IntegerIssues__469b3370f3.sol,^0.8.19,1
+vulnerable/IntegerIssues.sol:ef9cf22314,vulnerable,artifacts/corpus/vulnerable/IntegerIssues__ef9cf22314.sol,^0.8.19,2
+vulnerable/IntegerIssues.sol:92de3a0935,vulnerable,artifacts/corpus/vulnerable/IntegerIssues__92de3a0935.sol,>=0.8.20 <0.9.0,0
+vulnerable/IntegerIssues.sol:28f3360097,vulnerable,artifacts/corpus/vulnerable/IntegerIssues__28f3360097.sol,>=0.8.20 <0.9.0,1
+vulnerable/IntegerIssues.sol:90e82dd5d1,vulnerable,artifacts/corpus/vulnerable/IntegerIssues__90e82dd5d1.sol,>=0.8.20 <0.9.0,2
+vulnerable/Reentrancy.sol:9300bac9e5,vulnerable,artifacts/corpus/vulnerable/Reentrancy__9300bac9e5.sol,^0.8.17,0
+vulnerable/Reentrancy.sol:f52cbc1fe3,vulnerable,artifacts/corpus/vulnerable/Reentrancy__f52cbc1fe3.sol,^0.8.17,1
+vulnerable/Reentrancy.sol:a881750574,vulnerable,artifacts/corpus/vulnerable/Reentrancy__a881750574.sol,^0.8.17,2
+vulnerable/Reentrancy.sol:98ed18754c,vulnerable,artifacts/corpus/vulnerable/Reentrancy__98ed18754c.sol,^0.8.19,0
+vulnerable/Reentrancy.sol:cf07a88228,vulnerable,artifacts/corpus/vulnerable/Reentrancy__cf07a88228.sol,^0.8.19,1
+vulnerable/Reentrancy.sol:d36bc7240c,vulnerable,artifacts/corpus/vulnerable/Reentrancy__d36bc7240c.sol,^0.8.19,2
+vulnerable/Reentrancy.sol:42f8ca27a0,vulnerable,artifacts/corpus/vulnerable/Reentrancy__42f8ca27a0.sol,>=0.8.20 <0.9.0,0
+vulnerable/Reentrancy.sol:3ddefea3e2,vulnerable,artifacts/corpus/vulnerable/Reentrancy__3ddefea3e2.sol,>=0.8.20 <0.9.0,1
+vulnerable/Reentrancy.sol:eb7f00ccf2,vulnerable,artifacts/corpus/vulnerable/Reentrancy__eb7f00ccf2.sol,>=0.8.20 <0.9.0,2
+vulnerable/DelegatecallAbuse.sol:003d1f2a64,vulnerable,artifacts/corpus/vulnerable/DelegatecallAbuse__003d1f2a64.sol,^0.8.17,0
+vulnerable/DelegatecallAbuse.sol:c5fe728151,vulnerable,artifacts/corpus/vulnerable/DelegatecallAbuse__c5fe728151.sol,^0.8.17,1
+vulnerable/DelegatecallAbuse.sol:0b105bb0b5,vulnerable,artifacts/corpus/vulnerable/DelegatecallAbuse__0b105bb0b5.sol,^0.8.17,2
+vulnerable/DelegatecallAbuse.sol:5c3af2e407,vulnerable,artifacts/corpus/vulnerable/DelegatecallAbuse__5c3af2e407.sol,^0.8.19,0
+vulnerable/DelegatecallAbuse.sol:5703272321,vulnerable,artifacts/corpus/vulnerable/DelegatecallAbuse__5703272321.sol,^0.8.19,1
+vulnerable/DelegatecallAbuse.sol:e8193f80fb,vulnerable,artifacts/corpus/vulnerable/DelegatecallAbuse__e8193f80fb.sol,^0.8.19,2
+vulnerable/DelegatecallAbuse.sol:d11c6c3dc2,vulnerable,artifacts/corpus/vulnerable/DelegatecallAbuse__d11c6c3dc2.sol,>=0.8.20 <0.9.0,0
+vulnerable/DelegatecallAbuse.sol:d1ceb49167,vulnerable,artifacts/corpus/vulnerable/DelegatecallAbuse__d1ceb49167.sol,>=0.8.20 <0.9.0,1
+vulnerable/DelegatecallAbuse.sol:87ce04a7e8,vulnerable,artifacts/corpus/vulnerable/DelegatecallAbuse__87ce04a7e8.sol,>=0.8.20 <0.9.0,2
+safe/SimpleVault.sol:e2f83b5846,safe,artifacts/corpus/safe/SimpleVault__e2f83b5846.sol,^0.8.17,0
+safe/SimpleVault.sol:6f5dabb6a8,safe,artifacts/corpus/safe/SimpleVault__6f5dabb6a8.sol,^0.8.17,1
+safe/SimpleVault.sol:ef2a000827,safe,artifacts/corpus/safe/SimpleVault__ef2a000827.sol,^0.8.17,2
+safe/SimpleVault.sol:f16ee1604d,safe,artifacts/corpus/safe/SimpleVault__f16ee1604d.sol,^0.8.19,0
+safe/SimpleVault.sol:598ffbb9ac,safe,artifacts/corpus/safe/SimpleVault__598ffbb9ac.sol,^0.8.19,1
+safe/SimpleVault.sol:274bdd5274,safe,artifacts/corpus/safe/SimpleVault__274bdd5274.sol,^0.8.19,2
+safe/SimpleVault.sol:303077ad62,safe,artifacts/corpus/safe/SimpleVault__303077ad62.sol,>=0.8.20 <0.9.0,0
+safe/SimpleVault.sol:2db2bb5d37,safe,artifacts/corpus/safe/SimpleVault__2db2bb5d37.sol,>=0.8.20 <0.9.0,1
+safe/SimpleVault.sol:fe384d141d,safe,artifacts/corpus/safe/SimpleVault__fe384d141d.sol,>=0.8.20 <0.9.0,2
+upgradeable/Proxy.sol:d59848da85,upgradeable,artifacts/corpus/upgradeable/Proxy__d59848da85.sol,^0.8.17,0
+upgradeable/Proxy.sol:b6c87b6b3d,upgradeable,artifacts/corpus/upgradeable/Proxy__b6c87b6b3d.sol,^0.8.17,1
+upgradeable/Proxy.sol:fbd4111d32,upgradeable,artifacts/corpus/upgradeable/Proxy__fbd4111d32.sol,^0.8.17,2
+upgradeable/Proxy.sol:3b7d125e1d,upgradeable,artifacts/corpus/upgradeable/Proxy__3b7d125e1d.sol,^0.8.19,0
+upgradeable/Proxy.sol:def6c91c97,upgradeable,artifacts/corpus/upgradeable/Proxy__def6c91c97.sol,^0.8.19,1
+upgradeable/Proxy.sol:6f32dbd719,upgradeable,artifacts/corpus/upgradeable/Proxy__6f32dbd719.sol,^0.8.19,2
+upgradeable/Proxy.sol:a30b5713eb,upgradeable,artifacts/corpus/upgradeable/Proxy__a30b5713eb.sol,>=0.8.20 <0.9.0,0
+upgradeable/Proxy.sol:222dc7a755,upgradeable,artifacts/corpus/upgradeable/Proxy__222dc7a755.sol,>=0.8.20 <0.9.0,1
+upgradeable/Proxy.sol:3d1725cee5,upgradeable,artifacts/corpus/upgradeable/Proxy__3d1725cee5.sol,>=0.8.20 <0.9.0,2
+upgradeable/ImplV1.sol:91292afddf,upgradeable,artifacts/corpus/upgradeable/ImplV1__91292afddf.sol,^0.8.17,0
+upgradeable/ImplV1.sol:c4af805a31,upgradeable,artifacts/corpus/upgradeable/ImplV1__c4af805a31.sol,^0.8.17,1
+upgradeable/ImplV1.sol:7b50bc0e43,upgradeable,artifacts/corpus/upgradeable/ImplV1__7b50bc0e43.sol,^0.8.17,2
+upgradeable/ImplV1.sol:e98fbac147,upgradeable,artifacts/corpus/upgradeable/ImplV1__e98fbac147.sol,^0.8.19,0
+upgradeable/ImplV1.sol:c75b9d233c,upgradeable,artifacts/corpus/upgradeable/ImplV1__c75b9d233c.sol,^0.8.19,1
+upgradeable/ImplV1.sol:234049478e,upgradeable,artifacts/corpus/upgradeable/ImplV1__234049478e.sol,^0.8.19,2
+upgradeable/ImplV1.sol:a062f6364b,upgradeable,artifacts/corpus/upgradeable/ImplV1__a062f6364b.sol,>=0.8.20 <0.9.0,0
+upgradeable/ImplV1.sol:1465e75900,upgradeable,artifacts/corpus/upgradeable/ImplV1__1465e75900.sol,>=0.8.20 <0.9.0,1
+upgradeable/ImplV1.sol:dcec1826d3,upgradeable,artifacts/corpus/upgradeable/ImplV1__dcec1826d3.sol,>=0.8.20 <0.9.0,2
+upgradeable/ImplV2.sol:d9df3c1bc6,upgradeable,artifacts/corpus/upgradeable/ImplV2__d9df3c1bc6.sol,^0.8.17,0
+upgradeable/ImplV2.sol:5b7bb2a9c2,upgradeable,artifacts/corpus/upgradeable/ImplV2__5b7bb2a9c2.sol,^0.8.17,1
+upgradeable/ImplV2.sol:329cac457f,upgradeable,artifacts/corpus/upgradeable/ImplV2__329cac457f.sol,^0.8.17,2
+upgradeable/ImplV2.sol:f8744cb2a6,upgradeable,artifacts/corpus/upgradeable/ImplV2__f8744cb2a6.sol,^0.8.19,0
+upgradeable/ImplV2.sol:ad60093f39,upgradeable,artifacts/corpus/upgradeable/ImplV2__ad60093f39.sol,^0.8.19,1
+upgradeable/ImplV2.sol:92605d4b7c,upgradeable,artifacts/corpus/upgradeable/ImplV2__92605d4b7c.sol,^0.8.19,2
+upgradeable/ImplV2.sol:12b8e10b73,upgradeable,artifacts/corpus/upgradeable/ImplV2__12b8e10b73.sol,>=0.8.20 <0.9.0,0
+upgradeable/ImplV2.sol:6f5b313856,upgradeable,artifacts/corpus/upgradeable/ImplV2__6f5b313856.sol,>=0.8.20 <0.9.0,1
+upgradeable/ImplV2.sol:85e4c314a0,upgradeable,artifacts/corpus/upgradeable/ImplV2__85e4c314a0.sol,>=0.8.20 <0.9.0,2

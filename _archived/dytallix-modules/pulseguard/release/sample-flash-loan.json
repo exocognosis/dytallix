@@ -1,0 +1,12 @@
+{
+  "meta": {"tool": "PulseGuard", "version": "v0.1.0", "scenario": "flash-loan"},
+  "score": 0.97,
+  "label": "alert",
+  "reasons": ["high_anomaly", "risky_graph_structure"],
+  "explainability": {
+    "top_features": ["value", "recency", "is_contract_creation"],
+    "dag_paths": [["0xflash", "0xpool", "0xvictim", "0xrouter"]],
+    "graph_metrics": {"avg_degree_centrality": 0.42}
+  }
+}
+

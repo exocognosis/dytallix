@@ -1,0 +1,317 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Dytallix Blockchain Monitoring",
+    "tags": ["dytallix", "blockchain", "testnet"],
+    "style": "dark",
+    "timezone": "UTC",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Block Height Progress",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dyt_node_block_height",
+            "legendFormat": "Block Height",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Transaction Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(dyt_transactions_total[5m])",
+            "legendFormat": "TPS",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Transactions per Second",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Validator Status",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "dyt_validator_voting_power",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "columns": [
+                {"text": "Validator", "value": "validator"},
+                {"text": "Voting Power", "value": "Value"},
+                {"text": "Status", "value": "status"}
+              ]
+            }
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "System Resource Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "dyt_node_cpu_usage_percent",
+            "legendFormat": "CPU %",
+            "refId": "A"
+          },
+          {
+            "expr": "dyt_node_memory_usage_percent",
+            "legendFormat": "Memory %",
+            "refId": "B"
+          },
+          {
+            "expr": "dyt_node_disk_usage_percent",
+            "legendFormat": "Disk %", 
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Percentage",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Network Peers",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dyt_network_peers",
+            "legendFormat": "Connected Peers",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 10},
+                {"color": "green", "value": 20}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "API Response Times",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(dyt_rpc_request_duration_bucket[5m]))",
+            "legendFormat": "50th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(dyt_rpc_request_duration_bucket[5m]))",
+            "legendFormat": "95th percentile",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(dyt_rpc_request_duration_bucket[5m]))",
+            "legendFormat": "99th percentile",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Response Time (ms)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Consensus Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "dyt_consensus_block_interval",
+            "legendFormat": "Block Interval",
+            "refId": "A"
+          },
+          {
+            "expr": "dyt_consensus_round_duration",
+            "legendFormat": "Round Duration",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Time (seconds)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Token Economics",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dyt_token_circulating_supply",
+            "legendFormat": "Circulating Supply",
+            "refId": "A"
+          },
+          {
+            "expr": "dyt_token_staked_amount",
+            "legendFormat": "Staked Amount",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "displayName": "DGT"
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 16}
+      },
+      {
+        "id": 9,
+        "title": "Bridge Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(dyt_bridge_deposits_total[5m])",
+            "legendFormat": "Deposits/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(dyt_bridge_withdrawals_total[5m])",
+            "legendFormat": "Withdrawals/sec",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 10,
+        "title": "Security Events",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"dytallix-node\"} |= \"ERROR\" or \"WARN\" or \"security\"",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "maxLines": 100
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "validator",
+          "type": "query",
+          "query": "label_values(dyt_node_block_height, validator)",
+          "refresh": 1
+        },
+        {
+          "name": "environment",
+          "type": "custom",
+          "options": [
+            {"text": "Testnet", "value": "testnet"},
+            {"text": "Mainnet", "value": "mainnet"}
+          ]
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "expr": "changes(prometheus_config_last_reload_success_timestamp_seconds[1h]) > 0",
+          "textFormat": "Config Reload",
+          "titleFormat": "Prometheus Config Reload"
+        }
+      ]
+    }
+  },
+  "meta": {
+    "type": "db",
+    "canSave": true,
+    "canEdit": true,
+    "canAdmin": true,
+    "canStar": true,
+    "slug": "dytallix-blockchain-monitoring",
+    "url": "/d/dytallix/dytallix-blockchain-monitoring",
+    "expires": "0001-01-01T00:00:00Z",
+    "created": "2025-08-29T00:52:00Z",
+    "updated": "2025-08-29T00:52:00Z",
+    "updatedBy": "admin",
+    "createdBy": "admin",
+    "version": 1
+  },
+  "dashboard_info": {
+    "description": "Comprehensive monitoring dashboard for Dytallix blockchain testnet",
+    "tags": ["blockchain", "consensus", "validators", "performance"],
+    "monitoring_coverage": {
+      "blockchain_metrics": "comprehensive",
+      "system_metrics": "full_coverage", 
+      "application_metrics": "detailed",
+      "security_metrics": "basic_coverage",
+      "business_metrics": "key_indicators"
+    },
+    "alert_integration": {
+      "prometheus_alerts": "enabled",
+      "grafana_alerts": "enabled",
+      "notification_channels": ["slack", "email", "webhook"]
+    },
+    "performance_optimization": {
+      "query_optimization": "applied",
+      "caching": "enabled",
+      "refresh_intervals": "optimized"
+    }
+  }
+}

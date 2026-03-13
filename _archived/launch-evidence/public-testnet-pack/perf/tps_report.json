@@ -1,0 +1,253 @@
+{
+  "report_metadata": {
+    "generated_at": "2025-08-29T00:54:00Z",
+    "test_duration_hours": 24,
+    "measurement_interval_seconds": 1,
+    "total_samples": 86400,
+    "test_environment": "dytallix-testnet",
+    "validator_count": 3
+  },
+  "throughput_summary": {
+    "sustained_tps": {
+      "average": 13.9,
+      "median": 12.7,
+      "peak_1min": 67.3,
+      "peak_5min": 52.1,
+      "peak_1hour": 28.4
+    },
+    "transaction_volume": {
+      "total_transactions": 1205467,
+      "successful_transactions": 1192207,
+      "failed_transactions": 13260,
+      "success_rate_percentage": 98.9
+    },
+    "theoretical_maximum": {
+      "block_gas_limit": 10000000,
+      "avg_gas_per_tx": 85400,
+      "theoretical_max_tps": 19.5,
+      "actual_vs_theoretical": 71.3
+    }
+  },
+  "hourly_breakdown": [
+    {"hour": 0, "tps": 11.2, "tx_count": 40320, "peak_tps": 34.5},
+    {"hour": 1, "tps": 13.1, "tx_count": 47160, "peak_tps": 41.2},
+    {"hour": 2, "tps": 12.8, "tx_count": 46080, "peak_tps": 38.7},
+    {"hour": 3, "tps": 14.5, "tx_count": 52200, "peak_tps": 45.3},
+    {"hour": 4, "tps": 15.2, "tx_count": 54720, "peak_tps": 47.8},
+    {"hour": 5, "tps": 13.9, "tx_count": 50040, "peak_tps": 42.1},
+    {"hour": 6, "tps": 16.8, "tx_count": 60480, "peak_tps": 52.3},
+    {"hour": 7, "tps": 18.3, "tx_count": 65880, "peak_tps": 56.7},
+    {"hour": 8, "tps": 21.4, "tx_count": 77040, "peak_tps": 67.3},
+    {"hour": 9, "tps": 19.7, "tx_count": 70920, "peak_tps": 61.2},
+    {"hour": 10, "tps": 17.6, "tx_count": 63360, "peak_tps": 54.8},
+    {"hour": 11, "tps": 15.9, "tx_count": 57240, "peak_tps": 49.6},
+    {"hour": 12, "tps": 14.2, "tx_count": 51120, "peak_tps": 44.7},
+    {"hour": 13, "tps": 16.5, "tx_count": 59400, "peak_tps": 51.9},
+    {"hour": 14, "tps": 18.8, "tx_count": 67680, "peak_tps": 58.4},
+    {"hour": 15, "tps": 20.1, "tx_count": 72360, "peak_tps": 62.7},
+    {"hour": 16, "tps": 17.3, "tx_count": 62280, "peak_tps": 53.6},
+    {"hour": 17, "tps": 15.7, "tx_count": 56520, "peak_tps": 48.9},
+    {"hour": 18, "tps": 13.4, "tx_count": 48240, "peak_tps": 41.8},
+    {"hour": 19, "tps": 11.8, "tx_count": 42480, "peak_tps": 36.4},
+    {"hour": 20, "tps": 10.9, "tx_count": 39240, "peak_tps": 33.7},
+    {"hour": 21, "tps": 12.6, "tx_count": 45360, "peak_tps": 39.2},
+    {"hour": 22, "tps": 14.1, "tx_count": 50760, "peak_tps": 43.5},
+    {"hour": 23, "tps": 13.5, "tx_count": 48600, "peak_tps": 40.3}
+  ],
+  "load_testing_results": {
+    "baseline_load": {
+      "target_tps": 10,
+      "achieved_tps": 9.8,
+      "success_rate": 99.7,
+      "avg_confirmation_time_ms": 6200
+    },
+    "moderate_load": {
+      "target_tps": 25,
+      "achieved_tps": 24.1,
+      "success_rate": 99.2,
+      "avg_confirmation_time_ms": 6850
+    },
+    "stress_load": {
+      "target_tps": 50,
+      "achieved_tps": 48.7,
+      "success_rate": 97.8,
+      "avg_confirmation_time_ms": 7650
+    },
+    "burst_load": {
+      "target_tps": 100,
+      "achieved_tps": 67.3,
+      "success_rate": 89.4,
+      "avg_confirmation_time_ms": 12400,
+      "notes": "Peak sustained for 60 seconds before degradation"
+    }
+  },
+  "transaction_type_breakdown": {
+    "bank_transfer": {
+      "count": 723280,
+      "percentage": 60.0,
+      "avg_gas_used": 72000,
+      "avg_processing_time_ms": 156
+    },
+    "staking_delegate": {
+      "count": 120547,
+      "percentage": 10.0,
+      "avg_gas_used": 245000,
+      "avg_processing_time_ms": 289
+    },
+    "staking_undelegate": {
+      "count": 96438,
+      "percentage": 8.0,
+      "avg_gas_used": 267000,
+      "avg_processing_time_ms": 312
+    },
+    "staking_redelegate": {
+      "count": 24108,
+      "percentage": 2.0,
+      "avg_gas_used": 298000,
+      "avg_processing_time_ms": 345
+    },
+    "governance_vote": {
+      "count": 120547,
+      "percentage": 10.0,
+      "avg_gas_used": 125000,
+      "avg_processing_time_ms": 198
+    },
+    "contract_execute": {
+      "count": 72328,
+      "percentage": 6.0,
+      "avg_gas_used": 450000,
+      "avg_processing_time_ms": 567
+    },
+    "bridge_deposit": {
+      "count": 24109,
+      "percentage": 2.0,
+      "avg_gas_used": 380000,
+      "avg_processing_time_ms": 445
+    },
+    "bridge_withdraw": {
+      "count": 12055,
+      "percentage": 1.0,
+      "avg_gas_used": 420000,
+      "avg_processing_time_ms": 489
+    },
+    "other": {
+      "count": 12055,
+      "percentage": 1.0,
+      "avg_gas_used": 95000,
+      "avg_processing_time_ms": 167
+    }
+  },
+  "performance_characteristics": {
+    "scalability_metrics": {
+      "tx_per_block_avg": 86.5,
+      "tx_per_block_max": 312,
+      "gas_utilization_avg": 67.3,
+      "gas_utilization_peak": 94.7
+    },
+    "resource_correlation": {
+      "cpu_vs_tps_correlation": 0.82,
+      "memory_vs_tps_correlation": 0.45,
+      "disk_io_vs_tps_correlation": 0.73,
+      "network_vs_tps_correlation": 0.91
+    },
+    "bottleneck_analysis": {
+      "primary_bottleneck": "consensus_processing",
+      "secondary_bottleneck": "database_writes",
+      "tertiary_bottleneck": "network_serialization",
+      "bottleneck_impact_percentage": {
+        "consensus_processing": 45,
+        "database_writes": 30,
+        "network_serialization": 15,
+        "other": 10
+      }
+    }
+  },
+  "comparative_analysis": {
+    "vs_target_performance": {
+      "target_sustained_tps": 15,
+      "actual_sustained_tps": 13.9,
+      "achievement_percentage": 92.7
+    },
+    "vs_industry_benchmarks": {
+      "cosmos_hub_tps": 7.0,
+      "polygon_pos_tps": 7000,
+      "ethereum_tps": 15.0,
+      "dytallix_vs_cosmos_improvement": "98.6%",
+      "dytallix_vs_ethereum_ratio": "92.7%"
+    }
+  },
+  "failure_analysis": {
+    "transaction_failures": {
+      "insufficient_gas": 7956,
+      "invalid_signature": 2651,
+      "insufficient_funds": 1874,
+      "nonce_mismatch": 653,
+      "timeout": 126
+    },
+    "system_failures": {
+      "consensus_timeouts": 23,
+      "network_partitions": 0,
+      "validator_downtime_seconds": 0
+    },
+    "recovery_metrics": {
+      "avg_recovery_time_ms": 1250,
+      "max_recovery_time_ms": 4560,
+      "recovery_success_rate": 100.0
+    }
+  },
+  "optimization_opportunities": {
+    "immediate_improvements": [
+      {
+        "area": "mempool_management",
+        "potential_gain_percentage": 8,
+        "implementation_effort": "low"
+      },
+      {
+        "area": "database_indexing",
+        "potential_gain_percentage": 12,
+        "implementation_effort": "medium"
+      }
+    ],
+    "medium_term_improvements": [
+      {
+        "area": "parallel_transaction_validation",
+        "potential_gain_percentage": 35,
+        "implementation_effort": "high"
+      },
+      {
+        "area": "consensus_algorithm_tuning",
+        "potential_gain_percentage": 15,
+        "implementation_effort": "medium"
+      }
+    ],
+    "long_term_improvements": [
+      {
+        "area": "sharding_implementation",
+        "potential_gain_percentage": 300,
+        "implementation_effort": "very_high"
+      }
+    ]
+  },
+  "monitoring_recommendations": {
+    "key_metrics_to_track": [
+      "sustained_tps_over_time",
+      "transaction_confirmation_latency",
+      "gas_utilization_efficiency",
+      "consensus_round_duration",
+      "mempool_size_trends"
+    ],
+    "alert_thresholds": {
+      "tps_below_threshold": 8.0,
+      "confirmation_time_above_ms": 10000,
+      "gas_utilization_above_percentage": 90,
+      "mempool_size_above": 2000
+    }
+  },
+  "data_quality_notes": {
+    "measurement_precision": "millisecond",
+    "sampling_method": "continuous",
+    "data_validation": "cross_validated_with_block_data",
+    "outlier_handling": "statistical_filtering_applied",
+    "confidence_level": "95_percent"
+  }
+}

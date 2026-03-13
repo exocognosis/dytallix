@@ -1,0 +1,11 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {"tool": {"driver": {"name": "CodeShield", "version": "v0.1.0"}},
+     "results": [
+       {"ruleId": "EXEC-REENTRANCY", "level": "error", "message": {"text": "External call before state update (possible reentrancy)"}, "locations": [{"physicalLocation": {"artifactLocation": {"uri": "ReentrancyDemo.withdraw"}}}]}
+     ]}
+  ]
+}
+

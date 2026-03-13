@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "phase": "6",
+  "phase_name": "pqc",
+  "generated_at": "2025-08-29T01:11:06Z",
+  "generator": "scripts/gen_manifest.sh",
+  "git_info": {
+    "commit": "dfe1dee324e05d3bd872890234a980e916835766",
+    "branch": "copilot/fix-dafe84e3-81ab-426d-9a30-86cbbfb75c46"
+  },
+  "pqc_algorithm": "dilithium3",
+  "artifacts": {
+    "keygen_log.json": {
+      "sha256": "5f54ec8c2eeea0beb667f08dd7e90f0a343aba214663d7b87acdad6c062cd31f",
+      "size": 8545,
+      "modified": "2025-08-29T01:00:58Z",
+      "content_type": "application/json"
+    },
+    "readme.md": {
+      "sha256": "77d90f0c7f4673de1fd43c3e5d990de62e60f39bd4d44c0d13d8edecb27c95e9",
+      "size": 13043,
+      "modified": "2025-08-29T01:00:09Z",
+      "content_type": "text/markdown"
+    },
+    "signed_tx_raw.json": {
+      "sha256": "307c66378020a43e22cda4817198d87863f4f3f0d1f530fa802ed4f00420df5b",
+      "size": 7304,
+      "modified": "2025-08-29T01:01:45Z",
+      "content_type": "application/json"
+    },
+    "verification_log.txt": {
+      "sha256": "dc1b0a41e296121be7542e553cab23bee6d4aba6f1409b1f2c7c6ca9f5142cc6",
+      "size": 12078,
+      "modified": "2025-08-29T01:02:38Z",
+      "content_type": "text/plain"
+    }
+  },
+  "verification": {
+    "cargo_check": "required",
+    "cargo_test": "required", 
+    "cargo_clippy": "required_with_warnings_as_errors",
+    "integrity_hash": "3eab7f935af50c926ab4af88b31fa45ac9f41fa7a8f8d9f1197f0631da7c6d4a"
+  },
+  "notes": "Generated for Public Testnet Launch Pack - Phase 6"
+}

@@ -1,0 +1,44 @@
+{
+  "description": "Example successful faucet response showing transaction hashes and enhanced logging",
+  "status": 200,
+  "response": {
+    "success": true,
+    "dispensed": [
+      {
+        "symbol": "DGT",
+        "amount": "2",
+        "txHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+      },
+      {
+        "symbol": "DRT",
+        "amount": "50", 
+        "txHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+      }
+    ],
+    "message": "Successfully dispensed DGT + DRT tokens",
+    "requestId": "faucet-1726784123456-abc123"
+  },
+  "test_verification": {
+    "on_chain_verification": [
+      "Transaction hash should be visible in blockchain explorer",
+      "Recipient balance should increase by dispensed amounts",
+      "Transaction should have memo 'faucet:DGT' and 'faucet:DRT'",
+      "Gas fees should be paid automatically"
+    ],
+    "rate_limit_verification": [
+      "Next request from same IP should be rate limited",
+      "Next request from same address should be rate limited",
+      "Different tokens have different cooldown periods"
+    ],
+    "metrics_verification": [
+      "faucet_requests_total{outcome='allow'} should increment",
+      "Request should be logged with full context",
+      "Performance metrics should be captured"
+    ]
+  },
+  "explorer_integration": {
+    "transaction_lookup": "Use txHash to verify transaction in explorer",
+    "address_balance": "Check recipient address balance increase",
+    "transaction_details": "Verify memo, amounts, and gas information"
+  }
+}

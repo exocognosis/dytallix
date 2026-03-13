@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: CodeShield API
+  version: v0.1.0
+  description: |
+    Self-hosted smart contract scanner. Static analysis with basic rules and optional Slither driver.
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Service health
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  version:
+                    type: string
+  /scan:
+    post:
+      summary: Submit a scan
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  checksum:
+                    type: string
+        '400':
+          description: Bad request
+  /report/{id}:
+    get:
+      summary: Get report for a scan id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, sarif]
+      responses:
+        '200':
+          description: Findings
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/FindingList'
+                  - $ref: '#/components/schemas/SarifReport'
+        '404':
+          description: Not found
+
+components:
+  schemas:
+    ScanRequest:
+      type: object
+      properties:
+        bytecode_url: { type: string }
+        bytecode: { type: string }
+        storage_diff_old: { type: string, description: "Path inside zip for old version root" }
+        storage_diff_new: { type: string, description: "Path inside zip for new version root" }
+    Finding:
+      type: object
+      properties:
+        rule_id: { type: string }
+        severity: { type: string, enum: [LOW, MEDIUM, HIGH] }
+        location: { type: string }
+        snippet: { type: string }
+        remediation: { type: string }
+        rank_score: { type: number }
+    FindingList:
+      type: array
+      items: { $ref: '#/components/schemas/Finding' }
+    GasHint:
+      type: object
+      properties:
+        rule_id: { type: string, example: GAS-REDUNDANT-SLOAD }
+        severity: { type: string, enum: [LOW, MEDIUM, HIGH] }
+        func: { type: string }
+        hint: { type: string }
+        recommendation: { type: string }
+    SarifReport:
+      type: object
+      description: SARIF 2.1.0 document

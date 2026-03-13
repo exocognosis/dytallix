@@ -1,0 +1,22 @@
+{
+  "tx": {
+    "chain_id": "dytallix-testnet",
+    "nonce": 0,
+    "msgs": [
+      {
+        "type": "send",
+        "from": "dyt1pqcuser",
+        "to": "dyt1receiver",
+        "denom": "udgt",
+        "amount": 5000000
+      }
+    ],
+    "fee": 750000,
+    "memo": "PQC signature test transaction"
+  },
+  "signature": {
+    "algorithm": "dilithium5",
+    "public_key": "dilithium5_public_key_12a2b066f88aa911f8467a0721b29882",
+    "signature": "dilithium5_signature_e9dd3c9c1143fb3c03d46f6fb67de5c39bf035e5d4c96be52e87a14347be2e92"
+  }
+}

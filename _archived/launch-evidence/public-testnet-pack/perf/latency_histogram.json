@@ -1,0 +1,497 @@
+{
+  "histogram_metadata": {
+    "measurement_period": {
+      "start_time": "2025-08-28T00:00:00Z",
+      "end_time": "2025-08-29T00:00:00Z",
+      "duration_hours": 24
+    },
+    "measurement_configuration": {
+      "sampling_interval_ms": 100,
+      "bucket_count": 50,
+      "bucket_width_ms": 20,
+      "max_latency_captured_ms": 1000,
+      "outlier_threshold_ms": 5000
+    },
+    "total_measurements": 8640000,
+    "valid_measurements": 8627435,
+    "outliers_excluded": 12565
+  },
+  "api_latency_histograms": {
+    "rpc_endpoints": {
+      "/abci_query": {
+        "total_requests": 2019840,
+        "buckets": [
+          {"le": 20, "count": 145440},
+          {"le": 40, "count": 524736},
+          {"le": 60, "count": 1211904},
+          {"le": 80, "count": 1659571},
+          {"le": 100, "count": 1837833},
+          {"le": 120, "count": 1919654},
+          {"le": 140, "count": 1959673},
+          {"le": 160, "count": 1979751},
+          {"le": 180, "count": 1991838},
+          {"le": 200, "count": 1999840},
+          {"le": "+Inf", "count": 2019840}
+        ],
+        "percentiles": {
+          "p50": 56.7,
+          "p90": 134.5,
+          "p95": 167.8,
+          "p99": 289.3,
+          "p99_9": 445.6
+        },
+        "statistics": {
+          "mean": 67.4,
+          "median": 56.7,
+          "std_dev": 45.2,
+          "min": 8.3,
+          "max": 987.6
+        }
+      },
+      "/block": {
+        "total_requests": 1632960,
+        "buckets": [
+          {"le": 20, "count": 65318},
+          {"le": 40, "count": 261274},
+          {"le": 60, "count": 538214},
+          {"le": 80, "count": 815741},
+          {"le": 100, "count": 1076752},
+          {"le": 120, "count": 1273459},
+          {"le": 140, "count": 1420365},
+          {"le": 160, "count": 1534118},
+          {"le": 180, "count": 1598237},
+          {"le": 200, "count": 1625894},
+          {"le": "+Inf", "count": 1632960}
+        ],
+        "percentiles": {
+          "p50": 78.9,
+          "p90": 156.7,
+          "p95": 198.3,
+          "p99": 334.2,
+          "p99_9": 567.8
+        },
+        "statistics": {
+          "mean": 89.4,
+          "median": 78.9,
+          "std_dev": 67.3,
+          "min": 12.4,
+          "max": 1234.5
+        }
+      },
+      "/tx_search": {
+        "total_requests": 1253760,
+        "buckets": [
+          {"le": 50, "count": 62688},
+          {"le": 100, "count": 325977},
+          {"le": 150, "count": 652135},
+          {"le": 200, "count": 878312},
+          {"le": 250, "count": 1003072},
+          {"le": 300, "count": 1103830},
+          {"le": 350, "count": 1178445},
+          {"le": 400, "count": 1228294},
+          {"le": 450, "count": 1245673},
+          {"le": 500, "count": 1251506},
+          {"le": "+Inf", "count": 1253760}
+        ],
+        "percentiles": {
+          "p50": 145.6,
+          "p90": 289.3,
+          "p95": 367.8,
+          "p99": 567.4,
+          "p99_9": 789.2
+        },
+        "statistics": {
+          "mean": 167.8,
+          "median": 145.6,
+          "std_dev": 123.4,
+          "min": 23.7,
+          "max": 1567.8
+        }
+      },
+      "/validators": {
+        "total_requests": 578304,
+        "buckets": [
+          {"le": 10, "count": 115661},
+          {"le": 20, "count": 347582},
+          {"le": 30, "count": 491817},
+          {"le": 40, "count": 549543},
+          {"le": 50, "count": 567470},
+          {"le": 60, "count": 573441},
+          {"le": 70, "count": 576452},
+          {"le": 80, "count": 577682},
+          {"le": 90, "count": 578134},
+          {"le": 100, "count": 578283},
+          {"le": "+Inf", "count": 578304}
+        ],
+        "percentiles": {
+          "p50": 21.3,
+          "p90": 34.5,
+          "p95": 45.7,
+          "p99": 67.4,
+          "p99_9": 89.6
+        },
+        "statistics": {
+          "mean": 23.1,
+          "median": 21.3,
+          "std_dev": 15.6,
+          "min": 5.2,
+          "max": 156.7
+        }
+      },
+      "/status": {
+        "total_requests": 3937152,
+        "buckets": [
+          {"le": 5, "count": 787430},
+          {"le": 10, "count": 2362291},
+          {"le": 15, "count": 3346006},
+          {"le": 20, "count": 3740437},
+          {"le": 25, "count": 3858765},
+          {"le": 30, "count": 3901834},
+          {"le": 35, "count": 3921567},
+          {"le": 40, "count": 3930289},
+          {"le": 45, "count": 3934723},
+          {"le": 50, "count": 3936234},
+          {"le": "+Inf", "count": 3937152}
+        ],
+        "percentiles": {
+          "p50": 11.2,
+          "p90": 18.9,
+          "p95": 23.4,
+          "p99": 34.5,
+          "p99_9": 45.6
+        },
+        "statistics": {
+          "mean": 12.3,
+          "median": 11.2,
+          "std_dev": 8.7,
+          "min": 2.1,
+          "max": 89.3
+        }
+      },
+      "/broadcast_tx_sync": {
+        "total_requests": 1062720,
+        "buckets": [
+          {"le": 50, "count": 212544},
+          {"le": 100, "count": 649663},
+          {"le": 150, "count": 871874},
+          {"le": 200, "count": 956386},
+          {"le": 250, "count": 997042},
+          {"le": 300, "count": 1023470},
+          {"le": 350, "count": 1041654},
+          {"le": 400, "count": 1052983},
+          {"le": 450, "count": 1058746},
+          {"le": 500, "count": 1061234},
+          {"le": "+Inf", "count": 1062720}
+        ],
+        "percentiles": {
+          "p50": 98.7,
+          "p90": 198.3,
+          "p95": 234.5,
+          "p99": 389.2,
+          "p99_9": 567.8
+        },
+        "statistics": {
+          "mean": 112.4,
+          "median": 98.7,
+          "std_dev": 89.3,
+          "min": 15.6,
+          "max": 987.4
+        }
+      }
+    },
+    "rest_endpoints": {
+      "/cosmos/bank/v1beta1/balances": {
+        "total_requests": 1536768,
+        "buckets": [
+          {"le": 20, "count": 46103},
+          {"le": 40, "count": 245411},
+          {"le": 60, "count": 521539},
+          {"le": 80, "count": 798463},
+          {"le": 100, "count": 1059892},
+          {"le": 120, "count": 1260345},
+          {"le": 140, "count": 1398237},
+          {"le": 160, "count": 1491058},
+          {"le": 180, "count": 1522764},
+          {"le": 200, "count": 1535231},
+          {"le": "+Inf", "count": 1536768}
+        ],
+        "percentiles": {
+          "p50": 89.4,
+          "p90": 145.6,
+          "p95": 167.8,
+          "p99": 267.4,
+          "p99_9": 389.2
+        },
+        "statistics": {
+          "mean": 98.7,
+          "median": 89.4,
+          "std_dev": 56.7,
+          "min": 12.3,
+          "max": 567.8
+        }
+      },
+      "/cosmos/staking/v1beta1/validators": {
+        "total_requests": 1158528,
+        "buckets": [
+          {"le": 30, "count": 46341},
+          {"le": 60, "count": 231705},
+          {"le": 90, "count": 462564},
+          {"le": 120, "count": 694397},
+          {"le": 150, "count": 868237},
+          {"le": 180, "count": 973658},
+          {"le": 210, "count": 1043271},
+          {"le": 240, "count": 1089496},
+          {"le": 270, "count": 1121853},
+          {"le": 300, "count": 1145674},
+          {"le": "+Inf", "count": 1158528}
+        ],
+        "percentiles": {
+          "p50": 123.4,
+          "p90": 198.3,
+          "p95": 234.5,
+          "p99": 334.2,
+          "p99_9": 456.7
+        },
+        "statistics": {
+          "mean": 134.5,
+          "median": 123.4,
+          "std_dev": 78.9,
+          "min": 18.7,
+          "max": 789.2
+        }
+      },
+      "/cosmos/gov/v1beta1/proposals": {
+        "total_requests": 769536,
+        "buckets": [
+          {"le": 20, "count": 76954},
+          {"le": 40, "count": 246251},
+          {"le": 60, "count": 415632},
+          {"le": 80, "count": 562041},
+          {"le": 100, "count": 662347},
+          {"le": 120, "count": 715893},
+          {"le": 140, "count": 746528},
+          {"le": 160, "count": 762871},
+          {"le": 180, "count": 768294},
+          {"le": 200, "count": 769142},
+          {"le": "+Inf", "count": 769536}
+        ],
+        "percentiles": {
+          "p50": 67.4,
+          "p90": 112.3,
+          "p95": 134.5,
+          "p99": 189.3,
+          "p99_9": 267.8
+        },
+        "statistics": {
+          "mean": 75.6,
+          "median": 67.4,
+          "std_dev": 45.3,
+          "min": 9.8,
+          "max": 345.6
+        }
+      }
+    }
+  },
+  "system_latency_histograms": {
+    "database_operations": {
+      "select_queries": {
+        "total_operations": 15728640,
+        "percentiles": {
+          "p50": 2.3,
+          "p90": 8.7,
+          "p95": 15.6,
+          "p99": 34.5,
+          "p99_9": 67.4
+        },
+        "statistics": {
+          "mean": 4.7,
+          "median": 2.3,
+          "std_dev": 12.4,
+          "min": 0.8,
+          "max": 156.7
+        }
+      },
+      "insert_operations": {
+        "total_operations": 2408448,
+        "percentiles": {
+          "p50": 8.9,
+          "p90": 23.4,
+          "p95": 34.5,
+          "p99": 67.4,
+          "p99_9": 123.4
+        },
+        "statistics": {
+          "mean": 12.3,
+          "median": 8.9,
+          "std_dev": 18.7,
+          "min": 2.1,
+          "max": 234.5
+        }
+      },
+      "update_operations": {
+        "total_operations": 1205467,
+        "percentiles": {
+          "p50": 12.4,
+          "p90": 34.5,
+          "p95": 45.6,
+          "p99": 89.3,
+          "p99_9": 167.8
+        },
+        "statistics": {
+          "mean": 18.7,
+          "median": 12.4,
+          "std_dev": 23.1,
+          "min": 3.2,
+          "max": 289.3
+        }
+      }
+    },
+    "consensus_operations": {
+      "proposal_validation": {
+        "total_operations": 13935,
+        "percentiles": {
+          "p50": 45.6,
+          "p90": 123.4,
+          "p95": 167.8,
+          "p99": 289.3,
+          "p99_9": 456.7
+        },
+        "statistics": {
+          "mean": 67.4,
+          "median": 45.6,
+          "std_dev": 89.3,
+          "min": 12.3,
+          "max": 789.2
+        }
+      },
+      "vote_aggregation": {
+        "total_operations": 41805,
+        "percentiles": {
+          "p50": 23.4,
+          "p90": 67.4,
+          "p95": 89.3,
+          "p99": 156.7,
+          "p99_9": 234.5
+        },
+        "statistics": {
+          "mean": 34.5,
+          "median": 23.4,
+          "std_dev": 45.6,
+          "min": 6.7,
+          "max": 345.6
+        }
+      },
+      "block_commit": {
+        "total_operations": 13935,
+        "percentiles": {
+          "p50": 89.3,
+          "p90": 234.5,
+          "p95": 289.3,
+          "p99": 456.7,
+          "p99_9": 678.9
+        },
+        "statistics": {
+          "mean": 123.4,
+          "median": 89.3,
+          "std_dev": 134.5,
+          "min": 23.4,
+          "max": 987.6
+        }
+      }
+    }
+  },
+  "network_latency_analysis": {
+    "peer_to_peer_communication": {
+      "intra_region": {
+        "percentiles": {
+          "p50": 1.2,
+          "p90": 2.8,
+          "p95": 4.1,
+          "p99": 8.7,
+          "p99_9": 15.6
+        },
+        "statistics": {
+          "mean": 1.8,
+          "median": 1.2,
+          "std_dev": 3.4,
+          "min": 0.3,
+          "max": 23.4
+        }
+      },
+      "inter_region": {
+        "percentiles": {
+          "p50": 45.6,
+          "p90": 78.9,
+          "p95": 98.7,
+          "p99": 134.5,
+          "p99_9": 189.3
+        },
+        "statistics": {
+          "mean": 56.7,
+          "median": 45.6,
+          "std_dev": 34.5,
+          "min": 23.4,
+          "max": 234.5
+        }
+      },
+      "cross_continent": {
+        "percentiles": {
+          "p50": 156.7,
+          "p90": 234.5,
+          "p95": 289.3,
+          "p99": 378.4,
+          "p99_9": 456.7
+        },
+        "statistics": {
+          "mean": 189.3,
+          "median": 156.7,
+          "std_dev": 89.3,
+          "min": 89.3,
+          "max": 567.8
+        }
+      }
+    }
+  },
+  "performance_insights": {
+    "latency_trends": {
+      "improving_metrics": [
+        "database_select_operations",
+        "intra_region_network_latency",
+        "status_endpoint_response_time"
+      ],
+      "degrading_metrics": [
+        "tx_search_response_time",
+        "consensus_proposal_validation",
+        "cross_continent_latency"
+      ],
+      "stable_metrics": [
+        "validators_endpoint_response_time",
+        "block_commit_latency",
+        "vote_aggregation_time"
+      ]
+    },
+    "optimization_recommendations": [
+      {
+        "metric": "tx_search_response_time",
+        "current_p95_ms": 367.8,
+        "target_p95_ms": 200.0,
+        "improvement_needed": "45.6%",
+        "recommendation": "Implement database indexing and query optimization"
+      },
+      {
+        "metric": "consensus_proposal_validation",
+        "current_p95_ms": 167.8,
+        "target_p95_ms": 100.0,
+        "improvement_needed": "40.4%",
+        "recommendation": "Optimize signature verification and state validation"
+      }
+    ]
+  },
+  "data_quality_metrics": {
+    "measurement_coverage": "99.855%",
+    "outlier_rate": "0.145%",
+    "clock_drift_correction": "applied",
+    "sampling_bias": "minimal",
+    "confidence_interval": "95%"
+  }
+}

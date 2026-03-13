@@ -1,0 +1,1947 @@
+=== Dytallix Dependency Audit Consolidated Report (20250905T150014Z UTC) ===
+
+Node.js/npm audit sections
+Node version: v24.5.0
+npm version: 11.5.1
+
+--- npm audit (root) ---
+found 0 vulnerabilities
+
+--- npm audit (./explorer) ---
+found 0 vulnerabilities
+
+--- npm audit (./docs) ---
+# npm audit report
+
+webpack-dev-server  <=5.2.0
+Severity: moderate
+webpack-dev-server users' source code may be stolen when they access a malicious web site with non-Chromium based browser - https://github.com/advisories/GHSA-9jgg-88mc-972h
+webpack-dev-server users' source code may be stolen when they access a malicious web site - https://github.com/advisories/GHSA-4v9v-hfq4-rm2v
+No fix available
+node_modules/webpack-dev-server
+  @docusaurus/core  *
+  Depends on vulnerable versions of webpack-dev-server
+  node_modules/@docusaurus/core
+    @docusaurus/plugin-content-blog  *
+    Depends on vulnerable versions of @docusaurus/core
+    Depends on vulnerable versions of @docusaurus/plugin-content-docs
+    Depends on vulnerable versions of @docusaurus/theme-common
+    node_modules/@docusaurus/plugin-content-blog
+    @docusaurus/plugin-content-docs  *
+    Depends on vulnerable versions of @docusaurus/core
+    Depends on vulnerable versions of @docusaurus/theme-common
+    node_modules/@docusaurus/plugin-content-docs
+      @docusaurus/theme-common  *
+      Depends on vulnerable versions of @docusaurus/plugin-content-docs
+      node_modules/@docusaurus/theme-common
+    @docusaurus/plugin-content-pages  *
+    Depends on vulnerable versions of @docusaurus/core
+    node_modules/@docusaurus/plugin-content-pages
+    @docusaurus/plugin-css-cascade-layers  *
+    Depends on vulnerable versions of @docusaurus/core
+    node_modules/@docusaurus/plugin-css-cascade-layers
+      @docusaurus/preset-classic  *
+      Depends on vulnerable versions of @docusaurus/core
+      Depends on vulnerable versions of @docusaurus/plugin-content-blog
+      Depends on vulnerable versions of @docusaurus/plugin-content-docs
+      Depends on vulnerable versions of @docusaurus/plugin-content-pages
+      Depends on vulnerable versions of @docusaurus/plugin-css-cascade-layers
+      Depends on vulnerable versions of @docusaurus/plugin-debug
+      Depends on vulnerable versions of @docusaurus/plugin-google-analytics
+      Depends on vulnerable versions of @docusaurus/plugin-google-gtag
+      Depends on vulnerable versions of @docusaurus/plugin-google-tag-manager
+      Depends on vulnerable versions of @docusaurus/plugin-sitemap
+      Depends on vulnerable versions of @docusaurus/plugin-svgr
+      Depends on vulnerable versions of @docusaurus/theme-classic
+      Depends on vulnerable versions of @docusaurus/theme-common
+      Depends on vulnerable versions of @docusaurus/theme-search-algolia
+      node_modules/@docusaurus/preset-classic
+    @docusaurus/plugin-debug  *
+    Depends on vulnerable versions of @docusaurus/core
+    node_modules/@docusaurus/plugin-debug
+    @docusaurus/plugin-google-analytics  *
+    Depends on vulnerable versions of @docusaurus/core
+    node_modules/@docusaurus/plugin-google-analytics
+    @docusaurus/plugin-google-gtag  *
+    Depends on vulnerable versions of @docusaurus/core
+    node_modules/@docusaurus/plugin-google-gtag
+    @docusaurus/plugin-google-tag-manager  *
+    Depends on vulnerable versions of @docusaurus/core
+    node_modules/@docusaurus/plugin-google-tag-manager
+    @docusaurus/plugin-sitemap  *
+    Depends on vulnerable versions of @docusaurus/core
+    node_modules/@docusaurus/plugin-sitemap
+    @docusaurus/plugin-svgr  *
+    Depends on vulnerable versions of @docusaurus/core
+    node_modules/@docusaurus/plugin-svgr
+    @docusaurus/theme-classic  *
+    Depends on vulnerable versions of @docusaurus/core
+    Depends on vulnerable versions of @docusaurus/plugin-content-blog
+    Depends on vulnerable versions of @docusaurus/plugin-content-docs
+    Depends on vulnerable versions of @docusaurus/plugin-content-pages
+    Depends on vulnerable versions of @docusaurus/theme-common
+    node_modules/@docusaurus/theme-classic
+    @docusaurus/theme-search-algolia  *
+    Depends on vulnerable versions of @docusaurus/core
+    Depends on vulnerable versions of @docusaurus/plugin-content-docs
+    Depends on vulnerable versions of @docusaurus/theme-common
+    node_modules/@docusaurus/theme-search-algolia
+
+16 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+--- npm audit (./deployment/cosmos-contracts) ---
+found 0 vulnerabilities
+
+--- npm audit (./deployment/ethereum-contracts) ---
+found 0 vulnerabilities
+
+--- npm audit (./contracts-api) ---
+found 0 vulnerabilities
+
+--- npm audit (./faucet) ---
+found 0 vulnerabilities
+
+--- npm audit (./dytallix-lean-launch/cli/dytx) ---
+# npm audit report
+
+tmp  <=0.2.3
+tmp allows arbitrary temporary file / directory write via symbolic link `dir` parameter - https://github.com/advisories/GHSA-52f5-9888-hmc6
+fix available via `npm audit fix --force`
+Will install inquirer@12.9.4, which is a breaking change
+node_modules/tmp
+  external-editor  >=1.1.1
+  Depends on vulnerable versions of tmp
+  node_modules/external-editor
+    inquirer  3.0.0 - 8.2.6 || 9.0.0 - 9.3.7
+    Depends on vulnerable versions of external-editor
+    node_modules/inquirer
+
+3 low severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+--- npm audit (./dytallix-lean-launch) ---
+found 0 vulnerabilities
+
+--- npm audit (./dytallix-lean-launch/sdk) ---
+npm error code ENOLOCK
+npm error audit This command requires an existing lockfile.
+npm error audit Try creating one first with: npm i --package-lock-only
+npm error audit Original error: loadVirtual requires existing shrinkwrap file
+npm error A complete log of this run can be found in: /Users/rickglenn/.npm/_logs/2025-09-05T15_00_23_741Z-debug-0.log
+
+--- npm audit (./dytallix-lean-launch/services/codeguard-orchestrator) ---
+npm error code ENOLOCK
+npm error audit This command requires an existing lockfile.
+npm error audit Try creating one first with: npm i --package-lock-only
+npm error audit Original error: loadVirtual requires existing shrinkwrap file
+npm error A complete log of this run can be found in: /Users/rickglenn/.npm/_logs/2025-09-05T15_00_23_867Z-debug-0.log
+
+--- npm audit (./dytallix-lean-launch/services/pulsescan-api) ---
+npm error code ENOLOCK
+npm error audit This command requires an existing lockfile.
+npm error audit Try creating one first with: npm i --package-lock-only
+npm error audit Original error: loadVirtual requires existing shrinkwrap file
+npm error A complete log of this run can be found in: /Users/rickglenn/.npm/_logs/2025-09-05T15_00_23_991Z-debug-0.log
+
+--- npm audit (./dytallix-lean-launch/services/codeguard-worker) ---
+npm error code ENOLOCK
+npm error audit This command requires an existing lockfile.
+npm error audit Try creating one first with: npm i --package-lock-only
+npm error audit Original error: loadVirtual requires existing shrinkwrap file
+npm error A complete log of this run can be found in: /Users/rickglenn/.npm/_logs/2025-09-05T15_00_24_116Z-debug-0.log
+
+--- npm audit (./dytallix-lean-launch/services/codeguard-rules) ---
+npm error code ENOLOCK
+npm error audit This command requires an existing lockfile.
+npm error audit Try creating one first with: npm i --package-lock-only
+npm error audit Original error: loadVirtual requires existing shrinkwrap file
+npm error A complete log of this run can be found in: /Users/rickglenn/.npm/_logs/2025-09-05T15_00_24_239Z-debug-0.log
+
+--- npm audit (./faucet-api) ---
+found 0 vulnerabilities
+
+--- npm audit (./dytallix-lean-launch-3) ---
+npm error code ENOLOCK
+npm error audit This command requires an existing lockfile.
+npm error audit Try creating one first with: npm i --package-lock-only
+npm error audit Original error: loadVirtual requires existing shrinkwrap file
+npm error A complete log of this run can be found in: /Users/rickglenn/.npm/_logs/2025-09-05T15_00_24_701Z-debug-0.log
+
+--- npm audit (./dytallix-lean-launch-3/tokenomics) ---
+npm error code ENOLOCK
+npm error audit This command requires an existing lockfile.
+npm error audit Try creating one first with: npm i --package-lock-only
+npm error audit Original error: loadVirtual requires existing shrinkwrap file
+npm error A complete log of this run can be found in: /Users/rickglenn/.npm/_logs/2025-09-05T15_00_24_827Z-debug-0.log
+
+Rust cargo audit sections
+Rust toolchain: rustc 1.88.0 (6b00bc388 2025-06-23)
+Cargo version: cargo 1.88.0 (873a06493 2025-05-10)
+
+cargo-audit not installed; installing locally ...
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded cargo-audit v0.21.2
+  Installing cargo-audit v0.21.2
+    Updating crates.io index
+     Locking 373 packages to latest compatible versions
+      Adding thiserror v1.0.69 (available: v2.0.16)
+ Downloading crates ...
+  Downloaded auditable-extract v0.3.5
+  Downloaded abscissa_derive v0.8.2
+  Downloaded canonical-path v2.0.2
+  Downloaded abscissa_core v0.8.2
+  Downloaded compression-core v0.4.29
+  Downloaded unicode-bom v2.0.3
+  Downloaded binfarce v0.2.1
+  Downloaded matchers v0.2.0
+  Downloaded security-framework v3.3.0
+  Downloaded auditable-serde v0.8.0
+  Downloaded quitters v0.1.0
+  Downloaded faster-hex v0.10.0
+  Downloaded twox-hash v2.1.2
+  Downloaded filetime v0.2.26
+  Downloaded compression-codecs v0.4.30
+  Downloaded uluru v3.1.0
+  Downloaded topological-sort v0.2.2
+  Downloaded smol_str v0.3.2
+  Downloaded async-compression v0.4.30
+  Downloaded tokio-rustls v0.26.2
+  Downloaded secrecy v0.10.3
+  Downloaded rustc-stable-hash v0.1.2
+  Downloaded gix-trace v0.1.13
+  Downloaded gix-config-value v0.15.1
+  Downloaded gix-commitgraph v0.28.0
+  Downloaded gix-revwalk v0.20.1
+  Downloaded gix-command v0.6.2
+  Downloaded gix-attributes v0.26.1
+  Downloaded gix-packetline v0.19.1
+  Downloaded gix-glob v0.20.1
+  Downloaded gix-worktree-state v0.19.0
+  Downloaded gix-date v0.10.5
+  Downloaded core-foundation v0.10.1
+  Downloaded kstring v2.0.2
+  Downloaded gix-shallow v0.4.0
+  Downloaded io-close v0.3.7
+  Downloaded hash32 v0.3.1
+  Downloaded maybe-async v0.2.10
+  Downloaded quinn-udp v0.5.14
+  Downloaded gix-traverse v0.46.2
+  Downloaded gix-worktree v0.41.0
+  Downloaded gix-tempfile v17.1.0
+  Downloaded gix-quote v0.6.0
+  Downloaded gix-path v0.10.20
+  Downloaded gix-credentials v0.29.0
+  Downloaded tame-index v0.22.0
+  Downloaded nu-ansi-term v0.50.1
+  Downloaded cargo-lock v10.1.0
+  Downloaded gix-pathspec v0.11.0
+  Downloaded gix-filter v0.19.2
+  Downloaded gix-features v0.42.1
+  Downloaded fs-err v2.11.0
+  Downloaded toml-span v0.5.2
+  Downloaded log v0.4.28
+  Downloaded tower-http v0.6.6
+  Downloaded gix-protocol v0.50.1
+  Downloaded gix-diff v0.52.1
+  Downloaded clap v4.5.47
+  Downloaded rustsec v0.30.4
+  Downloaded quinn v0.11.9
+  Downloaded tracing-subscriber v0.3.20
+  Downloaded iri-string v0.7.8
+  Downloaded zlib-rs v0.5.2
+  Downloaded reqwest v0.12.23
+  Downloaded clap_builder v4.5.47
+  Downloaded h2 v0.4.12
+  Downloaded wasmparser v0.207.0
+  Downloaded quinn-proto v0.11.13
+  Downloaded gix-pack v0.59.1
+  Downloaded prodash v29.0.2
+  Downloaded gix v0.72.1
+  Downloaded gix-transport v0.47.0
+  Downloaded gix-ref v0.52.1
+  Downloaded gix-config v0.45.1
+  Downloaded rustls v0.23.31
+  Downloaded crossbeam-channel v0.5.15
+  Downloaded cc v1.2.36
+  Downloaded owo-colors v4.2.2
+  Downloaded heapless v0.8.0
+  Downloaded gix-odb v0.69.1
+  Downloaded cvss v2.1.1
+  Downloaded rustls-native-certs v0.8.1
+  Downloaded libz-rs-sys v0.5.2
+  Downloaded auditable-info v0.9.0
+  Downloaded platforms v3.6.0
+  Downloaded gix-revision v0.34.1
+  Downloaded gix-object v0.49.1
+  Downloaded gix-index v0.40.1
+  Downloaded hyper-rustls v0.27.7
+  Downloaded clap_derive v4.5.47
+  Downloaded gix-hashtable v0.8.1
+  Downloaded gix-discover v0.40.1
+  Downloaded find-msvc-tools v0.1.1
+  Downloaded gix-actor v0.35.4
+  Downloaded sha1-checked v0.10.0
+  Downloaded color-eyre v0.6.5
+  Downloaded gix-chunk v0.4.11
+  Downloaded gix-bitmap v0.2.14
+  Downloaded gix-validate v0.10.0
+  Downloaded gix-utils v0.3.0
+  Downloaded gix-url v0.31.0
+  Downloaded gix-submodule v0.19.1
+  Downloaded gix-sec v0.11.0
+  Downloaded gix-refspec v0.30.1
+  Downloaded gix-prompt v0.11.1
+  Downloaded gix-packetline-blocking v0.19.1
+  Downloaded gix-negotiate v0.20.1
+  Downloaded gix-lock v17.1.0
+  Downloaded gix-ignore v0.15.0
+  Downloaded gix-hash v0.18.0
+  Downloaded gix-fs v0.15.0
+  Downloaded fs-err v3.1.1
+  Downloaded display-error-chain v0.2.2
+  Downloaded clru v0.6.2
+   Compiling proc-macro2 v1.0.101
+   Compiling unicode-ident v1.0.18
+   Compiling libc v0.2.175
+   Compiling memchr v2.7.5
+   Compiling cfg-if v1.0.3
+   Compiling once_cell v1.21.3
+   Compiling smallvec v1.15.1
+   Compiling serde v1.0.219
+   Compiling regex-syntax v0.8.6
+   Compiling bytes v1.10.1
+   Compiling thiserror v2.0.16
+   Compiling autocfg v1.5.0
+   Compiling aho-corasick v1.1.3
+   Compiling stable_deref_trait v1.2.0
+   Compiling adler2 v2.0.1
+   Compiling miniz_oxide v0.8.9
+   Compiling tinyvec_macros v0.1.1
+   Compiling crossbeam-utils v0.8.21
+   Compiling tinyvec v1.10.0
+   Compiling bitflags v2.9.4
+   Compiling regex-automata v0.4.10
+   Compiling fastrand v2.3.0
+   Compiling gix-trace v0.1.13
+   Compiling quote v1.0.40
+   Compiling crc32fast v1.5.0
+   Compiling syn v2.0.106
+   Compiling unicode-normalization v0.1.24
+   Compiling lock_api v0.4.13
+   Compiling log v0.4.28
+   Compiling zlib-rs v0.5.2
+   Compiling parking_lot_core v0.9.11
+   Compiling gix-utils v0.3.0
+   Compiling home v0.5.11
+   Compiling scopeguard v1.2.0
+   Compiling parking_lot v0.12.4
+   Compiling version_check v0.9.5
+   Compiling same-file v1.0.6
+   Compiling itoa v1.0.15
+   Compiling walkdir v2.5.0
+   Compiling prodash v29.0.2
+   Compiling crossbeam-channel v0.5.15
+   Compiling bstr v1.12.0
+   Compiling typenum v1.18.0
+   Compiling libz-rs-sys v0.5.2
+   Compiling flate2 v1.1.2
+   Compiling generic-array v0.14.7
+   Compiling heapless v0.8.0
+   Compiling byteorder v1.5.0
+   Compiling hash32 v0.3.1
+   Compiling cpufeatures v0.2.17
+   Compiling synstructure v0.13.2
+   Compiling serde_derive v1.0.219
+   Compiling thiserror-impl v2.0.16
+   Compiling winnow v0.7.13
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.6
+   Compiling digest v0.10.7
+   Compiling zerocopy v0.8.26
+   Compiling sha1 v0.10.6
+   Compiling sha1-checked v0.10.0
+   Compiling ahash v0.8.12
+   Compiling zerofrom-derive v0.1.6
+   Compiling gix-validate v0.10.0
+   Compiling yoke-derive v0.8.0
+   Compiling gix-path v0.10.20
+   Compiling gix-features v0.42.1
+   Compiling allocator-api2 v0.2.21
+   Compiling zerofrom v0.1.6
+   Compiling jiff v0.2.15
+   Compiling rustix v1.0.8
+   Compiling hashbrown v0.14.5
+   Compiling zerovec-derive v0.11.1
+   Compiling yoke v0.8.0
+   Compiling errno v0.3.13
+   Compiling pin-project-lite v0.2.16
+   Compiling displaydoc v0.2.5
+   Compiling memmap2 v0.9.8
+   Compiling getrandom v0.3.3
+   Compiling zerovec v0.11.4
+   Compiling futures-core v0.3.31
+   Compiling litemap v0.8.0
+   Compiling writeable v0.6.1
+   Compiling fnv v1.0.7
+   Compiling zerotrie v0.2.2
+   Compiling gix-fs v0.15.0
+   Compiling tempfile v3.21.0
+   Compiling gix-chunk v0.4.11
+   Compiling tinystr v0.8.1
+   Compiling potential_utf v0.1.3
+   Compiling socket2 v0.6.0
+   Compiling mio v1.0.4
+   Compiling icu_locale_core v2.0.0
+   Compiling faster-hex v0.10.0
+   Compiling gix-hash v0.18.0
+   Compiling icu_normalizer_data v2.0.0
+   Compiling gix-hashtable v0.8.1
+   Compiling hashbrown v0.15.5
+   Compiling equivalent v1.0.2
+   Compiling icu_properties_data v2.0.1
+   Compiling icu_provider v2.0.0
+   Compiling tokio v1.47.1
+   Compiling icu_collections v2.0.0
+   Compiling gix-tempfile v17.1.0
+   Compiling gix-quote v0.6.0
+   Compiling gix-date v0.10.5
+   Compiling gix-actor v0.35.4
+   Compiling gix-object v0.49.1
+   Compiling indexmap v2.11.0
+   Compiling find-msvc-tools v0.1.1
+   Compiling shlex v1.3.0
+   Compiling futures-sink v0.3.31
+   Compiling core-foundation-sys v0.8.7
+   Compiling percent-encoding v2.3.2
+   Compiling cc v1.2.36
+   Compiling tracing-core v0.1.34
+   Compiling zeroize v1.8.1
+   Compiling icu_normalizer v2.0.0
+   Compiling icu_properties v2.0.1
+   Compiling gix-commitgraph v0.28.0
+   Compiling ring v0.17.14
+   Compiling http v1.3.1
+   Compiling tracing-attributes v0.1.30
+   Compiling slab v0.4.11
+   Compiling idna_adapter v1.2.1
+   Compiling gix-revwalk v0.20.1
+   Compiling tracing v0.1.41
+   Compiling form_urlencoded v1.2.2
+   Compiling gix-lock v17.1.0
+   Compiling utf8_iter v1.0.4
+   Compiling pin-utils v0.1.0
+   Compiling idna v1.1.0
+   Compiling http-body v1.0.1
+   Compiling rustls-pki-types v1.12.0
+   Compiling gix-glob v0.20.1
+   Compiling getrandom v0.2.16
+   Compiling untrusted v0.9.0
+   Compiling system-configuration-sys v0.6.0
+   Compiling httparse v1.10.1
+   Compiling futures-task v0.3.31
+   Compiling futures-io v0.3.31
+   Compiling unicode-bom v2.0.3
+   Compiling futures-util v0.3.31
+   Compiling url v2.5.7
+   Compiling tokio-util v0.7.16
+   Compiling gix-config-value v0.15.1
+   Compiling atomic-waker v1.1.2
+   Compiling static_assertions v1.1.0
+   Compiling shell-words v1.1.0
+   Compiling try-lock v0.2.5
+   Compiling rustls v0.23.31
+   Compiling tower-service v0.3.3
+   Compiling ryu v1.0.20
+   Compiling want v0.3.1
+   Compiling gix-command v0.6.2
+   Compiling kstring v2.0.2
+   Compiling h2 v0.4.12
+   Compiling core-foundation v0.9.4
+   Compiling security-framework-sys v2.14.0
+   Compiling core-foundation v0.10.1
+   Compiling futures-channel v0.3.31
+   Compiling gix-sec v0.11.0
+   Compiling semver v1.0.26
+   Compiling subtle v2.6.1
+   Compiling security-framework v3.3.0
+   Compiling system-configuration v0.6.1
+   Compiling gix-attributes v0.26.1
+   Compiling sync_wrapper v1.0.2
+   Compiling encoding_rs v0.8.35
+   Compiling ipnet v2.11.0
+   Compiling rustls-webpki v0.103.4
+   Compiling tower-layer v0.3.3
+   Compiling compression-core v0.4.29
+   Compiling base64 v0.22.1
+   Compiling hyper v1.7.0
+   Compiling rustls-native-certs v0.8.1
+   Compiling hyper-util v0.1.16
+   Compiling compression-codecs v0.4.30
+   Compiling tower v0.5.2
+   Compiling gix-url v0.31.0
+   Compiling gix-ref v0.52.1
+   Compiling iri-string v0.7.8
+   Compiling async-compression v0.4.30
+   Compiling tokio-rustls v0.26.2
+   Compiling hyper-rustls v0.27.7
+   Compiling gix-prompt v0.11.1
+   Compiling serde_urlencoded v0.7.1
+   Compiling tower-http v0.6.6
+   Compiling http-body-util v0.1.3
+   Compiling gix-revision v0.34.1
+   Compiling gix-traverse v0.46.2
+   Compiling gix-bitmap v0.2.14
+   Compiling filetime v0.2.26
+   Compiling mime v0.3.17
+   Compiling serde_json v1.0.143
+   Compiling arrayvec v0.7.6
+   Compiling reqwest v0.12.23
+   Compiling gix-index v0.40.1
+   Compiling uluru v3.1.0
+   Compiling gix-refspec v0.30.1
+   Compiling gix-credentials v0.29.0
+   Compiling gix-ignore v0.15.0
+   Compiling gix-packetline-blocking v0.19.1
+   Compiling gix-packetline v0.19.1
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling crossbeam-epoch v0.9.18
+   Compiling rayon-core v1.13.0
+   Compiling toml_write v0.1.2
+   Compiling object v0.36.7
+   Compiling clru v0.6.2
+   Compiling utf8parse v0.2.2
+   Compiling arc-swap v1.7.1
+   Compiling syn v1.0.109
+   Compiling gix-pack v0.59.1
+   Compiling anstyle-parse v0.2.7
+   Compiling toml_edit v0.22.27
+   Compiling crossbeam-deque v0.8.6
+   Compiling gix-transport v0.47.0
+   Compiling gix-filter v0.19.2
+   Compiling gix-worktree v0.41.0
+   Compiling gix-config v0.45.1
+   Compiling gix-pathspec v0.11.0
+   Compiling gix-shallow v0.4.0
+   Compiling gix-negotiate v0.20.1
+   Compiling maybe-async v0.2.10
+   Compiling io-close v0.3.7
+   Compiling is_terminal_polyfill v1.70.1
+   Compiling anstyle v1.0.11
+   Compiling colorchoice v1.0.4
+   Compiling camino v1.1.12
+   Compiling owo-colors v4.2.2
+   Compiling eyre v0.6.12
+   Compiling gimli v0.31.1
+   Compiling anstyle-query v1.1.4
+   Compiling anstream v0.6.20
+   Compiling gix-protocol v0.50.1
+   Compiling gix-worktree-state v0.19.0
+   Compiling gix-submodule v0.19.1
+   Compiling addr2line v0.24.2
+   Compiling toml v0.8.23
+   Compiling gix-odb v0.69.1
+   Compiling gix-discover v0.40.1
+   Compiling gix-diff v0.52.1
+   Compiling regex v1.11.2
+   Compiling wasmparser v0.207.0
+   Compiling fs-err v2.11.0
+   Compiling fs-err v3.1.1
+   Compiling powerfmt v0.2.0
+   Compiling lazy_static v1.5.0
+   Compiling fixedbitset v0.4.2
+   Compiling rustc-demangle v0.1.26
+   Compiling clap_lex v0.7.5
+   Compiling unicode-xid v0.2.6
+   Compiling indenter v0.3.4
+   Compiling heck v0.5.0
+   Compiling binfarce v0.2.1
+   Compiling topological-sort v0.2.2
+   Compiling either v1.15.0
+   Compiling strsim v0.11.1
+   Compiling rayon v1.11.0
+   Compiling clap_builder v4.5.47
+   Compiling auditable-extract v0.3.5
+   Compiling auditable-serde v0.8.0
+   Compiling clap_derive v4.5.47
+   Compiling backtrace v0.3.75
+   Compiling synstructure v0.12.6
+   Compiling petgraph v0.6.5
+   Compiling deranged v0.5.3
+   Compiling sharded-slab v0.1.7
+   Compiling gix v0.72.1
+   Compiling tracing-log v0.2.0
+   Compiling smol_str v0.3.2
+   Compiling matchers v0.2.0
+   Compiling toml-span v0.5.2
+   Compiling thread_local v1.1.9
+   Compiling num-conv v0.1.0
+   Compiling rustc-stable-hash v0.1.2
+   Compiling twox-hash v2.1.2
+   Compiling time-core v0.1.6
+   Compiling nu-ansi-term v0.50.1
+   Compiling thiserror v1.0.69
+   Compiling ident_case v1.0.1
+   Compiling abscissa_derive v0.8.2
+   Compiling tracing-subscriber v0.3.20
+   Compiling time v0.3.43
+   Compiling color-eyre v0.6.5
+   Compiling cargo-lock v10.1.0
+   Compiling tame-index v0.22.0
+   Compiling clap v4.5.47
+   Compiling auditable-info v0.9.0
+   Compiling quitters v0.1.0
+   Compiling secrecy v0.10.3
+   Compiling cvss v2.1.1
+   Compiling platforms v3.6.0
+   Compiling thiserror-impl v1.0.69
+   Compiling wait-timeout v0.2.1
+   Compiling canonical-path v2.0.2
+   Compiling termcolor v1.4.1
+   Compiling abscissa_core v0.8.2
+   Compiling rustsec v0.30.4
+   Compiling display-error-chain v0.2.2
+   Compiling cargo-audit v0.21.2
+    Finished `release` profile [optimized] target(s) in 1m 06s
+  Installing /Users/rickglenn/.cargo/bin/cargo-audit
+   Installed package `cargo-audit v0.21.2` (executable `cargo-audit`)
+--- cargo audit (workspace root after install) ---
+[0m[0m[1m[32m    Fetching[0m advisory database from `https://github.com/RustSec/advisory-db.git`
+[0m[0m[1m[32m      Loaded[0m 803 security advisories (from /Users/rickglenn/.cargo/advisory-db)
+[0m[0m[1m[32m    Updating[0m crates.io index
+[0m[0m[1m[32m    Scanning[0m Cargo.lock for vulnerabilities (1209 crate dependencies)
+[0m[0m[1m[31mCrate:    [0m curve25519-dalek
+[0m[0m[1m[31mVersion:  [0m 2.1.3
+[0m[0m[1m[31mTitle:    [0m Timing variability in `curve25519-dalek`'s `Scalar29::sub`/`Scalar52::sub`
+[0m[0m[1m[31mDate:     [0m 2024-06-18
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0344
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0344
+[0m[0m[1m[31mSolution: [0m Upgrade to >=4.1.3
+[0m[0m[1m[31mDependency tree:
+[0mcurve25519-dalek 2.1.3
+└── schnorrkel 0.9.1
+    ├── sp-core 21.0.0
+    │   ├── subxt 0.32.1
+    │   │   └── dytallix-interoperability 0.9.3
+    │   │       ├── dytallix-pqc 0.1.0
+    │   │       │   ├── dytallix-sdk 0.1.0
+    │   │       │   ├── dytallix-node 0.1.0
+    │   │       │   │   ├── dytallix-lean-node 0.1.0
+    │   │       │   │   └── dytallix 0.1.0
+    │   │       │   ├── dytallix-lean-node 0.1.0
+    │   │       │   ├── dytallix-interoperability 0.9.3
+    │   │       │   ├── dytallix-cli 0.1.0
+    │   │       │   └── dytallix 0.1.0
+    │   │       └── dytallix 0.1.0
+    │   ├── sp-weights 20.0.0
+    │   │   └── sp-runtime 24.0.0
+    │   │       ├── subxt 0.32.1
+    │   │       └── dytallix-interoperability 0.9.3
+    │   ├── sp-trie 22.0.0
+    │   │   ├── sp-state-machine 0.28.0
+    │   │   │   └── sp-io 23.0.0
+    │   │   │       ├── sp-runtime 24.0.0
+    │   │   │       └── sp-application-crypto 23.0.0
+    │   │   │           └── sp-runtime 24.0.0
+    │   │   └── sp-io 23.0.0
+    │   ├── sp-state-machine 0.28.0
+    │   ├── sp-runtime 24.0.0
+    │   ├── sp-keystore 0.27.0
+    │   │   └── sp-io 23.0.0
+    │   ├── sp-io 23.0.0
+    │   └── sp-application-crypto 23.0.0
+    └── sp-core 20.0.0
+        └── dytallix-interoperability 0.9.3
+
+[0m[0m[1m[31mCrate:    [0m curve25519-dalek
+[0m[0m[1m[31mVersion:  [0m 3.2.0
+[0m[0m[1m[31mTitle:    [0m Timing variability in `curve25519-dalek`'s `Scalar29::sub`/`Scalar52::sub`
+[0m[0m[1m[31mDate:     [0m 2024-06-18
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0344
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0344
+[0m[0m[1m[31mSolution: [0m Upgrade to >=4.1.3
+[0m[0m[1m[31mDependency tree:
+[0mcurve25519-dalek 3.2.0
+├── ed25519-zebra 3.1.0
+│   ├── sp-core 21.0.0
+│   │   ├── subxt 0.32.1
+│   │   │   └── dytallix-interoperability 0.9.3
+│   │   │       ├── dytallix-pqc 0.1.0
+│   │   │       │   ├── dytallix-sdk 0.1.0
+│   │   │       │   ├── dytallix-node 0.1.0
+│   │   │       │   │   ├── dytallix-lean-node 0.1.0
+│   │   │       │   │   └── dytallix 0.1.0
+│   │   │       │   ├── dytallix-lean-node 0.1.0
+│   │   │       │   ├── dytallix-interoperability 0.9.3
+│   │   │       │   ├── dytallix-cli 0.1.0
+│   │   │       │   └── dytallix 0.1.0
+│   │   │       └── dytallix 0.1.0
+│   │   ├── sp-weights 20.0.0
+│   │   │   └── sp-runtime 24.0.0
+│   │   │       ├── subxt 0.32.1
+│   │   │       └── dytallix-interoperability 0.9.3
+│   │   ├── sp-trie 22.0.0
+│   │   │   ├── sp-state-machine 0.28.0
+│   │   │   │   └── sp-io 23.0.0
+│   │   │   │       ├── sp-runtime 24.0.0
+│   │   │   │       └── sp-application-crypto 23.0.0
+│   │   │   │           └── sp-runtime 24.0.0
+│   │   │   └── sp-io 23.0.0
+│   │   ├── sp-state-machine 0.28.0
+│   │   ├── sp-runtime 24.0.0
+│   │   ├── sp-keystore 0.27.0
+│   │   │   └── sp-io 23.0.0
+│   │   ├── sp-io 23.0.0
+│   │   └── sp-application-crypto 23.0.0
+│   ├── sp-core 20.0.0
+│   │   └── dytallix-interoperability 0.9.3
+│   ├── smoldot 0.8.0
+│   │   └── smoldot-light 0.6.0
+│   │       └── subxt-lightclient 0.32.1
+│   │           └── subxt 0.32.1
+│   └── cosmwasm-crypto 1.5.11
+│       └── cosmwasm-std 1.5.11
+│           ├── dytallix-contracts 0.1.0
+│           │   ├── dytallix-node 0.1.0
+│           │   ├── dytallix-governance 0.1.0
+│           │   └── dytallix 0.1.0
+│           └── cw-storage-plus 1.2.0
+│               └── dytallix-contracts 0.1.0
+└── ed25519-dalek 1.0.1
+    ├── sp-io 23.0.0
+    ├── dytallix-node 0.1.0
+    └── dytallix-lean-node 0.1.0
+
+[0m[0m[1m[31mCrate:    [0m ed25519-dalek
+[0m[0m[1m[31mVersion:  [0m 1.0.1
+[0m[0m[1m[31mTitle:    [0m Double Public Key Signing Function Oracle Attack on `ed25519-dalek`
+[0m[0m[1m[31mDate:     [0m 2022-06-11
+[0m[0m[1m[31mID:       [0m RUSTSEC-2022-0093
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2022-0093
+[0m[0m[1m[31mSolution: [0m Upgrade to >=2
+[0m[0m[1m[31mDependency tree:
+[0med25519-dalek 1.0.1
+├── sp-io 23.0.0
+│   ├── sp-runtime 24.0.0
+│   │   ├── subxt 0.32.1
+│   │   │   └── dytallix-interoperability 0.9.3
+│   │   │       ├── dytallix-pqc 0.1.0
+│   │   │       │   ├── dytallix-sdk 0.1.0
+│   │   │       │   ├── dytallix-node 0.1.0
+│   │   │       │   │   ├── dytallix-lean-node 0.1.0
+│   │   │       │   │   └── dytallix 0.1.0
+│   │   │       │   ├── dytallix-lean-node 0.1.0
+│   │   │       │   ├── dytallix-interoperability 0.9.3
+│   │   │       │   ├── dytallix-cli 0.1.0
+│   │   │       │   └── dytallix 0.1.0
+│   │   │       └── dytallix 0.1.0
+│   │   └── dytallix-interoperability 0.9.3
+│   └── sp-application-crypto 23.0.0
+│       └── sp-runtime 24.0.0
+├── dytallix-node 0.1.0
+└── dytallix-lean-node 0.1.0
+
+[0m[0m[1m[31mCrate:    [0m idna
+[0m[0m[1m[31mVersion:  [0m 0.2.3
+[0m[0m[1m[31mTitle:    [0m `idna` accepts Punycode labels that do not produce any non-ASCII when decoded
+[0m[0m[1m[31mDate:     [0m 2024-12-09
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0421
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0421
+[0m[0m[1m[31mSolution: [0m Upgrade to >=1.0.0
+[0m[0m[1m[31mDependency tree:
+[0midna 0.2.3
+└── trust-dns-proto 0.22.0
+    └── libp2p-mdns 0.44.0
+        └── libp2p 0.52.4
+            └── dytallix-node 0.1.0
+                ├── dytallix-lean-node 0.1.0
+                └── dytallix 0.1.0
+
+[0m[0m[1m[31mCrate:    [0m idna
+[0m[0m[1m[31mVersion:  [0m 0.4.0
+[0m[0m[1m[31mTitle:    [0m `idna` accepts Punycode labels that do not produce any non-ASCII when decoded
+[0m[0m[1m[31mDate:     [0m 2024-12-09
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0421
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0421
+[0m[0m[1m[31mSolution: [0m Upgrade to >=1.0.0
+[0m[0m[1m[31mDependency tree:
+[0midna 0.4.0
+└── trust-dns-proto 0.23.2
+    └── trust-dns-resolver 0.23.2
+        └── libp2p-dns 0.40.1
+            └── libp2p 0.52.4
+                └── dytallix-node 0.1.0
+                    ├── dytallix-lean-node 0.1.0
+                    └── dytallix 0.1.0
+
+[0m[0m[1m[31mCrate:    [0m protobuf
+[0m[0m[1m[31mVersion:  [0m 2.28.0
+[0m[0m[1m[31mTitle:    [0m Crash due to uncontrolled recursion in protobuf crate
+[0m[0m[1m[31mDate:     [0m 2024-12-12
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0437
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0437
+[0m[0m[1m[31mSolution: [0m Upgrade to >=3.7.2
+[0m[0m[1m[31mDependency tree:
+[0mprotobuf 2.28.0
+└── prometheus 0.13.4
+    ├── metrics-prometheus 0.6.0
+    │   └── dytallix-interoperability 0.9.3
+    │       ├── dytallix-pqc 0.1.0
+    │       │   ├── dytallix-sdk 0.1.0
+    │       │   ├── dytallix-node 0.1.0
+    │       │   │   ├── dytallix-lean-node 0.1.0
+    │       │   │   └── dytallix 0.1.0
+    │       │   ├── dytallix-lean-node 0.1.0
+    │       │   ├── dytallix-interoperability 0.9.3
+    │       │   ├── dytallix-cli 0.1.0
+    │       │   └── dytallix 0.1.0
+    │       └── dytallix 0.1.0
+    ├── dytallix-lean-node 0.1.0
+    └── dytallix-interoperability 0.9.3
+
+[0m[0m[1m[31mCrate:    [0m ring
+[0m[0m[1m[31mVersion:  [0m 0.16.20
+[0m[0m[1m[31mTitle:    [0m Some AES functions may panic when overflow checking is enabled.
+[0m[0m[1m[31mDate:     [0m 2025-03-06
+[0m[0m[1m[31mID:       [0m RUSTSEC-2025-0009
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2025-0009
+[0m[0m[1m[31mSolution: [0m Upgrade to >=0.17.12
+[0m[0m[1m[31mDependency tree:
+[0mring 0.16.20
+├── webpki 0.21.4
+│   ├── webpki-roots 0.21.1
+│   │   └── hyper-rustls 0.22.1
+│   │       ├── tendermint-rpc 0.33.2
+│   │       │   └── dytallix-interoperability 0.9.3
+│   │       │       ├── dytallix-pqc 0.1.0
+│   │       │       │   ├── dytallix-sdk 0.1.0
+│   │       │       │   ├── dytallix-node 0.1.0
+│   │       │       │   │   ├── dytallix-lean-node 0.1.0
+│   │       │       │   │   └── dytallix 0.1.0
+│   │       │       │   ├── dytallix-lean-node 0.1.0
+│   │       │       │   ├── dytallix-interoperability 0.9.3
+│   │       │       │   ├── dytallix-cli 0.1.0
+│   │       │       │   └── dytallix 0.1.0
+│   │       │       └── dytallix 0.1.0
+│   │       ├── tendermint-rpc 0.32.2
+│   │       │   └── cosmrs 0.14.0
+│   │       │       └── dytallix-interoperability 0.9.3
+│   │       └── hyper-proxy 0.9.1
+│   │           ├── tendermint-rpc 0.33.2
+│   │           └── tendermint-rpc 0.32.2
+│   ├── tokio-rustls 0.22.0
+│   │   ├── hyper-rustls 0.22.1
+│   │   └── hyper-proxy 0.9.1
+│   ├── rustls 0.19.1
+│   │   ├── tokio-rustls 0.22.0
+│   │   ├── rustls-native-certs 0.5.0
+│   │   │   ├── hyper-rustls 0.22.1
+│   │   │   └── hyper-proxy 0.9.1
+│   │   └── hyper-rustls 0.22.1
+│   ├── hyper-rustls 0.22.1
+│   └── hyper-proxy 0.9.1
+├── sct 0.6.1
+│   ├── rustls 0.19.1
+│   └── ct-logs 0.8.0
+│       └── hyper-rustls 0.22.1
+├── rustls 0.20.9
+│   ├── tungstenite 0.18.0
+│   │   └── async-tungstenite 0.20.0
+│   │       └── tendermint-rpc 0.33.2
+│   └── tokio-rustls 0.23.4
+│       └── async-tungstenite 0.20.0
+├── rustls 0.19.1
+├── rcgen 0.10.0
+│   └── libp2p-tls 0.2.1
+│       └── libp2p-quic 0.9.3
+│           └── libp2p 0.52.4
+│               └── dytallix-node 0.1.0
+├── quinn-proto 0.10.6
+│   └── quinn 0.10.2
+│       └── libp2p-quic 0.9.3
+├── libp2p-tls 0.2.1
+├── libp2p-quic 0.9.3
+└── jsonwebtoken 8.3.0
+    └── ethers-providers 2.0.14
+        ├── ethers-middleware 2.0.14
+        │   └── ethers 2.0.14
+        │       └── dytallix-interoperability 0.9.3
+        ├── ethers-contract 2.0.14
+        │   ├── ethers-middleware 2.0.14
+        │   ├── ethers 2.0.14
+        │   └── dytallix-interoperability 0.9.3
+        └── ethers 2.0.14
+
+[0m[0m[1m[31mCrate:    [0m rsa
+[0m[0m[1m[31mVersion:  [0m 0.9.8
+[0m[0m[1m[31mTitle:    [0m Marvin Attack: potential key recovery through timing sidechannels
+[0m[0m[1m[31mDate:     [0m 2023-11-22
+[0m[0m[1m[31mID:       [0m RUSTSEC-2023-0071
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2023-0071
+[0m[0m[1m[31mSeverity: [0m 5.9 (medium)
+[0m[0m[1m[31mSolution: [0m No fixed upgrade is available!
+[0m[0m[1m[31mDependency tree:
+[0mrsa 0.9.8
+└── sqlx-mysql 0.7.2
+    ├── sqlx-macros-core 0.7.2
+    │   └── sqlx-macros 0.7.2
+    │       └── sqlx 0.7.2
+    │           ├── sea-query-binder 0.5.0
+    │           │   └── sea-orm 0.12.15
+    │           │       └── dytallix-interoperability 0.9.3
+    │           │           ├── dytallix-pqc 0.1.0
+    │           │           │   ├── dytallix-sdk 0.1.0
+    │           │           │   ├── dytallix-node 0.1.0
+    │           │           │   │   ├── dytallix-lean-node 0.1.0
+    │           │           │   │   └── dytallix 0.1.0
+    │           │           │   ├── dytallix-lean-node 0.1.0
+    │           │           │   ├── dytallix-interoperability 0.9.3
+    │           │           │   ├── dytallix-cli 0.1.0
+    │           │           │   └── dytallix 0.1.0
+    │           │           └── dytallix 0.1.0
+    │           ├── sea-orm 0.12.15
+    │           └── dytallix-interoperability 0.9.3
+    └── sqlx 0.7.2
+
+[0m[0m[1m[31mCrate:    [0m rustls
+[0m[0m[1m[31mVersion:  [0m 0.19.1
+[0m[0m[1m[31mTitle:    [0m `rustls::ConnectionCommon::complete_io` could fall into an infinite loop based on network input
+[0m[0m[1m[31mDate:     [0m 2024-04-19
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0336
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0336
+[0m[0m[1m[31mSeverity: [0m 7.5 (high)
+[0m[0m[1m[31mSolution: [0m Upgrade to >=0.23.5 OR >=0.22.4, <0.23.0 OR >=0.21.11, <0.22.0
+[0m[0m[1m[31mDependency tree:
+[0mrustls 0.19.1
+├── tokio-rustls 0.22.0
+│   ├── hyper-rustls 0.22.1
+│   │   ├── tendermint-rpc 0.33.2
+│   │   │   └── dytallix-interoperability 0.9.3
+│   │   │       ├── dytallix-pqc 0.1.0
+│   │   │       │   ├── dytallix-sdk 0.1.0
+│   │   │       │   ├── dytallix-node 0.1.0
+│   │   │       │   │   ├── dytallix-lean-node 0.1.0
+│   │   │       │   │   └── dytallix 0.1.0
+│   │   │       │   ├── dytallix-lean-node 0.1.0
+│   │   │       │   ├── dytallix-interoperability 0.9.3
+│   │   │       │   ├── dytallix-cli 0.1.0
+│   │   │       │   └── dytallix 0.1.0
+│   │   │       └── dytallix 0.1.0
+│   │   ├── tendermint-rpc 0.32.2
+│   │   │   └── cosmrs 0.14.0
+│   │   │       └── dytallix-interoperability 0.9.3
+│   │   └── hyper-proxy 0.9.1
+│   │       ├── tendermint-rpc 0.33.2
+│   │       └── tendermint-rpc 0.32.2
+│   └── hyper-proxy 0.9.1
+├── rustls-native-certs 0.5.0
+│   ├── hyper-rustls 0.22.1
+│   └── hyper-proxy 0.9.1
+└── hyper-rustls 0.22.1
+
+[0m[0m[1m[31mCrate:    [0m rustls
+[0m[0m[1m[31mVersion:  [0m 0.20.9
+[0m[0m[1m[31mTitle:    [0m `rustls::ConnectionCommon::complete_io` could fall into an infinite loop based on network input
+[0m[0m[1m[31mDate:     [0m 2024-04-19
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0336
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0336
+[0m[0m[1m[31mSeverity: [0m 7.5 (high)
+[0m[0m[1m[31mSolution: [0m Upgrade to >=0.23.5 OR >=0.22.4, <0.23.0 OR >=0.21.11, <0.22.0
+[0m[0m[1m[31mDependency tree:
+[0mrustls 0.20.9
+├── tungstenite 0.18.0
+│   └── async-tungstenite 0.20.0
+│       └── tendermint-rpc 0.33.2
+│           └── dytallix-interoperability 0.9.3
+│               ├── dytallix-pqc 0.1.0
+│               │   ├── dytallix-sdk 0.1.0
+│               │   ├── dytallix-node 0.1.0
+│               │   │   ├── dytallix-lean-node 0.1.0
+│               │   │   └── dytallix 0.1.0
+│               │   ├── dytallix-lean-node 0.1.0
+│               │   ├── dytallix-interoperability 0.9.3
+│               │   ├── dytallix-cli 0.1.0
+│               │   └── dytallix 0.1.0
+│               └── dytallix 0.1.0
+└── tokio-rustls 0.23.4
+    └── async-tungstenite 0.20.0
+
+[0m[0m[1m[31mCrate:    [0m sqlx
+[0m[0m[1m[31mVersion:  [0m 0.7.2
+[0m[0m[1m[31mTitle:    [0m Binary Protocol Misinterpretation caused by Truncating or Overflowing Casts
+[0m[0m[1m[31mDate:     [0m 2024-08-15
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0363
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0363
+[0m[0m[1m[31mSolution: [0m Upgrade to >=0.8.1
+[0m[0m[1m[31mDependency tree:
+[0msqlx 0.7.2
+├── sea-query-binder 0.5.0
+│   └── sea-orm 0.12.15
+│       └── dytallix-interoperability 0.9.3
+│           ├── dytallix-pqc 0.1.0
+│           │   ├── dytallix-sdk 0.1.0
+│           │   ├── dytallix-node 0.1.0
+│           │   │   ├── dytallix-lean-node 0.1.0
+│           │   │   └── dytallix 0.1.0
+│           │   ├── dytallix-lean-node 0.1.0
+│           │   ├── dytallix-interoperability 0.9.3
+│           │   ├── dytallix-cli 0.1.0
+│           │   └── dytallix 0.1.0
+│           └── dytallix 0.1.0
+├── sea-orm 0.12.15
+└── dytallix-interoperability 0.9.3
+
+[0m[0m[1m[31mCrate:    [0m tracing-subscriber
+[0m[0m[1m[31mVersion:  [0m 0.2.25
+[0m[0m[1m[31mTitle:    [0m Logging user input may result in poisoning logs with ANSI escape sequences
+[0m[0m[1m[31mDate:     [0m 2025-08-29
+[0m[0m[1m[31mID:       [0m RUSTSEC-2025-0055
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2025-0055
+[0m[0m[1m[31mSolution: [0m Upgrade to >=0.3.20
+[0m[0m[1m[31mDependency tree:
+[0mtracing-subscriber 0.2.25
+├── sp-tracing 10.0.0
+│   ├── sp-runtime-interface 17.0.0
+│   │   ├── sp-io 23.0.0
+│   │   │   ├── sp-runtime 24.0.0
+│   │   │   │   ├── subxt 0.32.1
+│   │   │   │   │   └── dytallix-interoperability 0.9.3
+│   │   │   │   │       ├── dytallix-pqc 0.1.0
+│   │   │   │   │       │   ├── dytallix-sdk 0.1.0
+│   │   │   │   │       │   ├── dytallix-node 0.1.0
+│   │   │   │   │       │   │   ├── dytallix-lean-node 0.1.0
+│   │   │   │   │       │   │   └── dytallix 0.1.0
+│   │   │   │   │       │   ├── dytallix-lean-node 0.1.0
+│   │   │   │   │       │   ├── dytallix-interoperability 0.9.3
+│   │   │   │   │       │   ├── dytallix-cli 0.1.0
+│   │   │   │   │       │   └── dytallix 0.1.0
+│   │   │   │   │       └── dytallix 0.1.0
+│   │   │   │   └── dytallix-interoperability 0.9.3
+│   │   │   └── sp-application-crypto 23.0.0
+│   │   │       └── sp-runtime 24.0.0
+│   │   └── sp-core 21.0.0
+│   │       ├── subxt 0.32.1
+│   │       ├── sp-weights 20.0.0
+│   │       │   └── sp-runtime 24.0.0
+│   │       ├── sp-trie 22.0.0
+│   │       │   ├── sp-state-machine 0.28.0
+│   │       │   │   └── sp-io 23.0.0
+│   │       │   └── sp-io 23.0.0
+│   │       ├── sp-state-machine 0.28.0
+│   │       ├── sp-runtime 24.0.0
+│   │       ├── sp-keystore 0.27.0
+│   │       │   └── sp-io 23.0.0
+│   │       ├── sp-io 23.0.0
+│   │       └── sp-application-crypto 23.0.0
+│   └── sp-io 23.0.0
+└── sp-tracing 9.0.0
+    └── sp-runtime-interface 16.0.0
+        └── sp-core 20.0.0
+            └── dytallix-interoperability 0.9.3
+
+[0m[0m[1m[31mCrate:    [0m tracing-subscriber
+[0m[0m[1m[31mVersion:  [0m 0.3.19
+[0m[0m[1m[31mTitle:    [0m Logging user input may result in poisoning logs with ANSI escape sequences
+[0m[0m[1m[31mDate:     [0m 2025-08-29
+[0m[0m[1m[31mID:       [0m RUSTSEC-2025-0055
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2025-0055
+[0m[0m[1m[31mSolution: [0m Upgrade to >=0.3.20
+[0m[0m[1m[31mDependency tree:
+[0mtracing-subscriber 0.3.19
+├── dytallix-node 0.1.0
+│   ├── dytallix-lean-node 0.1.0
+│   └── dytallix 0.1.0
+├── dytallix-lean-node 0.1.0
+├── dytallix-explorer-indexer 0.1.0
+│   └── dytallix-explorer-api 0.1.0
+├── dytallix-explorer-api 0.1.0
+├── dytallix 0.1.0
+└── dcli 0.1.0
+
+[0m[0m[1m[31mCrate:    [0m tungstenite
+[0m[0m[1m[31mVersion:  [0m 0.18.0
+[0m[0m[1m[31mTitle:    [0m Tungstenite allows remote attackers to cause a denial of service
+[0m[0m[1m[31mDate:     [0m 2023-09-25
+[0m[0m[1m[31mID:       [0m RUSTSEC-2023-0065
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2023-0065
+[0m[0m[1m[31mSeverity: [0m 7.5 (high)
+[0m[0m[1m[31mSolution: [0m Upgrade to >=0.20.1
+[0m[0m[1m[31mDependency tree:
+[0mtungstenite 0.18.0
+└── async-tungstenite 0.20.0
+    └── tendermint-rpc 0.33.2
+        └── dytallix-interoperability 0.9.3
+            ├── dytallix-pqc 0.1.0
+            │   ├── dytallix-sdk 0.1.0
+            │   ├── dytallix-node 0.1.0
+            │   │   ├── dytallix-lean-node 0.1.0
+            │   │   └── dytallix 0.1.0
+            │   ├── dytallix-lean-node 0.1.0
+            │   ├── dytallix-interoperability 0.9.3
+            │   ├── dytallix-cli 0.1.0
+            │   └── dytallix 0.1.0
+            └── dytallix 0.1.0
+
+[0m[0m[1m[31mCrate:    [0m wasmtime
+[0m[0m[1m[31mVersion:  [0m 6.0.2
+[0m[0m[1m[31mTitle:    [0m Miscompilation of wasm `i64x2.shr_s` instruction with constant input on x86\_64
+[0m[0m[1m[31mDate:     [0m 2023-09-05
+[0m[0m[1m[31mID:       [0m RUSTSEC-2023-0091
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2023-0091
+[0m[0m[1m[31mSeverity: [0m 2.2 (low)
+[0m[0m[1m[31mSolution: [0m Upgrade to >=10.0.2, <11.0.0 OR >=11.0.2, <12.0.0 OR >=12.0.2
+[0m[0m[1m[31mDependency tree:
+[0mwasmtime 6.0.2
+└── sp-wasm-interface 13.0.0
+    └── sp-runtime-interface 16.0.0
+        └── sp-core 20.0.0
+            └── dytallix-interoperability 0.9.3
+                ├── dytallix-pqc 0.1.0
+                │   ├── dytallix-sdk 0.1.0
+                │   ├── dytallix-node 0.1.0
+                │   │   ├── dytallix-lean-node 0.1.0
+                │   │   └── dytallix 0.1.0
+                │   ├── dytallix-lean-node 0.1.0
+                │   ├── dytallix-interoperability 0.9.3
+                │   ├── dytallix-cli 0.1.0
+                │   └── dytallix 0.1.0
+                └── dytallix 0.1.0
+
+[0m[0m[1m[31mCrate:    [0m wasmtime
+[0m[0m[1m[31mVersion:  [0m 6.0.2
+[0m[0m[1m[31mTitle:    [0m Wasmtime doesn't fully sandbox all the Windows device filenames
+[0m[0m[1m[31mDate:     [0m 2024-11-02
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0438
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0438
+[0m[0m[1m[31mSolution: [0m Upgrade to >=24.0.2, <25.0.0 OR >=25.0.3, <26.0.0 OR >=26.0.1
+
+[0m[0m[1m[31mCrate:    [0m wasmtime
+[0m[0m[1m[31mVersion:  [0m 8.0.1
+[0m[0m[1m[31mTitle:    [0m Miscompilation of wasm `i64x2.shr_s` instruction with constant input on x86\_64
+[0m[0m[1m[31mDate:     [0m 2023-09-05
+[0m[0m[1m[31mID:       [0m RUSTSEC-2023-0091
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2023-0091
+[0m[0m[1m[31mSeverity: [0m 2.2 (low)
+[0m[0m[1m[31mSolution: [0m Upgrade to >=10.0.2, <11.0.0 OR >=11.0.2, <12.0.0 OR >=12.0.2
+[0m[0m[1m[31mDependency tree:
+[0mwasmtime 8.0.1
+└── sp-wasm-interface 14.0.0
+    └── sp-runtime-interface 17.0.0
+        ├── sp-io 23.0.0
+        │   ├── sp-runtime 24.0.0
+        │   │   ├── subxt 0.32.1
+        │   │   │   └── dytallix-interoperability 0.9.3
+        │   │   │       ├── dytallix-pqc 0.1.0
+        │   │   │       │   ├── dytallix-sdk 0.1.0
+        │   │   │       │   ├── dytallix-node 0.1.0
+        │   │   │       │   │   ├── dytallix-lean-node 0.1.0
+        │   │   │       │   │   └── dytallix 0.1.0
+        │   │   │       │   ├── dytallix-lean-node 0.1.0
+        │   │   │       │   ├── dytallix-interoperability 0.9.3
+        │   │   │       │   ├── dytallix-cli 0.1.0
+        │   │   │       │   └── dytallix 0.1.0
+        │   │   │       └── dytallix 0.1.0
+        │   │   └── dytallix-interoperability 0.9.3
+        │   └── sp-application-crypto 23.0.0
+        │       └── sp-runtime 24.0.0
+        └── sp-core 21.0.0
+            ├── subxt 0.32.1
+            ├── sp-weights 20.0.0
+            │   └── sp-runtime 24.0.0
+            ├── sp-trie 22.0.0
+            │   ├── sp-state-machine 0.28.0
+            │   │   └── sp-io 23.0.0
+            │   └── sp-io 23.0.0
+            ├── sp-state-machine 0.28.0
+            ├── sp-runtime 24.0.0
+            ├── sp-keystore 0.27.0
+            │   └── sp-io 23.0.0
+            ├── sp-io 23.0.0
+            └── sp-application-crypto 23.0.0
+
+[0m[0m[1m[31mCrate:    [0m wasmtime
+[0m[0m[1m[31mVersion:  [0m 8.0.1
+[0m[0m[1m[31mTitle:    [0m Wasmtime doesn't fully sandbox all the Windows device filenames
+[0m[0m[1m[31mDate:     [0m 2024-11-02
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0438
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0438
+[0m[0m[1m[31mSolution: [0m Upgrade to >=24.0.2, <25.0.0 OR >=25.0.3, <26.0.0 OR >=26.0.1
+
+[0m[0m[1m[31mCrate:    [0m wasmtime
+[0m[0m[1m[31mVersion:  [0m 19.0.2
+[0m[0m[1m[31mTitle:    [0m Race condition could lead to WebAssembly control-flow integrity and type safety violations
+[0m[0m[1m[31mDate:     [0m 2024-10-03
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0439
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0439
+[0m[0m[1m[31mSeverity: [0m 2.9 (low)
+[0m[0m[1m[31mSolution: [0m Upgrade to >=21.0.2, <22.0.0 OR >=22.0.1, <23.0.0 OR >=23.0.3, <24.0.0 OR >=24.0.1, <25.0.0 OR >=25.0.2
+[0m[0m[1m[31mDependency tree:
+[0mwasmtime 19.0.2
+├── dytallix-node 0.1.0
+│   ├── dytallix-lean-node 0.1.0
+│   └── dytallix 0.1.0
+└── dytallix-contracts 0.1.0
+    ├── dytallix-node 0.1.0
+    ├── dytallix-governance 0.1.0
+    └── dytallix 0.1.0
+
+[0m[0m[1m[31mCrate:    [0m wasmtime
+[0m[0m[1m[31mVersion:  [0m 19.0.2
+[0m[0m[1m[31mTitle:    [0m Wasmtime doesn't fully sandbox all the Windows device filenames
+[0m[0m[1m[31mDate:     [0m 2024-11-02
+[0m[0m[1m[31mID:       [0m RUSTSEC-2024-0438
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0438
+[0m[0m[1m[31mSolution: [0m Upgrade to >=24.0.2, <25.0.0 OR >=25.0.3, <26.0.0 OR >=26.0.1
+
+[0m[0m[1m[31mCrate:    [0m wasmtime
+[0m[0m[1m[31mVersion:  [0m 19.0.2
+[0m[0m[1m[31mTitle:    [0m Host panic with `fd_renumber` WASIp1 function
+[0m[0m[1m[31mDate:     [0m 2025-07-18
+[0m[0m[1m[31mID:       [0m RUSTSEC-2025-0046
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2025-0046
+[0m[0m[1m[31mSeverity: [0m 3.3 (low)
+[0m[0m[1m[31mSolution: [0m Upgrade to >=34.0.2 OR >=33.0.2, <34.0.0 OR >=24.0.4, <25.0.0
+
+[0m[0m[1m[31mCrate:    [0m webpki
+[0m[0m[1m[31mVersion:  [0m 0.21.4
+[0m[0m[1m[31mTitle:    [0m webpki: CPU denial of service in certificate path building
+[0m[0m[1m[31mDate:     [0m 2023-08-22
+[0m[0m[1m[31mID:       [0m RUSTSEC-2023-0052
+[0m[0m[1m[31mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2023-0052
+[0m[0m[1m[31mSeverity: [0m 7.5 (high)
+[0m[0m[1m[31mSolution: [0m Upgrade to >=0.22.2
+[0m[0m[1m[31mDependency tree:
+[0mwebpki 0.21.4
+├── webpki-roots 0.21.1
+│   └── hyper-rustls 0.22.1
+│       ├── tendermint-rpc 0.33.2
+│       │   └── dytallix-interoperability 0.9.3
+│       │       ├── dytallix-pqc 0.1.0
+│       │       │   ├── dytallix-sdk 0.1.0
+│       │       │   ├── dytallix-node 0.1.0
+│       │       │   │   ├── dytallix-lean-node 0.1.0
+│       │       │   │   └── dytallix 0.1.0
+│       │       │   ├── dytallix-lean-node 0.1.0
+│       │       │   ├── dytallix-interoperability 0.9.3
+│       │       │   ├── dytallix-cli 0.1.0
+│       │       │   └── dytallix 0.1.0
+│       │       └── dytallix 0.1.0
+│       ├── tendermint-rpc 0.32.2
+│       │   └── cosmrs 0.14.0
+│       │       └── dytallix-interoperability 0.9.3
+│       └── hyper-proxy 0.9.1
+│           ├── tendermint-rpc 0.33.2
+│           └── tendermint-rpc 0.32.2
+├── tokio-rustls 0.22.0
+│   ├── hyper-rustls 0.22.1
+│   └── hyper-proxy 0.9.1
+├── rustls 0.19.1
+│   ├── tokio-rustls 0.22.0
+│   ├── rustls-native-certs 0.5.0
+│   │   ├── hyper-rustls 0.22.1
+│   │   └── hyper-proxy 0.9.1
+│   └── hyper-rustls 0.22.1
+├── hyper-rustls 0.22.1
+└── hyper-proxy 0.9.1
+
+[0m[0m[1m[33mCrate:    [0m ansi_term
+[0m[0m[1m[33mVersion:  [0m 0.12.1
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m ansi_term is Unmaintained
+[0m[0m[1m[33mDate:     [0m 2021-08-18
+[0m[0m[1m[33mID:       [0m RUSTSEC-2021-0139
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2021-0139
+[0m[0m[1m[33mDependency tree:
+[0mansi_term 0.12.1
+└── tracing-subscriber 0.2.25
+    ├── sp-tracing 10.0.0
+    │   ├── sp-runtime-interface 17.0.0
+    │   │   ├── sp-io 23.0.0
+    │   │   │   ├── sp-runtime 24.0.0
+    │   │   │   │   ├── subxt 0.32.1
+    │   │   │   │   │   └── dytallix-interoperability 0.9.3
+    │   │   │   │   │       ├── dytallix-pqc 0.1.0
+    │   │   │   │   │       │   ├── dytallix-sdk 0.1.0
+    │   │   │   │   │       │   ├── dytallix-node 0.1.0
+    │   │   │   │   │       │   │   ├── dytallix-lean-node 0.1.0
+    │   │   │   │   │       │   │   └── dytallix 0.1.0
+    │   │   │   │   │       │   ├── dytallix-lean-node 0.1.0
+    │   │   │   │   │       │   ├── dytallix-interoperability 0.9.3
+    │   │   │   │   │       │   ├── dytallix-cli 0.1.0
+    │   │   │   │   │       │   └── dytallix 0.1.0
+    │   │   │   │   │       └── dytallix 0.1.0
+    │   │   │   │   └── dytallix-interoperability 0.9.3
+    │   │   │   └── sp-application-crypto 23.0.0
+    │   │   │       └── sp-runtime 24.0.0
+    │   │   └── sp-core 21.0.0
+    │   │       ├── subxt 0.32.1
+    │   │       ├── sp-weights 20.0.0
+    │   │       │   └── sp-runtime 24.0.0
+    │   │       ├── sp-trie 22.0.0
+    │   │       │   ├── sp-state-machine 0.28.0
+    │   │       │   │   └── sp-io 23.0.0
+    │   │       │   └── sp-io 23.0.0
+    │   │       ├── sp-state-machine 0.28.0
+    │   │       ├── sp-runtime 24.0.0
+    │   │       ├── sp-keystore 0.27.0
+    │   │       │   └── sp-io 23.0.0
+    │   │       ├── sp-io 23.0.0
+    │   │       └── sp-application-crypto 23.0.0
+    │   └── sp-io 23.0.0
+    └── sp-tracing 9.0.0
+        └── sp-runtime-interface 16.0.0
+            └── sp-core 20.0.0
+                └── dytallix-interoperability 0.9.3
+
+[0m[0m[1m[33mCrate:    [0m derivative
+[0m[0m[1m[33mVersion:  [0m 2.2.0
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m `derivative` is unmaintained; consider using an alternative
+[0m[0m[1m[33mDate:     [0m 2024-06-26
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0388
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0388
+[0m[0m[1m[33mDependency tree:
+[0mderivative 2.2.0
+├── subxt 0.32.1
+│   └── dytallix-interoperability 0.9.3
+│       ├── dytallix-pqc 0.1.0
+│       │   ├── dytallix-sdk 0.1.0
+│       │   ├── dytallix-node 0.1.0
+│       │   │   ├── dytallix-lean-node 0.1.0
+│       │   │   └── dytallix 0.1.0
+│       │   ├── dytallix-lean-node 0.1.0
+│       │   ├── dytallix-interoperability 0.9.3
+│       │   ├── dytallix-cli 0.1.0
+│       │   └── dytallix 0.1.0
+│       └── dytallix 0.1.0
+├── sea-query 0.30.7
+│   ├── sea-query-binder 0.5.0
+│   │   └── sea-orm 0.12.15
+│   │       └── dytallix-interoperability 0.9.3
+│   └── sea-orm 0.12.15
+└── cosmwasm-std 1.5.11
+    ├── dytallix-contracts 0.1.0
+    │   ├── dytallix-node 0.1.0
+    │   ├── dytallix-governance 0.1.0
+    │   └── dytallix 0.1.0
+    └── cw-storage-plus 1.2.0
+        └── dytallix-contracts 0.1.0
+
+[0m[0m[1m[33mCrate:    [0m dotenv
+[0m[0m[1m[33mVersion:  [0m 0.15.0
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m dotenv is Unmaintained
+[0m[0m[1m[33mDate:     [0m 2021-12-24
+[0m[0m[1m[33mID:       [0m RUSTSEC-2021-0141
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2021-0141
+[0m[0m[1m[33mDependency tree:
+[0mdotenv 0.15.0
+└── dytallix-lean-node 0.1.0
+
+[0m[0m[1m[33mCrate:    [0m instant
+[0m[0m[1m[33mVersion:  [0m 0.1.13
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m `instant` is unmaintained
+[0m[0m[1m[33mDate:     [0m 2024-09-01
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0384
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0384
+[0m[0m[1m[33mDependency tree:
+[0minstant 0.1.13
+├── libp2p-swarm 0.43.7
+│   ├── libp2p-upnp 0.1.1
+│   │   └── libp2p 0.52.4
+│   │       └── dytallix-node 0.1.0
+│   │           ├── dytallix-lean-node 0.1.0
+│   │           └── dytallix 0.1.0
+│   ├── libp2p-metrics 0.13.1
+│   │   └── libp2p 0.52.4
+│   ├── libp2p-mdns 0.44.0
+│   │   └── libp2p 0.52.4
+│   ├── libp2p-gossipsub 0.45.2
+│   │   ├── libp2p-metrics 0.13.1
+│   │   └── libp2p 0.52.4
+│   ├── libp2p-connection-limits 0.2.1
+│   │   └── libp2p 0.52.4
+│   ├── libp2p-allow-block-list 0.2.0
+│   │   └── libp2p 0.52.4
+│   └── libp2p 0.52.4
+├── libp2p-metrics 0.13.1
+├── libp2p-gossipsub 0.45.2
+├── libp2p-core 0.40.1
+│   ├── libp2p-yamux 0.44.1
+│   │   └── libp2p 0.52.4
+│   ├── libp2p-upnp 0.1.1
+│   ├── libp2p-tls 0.2.1
+│   │   └── libp2p-quic 0.9.3
+│   │       └── libp2p 0.52.4
+│   ├── libp2p-tcp 0.40.1
+│   │   └── libp2p 0.52.4
+│   ├── libp2p-swarm 0.43.7
+│   ├── libp2p-quic 0.9.3
+│   ├── libp2p-noise 0.43.2
+│   │   └── libp2p 0.52.4
+│   ├── libp2p-metrics 0.13.1
+│   ├── libp2p-mdns 0.44.0
+│   ├── libp2p-gossipsub 0.45.2
+│   ├── libp2p-dns 0.40.1
+│   │   └── libp2p 0.52.4
+│   ├── libp2p-connection-limits 0.2.1
+│   ├── libp2p-allow-block-list 0.2.0
+│   └── libp2p 0.52.4
+├── libp2p 0.52.4
+├── futures-ticker 0.0.3
+│   └── libp2p-gossipsub 0.45.2
+├── fastrand 1.9.0
+│   └── futures-lite 1.13.0
+│       ├── smol 1.3.0
+│       │   ├── smoldot-light 0.6.0
+│       │   │   └── subxt-lightclient 0.32.1
+│       │   │       └── subxt 0.32.1
+│       │   │           └── dytallix-interoperability 0.9.3
+│       │   │               ├── dytallix-pqc 0.1.0
+│       │   │               │   ├── dytallix-sdk 0.1.0
+│       │   │               │   ├── dytallix-node 0.1.0
+│       │   │               │   ├── dytallix-lean-node 0.1.0
+│       │   │               │   ├── dytallix-interoperability 0.9.3
+│       │   │               │   ├── dytallix-cli 0.1.0
+│       │   │               │   └── dytallix 0.1.0
+│       │   │               └── dytallix 0.1.0
+│       │   └── smoldot 0.8.0
+│       │       └── smoldot-light 0.6.0
+│       ├── async-process 1.8.1
+│       │   └── smol 1.3.0
+│       ├── async-net 1.8.0
+│       │   └── smol 1.3.0
+│       ├── async-io 1.13.0
+│       │   ├── smol 1.3.0
+│       │   ├── async-process 1.8.1
+│       │   └── async-net 1.8.0
+│       └── async-fs 1.6.0
+│           └── smol 1.3.0
+├── ethers-providers 2.0.14
+│   ├── ethers-middleware 2.0.14
+│   │   └── ethers 2.0.14
+│   │       └── dytallix-interoperability 0.9.3
+│   ├── ethers-contract 2.0.14
+│   │   ├── ethers-middleware 2.0.14
+│   │   ├── ethers 2.0.14
+│   │   └── dytallix-interoperability 0.9.3
+│   └── ethers 2.0.14
+└── ethers-middleware 2.0.14
+
+[0m[0m[1m[33mCrate:    [0m mach
+[0m[0m[1m[33mVersion:  [0m 0.3.2
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m mach is unmaintained
+[0m[0m[1m[33mDate:     [0m 2020-07-14
+[0m[0m[1m[33mID:       [0m RUSTSEC-2020-0168
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2020-0168
+[0m[0m[1m[33mDependency tree:
+[0mmach 0.3.2
+├── wasmtime-runtime 19.0.2
+│   └── wasmtime 19.0.2
+│       ├── dytallix-node 0.1.0
+│       │   ├── dytallix-lean-node 0.1.0
+│       │   └── dytallix 0.1.0
+│       └── dytallix-contracts 0.1.0
+│           ├── dytallix-node 0.1.0
+│           ├── dytallix-governance 0.1.0
+│           └── dytallix 0.1.0
+├── wasmtime-runtime 8.0.1
+│   ├── wasmtime-jit 8.0.1
+│   │   └── wasmtime 8.0.1
+│   │       └── sp-wasm-interface 14.0.0
+│   │           └── sp-runtime-interface 17.0.0
+│   │               ├── sp-io 23.0.0
+│   │               │   ├── sp-runtime 24.0.0
+│   │               │   │   ├── subxt 0.32.1
+│   │               │   │   │   └── dytallix-interoperability 0.9.3
+│   │               │   │   │       ├── dytallix-pqc 0.1.0
+│   │               │   │   │       │   ├── dytallix-sdk 0.1.0
+│   │               │   │   │       │   ├── dytallix-node 0.1.0
+│   │               │   │   │       │   ├── dytallix-lean-node 0.1.0
+│   │               │   │   │       │   ├── dytallix-interoperability 0.9.3
+│   │               │   │   │       │   ├── dytallix-cli 0.1.0
+│   │               │   │   │       │   └── dytallix 0.1.0
+│   │               │   │   │       └── dytallix 0.1.0
+│   │               │   │   └── dytallix-interoperability 0.9.3
+│   │               │   └── sp-application-crypto 23.0.0
+│   │               │       └── sp-runtime 24.0.0
+│   │               └── sp-core 21.0.0
+│   │                   ├── subxt 0.32.1
+│   │                   ├── sp-weights 20.0.0
+│   │                   │   └── sp-runtime 24.0.0
+│   │                   ├── sp-trie 22.0.0
+│   │                   │   ├── sp-state-machine 0.28.0
+│   │                   │   │   └── sp-io 23.0.0
+│   │                   │   └── sp-io 23.0.0
+│   │                   ├── sp-state-machine 0.28.0
+│   │                   ├── sp-runtime 24.0.0
+│   │                   ├── sp-keystore 0.27.0
+│   │                   │   └── sp-io 23.0.0
+│   │                   ├── sp-io 23.0.0
+│   │                   └── sp-application-crypto 23.0.0
+│   └── wasmtime 8.0.1
+└── wasmtime-runtime 6.0.2
+    ├── wasmtime-jit 6.0.2
+    │   └── wasmtime 6.0.2
+    │       └── sp-wasm-interface 13.0.0
+    │           └── sp-runtime-interface 16.0.0
+    │               └── sp-core 20.0.0
+    │                   └── dytallix-interoperability 0.9.3
+    └── wasmtime 6.0.2
+
+[0m[0m[1m[33mCrate:    [0m parity-wasm
+[0m[0m[1m[33mVersion:  [0m 0.45.0
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m Crate `parity-wasm` deprecated by the author
+[0m[0m[1m[33mDate:     [0m 2022-10-01
+[0m[0m[1m[33mID:       [0m RUSTSEC-2022-0061
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2022-0061
+[0m[0m[1m[33mDependency tree:
+[0mparity-wasm 0.45.0
+├── wasmi-validation 0.5.0
+│   └── wasmi 0.13.2
+│       └── sp-wasm-interface 13.0.0
+│           └── sp-runtime-interface 16.0.0
+│               └── sp-core 20.0.0
+│                   └── dytallix-interoperability 0.9.3
+│                       ├── dytallix-pqc 0.1.0
+│                       │   ├── dytallix-sdk 0.1.0
+│                       │   ├── dytallix-node 0.1.0
+│                       │   │   ├── dytallix-lean-node 0.1.0
+│                       │   │   └── dytallix 0.1.0
+│                       │   ├── dytallix-lean-node 0.1.0
+│                       │   ├── dytallix-interoperability 0.9.3
+│                       │   ├── dytallix-cli 0.1.0
+│                       │   └── dytallix 0.1.0
+│                       └── dytallix 0.1.0
+└── wasmi 0.13.2
+
+[0m[0m[1m[33mCrate:    [0m paste
+[0m[0m[1m[33mVersion:  [0m 1.0.15
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m paste - no longer maintained
+[0m[0m[1m[33mDate:     [0m 2024-10-07
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0436
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0436
+[0m[0m[1m[33mDependency tree:
+[0mpaste 1.0.15
+├── wasmtime-runtime 19.0.2
+│   └── wasmtime 19.0.2
+│       ├── dytallix-node 0.1.0
+│       │   ├── dytallix-lean-node 0.1.0
+│       │   └── dytallix 0.1.0
+│       └── dytallix-contracts 0.1.0
+│           ├── dytallix-node 0.1.0
+│           ├── dytallix-governance 0.1.0
+│           └── dytallix 0.1.0
+├── wasmtime-runtime 8.0.1
+│   ├── wasmtime-jit 8.0.1
+│   │   └── wasmtime 8.0.1
+│   │       └── sp-wasm-interface 14.0.0
+│   │           └── sp-runtime-interface 17.0.0
+│   │               ├── sp-io 23.0.0
+│   │               │   ├── sp-runtime 24.0.0
+│   │               │   │   ├── subxt 0.32.1
+│   │               │   │   │   └── dytallix-interoperability 0.9.3
+│   │               │   │   │       ├── dytallix-pqc 0.1.0
+│   │               │   │   │       │   ├── dytallix-sdk 0.1.0
+│   │               │   │   │       │   ├── dytallix-node 0.1.0
+│   │               │   │   │       │   ├── dytallix-lean-node 0.1.0
+│   │               │   │   │       │   ├── dytallix-interoperability 0.9.3
+│   │               │   │   │       │   ├── dytallix-cli 0.1.0
+│   │               │   │   │       │   └── dytallix 0.1.0
+│   │               │   │   │       └── dytallix 0.1.0
+│   │               │   │   └── dytallix-interoperability 0.9.3
+│   │               │   └── sp-application-crypto 23.0.0
+│   │               │       └── sp-runtime 24.0.0
+│   │               └── sp-core 21.0.0
+│   │                   ├── subxt 0.32.1
+│   │                   ├── sp-weights 20.0.0
+│   │                   │   └── sp-runtime 24.0.0
+│   │                   ├── sp-trie 22.0.0
+│   │                   │   ├── sp-state-machine 0.28.0
+│   │                   │   │   └── sp-io 23.0.0
+│   │                   │   └── sp-io 23.0.0
+│   │                   ├── sp-state-machine 0.28.0
+│   │                   ├── sp-runtime 24.0.0
+│   │                   ├── sp-keystore 0.27.0
+│   │                   │   └── sp-io 23.0.0
+│   │                   ├── sp-io 23.0.0
+│   │                   └── sp-application-crypto 23.0.0
+│   └── wasmtime 8.0.1
+├── wasmtime-runtime 6.0.2
+│   ├── wasmtime-jit 6.0.2
+│   │   └── wasmtime 6.0.2
+│   │       └── sp-wasm-interface 13.0.0
+│   │           └── sp-runtime-interface 16.0.0
+│   │               └── sp-core 20.0.0
+│   │                   └── dytallix-interoperability 0.9.3
+│   └── wasmtime 6.0.2
+├── wasmtime 19.0.2
+├── wasmtime 8.0.1
+├── wasmtime 6.0.2
+├── wasmi_core 0.13.0
+│   └── wasmi 0.31.2
+│       └── dytallix-contracts 0.1.0
+├── wasmi_core 0.12.0
+│   └── wasmi 0.30.0
+│       └── smoldot 0.8.0
+│           └── smoldot-light 0.6.0
+│               └── subxt-lightclient 0.32.1
+│                   └── subxt 0.32.1
+├── sqlx-core 0.7.2
+│   ├── sqlx-sqlite 0.7.2
+│   │   ├── sqlx-macros-core 0.7.2
+│   │   │   └── sqlx-macros 0.7.2
+│   │   │       └── sqlx 0.7.2
+│   │   │           ├── sea-query-binder 0.5.0
+│   │   │           │   └── sea-orm 0.12.15
+│   │   │           │       └── dytallix-interoperability 0.9.3
+│   │   │           ├── sea-orm 0.12.15
+│   │   │           └── dytallix-interoperability 0.9.3
+│   │   └── sqlx 0.7.2
+│   ├── sqlx-postgres 0.7.2
+│   │   ├── sqlx-macros-core 0.7.2
+│   │   └── sqlx 0.7.2
+│   ├── sqlx-mysql 0.7.2
+│   │   ├── sqlx-macros-core 0.7.2
+│   │   └── sqlx 0.7.2
+│   ├── sqlx-macros-core 0.7.2
+│   ├── sqlx-macros 0.7.2
+│   └── sqlx 0.7.2
+├── sp-runtime 24.0.0
+├── sp-core 21.0.0
+├── netlink-packet-utils 0.5.2
+│   ├── rtnetlink 0.13.1
+│   │   └── if-watch 3.2.1
+│   │       ├── libp2p-tcp 0.40.1
+│   │       │   └── libp2p 0.52.4
+│   │       │       └── dytallix-node 0.1.0
+│   │       ├── libp2p-quic 0.9.3
+│   │       │   └── libp2p 0.52.4
+│   │       └── libp2p-mdns 0.44.0
+│   │           └── libp2p 0.52.4
+│   ├── netlink-packet-route 0.17.1
+│   │   ├── rtnetlink 0.13.1
+│   │   └── if-watch 3.2.1
+│   └── netlink-packet-core 0.7.0
+│       ├── rtnetlink 0.13.1
+│       ├── netlink-proto 0.11.5
+│       │   ├── rtnetlink 0.13.1
+│       │   └── if-watch 3.2.1
+│       ├── netlink-packet-route 0.17.1
+│       └── if-watch 3.2.1
+├── gemm-f64 0.18.2
+│   └── gemm 0.18.2
+│       └── ug 0.4.0
+│           └── candle-core 0.9.1
+│               ├── dytallix-interoperability 0.9.3
+│               └── candle-nn 0.9.1
+│                   └── dytallix-interoperability 0.9.3
+├── gemm-f64 0.17.1
+│   └── gemm 0.17.1
+│       └── candle-core 0.9.1
+├── gemm-f32 0.18.2
+│   ├── gemm-f16 0.18.2
+│   │   └── gemm 0.18.2
+│   └── gemm 0.18.2
+├── gemm-f32 0.17.1
+│   ├── gemm-f16 0.17.1
+│   │   └── gemm 0.17.1
+│   └── gemm 0.17.1
+├── gemm-f16 0.18.2
+├── gemm-f16 0.17.1
+├── gemm-common 0.18.2
+│   ├── gemm-f64 0.18.2
+│   ├── gemm-f32 0.18.2
+│   ├── gemm-f16 0.18.2
+│   ├── gemm-c64 0.18.2
+│   │   └── gemm 0.18.2
+│   ├── gemm-c32 0.18.2
+│   │   └── gemm 0.18.2
+│   └── gemm 0.18.2
+├── gemm-common 0.17.1
+│   ├── gemm-f64 0.17.1
+│   ├── gemm-f32 0.17.1
+│   ├── gemm-f16 0.17.1
+│   ├── gemm-c64 0.17.1
+│   │   └── gemm 0.17.1
+│   ├── gemm-c32 0.17.1
+│   │   └── gemm 0.17.1
+│   └── gemm 0.17.1
+├── gemm-c64 0.18.2
+├── gemm-c64 0.17.1
+├── gemm-c32 0.18.2
+├── gemm-c32 0.17.1
+├── gemm 0.18.2
+├── gemm 0.17.1
+└── flex-error 0.4.4
+    ├── tendermint-rpc 0.33.2
+    │   └── dytallix-interoperability 0.9.3
+    ├── tendermint-rpc 0.32.2
+    │   └── cosmrs 0.14.0
+    │       └── dytallix-interoperability 0.9.3
+    ├── tendermint-proto 0.34.1
+    │   ├── tendermint 0.34.1
+    │   │   ├── tendermint-light-client-verifier 0.34.1
+    │   │   │   └── ibc-relayer-types 0.26.4
+    │   │   │       └── dytallix-interoperability 0.9.3
+    │   │   └── ibc-relayer-types 0.26.4
+    │   ├── ibc-relayer-types 0.26.4
+    │   └── ibc-proto 0.38.0
+    │       └── ibc-relayer-types 0.26.4
+    ├── tendermint-proto 0.33.2
+    │   ├── tendermint-rpc 0.33.2
+    │   └── tendermint 0.33.2
+    │       ├── tendermint-rpc 0.33.2
+    │       ├── tendermint-config 0.33.2
+    │       │   └── tendermint-rpc 0.33.2
+    │       └── dytallix-interoperability 0.9.3
+    ├── tendermint-proto 0.32.2
+    │   ├── tendermint-rpc 0.32.2
+    │   ├── tendermint 0.32.2
+    │   │   ├── tendermint-rpc 0.32.2
+    │   │   ├── tendermint-config 0.32.2
+    │   │   │   └── tendermint-rpc 0.32.2
+    │   │   └── cosmrs 0.14.0
+    │   ├── ibc-proto 0.32.1
+    │   │   └── dytallix-interoperability 0.9.3
+    │   └── cosmos-sdk-proto 0.19.0
+    │       ├── dytallix-interoperability 0.9.3
+    │       └── cosmrs 0.14.0
+    ├── tendermint-light-client-verifier 0.34.1
+    ├── tendermint-config 0.33.2
+    ├── tendermint-config 0.32.2
+    ├── tendermint 0.34.1
+    ├── tendermint 0.33.2
+    ├── tendermint 0.32.2
+    ├── ibc-relayer-types 0.26.4
+    ├── ibc-proto 0.38.0
+    └── ibc-proto 0.32.1
+
+[0m[0m[1m[33mCrate:    [0m pqcrypto-dilithium
+[0m[0m[1m[33mVersion:  [0m 0.5.0
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m Replaced by `pqcrypto-mldsa`
+[0m[0m[1m[33mDate:     [0m 2024-10-24
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0380
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0380
+[0m[0m[1m[33mDependency tree:
+[0mpqcrypto-dilithium 0.5.0
+├── dytallix-pqc 0.1.0
+│   ├── dytallix-sdk 0.1.0
+│   ├── dytallix-node 0.1.0
+│   │   ├── dytallix-lean-node 0.1.0
+│   │   └── dytallix 0.1.0
+│   ├── dytallix-lean-node 0.1.0
+│   ├── dytallix-interoperability 0.9.3
+│   │   ├── dytallix-pqc 0.1.0
+│   │   └── dytallix 0.1.0
+│   ├── dytallix-cli 0.1.0
+│   └── dytallix 0.1.0
+├── dytallix-lean-node 0.1.0
+├── dytallix-cli 0.1.0
+└── dcli 0.1.0
+
+[0m[0m[1m[33mCrate:    [0m pqcrypto-kyber
+[0m[0m[1m[33mVersion:  [0m 0.7.9
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m Replaced by `pqcrypto-mlkem`
+[0m[0m[1m[33mDate:     [0m 2024-10-24
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0381
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0381
+[0m[0m[1m[33mDependency tree:
+[0mpqcrypto-kyber 0.7.9
+└── dytallix-pqc 0.1.0
+    ├── dytallix-sdk 0.1.0
+    ├── dytallix-node 0.1.0
+    │   ├── dytallix-lean-node 0.1.0
+    │   └── dytallix 0.1.0
+    ├── dytallix-lean-node 0.1.0
+    ├── dytallix-interoperability 0.9.3
+    │   ├── dytallix-pqc 0.1.0
+    │   └── dytallix 0.1.0
+    ├── dytallix-cli 0.1.0
+    └── dytallix 0.1.0
+
+[0m[0m[1m[33mCrate:    [0m proc-macro-error
+[0m[0m[1m[33mVersion:  [0m 1.0.4
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m proc-macro-error is unmaintained
+[0m[0m[1m[33mDate:     [0m 2024-09-01
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0370
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0370
+[0m[0m[1m[33mDependency tree:
+[0mproc-macro-error 1.0.4
+├── subxt-macro 0.32.1
+│   └── subxt 0.32.1
+│       └── dytallix-interoperability 0.9.3
+│           ├── dytallix-pqc 0.1.0
+│           │   ├── dytallix-sdk 0.1.0
+│           │   ├── dytallix-node 0.1.0
+│           │   │   ├── dytallix-lean-node 0.1.0
+│           │   │   └── dytallix 0.1.0
+│           │   ├── dytallix-lean-node 0.1.0
+│           │   ├── dytallix-interoperability 0.9.3
+│           │   ├── dytallix-cli 0.1.0
+│           │   └── dytallix 0.1.0
+│           └── dytallix 0.1.0
+└── ouroboros_macro 0.17.2
+    └── ouroboros 0.17.2
+        └── sea-orm 0.12.15
+            └── dytallix-interoperability 0.9.3
+
+[0m[0m[1m[33mCrate:    [0m ring
+[0m[0m[1m[33mVersion:  [0m 0.16.20
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m Versions of *ring* prior to 0.17 are unmaintained.
+[0m[0m[1m[33mDate:     [0m 2025-03-05
+[0m[0m[1m[33mID:       [0m RUSTSEC-2025-0010
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2025-0010
+
+[0m[0m[1m[33mCrate:    [0m trust-dns-proto
+[0m[0m[1m[33mVersion:  [0m 0.23.2
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m The `trust-dns` project has been rebranded to `hickory-dns`
+[0m[0m[1m[33mDate:     [0m 2025-03-23
+[0m[0m[1m[33mID:       [0m RUSTSEC-2025-0017
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2025-0017
+[0m[0m[1m[33mDependency tree:
+[0mtrust-dns-proto 0.23.2
+└── trust-dns-resolver 0.23.2
+    └── libp2p-dns 0.40.1
+        └── libp2p 0.52.4
+            └── dytallix-node 0.1.0
+                ├── dytallix-lean-node 0.1.0
+                └── dytallix 0.1.0
+
+[0m[0m[1m[33mCrate:    [0m yaml-rust
+[0m[0m[1m[33mVersion:  [0m 0.4.5
+[0m[0m[1m[33mWarning:  [0m unmaintained
+[0m[0m[1m[33mTitle:    [0m yaml-rust is unmaintained.
+[0m[0m[1m[33mDate:     [0m 2024-03-20
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0320
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0320
+[0m[0m[1m[33mDependency tree:
+[0myaml-rust 0.4.5
+└── config 0.13.4
+    └── dytallix-interoperability 0.9.3
+        ├── dytallix-pqc 0.1.0
+        │   ├── dytallix-sdk 0.1.0
+        │   ├── dytallix-node 0.1.0
+        │   │   ├── dytallix-lean-node 0.1.0
+        │   │   └── dytallix 0.1.0
+        │   ├── dytallix-lean-node 0.1.0
+        │   ├── dytallix-interoperability 0.9.3
+        │   ├── dytallix-cli 0.1.0
+        │   └── dytallix 0.1.0
+        └── dytallix 0.1.0
+
+[0m[0m[1m[33mCrate:    [0m wasmtime-jit-debug
+[0m[0m[1m[33mVersion:  [0m 6.0.2
+[0m[0m[1m[33mWarning:  [0m unsound
+[0m[0m[1m[33mTitle:    [0m Dump Undefined Memory by `JitDumpFile`
+[0m[0m[1m[33mDate:     [0m 2024-07-06
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0442
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0442
+[0m[0m[1m[33mDependency tree:
+[0mwasmtime-jit-debug 6.0.2
+└── wasmtime-runtime 6.0.2
+    ├── wasmtime-jit 6.0.2
+    │   └── wasmtime 6.0.2
+    │       └── sp-wasm-interface 13.0.0
+    │           └── sp-runtime-interface 16.0.0
+    │               └── sp-core 20.0.0
+    │                   └── dytallix-interoperability 0.9.3
+    │                       ├── dytallix-pqc 0.1.0
+    │                       │   ├── dytallix-sdk 0.1.0
+    │                       │   ├── dytallix-node 0.1.0
+    │                       │   │   ├── dytallix-lean-node 0.1.0
+    │                       │   │   └── dytallix 0.1.0
+    │                       │   ├── dytallix-lean-node 0.1.0
+    │                       │   ├── dytallix-interoperability 0.9.3
+    │                       │   ├── dytallix-cli 0.1.0
+    │                       │   └── dytallix 0.1.0
+    │                       └── dytallix 0.1.0
+    └── wasmtime 6.0.2
+
+[0m[0m[1m[33mCrate:    [0m wasmtime-jit-debug
+[0m[0m[1m[33mVersion:  [0m 8.0.1
+[0m[0m[1m[33mWarning:  [0m unsound
+[0m[0m[1m[33mTitle:    [0m Dump Undefined Memory by `JitDumpFile`
+[0m[0m[1m[33mDate:     [0m 2024-07-06
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0442
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0442
+[0m[0m[1m[33mDependency tree:
+[0mwasmtime-jit-debug 8.0.1
+└── wasmtime-runtime 8.0.1
+    ├── wasmtime-jit 8.0.1
+    │   └── wasmtime 8.0.1
+    │       └── sp-wasm-interface 14.0.0
+    │           └── sp-runtime-interface 17.0.0
+    │               ├── sp-io 23.0.0
+    │               │   ├── sp-runtime 24.0.0
+    │               │   │   ├── subxt 0.32.1
+    │               │   │   │   └── dytallix-interoperability 0.9.3
+    │               │   │   │       ├── dytallix-pqc 0.1.0
+    │               │   │   │       │   ├── dytallix-sdk 0.1.0
+    │               │   │   │       │   ├── dytallix-node 0.1.0
+    │               │   │   │       │   │   ├── dytallix-lean-node 0.1.0
+    │               │   │   │       │   │   └── dytallix 0.1.0
+    │               │   │   │       │   ├── dytallix-lean-node 0.1.0
+    │               │   │   │       │   ├── dytallix-interoperability 0.9.3
+    │               │   │   │       │   ├── dytallix-cli 0.1.0
+    │               │   │   │       │   └── dytallix 0.1.0
+    │               │   │   │       └── dytallix 0.1.0
+    │               │   │   └── dytallix-interoperability 0.9.3
+    │               │   └── sp-application-crypto 23.0.0
+    │               │       └── sp-runtime 24.0.0
+    │               └── sp-core 21.0.0
+    │                   ├── subxt 0.32.1
+    │                   ├── sp-weights 20.0.0
+    │                   │   └── sp-runtime 24.0.0
+    │                   ├── sp-trie 22.0.0
+    │                   │   ├── sp-state-machine 0.28.0
+    │                   │   │   └── sp-io 23.0.0
+    │                   │   └── sp-io 23.0.0
+    │                   ├── sp-state-machine 0.28.0
+    │                   ├── sp-runtime 24.0.0
+    │                   ├── sp-keystore 0.27.0
+    │                   │   └── sp-io 23.0.0
+    │                   ├── sp-io 23.0.0
+    │                   └── sp-application-crypto 23.0.0
+    └── wasmtime 8.0.1
+
+[0m[0m[1m[33mCrate:    [0m wasmtime-jit-debug
+[0m[0m[1m[33mVersion:  [0m 19.0.2
+[0m[0m[1m[33mWarning:  [0m unsound
+[0m[0m[1m[33mTitle:    [0m Dump Undefined Memory by `JitDumpFile`
+[0m[0m[1m[33mDate:     [0m 2024-07-06
+[0m[0m[1m[33mID:       [0m RUSTSEC-2024-0442
+[0m[0m[1m[33mURL:      [0m https://rustsec.org/advisories/RUSTSEC-2024-0442
+[0m[0m[1m[33mDependency tree:
+[0mwasmtime-jit-debug 19.0.2
+├── wasmtime-runtime 19.0.2
+│   └── wasmtime 19.0.2
+│       ├── dytallix-node 0.1.0
+│       │   ├── dytallix-lean-node 0.1.0
+│       │   └── dytallix 0.1.0
+│       └── dytallix-contracts 0.1.0
+│           ├── dytallix-node 0.1.0
+│           ├── dytallix-governance 0.1.0
+│           └── dytallix 0.1.0
+└── wasmtime 19.0.2
+
+[0m[0m[1m[31merror:[0m 22 vulnerabilities found!
+[0m[0m[1m[33mwarning:[0m 16 allowed warnings found

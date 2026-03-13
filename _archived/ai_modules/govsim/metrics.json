@@ -1,0 +1,9 @@
+{
+  "timestamp": "2025-07-23T15:51:50.886556",
+  "model_type": "governance_simulator",
+  "metrics": {
+    "historical_accuracy": 0.8,
+    "voter_population": 1000,
+    "voter_types": 5
+  }
+}

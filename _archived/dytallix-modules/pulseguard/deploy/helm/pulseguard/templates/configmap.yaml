@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pulseguard.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "pulseguard.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  app.yaml: |
+    version: {{ .Chart.AppVersion | quote }}
+    server:
+      port: {{ .Values.service.port }}
+    env:
+      rpc_url: {{ .Values.env.RPC_URL | quote }}
+      feature_window: {{ .Values.env.FEATURE_WINDOW | quote }}
+      alert_threshold: {{ .Values.env.ALERT_THRESHOLD | quote }}
+      sink_url: {{ .Values.env.SINK_URL | quote }}
+

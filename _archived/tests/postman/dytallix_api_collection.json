@@ -1,0 +1,694 @@
+{
+  "info": {
+    "name": "Dytallix API Collection",
+    "description": "Comprehensive API testing collection for Dytallix blockchain platform",
+    "version": "1.0.0",
+    "_postman_id": "dytallix-api-collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3030",
+      "type": "string"
+    },
+    {
+      "key": "test_address",
+      "value": "dyt1test123456789",
+      "type": "string"
+    },
+    {
+      "key": "tx_hash",
+      "value": "0x1234567890abcdef",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Basic health check endpoint to verify API availability"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Health check returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is less than 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Response contains status', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["status"]
+            },
+            "description": "Get comprehensive system status and health metrics"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status endpoint returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('success');",
+                  "    pm.expect(response.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Status data contains required fields', function () {",
+                  "    const response = pm.response.json();",
+                  "    const data = response.data;",
+                  "    pm.expect(data).to.have.property('version');",
+                  "    pm.expect(data).to.have.property('uptime');",
+                  "    pm.expect(data).to.have.property('block_height');",
+                  "    pm.expect(data).to.have.property('peer_count');",
+                  "    pm.expect(data).to.have.property('sync_status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Blockchain Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stats",
+              "host": ["{{base_url}}"],
+              "path": ["stats"]
+            },
+            "description": "Get blockchain statistics and metrics"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Stats endpoint returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Stats contain blockchain metrics', function () {",
+                  "    const response = pm.response.json();",
+                  "    const data = response.data;",
+                  "    pm.expect(data).to.have.property('current_block');",
+                  "    pm.expect(data).to.have.property('total_transactions');",
+                  "    pm.expect(data).to.have.property('network_peers');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Blocks",
+      "item": [
+        {
+          "name": "Get Blocks List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/blocks?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["blocks"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get list of recent blocks with pagination"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Blocks list returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains blocks array', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Block structure is valid', function () {",
+                  "    const response = pm.response.json();",
+                  "    const blocks = response.data;",
+                  "    if (blocks.length > 0) {",
+                  "        const block = blocks[0];",
+                  "        pm.expect(block).to.have.property('number');",
+                  "        pm.expect(block).to.have.property('hash');",
+                  "        pm.expect(block).to.have.property('timestamp');",
+                  "        pm.expect(block).to.have.property('transactions');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Latest Block",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/blocks/latest",
+              "host": ["{{base_url}}"],
+              "path": ["blocks", "latest"]
+            },
+            "description": "Get the latest block"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Latest block returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Latest block has valid structure', function () {",
+                  "    const response = pm.response.json();",
+                  "    const block = response.data;",
+                  "    pm.expect(block).to.have.property('number');",
+                  "    pm.expect(block).to.have.property('hash');",
+                  "    pm.expect(block.hash).to.match(/^0x[a-fA-F0-9]+$/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Specific Block",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/blocks/1234",
+              "host": ["{{base_url}}"],
+              "path": ["blocks", "1234"]
+            },
+            "description": "Get a specific block by number"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Specific block returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Block number matches request', function () {",
+                  "    const response = pm.response.json();",
+                  "    const block = response.data;",
+                  "    pm.expect(block.number).to.equal(1234);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Get Transactions List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transactions?limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["transactions"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get list of recent transactions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Transactions list returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains transactions array', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Transaction structure is valid', function () {",
+                  "    const response = pm.response.json();",
+                  "    const transactions = response.data;",
+                  "    if (transactions.length > 0) {",
+                  "        const tx = transactions[0];",
+                  "        pm.expect(tx).to.have.property('hash');",
+                  "        pm.expect(tx).to.have.property('from');",
+                  "        pm.expect(tx).to.have.property('to');",
+                  "        pm.expect(tx).to.have.property('amount');",
+                  "        pm.expect(tx).to.have.property('status');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Specific Transaction",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transaction/{{tx_hash}}",
+              "host": ["{{base_url}}"],
+              "path": ["transaction", "{{tx_hash}}"]
+            },
+            "description": "Get details of a specific transaction"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Transaction retrieval returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Transaction has required fields', function () {",
+                  "    const response = pm.response.json();",
+                  "    const tx = response.data;",
+                  "    pm.expect(tx).to.have.property('hash');",
+                  "    pm.expect(tx).to.have.property('status');",
+                  "    pm.expect(tx).to.have.property('confirmations');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"dyt1sender123\",\n  \"to\": \"dyt1receiver456\",\n  \"amount\": 1000000,\n  \"fee\": 1000,\n  \"nonce\": 42\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/submit",
+              "host": ["{{base_url}}"],
+              "path": ["submit"]
+            },
+            "description": "Submit a new transaction to the network"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Transaction submission returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains transaction hash', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.data).to.have.property('hash');",
+                  "    pm.expect(response.data).to.have.property('status');",
+                  "});",
+                  "",
+                  "pm.test('Transaction hash is valid format', function () {",
+                  "    const response = pm.response.json();",
+                  "    const hash = response.data.hash;",
+                  "    pm.expect(hash).to.match(/^0x[a-fA-F0-9]+$/);",
+                  "});",
+                  "",
+                  "// Save transaction hash for later use",
+                  "pm.test('Save transaction hash', function () {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.hash) {",
+                  "        pm.collectionVariables.set('tx_hash', response.data.hash);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Network",
+      "item": [
+        {
+          "name": "Get Peers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/peers",
+              "host": ["{{base_url}}"],
+              "path": ["peers"]
+            },
+            "description": "Get list of network peers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Peers endpoint returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains peers array', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Peer structure is valid', function () {",
+                  "    const response = pm.response.json();",
+                  "    const peers = response.data;",
+                  "    if (peers.length > 0) {",
+                  "        const peer = peers[0];",
+                  "        pm.expect(peer).to.have.property('id');",
+                  "        pm.expect(peer).to.have.property('address');",
+                  "        pm.expect(peer).to.have.property('status');",
+                  "        pm.expect(peer).to.have.property('block_height');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "Get Account Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/balance/{{test_address}}",
+              "host": ["{{base_url}}"],
+              "path": ["balance", "{{test_address}}"]
+            },
+            "description": "Get balance for a specific account address"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Balance endpoint returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains balance data', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.data).to.be.a('number');",
+                  "    pm.expect(response.data).to.be.at.least(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Security Tests",
+      "item": [
+        {
+          "name": "SQL Injection Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/balance/'; DROP TABLE users; --",
+              "host": ["{{base_url}}"],
+              "path": ["balance", "'; DROP TABLE users; --"]
+            },
+            "description": "Test SQL injection protection"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SQL injection handled safely', function () {",
+                  "    // Should return 400, 404, or error response, not 500",
+                  "    pm.expect(pm.response.code).to.not.equal(500);",
+                  "});",
+                  "",
+                  "pm.test('No server error on malicious input', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 404, 422]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "XSS Protection Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"<script>alert('xss')</script>\",\n  \"to\": \"dyt1receiver456\",\n  \"amount\": 1000,\n  \"fee\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/submit",
+              "host": ["{{base_url}}"],
+              "path": ["submit"]
+            },
+            "description": "Test XSS protection in transaction submission"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('XSS payload handled safely', function () {",
+                  "    // Should not cause server error",
+                  "    pm.expect(pm.response.code).to.not.equal(500);",
+                  "});",
+                  "",
+                  "pm.test('XSS payload sanitized or rejected', function () {",
+                  "    const response = pm.response.json();",
+                  "    const responseText = JSON.stringify(response);",
+                  "    pm.expect(responseText).to.not.include('<script>');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid JSON Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{invalid json format"
+            },
+            "url": {
+              "raw": "{{base_url}}/submit",
+              "host": ["{{base_url}}"],
+              "path": ["submit"]
+            },
+            "description": "Test handling of invalid JSON"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid JSON handled properly', function () {",
+                  "    // Should return 400 for bad request",
+                  "    pm.expect(pm.response.code).to.equal(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Performance Tests",
+      "item": [
+        {
+          "name": "Response Time Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Test API response time"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Response time is acceptable', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response time is fast', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Concurrent Request Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["status"]
+            },
+            "description": "Test API under concurrent load (run multiple times)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Handles concurrent requests', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Performance under load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set timestamp for tracking",
+          "pm.globals.set('test_timestamp', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test: Log response time",
+          "console.log(`Response time: ${pm.response.responseTime}ms for ${pm.request.url}`);"
+        ]
+      }
+    }
+  ]
+}

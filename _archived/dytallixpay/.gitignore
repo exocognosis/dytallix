@@ -1,0 +1,18 @@
+node_modules/
+dist/
+build/
+.turbo/
+.next/
+.cache/
+
+# Local env/secrets
+.env
+.env.*
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log

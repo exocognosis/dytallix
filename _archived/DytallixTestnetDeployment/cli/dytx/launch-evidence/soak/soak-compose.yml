@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  validator-1:
+    image: dytallix-node:latest
+    ports:
+      - "3030:3030"
+      - "26656:26656"
+    environment:
+      - NODE_TYPE=validator
+      - NODE_ID=1
+      - VALIDATOR_NAME=validator-1
+      - ENABLE_PROMETHEUS=true
+      - PROMETHEUS_PORT=9090
+    volumes:
+      - validator1_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  validator-2:
+    image: dytallix-node:latest
+    ports:
+      - "3031:3030"
+      - "26657:26656"
+    environment:
+      - NODE_TYPE=validator
+      - NODE_ID=2
+      - VALIDATOR_NAME=validator-2
+      - ENABLE_PROMETHEUS=true
+      - PROMETHEUS_PORT=9091
+    volumes:
+      - validator2_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  validator-3:
+    image: dytallix-node:latest
+    ports:
+      - "3032:3030"
+      - "26658:26656"
+    environment:
+      - NODE_TYPE=validator
+      - NODE_ID=3
+      - VALIDATOR_NAME=validator-3
+      - ENABLE_PROMETHEUS=true
+      - PROMETHEUS_PORT=9092
+    volumes:
+      - validator3_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  sentry-1:
+    image: dytallix-node:latest
+    ports:
+      - "3033:3030"
+      - "26659:26656"
+    environment:
+      - NODE_TYPE=sentry
+      - NODE_ID=4
+      - VALIDATOR_NAME=sentry-1
+      - ENABLE_PROMETHEUS=true
+      - PROMETHEUS_PORT=9093
+    volumes:
+      - sentry1_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  sentry-2:
+    image: dytallix-node:latest
+    ports:
+      - "3034:3030"
+      - "26660:26656"
+    environment:
+      - NODE_TYPE=sentry
+      - NODE_ID=5
+      - VALIDATOR_NAME=sentry-2
+      - ENABLE_PROMETHEUS=true
+      - PROMETHEUS_PORT=9094
+    volumes:
+      - sentry2_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=72h'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  validator1_data:
+  validator2_data:
+  validator3_data:
+  sentry1_data:
+  sentry2_data:
+  prometheus_data:
+  grafana_data:

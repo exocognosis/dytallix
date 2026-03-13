@@ -1,0 +1,215 @@
+{
+  "cryptographic_algorithms": {
+    "classical": {
+      "RSA": {
+        "key_sizes": [2048, 3072, 4096],
+        "security_levels": [112, 128, 152],
+        "quantum_vulnerable": true,
+        "performance_score": 0.8,
+        "standardized": true
+      },
+      "ECDSA": {
+        "curves": ["P-256", "P-384", "P-521"],
+        "security_levels": [128, 192, 256],
+        "quantum_vulnerable": true,
+        "performance_score": 0.9,
+        "standardized": true
+      },
+      "AES": {
+        "key_sizes": [128, 192, 256],
+        "security_levels": [128, 192, 256],
+        "quantum_vulnerable": false,
+        "performance_score": 0.95,
+        "standardized": true
+      }
+    },
+    "post_quantum": {
+      "CRYSTALS-Kyber": {
+        "variants": ["Kyber512", "Kyber768", "Kyber1024"],
+        "security_levels": [128, 192, 256],
+        "type": "KEM",
+        "performance_score": 0.85,
+        "standardized": true,
+        "nist_approved": true
+      },
+      "CRYSTALS-Dilithium": {
+        "variants": ["Dilithium2", "Dilithium3", "Dilithium5"],
+        "security_levels": [128, 192, 256],
+        "type": "signature",
+        "performance_score": 0.8,
+        "standardized": true,
+        "nist_approved": true
+      },
+      "FALCON": {
+        "variants": ["FALCON-512", "FALCON-1024"],
+        "security_levels": [128, 256],
+        "type": "signature",
+        "performance_score": 0.75,
+        "standardized": false,
+        "nist_approved": true
+      },
+      "SPHINCS+": {
+        "variants": ["SPHINCS+-128s", "SPHINCS+-192s", "SPHINCS+-256s"],
+        "security_levels": [128, 192, 256],
+        "type": "signature",
+        "performance_score": 0.6,
+        "standardized": false,
+        "nist_approved": true
+      }
+    }
+  },
+  "entropy_config": {
+    "sources": {
+      "hardware_rng": {
+        "base_entropy_rate": 8.0,
+        "quality_variance": 0.1,
+        "availability": 0.99
+      },
+      "network_timing": {
+        "base_entropy_rate": 4.0,
+        "quality_variance": 0.3,
+        "availability": 0.95
+      },
+      "environmental_noise": {
+        "base_entropy_rate": 2.0,
+        "quality_variance": 0.5,
+        "availability": 0.8
+      },
+      "cpu_jitter": {
+        "base_entropy_rate": 3.0,
+        "quality_variance": 0.2,
+        "availability": 0.98
+      }
+    },
+    "requirements": {
+      "min_entropy_per_key": 256,
+      "min_sources": 2,
+      "quality_threshold": 0.8,
+      "collection_timeout": 30
+    }
+  },
+  "quantum_threat_model": {
+    "threat_levels": {
+      "low": {
+        "quantum_computers_exist": false,
+        "time_to_advantage": 20,
+        "migration_urgency": "long_term"
+      },
+      "medium": {
+        "quantum_computers_exist": true,
+        "time_to_advantage": 10,
+        "migration_urgency": "medium_term"
+      },
+      "high": {
+        "quantum_computers_exist": true,
+        "time_to_advantage": 5,
+        "migration_urgency": "short_term"
+      },
+      "critical": {
+        "quantum_computers_exist": true,
+        "time_to_advantage": 1,
+        "migration_urgency": "immediate"
+      }
+    },
+    "assessment_factors": {
+      "quantum_research_progress": 0.3,
+      "commercial_availability": 0.4,
+      "cryptographic_attacks": 0.3
+    }
+  },
+  "migration_strategy": {
+    "phases": {
+      "phase_1_preparation": {
+        "duration_days": 90,
+        "actions": [
+          "Deploy hybrid systems",
+          "Test PQ algorithms",
+          "Update infrastructure"
+        ],
+        "risk_level": "low"
+      },
+      "phase_2_gradual_rollout": {
+        "duration_days": 180,
+        "actions": [
+          "Migrate non-critical systems",
+          "Monitor performance",
+          "User acceptance testing"
+        ],
+        "risk_level": "medium"
+      },
+      "phase_3_full_migration": {
+        "duration_days": 365,
+        "actions": [
+          "Migrate critical systems",
+          "Deprecate classical algorithms",
+          "Security validation"
+        ],
+        "risk_level": "high"
+      },
+      "phase_4_optimization": {
+        "duration_days": 180,
+        "actions": [
+          "Performance optimization",
+          "Security hardening",
+          "Documentation update"
+        ],
+        "risk_level": "low"
+      }
+    }
+  },
+  "rule_engine": {
+    "security_rules": [
+      "IF quantum_threat_level > 0.7 THEN use_pq_algorithms = mandatory",
+      "IF security_level >= 256 THEN min_key_size = maximum",
+      "IF performance_critical = true THEN prefer_fast_algorithms",
+      "IF entropy_quality < threshold THEN increase_sources",
+      "IF migration_phase = critical THEN disable_classical_algorithms"
+    ],
+    "performance_rules": [
+      "IF signature_time > max_time THEN optimize_parameters",
+      "IF key_size > max_size THEN use_compression",
+      "IF cpu_usage > 80% THEN reduce_security_margin",
+      "IF memory_usage > limit THEN use_stateless_signatures"
+    ]
+  },
+  "rl_config": {
+    "state_space": {
+      "quantum_threat_level": [0, 1],
+      "performance_requirement": [0, 1],
+      "security_requirement": [0, 1],
+      "entropy_quality": [0, 1],
+      "migration_progress": [0, 1]
+    },
+    "action_space": {
+      "algorithm_selection": 8,
+      "key_size_adjustment": 5,
+      "entropy_source_config": 4,
+      "migration_timing": 3
+    },
+    "reward_function": {
+      "security_weight": 0.4,
+      "performance_weight": 0.3,
+      "compliance_weight": 0.2,
+      "cost_weight": 0.1
+    },
+    "training_config": {
+      "episodes": 25000,
+      "learning_rate": 0.0001,
+      "epsilon_decay": 0.995,
+      "memory_size": 10000,
+      "batch_size": 32
+    }
+  },
+  "training_config": {
+    "simulation_scenarios": [
+      "normal_operation",
+      "quantum_threat_emergence",
+      "performance_critical",
+      "compliance_audit",
+      "entropy_shortage",
+      "algorithm_compromise"
+    ],
+    "save_model_path": "models/",
+    "metrics_path": "metrics.json"
+  }
+}

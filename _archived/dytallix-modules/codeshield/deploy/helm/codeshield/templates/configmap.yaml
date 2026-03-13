@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "codeshield.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "codeshield.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  app.yaml: |
+    version: {{ .Chart.AppVersion | quote }}
+    driver: {{ .Values.env.SCAN_DRIVER | quote }}
+    limits:
+      max_file_mb: {{ .Values.env.MAX_FILE_MB | quote }}
+      timeout_sec: {{ .Values.env.TIMEOUT_SEC | quote }}
+    server:
+      port: {{ .Values.service.port }}
+    rules_path: {{ .Values.env.RULES_PATH | quote }}
+

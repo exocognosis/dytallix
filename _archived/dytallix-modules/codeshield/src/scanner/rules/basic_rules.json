@@ -1,0 +1,29 @@
+{
+  "rules": [
+    {
+      "rule_id": "SC-001",
+      "pattern": "tx\\.origin",
+      "severity": "HIGH",
+      "remediation": "Use msg.sender for authentication; never rely on tx.origin."
+    },
+    {
+      "rule_id": "SC-002",
+      "pattern": "delegatecall\\s*\\(",
+      "severity": "HIGH",
+      "remediation": "Avoid delegatecall or strictly validate target and storage layout."
+    },
+    {
+      "rule_id": "SC-003",
+      "pattern": "(selfdestruct|suicide)\\s*\\(",
+      "severity": "MEDIUM",
+      "remediation": "Remove selfdestruct or protect with timelock/owner-only and audits."
+    },
+    {
+      "rule_id": "SC-004",
+      "pattern": "\\.call(?!code)\\s*\\{|call\\.value\\s*\\(",
+      "severity": "HIGH",
+      "remediation": "Use CEI pattern and reentrancy guards; validate return values."
+    }
+  ]
+}
+

@@ -1,0 +1,5 @@
+api_url: ${CODESHIELD_API:-http://localhost:7081}
+timeout_s: ${CODESHIELD_TIMEOUT_S:-60}
+batch_size: ${CODESHIELD_BATCH_SIZE:-4}
+retries: ${CODESHIELD_RETRIES:-2}
+results_dir: artifacts

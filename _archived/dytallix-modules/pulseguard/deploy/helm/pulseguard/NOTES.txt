@@ -1,0 +1,13 @@
+1. Access the service:
+
+  export RELEASE={{ .Release.Name }}
+  export NAMESPACE={{ .Release.Namespace }}
+  kubectl port-forward svc/{{ include "pulseguard.fullname" . }} 8090:{{ .Values.service.port }} -n $NAMESPACE
+  echo "Open http://127.0.0.1:8090/health"
+
+2. Test scoring:
+
+  curl -sS -X POST http://127.0.0.1:8090/score \
+    -H 'content-type: application/json' \
+    -d '{"tx":{"hash":"0x1","from":"0xabc","to":"0xdef","value":123.45,"gas":21000}}'
+

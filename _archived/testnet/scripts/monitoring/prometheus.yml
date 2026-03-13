@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'testnet-dashboard'
+    static_configs:
+      - targets: ['localhost:80']
+
+  - job_name: 'dytallix-rpc'
+    static_configs:
+      - targets: ['rpc.dytallix.com:26657']
+    scrape_interval: 30s
+
+  - job_name: 'dytallix-api'
+    static_configs:
+      - targets: ['api.dytallix.com:1317']
+    scrape_interval: 30s

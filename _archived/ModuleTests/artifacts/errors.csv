@@ -1,0 +1,4 @@
+file,attack,expected,observed,status
+/Users/rickglenn/dytallix/ModuleTests/CodeShield/fixtures/contracts/safe/SimpleVault.sol,truncate,4xx,400,ok
+/Users/rickglenn/dytallix/ModuleTests/CodeShield/fixtures/contracts/safe/SimpleVault.sol,rename_src,4xx,400,ok
+/Users/rickglenn/dytallix/ModuleTests/CodeShield/fixtures/contracts/safe/SimpleVault.sol,bad_metadata,4xx,400,ok

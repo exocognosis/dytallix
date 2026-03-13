@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Merchant {
+  id               String            @id @default(uuid())
+  name             String
+  webhookSecret    String?           // For signing outbound webhooks
+  apiKeys          ApiKey[]
+  paymentIntents   PaymentIntent[]
+  balances         Balance[]
+  webhookEndpoints WebhookEndpoint[]
+  payouts          Payout[]
+  bankAccounts     BankAccount[]
+  walletAddresses  WalletAddress[]
+  onRampTxns       OnRampTransaction[]
+  offRampTxns      OffRampTransaction[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model ApiKey {
+  id         String   @id @default(uuid())
+  merchantId String
+  keyHash    String   @unique
+  name       String?
+  merchant   Merchant @relation(fields: [merchantId], references: [id])
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime?
+}
+
+// Emulating enum behavior using relations or strings for sqlite. 
+// SQLite does not support enums, so we'll use a String type.
+model PaymentIntent {
+  id               String       @id @default(uuid())
+  merchantId       String
+  amount           BigInt       // DRT base units
+  currency         String       @default("DRT")
+  capturedAmount   BigInt       @default(0)
+  refundedAmount   BigInt       @default(0)
+  status           String       @default("CREATED") // CREATED, REQUIRES_PAYMENT_METHOD, AUTHORIZED, CAPTURED, CANCELED, REFUNDED_PARTIAL, REFUNDED_FULL
+  captureMethod    String       @default("automatic") // "automatic" | "manual"
+  idempotencyKey   String?      @unique
+  metadata         String?      // SQLite doesn't support Json, store as serialized string
+  merchant         Merchant     @relation(fields: [merchantId], references: [id])
+  events           Event[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model Balance {
+  id         String   @id @default(uuid())
+  merchantId String   @unique // One balance per merchant, or per currency
+  currency   String   @default("DRT")
+  available  BigInt   @default(0)
+  pending    BigInt   @default(0)
+  merchant   Merchant @relation(fields: [merchantId], references: [id])
+  updatedAt  DateTime @updatedAt
+}
+
+model Payout {
+  id             String   @id @default(uuid())
+  merchantId     String
+  amount         BigInt
+  destination    String   // On-chain D-Addr
+  status         String   // PENDING, COMPLETED, FAILED
+  txHash         String?
+  idempotencyKey String?  @unique
+  description    String?
+  merchant       Merchant @relation(fields: [merchantId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model WebhookEndpoint {
+  id         String   @id @default(uuid())
+  merchantId String
+  url        String
+  events     String   // Store as JSON serialized array string
+  merchant   Merchant @relation(fields: [merchantId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model Event {
+  id              String         @id @default(uuid())
+  type            String         // e.g. "payment_intent.created"
+  payload         String         // Store as JSON serialized string
+  paymentIntentId String?
+  paymentIntent   PaymentIntent? @relation(fields: [paymentIntentId], references: [id])
+  createdAt       DateTime       @default(now())
+}
+
+// Bank account (ACH) saved by a merchant/user
+model BankAccount {
+  id              String   @id @default(uuid())
+  merchantId      String
+  accountHolder   String
+  routingNumber   String   // stored in cleartext for sandbox; encrypt in prod
+  accountNumber   String   // masked after save
+  bankName        String?
+  accountType     String   @default("checking") // checking | savings
+  merchant        Merchant @relation(fields: [merchantId], references: [id])
+  offRampTxns     OffRampTransaction[]
+  createdAt       DateTime @default(now())
+}
+
+// Dytallix wallet address linked to a merchant/user
+model WalletAddress {
+  id              String   @id @default(uuid())
+  merchantId      String
+  address         String   // e.g. dt1qabc...
+  alias           String?  // friendly name
+  merchant        Merchant @relation(fields: [merchantId], references: [id])
+  onRampTxns      OnRampTransaction[]
+  createdAt       DateTime @default(now())
+}
+
+// Tracks USD → DRT on-ramp transactions
+model OnRampTransaction {
+  id              String        @id @default(uuid())
+  merchantId      String
+  walletAddressId String
+  fiatAmount      Float         // USD amount deposited
+  drtAmount       BigInt        // DRT base units minted
+  rate            Float         // DRT per USD at time of tx
+  fees            Float
+  status          String        @default("PENDING") // PENDING, COMPLETED, FAILED
+  txHash          String?       // On-chain mint tx hash (mocked)
+  merchant        Merchant      @relation(fields: [merchantId], references: [id])
+  walletAddress   WalletAddress @relation(fields: [walletAddressId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+// Tracks DRT → USD off-ramp transactions
+model OffRampTransaction {
+  id              String      @id @default(uuid())
+  merchantId      String
+  bankAccountId   String
+  drtAmount       BigInt      // DRT base units burned
+  fiatAmount      Float       // USD credited to bank
+  rate            Float       // USD per DRT at time of tx
+  fees            Float
+  status          String      @default("PENDING") // PENDING, COMPLETED, FAILED
+  txHash          String?     // On-chain burn tx hash (mocked)
+  merchant        Merchant    @relation(fields: [merchantId], references: [id])
+  bankAccount     BankAccount @relation(fields: [bankAccountId], references: [id])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}

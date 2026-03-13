@@ -1,0 +1,235 @@
+# Default values for pulsescan
+# This is a YAML-formatted file.
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# PulseScan Inference Service
+inference:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: dytallix/pulsescan-infer
+    pullPolicy: IfNotPresent
+    tag: "1.0.0"
+
+  service:
+    type: ClusterIP
+    port: 9090
+    targetPort: 9090
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: ["pulsescan"]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: ["inference"]
+            topologyKey: kubernetes.io/hostname
+
+  # Name of Kubernetes Secret to import env from (DATABASE_URL, REDIS_URL, ...)
+  envFromSecret: "pulsescan-secrets"
+
+  env:
+    - name: RUST_LOG
+      value: "info"
+    - name: BLOCKCHAIN_RPC_URL
+      value: "http://dytallix-node:26657"
+    - name: CONTRACT_ADDRESS
+      valueFrom:
+        configMapKeyRef:
+          name: pulsescan-config
+          key: contract-address
+
+  configMap:
+    config.toml: |
+      database_url = "${DATABASE_URL}"
+      redis_url = "${REDIS_URL}"
+      blockchain_rpc_url = "${BLOCKCHAIN_RPC_URL}"
+      contract_address = "${CONTRACT_ADDRESS}"
+      min_anomaly_score = 0.7
+      auto_submit_findings = true
+      metrics_port = 9090
+
+      [inference]
+      model_type = "ensemble"
+      batch_size = 32
+      confidence_threshold = 0.8
+      enable_ensemble = true
+
+      [features]
+      enable_graph_features = true
+      enable_temporal_features = true
+      enable_behavioral_features = true
+      lookback_window_hours = 24
+      velocity_window_minutes = 60
+
+# PulseScan API Gateway
+api:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: dytallix/pulsescan-api
+    pullPolicy: IfNotPresent
+    tag: "1.0.0"
+
+  service:
+    type: ClusterIP
+    port: 3001
+    targetPort: 3001
+
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/rate-limit-rps: "10"
+    hosts:
+      - host: pulsescan-api.dytallix.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: pulsescan-api-tls
+        hosts:
+          - pulsescan-api.dytallix.com
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: ["pulsescan"]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: ["api"]
+            topologyKey: kubernetes.io/hostname
+
+  # Name of Kubernetes Secret to import env from (DB_HOST, DB_NAME, DB_USERNAME, DB_PASSWORD, REDIS_URL, API_KEY, ...)
+  envFromSecret: "pulsescan-secrets"
+
+  env:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "3001"
+
+# PostgreSQL Database
+postgresql:
+  enabled: true
+  auth:
+    # Use existing Secret for credentials (no passwords in Git)
+    existingSecret: "pulsescan-postgresql"
+    username: "pulsescan"
+    database: "pulsescan"
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "fast-ssd"
+  metrics:
+    enabled: true
+
+# Redis Cache
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    # Use existing Secret for password (no passwords in Git)
+    existingSecret: "pulsescan-redis"
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+  metrics:
+    enabled: true
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: true
+
+# ConfigMaps and Secrets
+configMaps:
+  pulsescan-config:
+    contract-address: "dytallix1contractaddress..."
+    network-id: "dytallix-testnet"
+
+secrets: {}
+
+# Autoscaling
+autoscaling:
+  inference:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  api:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+
+# Pod Disruption Budgets
+podDisruptionBudget:
+  inference:
+    enabled: true
+    minAvailable: 1
+  api:
+    enabled: true
+    minAvailable: 2
+
+# Network Policies
+networkPolicy:
+  enabled: true
+
+# Security Context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000

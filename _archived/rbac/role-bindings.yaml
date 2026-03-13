@@ -1,0 +1,144 @@
+# Dytallix Bridge RBAC Role Bindings
+# Bindings between service accounts and roles
+---
+# ClusterRoleBinding for bridge node cluster access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dytallix-bridge-cluster-binding
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/binding-type: "cluster"
+subjects:
+  - kind: ServiceAccount
+    name: dytallix-bridge-sa
+    namespace: dytallix
+roleRef:
+  kind: ClusterRole
+  name: dytallix-bridge-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# RoleBinding for bridge node namespace operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dytallix-bridge-binding
+  namespace: dytallix
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/binding-type: "namespace"
+subjects:
+  - kind: ServiceAccount
+    name: dytallix-bridge-sa
+    namespace: dytallix
+roleRef:
+  kind: Role
+  name: dytallix-bridge-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# ClusterRoleBinding for monitoring cluster access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dytallix-monitoring-cluster-binding
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/binding-type: "cluster"
+subjects:
+  - kind: ServiceAccount
+    name: dytallix-monitoring-sa
+    namespace: dytallix
+roleRef:
+  kind: ClusterRole
+  name: dytallix-monitoring-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# RoleBinding for monitoring in dytallix namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dytallix-monitoring-binding
+  namespace: dytallix
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/binding-type: "namespace"
+subjects:
+  - kind: ServiceAccount
+    name: dytallix-monitoring-sa
+    namespace: dytallix
+roleRef:
+  kind: Role
+  name: dytallix-monitoring-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# RoleBinding for API Gateway
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dytallix-gateway-binding
+  namespace: dytallix
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/binding-type: "namespace"
+subjects:
+  - kind: ServiceAccount
+    name: dytallix-gateway-sa
+    namespace: dytallix
+roleRef:
+  kind: Role
+  name: dytallix-gateway-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# ClusterRoleBinding for Prometheus (cross-namespace monitoring)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-cluster-binding
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/binding-type: "cluster"
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-sa
+    namespace: dytallix-monitoring
+roleRef:
+  kind: ClusterRole
+  name: prometheus-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# RoleBinding for Prometheus in monitoring namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-binding
+  namespace: dytallix-monitoring
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/binding-type: "namespace"
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-sa
+    namespace: dytallix-monitoring
+roleRef:
+  kind: Role
+  name: prometheus-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Cross-namespace RoleBinding for Prometheus to monitor dytallix namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-dytallix-monitoring-binding
+  namespace: dytallix
+  labels:
+    security.dytallix.io/rbac-managed: "true"
+    security.dytallix.io/binding-type: "cross-namespace"
+    security.dytallix.io/source-namespace: "dytallix-monitoring"
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-sa
+    namespace: dytallix-monitoring
+roleRef:
+  kind: Role
+  name: dytallix-monitoring-role
+  apiGroup: rbac.authorization.k8s.io
