@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Frontend</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #1f2937; 
+            color: white; 
+            text-align: center; 
+            padding: 50px;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #374151;
+            padding: 30px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Dytallix Frontend Test</h1>
+        <p>If you can see this, the basic hosting is working.</p>
+        <p>The issue might be with the React app itself.</p>
+        <script>
+            console.log('Test page loaded successfully');
+            // Try to load the main bundle
+            fetch('./assets/index-88a4ba31.js')
+                .then(response => {
+                    console.log('Bundle fetch status:', response.status);
+                    return response.text();
+                })
+                .then(code => {
+                    console.log('Bundle loaded, size:', code.length);
+                })
+                .catch(err => {
+                    console.error('Bundle loading failed:', err);
+                });
+        </script>
+    </div>
+</body>
+</html>
