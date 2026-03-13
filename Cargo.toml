@@ -10,7 +10,6 @@ members = [
     "explorer/indexer",
     "explorer/api",
     "benchmarks",
-    "quantumvault",
     "Apps/QP-IAL/contract",
 ]
 

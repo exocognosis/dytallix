@@ -1,8 +1,0 @@
-{
-  "ml_dsa_dimension": 1536,
-  "ml_dsa_block_size": 600,
-  "ml_dsa_safe": true,
-  "ml_kem_dimension": 1024,
-  "ml_kem_block_size": 600,
-  "ml_kem_safe": true
-}

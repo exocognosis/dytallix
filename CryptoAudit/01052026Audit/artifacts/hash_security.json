@@ -1,7 +1,0 @@
-{
-  "blake3_output_size": 32,
-  "blake3_deterministic": true,
-  "blake3_hash_hex": "080279878264500121ae67f81c4af2287b6db80b4baa97c6b93ea2ae0dbb1961",
-  "shake256_output_size": 32,
-  "shake256_hash_hex": "29d30454e1806d706e22e015193e71b2d76f132548d7f9f53f37b402d8086775"
-}
